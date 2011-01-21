@@ -56,7 +56,7 @@ int main( int argc, char *argv[] )
 {
     int ret = 1, i, n;
     int keylen, mode, lastn;
-    FILE *fkey, *fin, *fout;
+    FILE *fkey, *fin = NULL, *fout = NULL;
 
     char *p;
     unsigned char IV[16];
@@ -390,6 +390,8 @@ int main( int argc, char *argv[] )
     ret = 0;
 
 exit:
+    fclose( fin );
+    fclose( fout );
 
     memset( buffer, 0, sizeof( buffer ) );
     memset( digest, 0, sizeof( digest ) );
