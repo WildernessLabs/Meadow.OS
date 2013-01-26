@@ -31,7 +31,7 @@
 
 #include "polarssl/config.h"
 
-#if defined(POLARSSL_ECP_C)
+#if defined(POLARSSL_ECDH_C)
 
 #include "polarssl/ecdh.h"
 
@@ -87,4 +87,4 @@ int ecdh_self_test( int verbose )
 
 #endif
 
-#endif /* defined(POLARSSL_ECP_C) */
+#endif /* defined(POLARSSL_ECDH_C) */
