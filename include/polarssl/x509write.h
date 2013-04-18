@@ -27,6 +27,8 @@
 #ifndef POLARSSL_X509_WRITE_H
 #define POLARSSL_X509_WRITE_H
 
+#if defined(POLARSSL_X509_WRITE_C)
+
 #include "rsa.h"
 
 typedef struct _x509_req_name
@@ -42,5 +44,7 @@ int x509_write_pubkey_der( unsigned char *buf, size_t size, rsa_context *rsa );
 int x509_write_key_der( unsigned char *buf, size_t size, rsa_context *rsa );
 int x509_write_cert_req( unsigned char *buf, size_t size, rsa_context *rsa,
                          x509_req_name *req_name, md_type_t md_alg );
+
+#endif /* POLARSSL_X509_WRITE_C */
 
 #endif /* POLARSSL_X509_WRITE_H */
