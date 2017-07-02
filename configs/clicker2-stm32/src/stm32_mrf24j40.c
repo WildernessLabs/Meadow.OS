@@ -135,6 +135,7 @@ static struct stm32_priv_s g_mrf24j40_mb1_priv =
   .dev.attach  = stm32_attach_irq,
   .dev.enable  = stm32_enable_irq,
   .handler     = NULL,
+  .arg         = NULL,
   .intcfg      = GPIO_MB1_INT,
   .spidev      = 3,
 };
@@ -145,7 +146,9 @@ static struct stm32_priv_s g_mrf24j40_mb2_priv =
 {
   .dev.attach  = stm32_attach_irq,
   .dev.enable  = stm32_enable_irq,
-  .uint32_t    = GPIO_MB2_INT,
+  .handler     = NULL,
+  .arg         = NULL,
+  .intcfg      = GPIO_MB2_INT,
   .spidev      = 2,
 };
 #endif
