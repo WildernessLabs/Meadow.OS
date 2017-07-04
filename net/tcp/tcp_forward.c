@@ -44,6 +44,7 @@
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/ip.h>
 
+#include "devif/ip_forward.h"
 #include "tcp/tcp.h"
 
 #if defined(CONFIG_NET) && defined(CONFIG_NET_IPFORWARD) && defined(CONFIG_NET_TCP)
@@ -53,19 +54,20 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: tcp_ipv6_forward
+ * Name: tcp_ipv6_dev_forward
  *
  * Description:
+ *   Called by the IP forwarding logic when an TCP packet is received on
+ *   one network device, but must be forwarded on another network device.
+ *
  *   Set up to forward the TCP packet on the specified device.  This
  *   function will set up a send "interrupt" handler that will perform
  *   the actual send asynchronously and must return without waiting for the
  *   send to complete.
  *
  * Input Parameters:
- *   dev   - The device on which the packet should be forwarded.
- *   ipv6  - A pointer to the IPv6 header in within the IPv6 packet.  This
- *           is immeidately followed by the TCP header.
- *   iob   - A list of IOBs containing the data payload to be sent.
+ *   fwd - An initialized instance of the common forwarding structure that
+ *         includes everything needed to perform the forwarding operation.
  *
  * Returned Value:
  *   Zero is returned if the packet was successfully forwarded;  A negated
@@ -75,8 +77,7 @@
  ****************************************************************************/
 
 #if defined(CONFIG_NET_IPv6) && defined(CONFIG_NETDEV_MULTINIC)
-int tcp_ipv6_forward(FAR struct net_driver_s *dev,
-                     FAR struct ipv6_hdr_s *ipv6, FAR struct iob_s *iob)
+int tcp_ipv6_dev_forward(FAR struct forward_s *fwd)
 {
   /* Notify the forwarding device that TX data is available */
 
