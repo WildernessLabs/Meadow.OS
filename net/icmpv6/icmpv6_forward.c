@@ -67,26 +67,22 @@
  * Name: icmpv6_forward_addrchck
  *
  * Description:
- *   Check if the destination IP address is in the IPv4 ARP or IPv6 Neighbor
- *   tables.  If not, then the send won't actually make it out... it will be
- *   replaced with an ARP request (IPv4) or a Neighbor Solicitation (IPv6).
+ *   Check if the destination IP address is in the Pv6 Neighbor table.  If
+ *   not, then the send won't actually make it out... it will be replaced
+ *   with a Neighbor Solicitation.
  *
  *   NOTE 1: This could be an expensive check if there are a lot of
- *   entries in the ARP or Neighbor tables.
+ *   entries in the Neighbor table.
  *
- *   NOTE 2: If we are actually harvesting IP addresses on incoming IP
- *   packets, then this check should not be necessary; the MAC mapping
- *   should already be in the ARP table in many cases (IPv4 only).
- *
- *   NOTE 3: If CONFIG_NET_ARP_SEND then we can be assured that the IP
+ *   NOTE 2: If CONFIG_NET_ARP_SEND then we can be assured that the IP
  *   address mapping is already in the ARP table.
  *
  * Parameters:
  *   fwd - The forwarding state structure
  *
  * Returned Value:
- *   true - The Ethernet MAC address is in the ARP or Neighbor table (OR
- *          the network device is not Ethernet).
+ *   true - The Ethernet MAC address is in the Neighbor table (OR the
+ *          network device is not Ethernet).
  *
  * Assumptions:
  *   The network is locked.
@@ -96,6 +92,12 @@
 #ifdef CONFIG_NET_ETHERNET
 static inline bool icmpv6_forward_addrchck(FAR struct forward_s *fwd)
 {
+#if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
+  FAR union fwd_iphdr_u *iphdr;
+#endif
+
+  DEBUGASSERT(fwd != NULL && fwd->f_iob != NULL && fwd->f_dev != NULL);
+
   /* REVISIT: Could the MAC address not also be in a routing table? */
 
 #ifdef CONFIG_NET_MULTILINK
@@ -105,35 +107,16 @@ static inline bool icmpv6_forward_addrchck(FAR struct forward_s *fwd)
     }
 #endif
 
-#ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
-  if ((fwd->f_hdr.ipv4.l2.vhl & IP_VERSION_MASK) == IPv4_VERSION)
-#endif
-    {
-#if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      return (arp_find(fwd->f_hdr.ipv4.l2.destipaddr) != NULL);
-#else
-      return true;
-#endif
-    }
-#endif /* CONFIG_NET_IPv4 */
-
-#ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-  else
-#endif
-    {
 #if !defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-      return (neighbor_findentry(fwd->f_hdr.ipv6.l2.destipaddr) != NULL);
+  iphdr = FWD_HEADER(fwd);
+  return (arp_find(iphdr->ipv6.l2.destipaddr) != NULL);
 #else
-      return true;
+  return true;
 #endif
-    }
-#endif /* CONFIG_NET_IPv6 */
 }
 
 #else /* CONFIG_NET_ETHERNET */
-#  define icmpv6_forward_addrchck(r) (true)
+#  define icmpv6_forward_addrchck(fwd) (true)
 #endif /* CONFIG_NET_ETHERNET */
 
 /****************************************************************************
@@ -151,33 +134,15 @@ static inline bool icmpv6_forward_addrchck(FAR struct forward_s *fwd)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_STATISTICS
-static void icmpv6_dropstats(FAR struct forward_s *fwd)
+static inline void icmpv6_dropstats(FAR struct forward_s *fwd)
 {
-  /* Increment the count of dropped ICMPV6 packets */
+  /* Increment the count of dropped ICMPv6 packets */
 
   g_netstats.icmpv6.drop++;
-
-  /* Increment the count of dropped IPv4 or IPv6 packets */
-
-#ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
-  if ((fwd->f_hdr.ipv4.l2.vhl & IP_VERSION_MASK) == IPv4_VERSION)
-#endif
-    {
-      g_netstats.ipv4.drop++;
-    }
-#endif
-#ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-  else
-#endif
-    {
-      g_netstats.ipv6.drop++;
-    }
-#endif
+  g_netstats.ipv6.drop++;
 }
 #else
-#  define icmpv6_dropstats(ipv6)
+#  define icmpv6_dropstats(fwd)
 #endif
 
 /****************************************************************************
@@ -189,7 +154,7 @@ static void icmpv6_dropstats(FAR struct forward_s *fwd)
  *
  * Parameters:
  *   dev        The structure of the network driver that caused the interrupt
- *   conn       An instance of the ICMPV6 connection structure cast to void *
+ *   conn       An instance of the ICMPv6 connection structure cast to void *
  *   pvpriv     An instance of struct forward_s cast to void*
  *   flags      Set of events describing why the callback was invoked
  *
@@ -208,7 +173,7 @@ static uint16_t icmpv6_forward_interrupt(FAR struct net_driver_s *dev,
   FAR struct forward_s *fwd = (FAR struct forward_s *)pvpriv;
 
   ninfo("flags: %04x\n", flags);
-  DEBUGASSERT(fwd != NULL);
+  DEBUGASSERT(fwd != NULL && fwd->f_iob != NULL && fwd->f_dev != NULL);
 
   /* Make sure that this is from the forwarding device */
 
@@ -291,10 +256,10 @@ static uint16_t icmpv6_forward_interrupt(FAR struct net_driver_s *dev,
  * Name: icmpv6_forward
  *
  * Description:
- *   Called by the IP forwarding logic when an ICMPV6 packet is received on
+ *   Called by the IP forwarding logic when an ICMPv6 packet is received on
  *   one network device, but must be forwarded on another network device.
  *
- *   Set up to forward the ICMPV6 packet on the specified device.  This
+ *   Set up to forward the ICMPv6 packet on the specified device.  This
  *   function will set up a send "interrupt" handler that will perform the
  *   actual send asynchronously and must return without waiting for the
  *   send to complete.
@@ -312,7 +277,7 @@ static uint16_t icmpv6_forward_interrupt(FAR struct net_driver_s *dev,
 
 int icmpv6_forward(FAR struct forward_s *fwd)
 {
-  DEBUGASSERT(fwd != NULL && fwd->f_dev != NULL);
+  DEBUGASSERT(fwd != NULL && fwd->f_iob != NULL && fwd->f_dev != NULL);
 
   /* Set up the callback in the connection */
 
