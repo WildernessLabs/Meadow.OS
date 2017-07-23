@@ -43,6 +43,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
+#include "stm32l4_start.h"
 #include "b-l475e-iot01a.h"
 
 /************************************************************************************
@@ -50,16 +51,16 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Name: stm32_boardinitialize
+ * Name: stm32l4_board_initialize
  *
  * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
+ *   All STM32L4 architectures must provide the following entry point.  This entry
+ *   point is called early in the initialization -- after all memory has been
+ *   configured and mapped but before any devices have been initialized.
  *
  ************************************************************************************/
 
-void stm32l4_boardinitialize(void)
+void stm32l4_board_initialize(void)
 {
 #ifdef CONFIG_ARCH_LEDS
   /* Configure on-board LEDs if LED support has been selected. */
