@@ -1,5 +1,5 @@
 /******************************************************************************
- * include/nuttx/wireless/spirit/spirit_qi.h
+ * include/nuttx/wireless/spirit/include/spirit_qi.h
  * Configuration and management of SPIRIT QI.
  *
  *   Copyright(c) 2015 STMicroelectronics
@@ -34,8 +34,8 @@
  *
  ******************************************************************************/
 
-#ifndef __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_QI_H
-#define __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_QI_H
+#ifndef __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_QI_H
+#define __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_QI_H
 
 /******************************************************************************
  * Included Files
@@ -191,4 +191,4 @@ enum spirit_sqi_threshold_e
 int spirit_qi_set_rssithreshold(FAR struct spirit_library_s *spirit,
                                 int dbmvalue);
 
-#endif /* __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_GENERAL_H*/
+#endif /* __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_GENERAL_H*/

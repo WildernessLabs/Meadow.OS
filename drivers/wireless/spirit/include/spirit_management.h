@@ -1,5 +1,5 @@
 /******************************************************************************
- * include/nuttx/wireless/spirit/spirit_management.h
+ * include/nuttx/wireless/spirit/include/spirit_management.h
  * The management layer for SPIRIT1 library.
  *
  *   Copyright(c) 2015 STMicroelectronics
@@ -34,8 +34,8 @@
  *
  ******************************************************************************/
 
-#ifndef __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_MANAGEMENT_H
-#define __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_MANAGEMENT_H
+#ifndef __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_MANAGEMENT_H
+#define __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_MANAGEMENT_H
 
 /******************************************************************************
  * Included Files
@@ -43,16 +43,6 @@
 
 #include "spirit_config.h"
 #include "spirit_types.h"
-
-/******************************************************************************
- * Pre-processor Definitions
- ******************************************************************************/
-
-/* Macros used in assertions */
-
-/******************************************************************************
- * Public Types
- ******************************************************************************/
 
 /******************************************************************************
  * Public Function Prototypes
@@ -108,6 +98,22 @@ int spirit_management_txstrobe(FAR struct spirit_library_s *spirit);
 int spirit_management_rxstrobe(FAR struct spirit_library_s *spirit);
 
 /******************************************************************************
+ * Name: spirit_management_waextracurrent
+ *
+ * Description:
+ *
+ * Input Parameters:
+ *   spirit - Reference to a Spirit library state structure instance
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; A negated errno value is returned on
+ *   any failure.
+ *
+ ******************************************************************************/
+
+int spirit_management_waextracurrent(FAR struct spirit_library_s *spirit);
+
+/******************************************************************************
  * Name: spirit_management_initcommstate
  *
  * Description:
@@ -124,4 +130,4 @@ int spirit_management_rxstrobe(FAR struct spirit_library_s *spirit);
 void spirit_management_initcommstate(FAR struct spirit_library_s *spirit,
                                      uint32_t frequency);
 
-#endif /* __INCLUDE_NUTT_WIRELESS_SPIRIT_SPIRIT_MANAGEMENT_H */
+#endif /* __DRIVERS_WIRELESS_SPIRIT_INCLUDE_SPIRIT_MANAGEMENT_H */
