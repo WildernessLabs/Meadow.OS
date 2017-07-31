@@ -106,7 +106,7 @@ struct lo_driver_s
 
   /* This holds the information visible to the NuttX network */
 
-  struct sixlowpan_driver_s lo_ieee;  /* Interface understood by the network */
+  struct sixlowpan_driver_s lo_radio;  /* Interface understood by the network */
 };
 
 /****************************************************************************
@@ -153,11 +153,9 @@ static int  lo_ifup(FAR struct net_driver_s *dev);
 static int  lo_ifdown(FAR struct net_driver_s *dev);
 static void lo_txavail_work(FAR void *arg);
 static int  lo_txavail(FAR struct net_driver_s *dev);
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
-static int  lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #ifdef CONFIG_NET_IGMP
+static int  lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int  lo_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
-#endif
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
 static int  lo_ioctl(FAR struct net_driver_s *dev, int cmd,
@@ -323,7 +321,7 @@ static int lo_loopback(FAR struct net_driver_s *dev)
 
       /* Increment statistics */
 
-      NETDEV_RXPACKETS(&priv->lo_ieee.r_dev);
+      NETDEV_RXPACKETS(&priv->lo_radio.r_dev);
 
       /* Remove the IOB from the queue */
 
@@ -343,17 +341,17 @@ static int lo_loopback(FAR struct net_driver_s *dev)
       ninfo("Send frame %p to the network:  Offset=%u Length=%u\n",
             iob, iob->io_offset, iob->io_len);
 
-      ret = sixlowpan_input(&priv->lo_ieee, iob, (FAR void *)&ind);
+      ret = sixlowpan_input(&priv->lo_radio, iob, (FAR void *)&ind);
 
       /* Increment statistics */
 
-      NETDEV_TXPACKETS(&priv->lo_ieee.r_dev);
+      NETDEV_TXPACKETS(&priv->lo_radio.r_dev);
 
       if (ret < 0)
         {
           nerr("ERROR: sixlowpan_input returned %d\n", ret);
-          NETDEV_TXERRORS(&priv->lo_ieee.r_dev);
-          NETDEV_ERRORS(&priv->lo_ieee.r_dev);
+          NETDEV_TXERRORS(&priv->lo_radio.r_dev);
+          NETDEV_ERRORS(&priv->lo_radio.r_dev);
         }
     }
 
@@ -384,7 +382,7 @@ static void lo_loopback_work(FAR void *arg)
   /* Perform the loopback */
 
   net_lock();
-  (void)lo_loopback(&priv->lo_ieee.r_dev);
+  (void)lo_loopback(&priv->lo_radio.r_dev);
   net_unlock();
 }
 
@@ -412,7 +410,7 @@ static void lo_poll_work(FAR void *arg)
   /* Perform the poll */
 
   net_lock();
-  (void)devif_timer(&priv->lo_ieee.r_dev, lo_loopback);
+  (void)devif_timer(&priv->lo_radio.r_dev, lo_loopback);
 
   /* Setup the watchdog poll timer again */
 
@@ -566,7 +564,7 @@ static void lo_txavail_work(FAR void *arg)
     {
       /* If so, then poll the network for new XMIT data */
 
-      (void)devif_poll(&priv->lo_ieee.r_dev, lo_loopback);
+      (void)devif_poll(&priv->lo_radio.r_dev, lo_loopback);
     }
 
   net_unlock();
@@ -636,7 +634,7 @@ static int lo_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
+#ifdef CONFIG_NET_IGMP
 static int lo_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
 #ifdef CONFIG_NET_6LOWPAN_EXTENDEDADDR
@@ -854,7 +852,7 @@ static int lo_req_data(FAR struct sixlowpan_driver_s *netdev,
     {
       /* Increment statistics */
 
-      NETDEV_RXPACKETS(&priv->lo_ieee.r_dev);
+      NETDEV_RXPACKETS(&priv->lo_radio.r_dev);
 
       /* Remove the IOB from the queue */
 
@@ -953,7 +951,7 @@ int ieee8021514_loopback(void)
 
   memset(priv, 0, sizeof(struct lo_driver_s));
 
-  radio               = &priv->lo_ieee;
+  radio               = &priv->lo_radio;
   dev                 = &radio->r_dev;
   dev->d_ifup         = lo_ifup;          /* I/F up (new IP address) callback */
   dev->d_ifdown       = lo_ifdown;        /* I/F down callback */
@@ -987,12 +985,12 @@ int ieee8021514_loopback(void)
    * performed.
    */
 
-  (void)netdev_register(&priv->lo_ieee.r_dev, NET_LL_IEEE802154);
+  (void)netdev_register(&priv->lo_radio.r_dev, NET_LL_IEEE802154);
 
   /* Put the network in the UP state */
 
   dev->d_flags = IFF_UP;
-  return lo_ifup(&priv->lo_ieee.r_dev);
+  return lo_ifup(&priv->lo_radio.r_dev);
 }
 
 #endif /* CONFIG_IEEE802154_LOOPBACK */
