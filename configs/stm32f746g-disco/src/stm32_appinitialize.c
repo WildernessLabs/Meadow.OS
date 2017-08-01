@@ -39,12 +39,9 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <sys/mount.h>
-#include <syslog.h>
-#include <errno.h>
-
 #include "stm32f746g-disco.h"
+
+#ifdef CONFIG_LIB_BOARDCTL
 
 /****************************************************************************
  * Public Functions
@@ -77,29 +74,13 @@
 
 int board_app_initialize(uintptr_t arg)
 {
-#ifdef CONFIG_FS_PROCFS
-  int ret;
+#ifndef CONFIG_BOARD_INITIALIZE
+  /* Perform board-specific initialization */
 
-#ifdef CONFIG_STM32_CCM_PROCFS
-  /* Register the CCM procfs entry.  This must be done before the procfs is
-   * mounted.
-   */
-
-  (void)ccm_procfs_register();
-#endif
-
-  /* Mount the procfs file system */
-
-  ret = mount(NULL, STM32_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to mount the PROC filesystem: %d (%d)\n",
-             ret, errno);
-      return ret;
-
-    }
-#endif
-
+  return stm32_bringup();
+#else
   return OK;
+#endif
 }
+
+#endif
