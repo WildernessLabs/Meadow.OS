@@ -56,6 +56,7 @@ VPATH =
 DEPPATH = --dep-path .
 
 include socket/Make.defs
+include inet/Make.defs
 include netdev/Make.defs
 include arp/Make.defs
 include icmp/Make.defs
