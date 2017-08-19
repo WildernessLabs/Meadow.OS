@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/socket/pkt_recvfrom.c
+ * net/pkt/pkt_recvfrom.c
  *
  *   Copyright (C) 2007-2009, 2011-2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
