@@ -247,7 +247,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                smps->limits.p_in <= 0 && smps->limits.p_out <= 0 ))
             {
               pwrerr("ERROR: SMPS limits data must be set"
-                     " and locked before SMPS start\n", ret);
+                     " and locked before SMPS start\n");
 
               ret = -EPERM;
               goto errout;
@@ -300,7 +300,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->start(dev);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_START failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_START failed %d\n", ret);
             }
           break;
         }
@@ -310,7 +310,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->stop(dev);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_STOP failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_STOP failed %d\n", ret);
             }
           break;
         }
@@ -322,7 +322,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->mode_set(dev, mode);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_SET_MODE failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_SET_MODE failed %d\n", ret);
             }
           break;
         }
@@ -345,7 +345,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->limits_set(dev, limits);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_SET_LIMITS failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_SET_LIMITS failed %d\n", ret);
             }
           break;
         }
@@ -358,7 +358,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->state_get(dev, state);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_GET_STATE failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_GET_STATE failed %d\n", ret);
             }
           break;
         }
@@ -370,7 +370,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->fault_set(dev, fault);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_SET_FAULT failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_SET_FAULT failed %d\n", ret);
             }
           break;
         }
@@ -382,7 +382,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->fault_get(dev, fault);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_GET_FAULT failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_GET_FAULT failed %d\n", ret);
             }
           break;
         }
@@ -394,7 +394,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->fault_clean(dev, fault);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_CLEAN_FAULT failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_CLEAN_FAULT failed %d\n", ret);
             }
           break;
         }
@@ -461,7 +461,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = dev->ops->params_set(dev, params);
           if (ret != OK)
             {
-              pwrerr("ERROR: SMPSC_SET_PARAMS failed %d\n", ret);
+              pwrerr("ERROR: PWRIOC_SET_PARAMS failed %d\n", ret);
             }
           break;
         }
