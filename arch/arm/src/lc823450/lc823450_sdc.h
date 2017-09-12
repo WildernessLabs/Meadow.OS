@@ -65,10 +65,10 @@ int lc823450_sdc_initialize(uint32_t ch);
 int lc823450_sdc_finalize(uint32_t ch);
 int lc823450_sdc_checkcarddetect(uint32_t ch);
 int lc823450_sdc_identifycard(uint32_t ch);
-int lc823450_sdc_setclock(uint32_t ch, uint32_t limitClk, uint32_t sysClk);
+int lc823450_sdc_setclock(uint32_t ch, uint32_t limitclk, uint32_t sysclk);
 int lc823450_sdc_refmediatype(uint32_t ch);
-int lc823450_sdc_getcardsize(uint32_t ch, unsigned long *pSecNum, unsigned long *pSecSize);
-
+int lc823450_sdc_getcardsize(uint32_t ch, unsigned long *psecnum,
+                             unsigned long *psecsize);
 int lc823450_sdc_readsector(uint32_t ch, unsigned long addr, unsigned short cnt,
                             void *pbuf, unsigned long type);
 int lc823450_sdc_writesector(uint32_t ch, unsigned long addr, unsigned short cnt,
