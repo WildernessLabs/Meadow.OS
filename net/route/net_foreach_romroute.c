@@ -41,8 +41,6 @@
 
 #include <stdint.h>
 
-#include <arch/irq.h>
-
 #include "route/romroute.h"
 #include "route/route.h"
 
@@ -63,7 +61,9 @@
  *   arg     - An arbitrary value that will be passed tot he handler.
  *
  * Returned Value:
- *   0 if in use; 1 if avaialble and the new entry was added
+ *   Zero (OK) returned if the entire table was search.  A negated errno
+ *   value will be returned in the event of a failure.  Handlers may also
+ *   terminate the search early with any non-zero, non-negative value.
  *
  ****************************************************************************/
 
