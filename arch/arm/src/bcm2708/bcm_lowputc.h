@@ -54,7 +54,7 @@
  * Public Types
  ****************************************************************************/
 
-#ifdef IMX_HAVE_UART
+#ifdef BCM_HAVE_UART
 /* This structure describes the configuration of an UART */
 
 struct uart_config_s
@@ -91,7 +91,7 @@ void bcm_lowsetup(void);
  *
  ****************************************************************************/
 
-#ifdef IMX_HAVE_UART
+#ifdef BCM_HAVE_UART
 int bcm_uart_configure(uint32_t base, FAR const struct uart_config_s *config);
 #endif
 
@@ -105,7 +105,7 @@ int bcm_uart_configure(uint32_t base, FAR const struct uart_config_s *config);
  *
  ************************************************************************************/
 
-#if defined(IMX_HAVE_UART) && defined(CONFIG_DEBUG_FEATURES)
+#if defined(BCM_HAVE_UART) && defined(CONFIG_DEBUG_FEATURES)
 void bcm_lowputc(int ch);
 #else
 #  define bcm_lowputc(ch)
