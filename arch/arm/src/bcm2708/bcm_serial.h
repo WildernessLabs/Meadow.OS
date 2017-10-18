@@ -46,22 +46,10 @@
 #include "bcm_config.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Inline Functions
+ * Public Data
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -88,21 +76,37 @@ extern "C"
 
 #ifdef USE_EARLYSERIALINIT
 void bcm_earlyserialinit(void);
-#endif
 
 /****************************************************************************
- * Name: uart_earlyserialinit
+ * Name: bcm_miniuart_earlyserialinit
  *
  * Description:
- *   Performs the low level UART initialization early in debug so that the
- *   serial console will be available during bootup.  This must be called
- *   before up_serialinit.
+ *   Performs the low level Mini-UART initialization early in debug so that
+ *   the Mini-UART serial console will be available during bootup.  This
+ *   function will be called by bcm_earlyserialinit() if the Mini-UART is
+ *   selected for the serial console.
  *
  ****************************************************************************/
 
-#if defined(USE_EARLYSERIALINIT) && defined(BCM6_HAVE_UART)
-void uart_earlyserialinit(void);
+#ifdef CONFIG_BCM2708_MINI_UART_SERIAL_CONSOLE
+void bcm_miniuart_earlyserialinit(void);
 #endif
+
+/****************************************************************************
+ * Name: bcm_pl011uart_earlyserialinit
+ *
+ * Description:
+ *   Performs the low level PL011-UART initialization early in debug so that
+ *   the PL011-UART serial console will be available during bootup.  This
+ *   function will be called by bcm_earlyserialinit() if the PL011-UART is
+ *   selected for the serial console.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BCM2708_PL011_UART_SERIAL_CONSOLE
+void bcm_pl011uart_earlyserialinit(void);
+#endif
+#endif /* USE_EARLYSERIALINIT */
 
 /****************************************************************************
  * Name: uart_serialinit
@@ -113,9 +117,35 @@ void uart_earlyserialinit(void);
  *
  ****************************************************************************/
 
-#ifdef BCM6_HAVE_UART
+#ifdef USE_SERIALDRIVER
 void uart_serialinit(void);
+
+/****************************************************************************
+ * Name: bcm_miniuart_serialinit
+ *
+ * Description:
+ *   Register the Mini-UART serial console and serial ports.  This function
+ *   will be called by uart_serialinit() if the Mini-UART is enabled.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BCM2708_MINI_UART
+void bcm_miniuart_serialinit(void);
 #endif
+
+/****************************************************************************
+ * Name: bcm_pl011uart_serialinit
+ *
+ * Description:
+ *   Register the PL011-UART serial console and serial ports.  This function
+ *   will be called by uart_serialinit() if the Mini-UART is enabled.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BCM2708_PL011_UART
+void bcm_pl011uart_serialinit(void);
+#endif
+#endif /* USE_SERIALDRIVER */
 
 #undef EXTERN
 #if defined(__cplusplus)
