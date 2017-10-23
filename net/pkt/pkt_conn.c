@@ -116,7 +116,7 @@ static inline void _pkt_semtake(sem_t *sem)
  *
  * Description:
  *   Initialize the packet socket connection structures.  Called once and
- *   only from the UIP layer.
+ *   only from the network initialization layer.
  *
  ****************************************************************************/
 
@@ -206,15 +206,15 @@ void pkt_free(FAR struct pkt_conn_s *conn)
  * Name: pkt_active()
  *
  * Description:
- *   Find a connection structure that is the appropriate
- *   connection to be used with the provided Ethernet header
+ *   Find a connection structure that is the appropriate connection to be
+ *   used with the provided Ethernet header
  *
  * Assumptions:
- *   This function is called from network logic at interrupt level
+ *   This function is called from network logic at with the network locked.
  *
  ****************************************************************************/
 
-FAR struct pkt_conn_s *pkt_active(struct eth_hdr_s *buf)
+FAR struct pkt_conn_s *pkt_active(FAR struct eth_hdr_s *buf)
 {
   #define eth_addr_cmp(addr1, addr2) \
   ((addr1[0] == addr2[0]) && (addr1[1] == addr2[1]) && \
@@ -250,8 +250,7 @@ FAR struct pkt_conn_s *pkt_active(struct eth_hdr_s *buf)
  *   Traverse the list of allocated packet connections
  *
  * Assumptions:
- *   This function is called from network logic at interrupt level (or with
- *   interrupts disabled).
+ *   This function is called from network logic at with the network locked.
  *
  ****************************************************************************/
 

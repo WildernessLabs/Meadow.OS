@@ -200,7 +200,7 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
       goto errout_with_lock;
     }
 
-  /* Allocate a TCP/IP callback structure */
+  /* Allocate a UDP callback structure */
 
   cb = udp_callback_alloc(info->dev, conn);
   if (cb == NULL)
@@ -278,7 +278,7 @@ errout_with_lock:
  *   Teardown monitoring of events on an UDP/IP socket
  *
  * Input Parameters:
- *   psock - The TCP/IP socket of interest
+ *   psock - The UDP socket of interest
  *   fds   - The structure describing the events to be monitored, OR NULL if
  *           this is a request to stop monitoring events.
  *
