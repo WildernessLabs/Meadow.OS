@@ -116,7 +116,7 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
 
       /*  ICMP_POLL is a sign that we are free to send data. */
 
-      if ((flags & ICMP_POLL) != 0)
+      if ((flags & DEVPOLL_MASK) == ICMP_POLL)
         {
           eventset |= (POLLOUT & info->fds->events);
         }
@@ -148,10 +148,10 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
  * Name: icmp_pollsetup
  *
  * Description:
- *   Setup to monitor events on one UDP/IP socket
+ *   Setup to monitor events on one ICMP socket
  *
  * Input Parameters:
- *   psock - The UDP/IP socket of interest
+ *   psock - The IPPROTO_ICMP socket of interest
  *   fds   - The structure describing the events to be monitored, OR NULL if
  *           this is a request to stop monitoring events.
  *
@@ -261,7 +261,7 @@ errout_with_lock:
  * Name: icmp_pollteardown
  *
  * Description:
- *   Teardown monitoring of events on an UDP/IP socket
+ *   Teardown monitoring of events on an ICMP socket
  *
  * Input Parameters:
  *   psock - The IPPROTO_ICMP socket of interest
