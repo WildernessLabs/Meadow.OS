@@ -132,6 +132,12 @@ FAR const char *fs_gettype(FAR struct statfs *statbuf)
         break;
 #endif
 
+#ifdef CONFIG_FS_USERFS
+      case USERFS_MAGIC:
+        fstype = "userfs";
+        break;
+#endif
+
       default:
         fstype = "Unrecognized";
         break;
