@@ -46,8 +46,25 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* LED definitions **********************************************************/
-/* to be provided */
+/* The LPCXpress-LPC54628 has three user LEDs: D9, D11, and D12.  These
+ * LEDs are for application use. They are illuminated when the driving
+ * signal from the LPC546xx is low. The LEDs are driven by ports P2-2 (D9),
+ * P3-3 (D11) and P3-14 (D12).
+ */
+
+#define GPIO_LED_D9 \
+  (GPIO_PORT2 | GPIO_PIN2 | GPIO_VALUE_ONE | GPIO_OUTPUT | GPIO_PUSHPULL | \
+   GPIO_PULLUP)
+
+#define GPIO_LED_D11 \
+  (GPIO_PORT3 | GPIO_PIN3 | GPIO_VALUE_ONE | GPIO_OUTPUT | GPIO_PUSHPULL | \
+   GPIO_PULLUP)
+
+#define GPIO_LED_D12 \
+  (GPIO_PORT3 | GPIO_PIN14 | GPIO_VALUE_ONE | GPIO_OUTPUT | GPIO_PUSHPULL | \
+   GPIO_PULLUP)
 
 /* Button definitions *******************************************************/
 /* to be provided */
