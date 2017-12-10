@@ -99,5 +99,17 @@
 
 int lpc54_bringup(void);
 
+/****************************************************************************
+ * Name: lpc54_sdram_initialize
+ *
+ * Description:
+ *   Initialize external SDRAM
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_LPC54_EMC
+void lpc54_sdram_initialize(void);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* _CONFIGS_LPCXPRESSO_LPC54628_SRC_LPCXPRESSO_LPC54628_H */
