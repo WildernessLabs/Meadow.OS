@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * configs/lpcxpresso-lpc54628/src/lpc54_boot.c
  *
  *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
@@ -31,11 +31,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -43,20 +43,20 @@
 
 #include "lpcxpresso-lpc54628.h"
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: lpc54_board_initialize
  *
  * Description:
- *   All LPC54xx architectures must provide the following entry point.  This entry
- *   point is called early in the initialization -- after clocking and memory have
- *   been configured but before caches have been enabled and before any devices have
- *   been initialized.
+ *   All LPC54xx architectures must provide the following entry point.
+ *   This entry point is called early in the initialization -- after
+ *   clocking and memory have been configured but before caches have been
+ *   enabled and before any devices have been initialized.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 void lpc54_board_initialize(void)
 {
@@ -65,6 +65,13 @@ void lpc54_board_initialize(void)
 
   board_autoled_initialize();
 #endif
+
+  /* Configure the LCD GPIOs if LCD support has been selected. This is done
+   * unconditionally because even if the LCD is not configured, we will
+   * still want to turn the backlight off.
+   */
+
+  lpc54_lcd_initialize();
 
 #ifdef CONFIG_LPC54_EMC
   /* Initialize SDRAM */
