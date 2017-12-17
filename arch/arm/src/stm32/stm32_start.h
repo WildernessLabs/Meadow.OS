@@ -50,7 +50,7 @@
  * Name: stm32_boardinitialize
  *
  * Description:
- *   All LPC17xx architectures must provide the following entry point.  This entry
+ *   All STM32 architectures must provide the following entry point.  This entry
  *   point is called early in the initialization -- after clocking and memory have
  *   been configured but before caches have been enabled and before any devices have
  *   been initialized.
