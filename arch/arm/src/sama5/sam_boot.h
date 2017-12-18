@@ -1,5 +1,5 @@
 /************************************************************************************
- * arch/arm/src/sama5/sam_start.h
+ * arch/arm/src/sama5/sam_boot.h
  *
  *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,8 +33,8 @@
  *
  ************************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_SAMA5_SAM_START_H
-#define __ARCH_ARM_SRC_SAMA5_SAM_START_H
+#ifndef __ARCH_ARM_SRC_SAMA5_SAM_BOOT_H
+#define __ARCH_ARM_SRC_SAMA5_SAM_BOOT_H
 
 /************************************************************************************
  * Included Files
@@ -59,4 +59,4 @@
 
 void sam_boardinitialize(void);
 
-#endif /* __ARCH_ARM_SRC_SAMA5_SAM_START_H */
+#endif /* __ARCH_ARM_SRC_SAMA5_SAM_BOOT_H */
