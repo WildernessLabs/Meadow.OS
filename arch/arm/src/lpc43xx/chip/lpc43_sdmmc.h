@@ -114,7 +114,6 @@
 #define LPC43_SDMMC_TBBCNT               (LPC43_SDMMC_BASE+LPC43_SDMMC_TBBCNT_OFFSET)
 #define LPC43_SDMMC_TBBCNT               (LPC43_SDMMC_BASE+LPC43_SDMMC_TBBCNT_OFFSET)
 #define LPC43_SDMMC_DEBNCE               (LPC43_SDMMC_BASE+LPC43_SDMMC_DEBNCE_OFFSET)
-#define LPC43_SDMMC_DEBNCE               (LPC43_SDMMC_BASE+LPC43_SDMMC_DEBNCE_OFFSET)
 #define LPC43_SDMMC_RSTN                 (LPC43_SDMMC_BASE+LPC43_SDMMC_RSTN_OFFSET)
 #define LPC43_SDMMC_BMOD                 (LPC43_SDMMC_BASE+LPC43_SDMMC_BMOD_OFFSET)
 #define LPC43_SDMMC_PLDMND               (LPC43_SDMMC_BASE+LPC43_SDMMC_PLDMND_OFFSET)
@@ -365,7 +364,6 @@
                                                     /* Bits 17-31: Reserved */
 /* Internal DMAC Interrupt Enable Register */
 
-#define SDMMC_IDINTEN_
 #define SDMMC_IDINTEN_TI                  (1 << 0)  /* Bit 0:  Transmit Interrupt */
 #define SDMMC_IDINTEN_RI                  (1 << 1)  /* Bit 1:  Receive Interrupt */
 #define SDMMC_IDINTEN_FBE                 (1 << 2)  /* Bit 2:  Fatal Bus Error Interrupt */
