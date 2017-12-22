@@ -79,5 +79,10 @@ extern "C"
 struct lpc54_sdmmc_dev_s; /* See include/nuttx/sdio.h */
 FAR struct sdio_dev_s *lpc54_sdmmc_initialize(int slotno);
 
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_LPC54XX_LPC54_SDMMC_H */

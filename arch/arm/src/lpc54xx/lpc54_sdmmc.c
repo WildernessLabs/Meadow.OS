@@ -1062,22 +1062,9 @@ static int lpc54_sdmmc_interrupt(int irq, void *context, FAR void *arg)
                 }
             }
 
-          /* Handle data end events.  Note that RXDR may accompany DTO, DTO
-           * will be set on received while there is still data in the FIFO.
-           * So for the case of receiving, we don't actually even enable the
-           * DTO interrupt.
-           */
-
-          if ((pending & SDMMC_INT_DTO) != 0)
-            {
-              /* Finish the transfer */
-
-              lpc54_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
-            }
-
           /* Handle data block send/receive CRC failure */
 
-          else if ((pending & SDMMC_INT_DCRC) != 0)
+          if ((pending & SDMMC_INT_DCRC) != 0)
             {
               /* Terminate the transfer with an error */
 
@@ -1125,6 +1112,20 @@ static int lpc54_sdmmc_interrupt(int irq, void *context, FAR void *arg)
               mcerr("ERROR: Start bit, remaining: %d\n", priv->remaining);
               lpc54_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
             }
+
+          /* Handle data end events.  Note that RXDR may accompany DTO, DTO
+           * will be set on received while there is still data in the FIFO.
+           * So for the case of receiving, we don't actually even enable the
+           * DTO interrupt.
+           */
+
+          else if ((pending & SDMMC_INT_DTO) != 0)
+            {
+              /* Finish the transfer */
+
+              lpc54_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
+            }
+
         }
 
       /* Handle wait events *************************************************/
