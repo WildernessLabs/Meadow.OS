@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/net/skeleton.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,16 +71,11 @@
 #  error Work queue support is required in this configuration (CONFIG_SCHED_WORKQUEUE)
 #else
 
-   /* Use the selected work queue */
+/* The low priority work queue is preferred.  If it is not enabled, LPWORK
+ * will be the same as HPWORK.
+ */
 
-#  if defined(CONFIG_skeleton_HPWORK)
-#    define ETHWORK HPWORK
-#  elif defined(CONFIG_skeleton_LPWORK)
-#    define ETHWORK LPWORK
-#  else
-#    error Neither CONFIG_skeleton_HPWORK nor CONFIG_skeleton_LPWORK defined
-#  endif
-#endif
+#define ETHWORK LPWORK
 
 /* CONFIG_skeleton_NINTERFACES determines the number of physical interfaces
  * that will be supported.
@@ -127,7 +122,7 @@ struct skel_driver_s
  * Private Data
  ****************************************************************************/
 
-/* These statically allocated structur would mean that only a single
+/* These statically allocated structur eswould mean that only a single
  * instance of the device could be supported.  In order to support multiple
  * devices instances, this data would have to be allocated dynamically.
  */
@@ -192,7 +187,7 @@ static void skel_ipv6multicast(FAR struct skel_driver_s *priv);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
 static int  skel_ioctl(FAR struct net_driver_s *dev, int cmd,
-            unsigned long arg);
+              unsigned long arg);
 #endif
 
 /****************************************************************************
