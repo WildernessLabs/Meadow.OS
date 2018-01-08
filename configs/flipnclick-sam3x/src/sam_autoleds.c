@@ -99,8 +99,34 @@
 #ifdef CONFIG_ARCH_LEDS
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Processor Definitinos
  ****************************************************************************/
+
+/* LED indices */
+
+#define INDEX_LED_L     0
+#define INDEX_LED_A     1
+#define INDEX_LED_B     2
+#define INDEX_LED_C     3
+#define INDEX_LED_D     4
+#define NLEDS           5
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void board_autoled_setone(int ledndx)
+{
+  bool ledon[NLEDS] = {false, false, false, false, false};
+
+  ledon[ledndx] = true;
+  sam_gpiowrite(GPIO_LED_L, ledon[INDEX_LED_L]);
+  sam_gpiowrite(GPIO_LED_A, ledon[INDEX_LED_A]);
+  sam_gpiowrite(GPIO_LED_B, ledon[INDEX_LED_B]);
+  sam_gpiowrite(GPIO_LED_C, ledon[INDEX_LED_D]);
+  sam_gpiowrite(GPIO_LED_D, ledon[INDEX_LED_D]);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -143,35 +169,19 @@ void board_autoled_on(int led)
     {
       default:
       case 0:
-        sam_gpiowrite(GPIO_LED_L, false);
-        sam_gpiowrite(GPIO_LED_A, true);
-        sam_gpiowrite(GPIO_LED_B, false);
-        sam_gpiowrite(GPIO_LED_C, false);
-        sam_gpiowrite(GPIO_LED_D, false);
+        board_autoled_setone(INDEX_LED_A);
         break;
 
       case 1:
-        sam_gpiowrite(GPIO_LED_L, false);
-        sam_gpiowrite(GPIO_LED_A, false);
-        sam_gpiowrite(GPIO_LED_B, true);
-        sam_gpiowrite(GPIO_LED_C, false);
-        sam_gpiowrite(GPIO_LED_D, false);
+        board_autoled_setone(INDEX_LED_B);
         break;
 
      case 2:
-        sam_gpiowrite(GPIO_LED_L, false);
-        sam_gpiowrite(GPIO_LED_A, false);
-        sam_gpiowrite(GPIO_LED_B, false);
-        sam_gpiowrite(GPIO_LED_C, true);
-        sam_gpiowrite(GPIO_LED_D, false);
+        board_autoled_setone(INDEX_LED_C);
         break;
 
       case 3:
-        sam_gpiowrite(GPIO_LED_L, false);
-        sam_gpiowrite(GPIO_LED_A, false);
-        sam_gpiowrite(GPIO_LED_B, false);
-        sam_gpiowrite(GPIO_LED_C, false);
-        sam_gpiowrite(GPIO_LED_D, true);
+        board_autoled_setone(INDEX_LED_D);
         break;
 
       case 4:

@@ -96,9 +96,11 @@ void board_userled(int led, bool ledon)
 
   switch (led)
     {
+#ifndef CONFIG_ARCH_LEDS
       case BOARD_LED_L:
         ledcfg = GPIO_LED_L;
         break;
+#endif
 
       case BOARD_LED_A:
         ledcfg = GPIO_LED_A;
@@ -131,8 +133,10 @@ void board_userled_all(uint8_t ledset)
 {
   bool ledon;
 
+#ifndef CONFIG_ARCH_LEDS
   ledon = ((ledset & BOARD_LED_L_BIT) != 0);
   sam_gpiowrite(GPIO_LED_L, ledon);
+#endif
 
   ledon = ((ledset & BOARD_LED_A_BIT) != 0);
   sam_gpiowrite(GPIO_LED_A, ledon);
