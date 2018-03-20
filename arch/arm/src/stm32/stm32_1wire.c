@@ -1213,7 +1213,8 @@ FAR struct onewire_dev_s *stm32_1wireinitialize(int port)
 
   /* Allocate instance */
 
-  if (!(inst = kmm_malloc(sizeof(struct stm32_1wire_inst_s))))
+  inst = kmm_malloc(sizeof(*inst));
+  if (inst == NULL)
     {
       return NULL;
     }
@@ -1259,7 +1260,7 @@ int stm32_1wireuninitialize(FAR struct onewire_dev_s *dev)
   struct stm32_1wire_priv_s *priv = ((struct stm32_1wire_inst_s *)dev)->priv;
   int irqs;
 
-  ASSERT(dev);
+  DEBUGASSERT(priv);
 
   /* Decrement reference count and check for underflow */
 
