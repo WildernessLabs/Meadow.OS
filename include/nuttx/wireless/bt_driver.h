@@ -111,7 +111,7 @@ int bt_driver_register(FAR const struct bt_driver_s *dev);
 void bt_driver_unregister(FAR const struct bt_driver_s *dev);
 
 /****************************************************************************
- * Name: bt_input
+ * Name: bt_hci_receive
  *
  * Description:
  *   Called by the Bluetooth low-level driver when new data is received from
@@ -126,6 +126,6 @@ void bt_driver_unregister(FAR const struct bt_driver_s *dev);
  *
  ****************************************************************************/
 
-void bt_input(FAR struct bt_buf_s *buf);
+void bt_hci_receive(FAR struct bt_buf_s *buf);
 
 #endif /* __INCLUDE_NUTTX_WIRELESS_BT_DRIVER_H */
