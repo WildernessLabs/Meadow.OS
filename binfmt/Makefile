@@ -1,5 +1,5 @@
 ############################################################################
-# nxflat/Makefile
+# binfmt/Makefile
 #
 #   Copyright (C) 2007-2009, 2012-2016, 2018 Gregory Nutt. All rights
 #     reserved.
