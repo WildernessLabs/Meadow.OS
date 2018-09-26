@@ -43,6 +43,10 @@
 #include <sys/types.h>
 #include <debug.h>
 
+#include <syslog.h>
+#include <nuttx/i2c/i2c_master.h>
+#include <imxrt_lpi2c.h>
+
 #include "imxrt1050-evk.h"
 
 /****************************************************************************
@@ -52,6 +56,27 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+static void imxrt_i2c_register(int bus)
+{
+  FAR struct i2c_master_s *i2c;
+  int ret;
+
+  i2c = imxrt_i2cbus_initialize(bus);
+  if (i2c == NULL)
+    {
+      serr("ERROR: Failed to get I2C%d interface\n", bus);
+    }
+  else
+    {
+      ret = i2c_register(i2c, bus);
+      if (ret < 0)
+        {
+          serr("ERROR: Failed to register I2C%d driver: %d\n", bus, ret);
+          imxrt_i2cbus_uninitialize(i2c);
+        }
+    }
+}
 
 /****************************************************************************
  * Public Functions
@@ -82,6 +107,10 @@ int imxrt_bringup(void)
     {
       syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret);
     }
+#endif
+
+#if defined ( CONFIG_I2C_DRIVER ) & (CONFIG_IMXRT_LPI2C1)
+  imxrt_i2c_register(1);
 #endif
 
   UNUSED(ret);
