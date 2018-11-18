@@ -46,11 +46,16 @@
  * Public Types
  ****************************************************************************/
 
-/* This structure can be used to define a clock configuration. */
+/* Include the MCU-specific structure can be used to define a clock
+ * configuration. */
 
-struct clock_setup_s
-{
-};
+#if defined(CONFIG_ARCH_FAMILY_MAX32620) || defined(CONFIG_ARCH_FAMILY_MAX32630)
+#  include "max32620_30/max32620_30_clockconfig.h"
+#if defined(CONFIG_ARCH_FAMILY_MAX32660)
+#  include "max32660/max32660_clockconfig.h"
+#else
+#  error "Unsupported MAX326XX family"
+#endif
 
 /****************************************************************************
  * Inline Functions
@@ -87,6 +92,16 @@ extern "C"
  *****************************************************************************/
 
 void max326_clockconfig(FAR const struct clock_setup_s *clocksetup);
+
+/****************************************************************************
+ * Name: max326_hfio_frequency
+ *
+ * Description:
+ *   Return the High-Frequency Internal Oscillator (HFIO) frequency.
+ *
+ *****************************************************************************/
+
+uint32_t max326_hfio_frequency(void);
 
 /****************************************************************************
  * Name: max326_cpu_frequency
