@@ -114,24 +114,6 @@ void arm_timer_initialize(void)
 {
   uint32_t regval;
 
-  /* May be clocked internally by the system clock or the SysTick function
-   * clock.  Set the SysTick clock divider in the SYSCON_SYSTICK register.
-   * Since this function is called early after reset, it is safe to assume
-   * that the SysTick is disabled and so that no reset or halt actions are
-   * necessary.
-   */
-
-  regval = (SYSCON_SYSTICKCLKDIV_DIV(BOARD_SYSTICKCLKDIV) |
-            SYSCON_SYSTICKCLKDIV_REQFLAG);
-  putreg32(regval, MAX326_SYSCON_SYSTICKCLKDIV);
-
-  /* The request flag will be cleared when the divider change is complete */
-
-  while ((getreg32(MAX326_SYSCON_SYSTICKCLKDIV) &
-          SYSCON_SYSTICKCLKDIV_REQFLAG) != 0)
-    {
-    }
-
   /* Make sure that the SYSTICK clock source is set to use the CPU clock
    * (CLKSOURCE==1).
    *
