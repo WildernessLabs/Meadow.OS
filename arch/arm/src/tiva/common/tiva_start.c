@@ -44,7 +44,6 @@
 #include <debug.h>
 
 #include <nuttx/init.h>
-#include <arch/board/board.h>
 
 #ifdef CONFIG_ARCH_FPU
 #  include "nvic.h"
@@ -58,6 +57,8 @@
 #include "tiva_userspace.h"
 #include "tiva_eeprom.h"
 #include "tiva_start.h"
+
+#include <arch/board/board.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -219,7 +220,7 @@ void __start(void)
   /* Configure the UART so that we can get debug output as soon as possible */
 
   tiva_clock_configure();
-  up_lowsetup();
+  tiva_lowsetup();
   tiva_fpuconfig();
   showprogress('A');
 
@@ -249,20 +250,20 @@ void __start(void)
   showprogress('C');
 #endif
 
+#ifdef USE_EARLYSERIALINIT
   /* Perform early serial initialization */
 
-#ifdef USE_EARLYSERIALINIT
   up_earlyserialinit();
-#endif
   showprogress('D');
+#endif
 
+#ifdef CONFIG_BUILD_PROTECTED
   /* For the case of the separate user-/kernel-space build, perform whatever
    * platform specific initialization of the user memory is required.
    * Normally this just means initializing the user space .data and .bss
    * segments.
    */
 
-#ifdef CONFIG_BUILD_PROTECTED
   tiva_userspace();
   showprogress('E');
 #endif
