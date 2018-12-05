@@ -1,7 +1,7 @@
 /************************************************************************************
  * arch/arm/src/tiva/hardware/tiva_pinmap.h
  *
- *   Copyright (C) 2013-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2014, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 
-/* Include the pin mapping file for the specific Tiva/Stellaris chip */
+/* Include the pin mapping file for the specific Tiva/Stellaris/SimpleLink chip */
 
 #if defined(CONFIG_ARCH_CHIP_LM3S)
 #  include "hardware/lm/lm3s_pinmap.h"
@@ -50,8 +50,12 @@
 #  include "hardware/lm/lm4f_pinmap.h"
 #elif defined(CONFIG_ARCH_CHIP_TM4C)
 #  include "hardware/tm4c/tm4c_pinmap.h"
+#elif defined(CONFIG_ARCH_CHIP_CC13X0)
+#  include "hardware/cc13x0/cc13x0_pinmap.h"
+#elif defined(CONFIG_ARCH_CHIP_CC13X2)
+#  include "hardware/cc13x2_cc26x2/cc13x2_cc26x2_pinmap.h"
 #else
-#  error "Unsupported Tiva/Stellaris PIN mapping"
+#  error "Unsupported Tiva/Stellaris/SimpleLink PIN mapping"
 #endif
 
 /************************************************************************************
