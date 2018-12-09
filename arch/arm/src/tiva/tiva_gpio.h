@@ -174,18 +174,6 @@ int tiva_gpioirqattach(pinconfig_t pinconfig, xcpt_t isr, void *arg);
 #  define tiva_gpioirqdetach(p) tiva_gpioirqattach((p),NULL,NULL)
 
 /****************************************************************************
- * Name: tiva_gpioportirqattach
- *
- * Description:
- *   Attach 'isr' to the GPIO port. Only use this if you want to handle
- *   the entire ports interrupts explicitly.
- *
- ****************************************************************************/
-
-void tiva_gpioportirqattach(uint8_t port, xcpt_t isr);
-#  define tiva_gpioportirqdetach(port) tiva_gpioportirqattach(port, NULL)
-
-/****************************************************************************
  * Name: tiva_gpioirqenable
  *
  * Description:
@@ -193,7 +181,7 @@ void tiva_gpioportirqattach(uint8_t port, xcpt_t isr);
  *
  ****************************************************************************/
 
-void tiva_gpioirqenable(uint8_t port, uint8_t pin);
+void tiva_gpioirqenable(pinconfig_t pinconfig);
 
 /****************************************************************************
  * Name: tiva_gpioirqdisable
@@ -203,7 +191,7 @@ void tiva_gpioirqenable(uint8_t port, uint8_t pin);
  *
  ****************************************************************************/
 
-void tiva_gpioirqdisable(uint8_t port, uint8_t pin);
+void tiva_gpioirqdisable(pinconfig_t pinconfig);
 
 /****************************************************************************
  * Name: tiva_gpioirqclear
@@ -213,7 +201,7 @@ void tiva_gpioirqdisable(uint8_t port, uint8_t pin);
  *
  ****************************************************************************/
 
-void tiva_gpioirqclear(uint8_t port, uint32_t pinmask);
+void tiva_gpioirqclear(pinconfig_t pinconfig);
 
 #endif /* CONFIG_TIVA_GPIO_IRQS */
 
