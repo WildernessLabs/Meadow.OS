@@ -51,18 +51,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#undef HAVE_LEDS
-#undef HAVE_DAC
-
-#if !defined(CONFIG_ARCH_LEDS) && defined(CONFIG_USERLED_LOWER)
-#  define HAVE_LEDS 1
-#endif
-
-#if defined(CONFIG_DAC)
-#  define HAVE_DAC1 1
-#  define HAVE_DAC2 1
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -94,59 +82,13 @@
 
 int board_app_initialize(uintptr_t arg)
 {
-  int ret;
+#ifdef CONFIG_BOARD_INITIALIZE
+  /* Board initialization already performed by board_initialize() */
 
-#ifdef HAVE_LEDS
-  /* Register the LED driver */
-
-  ret = userled_lower_initialize(LED_DRIVER_PATH);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: userled_lower_initialize() failed: %d\n", ret);
-      return ret;
-    }
-#endif
-
-#ifdef CONFIG_ADC
-  /* Initialize ADC and register the ADC driver. */
-
-  ret = stm32_adc_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_adc_setup failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_DAC
-  /* Initialize DAC and register the DAC driver. */
-
-  ret = stm32_dac_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_dac_setup failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_COMP
-  /* Initialize COMP and register the COMP driver. */
-
-  ret = stm32_comp_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_comp_setup failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_OPAMP
-  /* Initialize OPAMP and register the OPAMP driver. */
-
-  ret = stm32_opamp_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_opamp_setup failed: %d\n", ret);
-    }
-#endif
-
-  UNUSED(ret);
   return OK;
+#else
+  /* Perform board-specific initialization */
+
+  return stm32_bringup();
+#endif
 }
