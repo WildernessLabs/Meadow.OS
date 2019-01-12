@@ -42,15 +42,23 @@
 
 #include <nuttx/config.h>
 
-/* The TM4C129 family has a different FLASH register layout */
+#if defined(CONFIG_ARCH_CHIP_LM) || defined(CONFIG_ARCH_CHIP_TM4C)
 
-#if defined(CONFIG_ARCH_CHIP_TM4C129)
-#  include "hardware/tm4c/tm4c_flash.h"
+/* The TM4C129 family has a different FLASH register layout.  Others (including LM4F
+ * and TM4C123) are similar to the LM3S family
+ */
 
-/* Others (including LM4F and TM4C123) are similar to the LM3S family */
-
+#  if defined(CONFIG_ARCH_CHIP_TM4C129)
+#    include "hardware/tm4c/tm4c_flash.h"
+#  else
+#    include "hardware/lm/lm3s_flash.h"
+#  endif
+#elif defined(CONFIG_ARCH_CHIP_CC13X0)
+#  include "hardware/cc13x0/cc13x0_flash.h"
+#elif defined(CONFIG_ARCH_CHIP_CC13X2)
+#  include "hardware/cc13x2_cc26x2/cc13x2_cc26x2_flash.h"
 #else
-#  include "hardware/lm/lm3s_flash.h"
+#  error "Unsupported Tiva/Stellaris FLASH"
 #endif
 
 #endif /* __ARCH_ARM_SRC_TIVA_HARDWARE_TIVA_FLASH_H */
