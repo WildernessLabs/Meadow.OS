@@ -54,13 +54,13 @@
  * UART0 (PA0/U0RX and PA1/U0TX).
  */
 
-const struct cc134xx_pinconfig_s g_gpio_uart0_rx =
+const struct cc13xx_pinconfig_s g_gpio_uart0_rx =
 {
   .gpio = GPIO_DIO(0),
   .ioc  = IOC_IOCFG_PORTID(IOC_IOCFG_PORTID_UART0_RX) | IOC_STD_INPUT
 };
 
-const struct cc134xx_pinconfig_s g_gpio_uart0_tx =
+const struct cc13xx_pinconfig_s g_gpio_uart0_tx =
 {
   .gpio = GPIO_DIO(1),
   .ioc  = IOC_IOCFG_PORTID(IOC_IOCFG_PORTID_UART0_TX) | IOC_STD_OUTPUT

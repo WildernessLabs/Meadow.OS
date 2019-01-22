@@ -128,11 +128,11 @@
 
 /* Pin configuration ********************************************************/
 
-struct cc134xx_pinconfig_s; /* Forward reference */
+struct cc13xx_pinconfig_s; /* Forward reference */
 
 #ifdef CONFIG_TIVA_UART0
-extern const struct cc134xx_pinconfig_s g_gpio_uart0_rx;
-extern const struct cc134xx_pinconfig_s g_gpio_uart0_tx;
+extern const struct cc13xx_pinconfig_s g_gpio_uart0_rx;
+extern const struct cc13xx_pinconfig_s g_gpio_uart0_tx;
 #endif
 
 #endif /* __CONFIG_NUCLEO_F303ZE_INCLUDE_BOARD_H */
