@@ -146,7 +146,7 @@
                                                                * 0=CLK_DCDC is 48 MHz clock from RCOSC or XOSC/HPOSC
                                                                * 1=CLK_DCDC is always 48 MHz clock from RCOSC */
 #define DDI0_OSC_CTL0_DOUBLER_RESET_DURATION        (1 << 25) /* Bit 25 */
-#define DDI0_OSC_CTL0_DOUBLER_START_DURATION_SHIFT  (26)      /* Bits 16-27 */
+#define DDI0_OSC_CTL0_DOUBLER_START_DURATION_SHIFT  (26)      /* Bits 26-27 */
 #define DDI0_OSC_CTL0_DOUBLER_START_DURATION_MASK   (3 << DDI0_OSC_CTL0_DOUBLER_START_DURATION_SHIFT)
 #  define DDI0_OSC_CTL0_DOUBLER_START_DURATION(n)   ((uint32_t)(n) << DDI0_OSC_CTL0_DOUBLER_START_DURATION_SHIFT)
 #define DDI0_OSC_CTL0_BYPASS_RCOSC_LF_CLK_QUAL      (1 << 28) /* Bit 28 */
@@ -264,16 +264,16 @@
 #  define DDI0_OSC_ATESTCTL_ATEST_RCOSCMF_BIAS      (3 << DDI0_OSC_ATESTCTL_ATEST_RCOSCMF_SHIFT) /* ATEST enabled, bias current connected,
                                                                                                   * ATEST internal to RCOSC_MF enabled
                                                                                                   * to send out 2MHz clock. */
-#define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT      (14)      /* Bits 14-15: Test mode control for RCOSC_MF */
-#define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_MASK       (3 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)
-#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_DISABLE  (0 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Test modes disabled */
-#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_BOOST    (1 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Boosted bias current into self
-                                                                                                 * biased inverter */
-#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_QUALDIS  (2 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Clock qualification disabled */
-#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_BOOSTDIS (3 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Boosted bias current into self
-                                                                                                 * biased inverter + clock qualification
-                                                                                                 * disabled */
-#define DDI0_OSC_ATESTCTL_SCLK_LF_AUX_EN          (1 << 31) /* Bit 31: Enable 32 kHz clock to AUX_COMPB */
+#define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT        (14)      /* Bits 14-15: Test mode control for RCOSC_MF */
+#define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_MASK         (3 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)
+#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_DISABLE    (0 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Test modes disabled */
+#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_BOOST      (1 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Boosted bias current into self
+                                                                                                   * biased inverter */
+#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_QUALDIS    (2 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Clock qualification disabled */
+#  define DDI0_OSC_ATESTCTL_TEST_RCOSCMF_BOOSTDIS   (3 << DDI0_OSC_ATESTCTL_TEST_RCOSCMF_SHIFT)   /* Boosted bias current into self
+                                                                                                   * biased inverter + clock qualification
+                                                                                                   * disabled */
+#define DDI0_OSC_ATESTCTL_SCLK_LF_AUX_EN            (1 << 31) /* Bit 31: Enable 32 kHz clock to AUX_COMPB */
 
 /* DDI0_OSC_ADCDOUBLERNANOAMPCTL */
 
