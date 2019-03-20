@@ -86,7 +86,7 @@
 #define ALIGN_UP(n)       (((n)+ALIGN_MASK) & ~ALIGN_MASK)
 #define IS_ALIGNED(n)     (((uint32_t)(n) & ALIGN_MASK) == 0)
 
-/* Debug *******************************************************************/
+/* Debug ********************************************************************/
 
 /* Check if QSPI debug is enabled */
 
