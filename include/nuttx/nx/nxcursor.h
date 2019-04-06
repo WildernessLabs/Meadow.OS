@@ -50,18 +50,6 @@
 
 #ifndef defined(CONFIG_NX_SWCURSOR) || defined(CONFIG_NX_HWCURSOR)
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
@@ -86,17 +74,21 @@ extern "C"
  *   enable - True: show the cursor, false: hide the cursor.
  *
  * Returned Value:
- *   None
+ *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-void nxcursor_enable(NXHANDLE hnd, bool enable);
+int nxcursor_enable(NXHANDLE hnd, bool enable);
 
 /****************************************************************************
- * Name: nxcursor_set_image
+ * Name: nxcursor_setimage
  *
  * Description:
- *   Set the cursor image
+ *   Set the cursor image.
+ *
+ *   NOTE: The NX logic will reference the user image buffer repeatedly.
+ *   That image buffer must persist for as long as the NX server connection
+ *   persists.
  *
  * Input Parameters:
  *   hnd   - The server handle returned by nx_connect()
@@ -105,30 +97,30 @@ void nxcursor_enable(NXHANDLE hnd, bool enable);
  *           format may be different if a hardware cursor is used.
  *
  * Returned Value:
- *   None
+ *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
 #if defined(CONFIG_NX_HWCURSORIMAGE) || defined(CONFIG_NX_SWCURSOR)
-void nxcursor_set_image(NXHANDLE hnd, FAR struct cursor_image_s *image);
+int nxcursor_setimage(NXHANDLE hnd, FAR struct cursor_image_s *image);
 #endif
 
 /****************************************************************************
- * Name: nxcursor_set_position
+ * Name: nxcursor_setposition
  *
  * Description:
  *   Move the cursor to the specified position
  *
  * Input Parameters:
  *   hnd - The server handle returned by nx_connect()
- *   pos -
+ *   pos - The new cursor position
  *
  * Returned Value:
- *   None
+ *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-void nxcursor_set_position(NXHANDLE hnd, FAR const struct cursor_pos_s *pos);
+int nxcursor_setposition(NXHANDLE hnd, FAR const struct cursor_pos_s *pos);
 
 /****************************************************************************
  * Name: nxcursor_get_position
@@ -146,11 +138,11 @@ void nxcursor_set_position(NXHANDLE hnd, FAR const struct cursor_pos_s *pos);
  *   pos - The location to return the cursor position
  *
  * Returned Value:
- *   None
+ *   OK on success; ERROR on failure with errno set appropriately
  *
  ****************************************************************************/
 
-void nxcursor_get_position(NXHANDLE hnd, FAR struct cursor_pos_s *pos);
+int nxcursor_get_position(NXHANDLE hnd, FAR struct cursor_pos_s *pos);
 
 #undef EXTERN
 #if defined(__cplusplus)
