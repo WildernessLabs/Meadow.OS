@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<Target name="nsh" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="target.tsd" xsi:type="Target">
+<Target name="eZ80F910300KITG_Flash" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../Schemas/target.tsd" xsi:type="TargetEZ80">
    <Clock>
       <PLL>
-         <changeFrequencyOnReset>1</changeFrequencyOnReset>
-         <chargePumpFreq>16E360</chargePumpFreq>
+         <changeFrequencyOnReset>true</changeFrequencyOnReset>
+         <chargePumpFreq>1f4</chargePumpFreq>
          <clockLockCriteria>8</clockLockCriteria>
          <oscFrequency>5000000</oscFrequency>
       </PLL>
-      <clockType>Oscillator</clockType>
+      <clockType>PLL</clockType>
       <frequency>50000000</frequency>
    </Clock>
    <ControlReg>
-      <pc>000000</pc>
-      <splStackPtr>FFFFFF</splStackPtr>
+      <pc>0</pc>
+      <splStackPtr>140000</splStackPtr>
       <spsStackPtr>FFFF</spsStackPtr>
       <useAdlMode>true</useAdlMode>
    </ControlReg>
    <ExtFlash>
       <device />
-      <externalAddress>0</externalAddress>
-      <externalAutoSelect>true</externalAutoSelect>
-      <externalRamLower>C00000</externalRamLower>
-      <externalRamUpper>C7ffff</externalRamUpper>
+      <externalAddress>200000</externalAddress>
+      <externalAutoSelect>false</externalAutoSelect>
+      <externalRamLower>40000</externalRamLower>
+      <externalRamUpper>13FFFF</externalRamUpper>
       <manufacturer />
       <units>1</units>
       <usingExternal>false</usingExternal>
@@ -30,43 +30,40 @@
    <Memory>
       <ChipSelects>
          <CS0>
-            <busMode>02</busMode>
-            <controlRegister>a8</controlRegister>
-            <lower>10</lower>
-            <upper>1f</upper>
+            <busMode>0</busMode>
+            <controlRegister>8</controlRegister>
+            <lower>4</lower>
+            <upper>B</upper>
          </CS0>
          <CS1>
-            <busMode>02</busMode>
-            <controlRegister>28</controlRegister>
-            <lower>C0</lower>
-            <upper>C7</upper>
+            <busMode>0</busMode>
+            <controlRegister>8</controlRegister>
+            <lower>C</lower>
+            <upper>13</upper>
          </CS1>
          <CS2>
-            <busMode>81</busMode>
-            <controlRegister>28</controlRegister>
-            <lower>80</lower>
-            <upper>BF</upper>
+            <busMode>0</busMode>
+            <controlRegister>88</controlRegister>
+            <lower>20</lower>
+            <upper>9F</upper>
          </CS2>
          <CS3>
-            <busMode>02</busMode>
-            <controlRegister>00</controlRegister>
-            <lower>00</lower>
-            <upper>00</upper>
+            <busMode>0</busMode>
+            <controlRegister>0</controlRegister>
+            <lower>0</lower>
+            <upper>0</upper>
          </CS3>
       </ChipSelects>
       <Internal>
          <mapFlashToPage>0</mapFlashToPage>
-         <mapRamToPage>0</mapRamToPage>
+         <mapRamToPage>AF</mapRamToPage>
          <useFlashRam>true</useFlashRam>
          <useInternalDataRam>true</useInternalDataRam>
          <useMaccRam>false</useMaccRam>
       </Internal>
       <waitStates>4</waitStates>
    </Memory>
-   <UserOptions>
-      <optionBitsMask>0</optionBitsMask>
-   </UserOptions>
-   <cpu>eZ80F91</cpu>
+   <cpu>EZ80F91</cpu>
    <schemaVersion>1.0.1</schemaVersion>
    <version>1.00</version>
 </Target>
