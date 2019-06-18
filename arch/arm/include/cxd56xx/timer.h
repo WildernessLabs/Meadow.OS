@@ -32,9 +32,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-/**
- * @file       timer.h
- */
 
 #ifndef __ARCH_ARM_INCLUDE_CXD56XX_TIMER_H
 #define __ARCH_ARM_INCLUDE_CXD56XX_TIMER_H
@@ -45,11 +42,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/**
+/*
  * Set callback handler
  *
- * @param A pointer to struct timer_sethandler_s
- * @return ioctl return value provides success/failure indication
+ * param A pointer to struct timer_sethandler_s
+ * return ioctl return value provides success/failure indication
  */
 
 #define TCIOC_SETHANDLER _TCIOC(0x0020)
