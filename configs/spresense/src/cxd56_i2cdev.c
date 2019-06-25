@@ -45,8 +45,6 @@
 
 #include "cxd56_i2c.h"
 
-#if defined(CONFIG_CXD56_I2C) && defined(CONFIG_I2C_DRIVER)
-
 /****************************************************************************
  * Name: board_i2cdev_initialize
  *
@@ -79,5 +77,3 @@ int board_i2cdev_initialize(int port)
 
   return ret;
 }
-
-#endif
