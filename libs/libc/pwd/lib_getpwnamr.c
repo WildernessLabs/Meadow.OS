@@ -73,6 +73,19 @@
 int getpwnam_r(FAR const char *name, FAR struct passwd *pwd, FAR char *buf,
                size_t buflen, FAR struct passwd **result)
 {
+#ifdef CONFIG_LIBC_PASSWD_FILE
+  int ret;
+
+  ret = pwd_findby_name(name, pwd, buf, buflen);
+  if (ret != 1)
+    {
+      *result = NULL;
+      return ret < 0 ? -ret : 0;
+    }
+
+  *result = pwd;
+  return 0;
+#else
   if (strcmp(name, ROOT_NAME))
     {
       /* The only known user is 'root', which has a uid of 0.  Thus, report
@@ -85,4 +98,5 @@ int getpwnam_r(FAR const char *name, FAR struct passwd *pwd, FAR char *buf,
 
   return getpwbuf_r(ROOT_UID, ROOT_GID, ROOT_NAME, ROOT_DIR, ROOT_SHELL, pwd,
                     buf, buflen, result);
+#endif
 }
