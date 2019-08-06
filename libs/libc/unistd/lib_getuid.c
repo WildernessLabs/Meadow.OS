@@ -1,5 +1,5 @@
 /****************************************************************************
- * libs/libc/unistd/lib_setuid.c
+ * libs/libc/unistd/lib_getuid.c
  *
  *   Copyright (C) 2019 Gregory Nutt. All rights reserved.
  *   Author:  Gregory Nutt <gnutt@nuttx.net>
@@ -56,12 +56,11 @@
  *   None
  *
  * Returned Value:
- *   Zero if successful and -1 in case of failure, in which case errno is set
- *   appropriately.
+ *   The real user ID of the calling task group.
  *
  ****************************************************************************/
 
-int setuid(uid_t uid)
+uid_t getuid(void)
 {
   /* Return the user identity 'root' with a uid value of 0. */
 
