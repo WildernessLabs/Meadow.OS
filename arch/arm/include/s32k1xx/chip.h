@@ -46,6 +46,30 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
+/* NVIC priority levels *************************************************************/
+
+/* Each priority field holds a priority value. The lower the value, the greater the
+ * priority of the corresponding interrupt.
+ */
+
+#if defined(CONFIG_ARCH_CORTEXM4)
+/* The Cortex-M4F core supports 16 programmable interrupt priority levels. */
+
+#  define NVIC_SYSH_PRIORITY_MIN        0xf0 /* All bits[7:4] set is minimum priority */
+#  define NVIC_SYSH_PRIORITY_DEFAULT    0x80 /* Midpoint is the default */
+#  define NVIC_SYSH_PRIORITY_MAX        0x00 /* Zero is maximum priority */
+#  define NVIC_SYSH_PRIORITY_STEP       0x10 /* Steps between priorities */
+
+#elif defined(CONFIG_ARCH_CORTEXM0)
+/* The Cortex-M0+ core supports 4 programmable interrupt priority levels. */
+
+#  define NVIC_SYSH_PRIORITY_MIN        0xc0 /* All bits[7:4] set is minimum priority */
+#  define NVIC_SYSH_PRIORITY_DEFAULT    0x80 /* Midpoint is the default */
+#  define NVIC_SYSH_PRIORITY_MAX        0x00 /* Zero is maximum priority */
+#  define NVIC_SYSH_PRIORITY_STEP       0x40 /* Steps between priorities */
+
+#endif
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
