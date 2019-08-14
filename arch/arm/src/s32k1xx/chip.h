@@ -55,8 +55,8 @@
  * arch/s32k1xx/irq.h header file.
  */
 
-#define ARMV6M_PERIPHERAL_INTERRUPTS S32K_IRQ_NEXTINT
-#define ARMV7M_PERIPHERAL_INTERRUPTS S32K_IRQ_NEXTINT
+#define ARMV6M_PERIPHERAL_INTERRUPTS S32K1XX_IRQ_NEXTINT
+#define ARMV7M_PERIPHERAL_INTERRUPTS S32K1XX_IRQ_NEXTINT
 
 /************************************************************************************
  * Pre-processor Definitions

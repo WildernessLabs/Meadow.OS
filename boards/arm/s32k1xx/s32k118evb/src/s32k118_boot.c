@@ -50,7 +50,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: s32k118_boardinitialize
+ * Name: s32k1xx_board_initialize
  *
  * Description:
  *   All S32K1XX architectures must provide the following entry point.  This
@@ -60,7 +60,7 @@
  *
  ****************************************************************************/
 
-void s32k118_boardinitialize(void)
+void s32k1xx_board_initialize(void)
 {
 #ifdef CONFIG_S32K1XX_SPI
   /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak

@@ -41,30 +41,27 @@
 
 #include <stdint.h>
 #include <time.h>
+#include <assert.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 
 #include "nvic.h"
-#include "clock/clock.h"
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "hardware/s32k14x_syscon.h"
+#include "clock/clock.h"
+#include "s32k1xx_clockconfig.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* The SysTick clock may be clocked internally either by the by the system
- * clock (CLKSOURCE==1) or by the SysTick function clock (CLKSOURCE==0).
- * The SysTick Function clock is equal to:
- *
- *   Fsystick = Fmainclk / SYSTICKCLKDIV
- *
- * Both the divider value (BOARD_SYSTICKCLKDIV) and the resulting SysTick
- * function clock frequency (Fsystick, BOARD_SYSTICK_CLOCK)
+/* The SysTick clock input (Fsystick) is determined by the CLKSOURCE file of
+ * the SysTick CSR register:  The CLKSOURCE field in SysTick Control and
+ * Status register selects either the core clock (when CLKSOURCE = 1) or a
+ * divide-by-16 of the core clock (when CLKSOURCE = 0).
  *
  * The desired timer interrupt frequency is provided by the definition
  * CLK_TCK (see include/time.h).  CLK_TCK defines the desired number of
@@ -72,22 +69,9 @@
  * that defaults to 100 (100 ticks per second = 10 MS interval).
  *
  *    reload = (Fsystick / CLK_TICK) - 1
- *
- * Tips for selecting BOARD_SYSTICKCLKDIV:  The resulting reload value
- * should be as large as possible, but must be less than 2^24:
- *
- *   SYSTICKDIV > Fmainclk / CLK_TCK / 2^24
  */
 
-#define SYSTICK_RELOAD ((BOARD_SYSTICK_CLOCK / CLK_TCK) - 1)
-
-/* The size of the reload field is 24 bits.  Verify that the reload value
- * will fit in the reload register.
- */
-
-#if SYSTICK_RELOAD > 0x00ffffff
-#  error SYSTICK_RELOAD exceeds the range of the RELOAD register
-#endif
+#define SYSTICK_RELOAD(coreclk) (((coreclk) / CLK_TCK) - 1)
 
 /****************************************************************************
  * Private Functions
@@ -125,38 +109,28 @@ static int s32k14x_timerisr(int irq, uint32_t *regs, void *arg)
 
 void arm_timer_initialize(void)
 {
+  uint32_t coreclk;
+  uint32_t reload;
   uint32_t regval;
 
-  /* May be clocked internally by the system clock or the SysTick function
-   * clock.  Set the SysTick clock divider in the SYSCON_SYSTICK register.
-   * Since this function is called early after reset, it is safe to assume
-   * that the SysTick is disabled and so that no reset or halt actions are
-   * necessary.
-   */
-
-  regval = (SYSCON_SYSTICKCLKDIV_DIV(BOARD_SYSTICKCLKDIV) |
-            SYSCON_SYSTICKCLKDIV_REQFLAG);
-  putreg32(regval, S32K1XX_SYSCON_SYSTICKCLKDIV);
-
-  /* The request flag will be cleared when the divider change is complete */
-
-  while ((getreg32(S32K1XX_SYSCON_SYSTICKCLKDIV) & SYSCON_SYSTICKCLKDIV_REQFLAG) != 0)
-    {
-    }
-
   /* Make sure that the SYSTICK clock source is set to use the SysTick
-   * function clock (CLKSOURCE==0).
-   *
-   * REVISIT: This is over-writted with CLKSOURCE==1 below.
+   * function clock (CLKSOURCE==1).
    */
 
-  regval  = getreg32(NVIC_SYSTICK_CTRL);
-  regval &= ~NVIC_SYSTICK_CTRL_CLKSOURCE;
-  putreg32(regval, NVIC_SYSTICK_CTRL);
+  putreg32(NVIC_SYSTICK_CTRL_CLKSOURCE, NVIC_SYSTICK_CTRL);
+
+  /* Get the reload value */
+
+  coreclk = s32k1xx_get_coreclk();
+  reload  = SYSTICK_RELOAD(coreclk);
+
+  /* The size of the reload field is 24 bits. */
+
+  DEBUGASSERT(reload <= 0x00ffffff);
 
   /* Configure SysTick to interrupt at the requested rate */
 
-  putreg32(SYSTICK_RELOAD, NVIC_SYSTICK_RELOAD);
+  putreg32(reload, NVIC_SYSTICK_RELOAD);
 
   /* Attach the timer interrupt vector */
 
