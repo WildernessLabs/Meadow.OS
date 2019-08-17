@@ -1,9 +1,9 @@
 /****************************************************************************
  * arch/arm/src/stm32f7/stm32_rtc.c
  *
- *   Copyright (C) 2011, 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *           David Sidrane <david_s5@nscdg.com>
+ *           David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -1081,23 +1081,6 @@ int up_rtc_initialize(void)
       return -ETIMEDOUT;
     }
 
-#ifdef CONFIG_RTC_ALARM
-  /* Configure RTC interrupt to catch alarm interrupts. All RTC interrupts
-   * are connected to the EXTI controller.  To enable the RTC Alarm
-   * interrupt, the following sequence is required:
-   *
-   * 1. Configure and enable the EXTI Line 17 RTC ALARM in interrupt mode
-   *    and select the rising edge sensitivity.
-   *    For STM32F7:
-   *    EXTI line 21 RTC Tamper & Timestamp
-   *    EXTI line 22 RTC Wakeup
-   * 2. Configure and enable the RTC_Alarm IRQ channel in the NVIC.
-   * 3. Configure the RTC to generate RTC alarms (Alarm A or Alarm B).
-   */
-
-  (void)stm32_exti_alarm(true, false, true, stm32_rtc_alarm_handler, NULL);
-#endif
-
   g_rtc_enabled = true;
   rtc_dumpregs("After Initialization");
   return OK;
@@ -1460,9 +1443,29 @@ int stm32_rtc_setalarm(FAR struct alm_setalarm_s *alminfo)
   FAR struct alm_cbinfo_s *cbinfo;
   rtc_alarmreg_t alarmreg;
   int ret = -EINVAL;
+  static bool once = false;
 
   DEBUGASSERT(alminfo != NULL);
   DEBUGASSERT(RTC_ALARM_LAST > alminfo->as_id);
+
+  /* Configure RTC interrupt to catch alarm interrupts. All RTC interrupts
+   * are connected to the EXTI controller.  To enable the RTC Alarm
+   * interrupt, the following sequence is required:
+   *
+   * 1. Configure and enable the EXTI Line 17 RTC ALARM in interrupt mode
+   *    and select the rising edge sensitivity.
+   *    For STM32F7:
+   *    EXTI line 21 RTC Tamper & Timestamp
+   *    EXTI line 22 RTC Wakeup
+   * 2. Configure and enable the RTC_Alarm IRQ channel in the NVIC.
+   * 3. Configure the RTC to generate RTC alarms (Alarm A or Alarm B).
+   */
+
+  if (!once)
+    {
+      once = true;
+      (void)stm32_exti_alarm(true, false, true, stm32_rtc_alarm_handler, NULL);
+    }
 
   /* REVISIT:  Should test that the time is in the future */
 
