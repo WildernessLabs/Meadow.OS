@@ -81,7 +81,7 @@
 
 /* Count of peripheral clock user configurations */
 
-#define NUM_OF_PERIPHERAL_CLOCKS_0 10U
+#define NUM_OF_PERIPHERAL_CLOCKS_0 10
 
 /****************************************************************************
  * Public Types

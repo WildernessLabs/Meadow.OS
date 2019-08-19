@@ -19,6 +19,8 @@ Status
     to support development of the architecture support.  This is VERY much
     a work in progress and you should not use this configuration unless you
     are interested in assisting with the bring-up.
+  2019-08-17:  The port is code complete.  It compiles with no errors or
+    warnings but is untested.  Still waiting for hardware.
 
 Serial Console
 ==============
@@ -35,9 +37,9 @@ LEDs and Buttons
   ----
   The S32K118EVB has one RGB LED:
 
-    RedLED   PTD16 (FTM0CH1)
-    BlueLED  PTE8  (FTM0CH6)
+    RedLED   PTD16 (FTM0 CH1)
     GreenLED PTD15 (FTM0 CH0)
+    BlueLED  PTE8  (FTM0 CH6)
 
   If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in
   any way.  The following definitions are used to access individual RGB
