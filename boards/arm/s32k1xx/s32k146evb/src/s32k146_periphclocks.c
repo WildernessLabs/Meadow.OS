@@ -118,7 +118,7 @@ const struct peripheral_clock_config_s g_peripheral_clockconfig0[] =
     .clkname    = LPUART2_CLK,
     .clkgate    = true,
     .clksrc     = CLK_SRC_SIRC,
-    .frac       = 1,
+    .frac       = MULTIPLY_BY_ONE,
     .divider    = 1,
   },
   {
