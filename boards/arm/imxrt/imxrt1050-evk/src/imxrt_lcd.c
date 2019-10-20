@@ -59,7 +59,7 @@
  *
  ****************************************************************************/
 
-void imxrt_lcdinitialize(void)
+void imxrt_lcd_initialize(void)
 {
   /* Configure the LCD backlight (and turn the backlight off) */
 
