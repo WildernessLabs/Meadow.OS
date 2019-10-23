@@ -54,3 +54,9 @@ int weak_function spresense_main(int argc, char *argv[])
 {
   return nsh_main(argc, argv);
 }
+
+#ifdef CONFIG_SYSTEMTICK_HOOK
+void weak_function board_timerhook(void)
+{
+}
+#endif
