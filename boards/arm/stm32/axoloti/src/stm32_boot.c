@@ -107,6 +107,8 @@ void stm32_boardinitialize(void)
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)
 {
+  /* Perform board-specific initialization */
+
   (void)stm32_bringup();
 }
 #endif
