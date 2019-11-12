@@ -41,6 +41,7 @@
 #include <nuttx/board.h>
 
 #include "sim.h"
+#include "up_internal.h"
 
 /****************************************************************************
  * Public Functions
@@ -76,6 +77,10 @@ int board_app_initialize(uintptr_t arg)
 {
 #ifndef CONFIG_BOARD_LATE_INITIALIZE
   sim_bringup();
+#endif
+
+#ifdef CONFIG_RPTUN
+  up_rptun_init();
 #endif
 
   return 0;
