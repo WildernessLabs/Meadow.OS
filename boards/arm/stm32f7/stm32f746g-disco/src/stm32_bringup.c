@@ -139,6 +139,14 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_MTD_N25QXXX
+  ret = stm32_n25qxxx_setup();
+  if (ret < 0)
+  {
+      syslog(LOG_ERR, "ERROR: stm32_n25qxxx_setup failed: %d\n", ret);
+    }
+#endif
+
   UNUSED(ret);  /* May not be used */
   return OK;
 }
