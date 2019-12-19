@@ -40,6 +40,7 @@
 #include "hardware/fe310_memorymap.h"
 #include "hardware/fe310_uart.h"
 #include "hardware/fe310_clint.h"
+#include "hardware/fe310_gpio.h"
 #include "hardware/fe310_plic.h"
 #include "hardware/fe310_prci.h"
 

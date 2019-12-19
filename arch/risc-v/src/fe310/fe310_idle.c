@@ -42,6 +42,8 @@
 #include <nuttx/config.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/board.h>
+#include <arch/board/board.h>
 
 #include "up_internal.h"
 
@@ -71,6 +73,8 @@ void up_idle(void)
 
   nxsched_process_timer();
 #else
+
+  board_autoled_off(LED_CPU);
 
   /* This would be an appropriate place to put some MCU-specific logic to
    * sleep in a reduced power mode until an interrupt occurs to save power
