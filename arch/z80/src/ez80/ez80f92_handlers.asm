@@ -30,7 +30,7 @@ EZ80_UNUSED		EQU	40h
 ; Global Symbols Imported
 ;**************************************************************************
 
-	xref	_ez80_rstcommon
+	xref	_ez80_irq_common
 
 ;**************************************************************************
 ; Global Symbols Exported
@@ -56,7 +56,7 @@ irqhandler: macro vectno
 								; Offset 8: Return PC is already on the stack
 	push	af					; Offset 7: AF (retaining flags)
 	ld		a, #vectno			; A = vector number
-	jp		_ez80_rstcommon		; Remaining RST handling is common
+	jp		_ez80_irq_common	; Remaining RST handling is common
 	endmac	irqhandler
 
 ;**************************************************************************
@@ -200,22 +200,22 @@ _ez80_handlers:
 	irqhandler	33		; EZ80_PORTD5_IRQ  33   45   0x0f4
 	irqhandler	34		; EZ80_PORTD6_IRQ  34   46   0x0f8
 	irqhandler	35		; EZ80_PORTD7_IRQ  35   47   0x0fc
-	irqhandler	EZ80_UNUSED+13	;               48   0x100
-	irqhandler	EZ80_UNUSED+14	;               49   0x104
-	irqhandler	EZ80_UNUSED+15	;               50   0x108
-	irqhandler	EZ80_UNUSED+16	;               51   0x10c
-	irqhandler	EZ80_UNUSED+17	;               52   0x110
-	irqhandler	EZ80_UNUSED+18	;               53   0x114
-	irqhandler	EZ80_UNUSED+19	;               54   0x118
-	irqhandler	EZ80_UNUSED+20	;               55   0x11c
-	irqhandler	EZ80_UNUSED+21	;               56   0x120
-	irqhandler	EZ80_UNUSED+22	;               57   0x124
-	irqhandler	EZ80_UNUSED+23	;               58   0x128
-	irqhandler	EZ80_UNUSED+24	;               59   0x12c
-	irqhandler	EZ80_UNUSED+25	;               60   0x130
-	irqhandler	EZ80_UNUSED+26	;               61   0x134
-	irqhandler	EZ80_UNUSED+27	;               62   0x138
-	irqhandler	EZ80_UNUSED+28	;               63   0x13c
+	irqhandler	EZ80_UNUSED+12	;               48   0x100
+	irqhandler	EZ80_UNUSED+13	;               49   0x104
+	irqhandler	EZ80_UNUSED+14	;               50   0x108
+	irqhandler	EZ80_UNUSED+15	;               51   0x10c
+	irqhandler	EZ80_UNUSED+16	;               52   0x110
+	irqhandler	EZ80_UNUSED+17	;               53   0x114
+	irqhandler	EZ80_UNUSED+18	;               54   0x118
+	irqhandler	EZ80_UNUSED+19	;               55   0x11c
+	irqhandler	EZ80_UNUSED+20	;               56   0x120
+	irqhandler	EZ80_UNUSED+21	;               57   0x124
+	irqhandler	EZ80_UNUSED+22	;               58   0x128
+	irqhandler	EZ80_UNUSED+23	;               59   0x12c
+	irqhandler	EZ80_UNUSED+24	;               60   0x130
+	irqhandler	EZ80_UNUSED+25	;               61   0x134
+	irqhandler	EZ80_UNUSED+26	;               62   0x138
+	irqhandler	EZ80_UNUSED+27	;               63   0x13c
 
 ;**************************************************************************
 ; Vector Setup Logic
