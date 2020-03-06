@@ -5,3 +5,4 @@
 
 source "drivers/platform/audio/Kconfig"
 source "drivers/platform/sensors/Kconfig"
+source "drivers/platform/camera/Kconfig"
