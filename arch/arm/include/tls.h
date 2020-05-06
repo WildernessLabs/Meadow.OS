@@ -37,12 +37,12 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_getsp
+ * Name: arm_getsp
  ****************************************************************************/
 
 /* I don't know if the builtin to get SP is enabled */
 
-static inline uint32_t up_getsp(void)
+static inline uint32_t arm_getsp(void)
 {
   uint32_t sp;
   __asm__
@@ -86,7 +86,7 @@ static inline uint32_t up_getsp(void)
 static inline FAR struct tls_info_s *up_tls_info(void)
 {
   DEBUGASSERT(!up_interrupt_context());
-  return TLS_INFO((uintptr_t)up_getsp());
+  return TLS_INFO((uintptr_t)arm_getsp());
 }
 #else
 #  define up_tls_info() tls_get_info()
