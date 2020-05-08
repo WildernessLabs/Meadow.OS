@@ -1,5 +1,5 @@
 /****************************************************************************
- * libs/libc/fixedmath/tls_setelem.c
+ * libs/libc/tls/tls_getinfo.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
