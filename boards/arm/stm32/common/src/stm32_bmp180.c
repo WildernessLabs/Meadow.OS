@@ -29,8 +29,6 @@
 #include <stdio.h>
 #include "stm32_i2c.h"
 
-#if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_BMP180)
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -103,4 +101,3 @@ int board_bmp180_initialize(int devno, int busno)
   return ret;
 }
 
-#endif
