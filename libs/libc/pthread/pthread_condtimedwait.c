@@ -53,5 +53,5 @@ int pthread_cond_timedwait(FAR pthread_cond_t *cond,
                            FAR pthread_mutex_t *mutex,
                            FAR const struct timespec *abstime)
 {
-  return pthread_cond_clockwait(cond, mutex, CLOCK_REALTIME, abstime);
+  return pthread_cond_clockwait(cond, mutex, cond->clockid, abstime);
 }
