@@ -25,6 +25,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <stdlib.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -55,6 +57,7 @@ extern "C"
 #endif
 
 struct mallinfo mallinfo(void);
+size_t malloc_usable_size(FAR void *ptr);
 
 #if defined(__cplusplus)
 }
