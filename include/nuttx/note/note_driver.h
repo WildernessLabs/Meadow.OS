@@ -27,8 +27,6 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_SCHED_INSTRUMENTATION
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -47,8 +45,8 @@
  * Name: note_register
  *
  * Description:
- *   Register a serial driver at /dev/note that can be used by an
- *   application to read data from the circular note buffer.
+ *   Register sched note related drivers at /dev folder that can be used by
+ *   an application to read or filter the note data.
  *
  * Input Parameters:
  *   None.
@@ -63,7 +61,5 @@ int note_register(void);
 #endif
 
 #endif /* defined(__KERNEL__) || defined(CONFIG_BUILD_FLAT) */
-
-#endif /* CONFIG_SCHED_INSTRUMENTATION */
 
 #endif /* __INCLUDE_NUTTX_NOTE_NOTE_DRIVER_H */
