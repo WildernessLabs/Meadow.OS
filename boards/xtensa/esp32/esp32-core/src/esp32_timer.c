@@ -24,12 +24,30 @@
 
 #include <nuttx/config.h>
 #include <nuttx/timers/timer.h>
-
 #include <debug.h>
-
 #include "esp32_tim_lowerhalf.h"
-
 #include "esp32-core.h"
+#include <sys/types.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifdef CONFIG_ESP32_TIMER0
+#define ESP32_TIMER0 (0)
+#endif
+
+#ifdef CONFIG_ESP32_TIMER1
+#define ESP32_TIMER1 (1)
+#endif
+
+#ifdef CONFIG_ESP32_TIMER2
+#define ESP32_TIMER2 (2)
+#endif
+
+#ifdef CONFIG_ESP32_TIMER3
+#define ESP32_TIMER3 (3)
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -52,7 +70,53 @@
  *
  ****************************************************************************/
 
-int esp32_timer_driver_setup(FAR const char *devpath, int timer)
+int esp32_timer_driver_init(void)
 {
-  return esp32_timer_initialize(devpath, timer);
+  int ret = OK;
+  #ifdef CONFIG_ESP32_TIMER0
+  ret = esp32_timer_initialize("/dev/timer0", ESP32_TIMER0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize timer driver: %d\n",
+             ret);
+      goto errout;
+    }
+#endif
+
+#ifdef CONFIG_ESP32_TIMER1
+  ret = esp32_timer_initialize("/dev/timer1", ESP32_TIMER1);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize timer driver: %d\n",
+             ret);
+      goto errout;
+    }
+#endif
+
+#ifdef CONFIG_ESP32_TIMER2
+  ret = esp32_timer_initialize("/dev/timer2", ESP32_TIMER2);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize timer driver: %d\n",
+             ret);
+      goto errout;
+    }
+#endif
+
+#ifdef CONFIG_ESP32_TIMER3
+  ret = esp32_timer_initialize("/dev/timer3", ESP32_TIMER3);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize timer driver: %d\n",
+             ret);
+      goto errout;
+    }
+#endif
+
+errout:
+  return ret;
 }
