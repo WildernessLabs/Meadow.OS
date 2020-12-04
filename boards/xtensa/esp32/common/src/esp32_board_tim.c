@@ -61,11 +61,6 @@
  * Description:
  *   Configure the timer driver.
  *
- * Input Parameters:
- *   devpath - The full path to the timer device.  This should be of the
- *             form /dev/timerX
- *   timer   - The timer's number.
- *
  * Returned Value:
  *   Zero (OK) is returned on success; A negated errno value is returned
  *   to indicate the nature of any failure.

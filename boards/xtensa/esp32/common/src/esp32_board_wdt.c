@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/xtensa/esp32/common/src/esp32_wtd.c
+ * boards/xtensa/esp32/common/src/esp32_wdt.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -55,11 +55,6 @@
  *
  * Description:
  *   Configure the timer driver.
- *
- * Input Parameters:
- *   devpath   - The full path to the timer device.  This should be of the
- *               form /dev/watchdogX
- *   wdt timer - The wdt timer's number.
  *
  * Returned Value:
  *   Zero (OK) is returned on success; A negated errno value is returned
