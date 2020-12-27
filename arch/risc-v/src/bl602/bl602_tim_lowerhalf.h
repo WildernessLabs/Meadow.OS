@@ -27,7 +27,8 @@
 
 #include <nuttx/config.h>
 
-#include <bl602_tim_lowerhalf.h>
+#include "bl602_tim_lowerhalf.h"
+#include "bl602_tim.h"
 
 /****************************************************************************
  * Public Function Prototypes
@@ -37,6 +38,6 @@
  * Name: bl602_timer_initialize
  ****************************************************************************/
 
-int bl602_timer_initialize(FAR const char *devpath, uint8_t timer);
+int bl602_timer_initialize(FAR const char *devpath, int timer);
 
 #endif /* __ARCH_RISCV_SRC_BL602_TIM_LOWERHALF_H */

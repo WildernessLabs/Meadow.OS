@@ -36,7 +36,7 @@
  *   Select uart clock source.
  *
  * Input Parameters:
- *   clk_sel: uart clock type selection
+ *   clk_sel: uart clock type selection, 0 for FCLK or 1 for 160MHz CLK
  *
  * Returned Value:
  *   Description of the value returned by this function (if any),
@@ -47,12 +47,14 @@
  *
  ****************************************************************************/
 
-void bl602_hbn_set_uart_clk_sel(int clk_sel)
+void bl602_set_uart_clk_sel(int clk_sel)
 {
-  uint32_t tmp_val;
-
-  tmp_val = getreg32(HBN_BASE + HBN_GLB_OFFSET);
-  tmp_val &= ~(1 << 2);
-  tmp_val |= (clk_sel << 2);
-  putreg32(tmp_val, HBN_BASE + HBN_GLB_OFFSET);
+  if (clk_sel)
+    {
+      modifyreg32(BL602_HBN_GLB, 0, HBN_GLB_HBN_UART_CLK_SEL);
+    }
+  else
+    {
+      modifyreg32(BL602_HBN_GLB, HBN_GLB_HBN_UART_CLK_SEL, 0);
+    }
 }
