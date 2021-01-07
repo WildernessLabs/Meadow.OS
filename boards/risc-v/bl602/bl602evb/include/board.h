@@ -40,6 +40,14 @@
 #define BOARD_UART_1_RX_PIN (GPIO_INPUT | GPIO_PULLUP | GPIO_FUNC_UART | GPIO_PIN3)
 #define BOARD_UART_1_TX_PIN (GPIO_INPUT | GPIO_PULLUP | GPIO_FUNC_UART | GPIO_PIN4)
 
+/* PWM Configuration */
+
+#define BOARD_PWM_CH0_PIN (GPIO_OUTPUT | GPIO_PULLDOWN | GPIO_FUNC_PWM | GPIO_PIN0)
+#define BOARD_PWM_CH1_PIN (GPIO_OUTPUT | GPIO_PULLDOWN | GPIO_FUNC_PWM | GPIO_PIN1)
+#define BOARD_PWM_CH2_PIN (GPIO_OUTPUT | GPIO_PULLDOWN | GPIO_FUNC_PWM | GPIO_PIN2)
+#define BOARD_PWM_CH3_PIN (GPIO_OUTPUT | GPIO_PULLDOWN | GPIO_FUNC_PWM | GPIO_PIN3)
+#define BOARD_PWM_CH4_PIN (GPIO_OUTPUT | GPIO_PULLDOWN | GPIO_FUNC_PWM | GPIO_PIN4)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
