@@ -25,7 +25,6 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-
 #include "riscv_arch.h"
 #include "hardware/bl602_glb.h"
 
@@ -33,7 +32,7 @@
  * Pre-Processor Declarations
  ****************************************************************************/
 
-#define nop() asm volatile ("nop")
+#define nop() asm volatile("nop")
 
 /****************************************************************************
  * Public Functions
@@ -70,4 +69,29 @@ void bl602_swrst_ahb_slave1(uint32_t slave1)
   nop();
   nop();
   modifyreg32(BL602_SWRST_CFG1, slave1, 0);
+}
+
+/****************************************************************************
+ * Name: bl602_glb_get_bclk_div
+ *
+ * Description:
+ *   get bus clock div.
+ *
+ * Input Parameters:
+ *   void
+ *
+ * Returned Value:
+ *   bus clock div
+ *
+ ****************************************************************************/
+
+uint8_t bl602_glb_get_bclk_div(void)
+{
+  uint32_t tmp_val;
+
+  tmp_val = getreg32(BL602_CLK_CFG0);
+  tmp_val =
+    (CLK_CFG0_REG_BCLK_DIV_MASK & tmp_val) >> CLK_CFG0_REG_BCLK_DIV_SHIFT;
+
+  return (uint8_t)tmp_val;
 }
