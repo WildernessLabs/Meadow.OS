@@ -22,15 +22,6 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <debug.h>
-
-#include <nuttx/board.h>
-#include <arch/board/board.h>
-
-#include "esp32c3-devkit.h"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
