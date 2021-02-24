@@ -31,6 +31,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* The size of one interrupt stack.  This is the configured value aligned
+ * the 8-bytes as required by the ARM EABI.
+ */
+
+#define INTSTACK_SIZE  (CONFIG_ARCH_INTERRUPTSTACK & ~7)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -39,12 +45,30 @@
  * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
+#if defined(CONFIG_SMP) && CONFIG_ARCH_INTERRUPTSTACK > 7
+EXTERN uintptr_t arm_intstack_base(void);
+EXTERN uintptr_t arm_intstack_alloc(void);
+#endif
+
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_RP2040_RP2040_IRQ_H */
