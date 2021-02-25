@@ -29,10 +29,11 @@
 
 #include <arch/board/board.h>
 
-#include "chip.h"
 #include "esp32c3.h"
+#include "esp32c3_clockconfig.h"
 #include "esp32c3_irq.h"
 #include "esp32c3_lowputc.h"
+#include "esp32c3_start.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -66,6 +67,10 @@ void __esp32c3_start(void)
 {
   uint32_t *dest;
 
+  /* Set CPU frequency */
+
+  esp32c3_clockconfig();
+
   /* Configure the UART so we can get debug output */
 
   esp32c3_lowsetup();
@@ -83,7 +88,11 @@ void __esp32c3_start(void)
 
   showprogress('B');
 
-  /* Call nx_start() */
+  /* Initialize onboard resources */
+
+  esp32c3_board_initialize();
+
+  /* Bring up NuttX */
 
   nx_start();
 
