@@ -25,10 +25,16 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+#if defined(CONFIG_EABI_UNWINDER)
+
 /* Store up to SIZE return address of the current program state in
  * ARRAY and return the exact number of values stored.
  */
 
-extern int backtrace(FAR void **buffer, int size);
+extern int  backtrace(FAR void **buffer, int size);
+extern void dump_stack(void);
+#else
+# define dump_stack()
+#endif
 
 #endif /* __INCLUDE_EXECINFO_H */
