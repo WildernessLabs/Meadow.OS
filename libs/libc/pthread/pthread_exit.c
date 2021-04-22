@@ -28,6 +28,7 @@
 #include <sched.h>
 
 #include <nuttx/pthread.h>
+#include <nuttx/tls.h>
 
 /****************************************************************************
  * Public Functions
@@ -53,6 +54,10 @@ void pthread_exit(FAR void *exit_value)
 {
 #ifdef CONFIG_PTHREAD_CLEANUP
   pthread_cleanup_popall();
+#endif
+
+#if CONFIG_TLS_NELEM > 0
+  tls_destruct();
 #endif
 
   nx_pthread_exit(exit_value);
