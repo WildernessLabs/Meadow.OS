@@ -18,12 +18,14 @@
  *
  ****************************************************************************/
 
+#ifndef __ARCH_XTENSA_SRC_ESP32_ESP32_TICKLESS_H
+#define __ARCH_XTENSA_SRC_ESP32_ESP32_TICKLESS_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ARCH_XTENSA_SRC_ESP32_ESP32_TICKLESS_H
-#define __ARCH_XTENSA_SRC_ESP32_ESP32_TICKLESS_H
+#include <stdint.h>
 
 /****************************************************************************
  * Public Function Prototypes
