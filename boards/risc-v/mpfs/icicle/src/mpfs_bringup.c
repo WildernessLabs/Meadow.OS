@@ -33,6 +33,7 @@
 #include <nuttx/board.h>
 #include <nuttx/drivers/ramdisk.h>
 
+#include "mpfsicicle.h"
 #include "mpfs.h"
 
 /****************************************************************************
@@ -54,6 +55,17 @@ int mpfs_bringup(void)
   if (ret < 0)
     {
       serr("ERROR: Failed to mount procfs at %s: %d\n", "/proc", ret);
+    }
+#endif
+
+#if defined(CONFIG_MPFS_SPI0) || defined(CONFIG_MPFS_SPI1)
+  /* Configure SPI peripheral interfaces */
+
+  ret = mpfs_board_spi_init();
+
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "Failed to initialize SPI driver: %d\n", ret);
     }
 #endif
 
