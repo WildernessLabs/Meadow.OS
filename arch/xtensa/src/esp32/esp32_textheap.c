@@ -32,31 +32,25 @@
 
 #include "hardware/esp32_soc.h"
 
+#ifdef CONFIG_ESP32_IRAM_HEAP
 #include "esp32_iramheap.h"
+#endif
+
 #ifdef CONFIG_ESP32_RTC_HEAP
 #include "esp32_rtcheap.h"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: up_textheap_init
- *
- * Description:
- *   Initialize the text heap.
- *
- ****************************************************************************/
-
-void up_textheap_init()
-{
-#ifdef CONFIG_ESP32_RTC_HEAP
-  esp32_rtcheap_initialize();
+#if !defined(CONFIG_ESP32_IRAM_HEAP) && !defined(CONFIG_ESP32_RTC_HEAP)
+#error "No suitable heap available. Enable ESP32_IRAM_HEAP or ESP32_RTC_HEAP"
 #endif
 
-  esp32_iramheap_initialize();
-}
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: up_textheap_memalign
