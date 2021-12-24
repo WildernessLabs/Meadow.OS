@@ -59,6 +59,9 @@ extern "C"
 #define EXTERN extern
 #endif
 
+FAR char **backtrace_symbols(FAR void *const *buffer, int size);
+void backtrace_symbols_fd(FAR void *const *buffer, int size, int fd);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
