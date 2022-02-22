@@ -42,6 +42,10 @@
 #  include "esp32s3_board_tim.h"
 #endif
 
+#ifdef CONFIG_WATCHDOG
+#  include "esp32s3_board_wdt.h"
+#endif
+
 #include "esp32s3-devkit.h"
 
 /****************************************************************************
@@ -94,6 +98,16 @@ int esp32s3_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "Failed to initialize timers: %d\n", ret);
+    }
+#endif
+
+#ifdef CONFIG_WATCHDOG
+  /* Configure watchdog timer */
+
+  ret = board_wdt_init();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "Failed to initialize watchdog timer: %d\n", ret);
     }
 #endif
 
