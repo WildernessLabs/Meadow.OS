@@ -30,36 +30,10 @@
 #include <nuttx/irq.h>
 
 #include "riscv_internal.h"
-#include "riscv_percpu.h"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: riscv_mhartid
- *
- * Description:
- *   Context aware way to query hart id
- *
- * Returned Value:
- *   Hart id
- *
- ****************************************************************************/
-
-uintptr_t riscv_mhartid(void)
-{
-#ifdef CONFIG_ARCH_USE_S_MODE
-  /* Kernel is in S-mode */
-
-  return riscv_percpu_get_hartid();
-
-#else
-  /* Kernel is in M-mode */
-
-  return READ_CSR(mhartid);
-#endif
-}
 
 /****************************************************************************
  * Name: up_cpu_index
