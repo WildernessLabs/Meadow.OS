@@ -88,7 +88,29 @@ struct ipc_perm
  * Public Function Prototypes
  ****************************************************************************/
 
-key_t ftok(FAR const char *path, int id);
+/****************************************************************************
+ * Name: ftok
+ *
+ * Description:
+ *   Convert a pathname and a project identifier to a System V IPC key.
+ *   The ftok() function uses the identity of the file named by the given
+ *   pathname (which must refer to an existing, accessible file) and the
+ *   least significant 8 bits of proj_id (which must be nonzero) to
+ *   generate a key_t type System V IPC key, suitable for use with
+ *   msgget(2), semget(2), or shmget(2).
+ *
+ * Input Parameters:
+ *   pathname - identity of the file name
+ *   proj_id  - The value that uniquely project identifies.
+ *
+ * Returned Value:
+ *   On success, the generated key_t value is returned.
+ *   On failure -1 is returned, with errno indicating the error as for the
+ *   stat(2) system call.
+ *
+ ****************************************************************************/
+
+key_t ftok(FAR const char *pathname, int proj_id);
 
 #undef EXTERN
 #if defined(__cplusplus)
