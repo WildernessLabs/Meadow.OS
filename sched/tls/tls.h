@@ -32,6 +32,38 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: task_init_info
+ *
+ * Description:
+ *   Allocate and initilize task_info_s structure.
+ *
+ * Input Parameters:
+ *   - group: The group of new task
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int task_init_info(FAR struct task_group_s *group);
+
+/****************************************************************************
+ * Name: task_uninit_info
+ *
+ * Description:
+ *   Uninitilize and free task_info_s structure.
+ *
+ * Input Parameters:
+ *   - group: The group of new task
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+void task_uninit_info(FAR struct task_group_s *group);
+
+/****************************************************************************
  * Name: tls_init_info
  *
  * Description:
