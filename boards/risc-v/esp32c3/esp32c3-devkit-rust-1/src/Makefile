@@ -53,17 +53,4 @@ ifeq ($(CONFIG_LCD_APA102),y)
 CSRCS += esp32c3_apa102.c
 endif
 
-SCRIPTIN = $(SCRIPTDIR)$(DELIM)flat.template.ld
-SCRIPTOUT = $(SCRIPTDIR)$(DELIM)esp32c3_out.ld
-
-.PHONY = context distclean
-
-$(SCRIPTOUT): $(SCRIPTIN) $(CONFIGFILE)
-	$(Q) $(CC) -isystem $(TOPDIR)/include -I $(BOARD_DIR)/scripts -C -P -x c -E $(SCRIPTIN) -o $@
-
-context:: $(SCRIPTOUT)
-
-distclean::
-	$(call DELFILE, $(SCRIPTOUT))
-
 include $(TOPDIR)/boards/Board.mk
