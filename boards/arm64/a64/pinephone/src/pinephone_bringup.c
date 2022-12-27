@@ -36,6 +36,7 @@
 
 #ifdef CONFIG_VIDEO_FB
 #  include <nuttx/video/fb.h>
+#  include "pinephone_display.h"
 #endif
 
 #include "pinephone.h"
@@ -84,6 +85,10 @@ int pinephone_bringup(void)
     {
       syslog(LOG_ERR, "ERROR: fb_register() failed: %d\n", ret);
     }
+
+  /* Render the Test Pattern */
+
+  pinephone_display_test_pattern();
 #endif
 
   UNUSED(ret);
