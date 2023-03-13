@@ -99,6 +99,18 @@ int nrf53_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_PWM
+  /* Configure PWM driver */
+
+  ret = nrf53_pwm_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR,
+             "ERROR: Failed to initialize PWM driver: %d\n",
+             ret);
+    }
+#endif
+
 #ifdef CONFIG_NRF53_SOFTDEVICE_CONTROLLER
   ret = nrf53_sdc_initialize();
 
