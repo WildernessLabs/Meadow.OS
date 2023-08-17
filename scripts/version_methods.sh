@@ -50,8 +50,8 @@ generate_build_info() {
 
   echo Calculated version: ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}.${VERSION_BUILD} '('${MEADOW_GIT_HASH:0-8}:${MEADOW_GIT_REF}')'
 
-  git checkout HEAD $scriptdir/nuttx/configs/stm32f777zit6-meadow/scripts/user-space.ld
-  git checkout HEAD $scriptdir/nuttx/include/meadow/hcom_nuttx_shared.h
+  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+  git checkout HEAD $scriptdir/Meadow.OS/include/meadow/hcom_nuttx_shared.h
   git checkout HEAD $scriptdir/esp32/main/version.h
 
   #
@@ -80,8 +80,8 @@ generate_build_info() {
 
   for s in $(echo VERSION_MAJOR VERSION_MINOR VERSION_REVISION VERSION_BUILD BUILD_DAY BUILD_TWO_DIGIT_DAY BUILD_MONTH BUILD_TWO_DIGIT_MONTH BUILD_MONTH_NAME BUILD_YEAR BUILD_HOUR BUILD_TWO_DIGIT_HOUR HOUR BUILD_MINUTE BUILD_TWO_DIGIT_MINUTE BUILD_SECOND BUILD_TWO_DIGIT_SECOND BUILD_HASH MEADOW_GIT_REF BUILD_EPOCH_TIME BUILD_HASH_STRING)
   do
-    inject_value $s $scriptdir/nuttx/configs/stm32f777zit6-meadow/scripts/user-space.ld
-    inject_value $s $scriptdir/nuttx/include/meadow/hcom_nuttx_shared.h
+    inject_value $s $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+    inject_value $s $scriptdir/Meadow.OS/include/meadow/hcom_nuttx_shared.h
     inject_value $s $scriptdir/esp32/main/build_info.template
   done
   cp $scriptdir/esp32/main/build_info.template $scriptdir/esp32/main/build_info.h
@@ -105,7 +105,7 @@ generate_build_info() {
       fi
     done
     MONO_GIT_REF+="BYTE(00)"
-    sed -i.bak 's/###MONO_GIT_REF###/'$MONO_GIT_REF'/g' $scriptdir/nuttx/configs/stm32f777zit6-meadow/scripts/user-space.ld
+    sed -i.bak 's/###MONO_GIT_REF###/'$MONO_GIT_REF'/g' $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
   fi
 
   #
@@ -141,12 +141,12 @@ END
 #   Restore auto-versioned files
 #
 restore_versioned_files() {
-  git checkout HEAD $scriptdir/nuttx/configs/stm32f777zit6-meadow/scripts/user-space.ld
-  git checkout HEAD $scriptdir/nuttx/include/meadow/hcom_nuttx_shared.h
+  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+  git checkout HEAD $scriptdir/Meadow.OS/include/meadow/hcom_nuttx_shared.h
   git checkout HEAD $scriptdir/esp32/version.txt
   git checkout HEAD $scriptdir/esp32/main/build_info.template
-  rm $scriptdir/nuttx/configs/stm32f777zit6-meadow/scripts/user-space.ld.bak
-  rm $scriptdir/nuttx/include/meadow/hcom_nuttx_shared.h.bak
+  rm $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
+  rm $scriptdir/Meadow.OS/include/meadow/hcom_nuttx_shared.h.bak
   rm $scriptdir/esp32/main/build_info.template.bak
   rm $scriptdir/esp32/main/build_info.h
 }
