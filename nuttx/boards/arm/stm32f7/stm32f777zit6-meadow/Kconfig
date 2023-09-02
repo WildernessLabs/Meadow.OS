@@ -40,7 +40,7 @@ config HCOM_ESP32_COMMS
     default y
 
 menu "ESP32 Coprocessor Configuration"
-source "boards/arm/stm32f7/stm32f777zit6-meadow/src/Meadow.OS/espcp/Kconfig"
+source "boards/arm/stm32f7/stm32f777zit6-meadow/Kconfig-ESP32"
 endmenu
 
 config ARCH_BOARD_MEADOW
@@ -53,7 +53,7 @@ config MEADOW_ADC
 
 config MEADOW_HCOM
     bool "Enables Meadow HCOM support"
-    default y
+    default n
 
 config MEADOW_TIMER_SUPPORT
     bool "Enables Meadow timer support"

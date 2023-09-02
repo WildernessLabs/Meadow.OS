@@ -36,6 +36,16 @@ config ARCH_CHIP_A64
 	---help---
 		Allwinner A64 SoC
 
+config ARCH_CHIP_RK3399
+	bool "Rockchip RK3399"
+	select ARCH_CORTEX_A53
+	select ARCH_HAVE_ADDRENV
+	select ARCH_HAVE_RESET
+	select ARCH_HAVE_PSCI
+	select ARCH_NEED_ADDRENV_MAPPING
+	---help---
+		Rockchip RK3399 SoC
+
 config ARCH_CHIP_QEMU
 	bool "QEMU virt platform (ARMv8a)"
 	select ARCH_HAVE_ADDRENV
@@ -48,6 +58,14 @@ config ARCH_CHIP_FVP_ARMV8R
 	select ARCH_CORTEX_R82
 	---help---
 		ARM FVP virt platform (ARMv8r)
+
+config ARCH_CHIP_IMX8
+	bool "NXP i.MX8 Platform (ARMv8a)"
+	select ARCH_HAVE_ADDRENV
+	select ARCH_HAVE_IRQTRIGGER
+	select ARCH_NEED_ADDRENV_MAPPING
+	---help---
+		NXP i.MX8 (ARMv8a) applications processors
 
 config ARCH_CHIP_ARM64_CUSTOM
 	bool "Custom ARM64 chip"
@@ -182,15 +200,10 @@ config ARCH_FAMILY
 config ARCH_CHIP
 	string
 	default "a64"       if ARCH_CHIP_A64
+	default "rk3399"    if ARCH_CHIP_RK3399
 	default "qemu"      if ARCH_CHIP_QEMU
 	default "fvp-v8r"   if ARCH_CHIP_FVP_ARMV8R
-
-config ARCH_HAVE_TRUSTZONE
-	bool
-	default n
-	---help---
-		Automatically selected to indicate that the ARM CPU supports
-		TrustZone.
+	default "imx8"      if ARCH_CHIP_IMX8
 
 config ARM_HAVE_NEON
 	bool
@@ -249,6 +262,10 @@ if ARCH_CHIP_A64
 source "arch/arm64/src/a64/Kconfig"
 endif
 
+if ARCH_CHIP_RK3399
+source "arch/arm64/src/rk3399/Kconfig"
+endif
+
 if ARCH_CHIP_QEMU
 source "arch/arm64/src/qemu/Kconfig"
 endif
@@ -256,4 +273,9 @@ endif
 if ARCH_CHIP_FVP_ARMV8R
 source "arch/arm64/src/fvp-v8r/Kconfig"
 endif
+
+if ARCH_CHIP_IMX8
+source "arch/arm64/src/imx8/Kconfig"
+endif
+
 endif # ARCH_ARM64

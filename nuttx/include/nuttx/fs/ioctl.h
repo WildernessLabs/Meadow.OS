@@ -26,6 +26,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <sys/types.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -304,6 +305,12 @@
                                            *      to return sector size.
                                            * OUT: Data return in user-provided
                                            *      buffer. */
+#define BIOC_BLKGETSIZE _BIOC(0x0010)     /* Get block device sector numbers.
+                                           * IN:  Pointer to writable instance
+                                           *      of sector numbers in which
+                                           *      to return sector numbers.
+                                           * OUT: Data return in user-provided
+                                           *      buffer. */
 
 /* NuttX MTD driver ioctl definitions ***************************************/
 
@@ -446,6 +453,10 @@
                                                *     more bytes than
                                                *     threshold.
                                                * OUT: None */
+
+#define PIPEIOC_PEEK        _PIPEIOC(0x0004)  /* Pipe peek interface
+                                               * IN: pipe_peek_s
+                                               * OUT: Length of data */
 
 /* RTC driver ioctl definitions *********************************************/
 
@@ -660,6 +671,12 @@
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
+
+struct pipe_peek_s
+{
+  FAR void *buf;
+  size_t size;
+};
 
 /****************************************************************************
  * Public Data

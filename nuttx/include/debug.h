@@ -34,6 +34,9 @@
 #ifdef CONFIG_ARCH_CHIP_DEBUG_H
 #  include <arch/chip/debug.h>
 #endif
+#ifdef CONFIG_ARCH_BOARD_DEBUG_H
+#  include <arch/board/debug.h>
+#endif
 
 #include <syslog.h>
 #include <sys/uio.h>
@@ -609,6 +612,24 @@
 #  define pwminfo     _info
 #else
 #  define pwminfo     _none
+#endif
+
+#ifdef CONFIG_DEBUG_CAPTURE_ERROR
+#  define cperr       _err
+#else
+#  define cperr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_CAPTURE_WARN
+#  define cpwarn     _warn
+#else
+#  define cpwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_CAPTURE_INFO
+#  define cpinfo     _info
+#else
+#  define cpinfo     _none
 #endif
 
 #ifdef CONFIG_DEBUG_RC_ERROR

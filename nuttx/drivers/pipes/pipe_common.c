@@ -713,7 +713,7 @@ int pipecommon_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       eventset = 0;
       if ((filep->f_oflags & O_WROK) &&
-          nbytes <= (dev->d_bufsize - dev->d_polloutthrd))
+          nbytes < (dev->d_bufsize - dev->d_polloutthrd))
         {
           eventset |= POLLOUT;
         }
@@ -835,6 +835,16 @@ int pipecommon_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
           dev->d_polloutthrd = threshold;
           ret = OK;
+        }
+        break;
+
+      case PIPEIOC_PEEK:
+        {
+          FAR struct pipe_peek_s *peek = (FAR struct pipe_peek_s *)arg;
+
+          DEBUGASSERT(peek && peek->buf);
+
+          ret = circbuf_peek(&dev->d_buffer, peek->buf, peek->size);
         }
         break;
 

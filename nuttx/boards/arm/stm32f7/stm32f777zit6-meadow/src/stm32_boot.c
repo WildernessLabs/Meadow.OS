@@ -25,6 +25,7 @@
 #include <nuttx/config.h>
 
 #include <debug.h>
+#include <assert.h>
 
 #include <nuttx/board.h>
 #include <arch/board/board.h>
@@ -69,10 +70,6 @@ extern FAR struct qspi_dev_s *stm32f7_qspi_initialize(int intf);
  *   initialized.
  *
  ****************************************************************************/
-
-void up_netinitialize(void)
-{
-}
 
 void stm32_boardinitialize(void)
 {
@@ -167,16 +164,27 @@ void board_late_initialize(void)
    *
    * stm32_mpu_uheap((uintptr_t)0x90000000, 0x4000000);
    */
+
 #endif
-#if defined(CONFIG_MEADOW_HCOM)
+#if defined(MEADOW_OS)
   /* Initialize Meadow HCOM nuttx */
 
+  int ret;
   ret = hcom_nx_setup_mgr(mtd);
   if (ret < 0)
     {
       syslog(LOG_EMERG, "ERROR: HCOM proxy initialization failed!\n");
       PANIC();
     }
+
+#endif
+#if defined(CONFIG_NSH_LIBRARY) && !defined(CONFIG_BOARDCTL)
+  /* Perform NSH initialization here instead of from the NSH.  This
+   * alternative NSH initialization is necessary when NSH is ran in
+   * user-space but the initialization function must run in kernel space.
+   */
+
+  board_app_initialize();
 #endif
 }
 #endif

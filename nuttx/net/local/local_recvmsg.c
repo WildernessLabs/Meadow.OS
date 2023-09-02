@@ -56,12 +56,27 @@
  ****************************************************************************/
 
 static int psock_fifo_read(FAR struct socket *psock, FAR void *buf,
-                           FAR size_t *readlen, bool once)
+                           FAR size_t *readlen, int flags, bool once)
 {
   FAR struct local_conn_s *conn = psock->s_conn;
   int ret;
 
-  ret = local_fifo_read(&conn->lc_infile, buf, readlen, once);
+  if (flags & MSG_PEEK)
+    {
+      struct pipe_peek_s peek =
+        {
+          buf,
+          *readlen
+        };
+
+      ret = file_ioctl(&conn->lc_infile, PIPEIOC_PEEK,
+                       (unsigned long)((uintptr_t)&peek));
+    }
+  else
+    {
+      ret = local_fifo_read(&conn->lc_infile, buf, readlen, once);
+    }
+
   if (ret < 0)
     {
       /* -ECONNRESET is a special case.  We may or not have received
@@ -93,7 +108,15 @@ static int psock_fifo_read(FAR struct socket *psock, FAR void *buf,
         }
       else
         {
-          nerr("ERROR: Failed to read packet: %d\n", ret);
+          if (ret == -EAGAIN)
+            {
+              nwarn("WARNING: Failed to read packet: %d\n", ret);
+            }
+          else
+            {
+              nerr("ERROR: Failed to read packet: %d\n", ret);
+            }
+
           return ret;
         }
     }
@@ -245,7 +268,7 @@ psock_stream_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   /* Read the packet */
 
-  ret = psock_fifo_read(psock, buf, &readlen, true);
+  ret = psock_fifo_read(psock, buf, &readlen, flags, true);
   if (ret < 0)
     {
       return ret;
@@ -294,10 +317,9 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
                      FAR socklen_t *fromlen)
 {
   FAR struct local_conn_s *conn = psock->s_conn;
-  uint16_t pktlen;
   size_t readlen;
   bool bclose = false;
-  int ret;
+  int ret = 0;
 
   /* We keep packet sizes in a uint16_t, so there is a upper limit to the
    * 'len' that can be supported.
@@ -346,24 +368,28 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
    * the next packet.
    */
 
-  ret = local_sync(&conn->lc_infile);
-  if (ret < 0)
+  if (conn->pktlen <= 0)
     {
-      nerr("ERROR: Failed to get packet length: %d\n", ret);
-      goto errout_with_infd;
-    }
-  else if (ret > UINT16_MAX)
-    {
-      nerr("ERROR: Packet is too big: %d\n", ret);
-      goto errout_with_infd;
-    }
+      ret = local_sync(&conn->lc_infile);
 
-  pktlen = ret;
+      if (ret < 0)
+        {
+          nerr("ERROR: Failed to get packet length: %d\n", ret);
+          goto errout_with_infd;
+        }
+      else if (ret > UINT16_MAX)
+        {
+          nerr("ERROR: Packet is too big: %d\n", ret);
+          goto errout_with_infd;
+        }
+
+      conn->pktlen = ret;
+    }
 
   /* Read the packet */
 
-  readlen = MIN(pktlen, len);
-  ret     = psock_fifo_read(psock, buf, &readlen, false);
+  readlen = MIN(conn->pktlen, len);
+  ret     = psock_fifo_read(psock, buf, &readlen, flags, false);
   if (ret < 0)
     {
       goto errout_with_infd;
@@ -373,20 +399,25 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
    * of the packet to the bit bucket.
    */
 
-  DEBUGASSERT(readlen <= pktlen);
-  if (readlen < pktlen)
+  if (flags & MSG_PEEK)
+    {
+      goto skip_flush;
+    }
+
+  DEBUGASSERT(readlen <= conn->pktlen);
+  if (readlen < conn->pktlen)
     {
       uint8_t bitbucket[32];
       uint16_t remaining;
       size_t tmplen;
 
-      remaining = pktlen - readlen;
+      remaining = conn->pktlen - readlen;
       do
         {
           /* Read 32 bytes into the bit bucket */
 
           tmplen = MIN(remaining, 32);
-          ret     = psock_fifo_read(psock, bitbucket, &tmplen, false);
+          ret = psock_fifo_read(psock, bitbucket, &tmplen, flags, false);
           if (ret < 0)
             {
               goto errout_with_infd;
@@ -398,10 +429,15 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
           DEBUGASSERT(tmplen <= remaining);
           remaining -= tmplen;
-          readlen += tmplen;
         }
       while (remaining > 0);
     }
+
+  /* The fifo has been read and the pktlen needs to be cleared */
+
+  conn->pktlen = 0;
+
+skip_flush:
 
   /* Return the address family */
 
