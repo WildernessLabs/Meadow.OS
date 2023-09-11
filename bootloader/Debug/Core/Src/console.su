@@ -1,0 +1,3 @@
+../Core/Src/console.c:10:6:LogConsole	16	static
+../Core/Src/console.c:22:6:PrintVersion	32	static
+../Core/Src/console.c:44:6:PrintOtaFlags	40	static

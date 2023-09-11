@@ -1,0 +1,15 @@
+../Core/Src/quadspi.c:30:6:MX_QUADSPI_Init	8	static
+../Core/Src/quadspi.c:49:6:HAL_QSPI_MspInit	56	static
+../Core/Src/quadspi.c:99:6:HAL_QSPI_MspDeInit	16	static
+../Core/Src/quadspi.c:132:6:QSPI_Get_Dev_ID	80	static
+../Core/Src/quadspi.c:161:6:QSPI_Read_StatusRegisterOne	80	static
+../Core/Src/quadspi.c:188:6:QSPI_Read_StatusRegisters	80	static
+../Core/Src/quadspi.c:222:6:QSPI_Quad_Read	88	static
+../Core/Src/quadspi.c:267:6:QSPI_Quad_Write_Page	96	static
+../Core/Src/quadspi.c:328:6:Backup_Primary_Nuttx	4	static
+../Core/Src/quadspi.c:334:6:EraseSecondaryNuttx	80	static
+../Core/Src/quadspi.c:395:6:QSPI_Read_Config_Registers	80	static
+../Core/Src/quadspi.c:436:6:QSPI_Enable_QPI	72	static
+../Core/Src/quadspi.c:460:6:QSPI_Disable_QPI	72	static
+../Core/Src/quadspi.c:489:6:QSPI_Enable_4Byte_Addressing	72	static
+../Core/Src/quadspi.c:513:6:QSPI_Disable_4Byte_Addressing	72	static
