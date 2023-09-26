@@ -61,7 +61,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../meadow-upd.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>
 #include "../espcp/espcp_usrsock.h"

@@ -50,7 +50,6 @@
 #include <nuttx/mtd/mtd.h>
 #include "stm32_uid.h"          // stm32_get_uniqueid()
 
-#include <arch/board/boardctl.h>
 #include <sys/boardctl.h>
 
 #include <sys/stat.h>

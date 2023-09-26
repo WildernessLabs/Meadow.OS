@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -ex
 
 #set -e
 scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
@@ -25,7 +25,7 @@ DEBUG_BL_CDC=false
 DEBUG_BL_UART=false
 HELP=false
 ENABLE_STACK_DUMP=false
-MAKE_OPTIONS=
+MAKE_OPTIONS="MEADOW_OS=1"
 UNIT_TESTS=
 BOOTLOADER_OPTIONS=
 

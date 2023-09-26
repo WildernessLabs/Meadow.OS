@@ -48,7 +48,6 @@
 #include <net/if.h>
 
 #include <meadow/hcom_shared_common.h>
-#include <up_arch.h>
 #include <chip.h>
 #include <stm32_ethernet.h>
 

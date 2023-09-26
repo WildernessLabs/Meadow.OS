@@ -58,7 +58,7 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
-#include <crc8.h>
+#include <nuttx/crc8.h>
 
 #include "stm32_qspi.h"
 #include <nuttx/spi/qspi.h>
