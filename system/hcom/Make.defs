@@ -34,6 +34,6 @@
 #
 ############################################################################
 
-ifneq ($(CONFIG_EXAMPLES_HCOM),)
-CONFIGURED_APPS += examples/hcom
+ifneq ($(CONFIG_SYSTEM_HCOM),)
+CONFIGURED_APPS += system/hcom
 endif
