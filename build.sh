@@ -323,6 +323,8 @@ run_command "make -C $scriptdir/nuttx/tools $MAKE_OPTIONS -f Makefile.host mksys
 run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass2"
 check_command_status
 
+#   Now that the kernel is configured, we can build the userspace libs
+
 #
 #   Build mbedTLS
 #
@@ -331,8 +333,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass1deps"
-check_command_status
+
 
 if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   printf "Building NuttX (user pass)..."
@@ -342,6 +343,10 @@ if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass1"
   check_command_status
 fi
+
+#   Complete the build
+run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS nuttx"
+check_command_status
 
 #
 #   Package Meadow.OS
