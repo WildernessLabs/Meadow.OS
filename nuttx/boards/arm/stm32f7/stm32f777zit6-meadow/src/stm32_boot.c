@@ -169,7 +169,6 @@ void board_late_initialize(void)
 #if defined(MEADOW_OS)
   /* Initialize Meadow HCOM nuttx */
 
-  int ret;
   ret = hcom_nx_setup_mgr(mtd);
   if (ret < 0)
     {
