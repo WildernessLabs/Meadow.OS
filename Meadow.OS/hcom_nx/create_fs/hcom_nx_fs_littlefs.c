@@ -47,7 +47,7 @@
 #include <sys/mount.h>
 #include <sys/ioctl.h>
 #include <nuttx/mtd/mtd.h>
-#include "../../../fs/littlefs/lfs.h"   // There must be a better way!
+#include <fs/littlefs/littlefs/lfs.h>   // There must be a better way!
 #include <dirent.h>
 #include <errno.h>
 

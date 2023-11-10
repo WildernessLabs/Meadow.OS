@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <net/if.h>
+#include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <nuttx/net/net.h>
@@ -55,6 +56,7 @@
 #include <time.h>
 #include <sys/time.h>
 #include <nuttx/arch.h>
+#include <netdb.h>
 
 #include "espcp_usrsock.h"
 #include "espcp_common.h"
@@ -277,7 +279,7 @@ static int espcp_sock_addr_to_sockaddr(void *destination, uint8_t *source)
 }
 
 /****************************************************************************
- * Name: espcp_usrsock_sockif_setup
+ * Name: espcp_usrsock_sockif_init
  *
  * Description:
  *  Perform system wide usrsock initialisation for the ESP32 usrsock layer.
@@ -1398,6 +1400,8 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     request->setup = 1;
     request->setup_message_id = espcp_get_next_message_id();
 
+    //MEADOW.OS REBASE: Install poll callback!
+
     int payload_length = espcp_poll_request_buffer_size(request);
     uint8_t *payload = (uint8_t *) zalloc(payload_length);
     if (payload == NULL)
@@ -1583,7 +1587,8 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found orginating request %08x\n", request_id);
             pr->fd->revents = ipr->returned_events;
-            nxsem_post(pr->fd->sem);
+            //MEADOW.OS REBASE: Install poll callback!!!
+            pr->fd->cb(pr->fd);
             free(pr);
         }
         else

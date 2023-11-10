@@ -75,7 +75,7 @@ ifdef MEADOW_OS
 # Enable Meadow.OS build (WORK IN PROGRESS)
 
 MEADOW_OS_DIR=Meadow.OS
-CFLAGS += -DMEADOW_OS -I MEADOW_OS_DIR
+CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR)
 
 ifeq ($(CONFIG_MEADOW_HCOM),y)
 CSRCS += $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_upd.c \

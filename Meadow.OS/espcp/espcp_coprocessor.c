@@ -812,24 +812,8 @@ void espcp_deep_sleep(void)
     //
     //  This code is derived from the various methods in net_sockets.c
     //
-    struct socketlist *list = sched_getsockets();
-    if (list)
-    {
-        int result;
-        while ((result = net_lockedwait(&list->sl_sem)) < 0)
-        {
-            /* The only case that an error should occr here is if
-            * the wait was awakened by a signal.
-            */
-            DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
-        for (int index = 0; index < CONFIG_NSOCKET_DESCRIPTORS; index++)
-        {
-            memset(&list->sl_sockets[index], 0, sizeof(struct socket));
-        }
-        
-        nxsem_post(&list->sl_sem);
-    }
+    // MEADOW.OS REBASE FIXME: API for managing kernel socket list has completely changed
+    // Must rewrite socket clearing code for the new kernel!!!
     //
     //  Lastly, wait for the message to have been sent.
     //
