@@ -897,7 +897,7 @@ int espcp_init(void)
             espcp_usrsock_init();
             espcp_event_handlers_init();
             result = espcp_thread_start(g_espcp_configuration);
-            usrsock_register_sockif(&g_usrsock_sockif_esp32);
+            // usrsock_register_sockif(&g_usrsock_sockif_esp32); NuttX no longer registers usrsock impls like this
             espcp_spi_setup();
         }
         else
