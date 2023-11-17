@@ -29,7 +29,11 @@
 #include <assert.h>
 #include <debug.h>
 
+#include "usrsock/usrsock.h"
 #include "socket/socket.h"
+
+#include "../../../Meadow.OS/hcom_nx/hcom_nx_config_manager.h"
+#include <meadow/hcom_shared_common.h>
 
 #ifdef CONFIG_NET
 
@@ -93,6 +97,59 @@ int psock_socket(int domain, int type, int protocol,
   psock->s_conn   = NULL;
   psock->s_type   = type & SOCK_TYPE_MASK;
 
+#ifdef CONFIG_NET_USRSOCK
+  hcom_nx_config_lock();
+  meadow_configuration_t *config = hcom_nx_config_get_pointer();
+  // This config == NULL test is necessary, without it, the first call here
+  // will lock Nuttx, as if the linker has optimized the above code away.
+  if(config == NULL)
+  {
+    syslog(LOG_ERR, "In %s() meadow_configuration_t is NULL\n", __FILE__);
+    hcom_nx_config_unlock();
+    return -ENETDOWN;
+  }
+
+  if(config->default_interface->interface_type == MEADOW_IFT_ESP32)
+    {
+      if (domain != PF_LOCAL && domain != PF_UNSPEC)
+        {
+          hcom_nx_config_unlock();
+
+          /* Handle special setup for USRSOCK sockets (user-space networking
+          * stack).
+          */
+
+          psock->s_sockif = &g_usrsock_sockif;
+          return(g_usrsock_sockif.si_setup(psock));
+
+          //
+          //  TODO: Need to consider how we deal with this on the embedded module
+          //        as it may be connected to a wired ethernet.
+          //
+          // if (ret == -ENETDOWN)
+          //   {
+          //     /* -ENETDOWN means that USRSOCK daemon is not running.  Attempt to
+          //      * open socket with kernel networking stack.
+          //      */
+          //     return(ret);
+          //   }
+          // else
+          //   {
+          //     psock->s_sockif = g_usrsock_sockif;
+
+          //     if (ret < 0)
+          //       {
+          //         return ret;
+          //       }
+
+          //     return ret;
+          //   }
+        }
+    }
+#endif /* CONFIG_NET_USRSOCK */
+
+  hcom_nx_config_unlock();
+  
   /* Get the socket interface */
 
   sockif = net_sockif(domain, psock->s_type, psock->s_proto);
