@@ -42,6 +42,72 @@ extern "C"
 #define EXTERN extern
 #endif
 
+#  define FMC_SDRAM_CR_COLBITS_8                       0x00000000
+#  define FMC_SDRAM_CR_COLBITS_9                       0x00000001
+#  define FMC_SDRAM_CR_COLBITS_10                      0x00000002
+#  define FMC_SDRAM_CR_COLBITS_11                      0x00000003
+
+#  define FMC_SDRAM_CR_ROWBITS_11                      0x00000000
+#  define FMC_SDRAM_CR_ROWBITS_12                      0x00000004
+#  define FMC_SDRAM_CR_ROWBITS_13                      0x00000008
+
+#  define FMC_SDRAM_CR_WIDTH_8                         0x00000000
+#  define FMC_SDRAM_CR_WIDTH_16                        0x00000010
+#  define FMC_SDRAM_CR_WIDTH_32                        0x00000020
+
+#  define FMC_SDRAM_CR_BANKS_2                         0x00000000
+#  define FMC_SDRAM_CR_BANKS_4                         0x00000040
+
+#  define FMC_SDRAM_CR_CASLAT_1                        0x00000080
+#  define FMC_SDRAM_CR_CASLAT_2                        0x00000100
+#  define FMC_SDRAM_CR_CASLAT_3                        0x00000180
+
+#  define FMC_SDRAM_CR_WRITE_PROT                      0x00000200
+
+#  define FMC_SDRAM_CR_SDCLK_DISABLE                   0x00000000
+#  define FMC_SDRAM_CR_SDCLK_2X                        0x00000800
+#  define FMC_SDRAM_CR_SDCLK_3X                        0x00000C00
+
+#  define FMC_SDRAM_CR_BURST_READ                      0x00001000
+
+#  define FMC_SDRAM_CR_RPIPE_0                         0x00000000
+#  define FMC_SDRAM_CR_RPIPE_1                         0x00002000
+#  define FMC_SDRAM_CR_RPIPE_2                         0x00004000
+
+#  define FMC_SDRAM_TR_TMRD_SHIFT                      0
+#  define FMC_SDRAM_TR_TXSR_SHIFT                      4
+#  define FMC_SDRAM_TR_TRAS_SHIFT                      8
+#  define FMC_SDRAM_TR_TRC_SHIFT                       12
+#  define FMC_SDRAM_TR_TWR_SHIFT                       16
+#  define FMC_SDRAM_TR_TRP_SHIFT                       20
+#  define FMC_SDRAM_TR_TRCD_SHIFT                      24
+
+#  define FMC_SDRAM_MODE_CMD_NORMAL                    0
+#  define FMC_SDRAM_MODE_CMD_CLK_ENABLE                1
+#  define FMC_SDRAM_MODE_CMD_PALL                      2
+#  define FMC_SDRAM_MODE_CMD_AUTO_REFRESH              3
+#  define FMC_SDRAM_MODE_CMD_LOAD_MODE                 4
+#  define FMC_SDRAM_MODE_CMD_SELF_REFRESH              5
+#  define FMC_SDRAM_MODE_CMD_POWER_DOWN                6
+
+#  define FMC_SDRAM_CMD_BANK_1                         0x00000010
+#  define FMC_SDRAM_CMD_BANK_2                         0x00000008
+
+#  define FMC_SDRAM_AUTO_REFRESH_SHIFT                 5
+#  define FMC_SDRAM_MODEREG_SHIFT                      9
+
+#  define FMC_SDRAM_MODEREG_BURST_LENGTH_1             (0x0000 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_BURST_LENGTH_2             (0x0001 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_BURST_LENGTH_4             (0x0002 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_BURST_LENGTH_8             (0x0004 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_BURST_TYPE_SEQUENTIAL      (0x0000 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_BURST_TYPE_INTERLEAVED     (0x0008 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_CAS_LATENCY_2              (0x0020 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_CAS_LATENCY_3              (0x0030 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_OPERATING_MODE_STANDARD    (0x0000 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_WRITEBURST_MODE_PROGRAMMED (0x0000 << FMC_SDRAM_MODEREG_SHIFT)
+#  define FMC_SDRAM_MODEREG_WRITEBURST_MODE_SINGLE     (0x0200 << FMC_SDRAM_MODEREG_SHIFT)
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
