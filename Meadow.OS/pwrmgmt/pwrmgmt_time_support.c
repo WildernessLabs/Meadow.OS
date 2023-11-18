@@ -54,7 +54,6 @@
 #include <meadow/hcom_upd_shared.h>
 #include "hcom_nx/hcom_nx_common.h"
 #include "stm32f777zit6-meadow.h"
-#include "up_arch.h"
 
 #include "stm32_alarm.h"
 

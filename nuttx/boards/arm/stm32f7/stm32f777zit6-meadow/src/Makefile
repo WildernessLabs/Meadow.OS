@@ -99,14 +99,14 @@ CSRCS +=  $(MEADOW_OS_DIR)/misc/meadow_idle_monitor.c
 endif
 
 ifeq ($(CONFIG_MEADOW_PWR_MGMT_SUPPORT),y)
-CSRCS += $(MEADOW_OS_DIR)/pwrmgmt_calib_lsi_clock.c \
-$(MEADOW_OS_DIR)/pwrmgmt_config_wakeup_timer.c \
-$(MEADOW_OS_DIR)/pwrmgmt_config_wakeup_alarm.c \
-$(MEADOW_OS_DIR)/pwrmgmt_control.c \
-$(MEADOW_OS_DIR)/pwrmgmt_enter_stop_mode.c \
-$(MEADOW_OS_DIR)/pwrmgmt_misc.c \
-$(MEADOW_OS_DIR)/pwrmgmt_switch_rtc_clock.c \
-$(MEADOW_OS_DIR)/pwrmgmt_time_support.c
+CSRCS += $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_calib_lsi_clock.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_config_wakeup_timer.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_config_wakeup_alarm.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_control.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_enter_stop_mode.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_misc.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_switch_rtc_clock.c \
+$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_time_support.c
 endif
 
 ifeq ($(CONFIG_MEADOW_TIMER_SUPPORT),y)

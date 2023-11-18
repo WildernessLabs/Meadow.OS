@@ -56,7 +56,7 @@
 
 #include <nuttx/power/pm.h>
 
-#include "up_internal.h"
+#include "arm_internal.h"
 #include "stm32_pm.h"
 
 #include <syslog.h>
@@ -68,16 +68,16 @@
 
 // These 3 are needed for otg register access. This allows the USB transceiver
 // to be turned off during low-power modes.
-#include "chip/stm32f76xx77xx_memorymap.h"
+#include "hardware/stm32f76xx77xx_memorymap.h"
 
 // #include "stm32_otg.h" introduces a build warning due to the fact that
 // a nuttx specific definition is here. The following is the only line needed
 // from stm32_otg.h. Which is located at /arch/arm/src/stm32f7/stm32_otg.h.
 #  define STM32_OTG_BASE        STM32_USBOTGFS_BASE
-#include "chip/stm32_otg.h"
+#include "hardware/stm32_otg.h"
 
-#include "chip/stm32f76xx77xx_pwr.h"
-#include "chip/stm32_exti.h"
+#include "hardware/stm32f76xx77xx_pwr.h"
+#include "hardware/stm32_exti.h"
 #include "stm32_fmc.h"          // Needed for SDRAM access
 
 #include "nvic.h"
@@ -313,7 +313,7 @@ int pwrmgmt_enter_stop_mode(void)
   // mode. The RTC clock may drift because the Meadow doesn't have a crystal
   // or resonator for the LSE clock. Therefore, we're using the LSI clock
   // which can drift over time.
-  clock_synchronize();
+  clock_synchronize(NULL);
 
   // Turn on USB OTG's power to its transceiver to re-enable communications
   regval = getreg32(STM32_OTG_GCCFG);

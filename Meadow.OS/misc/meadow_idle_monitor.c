@@ -48,6 +48,8 @@
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_misc_diag.h>
 
+#include "hardware/stm32f76xx77xx_rcc.h"
+
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
 #include <nuttx/kthread.h>
 #endif

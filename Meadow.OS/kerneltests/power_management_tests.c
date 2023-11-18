@@ -52,7 +52,7 @@
 #include "stm32_exti.h"
 #include "stm32_gpio.h"                 // Needed for testing input gpio->event
 #include <arch/board/board.h>           // Needed for testing getreg16
-#include "chip/stm32f76xx77xx_pwr.h"    // Needed for testing
+#include "hardware/stm32f76xx77xx_pwr.h"    // Needed for testing
 #include <nuttx/kthread.h>
 #include <meadow/meadow_kernel_tests.h>
 

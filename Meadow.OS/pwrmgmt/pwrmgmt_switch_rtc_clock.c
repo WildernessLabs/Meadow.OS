@@ -69,6 +69,7 @@
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
+#include "hardware/stm32f76xx77xx_rcc.h"
 
 #include "pwrmgmt_local.h"
 #include <meadow/hcom_bbreg_defn.h>

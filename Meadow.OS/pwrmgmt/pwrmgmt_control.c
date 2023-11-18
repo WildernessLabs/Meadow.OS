@@ -50,7 +50,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
 
-#include "up_internal.h"
+#include "arm_internal.h"
 #include "stm32_pm.h"
 #include "stm32_pwr.h"    // FOR TESTING
 
@@ -58,8 +58,8 @@
 #include <meadow/meadow_pwr_mgmt.h>
 #include "pwrmgmt_local.h"
 
-#include "chip/stm32f76xx77xx_pwr.h"
-#include "chip/stm32_exti.h"
+#include "hardware/stm32f76xx77xx_pwr.h"
+#include "hardware/stm32_exti.h"
 #include "nvic.h"
 
 #include <arch/board/board.h>

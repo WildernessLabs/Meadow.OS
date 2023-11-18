@@ -86,6 +86,8 @@
 #include "pwrmgmt_local.h"
 #include <meadow/hcom_bbreg_defn.h>
 
+#include "hardware/stm32f76xx77xx_rcc.h"
+
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
 // Diagnostic only
