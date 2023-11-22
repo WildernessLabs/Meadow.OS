@@ -233,7 +233,7 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       return ret;
     }
 
-    usrsock_register_sockif(&g_usrsock_sockif_esp32);
+    //FIXME: usrsock_register_sockif(&g_usrsock_sockif_esp32);
     return OK;
   }
 #endif

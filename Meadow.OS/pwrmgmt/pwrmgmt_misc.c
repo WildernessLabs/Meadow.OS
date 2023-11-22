@@ -50,6 +50,7 @@
 #include "stm32_exti.h"
 
 #include <meadow/hcom_shared_common.h>
+#include "../hcom_nx/hcom_nx_common.h"
 #include "pwrmgmt_local.h"
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
