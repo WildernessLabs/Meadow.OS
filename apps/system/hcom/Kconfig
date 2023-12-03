@@ -3,18 +3,17 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-config EXAMPLES_HCOM
+config SYSTEM_HCOM
 	bool "Hcom example"
 	default n
 	---help---
 		Enable the hcom example
 
-if EXAMPLES_HCOM
+if SYSTEM_HCOM
 
-config EXAMPLES_HCOM_PROGNAME
+config SYSTEM_HCOM_PROGNAME
 	string "Program name"
 	default "hcom"
-	depends on BUILD_KERNEL
 	---help---
 		This is the name of the program that will be use when the NSH ELF
 		program is installed.

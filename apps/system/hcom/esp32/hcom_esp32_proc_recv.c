@@ -40,6 +40,7 @@
 #include "../hcom_common.h"
 #include <meadow/meadow_cirbuf.h>
 #include "hcom_esp32_comms.h"
+#include <mqueue.h>
 
 /****************************************************************************
  * Pre-processor Definitions

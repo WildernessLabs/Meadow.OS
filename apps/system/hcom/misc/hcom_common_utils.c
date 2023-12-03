@@ -37,7 +37,7 @@
  * Included Files
  ****************************************************************************/
 #include <ctype.h>
-#include "hcom_common.h"
+#include "../hcom_common.h"
 
 #include <nuttx/config.h>
 #include "syslog.h"

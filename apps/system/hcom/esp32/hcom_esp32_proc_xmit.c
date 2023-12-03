@@ -39,6 +39,7 @@
 
 #include "../hcom_common.h"
 #include "hcom_esp32_comms.h"
+#include <mqueue.h>
 
 /****************************************************************************
  * Pre-processor Definitions

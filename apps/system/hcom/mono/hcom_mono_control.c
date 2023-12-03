@@ -52,7 +52,7 @@
 
 #include <termios.h>
 
-#include "diag/hcom_diag_gpio.h"
+#include "../diag/hcom_diag_gpio.h"
 
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
 #include <sys/socket.h>

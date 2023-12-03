@@ -37,7 +37,7 @@
  * Included Files
  ****************************************************************************/
 #include <stdio.h>
-#include "hcom_common.h"
+#include "../hcom_common.h"
 #include <meadow/hcom_shared_common.h>
 
 /****************************************************************************

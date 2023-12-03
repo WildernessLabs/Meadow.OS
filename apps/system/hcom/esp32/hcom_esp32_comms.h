@@ -54,7 +54,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <time.h>
-#include <crc32.h>
+#include <nuttx/crc32.h>
 #include <errno.h>
 #include <debug.h>
 

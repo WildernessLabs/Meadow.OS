@@ -51,7 +51,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-extern int hcom_main (int argc, char* argv[]);
+//extern int main (int argc, char* argv[]);
 
 /****************************************************************************
  * Private Data
@@ -108,7 +108,7 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // This means that they are all in the same "task group." See the following
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
-int hcom_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int ret;
 
