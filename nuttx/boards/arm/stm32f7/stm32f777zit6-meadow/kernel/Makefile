@@ -19,6 +19,7 @@
 ############################################################################
 
 include $(TOPDIR)/Make.defs
+include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/hcom/Make.defs
 
 # The entry point name (if none is provided in the .config file)
 
@@ -56,7 +57,7 @@ $(COBJS): %$(OBJEXT): %.c
 # Create the nuttx_user.elf file containing all of the user-mode code
 
 nuttx_user.elf: $(OBJS)
-	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS) --start-group $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC)
+	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS) --start-group $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC) --whole-archive $(MBEDTLS_AOBJS)
 
 
 $(TOPDIR)$(DELIM)nuttx_user.elf: nuttx_user.elf
