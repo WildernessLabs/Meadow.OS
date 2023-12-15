@@ -393,6 +393,13 @@ SYSCALL_LOOKUP(munmap,                     2)
 SYSCALL_LOOKUP(getrandom,                  3)
 SYSCALL_LOOKUP(nanosleep,                  2)
 
+#if defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)
+SYSCALL_LOOKUP(meadow_os_deep_copy_config, 1)
+SYSCALL_LOOKUP(meadow_os_config_free_resources, 2)
+#else
+SYSCALL_LOOKUP(meadow_os_config_free_resources, 2)
+#endif
+
 /* I/O event notification facility */
 
 SYSCALL_LOOKUP(epoll_create1,              1)
