@@ -72,8 +72,11 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	tests/vs_debug_tests.c \
 	tests/diag_gpio_tests.c \
 	tests/diag_misc_tests.c \
-	tests/diag_ethernet_chat_test.c \
-	ota/hcom_ota.c
+	tests/diag_ethernet_chat_test.c
+
+ifeq ($(CONFIG_MEADOW_CLOUD),y)
+ HCOM_SRCS += ota/hcom_ota.c
+endif
 
 ifeq ($(CONFIG_HCOM_ESP32_COMMS),y)
  HCOM_SRCS += esp32/hcom_esp32_execute.c \
