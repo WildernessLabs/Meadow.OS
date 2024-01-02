@@ -28,6 +28,7 @@ ENABLE_STACK_DUMP=false
 MAKE_OPTIONS="MEADOW_OS=1"
 UNIT_TESTS=
 BOOTLOADER_OPTIONS=
+NUTTX_VERBOSE=
 
 for i in "$@"
 do
@@ -37,6 +38,7 @@ case $i in
     ;;
     -v|--verbose)
     VERBOSE=true
+    NUTTX_VERBOSE="V=1"
     BOOTLOADER_OPTION+="--verbose "
     ;;
     -f|--force)
@@ -319,8 +321,8 @@ fi
 
 printf "Building NuttX (kernel pass)...\n"
 # Build mksyscall first due to issues with concurrency and makefile dependencies
-run_command "make -C $scriptdir/nuttx/tools $MAKE_OPTIONS -f Makefile.host mksyscall"
-run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass2"
+run_command "make -C $scriptdir/nuttx/tools $NUTTX_VERBOSE $MAKE_OPTIONS -f Makefile.host mksyscall"
+run_command "make -C $scriptdir/nuttx $NUTTX_VERBOSE $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass2"
 check_command_status
 
 #   Now that the kernel is configured, we can build the userspace libs
@@ -340,12 +342,12 @@ if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   if $NETCORE; then
     export ENABLE_NETCORE=1
   fi
-  run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass1"
+  run_command "make -C $scriptdir/nuttx $NUTTX_VERBOSE $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS pass1"
   check_command_status
 fi
 
 #   Complete the build
-run_command "make -C $scriptdir/nuttx $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS nuttx"
+run_command "make -C $scriptdir/nuttx $NUTTX_VERBOSE $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS nuttx"
 check_command_status
 
 #
