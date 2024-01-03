@@ -396,8 +396,9 @@ SYSCALL_LOOKUP(nanosleep,                  2)
 #if defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)
 SYSCALL_LOOKUP(meadow_os_deep_copy_config, 1)
 SYSCALL_LOOKUP(meadow_os_config_free_resources, 2)
-#else
-SYSCALL_LOOKUP(meadow_os_config_free_resources, 2)
+SYSCALL_LOOKUP(stm32_configgpio, 1)
+SYSCALL_LOOKUP(stm32_gpiowrite, 2)
+SYSCALL_LOOKUP(stm32_unconfiggpio, 1)
 #endif
 
 /* I/O event notification facility */
