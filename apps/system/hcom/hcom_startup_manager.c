@@ -422,15 +422,17 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
   // Start PPPD app needed by cell driver, when cell interface is enabled
-  ret = hcom_pppd_start();
+  /* FIXME: */
+  /*ret = hcom_pppd_start();
   if (ret < 0)
   {
     hcom_logging_syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
-  }
+  }*/
 
   // Run system updaters, which apply any OS and filesystem updates that have been staged
-  os_update();
-  app_update();
+  /* FIXME: */
+  //os_update();
+  //app_update();
 
   // Last stop, start mono
   hcom_mono_ctrl_start_mono_main();

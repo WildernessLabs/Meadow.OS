@@ -373,7 +373,7 @@ int hcom_mono_ctrl_start_mono_main()
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
                          (main_t)mono_main_proxy,
 #else
-                         (main_t)mono_main,
+                         //FIXME: //(main_t)mono_main,
 #endif
                          (FAR char *const *)argv);
   if (mono_pid > 0)
@@ -859,7 +859,7 @@ int mono_main_proxy(int argcX, char *argvX[])
 #if HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD > 0
   MonoVsRemoteDebugTestSetup(argc, argv);
 #else
-  mono_main(argc, argv);
+  //FIXME: //mono_main(argc, argv);
 #endif
 
   return OK;
