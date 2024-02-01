@@ -23,12 +23,14 @@
  */
 
 OUTPUT_ARCH(arm)
-ENTRY(_stext)
 SECTIONS
 {
+    .vectors : {
+        *(.vectors)
+    } > uflash
+
     .text : {
         _stext = ABSOLUTE(.);
-        *(.vectors)
         *(.text .text.*)
         *(.fixup)
         *(.gnu.warning)
@@ -44,7 +46,7 @@ SECTIONS
 
     .init_section : {
         _sinit = ABSOLUTE(.);
-        KEEP(*(.init_array .init_array.*))
+        *(.init_array .init_array.*)
         _einit = ABSOLUTE(.);
     } > kflash
 
@@ -66,6 +68,7 @@ SECTIONS
         *(.data .data.*)
         *(.gnu.linkonce.d.*)
         CONSTRUCTORS
+        . = ALIGN(4);
         _edata = ABSOLUTE(.);
     } > ksram AT > kflash
 
@@ -74,6 +77,7 @@ SECTIONS
         *(.bss .bss.*)
         *(.gnu.linkonce.b.*)
         *(COMMON)
+        . = ALIGN(4);
         _ebss = ABSOLUTE(.);
     } > ksram
 

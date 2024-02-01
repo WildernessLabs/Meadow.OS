@@ -73,13 +73,13 @@
  * multiple regions to map the FLASH/SDRAM range or perhaps with some
  * clever use of subregions.
  *
- * A detailed memory map for the 112KB SRAM region is as follows:
+ * A detailed memory map for the 368Kb SRAM region is as follows:
  *
  *   0x2002 0000:  Kernel .data region.  Typical size: 0.1KB
  *   ------ ----   Kernel .bss  region.  Typical size: 1.8KB
  *   0x2002 0800:  Kernel IDLE thread stack (approximate).  Size is
  *                 determined by CONFIG_IDLETHREAD_STACKSIZE and
- *                 adjustments for alignment.  Typical is 1KB.
+ *                 adjustments for alignment.  Currently is 8KB.
  *   ------ ----   Padded to 4KB
  *   0x2002 1000:  User .data region.  Size is variable.
  *   ------ ----   User .bss region  Size is variable.
@@ -92,23 +92,26 @@
 MEMORY
 {
 	/* ITCM boot address */
-
 	itcm  (rwx) : ORIGIN = 0x00200000, LENGTH = 2048K
 
 	/* 2048KB FLASH */
-
-	kflash (rx) : ORIGIN = 0x08000000, LENGTH = 256K
-	uflash (rx) : ORIGIN = 0x08040000, LENGTH = 1792K
-	xflash (rx) : ORIGIN = 0x08200000, LENGTH = 0K
-
-	/* 368KB of contiguous SRAM1 */
-
-	ksram (rwx) : ORIGIN = 0x20020000, LENGTH = 64K
-	usram (rwx) : ORIGIN = 0x20030000, LENGTH = 192K
-	xsram (rwx) : ORIGIN = 0x20022000, LENGTH = 0K
+	uflash (rx) : ORIGIN = 0x08040000, LENGTH = 1024K
+	kflash (rx) : ORIGIN = 0x08140000, LENGTH = 768K
 
 	/* DTCM SRAM */
-
 	dtcm  (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+
+	/* 368KB of contiguous SRAM1 */
+  /* Before Ethernet added 
+	ksram (rwx) : ORIGIN = 0x20020000, LENGTH = 64K
+	usram (rwx) : ORIGIN = 0x20030000, LENGTH = 304K
+  */
+	/* Modified for Ethernet */
+	ksram (rwx) : ORIGIN = 0x20020000, LENGTH = 128K
+	usram (rwx) : ORIGIN = 0x20040000, LENGTH = 368K - 128K
+
 	sram2 (rwx) : ORIGIN = 0x2007c000, LENGTH = 16K
+
+	/* SDRAM address, ORIGIN=EXTRAM */
+	sdram  (rwx) : ORIGIN = 0xc0000000, LENGTH = 3072K
 }
