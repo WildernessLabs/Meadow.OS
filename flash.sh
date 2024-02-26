@@ -1,0 +1,169 @@
+#!/bin/bash
+
+scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
+
+#
+#   Work out the OS so that we can change actions per OS where necessary.
+#
+shopt -s nocasematch
+case "$(uname -a)" in
+  *darwin*)
+    OS="mac"
+    ;;
+  *linux*)
+    OS="linux"
+    ;;
+  cygwin*|mingw32*|msys*|mingw*)
+    OS="windows"
+    ;;
+  *)
+    OS="unknown"
+    ;;
+esac
+
+# Check if the shell is interactive.
+if [[ $- == *i* ]]; then
+  red=`tput setaf 1`
+  green=`tput setaf 2`
+  reset=`tput sgr0`
+  bold=`tput bold`
+fi
+
+VERBOSE=true
+FORCE=false
+INCLUDE_RUNTIME=false
+RESET_BOARD=false
+HELP=false
+
+for i in "$@"
+do
+case $i in
+    -h|--help)
+    HELP=true
+    ;;
+    -v|--verbose)
+    VERBOSE=true
+    ;;
+    -f|--force)
+    FORCE=true
+    ;;
+    -dfu|--dfu)
+    DFU=true
+    ;;
+    -rt|--includeruntime)
+    INCLUDE_RUNTIME=true
+    ;;
+    -r|--reset)
+    RESET_BOARD=true
+    ;;
+    *)
+    echo "${0##*/} - Unknown option $i"
+    exit 1
+    ;;
+esac
+done
+
+if [ "$HELP" = true ]; then
+  echo "Usage: ${0##*/} [options]"
+  echo " "
+  echo "Options:"
+  echo "  -h|--help                    Show this help message"
+  echo "  -v|--verbose                 Show verbose output"
+  echo "  -f|--force                   Force build"
+  echo "  -dfu|--dfu                   Use dfu-util to flash the board"
+  echo "  -rt|--includeruntime         Use the Meadow CLI tool to write the Mono runtime"
+  echo "  -r|--reset                   Use STM32CubeProgrammer to reset the board"
+  exit 0
+fi
+
+run_command() {
+  if $VERBOSE; then
+    echo
+    $1
+  else
+    $1 &>/dev/null
+  fi
+}
+
+check_command_status() {
+  exit_status=$?
+  if [ $exit_status -ne 0 ]; then
+    printf " ${red}error${reset}\n"
+    if ! $VERBOSE; then
+      printf "Try using the --verbose flag to see the output.\n"
+    fi
+    exit 1
+  else
+    printf " ${green}success${reset}\n"
+  fi
+}
+
+#
+#   Reset the board if requested and possible.  This requires STM32CuberProgrammer
+#   to be installed and the CUBE_APP environment variable set to point to the CLI component.
+#   On Mac the CUBE_APP will be something like this:
+#
+#   CUBE_APP=/Applications/STMicroelectronics/STM32CubeProgrammer.app/Contents/MacOs/bin/STM32_Programmer_CLI 
+#
+reset_meadow() {
+  if [ "$RESET_BOARD" = true ] ; then
+    run_command "${CUBE_APP} -c port=swd -hardRst"
+    check_command_status
+  fi
+}
+
+cd $scriptdir
+#
+#   First check if we should be writing the runtime system to the board.
+#
+if [ "$INCLUDE_RUNTIME" = true ] ; then
+  #
+  #   We reset the Meado board first in case it has recently been used in a debug session.
+  #   In the debug case it could be that GDB has left the board in a halted state.  This is
+  #   only required for the RT and flashing the OS with OCD will work even in the halted state.
+  #
+  reset_meadow
+  #
+  #   The sleep is necessary to allow the serial port to be represented by the Meadow board.
+  #
+  if [ "$RESET_BOARD" = true ] ; then
+    sleep 2
+  fi
+  run_command "meadow mono disable"
+  check_command_status
+  run_command "meadow mono update rt -f $scriptdir/nuttx/Meadow.OS.Runtime.bin"
+  check_command_status
+  run_command "meadow file delete -f Meadow.OS.Runtime.bin"
+  check_command_status
+fi
+#
+#   Next up try to flash the OS.
+#
+if [ "$DFU" = true ] ; then
+  #
+  #   Flash the board with dfu-util
+  #
+  printf "Flashing nuttx.bin using DFU... "
+  run_command "dfu-util -a 0 -D $scriptdir/nuttx/Meadow.OS.bin -s 0x08000000"
+  check_command_status
+else
+  printf "Flashing nuttx binaries using OpenOCD... "
+  if [[ "$OS" == "mac" ]]; then
+    #
+    # Custom version of nuttx aware openocd
+    #
+    run_command "$scriptdir/openocd/src/openocd -s$scriptdir/openocd/tcl -f$scriptdir/flash.cfg"
+    check_command_status
+  elif [[ "$OS" == "linux" ]]; then
+    # 
+    # For Linux the default openocd is being used
+    # 
+    run_command "openocd -s //usr/local/share/openocd/scripts -f $scriptdir/flash.cfg"
+    check_command_status
+else
+    printf "Unsupported OS ${bold}$OS${reset}.\n"
+    exit -1
+  fi
+fi
+
+reset_meadow
