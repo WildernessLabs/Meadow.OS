@@ -226,7 +226,7 @@ elif [[ "$OS" == "linux" ]]; then
   # Launch custom versions from arm of arm-none-eabi-gdb having python baked in
   #
   printf "Current Working Directory is '$( pwd )'. Launching arm-none-eabi-gdb -q -iex 'set auto-load safe-path'/\n"
-  arm-none-eabi-gdb -q -iex 'set auto-load safe-path /'
+  gdb-multiarch -q -iex 'set auto-load safe-path /'
 else
   printf "Unsupported OS ${bold}$OS${reset}.\n"
 fi
