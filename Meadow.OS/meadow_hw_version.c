@@ -199,7 +199,7 @@ uint32_t meadow_hw_version_flash_size(void)
     break;
 
     default:
-    ferr("ERROR: Unknown Meadow version provided:%d\n", _meadowVer);
+    ferr("ERROR: Unknown Meadow version provided:%ld\n", _meadowVer);
     qspiFlashSize = MEADOW_F7_HW_VERSION_NUMB_ERROR;
     break;
   }
@@ -265,8 +265,11 @@ uint32_t meadow_hw_version_find_gpio_ver()
 // a value used to determine the hardware version directly.
 uint32_t meadow_hw_version_find_device_ver(FAR struct qspi_dev_s *qspi)
 {
+syslog(1, "%s@%d-Entered \n", __FILE__, __LINE__);
+
   uint32_t gpioValue = meadow_hw_version_find_gpio_ver();
 
+syslog(1, "%s@%d-2\n", __FILE__, __LINE__);
   switch(gpioValue)
   {
     case MEADOW_F7_HW_VERSION_GPIO_ID_CCMV2:
@@ -283,6 +286,7 @@ uint32_t meadow_hw_version_find_device_ver(FAR struct qspi_dev_s *qspi)
       // Note: if the version was found using the qspi flash chip method
       // _meadowVersionKnown has already been set true.
       _meadowVer = meadow_hw_version_from_flash_chip(qspi);
+syslog(1, "%s@%d-3\n", __FILE__, __LINE__);
     }
     else
     {
@@ -304,6 +308,8 @@ uint32_t meadow_hw_version_from_flash_chip(FAR struct qspi_dev_s *qspi)
 {
   int ret;
   uint8_t devInfo[3];
+  
+syslog(1, "%s@%d-Entered\n", __FILE__, __LINE__);
 
   if(_meadowVersionKnown)
   {
@@ -318,9 +324,12 @@ uint32_t meadow_hw_version_from_flash_chip(FAR struct qspi_dev_s *qspi)
     syslog(LOG_ERR, "Initial QSPI read failed:%d\n", ret);
     return ret;
   }
+syslog(1, "%s@%d-Successfully read flash chip verions\n", __FILE__, __LINE__);
 
   // Get the bits we need for the flash chip ID
   uint32_t flashId = (uint32_t) (devInfo[0] << 16 | devInfo[1] << 8 | devInfo[2]);
+
+syslog(1, "%s@%d-Successfully read flash chip ID:%lu\n", __FILE__, __LINE__, flashId);
   
   switch(flashId)
   {
@@ -341,7 +350,7 @@ uint32_t meadow_hw_version_from_flash_chip(FAR struct qspi_dev_s *qspi)
     break;
   }
 
-  syslog(LOG_INFO, "Meadow hardware version:%d, Flash chip mfg:0x%02x chip type:0x%02x, capacity:0x%02x\n",
+  syslog(LOG_INFO, "Meadow hardware version:%ld, Flash chip mfg:0x%02x chip type:0x%02x, capacity:0x%02x\n",
         _meadowVer, devInfo[0], devInfo[1], devInfo[2]);
 
   if(_meadowVer != MEADOW_F7_HW_VERSION_NUMB_UNKNOWN)

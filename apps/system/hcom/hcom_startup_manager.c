@@ -108,9 +108,19 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // This means that they are all in the same "task group." See the following
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
+
+// Rebase Note: Was called hcom_main() via CONFIG_USER_ENTRYPOINT="hcom_main"
+// and CONFIG_INIT_PRIORITY=50 was set very low to keep this from hogging
 int main(int argc, char *argv[])
 {
   int ret;
+
+// NOT READY FOR THIS INITIALIZATION YET!!!
+syslog(1, "%s@%d-Entered HCOM's function. will loop here\n", __FILE__, __LINE__);
+
+// This will kill this thread. And maybe kill the reset of Nuttx play it safe, loop.
+while(true) {}
+return OK;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
 syslog(2, "hcom_main() running\n"); usleep(10 * 1000);

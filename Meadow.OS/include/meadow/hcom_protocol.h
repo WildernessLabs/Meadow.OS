@@ -230,7 +230,7 @@ struct HcomProtoEspFileInfoMsg_s
 } __attribute__((packed));
 
 typedef struct HcomProtoEspFileInfoMsg_s HcomProtoEspFileInfoMsg_t;
-#define HCOM_PROTOCOL_FS_REC_MSG_LENGTH (sizeof(HcomProtoEspFileInfoMsg_t))
+#define HCOM_PROTOCOL_ESP32_REC_MSG_LENGTH (sizeof(HcomProtoEspFileInfoMsg_t))
 
 //--------------------------------------------------------------------
 // Header plus Text Info
