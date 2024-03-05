@@ -68,7 +68,7 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Note: call added to stm32_boot.c
+// Note: this is called from stm32_boot.c
 int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 {
   int ret;

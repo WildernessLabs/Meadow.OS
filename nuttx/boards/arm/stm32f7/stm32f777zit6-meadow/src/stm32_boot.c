@@ -260,7 +260,7 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
   qspi = stm32f7_qspi_initialize(0);
   if (!qspi)
     {
-      syslog(LOG_ERR, "ERROR: sam_qspi_initialize muiled\n");
+      syslog(LOG_ERR, "ERROR: stm32f7_qspi_initialize, no qspi\n");
       return;
     }
 
@@ -290,22 +290,21 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
     // Nuttx module for Meadow. It updates the stm32f7's internal register value
     // to correct any flash size error orginally introduced by the
     // stm32f7_qspi_initialize() function previously called.
-    syslog(1, "%s@%d-flashSize:%u-Must reinitialize flash\n", __FILE__, __LINE__, flashSize);
+    syslog(1, "%s@%d-flashSize:%u-Must reinitialize flash size\n", __FILE__, __LINE__, flashSize);
 
     stm32f7_qspi_hw_reinitialize(flashSize);
   }
 
-/* NOT READY FOR THE FOLLOWING YET
  #if defined(CONFIG_ARM_MPU)
   // Allow user-space access to the QSPI flash memory region.
-
   mpu_configure_region(STM32_FMC_BANK4, flashSize,
                            MPU_RASR_TEX_SO   | // Ordered            
                            MPU_RASR_C        | // Cacheable          
                                                // Not Bufferable     
                            MPU_RASR_S        | // Shareable          
                            MPU_RASR_AP_RWRW    // P:RW   U:RW        
-                                               // Instruction access );
+                                               // Instruction access
+                                               );
  #endif
 
   // Initialize the correct flash driver. Only one can be initialized even
@@ -326,15 +325,8 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
  #endif
 
     default:
-
-// PROBABLY NEVER NEED RAMMTD    
-//  #if defined(CONFIG_RAMMTD)
-//     mtd = board_init_mtd_ram(MEADOW_RAM_MTD_SIZE);
-//     break;
-//  #else
-    ferr("ERROR: Unknown MTD:%d\n", meadowHwVer);
-    return;
-//  #endif
+      syslog(1, "%s@%d-Unknown MTD:%d, meadowHwVer:%d\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      return;
   }
 
  #if defined(CONFIG_MTD)
@@ -348,6 +340,7 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
       return;
     }
  #endif // #if defined(CONFIG_MTD)
+  }
 
  #if defined(CONFIG_MEADOW_HCOM)
     // Initialize Meadow HCOM nuttx
@@ -357,68 +350,8 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
       syslog(LOG_EMERG, "ERROR: HCOM proxy initialization failed!\n");
       PANIC();
     }
-  }
  #endif
 
-#else // #if defined(CONFIG_STM32F7_QUADSPI)
-
-  uint32_t meadowHwVer = meadow_hw_version_determine_ver(NULL);
-  if (meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_UNKNOWN)
-  {
-    ferr("ERROR: Meadow version could not be determined with QSPI configured\n");
-    return;
-  }
-
-#endif // #if defined(CONFIG_STM32F7_QUADSPI)
-*/
-
-// EARLY REBASE CODE BELOW
-//   mtd = w25qxxxjv_initialize(qspi, true);
-//   if (!mtd)
-//     {
-//       syslog(LOG_ERR, "ERROR: w25qxxxjv_initialize failed\n");
-//     }
-
-//   ret = ftl_initialize(0, mtd);
-//   if (ret < 0)
-//     {
-//       ferr("ERROR: Initialize the FTL layer\n");
-//     }
-
-//   meminfo.flags = QSPIMEM_READ | QSPIMEM_QUADIO;
-//   meminfo.addrlen = 3;
-//   meminfo.dummies = 6;
-//   meminfo.cmd = 0xeb; /* S25FL1_FAST_READ_QUADIO; */
-//   meminfo.addr = 0;
-//   meminfo.buflen = 0;
-//   meminfo.buffer = NULL;
-
-//   stm32f7_qspi_enter_memorymapped(qspi, &meminfo, 80000000);
-
-//   /* FIXME: stm32_mpu_uheap depends on PROTECTED && MPU
-//    *
-//    * stm32_mpu_uheap((uintptr_t)0x90000000, 0x4000000);
-//    */
-
-// #endif
-// #if defined(MEADOW_OS)
-//   /* Initialize Meadow HCOM nuttx */
-
-//   ret = hcom_nx_setup_mgr(mtd);
-//   if (ret < 0)
-//     {
-//       syslog(LOG_EMERG, "ERROR: HCOM proxy initialization failed!\n");
-//       PANIC();
-//     }
-
-// #endif
-// #if defined(CONFIG_NSH_LIBRARY) && !defined(CONFIG_BOARDCTL)
-//   /* Perform NSH initialization here instead of from the NSH.  This
-//    * alternative NSH initialization is necessary when NSH is ran in
-//    * user-space but the initialization function must run in kernel space.
-//    */
-
-//   board_app_initialize();
 #endif    // #ifdef CONFIG_STM32F7_QUADSPI
 }
 #endif    // #ifdef CONFIG_BOARD_LATE_INITIALIZE

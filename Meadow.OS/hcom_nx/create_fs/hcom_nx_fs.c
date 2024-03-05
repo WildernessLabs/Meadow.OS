@@ -287,9 +287,10 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd, uint32_t numberOfPartitio
   _totalPartitionCount = numberOfPartitions;
   if (numberOfPartitions > HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX)
   {
-    syslog(LOG_ERR, "%s@%d-%d parts too big %d max\n",
-             thisFile, __LINE__, numberOfPartitions, HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX);
-    return -1;
+    syslog(LOG_ERR, "%s@%d-%d partitions too big, %d max\n",
+             thisFile, __LINE__, numberOfPartitions,
+             HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX);
+    return -EFBIG;
   }
 
   // Get geometry of QSPI Flash
@@ -313,9 +314,18 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd, uint32_t numberOfPartitio
 
   // Reserve some size in the flash for Mono raw partition.
   int offsetInPages = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / geo.blocksize;
-  // Reserve some size in flash for OTA update images
-  offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
 
+  // Rebase Note: Adding the HCOM_NX_FS_OTA_RESERVED_SPACE (0x200000) causes
+  // the mtd_partition() call to fail because offsetInPages is larger that
+  // nPages, an illegal condition. In mtd_partition() the compare code
+  // if (eraseend > geo.neraseblocks) fails because "sub-region too big."
+  // With eraseend = 16896 and geo.neraseblocks = 16384.
+  //
+  // Removed the following
+  // Reserve some space in flash for OTA update images
+  // offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
+
+  // Create multiple mtd objects, one for each partition
   for (partitionId = 0; partitionId < numberOfPartitions; partitionId++)
   {
     _partInfo[partitionId].partPageOffset = offsetInPages;
