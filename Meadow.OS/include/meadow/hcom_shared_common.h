@@ -744,10 +744,15 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
+/* Rebase Note: This infrastruct isn't in place yet added to defconfig
+  # CONFIG_HCOM_MONO_STDERR_STDOUT is not set
+  To prevent runtime errors for code not ready to use yet
+*/
 // These needed Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
 // To enable/disable stdout and stder use CONFIG_HCOM_MONO_STDERR_STDOUT
+
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
@@ -769,7 +774,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
 // Ease the understanding of a startup that never finishes
 #define HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG           0
-#define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG          1
+#define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG          0
 
 // Should mono be prevented from running?
 #define HCOM_DIAG_PREVENT_MONO_FROM_RUNNING           0

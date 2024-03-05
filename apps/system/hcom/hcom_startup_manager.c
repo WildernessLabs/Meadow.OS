@@ -110,21 +110,9 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
 // Rebase Note: Was called hcom_main() via CONFIG_USER_ENTRYPOINT="hcom_main"
-// and CONFIG_INIT_PRIORITY=50 was set very low to keep this from hogging
 int main(int argc, char *argv[])
 {
   int ret;
-
-// NOT READY FOR THIS INITIALIZATION YET!!!
-syslog(1, "%s@%d-Entered HCOM's function. will spin here forever\n", __FILE__, __LINE__);
-
-// Rebase Note: Spin here so we don't crash
-while(true) {}
-
-return OK;// This will kill this thread. And maybe kill the reset of Nuttx play it safe, loop.
-
-
-
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
 syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
@@ -155,6 +143,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   syslog(2, "Startup Manager 2\n"); usleep(20 * 1000);
 #endif
 
+/*Rebase Note: UPD will need to wait
   // Note: This needs to be early because all battery backed register
   // (BBR) access needs this (e.g. hcom_logging_syslog_mask_init).
   // Opens the nuttx upd driver to allow nuttx access.
@@ -164,15 +153,16 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
-
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 3\n"); usleep(20 * 1000);
 #endif
+*/
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 4\n"); usleep(20 * 1000);
 #endif
 
+  /* // Rebase Note: Requires UPD
   // Restores previous syslog mask from the battery backed register (BBR).
   // Note: This needs to be third because all hcom_logging_syslog
   // calls are filtered by the results of this call. Nothing to wait for.
@@ -182,13 +172,10 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     syslog(LOG_CRIT, "%s@%d-hcom_logging_syslog_mask_init failed:%d\n", thisFile, __LINE__, ret);
     return ret; 
   }
+  */
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 5\n"); usleep(20 * 1000);
-#endif
-
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 6\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -211,7 +198,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-  // Only sets a bool
+  // Only sets a bool if CONFIG_SYSTEM_NSH set
   ret = hcom_diag_nsh_support_setup();
   if (ret < 0)
   {
@@ -232,7 +219,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 9a\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 9\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -252,7 +239,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 9b\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 10\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -264,7 +251,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 10\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 11\n"); usleep(20 * 1000);
 #endif
   // Allocates memory and sets a few internal variable states
   ret = hcom_file_write_setup();
@@ -275,7 +262,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 11\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 12\n"); usleep(20 * 1000);
 #endif
 
   // Allocates memory and initializes hcom circular buffer
@@ -287,7 +274,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 12\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 13\n"); usleep(20 * 1000);
 #endif
 
   // Sets one variable
@@ -299,7 +286,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 13\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 14\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
@@ -318,7 +305,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 14\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 15\n"); usleep(20 * 1000);
 #endif
 
   // Creates a fifo and a thread to receive stderr
@@ -337,7 +324,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 15\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 16\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
@@ -351,7 +338,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 16\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 17\n"); usleep(20 * 1000);
 #endif
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
@@ -365,9 +352,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 17\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 18\n"); usleep(20 * 1000);
 #endif
-
+/* // Rebase Note: Not ready for this yet
   // Allocates memory and sets some internal variables
   ret = hcom_host_send_setup();
   if (ret < 0)
@@ -377,8 +364,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 18a\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 19\n"); usleep(20 * 1000);
 #endif
+*/
 
   // Creates a thread to run hcom USB serial receive
   ret = hcom_host_recv_setup();  // Handle CLI commands
@@ -395,7 +383,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 18b\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 20\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting syslog messages to CLI. But, only if BBR requests it.
@@ -406,9 +394,8 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 18c\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 21\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting text messages to Host.
@@ -420,7 +407,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 19\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 22\n"); usleep(20 * 1000);
 #endif
 
   // Minor setup, configures blue led as output
@@ -432,7 +419,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 20\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 23\n"); usleep(20 * 1000);
 #endif
 
   // Start PPPD app needed by cell driver, when cell interface is enabled
@@ -448,18 +435,13 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   //os_update();
   //app_update();
 
-  // Last stop, start mono
+#ifdef CONFIG_EXAMPLES_MONO
   hcom_mono_ctrl_start_mono_main();
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 21\n"); usleep(20 * 1000);
+  syslog(2, "Startup Manager 24\n"); usleep(20 * 1000);
 #endif
-
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 22-Exit\n"); usleep(20 * 1000);
 #endif
-
-  sem_destroy(&_startupWaitSem);
 
   // This startup thread was created by Nuttx. It will now be used to run the
   // task of processing messages. So, it won't return from this call.
@@ -470,6 +452,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
+  sem_destroy(&_startupWaitSem);
   return OK;
 }
 

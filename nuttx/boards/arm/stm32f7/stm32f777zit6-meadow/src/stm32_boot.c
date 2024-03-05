@@ -267,7 +267,6 @@ void board_late_initialize(void)
 
   // Get the version of this board.
   uint32_t meadowHwVer = meadow_hw_version_find_device_ver(qspi);
-  syslog(1, "%s@%d-meadowHwVer:%lu\n", __FILE__, __LINE__, meadowHwVer);
 
   if (meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_UNKNOWN ||
       meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_ERROR)
@@ -279,7 +278,6 @@ void board_late_initialize(void)
 
   // Get the correct flash chip size based on the hardware version
   size_t flashSize = meadow_hw_version_flash_size();
-  syslog(1, "%s@%d-flashSize:%u\n", __FILE__, __LINE__, flashSize);
 
   // Test against the defconfig value of QSPI flash size. If we initially used
   // the defconfig value that is not the correct flash size we must fix it.
@@ -289,7 +287,6 @@ void board_late_initialize(void)
     // Nuttx module for Meadow. It updates the stm32f7's internal register value
     // to correct any flash size error orginally introduced by the
     // stm32f7_qspi_initialize() function previously called.
-    syslog(1, "%s@%d-flashSize:%u-Must reinitialize flash size\n", __FILE__, __LINE__, flashSize);
 
     stm32f7_qspi_hw_reinitialize(flashSize);
   }
@@ -350,8 +347,6 @@ void board_late_initialize(void)
       PANIC();
     }
  #endif
-
-  syslog(2, "-->Finished Nuttx side Of Meadow initialization\n");
 
 #endif    // #ifdef CONFIG_STM32F7_QUADSPI
 }

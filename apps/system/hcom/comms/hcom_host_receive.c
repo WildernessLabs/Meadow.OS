@@ -108,6 +108,7 @@ int hcom_host_recv_setup()
   // HCOM_COMMUNICATIONS_DEVICE_NAME
   deviceName = CONFIG_HCOM_COMMS_DEVICE_NAME;
 
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
   // Register with power management so we can properly shutdown before entering
   // a low-power mode.
   ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_host_recv_low_power_notification);
@@ -116,6 +117,7 @@ int hcom_host_recv_setup()
     syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
+#endif
 
   // Create a semaphore used to prevent the received thread from running while
   // in low-power mode.

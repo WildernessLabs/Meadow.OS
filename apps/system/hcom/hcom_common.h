@@ -96,7 +96,8 @@
   // #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS0"  // This is UART1
   // #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS1"  // This is UART4
   // Note: /dev/ttyS2 is UART5 used to download to ESP32
-  #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"  // This is UART6
+  // '/dev/ttyS3' is currently UART6
+  #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"
 #endif
 
 //---------------------------------------------------------------------

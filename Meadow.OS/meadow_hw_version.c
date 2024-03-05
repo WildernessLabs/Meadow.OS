@@ -265,8 +265,6 @@ uint32_t meadow_hw_version_find_gpio_ver()
 // a value used to determine the hardware version directly.
 uint32_t meadow_hw_version_find_device_ver(FAR struct qspi_dev_s *qspi)
 {
-syslog(1, "%s@%d-Entered \n", __FILE__, __LINE__);
-
   uint32_t gpioValue = meadow_hw_version_find_gpio_ver();
 
 syslog(1, "%s@%d-2\n", __FILE__, __LINE__);
@@ -286,7 +284,6 @@ syslog(1, "%s@%d-2\n", __FILE__, __LINE__);
       // Note: if the version was found using the qspi flash chip method
       // _meadowVersionKnown has already been set true.
       _meadowVer = meadow_hw_version_from_flash_chip(qspi);
-syslog(1, "%s@%d-3\n", __FILE__, __LINE__);
     }
     else
     {
