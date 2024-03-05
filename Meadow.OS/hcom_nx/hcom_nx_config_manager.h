@@ -118,5 +118,6 @@ void hcom_nx_config_turn_on_the_cell_module(void);
 void hcom_nx_config_refresh_mono_version(meadow_configuration_t *);
 int hcom_nx_config_set_esp_integer_value(espcp_configuration_items_t, uint32_t);
 void hcom_nx_config_set_time_to_os_build_time(void);
+int meadow_power_mgmt_initialize(void);
 
 #endif // __CONFIGS_MEADOW_SRC_HCOM_NX_CONFIG_MANAGER__H

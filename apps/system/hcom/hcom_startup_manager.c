@@ -116,17 +116,21 @@ int main(int argc, char *argv[])
   int ret;
 
 // NOT READY FOR THIS INITIALIZATION YET!!!
-syslog(1, "%s@%d-Entered HCOM's function. will loop here\n", __FILE__, __LINE__);
+syslog(1, "%s@%d-Entered HCOM's function. will spin here forever\n", __FILE__, __LINE__);
 
-// This will kill this thread. And maybe kill the reset of Nuttx play it safe, loop.
+// Rebase Note: Spin here so we don't crash
 while(true) {}
-return OK;
+
+return OK;// This will kill this thread. And maybe kill the reset of Nuttx play it safe, loop.
+
+
+
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
 syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 1\n"); usleep(10 * 1000);
 #endif
 
@@ -147,7 +151,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 2\n"); usleep(20 * 1000);
 #endif
 
@@ -161,11 +165,11 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 3\n"); usleep(20 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 4\n"); usleep(20 * 1000);
 #endif
 
@@ -179,11 +183,11 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret; 
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 5\n"); usleep(20 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 6\n"); usleep(20 * 1000);
 #endif
 
@@ -195,7 +199,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 7\n"); usleep(20 * 1000);
 #endif
 
@@ -215,7 +219,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
   
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 8\n"); usleep(20 * 1000);
 #endif
 
@@ -227,7 +231,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 9a\n"); usleep(20 * 1000);
 #endif
 
@@ -247,7 +251,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 9b\n"); usleep(20 * 1000);
 #endif
 
@@ -259,7 +263,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 10\n"); usleep(20 * 1000);
 #endif
   // Allocates memory and sets a few internal variable states
@@ -270,7 +274,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 11\n"); usleep(20 * 1000);
 #endif
 
@@ -282,7 +286,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 12\n"); usleep(20 * 1000);
 #endif
 
@@ -294,7 +298,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 13\n"); usleep(20 * 1000);
 #endif
 
@@ -313,7 +317,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 14\n"); usleep(20 * 1000);
 #endif
 
@@ -332,7 +336,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 15\n"); usleep(20 * 1000);
 #endif
 
@@ -346,7 +350,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 16\n"); usleep(20 * 1000);
 #endif
 
@@ -360,7 +364,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 17\n"); usleep(20 * 1000);
 #endif
 
@@ -372,7 +376,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 18a\n"); usleep(20 * 1000);
 #endif
 
@@ -390,7 +394,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 18b\n"); usleep(20 * 1000);
 #endif
 
@@ -403,7 +407,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 18c\n"); usleep(20 * 1000);
 #endif
 
@@ -415,7 +419,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 19\n"); usleep(20 * 1000);
 #endif
 
@@ -427,7 +431,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 20\n"); usleep(20 * 1000);
 #endif
 
@@ -447,11 +451,11 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   // Last stop, start mono
   hcom_mono_ctrl_start_mono_main();
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 21\n"); usleep(20 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 22-Exit\n"); usleep(20 * 1000);
 #endif
 

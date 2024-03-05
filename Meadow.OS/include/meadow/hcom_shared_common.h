@@ -768,7 +768,8 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS    0
 
 // Ease the understanding of a startup that never finishes
-#define HCOM_DIAG_INCLUDE_STARTUP_SYSLOG              0
+#define HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG           0
+#define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG          1
 
 // Should mono be prevented from running?
 #define HCOM_DIAG_PREVENT_MONO_FROM_RUNNING           0

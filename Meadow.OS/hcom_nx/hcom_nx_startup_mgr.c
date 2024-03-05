@@ -46,6 +46,7 @@
 #include "../misc/meadow_logging.h"
 
 #include "stm32f777zit6-meadow.h"
+#include "hcom_nx_config_manager.h"
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>
@@ -82,8 +83,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   // to reconfigure it like the other GPIOs.
   stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 1a\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2, "-->hcom_nx_setup_mgr 1\n"); usleep(5 * 1000);
 #endif
 
   if (mtd == NULL)
@@ -101,11 +102,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 1b\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 2\n"); usleep(5 * 1000);
 #endif
   //
-  //  Saves a copy of mtd
+  //  Only saves a copy of the mtd
   //
   //  This needs to be done before the config is set up as the block driver
   //  is accessed to copy Mono from the flash device to RAM.
@@ -117,11 +118,20 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 3\n"); usleep(5 * 1000);
+#endif
+
   //
   //  Prepare the logging system and clear the log file.
   //
   meadow_logging_init_os_logging();
+  
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 4\n"); usleep(5 * 1000);
+#endif
 
+/* Rebase Note: Skip configuration for now
   //
   //  Initialise the configuration system.
   //
@@ -141,19 +151,38 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
   bool reset_esp32 = config->reset_esp32_at_startup;
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 5\n"); usleep(5 * 1000);
+#endif
+
   // Start trace messaging if so configured
   hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false);
   hcom_nx_config_unlock();
+*/
 
   //
   //  Set the system clock to the OS build time to help with SSL.
   //
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 6\n"); usleep(5 * 1000);
+#endif
+
+/* Rebase Note: This call crashes system. May be related to configuration not
+     Initialized?
+
   hcom_nx_config_set_time_to_os_build_time();
   
   // syslog(2, "YAML Config:Net I/F:%s, DHCP:%s\n",
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
+*/
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
+#endif
+
+
+/* Rebase Note: Do ESP32 configuration and execution after STM32F7
   if (reset_esp32)
   {
     ret = espcp_init();
@@ -163,6 +192,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
       return ret;
     }
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 8\n"); usleep(5 * 1000);
+#endif
+
     ret = espcp_enter_run_mode();
     if (ret != OK)
     {
@@ -170,15 +203,13 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
       return ret;
     }
   }
+*/
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 1c\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 9\n"); usleep(5 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 2a\n"); usleep(5 * 1000);
-#endif
-
+// Rebase Note: This does nothing without ethernet
   ret = hcom_nx_route_text_to_host_setup();
   if (ret < 0)
   {
@@ -186,8 +217,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 2b\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 10\n"); usleep(5 * 1000);
 #endif
 
   ret = hcom_nx_utils_startup_handling_of_trace_level();
@@ -197,8 +228,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 3a\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 11\n"); usleep(5 * 1000);
 #endif
 
 #if (defined (CONFIG_FS_PROCFS) && defined (CONFIG_SYSTEM_NSH))
@@ -211,8 +242,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 3b\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 12\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_TIMER_SUPPORT)
@@ -224,24 +255,21 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 4\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 13\n"); usleep(5 * 1000);
 #endif
 
+  // Rebase Note: This can wait till we bring up mono
   // Initialize hcom nuttx driver
-  ret = hcom_nx_upd_initialize();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup hcom nuttx upd:%d\n", thisFile, __LINE__, ret);
-    return ret;
-  }
+  // ret = hcom_nx_upd_initialize();
+  // if (ret < 0)
+  // {
+  //   syslog(LOG_CRIT, "%s@%d-setup hcom nuttx upd:%d\n", thisFile, __LINE__, ret);
+  //   return ret;
+  // }
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 5\n"); usleep(5 * 1000);
-#endif
-
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 6a\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 14\n"); usleep(5 * 1000);
 #endif
 
 #if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
@@ -253,8 +281,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 6b\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 15\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -266,8 +294,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 6c\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 16\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
@@ -279,8 +307,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 17\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_STM32F7_SDMMC2)
@@ -299,6 +327,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   hcom_nx_config_unlock();
 #endif
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 18\n"); usleep(5 * 1000);
+#endif
+
   // Initialize sending HCOM messages to CLI from Nuttx side
   ret = hcom_nx_host_send_setup();
   if (ret != OK)
@@ -306,6 +338,9 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     syslog(LOG_ERR,"ERROR: Failed to initialize host send:%d\n", ret);
     return ret;
   }
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 19\n"); usleep(5 * 1000);
+#endif
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && \
     defined(CONFIG_NETDEV_LATEINIT)
@@ -341,9 +376,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   {
     syslog(LOG_INFO, "Ethernet not supported by this device\n");
   }
-
 #endif    // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 20\n"); usleep(5 * 1000);
+#endif
 
 #if defined(CONFIG_NETUTILS_PPPD)
   hcom_nx_config_lock();
@@ -364,6 +401,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     }
 #endif
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 21\n"); usleep(5 * 1000);
+#endif
+
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
   ret = meadow_idle_monitor_setup();
   if (ret < 0)
@@ -374,8 +415,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 8-Successful exit\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "-->hcom_nx_setup_mgr 22-Successful exit\n"); usleep(5 * 1000);
 #endif
 
   return OK;

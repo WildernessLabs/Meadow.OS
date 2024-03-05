@@ -44,13 +44,14 @@ FAR char *kmm_strdup(FAR const char *s)
 // In Legacy Meadow the stm32f7_qspi_hw_reinitialize() function was added to
 // the Nuttx stm32_qspi.c function. It has been removed to reduce the friction
 // of updating Nuttx in the future.
-// Why is this needed? Bacause Meadow must run on all STM32F777 versions and
-// not all versions use the same size flash, this function became necessary.
-// On startup Meadow has no idea what hardware it is running on, so it assumes
-// it is the hardware with the smallest memory. Once it boots it can read the
-// flash chip's internal information and find what the actual size of the
-// flash is. This function then allows the STM32F7's internal registers to be
-// corrected if the original guess was wrong.
+// Why is this needed? because Meadow must run on all Meadow versions and
+// not all versions use the same size flash. This is why this function became
+// necessary. On startup Meadow has no idea what hardware it is running on,
+// so it assumes it is the hardware with the smallest external flash memory.
+// Once Meadow boots it can read the flash chip's internal information and find
+// what the actual size of the flash is. This function then allows the STM32F7's
+// internal registers to be corrected if the originally assumed flash size was
+// wrong.
 /****************************************************************************
  * Name: stm32f7_qspi_hw_reinitialize
  *

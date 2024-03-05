@@ -188,8 +188,9 @@ void stm32_boardinitialize(void)
  *
  ****************************************************************************/
 
-// Rebase Note: This function is where Legacy Meaodw did a lot of initialization
-// It's here too
+// Rebase Note: This function is where Meadow does a lot of initialization.
+// This code was copied from Legacy Meadow.
+// 
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)
 {
@@ -199,9 +200,7 @@ void board_late_initialize(void)
   FAR struct mtd_dev_s *mtd;
   struct qspi_meminfo_s meminfo;
 
-syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
-
-/* COPIED FROM LEGACY MEADOW. BUT, NOT READY FOR IT'S USE YET
+/* 
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Initialize the syslog message pump
   ret = hcom_nx_trace_msg_proc_setup();
@@ -351,6 +350,8 @@ syslog(1, "%s@%d-Entered board_late_initialize()\n", __FILE__, __LINE__);
       PANIC();
     }
  #endif
+
+  syslog(2, "-->Finished Nuttx side Of Meadow initialization\n");
 
 #endif    // #ifdef CONFIG_STM32F7_QUADSPI
 }
