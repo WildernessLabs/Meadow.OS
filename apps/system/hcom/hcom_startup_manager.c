@@ -354,7 +354,6 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 18\n"); usleep(20 * 1000);
 #endif
-/* // Rebase Note: Not ready for this yet
   // Allocates memory and sets some internal variables
   ret = hcom_host_send_setup();
   if (ret < 0)
@@ -366,7 +365,6 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 19\n"); usleep(20 * 1000);
 #endif
-*/
 
   // Creates a thread to run hcom USB serial receive
   ret = hcom_host_recv_setup();  // Handle CLI commands

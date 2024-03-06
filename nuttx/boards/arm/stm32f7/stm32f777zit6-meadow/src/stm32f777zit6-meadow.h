@@ -191,6 +191,19 @@ int stm32_pwm_setup(void);
 #endif
 
 /****************************************************************************
+ * Name: stm32_usbinitialize
+ *
+ * Description:
+ *   Called from stm32_usbinitialize very early in inialization to setup
+ *   USB-related GPIO pins for the nucleo-144 board.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32F7_OTGFS
+void stm32_usbinitialize(void);
+#endif
+
+/****************************************************************************
  * Name: stm32_spidev_initialize
  *
  * Description:

@@ -735,6 +735,7 @@ int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state)
   return OK;
 }
 
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
 //=========================================================================
 // Register low-power callback with power management code
 int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback)
@@ -753,6 +754,7 @@ int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback)
   
   return OK;
 }
+#endif
 
 //=========================================================================
 // Register callback for allowing Nuttx side application to send messages to

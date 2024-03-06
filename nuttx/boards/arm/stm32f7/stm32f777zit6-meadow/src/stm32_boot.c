@@ -31,6 +31,7 @@
 #include <arch/board/board.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/spi/qspi.h>
+#include <sys/boardctl.h>
 
 #include "mpu.h"
 #include <nuttx/mtd/mtd.h>
@@ -51,9 +52,6 @@
 #  endif
 #endif    // #ifdef CONFIG_STM32F7_QUADSPI
 
-/* MEADOW FIXME: header clash? */
-// extern FAR struct qspi_dev_s *stm32f7_qspi_initialize(int intf);
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -61,8 +59,6 @@
 /****************************************************************************
  * Function declarations
  ****************************************************************************/
-
-// extern FAR struct qspi_dev_s *stm32f7_qspi_initialize(int intf);
 
 /****************************************************************************
  * Global definitions
@@ -75,6 +71,35 @@ struct qspi_dev_s *g_qspi;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+// Called from above to initialize USB communications
+static int board_init_usbdev(void)
+{
+#if defined(CONFIG_BOARDCTL_USBDEVCTRL)
+  FAR void *handle;
+  struct boardioc_usbdev_ctrl_s ctrl;
+
+#if defined(CONFIG_CDCACM)
+  ctrl.usbdev   = BOARDIOC_USBDEV_CDCACM;
+  ctrl.action   = BOARDIOC_USBDEV_CONNECT;
+  ctrl.instance = 0;
+  ctrl.handle   = &handle;
+#else
+  ctrl.usbdev   = BOARDIOC_USBDEV_PL2303;
+  ctrl.action   = BOARDIOC_USBDEV_CONNECT;
+  ctrl.instance = 0;
+  ctrl.handle   = &handle;
+#endif
+
+  int ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+  if (ret < 0)
+    {
+      return ret;
+    }
+#endif
+
+  return OK;
+}
 
 #if defined(CONFIG_MTD_S25FL)
 static struct mtd_dev_s * board_init_mtd_s25fl(FAR struct qspi_dev_s *qspi)
@@ -168,10 +193,10 @@ void stm32_boardinitialize(void)
   stm32_sdram_initialize();
 #endif
 
-// (--) Expose USB after file system working
-// #ifdef CONFIG_STM32F7_OTGFS
-//   stm32_usbinitialize();
-// #endif
+#ifdef CONFIG_STM32F7_OTGFS
+  // This configures the USB gpio
+  stm32_usbinitialize();
+#endif
 }
 
 /****************************************************************************
@@ -223,9 +248,16 @@ void board_late_initialize(void)
       syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed: %d\n", ret);
     }
 #endif
+*/
 
 #if defined(CONFIG_CDCACM)
-  board_init_usbdev();
+  ret = board_init_usbdev();
+  if(ret > 0)
+  {
+    syslog(1, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
+              __FILE__, __LINE__, ret);
+    return;
+  }
 #endif
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -239,6 +271,7 @@ void board_late_initialize(void)
  #endif
 #endif
 
+/*
 #ifdef CONFIG_EXAMPLES_MONO
   ret = meadow_upd_initialize();
   if (ret < 0)
