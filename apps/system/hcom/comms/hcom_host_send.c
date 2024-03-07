@@ -133,7 +133,7 @@ int hcom_host_send_setup()
   }
 #endif
 
-  _notInitialized = false;  
+  _notInitialized = false;
   return OK;
 }
 
@@ -206,7 +206,7 @@ int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
 // This function is like the hcom_host_send_buffered_msg() function.
 // The difference is the protocol is now simpler because of using structs
 // to define the message types to be sent. Therefore, this function
-// eleminates the need for com_host_send_buffered_msg().
+// eliminates the need for com_host_send_buffered_msg().
 // The messy work eleminated by structures by the caller.
 int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalLength)

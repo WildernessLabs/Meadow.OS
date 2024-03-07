@@ -131,7 +131,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "-->hcom_nx_setup_mgr 4\n"); usleep(5 * 1000);
 #endif
 
-/* Rebase Note: Skip configuration for now
   //
   //  Initialise the configuration system.
   //
@@ -158,7 +157,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   // Start trace messaging if so configured
   hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false);
   hcom_nx_config_unlock();
-*/
 
   //
   //  Set the system clock to the OS build time to help with SSL.
@@ -167,15 +165,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "-->hcom_nx_setup_mgr 6\n"); usleep(5 * 1000);
 #endif
 
-/* Rebase Note: This call crashes system. May be related to configuration not
-     Initialized?
-
   hcom_nx_config_set_time_to_os_build_time();
   
   // syslog(2, "YAML Config:Net I/F:%s, DHCP:%s\n",
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
-*/
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "-->hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
@@ -259,14 +253,13 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "-->hcom_nx_setup_mgr 13\n"); usleep(5 * 1000);
 #endif
 
-  // Rebase Note: This can wait till we bring up mono
   // Initialize hcom nuttx driver
-  // ret = hcom_nx_upd_initialize();
-  // if (ret < 0)
-  // {
-  //   syslog(LOG_CRIT, "%s@%d-setup hcom nuttx upd:%d\n", thisFile, __LINE__, ret);
-  //   return ret;
-  // }
+  ret = hcom_nx_upd_initialize();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup hcom nuttx upd:%d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "-->hcom_nx_setup_mgr 14\n"); usleep(5 * 1000);

@@ -143,7 +143,6 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   syslog(2, "Startup Manager 2\n"); usleep(20 * 1000);
 #endif
 
-/*Rebase Note: UPD will need to wait
   // Note: This needs to be early because all battery backed register
   // (BBR) access needs this (e.g. hcom_logging_syslog_mask_init).
   // Opens the nuttx upd driver to allow nuttx access.
@@ -156,7 +155,6 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 3\n"); usleep(20 * 1000);
 #endif
-*/
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 4\n"); usleep(20 * 1000);
