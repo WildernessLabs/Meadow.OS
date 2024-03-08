@@ -180,12 +180,12 @@ void stm32_boardinitialize(void)
   arch_sporadic_initialize();
 #endif
 
-// (--) - Don't need this!
-// #ifdef CONFIG_ARCH_LEDS
-//   /* Configure on-board LEDs if LED support has been selected. */
+// THIS IS NOT NEVER USED, NOR CONFIGURED
+#ifdef CONFIG_ARCH_LEDS
+  /* Configure on-board LEDs if LED support has been selected. */
 
-//   board_autoled_initialize();
-// #endif
+  board_autoled_initialize();
+#endif
 
 // Rebase Note: Nuttx function name changed from stm32_enablefmc() to
 // stm32_sdram_initialize(). The code is also slightly different.
@@ -225,7 +225,6 @@ void board_late_initialize(void)
   FAR struct mtd_dev_s *mtd;
   struct qspi_meminfo_s meminfo;
 
-/* 
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Initialize the syslog message pump
   ret = hcom_nx_trace_msg_proc_setup();
@@ -248,7 +247,6 @@ void board_late_initialize(void)
       syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed: %d\n", ret);
     }
 #endif
-*/
 
 #if defined(CONFIG_CDCACM)
   ret = board_init_usbdev();
@@ -271,7 +269,6 @@ void board_late_initialize(void)
  #endif
 #endif
 
-/*
 #ifdef CONFIG_EXAMPLES_MONO
   ret = meadow_upd_initialize();
   if (ret < 0)
@@ -279,7 +276,6 @@ void board_late_initialize(void)
     syslog(LOG_ERR, "ERROR: meadow_upd_initialize() failed: %d\n", ret);
   }
 #endif
-*/
 
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information

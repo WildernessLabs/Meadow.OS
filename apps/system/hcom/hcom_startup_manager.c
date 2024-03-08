@@ -51,7 +51,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-//extern int main (int argc, char* argv[]);
+extern int hcom_main (int argc, char* argv[]);
 
 /****************************************************************************
  * Private Data
@@ -110,7 +110,7 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
 // Rebase Note: Was called hcom_main() via CONFIG_USER_ENTRYPOINT="hcom_main"
-int main(int argc, char *argv[])
+int hcom_main(int argc, char *argv[])
 {
   int ret;
 
