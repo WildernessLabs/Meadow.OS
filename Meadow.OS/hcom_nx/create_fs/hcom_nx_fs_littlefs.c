@@ -173,15 +173,20 @@ int hcom_nx_create_littlefs_mount_format_1_part(uint32_t partitionId)
   if(ret >= 0)
     return OK;   // Mount successful
 
-  // Note: LFS_ERR_CORRUPT (-52) is unique to LittleFS. It is returned when LittleFS is attempting
-  // to mount a partition and it detects that the partition is not formatted.
-  if (ret != LFS_ERR_CORRUPT)
+  // Rebase Note: In Legacy Meadow the return value for a corrupt file system
+  // was LFS_ERR_CORRUPT, which had a value of -52. It seems that a function
+  // was added to lfs_vfs.c (littlefs_convert_result()) that converts the
+  // LittleFS error values to ones that match Nuttx.
+  // if (ret != LFS_ERR_CORRUPT)
+  if(ret != -EFAULT)
   {
-    syslog(LOG_ERR, "%s@%d-LittleFS mount for '%s' type '%s' on Part %d err:%d\n",
+    syslog(LOG_ERR, "%s@%d-LittleFS mount for '%s' type '%s' on Part %d err:%d failed\n",
               thisFile, __LINE__, HCOM_FILE_MOUNT_POINT_TARGET,
               HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId, ret);
     return ret;
   }
+
+  // Detected an error that LittleFS's file system is corrupt.
 
 #if HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0
   syslog(LOG_DEBUG, "Part %d format required\n", partitionId);

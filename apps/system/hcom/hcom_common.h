@@ -96,7 +96,8 @@
   // #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS0"  // This is UART1
   // #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS1"  // This is UART4
   // Note: /dev/ttyS2 is UART5 used to download to ESP32
-  #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"  // This is UART6
+  // '/dev/ttyS3' is currently UART6
+  #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"
 #endif
 
 //---------------------------------------------------------------------
@@ -354,8 +355,10 @@ int hcom_via_nx_update_OS1(void);
 int hcom_via_nx_update_OS2(void);
 int hcom_via_nx_get_update_state(uint8_t flag);
 int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state);
-int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback);
 int hcom_via_nx_register_host_msg_send_callback(send_host_std_msg_data hostCallback);
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
+int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback);
+#endif
 
 // -----------------------------------------------
 // Methods found in meadow_utils.c

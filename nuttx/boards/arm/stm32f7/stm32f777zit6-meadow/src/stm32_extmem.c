@@ -147,6 +147,9 @@ static void stm32_sdramcommand(uint32_t command)
  * Public Functions
  ****************************************************************************/
 
+// Rebase Note: Between Nuttx 7 and 12 the function stm32_enablefmc was renamed
+// stm32_sdram_initialize. There was also some. The new code is being used.
+
 /****************************************************************************
  * Name: stm32_sdram_initialize
  *
@@ -233,6 +236,8 @@ void stm32_sdram_initialize(void)
  *  enable clocking to the FMC module
  *
  ****************************************************************************/
+
+// Rebase Note: This function seems to be an orphan
 
 void stm32_disablefmc(void)
 {

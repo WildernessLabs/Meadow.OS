@@ -1,5 +1,5 @@
 /*************************************************************************
- * \include\meadow\hcom_shared_common.h
+ * /apps/system/hcom/misc/meadow_utils.c
  * 
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

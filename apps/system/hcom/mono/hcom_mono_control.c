@@ -672,6 +672,7 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
   int nx_access_fd;
   uint32_t blueLedPinDefn;
 
+#if defined CONFIG_HCOM_MONO_STDERR_STDOUT
   // For Mono apps to forward Console.WriteLine text etc., we must redirect
   // the Mono tasks stdout fd to a fifo which will route this text to the host
   // PC if CLI or equal is running.
@@ -688,7 +689,8 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
     hcom_logging_syslog(LOG_ERR, "%s@%d-stderr redirect:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
-  
+#endif
+
   // For this Mono main thread to access the nuttx side it needs to
   // open, use and close the nx upd driver.
   nx_access_fd = hcom_via_nx_upd_driver_open();

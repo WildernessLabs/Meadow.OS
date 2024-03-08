@@ -122,6 +122,7 @@ int hcom_host_send_setup()
     return ret;
   }
 
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
   // Register with power management so we can properly shutdown before entering
   // a low-power mode.
   ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_host_send_low_power_notification);
@@ -130,8 +131,9 @@ int hcom_host_send_setup()
     syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
+#endif
 
-  _notInitialized = false;  
+  _notInitialized = false;
   return OK;
 }
 
@@ -204,7 +206,7 @@ int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
 // This function is like the hcom_host_send_buffered_msg() function.
 // The difference is the protocol is now simpler because of using structs
 // to define the message types to be sent. Therefore, this function
-// eleminates the need for com_host_send_buffered_msg().
+// eliminates the need for com_host_send_buffered_msg().
 // The messy work eleminated by structures by the caller.
 int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalLength)

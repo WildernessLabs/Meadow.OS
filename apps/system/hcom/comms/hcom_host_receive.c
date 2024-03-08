@@ -108,6 +108,7 @@ int hcom_host_recv_setup()
   // HCOM_COMMUNICATIONS_DEVICE_NAME
   deviceName = CONFIG_HCOM_COMMS_DEVICE_NAME;
 
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
   // Register with power management so we can properly shutdown before entering
   // a low-power mode.
   ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_host_recv_low_power_notification);
@@ -116,6 +117,7 @@ int hcom_host_recv_setup()
     syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
+#endif
 
   // Create a semaphore used to prevent the received thread from running while
   // in low-power mode.
@@ -337,10 +339,8 @@ void hcom_host_recv_open_connection()
 // needed. This thread is the only thread receiving via USB serial data.
 bool hcom_host_recv_received_data()
 {
-#if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Waiting for '%s' message\n",
+  hcom_logging_syslog(1, "%s@%d-HCOM Waiting for '%s' message\n",
             thisFile, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
-#endif
 
   // Stay in this loop "forever"
   while (!_shutting_down)

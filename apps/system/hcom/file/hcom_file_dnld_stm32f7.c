@@ -80,7 +80,7 @@ uint64_t _dbgReceptionEndedAt;
  ****************************************************************************/
 int hcom_file_dnld_stm32f7_setup()
 {
-    _stateErrShown = false;   // In case of data before begin
+  _stateErrShown = false;   // In case of data before begin
   return OK;
 }
 

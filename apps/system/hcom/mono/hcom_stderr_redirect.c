@@ -94,6 +94,7 @@ int hcom_mono_stderr_read_setup()
   _stderr_fd = -1;
   _lowPowerActive = false;
 
+#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
   // Register with power management so we can properly shutdown before entering
   // a low-power mode.
   int ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_mono_stderr_low_power_notification);
@@ -102,6 +103,7 @@ int hcom_mono_stderr_read_setup()
     syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
+#endif
 
   // It would be nice if this initialization could be postponed
   // until we know if mono was running. This was quickly attempted

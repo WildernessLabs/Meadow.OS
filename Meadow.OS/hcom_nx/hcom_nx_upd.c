@@ -302,6 +302,7 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     ret = pwrmgmt_mono_cmd_time_wakeup_period(rtcWakeupTime->hdrMsg,
               rtcWakeupTime->msgLen);
 #endif
+
   case HCOM_NX_UPD_UPDATE_OS1:
     // Stage a updated OS bin
     ret = hcom_nx_exec_ex_flash_OS_update_flash1();
@@ -329,12 +330,14 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     }
     break;
 
+#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   case HCOM_NX_UPD_REG_PWR_MGMT_CB:
     {
       pwr_mgmt_notify_callback *callback = (pwr_mgmt_notify_callback*) arg;
       return pwrmgmt_subscribe_for_low_pwr_notifications(*callback);
     }
     break;
+#endif
 
   case HCOM_NX_UPD_HOST_SEND_MSG_CB:
     {
