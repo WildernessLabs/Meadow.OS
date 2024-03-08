@@ -23,24 +23,6 @@
 #include "hardware/stm32_qspi.h"
 
 //==========================================================================
-// In legacy Meadow, this code was at nuttx/mm/kmm_string/kmm_strdup.c which
-// was part of Nuttx 7.3 itself. 
-FAR char *kmm_strdup(FAR const char *s)
-{
-  FAR char *news = NULL;
-  if (s)
-    {
-      news = (FAR char *)kmm_malloc(strlen(s) + 1);
-      if (news)
-        {
-          strcpy(news, s);
-        }
-    }
-
-  return news;
-}
-
-//==========================================================================
 // In Legacy Meadow the stm32f7_qspi_hw_reinitialize() function was added to
 // the Nuttx stm32_qspi.c function. It has been removed to reduce the friction
 // of updating Nuttx in the future.

@@ -16,12 +16,6 @@
 #define MEADOW_REBASE_V12_USE_NEWEST_VERSIONS (1)
 
 //==========================================================================
-// This function definition was added to Nuttx 7.3 to provide functionality
-// needed by Meadow. It was added to /Meadow/nuttx/include/nuttx/kstring.h
-// and was added to the Nuttx memory allocation code.
-FAR char *kmm_strdup(FAR const char *s);
-
-//==========================================================================
 // Note: the stm32f7_qspi_hw_reinitialize() function was added to Legacy Meadow
 // in stm32_qspi.h and stm32_qspi.c files.
 // Its purpose is to update the stm32f7's internal register
