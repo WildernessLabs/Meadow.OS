@@ -11,7 +11,7 @@
 #include <arch/board/board.h>
 #include <nuttx/mqueue.h>
 #include <nuttx/signal.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <nuttx/spi/spi.h>
 
 #include <stdbool.h>
@@ -32,7 +32,7 @@
 #include <nuttx/timers/watchdog.h>
 #include <sys/ioctl.h>
 #include "stm32_tim.h"
-#include "meadow-upd.h"
+#include <meadow/meadow-upd.h>
 #include <meadow/hcom_nuttx_shared.h>
 #include <meadow/hcom_shared_common.h>
 #include "stm32_uid.h" // stm32_get_uniqueid()
