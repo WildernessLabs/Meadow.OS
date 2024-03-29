@@ -11,11 +11,13 @@ import csv
 # 'git merge-file' documentation are not used. Instead the terms
 # used are 'rebase', 'previous' and 'ongoing' as these better
 # describe the usage in this application.
-rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/" # rebase
+# VVVVVVVVVVV Changed this from sample files to live files to keep 
+# up to date information available
+rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
+# rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/" # rebase
 previousRepoPath = "/home/peter/wl/RebaseRepos/M1.2-12Mar/" # previous
 ongoingRepoPath =  "/home/peter/wl/RebaseRepos/M1.9-12Mar/" # ongoing
 absRepoPaths = [rebaseRepoPath, previousRepoPath, ongoingRepoPath]
-
 # Output files and diagnostic files
 finalCsvListPath = "/home/peter/wl/RebaseRepos/dirTextFiles/"
 
