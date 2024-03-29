@@ -1,2 +1,29 @@
-1. Meadow/nuttx/configs/stm32f777zit6-meadow/include/boardctl.h doesn't seem to be needed in Meadow.OS
-2.
+1. Meadow/nuttx/configs/stm32f777zit6-meadow/include/boardctl.h
+    doesn't seem to be needed in the build because it's in
+    /Meadow.OS/nuttx/include/sys/boardctl.h and update tool doesn't
+    look here.
+    The Legacy Meadow version is only this:
+#ifndef __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H
+#define __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <sys/boardctl.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define BIOC_ENTER_MEMMAP   BOARDIOC_USER+1
+#define BIOC_EXIT_MEMMAP    BOARDIOC_USER+2
+
+#endif  /* __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H */
+
+2. 
+stm32_i2c.h
+stm32_i2c.c
+stm32_ostest.c
+stm32_pwm.c
+stm32_usbmsc.c

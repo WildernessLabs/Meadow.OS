@@ -74,6 +74,7 @@ ifdef MEADOW_OS
 
 # Enable Meadow.OS build (WORK IN PROGRESS)
 CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow-upd.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow-gpio.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_interrupt.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_hw_version.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_temp_rebase.c \
