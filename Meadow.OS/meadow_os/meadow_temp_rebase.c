@@ -18,7 +18,7 @@
 #include <debug.h>
 #include <assert.h>
 
-#include "meadow_temp_rebase.h"
+#include <meadow/meadow_temp_rebase.h>
 #include <arm_internal.h>
 #include "hardware/stm32_qspi.h"
 

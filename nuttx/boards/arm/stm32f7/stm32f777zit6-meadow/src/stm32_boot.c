@@ -37,7 +37,7 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/spi/qspi.h>
 
-#include "meadow_temp_rebase.h"
+#include <meadow/meadow_temp_rebase.h>  // THIS IS TEMPORARY
 #include "stm32f777zit6-meadow.h"
 
 #include <meadow/meadow_hw_version.h>

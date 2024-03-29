@@ -76,9 +76,9 @@ ifdef MEADOW_OS
 CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow-upd.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_interrupt.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_hw_version.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_temp_rebase.c \
 $(MEADOW_OS_DIR)/misc/meadow_cirbuf.c \
-$(MEADOW_OS_DIR)/misc/parse_iso8601_time.c \
-$(MEADOW_OS_DIR)/meadow_temp_rebase.c
+$(MEADOW_OS_DIR)/misc/parse_iso8601_time.c
 
 MEADOW_OS_DIR=Meadow.OS
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR)
