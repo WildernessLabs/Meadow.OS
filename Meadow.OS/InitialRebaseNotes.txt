@@ -1,0 +1,2 @@
+1. Meadow/nuttx/configs/stm32f777zit6-meadow/include/boardctl.h doesn't seem to be needed in Meadow.OS
+2.
