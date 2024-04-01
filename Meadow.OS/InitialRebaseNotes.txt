@@ -1,29 +1,10 @@
-1. Meadow/nuttx/configs/stm32f777zit6-meadow/include/boardctl.h
-    doesn't seem to be needed in the build because it's in
-    /Meadow.OS/nuttx/include/sys/boardctl.h and update tool doesn't
-    look here.
-    The Legacy Meadow version is only this:
-#ifndef __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H
-#define __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H
-
-/****************************************************************************
- * Included Files
- ****************************************************************************/
-
+1. I added /Meadow.OS/nuttx/include/sys/boardctl.h mostly because
+the rebase tool indicated it was missing. However, it doesn't seem
+to be needed in the build (it build without the file) and the file
+only contains one entry
 #include <sys/boardctl.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define BIOC_ENTER_MEMMAP   BOARDIOC_USER+1
-#define BIOC_EXIT_MEMMAP    BOARDIOC_USER+2
-
-#endif  /* __CONFIG_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H */
-
-2. 
-stm32_i2c.h
-stm32_i2c.c
-stm32_ostest.c
-stm32_pwm.c
-stm32_usbmsc.c
+2. Added stm32f7_qspi_hw_reinitialize() to 
+Meadow.OS/Meadow.OS/meadow_os/meadow_temp_rebase.c & .h. This is a
+temporary fix and the Function will need to be move to a permanent
+location.
