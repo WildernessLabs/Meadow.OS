@@ -79,7 +79,7 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 # Other Conditions
 # Duplicate - This file name occurs in more than once in the same repo
 # The following are used to define the rebase constants
-COND_UNKNOWN_CONDITION    = 0    #This is the default 'condition' value
+COND_UNKNOWN_CONDITION    = 0    # default 'condition' value
 COND_ONLY_IN_ONGOING      = 1
 COND_ONLY_IN_PREVIOUS     = 2
 COND_NOT_IN_REBASE        = 3
@@ -272,23 +272,14 @@ for ongoingIndex, ongoingFileName in enumerate(ongoingFileNamesList):
             tempEntry.condition = COND_ONLY_IN_ONGOING
         else:
             tempEntry.condition = COND_PREVIOUS_REPEATED
-    # else:
-    #     if(prevMatchFound > 1):
-    #         # This is a previous duplicate of a file already added to list and
-    #         # assigned a different condition code, above.
-    #         tempEntry.condition = COND_PREVIOUS_REPEATED
-    #     if(rebaseMatchFound > 1):
-    #         # This is a rebase duplicate of a file already added to list and
-    #         # assigned a different condition code, above.
-    #         tempEntry.condition = COND_REBASE_REPEATED
 
     consolidatedFileList.append(tempEntry)
 
 # ---------------------------------------------------------------
-# The 'ongoing' list has been exhausted. Therefore, most conditions have been
-# found. But, there are still 'previous' and 'rebase' file lists and
-# find which files are the consolidated list because they were not in the on
-# ongoing list.
+# The 'ongoing' list has been exhausted. Therefore, most conditions have
+# been found. But, there are still 'previous' and 'rebase' file lists and
+# find which files are in the consolidated list because they were not in
+# the on ongoing list.
 tempPrevFileDict = {}
 
 for prevIndex, prevFileName in enumerate(previousFileNamesList):
