@@ -37,9 +37,9 @@ CFLAGS += -I "$(TOPDIR)/../mbedtls/include"
 HCOM_DIR = ../../../hcom/
 ASRCS =
 HCOM_SRCS = comms/hcom_host_encode.c \
-	comms/hcom_host_receive.c \
 	comms/hcom_host_enq_deq.c \
 	comms/hcom_host_process.c \
+	comms/hcom_host_receive.c \
 	comms/hcom_host_route.c \
 	comms/hcom_host_send.c \
 	comms/hcom_host_watchdog.c \
