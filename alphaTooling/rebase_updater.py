@@ -261,22 +261,26 @@ for ongoingIndex, ongoingFileName in enumerate(ongoingFileNamesList):
     if(prevMatchFound == 1):
         if(rebaseMatchFound == 1):
             tempEntry.condition = COND_ALL_3_MERGE_OKAY
-        else:
+        elif (rebaseMatchFound == 0):
             tempEntry.condition = COND_NOT_IN_REBASE
+        else:
+            tempEntry.condition = COND_REBASE_REPEATED
     elif(prevMatchFound == 0): 
         if(rebaseMatchFound == 1):
             tempEntry.condition = COND_NOT_IN_PREVIOUS
-        else:
+        elif(rebaseMatchFound == 0):
             tempEntry.condition = COND_ONLY_IN_ONGOING
-    else:
-        if(prevMatchFound > 1):
-            # This is a previous duplicate of a file already added to list and
-            # assigned a different condition code, above.
+        else:
             tempEntry.condition = COND_PREVIOUS_REPEATED
-        if(rebaseMatchFound > 1):
-            # This is a rebase duplicate of a file already added to list and
-            # assigned a different condition code, above.
-            tempEntry.condition = COND_REBASE_REPEATED
+    # else:
+    #     if(prevMatchFound > 1):
+    #         # This is a previous duplicate of a file already added to list and
+    #         # assigned a different condition code, above.
+    #         tempEntry.condition = COND_PREVIOUS_REPEATED
+    #     if(rebaseMatchFound > 1):
+    #         # This is a rebase duplicate of a file already added to list and
+    #         # assigned a different condition code, above.
+    #         tempEntry.condition = COND_REBASE_REPEATED
 
     consolidatedFileList.append(tempEntry)
 
