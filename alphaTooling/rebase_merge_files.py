@@ -100,18 +100,17 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
         previousPN = ""
     else:
         previousPN = previousRepoPath + previous
-        
-    # if(conditionInt == COND_ALL_3_MERGE_OKAY or conditionInt == COND_NOT_IN_PREVIOUS):
-    # subProcResult = subprocess.run(["git", "merge-file", rebase, previous, ongoing, "-p", "--diff-algorithm=histogram"],
-    #                              capture_output=True, text=True)
-
+    
     # Only process if all 3 files are available. Otherwise git merge-file reports an error
     if(conditionInt == COND_ALL_3_MERGE_OKAY):
         subProcResult = subprocess.run(["git", "merge-file", rebasePN, previousPN, ongoingPN],
                                      capture_output=True, text=True)
-        if(subProcResult.returncode == 0):      # 0 = merge with no conflicts
-            continue
-        elif(subProcResult.returncode > 0 and subProcResult.returncode < 128):     # 1-127 = number of conflicts
+        numbMergeAttempt += 1
+        if(subProcResult.returncode == 0):
+            continue      # 0 = merge with no conflicts
+
+         # 1-127 = number of conflicts
+        if(subProcResult.returncode > 0 and subProcResult.returncode < 128):
             print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge Conflicts in: {rebasePN}")
         else:     # Error
             print(f"{numbMergeAttempt} Error: {subProcResult}")
@@ -120,13 +119,20 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
         # numbMergeAttempt += 1
         # if(subProcResult.returncode == 0):      # = 0 merge with no conflicts
         #     print(f"{numbMergeAttempt} Successfully merged:{rebasePN}")
-        # elif(subProcResult.returncode > 0 and subProcResult.returncode < 128):     # 1-127 = number of conflicts
+        # elif(subProcResult.returncode > 0 and subProcResult.returncode < 128): # 1-127 = number of conflicts
         #     print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge Conflicts in: {rebasePN}")
         # else:     # Error
         #     print(f"{numbMergeAttempt} Error: {subProcResult}")
+    elif(conditionInt == COND_NOT_IN_PREVIOUS):
+        # This situation needs files copied from ongoing to rebase
+        subProcResult = subprocess.run(["cp", "-r", ongoingPN, rebasePN])
+        if(subProcResult.returncode == 0):
+            continue      # 0 = merge with no conflicts
 
+        print(f"CP returned:{subProcResult.returncode}")
     else:
         print(f"Ignoring `{rebasePN}`")
+
 # Loop exit
 
 # Show stats
@@ -136,10 +142,5 @@ for totalIndex, total in enumerate(condTotals):
 
 f_mergeList.close()
 
-# --diff-algorithm={patience|minimal|histogram|myers}
 # subProcResult = subprocess.run(["git", "merge-file", "<current>", "<base>", "<other", "-p", "--diff-algorithm={histogram}"]
 #                                capture_output=True, text=True, cwd=absoluteFilePath)
-
-# merge-file results
-# CompletedProcess(args=['git', 'merge-file', 'Meadow.OS/apps/system/hcom/tests/hcom_dir_mgmt_tests.c', '', 'Meadow/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c', '-p'], returncode=255, stdout='',
-#                stderr='error: Could not stat Meadow.OS/apps/system/hcom/tests/hcom_dir_mgmt_tests.c: No such file or directory\n')
