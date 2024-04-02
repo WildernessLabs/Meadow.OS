@@ -334,7 +334,7 @@ for rebaseIndex, rebaseFileName in enumerate(rebaseFileNamesList):
         tempRebaseEntry.rebasePathName = rebaseFileName
         tempRebaseFileDict[rebaseFileNameNoPath] = rebaseFileName
 
-#----------------------------------------------------+++-------------
+#-----------------------------------------------------------------
 # We have 2 dictionaries containing previous and rebase entires which have
 # no counter part in ongoing.
 # For those cases were previous and rebase contain the same file name,
