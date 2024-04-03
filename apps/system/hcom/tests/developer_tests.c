@@ -127,12 +127,36 @@ static meadow_test_t _tests[] =
     { 9, "ISO8601 tests", meadow_kt_iso8601_tests },
 #endif
 
-#if defined(CONFIG_BBR_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { 10, "Battery backed register tests", meadow_kt_iso8601_tests },
+#if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 10, "Quick and Misc tests", meadow_kt_quick_misc_tests },
 #endif
 
-#if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { 11, "Quick and Misc tests", meadow_kt_quick_misc_tests },
+#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 11, "Tensorflow tests", tensorflow_tests_hello_world },
+#endif
+
+#if defined(CONFIG_DIR_MGMT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 13, "Directory mgmt tests", meadow_dir_mgmt_tests },
+#endif
+
+#if defined(CONFIG_ADC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 14, "Analog to Digital tests", meadow_kt_adc_tests },
+#endif
+
+#if defined(CONFIG_DAC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 15, "Digital to Analog tests", meadow_kt_dac_tests },
+#endif
+
+#if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 16, "Meadow interrupt tests", meadow_kt_meadow_interrupt_tests },
+#endif
+
+#if defined(CONFIG_SPI_DMA_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 17, "SPI DMA tests", meadow_kt_spi_dma_tests },
+#endif
+
+#if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 18, "Rotary Encoder tests", meadow_kt_rotary_encoder_tests },
 #endif
 
   //
@@ -199,6 +223,8 @@ void hcom_developer_tests_developer(uint16_t level, uint32_t value)
 {
     bool found = false;
     char *hostMsg = malloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
+    
+    syslog(2, "developer test Level:%u - userData:%lu\n", level, value);
 
     if ((level == 0) && (hostMsg != NULL))
     {

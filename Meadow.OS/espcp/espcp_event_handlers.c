@@ -48,6 +48,7 @@
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_thread_config.h>
+#include <meadow/meadow_client_cert.h>
 
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
@@ -469,6 +470,12 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
     }
     espcp_delete_message_and_payload(message);
 
+    int ret = meadow_client_cert_initialize();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "Failed to initialize client certificate credentials. Error code: %d", ret);
+    }
+
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
 }
 
@@ -537,6 +544,13 @@ static void espcp_network_connected_event_handler(espcp_message_t *message)
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
         get_time = config->get_network_time_at_startup;
         hcom_nx_config_unlock();
+
+        if (message->payload != NULL)
+        {
+            espcp_connect_event_data_t *connect_data = espcp_extract_connect_event_data(message->payload);
+            hcom_nx_config_add_default_gateway_dns_file(config, connect_data->gateway);
+        }
+
         if (get_time)
         {
             ntpc_start();

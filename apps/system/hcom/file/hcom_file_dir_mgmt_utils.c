@@ -71,7 +71,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <nuttx/fs/fs.h>
-// #include <nuttx/fs/dirent.h>
+#include <nuttx/fs/dirent.h>
 #include <syslog.h>
 
 #if defined (CONFIG_DIR_MGMT_TESTS)

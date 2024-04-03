@@ -1,7 +1,7 @@
 /****************************************************************************
  * \apps\examples\hcom\mono\hcom_mono_control.c
  *
- *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2020-2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,7 +46,7 @@
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_os.h>
-#include <meadow/meadow_syscall.h>
+#include <meadow/meadow_apps_core_share.h>
 
 #include <string.h>
 
@@ -106,7 +106,8 @@ static valid_mono_options_t _mono_options[] =
   { "--llvmonly-interp", true },
   { "--trace=", false },
   { "--debug", true },
-  { "--soft-breakpoints", true }
+  { "--soft-breakpoints", true },
+  { "--profile=", false}
 };
 
 /****************************************************************************
@@ -476,7 +477,6 @@ bool hcom_mono_ctrl_are_needed_files_here()
           "System.Core.dll",
           "System.dll",
           "Meadow.dll",
-          "App.exe",
           NULL};
 
   memset(missingFiles, 0, 128);
@@ -632,7 +632,7 @@ void hcom_mono_ctrl_disable_mono(uint32_t userData)
   hcom_bbreg_set_bbr_bits(HCOM_BBREG_USER_RQST_MONO_ENABLE_BIT);
 
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-                                   "Mono has been disabled - restarting Meadow", thisFile, __LINE__);
+                                   "Runtime disabled - restarting Meadow", thisFile, __LINE__);
 }
 
 //=======================================================================================
@@ -642,7 +642,7 @@ void hcom_mono_ctrl_enable_mono(uint32_t userData)
   hcom_bbreg_clear_bbr_bits(HCOM_BBREG_USER_RQST_MONO_ENABLE_BIT);
 
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-                                   "Mono has been enabled - restarting Meadow", thisFile, __LINE__);
+                                   "Runtime enabled - restarting Meadow", thisFile, __LINE__);
 }
 
 //======================================================================================

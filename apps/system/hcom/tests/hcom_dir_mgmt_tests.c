@@ -44,7 +44,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/hcom_dnld_shared.h>
-// #include <meadow/meadow_apps_core_share.h>
+#include <meadow/meadow_apps_core_share.h>
 #include <dirent.h>
 
 #if defined (CONFIG_DIR_MGMT_TESTS)

@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_enter_stop_mode.c
  * 
- *   Copyright (C) 2022-2023 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2022-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -90,6 +90,10 @@
 
 #include "stm32_alarm.h"
 
+#if defined (CONFIG_POWER_MANAGEMENT_TESTS)
+#pragma message "(--) pwrmgmt_enter_stop_mode.c"
+#endif
+
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
 // Diagnostic only
@@ -108,6 +112,16 @@
  ************************************************************************************/
 // static char *thisFile = __FILE__;
 
+enum MeadowWakeupReason_e
+{
+  wake_reason_unknown             = 0,    // Wakeup reason not known
+  wake_reason_wakeup_time_reached = 1,    // Wakeup time reached
+  wake_reason_gpio_caused_wakeup  = 2,    // GPIO interrupt caused wakeup
+};
+
+static bool _meadowIsSleeping = false;
+static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
@@ -120,6 +134,33 @@
 // It is necessary to do a few things here to get the Meadow back to a running state.
 static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context, FAR void *arg)
 {
+  return pwrmgmt_exit_stop_mode(false);
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+// This public function is executed from the local ISR for timeout and from
+// Meadow interrupt handling code. This allows a GPIO to be configured for
+// wakeup.
+int pwrmgmt_exit_stop_mode(bool gpioWakeup)
+{
+  if(gpioWakeup)
+  {
+    _wakeupReason = wake_reason_gpio_caused_wakeup;
+  }
+  else
+  {
+    _wakeupReason = wake_reason_wakeup_time_reached;
+  }
+
+  // This check is primarily for GPIO wakeup, in the case it is interrupted
+  // while not sleeping.
+  if(!_meadowIsSleeping)
+  {
+    return OK;
+  }
+
   // Reconfigure the internal clocks. Restarts the clocks as defined in
   // board.h. These clocks are what run the entire MCU.
   stm32_clockenable();
@@ -127,29 +168,34 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context, FAR void *a
   // Restart Nuttx Systick
   up_enable_irq(STM32_IRQ_SYSTICK);
 
+  // If waking up from GPIO interrupt don't want to clear RTC register?
+  if(! gpioWakeup)
+  {
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-  // Clear the EXTI Pending Register for the RTC Alarm
-  putreg32(EXTI_RTC_ALARM, STM32_EXTI_PR);
+    // Clear the EXTI Pending Register for the RTC Alarm
+    putreg32(EXTI_RTC_ALARM, STM32_EXTI_PR);
 #elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Clear the EXTI Pending Register for the Wakeup Timer
-  putreg32(EXTI_RTC_WAKEUP, STM32_EXTI_PR);
+    // Clear the EXTI Pending Register for the Wakeup Timer
+    putreg32(EXTI_RTC_WAKEUP, STM32_EXTI_PR);
 #else
-  #error "Select Power Management Low-Power scheme"
+    #error "Select Power Management Low-Power scheme"
 #endif
+  }
 
-  // Don't leave ISR until the above have finished
+  // Don't leave ISR until the above have fully finished
   asm volatile ("dsb");
 
   return OK;
 }
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+// =======================================================================
 // This call will put the F7 into stop mode
 int pwrmgmt_enter_stop_mode(void)
 {
   uint32_t regval;
+
+  // Reset the wakeup reason
+  _wakeupReason = wake_reason_unknown;
 
   // ETHERNET POWERED DOWN
   // See Ref Man section 42.5.8, step-by-step in at the bottom.
@@ -259,6 +305,8 @@ int pwrmgmt_enter_stop_mode(void)
   // Wait again till busy flag is cleared and SDRAM is fully in self-refresh
   while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
 
+  _meadowIsSleeping = true;
+  
   // Force memory sync before wfe, thus ensuring that all instructions done
   // before entering STOP mode Data synchronous Barrier (DSB) just after the
   // write operation. This will force the CPU to respect the sequence of
@@ -272,12 +320,13 @@ int pwrmgmt_enter_stop_mode(void)
   asm volatile ("wfe");    // This is the wait that forces low-power to begin
 
   //----------------------------------------------------------------------
-  // The calling thread is stoped here while in Stop Mode
+  // The calling thread is stopped here while in Stop Mode
   //----------------------------------------------------------------------
 
   // Meadow is running again. ISR has handled starting the clocks and the Nuttx
   // systick timer. These must be in the ISR handler or things don't start
   // correctly.
+  _meadowIsSleeping = false;
 
   // Clear sleep control bits in Power Controller registers
   regval  = getreg32(STM32_PWR_CR1);
@@ -344,6 +393,17 @@ int pwrmgmt_enter_stop_mode(void)
 #endif
 
   return OK;
+}
+
+//================================================================
+// This public function returns the wakeup reason to managed code or any
+// other caller. It returns a simple integer.
+// 0 = Wakeup reason not known
+// 1 = Wakeup time reached
+// 2 = GPIO interrupt caused wakeup
+int pwrmgmt_most_recent_wakeup_reason(void)
+{
+  return (int)_wakeupReason;
 }
 
 #endif // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

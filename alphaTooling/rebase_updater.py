@@ -15,19 +15,19 @@ import csv
 # up to date information available
 
 # This is the active Meadow.OS repo
-rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
+rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase while doing development work
 
 # Use this for testing
 # rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/" # rebase
 
 # These point to a set of repos for doing dev work
-previousRepoPath = "/home/peter/wl/RebaseRepos/M1.2-12Mar/" # previous
-ongoingRepoPath =  "/home/peter/wl/RebaseRepos/M1.9-12Mar/" # ongoing
+previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/v1.2/" # previous
+ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/v1.9/" # ongoing
 
 absRepoPaths = [rebaseRepoPath, previousRepoPath, ongoingRepoPath]
 
 # Output files and diagnostic files
-finalCsvListPath = "/home/peter/wl/RebaseRepos/dirTextFiles/"
+finalCsvListPath = "/Users/lexas/upgrade-rebased-Meadow.OS/dirTextFiles/"
 
 # There are some exclusions (such as sqlite and mono) that will be added as
 # Meadow.OS matures

@@ -1,5 +1,5 @@
 /****************************************************************************
- * \apps\examples\hcom\os_rqsts\hcom_ota.c
+ * \apps\examples\hcom\ota\hcom_ota.c
  *
  *   Meadow Cloud Authentication and Update
  *   Copyright (C) Wilderness Labs. All rights reserved.
@@ -81,14 +81,9 @@ int update_file(const char *srcpath, const char *destpath, const char *rollbackp
   return ret;
 }
 
-int deltree(const char *path)
+// TODO: We have limited stack, convert to iterative
+static int deltree(const char *path)
 {
-  if (strncmp(path, ".", 1))
-    return 0;
-
-  if (strncmp(path, "..", 2))
-    return 0;
-
   DIR *dir = opendir(path);
   struct dirent *entry;
 
@@ -101,7 +96,7 @@ int deltree(const char *path)
   {
     char full_path[PATH_MAX];
     snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
-    if (DIRENT_ISDIRECTORY(entry->d_type))
+    if (DIRENT_ISDIRECTORY(entry->d_type) && strncmp(entry->d_name, ".", 1) && strncmp(entry->d_name, "..", 1))
     {
       deltree(full_path);
     }
@@ -125,7 +120,7 @@ int app_update(void)
     return 0;
 
   bool error = false;
-  int ret;
+  int  __attribute__((unused)) ret;
   ret = mkdir(ROLLBACK_DIR, 0777);
 
   // TODO: Recursive copying
@@ -175,16 +170,6 @@ int app_update(void)
 
 #define OS_BINARY_SIGNATURE_EXT ".sig"
 
-static int update_os_part1(void)
-{
-  return hcom_via_nx_update_OS1();
-}
-
-static int update_os_part2(void)
-{
-  return hcom_via_nx_update_OS2();
-}
-
 static int validate_signature(const char *path)
 {
   // mbedtls_pk_verify ()
@@ -229,18 +214,23 @@ int os_update(void)
   {
     validate_signature(OS_PART1_BINARY_FILENAME);
     validate_signature(OS_PART2_BINARY_FILENAME);
-    update_os_part1();
+    hcom_via_nx_update_OS1(); // should not return
   }
 
   if (!part1_update && part2_update)
   {
-    return update_os_part2();
+    return hcom_via_nx_update_OS2();
   }
 
   return -2;
 }
 
-
+int firmware_update(void)
+{
+  int result = hcom_nx_exec_ex_update_ESP32();
+  deltree(UPDATE_FIRMWARE_DIR);
+  return result;
+}
 
 
 

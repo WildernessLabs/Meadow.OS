@@ -185,7 +185,7 @@ extern "C"
 #if defined (CONFIG_RAMLOG_SYSLOG)
   int hcom_nx_trace_msg_proc_setup(void);
   int hcom_nx_trace_msg_mono_started(void);
-  void hcom_nx_trace_insure_correct_config (bool uartTracing, bool cliTracing);
+  void hcom_nx_trace_insure_correct_config (bool uartTracing, bool cliTracing, bool uartProfiling);
   size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t bufLen);
 #endif
 
@@ -208,8 +208,10 @@ int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   // This functions allow mono to access power management
 
-  // Public functions to control power management
+  // Public functions to manage power management
   int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
+  int pwrmgmt_most_recent_wakeup_reason(void);
+  int pwrmgmt_exit_stop_mode(bool gpioWakeup);
 
   // Power Management Real-time clock hardware available to mono
   int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg, size_t packetSize);

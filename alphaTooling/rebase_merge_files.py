@@ -5,16 +5,16 @@ import subprocess
 import csv
 
 # This is the active Meadow.OS branch
-rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
+rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase while doing development work
 
 # This is where each of the 3 repo can be found
 # rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/"
 
-previousRepoPath = "/home/peter/wl/RebaseRepos/M1.2-12Mar/"
-ongoingRepoPath =  "/home/peter/wl/RebaseRepos/M1.9-12Mar/"
+previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/v1.2/"
+ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/v1.9/"
 
 # Location of CSV file named 'MergeListData.csv'
-csvListDataPath = "/home/peter/wl/RebaseRepos/dirTextFiles/"
+csvListDataPath = "/Users/lexas/upgrade-rebased-Meadow.OS/dirTextFiles/"
 
 # The condition field of the csv file will contain one of these values
 COND_UNKNOWN_CONDITION    = 0    #This is the default 'condition' value

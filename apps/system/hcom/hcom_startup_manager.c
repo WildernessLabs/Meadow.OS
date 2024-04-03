@@ -42,6 +42,7 @@
 
 #include "hcom_common.h"
 #include <meadow/hcom_shared_common.h>
+#include "ota/hcom_ota.h"
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
 #include "esp32/hcom_esp32_comms.h"
@@ -427,9 +428,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }*/
 
   // Run system updaters, which apply any OS and filesystem updates that have been staged
-  /* FIXME: */
   //os_update();
   //app_update();
+  firmware_update();
 
 #ifdef CONFIG_EXAMPLES_MONO
   hcom_mono_ctrl_start_mono_main();
