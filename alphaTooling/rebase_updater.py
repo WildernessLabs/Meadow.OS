@@ -194,7 +194,9 @@ for singleRepoPathList in repoPathLists:
 timestamp = time.strftime("%Y%m%d-%H%M%S-")
 duplicateFileName = finalCsvListPath + timestamp + "DuplicateEntries.txt"
 duplicate_file = open(duplicateFileName, "w")
+duplicateCount = 0
 
+# Check each repo to find duplicate files
 for singleRepoList in repoFileNameLists:
     # Now working on a single repo
     for matchIndex, matchName in enumerate(singleRepoList):
@@ -209,8 +211,9 @@ for singleRepoList in repoFileNameLists:
 
             # Compare just the file names without the path
             if(matchFileNameNoPath == searchFileNameNoPath and
-            matchIndex != searchIndex):              # only show once
-                duplicate_file.write(matchName + '\n')
+               matchIndex != searchIndex):              # only show once
+                    duplicateCount += 1
+                    duplicate_file.write(matchName + '\n')
 
 duplicate_file.close()
 

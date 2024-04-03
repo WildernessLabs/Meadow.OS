@@ -25,16 +25,16 @@ COND_ALL_3_MERGE_OKAY     = 7
 COND_PREVIOUS_REPEATED    = 8
 COND_REBASE_REPEATED      = 9
 
-condTypes = ["COND_UNKNOWN_CONDITION:",
-             "COND_ONLY_IN_ONGOING:  ",
-             "COND_ONLY_IN_PREVIOUS: ",
-             "COND_NOT_IN_REBASE:    ",
-             "COND_ONLY_IN_REBASE:   ",
-             "COND_NOT_IN_PREVIOUS:  ",
-             "COND_NOT_IN_ONGOING:   ",
-             "COND_ALL_3_MERGE_OKAY: ",
-             "COND_PREVIOUS_REPEATED:",
-             "COND_REBASE_REPEATED:  "]
+condTypeNames = ["COND_UNKNOWN_CONDITION:",
+                 "COND_ONLY_IN_ONGOING:  ",
+                 "COND_ONLY_IN_PREVIOUS: ",
+                 "COND_NOT_IN_REBASE:    ",
+                 "COND_ONLY_IN_REBASE:   ",
+                 "COND_NOT_IN_PREVIOUS:  ",
+                 "COND_NOT_IN_ONGOING:   ",
+                 "COND_ALL_3_MERGE_OKAY: ",
+                 "COND_PREVIOUS_REPEATED:",
+                 "COND_REBASE_REPEATED:  "]
 
 # Add up the totals here
 condTotals = [0,0,0,0,0,0,0,0,0,0]
@@ -60,49 +60,25 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
     conditionInt = int(condition)
     condTotals[conditionInt] += 1
 
-    # if(conditionInt == COND_ONLY_IN_ONGOING):
-    #     print("COND_ONLY_IN_ONGOING")
-    # elif(conditionInt == COND_ONLY_IN_PREVIOUS):
-    #     print("COND_ONLY_IN_PREVIOUS")
-    # elif(conditionInt == COND_NOT_IN_REBASE):
-    #     print("COND_NOT_IN_REBASE")
-    # elif(conditionInt == COND_ONLY_IN_REBASE):
-    #     print("COND_ONLY_IN_REBASE")
-    # elif(conditionInt == COND_NOT_IN_PREVIOUS):
-    #     print("COND_NOT_IN_PREVIOUS")
-    # elif(conditionInt == COND_NOT_IN_ONGOING):
-    #     print("COND_NOT_IN_ONGOING")
-    # elif(conditionInt == COND_ALL_3_MERGE_OKAY):
-    #     print("COND_ALL_3_MERGE_OKAY")
-    # elif(conditionInt == COND_PREVIOUS_REPEATED):
-    #     print("COND_PREVIOUS_REPEATED")
-    # elif(conditionInt == COND_REBASE_REPEATED):
-    #     print("COND_REBASE_REPEATED")
-    # elif(conditionInt == COND_UNKNOWN_CONDITION):
-    #     print("COND_UNKNOWN_CONDITION")
-    # else:
-    #     print(f"Unknown condition of:{condition}")
-
-# It seems the 'git merge-file' command, without any command line options
-# will modify the file 'current' with any merge conflicts. The -p option
-# allows these merge conflicts to be sent to stdout instead
-# 
-# git merge-file [-L <current-name> [-L <base-name> [-L <other-name>]]]
-# 	[--ours|--theirs|--union] [-p|--stdout] [-q|--quiet] [--marker-size=<n>]
-# 	[--[no-]diff3] [--object-id] <current> <base> <other>
-#
-# subProcResult = subprocess.run(["git", "merge-file", "<current>", "<base>", "<other", "-p", "--diff-algorithm={histogram}"],
-#                                capture_output=True, text=True)
-    # Need full path name
+    # It seems the 'git merge-file' command, without any command line options
+    # will modify the file 'current' with any merge conflicts. The -p option
+    # allows these merge conflicts to be sent to stdout
+    # 
+    # git merge-file [-L <current-name> [-L <base-name> [-L <other-name>]]]
+    # 	[--ours|--theirs|--union] [-p|--stdout] [-q|--quiet] [--marker-size=<n>]
+    # 	[--[no-]diff3] [--object-id] <current> <base> <other>
+    #
+    # subProcResult = subprocess.run(["git", "merge-file", "<current>", "<base>", "<other", "-p", "--diff-algorithm={histogram}"]
+    #                                capture_output=True, text=True, cwd=absoluteFilePath)
+  
+    # Need full path names, unless not in previous
     rebasePN = rebaseRepoPath + rebase
     ongoingPN = ongoingRepoPath + ongoing
-    if(conditionInt == COND_NOT_IN_PREVIOUS):
-        previousPN = ""
-    else:
-        previousPN = previousRepoPath + previous
     
     # Only process if all 3 files are available. Otherwise git merge-file reports an error
     if(conditionInt == COND_ALL_3_MERGE_OKAY):
+        previousPN = previousRepoPath + previous
+
         subProcResult = subprocess.run(["git", "merge-file", rebasePN, previousPN, ongoingPN],
                                      capture_output=True, text=True)
         numbMergeAttempt += 1
@@ -111,7 +87,7 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
 
          # 1-127 = number of conflicts
         if(subProcResult.returncode > 0 and subProcResult.returncode < 128):
-            print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge Conflicts in: {rebasePN}")
+            print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge conflict(s): `{rebasePN}`")
         else:     # Error
             print(f"{numbMergeAttempt} Error: {subProcResult}")
 
@@ -123,13 +99,15 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
         #     print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge Conflicts in: {rebasePN}")
         # else:     # Error
         #     print(f"{numbMergeAttempt} Error: {subProcResult}")
+
     elif(conditionInt == COND_NOT_IN_PREVIOUS):
-        # This situation needs files copied from ongoing to rebase
+        # If no previous file then the file needs to be copied from
+        # ongoing to rebase
         subProcResult = subprocess.run(["cp", "-r", ongoingPN, rebasePN])
         if(subProcResult.returncode == 0):
-            continue      # 0 = merge with no conflicts
+            continue      # 0 = copy successful
 
-        print(f"CP returned:{subProcResult.returncode}")
+        print(f"File copy of `{ongoingPN}` to `{rebasePN}` returned:{subProcResult.returncode}")
     else:
         print(f"Ignoring `{rebasePN}`")
 
@@ -137,10 +115,8 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
 
 # Show stats
 for totalIndex, total in enumerate(condTotals):
-    indexName = condTypes[totalIndex]
+    indexName = condTypeNames[totalIndex]
     print(f"{indexName}{total}")
 
 f_mergeList.close()
 
-# subProcResult = subprocess.run(["git", "merge-file", "<current>", "<base>", "<other", "-p", "--diff-algorithm={histogram}"]
-#                                capture_output=True, text=True, cwd=absoluteFilePath)
