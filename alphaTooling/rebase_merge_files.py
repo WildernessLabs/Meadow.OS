@@ -4,11 +4,14 @@
 import subprocess
 import csv
 
+# This is the active Meadow.OS branch
+rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
+
 # This is where each of the 3 repo can be found
-# rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
-rebaseRepoPath =   "/home/peter/wl/RebaseTest1/RB.1-12Mar/"
-previousRepoPath = "/home/peter/wl/RebaseTest1/M1.2-12Mar/"
-ongoingRepoPath =  "/home/peter/wl/RebaseTest1/M1.9-12Mar/"
+# rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/"
+
+previousRepoPath = "/home/peter/wl/RebaseRepos/M1.2-12Mar/"
+ongoingRepoPath =  "/home/peter/wl/RebaseRepos/M1.9-12Mar/"
 
 # Location of CSV file named 'MergeListData.csv'
 csvListDataPath = "/home/peter/wl/RebaseRepos/dirTextFiles/"
@@ -41,7 +44,6 @@ condTotals = [0,0,0,0,0,0,0,0,0,0]
 numbMergeAttempt = 0
 
 # Expect a file named "MergeListData.csv"
-
 csvFilePathName = csvListDataPath + "MergeListData.csv"
 f_mergeList = open(csvFilePathName, "r")
 csvFileReader = csv.reader(f_mergeList, delimiter=',')

@@ -13,11 +13,19 @@ import csv
 # describe the usage in this application.
 # VVVVVVVVVVV Changed this from sample files to live files to keep 
 # up to date information available
+
+# This is the active Meadow.OS repo
 rebaseRepoPath =   "/home/peter/wl/" # rebase while doing development work
+
+# Use this for testing
 # rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/" # rebase
+
+# These point to a set of repos for doing dev work
 previousRepoPath = "/home/peter/wl/RebaseRepos/M1.2-12Mar/" # previous
 ongoingRepoPath =  "/home/peter/wl/RebaseRepos/M1.9-12Mar/" # ongoing
+
 absRepoPaths = [rebaseRepoPath, previousRepoPath, ongoingRepoPath]
+
 # Output files and diagnostic files
 finalCsvListPath = "/home/peter/wl/RebaseRepos/dirTextFiles/"
 
