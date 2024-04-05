@@ -69,7 +69,7 @@
 #include "meadow_ethnet_local.h"
 #include <meadow/meadow_ethnet_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
-#include "../ntpclient/ntpclient.h"
+#include "../ntpclient/meadow_ntpclient.h"
 #include "../espcp/espcp_common.h"
 
 // Uncomment the #define below to turn on debug help macros.

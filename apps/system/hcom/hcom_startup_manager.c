@@ -42,7 +42,10 @@
 
 #include "hcom_common.h"
 #include <meadow/hcom_shared_common.h>
+
+#if defined (CONFIG_MEADOW_CLOUD)
 #include "ota/hcom_ota.h"
+#endif
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
 #include "esp32/hcom_esp32_comms.h"
@@ -428,9 +431,14 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }*/
 
   // Run system updaters, which apply any OS and filesystem updates that have been staged
-  //os_update();
-  //app_update();
-  firmware_update();
+// [MAKE-IT-BUILD]
+// ??? EVEN WITH '#if defined (CONFIG_MEADOW_CLOUD)', linker still saw os_update etc.
+// NO CLEAN WAY TO TELL NUTTX THAT CONFIG_MEADOW_CLOUD IS NOT DEFINED
+// #if defined (CONFIG_MEADOW_CLOUD)
+//   os_update();
+//   app_update();
+//   firmware_update();
+// #endif
 
 #ifdef CONFIG_EXAMPLES_MONO
   hcom_mono_ctrl_start_mono_main();

@@ -54,6 +54,7 @@ static char *thisFile = __FILE__;
 #include <dirent.h>
 #include <sys/stat.h>
 
+#if defined (CONFIG_MEADOW_CLOUD)
 
 /* OS & App updaters */
 
@@ -436,3 +437,5 @@ int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypt
     mbedtls_aes_free( &aes );
     return encrypted_len;
 }
+
+#endif  // CONFIG_MEADOW_CLOUD

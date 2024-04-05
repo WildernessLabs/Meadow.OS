@@ -49,7 +49,7 @@
 #include "meadow_ethnet_local.h"
 #include <meadow/meadow_ethnet_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
-#include "../ntpclient/ntpclient.h"
+#include "../ntpclient/meadow_ntpclient.h"
 #include "../espcp/espcp_common.h"
 
 // Uncomment the #define below to turn on debug help macros.
@@ -342,7 +342,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     hcom_nx_config_unlock();
     if(refreshPeriod > 0 || timeAtStart)
     {
-      // This call will cause the ntpclient.c code to periodically refresh the
+      // This call will cause the meadow_ntpclient.c code to periodically refresh the
       // NTP time without additional intervention.
       ntpc_start();
     }

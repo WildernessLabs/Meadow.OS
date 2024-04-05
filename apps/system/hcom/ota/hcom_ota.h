@@ -37,7 +37,10 @@
 /****************************************************************************
  * Public declarations
  ****************************************************************************/
+#if defined (CONFIG_MEADOW_CLOUD)
 
 int app_update(void);
 int os_update(void);
 int firmware_update(void);
+
+#endif
