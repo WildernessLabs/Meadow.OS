@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/include/netutils/ntpclient.h
+ * apps/include/netutils/meadow_ntpclient.h
  *
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -32,6 +32,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+// [MAKE-IT-BUILD]
+// Renamed from ntpclient.c to meadow_ntpclient.c. Not sure this was needed
+// to get things to build, but Nuttx has a ntpclient.c defined in 'apps'
 
 #ifndef __APPS_INCLUDE_NETUTILS_NTPCLIENT_H
 #define __APPS_INCLUDE_NETUTILS_NTPCLIENT_H 1

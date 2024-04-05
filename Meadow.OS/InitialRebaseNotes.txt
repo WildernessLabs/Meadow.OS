@@ -4,10 +4,10 @@ Notes related to initial rebase effort
 often contains old copyright information, wrong file location and the
 wrong date, e.g '/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c'.
 
-. I added /Meadow.OS/nuttx/include/sys/boardctl.h mostly because
-the rebase tool indicated it was missing. However, it doesn't seem
-to be needed in the build (it build without the file) and the file
-only contains one entry
+. I added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+ becausethe rebase tool indicated it was missing. However, it doesn't
+ seemto be needed in the build (it build without the file) and the file
+only contains one entry:
 #include <sys/boardctl.h>
 
 . Added stm32f7_qspi_hw_reinitialize() to 
@@ -15,7 +15,6 @@ Meadow.OS/Meadow.OS/meadow_os/meadow_temp_rebase.c & .h. This is a
 temporary fix and the Function will need to be move to a permanent
 location.
 
-. 
 
 . The files in /Meadow.OS/apps/system/hcom/comms/ are still the old files.
 To switch to 1.9 files modify Makefile '\comms\hcom_host_process.c' rename

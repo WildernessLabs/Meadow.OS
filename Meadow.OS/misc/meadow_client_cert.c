@@ -1,8 +1,11 @@
+// Meadow.OS/Meadow.OS/misc/meadow_client_cert.c
+
 #include <nuttx/config.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 
 #include "espcp/espcp_file_system.h"
 #include <meadow/meadow_client_cert.h>

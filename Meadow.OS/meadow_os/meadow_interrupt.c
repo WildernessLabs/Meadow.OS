@@ -55,6 +55,8 @@
 #include "stm32_tim.h"
 #include "stm32_gpio.h"
 #include <hardware/stm32f76xx77xx_rcc.h>
+#include <hardware/stm32f76xx77xx_gpio.h>
+#include <hardware/stm32f76xx77xx_tim.h>
 #include <nuttx/clock.h>    // for testing
 #include <nuttx/arch.h>
 #include <meadow/meadow-upd.h>
@@ -132,13 +134,6 @@ enum GlitchDebouceReturnValues_e
 {
   glit_debo_ret_check_next_gpio,
   glit_debo_ret_no_timed_remain,
-};
-
-enum GPIOInterruptCfgType_e
-{
-  gpio_intrpt_cfg_type_remove = 0,
-  gpio_intrpt_cfg_type_new = 1,
-  gpio_intrpt_cfg_type_wakeup = 2
 };
 
 // All F7 possible input data registers addresses, used for ISR access to GPIO

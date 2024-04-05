@@ -78,8 +78,11 @@ $(MEADOW_OS_DIR)/meadow_os/meadow-gpio.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_interrupt.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_hw_version.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_temp_rebase.c \
+$(MEADOW_OS_DIR)/ntpclient/meadow_ntpclient.c \
 $(MEADOW_OS_DIR)/misc/meadow_cirbuf.c \
-$(MEADOW_OS_DIR)/misc/parse_iso8601_time.c
+$(MEADOW_OS_DIR)/misc/parse_iso8601_time.c \
+$(MEADOW_OS_DIR)/misc/long_period_scheduler.c \
+$(MEADOW_OS_DIR)/misc/meadow_client_cert.c
 
 MEADOW_OS_DIR=Meadow.OS
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR)
@@ -154,16 +157,11 @@ $(MEADOW_OS_DIR)/kerneltests/sdcard_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/power_management_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/iso8601_time_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/quick_misc_tests.c
-#
-#	Add the NTP client.
-#
-CSRCS += $(MEADOW_OS_DIR)/ntpclient/ntpclient.c $(MEADOW_OS_DIR)/misc/long_period_scheduler.c
 
 #
 #	Add the Meadow logging system.
 #
 CSRCS += $(MEADOW_OS_DIR)/misc/meadow_logging.c
-
 
 #
 #	The libyaml library is required by cyaml.
@@ -178,7 +176,9 @@ CSRCS += $(MEADOW_OS_DIR)/libcyaml/mem.c $(MEADOW_OS_DIR)/libcyaml/free.c $(MEAD
 #
 #	Add Meadow Cloud support
 #
+ifeq ($(CONFIG_MEADOW_CLOUD),y)
 CSRCS += $(MEADOW_OS_DIR)/meadow_cloud/meadow_cloud.c
+endif
 
 #
 #	Add Meadow OS syscall implementations.

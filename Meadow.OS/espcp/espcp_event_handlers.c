@@ -43,7 +43,7 @@
 #include "../espcp/espcp_system.h"
 #include "espcp_coprocessor.h"
 #include "generic_list.h"
-#include "../ntpclient/ntpclient.h"
+#include "../ntpclient/meadow_ntpclient.h"
 #include "../ethernet/meadow_ethnet_local.h"
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_bbreg_defn.h>
