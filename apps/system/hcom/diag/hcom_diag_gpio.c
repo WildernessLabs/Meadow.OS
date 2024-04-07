@@ -43,6 +43,7 @@
 #include <meadow/hcom_shared_common.h>
 
 #include "../hcom_common.h"
+#include <meadow/meadow_os.h>
 #include <meadow/hcom_upd_shared.h>
 #include "hcom_diag_gpio.h"
 
@@ -81,7 +82,7 @@ void hcom_diag_gpio_set_high(uint32_t pin)
 //==========================================================
 void hcom_diag_gpio_set_low(uint32_t pin)
 {
-  hcom_via_nx_gpio_write(pin, false);
+  stm32_gpiowrite(pin, false);
 }
 
 
