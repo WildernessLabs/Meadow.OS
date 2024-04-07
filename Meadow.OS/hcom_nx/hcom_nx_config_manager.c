@@ -306,7 +306,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "9");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on BG770A module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG770A module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -325,7 +325,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "0");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on BG95-M3 module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG95-M3 module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -338,7 +338,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "0");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on M95 module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on M95 module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -642,7 +642,7 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
         
         if ((version->major != 0) || (version->minor != 0) || (version->revision != 0) || (version->build != 0))
         {
-            snprintf(version_string, 45, "%d.%d.%d.%d", version->major, version->minor, version->revision, version->build);
+            snprintf(version_string, 45, "%" PRId32 ".%" PRId32 ".%" PRId32 ".%" PRId32, version->major, version->minor, version->revision, version->build);
         }
         result = kmm_strdup(version_string);
     }
@@ -2433,7 +2433,7 @@ int hcom_nx_config_get_cell_module_id(void)
     }
 
     hcom_nx_config_unlock();
-    syslog(LOG_INFO, "Cell module id: %u\n", module_id);
+    syslog(LOG_INFO, "Cell module id: %" PRIu32 "\n", module_id);
 
     return module_id;
 }
@@ -2468,7 +2468,7 @@ int hcom_nx_config_get_cell_turn_on_pin(void)
     }
 
     hcom_nx_config_unlock();
-    syslog(LOG_INFO, "Cell turn-on pin: %u\n", turn_on_pin);
+    syslog(LOG_INFO, "Cell turn-on pin: %" PRIu32 "\n", turn_on_pin);
 
     return turn_on_pin;
 }
@@ -2578,15 +2578,15 @@ void hcom_nx_config_process_cell_config_file(void)
 
             config->default_cell_settings->scan_mode = hcom_nx_config_parse_boolean(settings->settings->scan_mode, 0);
 
-            syslog(LOG_INFO, "Default cell scan mode: %u\n", config->default_cell_settings->scan_mode);
+            syslog(LOG_INFO, "Default cell scan mode: %" PRIu32 "\n", config->default_cell_settings->scan_mode);
 
             hcom_nx_config_populate_cell_module_id(config);
 
-            syslog(LOG_INFO, "Default cell module id populated: %u\n", config->default_cell_settings->module_id);
+            syslog(LOG_INFO, "Default cell module id populated: %" PRIu32 "\n", config->default_cell_settings->module_id);
 
             hcom_nx_config_populate_cell_network_mode_id(config);
 
-            syslog(LOG_INFO, "Default cell network mode id populated: %u\n", config->default_cell_settings->mode_id);
+            syslog(LOG_INFO, "Default cell network mode id populated: %" PRIu32 "\n", config->default_cell_settings->mode_id);
 
             hcom_nx_config_map_cell_network_mode(config);
 
@@ -2594,7 +2594,7 @@ void hcom_nx_config_process_cell_config_file(void)
 
             hcom_nx_config_map_cell_turn_on_pin(config);
 
-            syslog(LOG_INFO, "Default cell turn-on pin mapped: %u\n", config->default_cell_settings->turn_on_pin);
+            syslog(LOG_INFO, "Default cell turn-on pin mapped: %" PRIu32 "\n", config->default_cell_settings->turn_on_pin);
         }
         else
         {

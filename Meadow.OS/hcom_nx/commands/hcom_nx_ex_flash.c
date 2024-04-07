@@ -140,7 +140,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     return ret;
   }
 
-  syslog(LOG_INFO, "Verifying MTD erase, sectors %d, era size %d pagesize %d\n",
+  syslog(LOG_INFO, "Verifying MTD erase, sectors %" PRId32 ", era size %" PRId32 " pagesize %" PRId32 "\n",
            geo.neraseblocks, geo.erasesize, geo.blocksize);
 
   uint32_t writeable_pages_per_sector = geo.erasesize / geo.blocksize;
@@ -184,12 +184,12 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Expected %d pages but read %d\n",
+            "%s@%d-Expected %" PRId32 " pages but read %d\n",
             thisFile, __LINE__, writeable_pages_per_sector, pagesRead);
     break;
   }
 
-  syslog(LOG_INFO, "Verified %04d bytes (%d of %d sectors)\n",
+  syslog(LOG_INFO, "Verified %04" PRId32 " bytes (%d of %" PRId32 " sectors)\n",
            sectorCounter * geo.erasesize, sectorCounter, geo.neraseblocks);
   syslog(LOG_NOTICE, "Verify complete, %d non-erased 4KB sectors\n\n", notErasedSectors);
 
@@ -501,7 +501,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     if (cmdData)                                                      \
     {                                                                 \
       char buf2[256];                                                 \
-      snprintf(buf2, sizeof(buf2), "%s@d-%s\n", thisFile, __LINE__, x); \
+      snprintf(buf2, sizeof(buf2), "%s@%d-%s\n", thisFile, __LINE__, x); \
       snprintf(buf2, sizeof(buf2), buf2, ##__VA_ARGS__);              \
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,   \
                              buf2, thisFile, __LINE__);               \
@@ -586,7 +586,7 @@ static int flash_file(const char *path, off_t size, off_t offset)
   off_t fileSize = fileStatus.st_size;
   if (fileSize != size)
   {
-    error("File has invalid size. Expected %d, got %d\n", size, fileSize);
+    error("File has invalid size. Expected %" PRId32 ", got %" PRId32 "\n", size, fileSize);
     return -1;
   }
 

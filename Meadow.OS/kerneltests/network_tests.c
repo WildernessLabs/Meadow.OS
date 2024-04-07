@@ -279,7 +279,7 @@ int network_tests_get_html_page(char *webserver_ip, int webserver_port, char *pa
  ****************************************************************************/
 int network_tests_get_large_file(char *webserver_ip, int webserver_port, char *resource)
 {
-    syslog(LOGGING_LEVEL, "********** Getting a large file, URL: http://%s:%s/%s.\n", webserver_ip, webserver_port, resource);
+    syslog(LOGGING_LEVEL, "********** Getting a large file, URL: http://%s:%d/%s.\n", webserver_ip, webserver_port, resource);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -488,7 +488,7 @@ int network_test_get_multiple_large_files(int number_of_requests, char *webserve
 {
     int result = OK;
 
-    syslog(LOGGING_LEVEL, "********** Getting a large file, URL: http://%s:%s/%s.\n", webserver_ip, webserver_port, resource);
+    syslog(LOGGING_LEVEL, "********** Getting a large file, URL: http://%s:%d/%s.\n", webserver_ip, webserver_port, resource);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;

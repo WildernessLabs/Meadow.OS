@@ -369,7 +369,7 @@ int meadow_kt_iso8601_tests(uint32_t userData)
       break;
 
     default:
-    syslog(2, "Unknown value %u passed to RTC Tests()\n", userData);
+    syslog(2, "Unknown value %lu passed to RTC Tests()\n", userData);
     break;
 
   }

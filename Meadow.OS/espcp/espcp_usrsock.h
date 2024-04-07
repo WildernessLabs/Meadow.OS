@@ -52,6 +52,7 @@
 #include <nuttx/net/ioctl.h>
 
 #include <sys/socket.h>
+#include <netdb.h>
 
 /****************************************************************************
  * Pre-processor Definitions

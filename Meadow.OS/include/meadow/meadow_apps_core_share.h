@@ -41,11 +41,14 @@
 #define __CONFIGS_MEADOW_SRC_MEADOW_APPS_CORE_SHARE__H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // Added syscalls fore these GPIO functions
 int stm32_configgpio(uint32_t cfgset);
 int stm32_unconfiggpio(uint32_t cfgset);
-void stm32_gpiowrite(uint32_t pinset, int value);
+void stm32_gpiowrite(uint32_t pinset, bool value);
+void modifyreg32(unsigned int addr, uint32_t clearbits, uint32_t setbits);
+
 
 // This API allows Meadow.Core to get information about flash size and flash free
 int meadow_read_file_total_free_flash_size(uint32_t *totalBytes, uint32_t *freeBytes);

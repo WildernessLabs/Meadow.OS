@@ -127,7 +127,7 @@ int hcom_nx_create_littlefs_init_1_part(uint32_t partitionId, struct mtd_dev_s *
 
   if (partMtd == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-mtd is NULL, part %d",
+    syslog(LOG_ERR, "%s@%d-mtd is NULL, part %" PRId32 "",
              thisFile, __LINE__, partitionId);
     free(partName);
     return -1;
@@ -180,7 +180,7 @@ int hcom_nx_create_littlefs_mount_format_1_part(uint32_t partitionId)
   // if (ret != LFS_ERR_CORRUPT)
   if(ret != -EFAULT)
   {
-    syslog(LOG_ERR, "%s@%d-LittleFS mount for '%s' type '%s' on Part %d err:%d failed\n",
+    syslog(LOG_ERR, "%s@%d-LittleFS mount for '%s' type '%s' on Part %" PRId32 " err:%d failed\n",
               thisFile, __LINE__, HCOM_FILE_MOUNT_POINT_TARGET,
               HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId, ret);
     return ret;
@@ -200,7 +200,7 @@ int hcom_nx_create_littlefs_mount_format_1_part(uint32_t partitionId)
                                             HCOM_NX_FILE_MOUNT_FORCE_FORMAT);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Format and remount '%s' to '%s' for type '%s' on Part %d err:%d\n",
+    syslog(LOG_ERR, "%s@%d-Format and remount '%s' to '%s' for type '%s' on Part %" PRIx32 " err:%d\n",
               thisFile, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
               HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId, ret);
   }

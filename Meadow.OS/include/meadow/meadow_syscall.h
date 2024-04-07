@@ -40,6 +40,7 @@
 #define __CONFIGS_MEADOW_SRC_MEADOW_CIRCULAR_BUFFER__H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 // Had trouble finding the appropriate header in syscall.csv for these
 // functions.
