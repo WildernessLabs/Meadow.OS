@@ -120,7 +120,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   if(!((millisecDelay > 0 && recvdData != NULL) ||
        (millisecDelay <= 0 && recvdData == NULL)))
   {
-    syslog(LOG_ERR, "%s@%d-Argument error. msDelay:%d but recvdData:%d\n",
+    syslog(LOG_ERR, "%s@%d-Argument error. msDelay:%" PRId32 " but recvdData:%s\n",
               __FILE__, __LINE__, millisecDelay,
               recvdData == NULL ? "NULL" : "Not NULL");
     return -EINVAL; 
@@ -234,7 +234,7 @@ int hcom_esp32_xmit_send_complete_msg(uint8_t *completeMsg, ssize_t completeMsgL
   if(!((millisecDelay > 0 && mqRecvdData != NULL) ||
        (millisecDelay <= 0 && mqRecvdData == NULL)))
   {
-    syslog(LOG_ERR, "%s@%d-Argument error. msDelay:%d but mqRecvdData:%d\n",
+    syslog(LOG_ERR, "%s@%d-Argument error. msDelay:%" PRId32 " but mqRecvdData:%s\n",
               __FILE__, __LINE__, millisecDelay,
               mqRecvdData == NULL ? "NULL" : "Not NULL");
     return -EINVAL; 

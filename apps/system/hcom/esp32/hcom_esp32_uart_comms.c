@@ -70,7 +70,7 @@ static sem_t _initalizeWaitSem;    /* Implements event waiting */
 
 static uint8_t *esp32_read_buffer;
 static bool _esp_uart_initialized;
-static bool _init_failed;
+static int _init_failed;
 
 /****************************************************************************
  * Private Function Prototypes

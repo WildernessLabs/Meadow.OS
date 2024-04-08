@@ -49,7 +49,6 @@ int stm32_unconfiggpio(uint32_t cfgset);
 void stm32_gpiowrite(uint32_t pinset, bool value);
 void modifyreg32(unsigned int addr, uint32_t clearbits, uint32_t setbits);
 
-
 // This API allows Meadow.Core to get information about flash size and flash free
 int meadow_read_file_total_free_flash_size(uint32_t *totalBytes, uint32_t *freeBytes);
 

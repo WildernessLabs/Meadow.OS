@@ -74,6 +74,7 @@
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/hcom_nuttx_shared.h>
 #include <meadow/meadow_hw_version.h>
+#include <meadow/meadow_apps_core_share.h>
 
 #include "../espcp/espcp_coprocessor.h"
 #include "../espcp/espcp_usrsock.h"
@@ -371,7 +372,7 @@ int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 
   is_fd_valid->inodeAddr = fileList[is_fd_valid->fileDescriptor].f_inode;
 
-  syslog(LOG_NOTICE, "Task:'%s', fd:%d, inode addr:0x%08x [%d]\n",
+  syslog(LOG_NOTICE, "Task:'%s', fd:%" PRId32 ", inode addr:%p [%" PRId32 "]\n",
           thisTcb->name,
           is_fd_valid->fileDescriptor,
           fileList[is_fd_valid->fileDescriptor].f_inode,
@@ -436,7 +437,7 @@ int hcom_nx_restore_uart_reconfig(unsigned long arg)
     break;
 
   default:
-    syslog(LOG_ERR, "%s@%d-restore uart reconfig, invalid uart:%d\n",
+    syslog(LOG_ERR, "%s@%d-restore uart reconfig, invalid uart:%" PRId32 "\n",
            thisFile, __LINE__, uartReconfig->uart_id);
     return -1;
   }

@@ -317,7 +317,7 @@ void hcom_esp32_util_read_esp32_mac(uint32_t userData)
   if(chipIdInfo != Esp32RegValueDATE_REG_VALUE_ESP32)
   {
     // Not ESP32 chip
-    syslog(LOG_ERR, "%s@%d- Chip not ESP32, expected:0x%08x, recvd:0x%08x\n",
+    syslog(LOG_ERR, "%s@%d- Chip not ESP32, expected:0x%08x, recvd:0x%08" PRIx32 "\n",
            __FILE__, __LINE__, Esp32RegValueDATE_REG_VALUE_ESP32,
            chipIdInfo);
     return;

@@ -350,7 +350,7 @@ void board_late_initialize(void)
  #endif
 
     default:
-      syslog(1, "%s@%d-Unknown MTD:%d, meadowHwVer:%d\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
       return;
   }
 

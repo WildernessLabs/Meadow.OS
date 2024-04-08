@@ -266,7 +266,7 @@ static int lps_start(void)
     if (lps_configuration.pid < 0)
     {
         result = errno;
-        syslog(LOG_ERR, "ERROR: Failed to start the Long Period Timer daemon\n", result);
+        syslog(LOG_ERR, "ERROR: Failed to start the Long Period Timer daemon, ret = %d\n", result);
     }
     lps_unlock();
     return(result);

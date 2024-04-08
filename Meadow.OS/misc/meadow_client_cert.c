@@ -9,6 +9,7 @@
 
 #include "espcp/espcp_file_system.h"
 #include <meadow/meadow_client_cert.h>
+#include <meadow/meadow_apps_core_share.h>
 
 static int client_cert_buf_size = 0;
 static int private_key_buf_size = 0;

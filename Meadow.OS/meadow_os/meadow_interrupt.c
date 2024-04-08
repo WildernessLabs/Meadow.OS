@@ -63,6 +63,7 @@
 #include "pwrmgmt/pwrmgmt_local.h"
 #include "meadow_interrupt.h"
 #include <meadow/meadow_hw_version.h>
+#include <meadow/meadow_apps_core_share.h>
 
 #if defined (CONFIG_MEADOW_INTERRUPT_TESTS)
 #pragma message "(--) meadow_interrupt.c"
