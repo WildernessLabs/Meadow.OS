@@ -7,12 +7,21 @@ import sys
 import time
 import csv
 
-# cmdFilePath = "C:/HcomFiles/CliHcomTest/CLI/Commands/TestFile.txt"
-cmdFilePath = "C:/HcomFiles/CliHcomTest/CLI/Commands/AllCommands.txt"
+# Execute from Windows
+# cmdFilePath = "C:/HcomFiles/CliHcomTest/CLI/Commands/AllCommands.txt"
+
+# Execute from Linux/WSL
+# Note: With WSL any command that restarts meadow (e.g. meadow runtime enable)
+# will cause the serial port to revert to being attached to Windows and cause
+# an execution failure.
+cmdFilePath = "/mnt/c/HcomFiles/CliHcomTest/CLI/Commands/WSLAllCommands.txt"
 # cmdFilePath = sys.argv[1]
 
 # This is where the results are saved, one line per test
-resultFilePath = "C:/HcomFiles/CliHcomTest/CLI/Results/"
+# Execute from Windows
+# resultFilePath = "C:/HcomFiles/CliHcomTest/CLI/Results/"
+# Execute from Linux/WSL
+resultFilePath = "/mnt/c/HcomFiles/CliHcomTest/CLI/Results/"
 # resultFile = sys.argv[2]
 
 # Test file requirements. Each line starts with 'C' (command), 'P' (expect test to pass),
@@ -65,8 +74,8 @@ while linesRemaining > 0:
         if(subProcResult.returncode != 0):
             # if "The operation has timed out" in subProcResult.stderr:
             #     print ("Timed out")
-            print(f"{lineNumb} - Execution Error: returned{subProcResult.returncode}, Message:{subProcResult.stderr}")
-            f_resultFile.write(f"{lineNumb} -   Command {commandText} Error with return:{subProcResult.returncode}, Message:{subProcResult.stderr}\n")
+            print(f"{lineNumb} - Execution Error: returned {subProcResult.returncode}, Message:[{subProcResult.stderr}]")
+            f_resultFile.write(f"{lineNumb} - Command {commandText} Error with return:{subProcResult.returncode}, Message:[{subProcResult.stderr}]\n")
             break       # Exit
         
         recentCmd = True
