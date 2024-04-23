@@ -38,6 +38,9 @@ f_sourceFile.close
 if linesRemaining == 0:
     print(f"Provided file {cmdFilePath} contains no information")
 
+summaryPassed = 0
+summaryFailed = 0
+
 # Execute one line each loop
 while linesRemaining > 0:
     linesRemaining = linesRemaining - 1
@@ -55,7 +58,7 @@ while linesRemaining > 0:
         finalCmdArray = cmdArray + cmdSplit
 
         # Execute
-        print(f"{lineNumb} - Executing {commandText} command")
+        print(f"{lineNumb} - Executing [{commandText}] command")
         f_resultFile.write(f"{lineNumb} - Executing [{commandText}]\n")
 
         subProcResult = subprocess.run(finalCmdArray, capture_output=True, text=True)
@@ -70,32 +73,34 @@ while linesRemaining > 0:
         continue
 
     elif(sourceLine[0:1] == 'P' or sourceLine[0:1] == 'F'):
-        print(f"{lineNumb} - Compare Test found [{sourceLine}]")
         if recentCmd:
+            print(f"{lineNumb} - Looking for [{sourceLine}] in [{subProcResult.stdout}]")
             if(sourceLine[0:1] == 'P'):
-                passOrFailTrue = True
+                isMatchPass = True
             else:
-                passOrFailTrue = False
+                isMatchPass = False
 
             # Compare the results of the execution with the provided text and determine
             # if this represents test passed or failed
             resultCheckStr = sourceLine[1:].strip()
             if resultCheckStr in subProcResult.stdout:
-                if(passOrFailTrue):
+                if(isMatchPass):
                     testPassed = True
                 else:
                     testPassed = False
             else:
-                if(passOrFailTrue):
+                if(isMatchPass):
                     testPassed = False
                 else:
                     testPassed = True
             
             if(testPassed):
+                summaryPassed = summaryPassed + 1
                 print(f"{lineNumb} - Test Passed! For command [{commandText}]")
                 f_resultFile.write(f"{lineNumb} -   Command [{commandText}] Passed\n")
             else:
-                if(passOrFailTrue):
+                summaryFailed = summaryFailed + 1
+                if(isMatchPass):
                     print(f"{lineNumb} - Test FAILED {resultCheckStr} not in {subProcResult.stdout}")
                     f_resultFile.write(f"{lineNumb} -   Command [{commandText}] Failed! {resultCheckStr} not in {subProcResult.stdout}\n")
                 else:
@@ -124,3 +129,4 @@ while linesRemaining > 0:
     
 f_resultFile.close
 
+print(f"Summary:{summaryPassed} Passed, {summaryFailed} Failed")
