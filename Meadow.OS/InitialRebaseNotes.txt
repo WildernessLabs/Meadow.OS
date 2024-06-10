@@ -1,23 +1,22 @@
-Notes related to initial rebase effort
+Notes related to initial rebase effort (before 8-April-2024)
 
 1. The top comment line in most of our files is now wrong. The top line
 often contains old copyright information, wrong file location and the
-wrong date, e.g '/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c'.
+wrong date, e.g. '/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c'. No
+technical value but, should still be done.
 
 2. I added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
- becausethe rebase tool indicated it was missing. However, it doesn't
- seemto be needed in the build (it build without the file) and the file
-only contains one entry:
-#include <sys/boardctl.h>
+because the new rebase automation tooling indicated it was missing. However,
+it doesn't seem to be needed in the build (it build without the file) and
+the file only contains one entry: include <sys/boardctl.h>
 
-3. Added stm32f7_qspi_hw_reinitialize() to 
-Meadow.OS/Meadow.OS/meadow_os/meadow_temp_rebase.c & .h. This is a
-temporary fix and the Function will need to be move to a permanent
-location.
+3. Added a new file stm32f7_qspi_hw_reinitialize() function to 
+Meadow.OS/Meadow.OS/meadow_os/meadow_temp_rebase.c & .h. This is
+temporary and the function needs to be moved to a permanent home.
 
 4. The files in /Meadow.OS/apps/system/hcom/comms/ are still the old files.
 To switch to 1.9 files modify Makefile '\comms\hcom_host_process.c' rename
-to '\comms\hcom_host_preprocess.c'.
+to '\comms\hcom_host_preprocess.c'. [I think this is already done]
 
 5. Looks like Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
