@@ -176,7 +176,8 @@ int hcom_nx_create_littlefs_mount_format_1_part(uint32_t partitionId)
   // Rebase Note: In Legacy Meadow the return value for a corrupt file system
   // was LFS_ERR_CORRUPT, which had a value of -52. It seems that a function
   // was added to lfs_vfs.c (littlefs_convert_result()) that converts the
-  // LittleFS error values to ones that match Nuttx.
+  // LittleFS error values to ones that match Nuttx. Therefore, removed the
+  // LFS value and are not using the Nuttx EFAULT instead.
   // if (ret != LFS_ERR_CORRUPT)
   if(ret != -EFAULT)
   {

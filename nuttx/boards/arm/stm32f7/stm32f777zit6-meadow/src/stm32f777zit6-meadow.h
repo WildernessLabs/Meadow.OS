@@ -237,7 +237,9 @@ void arch_sporadic_initialize(void);
 
 #ifdef CONFIG_STM32F7_FMC
 void stm32_sdram_initialize(void);
-void stm32_disablefmc(void);
+
+// Rebase Note: This function seems to have been orphaned
+// void stm32_disablefmc(void);
 #endif
 
 void stm32_quadspi_init(void);

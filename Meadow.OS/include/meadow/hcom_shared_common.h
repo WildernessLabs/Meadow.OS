@@ -774,15 +774,15 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
-/* Rebase Note: This infrastruct isn't in place yet added to defconfig
+/* Rebase Note: This infrastructure isn't in place yet. Added to defconfig
   # CONFIG_HCOM_MONO_STDERR_STDOUT is not set
-  To prevent runtime errors for code not ready to use yet
+  To prevent runtime errors for code not yet ready
 */
+
 // These needed Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
-// To enable/disable stdout and stder use CONFIG_HCOM_MONO_STDERR_STDOUT
-
+// To enable/disable stdout and stderr use CONFIG_HCOM_MONO_STDERR_STDOUT
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built

@@ -323,8 +323,10 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd, uint32_t numberOfPartitio
   // With eraseend = 16896 and geo.neraseblocks = 16384.
   //
   // Removed the following
+  // -------------------------------
   // Reserve some space in flash for OTA update images
   // offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
+  //--------------------------------
 
   // Create multiple mtd objects, one for each partition
   for (partitionId = 0; partitionId < numberOfPartitions; partitionId++)

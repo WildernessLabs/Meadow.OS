@@ -176,7 +176,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 
-/* Rebase Note: Do ESP32 configuration and execution after STM32F7
+/* Rebase ESP Note: Do ESP32 configuration and execution after STM32F7
   if (reset_esp32)
   {
     ret = espcp_init();

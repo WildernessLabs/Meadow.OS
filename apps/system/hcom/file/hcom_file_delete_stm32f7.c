@@ -173,6 +173,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
         //  reference this header at nuttx/fs/littlefs/lfs.h but the compiler
         //  couldn't find it because it's on the Nuttx side and this code is
         //  on the apps side.
+        // Rebase Note:
         //  Realizing that the Nuttx Rebase may well fix the problem, I decided
         //  to define it here.
 #define LITTLEFS_VERSION_OF_ENOTEMPTY (39)
