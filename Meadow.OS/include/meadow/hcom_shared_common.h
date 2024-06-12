@@ -70,9 +70,13 @@
 #  define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
-// Partition Id may be postpended to /meadow (i.e /meadow0)
-// Note:The following string must fit into 1/2 of the buffer whose size is
-// defined by HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH
+// New while adding subdirectories
+#define HCOM_MEADOW0_PATH_NAME_PREFIX "/meadow0"
+
+// This #define is should be removed, because at this time (13Nov23)
+// partitioning isn't being used. And hasn't been used in the Meadow file
+// system, from the beginning. Also, there's been a fair amount of code written
+// that has no concept of partitioning.
 #define HCOM_FILE_MOUNT_POINT_TARGET "/meadow"
 
 // Partitioning changes will effect the following
@@ -84,6 +88,9 @@
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow/Meadow.dll"
 #endif
 
+#define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
+#define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
+#define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"
 // This is the size of the mono runtime
 #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000 // 3MB
 #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000 // 2MB reserved space for updates
@@ -94,6 +101,7 @@
 #define HCOM_TINY_HOST_STRING_BUFF_LENGTH 64        // automatic variable
 #define HCOM_SHORT_HOST_STRING_BUFF_LENGTH 128      // automatic variable
 #define HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH 144  // automatic variable
+#define HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH 512   // allocate
 #define HCOM_MAX_HOST_STRING_BUFF_LENGTH 2048       // allocate
 // PATH_MAX is defined by Nuttx in limits.h. It's 256 or less
 #define HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
@@ -116,6 +124,7 @@
 #define UPDATE_DIR "/meadow0/update/"
 #define UPDATE_APP_DIR UPDATE_DIR "app/"
 #define UPDATE_OS_DIR UPDATE_DIR "os/"
+#define UPDATE_FIRMWARE_DIR UPDATE_DIR "firmware/"
 #define ROLLBACK_DIR "/meadow0/rollback"
 
 //==================================================
@@ -254,7 +263,7 @@ struct cell_settings_s
    *  @brief Default Meadow device pin used to turn on the
    *  cell modules
    */
-  uint32_t* turn_on_pin;
+  uint32_t turn_on_pin;
 
   /**
    *  @brief Default chat app timeout in seconds, used to 
@@ -271,6 +280,11 @@ struct cell_settings_s
    *  @brief Default cell PAP authentication password.
    */
   char* pap_password;
+
+  /**
+   *  @brief Enable cell network scanner mode
+  */
+  uint32_t scan_mode;
 };
 typedef struct cell_settings_s cell_settings_t;
 
@@ -307,6 +321,11 @@ struct meadow_network_interface_s
    *  @brief Default gateway.
    */
   uint32_t gateway;
+
+  /**
+   *  @brief Changing default gateway?
+   */
+  bool gateway_changed;
 
   /**
    * @brief Pointer to the psock methods
@@ -441,6 +460,11 @@ struct meadow_configuration_s
   uint8_t use_uart1_for_trace;
 
   /**
+   *  @brief Should profiler output be diverted to UART1?
+   */
+  uint8_t use_uart1_for_profiling;
+
+  /**
    *  @brief Clock speed of the SPI interface between the STM32 and the ESP32.
    */
   uint32_t esp_spi_speed_hz;
@@ -528,6 +552,12 @@ struct meadow_configuration_s
    *  @brief Get network time at startup?
    */
   uint8_t get_network_time_at_startup;
+
+  /**
+   *  @brief DNS servers and the number of servers in the list.
+   */
+  char **dns_servers;
+  uint32_t dns_servers_count;
 
   /**
    *  @brief Network time servers and the number of servers in the list.
@@ -744,15 +774,15 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
-/* Rebase Note: This infrastruct isn't in place yet added to defconfig
+/* Rebase Note: This infrastructure isn't in place yet. Added to defconfig
   # CONFIG_HCOM_MONO_STDERR_STDOUT is not set
-  To prevent runtime errors for code not ready to use yet
+  To prevent runtime errors for code not yet ready
 */
+
 // These needed Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
-// To enable/disable stdout and stder use CONFIG_HCOM_MONO_STDERR_STDOUT
-
+// To enable/disable stdout and stderr use CONFIG_HCOM_MONO_STDERR_STDOUT
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
@@ -764,7 +794,8 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
 // Cause the build to include the ability to print a buffer
 // full of data, showing hex and ascii. Duplicate code is created
-// on both the apps and nuttx side of hcom
+// on both the apps and nuttx side of hcom. On Apps side 
+// hcom_diag_print_buffer on Nuttx hcom_nx_diag_print_buffer
 #define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE           0
  // To output non-null terminated string. This won't work if binary in buffer
  // syslog(2, "%.*s\n", textLen, buffer);
@@ -779,9 +810,9 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Should mono be prevented from running?
 #define HCOM_DIAG_PREVENT_MONO_FROM_RUNNING           0
 
-// Adds code that takes the HCOM messages from CLI and outputs
-// a decoded version to syslog enable
-// HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE to add hex dump of HCOM messages
+// Adds code that takes the HCOM messages from/to CLI and outputs a decoded
+// version to syslog. Enable HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE to add hex
+// dump of HCOM messages
 #define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   0
 
 // LOG_DEBUG syslog message are almost never used. Set this to 1
@@ -807,5 +838,9 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Include the tests code for outputting the current idle percentage
 // via a once / second syslog output message
 #define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD    0
+
+// Build test code for rotary encoder. Remove when test code configuration
+// implemented.
+#define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        1
 
 #endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H

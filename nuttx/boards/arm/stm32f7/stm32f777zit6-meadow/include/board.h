@@ -125,7 +125,8 @@
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 10)
 
 #else
-/* No restrictions by OTGFS
+/*
+ * Same as above. Works with OTGFS and allows STM32F7 to run at 216HHz instead of 192MHz
  *
  * PLL_VCO = (25,000,000 / 25) * 432 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
@@ -382,6 +383,7 @@
 /* Stream selections are arbitrary for now but might become important in the
  * future if we set aside more DMA channels/streams.
  *
+ * THE FOLLOWING ARE WRONG FOR F7. Issue written (PWM 5Feb23)
  * SDIO DMA
  *   DMAMAP_SDMMC1_1 = Channel 4, Stream 3
  *   DMAMAP_SDMMC1_2 = Channel 4, Stream 6
@@ -501,6 +503,41 @@
 #define GPIO_SPI2_MISO        GPIO_SPI2_MISO_3
 #define GPIO_SPI2_MOSI        GPIO_SPI2_MOSI_3
 
+// Meadow uses 3 SPI devices SPI2, SPI3 and SPI5
+// SPI2 only has one option for RX and TX this is baked into stm32_spi.c
+// #define DMAMAP_SPI2_RX             STM32_DMA_MAP(DMA1,DMA_STREAM3,DMA_CHAN0)
+// #define DMAMAP_SPI2_TX             STM32_DMA_MAP(DMA1,DMA_STREAM4,DMA_CHAN0)
+
+// Mapping for SPI3.
+// #define DMAMAP_SPI3_RX_1  STM32_DMA_MAP(DMA1,DMA_STREAM0,DMA_CHAN0)
+// #define DMAMAP_SPI3_TX_1  STM32_DMA_MAP(DMA1,DMA_STREAM5,DMA_CHAN0)
+// #define DMAMAP_SPI3_RX_2  STM32_DMA_MAP(DMA1,DMA_STREAM2,DMA_CHAN0)
+// #define DMAMAP_SPI3_TX_2  STM32_DMA_MAP(DMA1,DMA_STREAM7,DMA_CHAN0)
+#define DMAMAP_SPI3_RX  DMAMAP_SPI3_RX_2
+#define DMAMAP_SPI3_TX  DMAMAP_SPI3_TX_2
+
+// Mapping for SPI5, Note uses DMA2 mapping
+// #define DMAMAP_SPI5_RX_1  STM32_DMA_MAP(DMA2,DMA_STREAM3,DMA_CHAN2)
+// #define DMAMAP_SPI5_TX_1  STM32_DMA_MAP(DMA2,DMA_STREAM4,DMA_CHAN2)
+// #define DMAMAP_SPI5_RX_2  STM32_DMA_MAP(DMA2,DMA_STREAM5,DMA_CHAN7)
+// #define DMAMAP_SPI5_TX_2  STM32_DMA_MAP(DMA2,DMA_STREAM6,DMA_CHAN7)
+// #define DMAMAP_SPI5_RX_3  STM32_DMA_MAP(DMA2,DMA_STREAM5,DMA_CHAN9)
+#define DMAMAP_SPI5_RX  DMAMAP_SPI5_RX_1
+#define DMAMAP_SPI5_TX  DMAMAP_SPI5_TX_1
+
+/************************************************************************************
+ * Public Data
+ ************************************************************************************/
+#ifndef __ASSEMBLY__
+
+#undef EXTERN
+#if defined(__cplusplus)
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 /* QSPI Mapping  */
 
 #define GPIO_QSPI_CS  (GPIO_QUADSPI_BK1_NCS_2 | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz)
@@ -575,4 +612,10 @@
 #define GPIO_FMC_SDNRAS (GPIO_FMC_SDNRAS_0|GPIO_SPEED_100MHz)
 #define GPIO_FMC_SDNWE  (GPIO_FMC_SDNWE_3|GPIO_SPEED_100MHz)
 
+#undef EXTERN
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* __ASSEMBLY__ */
 #endif  /* __BOARDS_ARM_STM32F777ZIT6_MEADOW_INCLUDE_BOARD_H */

@@ -92,14 +92,14 @@ void diag_misc_tests_overload_mcu(uint32_t userData)
 
   if(userData > 100)
   {
-    syslog(2, "AP-The entered value %u is out of the 0-100 range, 1000 to exit\n",
+    syslog(2, "AP-The entered value %" PRIu32 " is out of the 0-100 range, 1000 to exit\n",
               userData);
     return;
   }
 
   // Save the new overload percentage
   _overload_percent = userData;
-  syslog(2, "AP-In Overload Test-Target overload %u msec, runtime:%u msec\n",
+  syslog(2, "AP-In Overload Test-Target overload %u msec, runtime:%" PRIu32 " msec\n",
       _overload_percent, HCOM_OVERLOAD_CYCLE_TIME_MS - userData);
   
   if(_firstTime)

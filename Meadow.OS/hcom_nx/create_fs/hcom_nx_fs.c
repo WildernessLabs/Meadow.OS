@@ -131,7 +131,7 @@ int hcom_fs_create_partition_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd,
   uint32_t partNumb;
 
   //------------------------------------------------------------------------
-  syslog(LOG_INFO, "F/S creating %d partition%s\n", numbOfPartitions, numbOfPartitions > 1 ? "s" : "");
+  syslog(LOG_INFO, "F/S creating %" PRId32 " partition%s\n", numbOfPartitions, numbOfPartitions > 1 ? "s" : "");
 
   // Create the partitions in the external flash
   ret = hcom_fs_init_partitions(mtd, numbOfPartitions);
@@ -156,7 +156,7 @@ int hcom_fs_create_partition_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd,
     ret = hcom_nx_create_littlefs_init_1_part(partNumb, _partInfo[partNumb].mtdPart);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-LittleFS error:%d part:%d\n",
+      syslog(LOG_ERR, "%s@%d-LittleFS error:%d part:%" PRId32 "\n",
                thisFile, __LINE__, ret, partNumb);
       return ret;
     }
@@ -178,7 +178,7 @@ int hcom_fs_create_partition_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd,
     ret = hcom_nx_create_littlefs_mount_format_1_part(partNumb);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-mount failed '%s' to '%s' for type '%s', Part %d error:%d\n",
+      syslog(LOG_ERR, "%s@%d-mount failed '%s' to '%s' for type '%s', Part %" PRId32 " error:%d\n",
             thisFile, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
             HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partNumb, ret);
     }
@@ -208,6 +208,7 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
   if(fullMountPtName == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    free(finalSourceName);
     return -ENOMEM;
   }
 
@@ -249,7 +250,7 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
 
   _partInfo[partitionId].isPartMounted = true;
   
-  syslog(LOG_DEBUG, "%s@%d-Mounted partition %d as '%s' to '%s' for type '%s'\n", thisFile, __LINE__,
+  syslog(LOG_DEBUG, "%s@%d-Mounted partition %" PRId32 " as '%s' to '%s' for type '%s'\n", thisFile, __LINE__,
         partitionId, finalSourceName, fullMountPtName, fileSystemType);
         
   free(finalSourceName);
@@ -287,7 +288,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd, uint32_t numberOfPartitio
   _totalPartitionCount = numberOfPartitions;
   if (numberOfPartitions > HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX)
   {
-    syslog(LOG_ERR, "%s@%d-%d partitions too big, %d max\n",
+    syslog(LOG_ERR, "%s@%d-%" PRId32 " partitions too big, %d max\n",
              thisFile, __LINE__, numberOfPartitions,
              HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX);
     return -EFBIG;
@@ -322,8 +323,10 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd, uint32_t numberOfPartitio
   // With eraseend = 16896 and geo.neraseblocks = 16384.
   //
   // Removed the following
+  // -------------------------------
   // Reserve some space in flash for OTA update images
   // offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
+  //--------------------------------
 
   // Create multiple mtd objects, one for each partition
   for (partitionId = 0; partitionId < numberOfPartitions; partitionId++)

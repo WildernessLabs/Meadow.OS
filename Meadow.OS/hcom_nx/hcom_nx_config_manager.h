@@ -120,4 +120,5 @@ int hcom_nx_config_set_esp_integer_value(espcp_configuration_items_t, uint32_t);
 void hcom_nx_config_set_time_to_os_build_time(void);
 int meadow_power_mgmt_initialize(void);
 
+void hcom_nx_config_add_default_gateway_dns_file(meadow_configuration_t *config, uint32_t gateway);
 #endif // __CONFIGS_MEADOW_SRC_HCOM_NX_CONFIG_MANAGER__H

@@ -49,7 +49,7 @@
 #include "meadow_ethnet_local.h"
 #include <meadow/meadow_ethnet_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
-#include "../ntpclient/ntpclient.h"
+#include "../ntpclient/meadow_ntpclient.h"
 #include "../espcp/espcp_common.h"
 
 // Uncomment the #define below to turn on debug help macros.
@@ -342,7 +342,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     hcom_nx_config_unlock();
     if(refreshPeriod > 0 || timeAtStart)
     {
-      // This call will cause the ntpclient.c code to periodically refresh the
+      // This call will cause the meadow_ntpclient.c code to periodically refresh the
       // NTP time without additional intervention.
       ntpc_start();
     }
@@ -466,7 +466,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     ret = meadow_eth_utils_set_ipv4_mask(MEADOW_ETHMAC_DEVICENAME, &addr);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
       return -errno;
     }
@@ -476,7 +476,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     ret = meadow_eth_utils_set_router(MEADOW_ETHMAC_DEVICENAME, &addr);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
       return -errno;
     }

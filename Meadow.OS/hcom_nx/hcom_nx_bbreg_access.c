@@ -43,6 +43,7 @@
 #include <stdint.h>
 
 #include "hcom_nx_common.h"
+#include <meadow/meadow_apps_core_share.h>
 #include <meadow/hcom_bbreg_defn.h>
 
 #include <arch/board/board.h>

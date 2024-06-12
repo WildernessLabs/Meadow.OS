@@ -99,6 +99,7 @@ static meadow_configuration_t *meadow_configuration = NULL;
  */
 static meadow_network_interface_t network_interfaces[] = 
 {
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
     {
         .interface_type = MEADOW_IFT_ESP32,
         .name = MEADOW_IFT_ESP32_NAME,
@@ -108,6 +109,7 @@ static meadow_network_interface_t network_interfaces[] =
         .gateway = 0,
         .psock_methods = &g_usrsock_sockif_esp32
     },
+#endif
     {
         .interface_type = MEADOW_IFT_ETHERNET,
         .name = MEADOW_IFT_ETHERNET_NAME,
@@ -304,7 +306,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "9");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on BG770A module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG770A module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -323,7 +325,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "0");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on BG95-M3 module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG95-M3 module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -336,7 +338,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "0");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on M95 module", mode);
+            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on M95 module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -365,9 +367,12 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
  *  None
  *
  ****************************************************************************/
-uint32_t hcom_nx_config_get_turn_on_pin(const char* pin_name) {
-    for (size_t i = 0; i < sizeof(f7_micro_v2_pin_mappings) / sizeof(f7_micro_v2_pin_mappings[0]); ++i) {
-        if (strcmp(f7_micro_v2_pin_mappings[i].pin_name, pin_name) == 0) {
+uint32_t hcom_nx_config_get_turn_on_pin(const char* pin_name)
+{
+    for (size_t i = 0; i < sizeof(f7_micro_v2_pin_mappings) / sizeof(f7_micro_v2_pin_mappings[0]); ++i)
+    {
+        if (strcmp(f7_micro_v2_pin_mappings[i].pin_name, pin_name) == 0)
+        {
             return f7_micro_v2_pin_mappings[i].pin_value;
         }
     }
@@ -403,8 +408,10 @@ void hcom_nx_config_map_cell_turn_on_pin(meadow_configuration_t *config)
     uint32_t pin_value = hcom_nx_config_get_turn_on_pin(turn_on_pin_name);
     if (pin_value != -1) {
         config->default_cell_settings->turn_on_pin = pin_value;
-    } else {
-        syslog(LOG_INFO, "Failed populating cell turn-on pin");
+    }
+    else
+    {
+        syslog(LOG_INFO, "Failed populating cell turn-on pin\n");
         config->default_cell_settings->turn_on_pin = F7_MICRO_V2_D10_PIN;
     }
 }
@@ -635,7 +642,7 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
         
         if ((version->major != 0) || (version->minor != 0) || (version->revision != 0) || (version->build != 0))
         {
-            snprintf(version_string, 45, "%d.%d.%d.%d", version->major, version->minor, version->revision, version->build);
+            snprintf(version_string, 45, "%" PRId32 ".%" PRId32 ".%" PRId32 ".%" PRId32, version->major, version->minor, version->revision, version->build);
         }
         result = kmm_strdup(version_string);
     }
@@ -667,6 +674,40 @@ static void hcom_nx_config_set_month_text(meadow_version_number_t *version)
     memset(&t, 0, sizeof(struct tm));
     t.tm_mon = version->month - 1;
     strftime(version->month_text, 4, "%b", &t);
+}
+
+/****************************************************************************
+ * Name: hcom_nx_config_clear_default_ap_and_password
+ *
+ * Description:
+ *   Clear the SSID and password on the ESP32.
+ *
+ *  This method will block until the ESP32 confirms that the value has been
+ *  set correctly.
+ *
+ * Returned Value:
+ *  OK if successful, ERROR otherwise.
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+int hcom_nx_config_clear_default_ap_and_password(void)
+{
+    int result  = ERROR;
+    espcp_message_t * message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
+                                                             espcp_wi_fi_function_clear_default_access_point, espcp_status_codes_completed_ok,
+                                                             espcp_get_next_message_id(), NULL, 0);
+    if (message != NULL)
+    {
+        if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+        {
+            result = OK;
+        }
+        espcp_delete_message_and_payload(message);
+    }
+
+    return result;
 }
 
 /****************************************************************************
@@ -1049,6 +1090,47 @@ static void hcom_nx_config_setup_default_ntp_servers(meadow_configuration_t *con
 }
 
 /****************************************************************************
+ * Name: hcom_nx_config_setup_dns_servers
+ *
+ * Description:
+ *  Setup the default DNS servers.
+ *
+ * Input Parameters:
+ *  config - pointer to the configuration object.
+ *  servers - pointer to a list of DNS server IP addresses.
+ *  server_count - number of servers in the list.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  The configuration structure has been locked by the caller.
+ *
+ ****************************************************************************/
+static void hcom_nx_config_setup_dns_servers(meadow_configuration_t *config, const char **servers, uint32_t server_count)
+{
+    config->dns_servers = kmm_zalloc(server_count * sizeof(char *));
+    config->dns_servers_count = 0;
+
+    if (config->dns_servers == NULL)
+    {
+        perror("Memory allocation error");
+        return;
+    }
+    
+    for (int index = 0; index < server_count; index++)
+    {
+        config->dns_servers[index] = kmm_strdup(servers[index]);
+        if (config->dns_servers[index] == NULL)
+        {
+            perror("Memory allocation error");
+            return;
+        }
+        config->dns_servers_count++;
+    }
+}
+
+/****************************************************************************
  * Name: hcom_nx_config_create_dns_resolver_file
  *
  * Description:
@@ -1101,6 +1183,165 @@ static void hcom_nx_config_setup_default_dns_servers(void)
 {
     char *servers = DNS_DEFAULT_SERVER;
     hcom_nx_config_create_dns_resolver_file((const char **) &servers, 1);
+}
+
+/****************************************************************************
+ * Name: hcom_nx_config_get_file_content
+ *
+ * Description:
+ * Extract the data inside the current file.
+ *
+ * Input Parameters:
+ *  path - pointer to file pathname.
+ *
+ * Returned Value:
+ *  Pointer containing the file data, otherwise NULL.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static char *hcom_nx_config_get_file_content(char *path)
+{
+    long int file_size = 0;
+    char *buffer = NULL;
+
+    if (path != NULL)
+    {
+        FILE * file = fopen(path, "r");
+        if (file != NULL)
+        {
+            fseek(file, 0L, SEEK_END);
+            file_size = ftell(file);
+
+            buffer = (char *) zalloc(file_size + 1);
+            if (buffer != NULL)
+            {
+                fseek(file, 0, SEEK_SET);
+                fread(buffer, 1, file_size, file);
+            }
+            fclose(file);
+        }
+    }
+    return buffer;
+}
+
+/****************************************************************************
+ * Name: hcom_nx_config_set_file
+ *
+ * Description:
+ *  Overwrite the content to new one.
+ *
+ * Input Parameters:
+ *  path   - pointer to file pathname.
+ *  buffer - Buffer holding the new content
+ *
+ * Returned Value:
+ *  OK if successful, ERROR otherwise.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static int hcom_nx_config_set_file(char *path, char *buffer)
+{
+    if (path != NULL && buffer != NULL)
+    {
+        FILE *file = fopen(path, "w");
+        if (file != NULL)
+        {
+            fputs(buffer, file);
+            fclose(file);
+            return OK;
+        }
+    }
+    return ERROR;
+}
+
+/****************************************************************************
+ * Name: hcom_nx_config_update_dns_file
+ *
+ * Description:
+ * Update the DNS file with the new nameserver, moving to the top of the file.
+ *
+ * Input Parameters:
+ *  path - pointer to file pathname.
+ *  server - pointer to a server.
+ *
+ * Returned Value:
+ *  OK if successful, ERROR otherwise.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static int hcom_nx_config_update_dns_file(char *path, char* server)
+{
+    char *buffer = hcom_nx_config_get_file_content(path);
+    int result = 0;
+    int ret = ERROR;
+
+    if (buffer != NULL)
+    {
+        if (server != NULL)
+        {
+            result = strlen(buffer) + strlen(server) + 13;
+            char *new_content = (char *) zalloc(result + 1);
+            if (new_content != NULL)
+            {
+                snprintf(new_content, result, "nameserver %s\n%s", server, buffer);
+                ret = hcom_nx_config_set_file(path, new_content);
+                free(new_content);
+            }
+        }
+        free(buffer);
+    }
+    return ret;
+}
+
+/****************************************************************************
+ * Name: hcom_nx_config_add_default_gateway_dns_file
+ *
+ * Description:
+ *  Add the default gateway into DNS resolver file.
+ *
+ * Input Parameters:
+ *  config - config - pointer to the configuration object.
+ *  gateway - default gateway address.
+ * 
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+void hcom_nx_config_add_default_gateway_dns_file(meadow_configuration_t *config, uint32_t gateway)
+{
+    if (config != NULL)
+    {
+        if (config->default_interface->gateway_changed == false)
+        {
+            if (gateway != 0)
+            {
+                struct sockaddr_in addr = { };
+                addr.sin_family = AF_INET;
+                addr.sin_port = 0;
+
+                memcpy(&addr.sin_addr, &gateway, sizeof(struct in_addr));
+
+                char *gateway_addr = inet_ntoa(addr.sin_addr);
+
+                if (hcom_nx_config_update_dns_file(CONFIG_NETDB_RESOLVCONF_PATH, gateway_addr) < 0)
+                {
+                    syslog(LOG_ERR, "Failed to add default gateway\n");
+                    return; 
+                }
+                syslog(LOG_INFO, "Successful to add default gateway\n");
+                config->default_interface->gateway_changed = true;
+            }
+        }
+    }
 }
 
 /****************************************************************************
@@ -1209,6 +1450,7 @@ static void hcom_nx_config_process_network_section(yaml_network_t *network_confi
         {
             config->ntp_refresh_period_seconds = NTP_MINIMUM_REFRESH_PERIOD;
         }
+        hcom_nx_config_setup_dns_servers(config, network_config->dns_servers, network_config->dns_servers_count);
         bool create_default_dns_resolver_file = true;
         if (network_config->dns_servers_count > 0)
         {
@@ -1232,7 +1474,7 @@ static void hcom_nx_config_process_network_section(yaml_network_t *network_confi
         //
         //  Now work out the network interface / adapter details.
         //
-        if (network_config->interfaces != NULL)
+        if ((network_config->interfaces != NULL) && (network_config->interfaces_count > 0))
         {
             for (int index = 0; index < network_config->interfaces_count; index++)
             {
@@ -1247,6 +1489,7 @@ static void hcom_nx_config_process_network_section(yaml_network_t *network_confi
         {
             config->default_interface = hcom_nx_config_find_interface_by_name(MEADOW_IFT_ESP32_NAME);
         }
+        config->default_interface->gateway_changed = false;
     }
     else
     {
@@ -1336,6 +1579,7 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
                         meadow_configuration->trace_level = 0;
                     }
                     meadow_configuration->use_uart1_for_trace = (strcmp(configuration->internal_debug->uart1_use, "trace") == 0);
+                    meadow_configuration->use_uart1_for_profiling = (strcmp(configuration->internal_debug->uart1_use, "profiler") == 0);
                     meadow_configuration->reset_esp32_at_startup = !hcom_nx_config_parse_boolean(configuration->internal_debug->debugger_attached_to_esp, false);
                 }
                 else
@@ -2096,30 +2340,52 @@ void hcom_nx_config_process_wifi_credentials_file(void)
     cyaml_err_t err = cyaml_load_file(MEADOW_WIFI_CREDENTIALS_DEFAULT_FILE_NAME, &cyaml_config, &wifi_credentials_schema, (void **) &credentials, NULL);
     if ((err == CYAML_OK) && (credentials != NULL))
     {
-        if ((credentials->credentials->ssid != NULL) && (strlen(credentials->credentials->ssid) <= MAXIMUM_SSID_LENGTH) & (strlen(credentials->credentials->ssid) > 0))
+        if (credentials->credentials != NULL)
         {
-            char password[MAXIMUM_PASSWORD_LENGTH + 1];
-            memset(password, 0, MAXIMUM_PASSWORD_LENGTH + 1);
-            if ((credentials->credentials->password != NULL) && (strlen(credentials->credentials->password) <= MAXIMUM_PASSWORD_LENGTH))
+            bool clear_credentials = hcom_nx_config_parse_boolean(credentials->credentials->clear_default_credentials, false);
+            if (!clear_credentials)
             {
-                strcpy(password, credentials->credentials->password);
+                if ((credentials->credentials->ssid != NULL) && (strlen(credentials->credentials->ssid) <= MAXIMUM_SSID_LENGTH) & (strlen(credentials->credentials->ssid) > 0))
+                {
+                    char password[MAXIMUM_PASSWORD_LENGTH + 1];
+                    memset(password, 0, MAXIMUM_PASSWORD_LENGTH + 1);
+                    if ((credentials->credentials->password != NULL) && (strlen(credentials->credentials->password) <= MAXIMUM_PASSWORD_LENGTH))
+                    {
+                        strcpy(password, credentials->credentials->password);
+                    }
+                    uint32_t size = strlen(credentials->credentials->ssid) + strlen(password) + 2;
+                    uint8_t *buffer = kmm_zalloc(size);
+                    if (buffer != NULL)
+                    {
+                        hcom_nx_config_lock();
+                        meadow_configuration_t *config = hcom_nx_config_get_pointer();
+                        kmm_free(config->default_access_point);
+                        config->default_access_point = kmm_strdup(credentials->credentials->ssid);
+                        hcom_nx_config_unlock();
+                        strcpy((char *) buffer, credentials->credentials->ssid);
+                        strcpy((char *) (buffer + strlen(credentials->credentials->ssid) + 1), password);
+                        hcom_nx_config_set_esp_value(espcp_configuration_items_default_ap_and_password, buffer, size);
+                        kmm_free(buffer);
+                    }
+                }
             }
-            uint32_t size = strlen(credentials->credentials->ssid) + strlen(password) + 2;
-            uint8_t *buffer = kmm_zalloc(size);
-            if (buffer != NULL)
+            else
             {
-                hcom_nx_config_lock();
-                meadow_configuration_t *config = hcom_nx_config_get_pointer();
-                kmm_free(config->default_access_point);
-                config->default_access_point = kmm_strdup(credentials->credentials->ssid);
-                hcom_nx_config_unlock();
-                strcpy((char *) buffer, credentials->credentials->ssid);
-                strcpy((char *) (buffer + strlen(credentials->credentials->ssid) + 1), password);
-                hcom_nx_config_set_esp_value(espcp_configuration_items_default_ap_and_password, buffer, size);
-                kmm_free(buffer);
+                if (hcom_nx_config_clear_default_ap_and_password() == OK)
+                {
+                    meadow_logging_write(mfl_info, "Default SSID and password removed\n");
+                }
             }
         }
+        else
+        {
+            meadow_logging_write(mfl_error, "Invalid WiFi credentials file\n");
+        }
         cyaml_free(&cyaml_config, &wifi_credentials_schema, credentials, 0);
+    }
+    else
+    {
+        meadow_logging_write(mfl_info, "WiFi credentials file not found\n");
     }
     //
     //  Now we can delete the file.
@@ -2150,7 +2416,7 @@ void hcom_nx_config_process_wifi_credentials_file(void)
  *  None.
  *
  ****************************************************************************/
-int hcom_nx_config_get_cell_module_id()
+int hcom_nx_config_get_cell_module_id(void)
 {
     uint32_t module_id;
     hcom_nx_config_lock();
@@ -2167,7 +2433,7 @@ int hcom_nx_config_get_cell_module_id()
     }
 
     hcom_nx_config_unlock();
-    syslog(LOG_INFO, "Cell module id: %u\n", module_id);
+    syslog(LOG_INFO, "Cell module id: %" PRIu32 "\n", module_id);
 
     return module_id;
 }
@@ -2189,9 +2455,9 @@ int hcom_nx_config_get_cell_module_id()
  *  None.
  *
  ****************************************************************************/
-int hcom_nx_config_get_cell_turn_on_pin()
+int hcom_nx_config_get_cell_turn_on_pin(void)
 {
-    uint32_t turn_on_pin;
+    uint32_t turn_on_pin = 0;
     hcom_nx_config_lock();
     meadow_configuration_t *config;
     config = hcom_nx_config_get_pointer();
@@ -2202,7 +2468,7 @@ int hcom_nx_config_get_cell_turn_on_pin()
     }
 
     hcom_nx_config_unlock();
-    syslog(LOG_INFO, "Cell turn-on pin: %u\n", turn_on_pin);
+    syslog(LOG_INFO, "Cell turn-on pin: %" PRIu32 "\n", turn_on_pin);
 
     return turn_on_pin;
 }
@@ -2246,78 +2512,81 @@ void hcom_nx_config_process_cell_config_file(void)
             config->default_cell_settings->apn = kmm_strdup(settings->settings->apn);
             syslog(LOG_INFO, "Default cell APN loaded: %s\n", config->default_cell_settings->apn);
 
-            config->default_cell_settings->timeout = ((settings->settings->timeout != NULL) && 
-                                                    (strlen(settings->settings->timeout) <= MAXIMUM_TIMEOUT_LENGTH) && 
-                                                    (strlen(settings->settings->timeout) > 0)) ? 
-                                                    kmm_strdup(settings->settings->timeout) : 
+            config->default_cell_settings->timeout = ((settings->settings->timeout != NULL) &&
+                                                    (strlen(settings->settings->timeout) <= MAXIMUM_TIMEOUT_LENGTH) &&
+                                                    (strlen(settings->settings->timeout) > 0)) ?
+                                                    kmm_strdup(settings->settings->timeout) :
                                                     kmm_strdup(DEFAULT_CELL_PPPD_TIMEOUT);
 
             syslog(LOG_INFO, "Default cell PPPD timeout loaded: %s\n", config->default_cell_settings->timeout);
 
-            config->default_cell_settings->pap_user = ((settings->settings->user != NULL) && 
-                                                        (strlen(settings->settings->user) <= MAXIMUM_USER_LENGTH) && 
-                                                        (strlen(settings->settings->user) > 0)) ? 
-                                                        kmm_strdup(settings->settings->user) : 
+            config->default_cell_settings->pap_user = ((settings->settings->user != NULL) &&
+                                                        (strlen(settings->settings->user) <= MAXIMUM_USER_LENGTH) &&
+                                                        (strlen(settings->settings->user) > 0)) ?
+                                                        kmm_strdup(settings->settings->user) :
                                                         kmm_strdup(DEFAULT_CELL_PAP_USER);
 
             syslog(LOG_INFO, "Default cell PAP username loaded: %s\n", config->default_cell_settings->pap_user);
 
-            config->default_cell_settings->pap_password = ((settings->settings->password != NULL) && 
-                                                            (strlen(settings->settings->password) <= MAXIMUM_PASSWORD_LENGTH) && 
-                                                            (strlen(settings->settings->password) > 0)) ? 
-                                                            kmm_strdup(settings->settings->password) : 
+            config->default_cell_settings->pap_password = ((settings->settings->password != NULL) &&
+                                                            (strlen(settings->settings->password) <= MAXIMUM_PASSWORD_LENGTH) &&
+                                                            (strlen(settings->settings->password) > 0)) ?
+                                                            kmm_strdup(settings->settings->password) :
                                                             kmm_strdup(DEFAULT_CELL_PAP_PASSWORD);
 
             syslog(LOG_INFO, "Default cell PAP password loaded: %s\n", config->default_cell_settings->pap_password);
 
-            config->default_cell_settings->ttyname = ((settings->settings->ttyname != NULL) && 
-                                                        (strlen(settings->settings->ttyname) <= MAXIMUM_INTERFACE_LENGTH) && 
-                                                        (strlen(settings->settings->ttyname) > 0)) ? 
-                                                        kmm_strdup(settings->settings->ttyname) : 
+            config->default_cell_settings->ttyname = ((settings->settings->ttyname != NULL) &&
+                                                        (strlen(settings->settings->ttyname) <= MAXIMUM_INTERFACE_LENGTH) &&
+                                                        (strlen(settings->settings->ttyname) > 0)) ?
+                                                        kmm_strdup(settings->settings->ttyname) :
                                                         kmm_strdup(DEFAULT_CELL_INTERFACE);
 
             syslog(LOG_INFO, "Default cell interface name loaded: %s\n", config->default_cell_settings->ttyname);
 
-            config->default_cell_settings->turn_on_pin_name = ((settings->settings->turn_on_pin_name != NULL) && 
-                                                        (strlen(settings->settings->turn_on_pin_name) <= MAXIMUM_TURN_ON_PIN_LENGTH) && 
+            config->default_cell_settings->turn_on_pin_name = ((settings->settings->turn_on_pin_name != NULL) &&
+                                                        (strlen(settings->settings->turn_on_pin_name) <= MAXIMUM_TURN_ON_PIN_LENGTH) &&
                                                         (strlen(settings->settings->turn_on_pin_name) > 0)) ? 
-                                                        kmm_strdup(settings->settings->turn_on_pin_name) : 
+                                                        kmm_strdup(settings->settings->turn_on_pin_name) :
                                                         kmm_strdup(DEFAULT_CELL_TURN_ON_PIN);
 
             syslog(LOG_INFO, "Default cell turn-on pin name loaded: %s\n", config->default_cell_settings->turn_on_pin_name);
 
-            config->default_cell_settings->mode = ((settings->settings->mode != NULL) && 
-                                                    (strlen(settings->settings->mode) <= MAXIMUM_MODE_LENTGH) && 
-                                                    (strlen(settings->settings->mode) > 0)) ? 
-                                                    kmm_strdup(settings->settings->mode) : 
+            config->default_cell_settings->mode = ((settings->settings->mode != NULL) &&
+                                                    (strlen(settings->settings->mode) <= MAXIMUM_MODE_LENTGH) &&
+                                                    (strlen(settings->settings->mode) > 0)) ?
+                                                    kmm_strdup(settings->settings->mode) :
                                                     kmm_strdup(DEFAULT_CELL_MODE);
 
             syslog(LOG_INFO, "Default cell operation mode loaded: %s\n", config->default_cell_settings->mode);
 
-            config->default_cell_settings->operator = ((settings->settings->operator != NULL) && 
-                                                        (strlen(settings->settings->operator) <= MAXIMUM_OPERATOR_LENGTH) && 
-                                                        (strlen(settings->settings->operator) > 0)) ? 
-                                                        kmm_strdup(settings->settings->operator) : 
+            config->default_cell_settings->operator = ((settings->settings->operator != NULL) &&
+                                                        (strlen(settings->settings->operator) <= MAXIMUM_OPERATOR_LENGTH) &&
+                                                        (strlen(settings->settings->operator) > 0)) ?
+                                                        kmm_strdup(settings->settings->operator) :
                                                         kmm_strdup(DEFAULT_CELL_OPERATOR);
 
             syslog(LOG_INFO, "Default cell operator loaded: %s\n", config->default_cell_settings->operator);
 
-            config->default_cell_settings->module = ((settings->settings->module != NULL) && 
-                                                        (strlen(settings->settings->module) <= MAXIMUM_MODULE_LENGTH) && 
-                                                        (strlen(settings->settings->module) > 0)) ? 
+            config->default_cell_settings->module = ((settings->settings->module != NULL) &&
+                                                        (strlen(settings->settings->module) <= MAXIMUM_MODULE_LENGTH) &&
+                                                        (strlen(settings->settings->module) > 0)) ?
                                                         kmm_strdup(settings->settings->module) :
                                                         kmm_strdup(CELL_UNKNOWN_MODULE_NAME);
 
-
             syslog(LOG_INFO, "Default cell module loaded: %s\n", config->default_cell_settings->module);
+
+            config->default_cell_settings->scan_mode = hcom_nx_config_parse_boolean(settings->settings->scan_mode, 0);
+
+            syslog(LOG_INFO, "Default cell scan mode: %" PRIu32 "\n", config->default_cell_settings->scan_mode);
 
             hcom_nx_config_populate_cell_module_id(config);
 
-            syslog(LOG_INFO, "Default cell module id populated: %u\n", config->default_cell_settings->module_id);
+            syslog(LOG_INFO, "Default cell module id populated: %" PRIu32 "\n", config->default_cell_settings->module_id);
 
             hcom_nx_config_populate_cell_network_mode_id(config);
 
-            syslog(LOG_INFO, "Default cell network mode id populated: %u\n", config->default_cell_settings->mode_id);
+            syslog(LOG_INFO, "Default cell network mode id populated: %" PRIu32 "\n", config->default_cell_settings->mode_id);
 
             hcom_nx_config_map_cell_network_mode(config);
 
@@ -2325,7 +2594,7 @@ void hcom_nx_config_process_cell_config_file(void)
 
             hcom_nx_config_map_cell_turn_on_pin(config);
 
-            syslog(LOG_INFO, "Default cell turn-on pin mapped: %u\n", config->default_cell_settings->turn_on_pin);
+            syslog(LOG_INFO, "Default cell turn-on pin mapped: %" PRIu32 "\n", config->default_cell_settings->turn_on_pin);
         }
         else
         {
@@ -2341,7 +2610,7 @@ void hcom_nx_config_process_cell_config_file(void)
         cyaml_free(&cyaml_config, &cell_settings_schema, settings, 0);
         syslog(LOG_INFO, "Cyaml free\n");
     }
-        
+
 }
 
 /****************************************************************************
@@ -2391,9 +2660,7 @@ void hcom_nx_config_set_time_to_os_build_time(void)
  *  None.
  *
  * Assumptions/Limitations:
- *  For now, it's only working for some cell modules with the 
- *  Meadow F7v2 Feather. But, further it can be used as a generic 
- *  function to turn on the modules using different meadow devices.
+ *  None.
  *
  ****************************************************************************/
 void hcom_nx_config_turn_on_the_cell_module()
@@ -2403,36 +2670,44 @@ void hcom_nx_config_turn_on_the_cell_module()
     module_id = hcom_nx_config_get_cell_module_id();
     turn_on_pin = hcom_nx_config_get_cell_turn_on_pin();
 
-    switch(module_id)
+    if (turn_on_pin > 0)
     {
-        case CELL_BG770A_MODULE:
-            // Low pulse for 3 seconds to turn on the Quectel BG770A-GL cell module
-            syslog(LOG_INFO, "Turning on BG770A module");
-            stm32_configgpio(GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | turn_on_pin); 
-            stm32_gpiowrite(turn_on_pin, false);
-            usleep(3000000);
-            stm32_gpiowrite(turn_on_pin, true);
-            stm32_gpiowrite(turn_on_pin, false);
-        break;
+        switch (module_id)
+        {
+            case CELL_BG770A_MODULE:
+                // Low pulse for 3 seconds to turn on the Quectel BG770A-GL cell module
+                syslog(LOG_INFO, "Turning on BG770A module\n");
+                stm32_configgpio(GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | turn_on_pin); 
+                stm32_gpiowrite(turn_on_pin, false);
+                usleep(3000000);
+                stm32_gpiowrite(turn_on_pin, true);
+                stm32_gpiowrite(turn_on_pin, false);
+            break;
 
-        case CELL_M95_MODULE:
-            syslog(LOG_INFO, "Turning on M95 module");
-            stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
-            stm32_gpiowrite(turn_on_pin, true);
-        break;
+            case CELL_M95_MODULE:
+                syslog(LOG_INFO, "Turning on M95 module\n");
+                stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
+                stm32_gpiowrite(turn_on_pin, true);
+            break;
 
-        case CELL_BG95M3_MODULE:
-            syslog(LOG_INFO, "Turning on BG95-M3 module");
-            stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
-            stm32_gpiowrite(turn_on_pin, false);
-        break;
+            case CELL_BG95M3_MODULE:
+                syslog(LOG_INFO, "Turning on BG95-M3 module\n");
+                stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
+                stm32_gpiowrite(turn_on_pin, true);
+                usleep(3000000);
+                stm32_gpiowrite(turn_on_pin, false);
+            break;
 
-        default:
-            syslog(LOG_INFO, "Failed to identify and turn on the cell module");
-        break;
-
+            default:
+                syslog(LOG_INFO, "Failed to identify and turn on the cell module\n");
+            break;
+        }
     }
-    
+    else
+    {
+        syslog(LOG_INFO, "Failed to turn on the cell module\n");
+    }
+
     // TODO: Add support to turn on the BG770A-GL on the Project Lab and for
     // Meadow F7v1 Feather
 }

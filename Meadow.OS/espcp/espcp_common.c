@@ -48,6 +48,10 @@
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 
+// [MAKE-IT-BUILD]
+// Added to allow Meadow to build within Meadow.OS
+#include <meadow/meadow_temp_rebase.h>
+
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/
@@ -103,22 +107,12 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     {
         if (block)
         {
-            bool waiting = true;
             //
             //  We wait in a loop and check the result code for the sem_wait method
             //  as it is possible to have a return from a sem_wait as a result of a
             //  signal as well as a sem_post.  In the case of a signal we simply wait
             //  again.
-            //
-            //  TODO: Need to investigate why we get the signal.
-            //
-            while (waiting)
-            {
-                if (sem_wait(message->semaphore) == 0)
-                {
-                    waiting = false;
-                }
-            }
+            while ((net_lockedwait(message->semaphore) != 0) && (get_errno() == EINTR));
         }
         result = espcp_status_codes_completed_ok;
     }

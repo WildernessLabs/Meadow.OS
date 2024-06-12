@@ -10,10 +10,18 @@
 // Please add comments to all additions so they can be understood in the future
 //
 
+#include <nuttx/semaphore.h>
+
 // THIS #DEFINE IS ONLY USEFUL WHILE PORTING MEADOW FROM NUTTX 7.X TO 12.X
 // it allows using legacy Meadow code or newer Nuttx v12 code where there are
 // differences. Such as, function renamed, modified or removed.
 #define MEADOW_REBASE_V12_USE_NEWEST_VERSIONS (1)
+
+// [MAKE-IT-BUILD]
+//==========================================================================
+// This function has been removed from Nuttx between 7.9 and 12. It's only
+// used in espcp_common.c
+int net_lockedwait(sem_t *sem);
 
 //==========================================================================
 // Note: the stm32f7_qspi_hw_reinitialize() function was added to Legacy Meadow

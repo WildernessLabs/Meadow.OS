@@ -88,7 +88,7 @@ int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData)
   int ret;
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "Bulk erase begun. Will take 2-3 minutes.", thisFile, __LINE__);
+          "Bulk erase started (~2 minutes)", thisFile, __LINE__);
 
   syslog(LOG_INFO, "Bulk erase of External Flash begun\n");
 
@@ -102,14 +102,14 @@ int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData)
 
     char hostMsg[HCOM_NX_CMD_HOST_MSG_SIZE];
     snprintf_chk(hostMsg, HCOM_NX_CMD_HOST_MSG_SIZE,
-              "Bulk Erase of QSPI Flash error:%d.", ret);
+              "Bulk Erase of QSPI Flash error:%d", ret);
     cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
             thisFile, __LINE__);
     return ret;
   }
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "Bulk erase completed successfully", thisFile, __LINE__);
+          "Bulk erase complete", thisFile, __LINE__);
 
   syslog(LOG_INFO, "Bulk erase complete\n\n");
   return OK;
@@ -125,7 +125,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   int ret;
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "External flash verification begun", thisFile, __LINE__);
+          "External flash verification started", thisFile, __LINE__);
 
   syslog(LOG_NOTICE, "Verification of External Flash Erased beginning\n");
 
@@ -140,7 +140,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     return ret;
   }
 
-  syslog(LOG_INFO, "Verifying MTD erase, sectors %d, era size %d pagesize %d\n",
+  syslog(LOG_INFO, "Verifying MTD erase, sectors %" PRId32 ", era size %" PRId32 " pagesize %" PRId32 "\n",
            geo.neraseblocks, geo.erasesize, geo.blocksize);
 
   uint32_t writeable_pages_per_sector = geo.erasesize / geo.blocksize;
@@ -184,12 +184,12 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Expected %d pages but read %d\n",
+            "%s@%d-Expected %" PRId32 " pages but read %d\n",
             thisFile, __LINE__, writeable_pages_per_sector, pagesRead);
     break;
   }
 
-  syslog(LOG_INFO, "Verified %04d bytes (%d of %d sectors)\n",
+  syslog(LOG_INFO, "Verified %04" PRId32 " bytes (%d of %" PRId32 " sectors)\n",
            sectorCounter * geo.erasesize, sectorCounter, geo.neraseblocks);
   syslog(LOG_NOTICE, "Verify complete, %d non-erased 4KB sectors\n\n", notErasedSectors);
 
@@ -302,7 +302,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   int ret;
   cmdData->userData = 0;
   int lastPercentSent = 0;
-  
+
   // Check for Mono runtime binary on filesystem.
 #ifdef CONFIG_MTD_PARTITION
   const char runtimePath[] = "/meadow0/" HCOM_NX_FS_MONO_RUNTIME_FILENAME;
@@ -459,7 +459,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   free(verify);
   verify = NULL;
 
-  const char monoSuccessFlashMsg[] = "Mono runtime successfully flashed.\n";
+  const char monoSuccessFlashMsg[] = "Runtime flashed successfully\n";
   syslog(LOG_INFO, monoSuccessFlashMsg);
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
           (char*)monoSuccessFlashMsg, thisFile, __LINE__);
@@ -501,7 +501,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     if (cmdData)                                                      \
     {                                                                 \
       char buf2[256];                                                 \
-      snprintf(buf2, sizeof(buf2), "%s@d-%s\n", thisFile, __LINE__, x); \
+      snprintf(buf2, sizeof(buf2), "%s@%d-%s\n", thisFile, __LINE__, x); \
       snprintf(buf2, sizeof(buf2), buf2, ##__VA_ARGS__);              \
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,   \
                              buf2, thisFile, __LINE__);               \
@@ -571,7 +571,7 @@ static int flash_file(const char *path, off_t size, off_t offset)
   int filefd = open(path, O_RDONLY);
   if (filefd == -1)
   {
-    error("%s@%d-File not found: %s.", path);
+    error("%s@%d-File not found: %s.", thisFile, __LINE__, path);
     return -1;
   }
 
@@ -579,14 +579,14 @@ static int flash_file(const char *path, off_t size, off_t offset)
   ret = fstat(filefd, &fileStatus);
   if (ret < 0)
   {
-    error("%s@%d-fstat of %s failed errno:%d\n", path, errno);
+    error("%s@%d-fstat of %s failed errno:%d\n", thisFile, __LINE__, path, errno);
     return -errno;
   }
 
   off_t fileSize = fileStatus.st_size;
   if (fileSize != size)
   {
-    error("File has invalid size. Expected %d, got %d\n", size, fileSize);
+    error("File has invalid size. Expected %" PRId32 ", got %" PRId32 "\n", size, fileSize);
     return -1;
   }
 
@@ -696,5 +696,8 @@ int hcom_nx_exec_ex_flash_OS_update_flash2(void)
   if (ret)
     return ret;
   ret = unlink(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME);
-  return ret;
+  if (ret)
+    return ret;
+  hcom_nx_common_utils_host_restart_meadow();
+  return 0; // restarts; never actually returns
 }

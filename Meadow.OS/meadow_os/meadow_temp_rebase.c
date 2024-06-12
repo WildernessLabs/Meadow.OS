@@ -18,15 +18,28 @@
 #include <debug.h>
 #include <assert.h>
 
-#include "meadow_temp_rebase.h"
+#include <meadow/meadow_temp_rebase.h>
 #include <arm_internal.h>
 #include "hardware/stm32_qspi.h"
+
+// [MAKE-IT-BUILD]
+//==========================================================================
+// The function net_lockedwait() has been removed from Nuttx between 7.9 and 12. 
+// It is now only used in espcp_common.c
+// The Legacy Meadow version was implemented in Meadow/nuttx/net/utils/net_lock.c
+// Started to reimplement but began to look like a rabbit hole.
+//==========================================================================
+
+int net_lockedwait(sem_t *sem)
+{
+  return false;
+}
 
 //==========================================================================
 // In Legacy Meadow the stm32f7_qspi_hw_reinitialize() function was added to
 // the Nuttx stm32_qspi.c function. It has been removed to reduce the friction
 // of updating Nuttx in the future.
-// Why is this needed? because Meadow must run on all Meadow versions and
+// Why is this needed? Because Meadow must run on all Meadow versions and
 // not all versions use the same size flash. This is why this function became
 // necessary. On startup Meadow has no idea what hardware it is running on,
 // so it assumes it is the hardware with the smallest external flash memory.

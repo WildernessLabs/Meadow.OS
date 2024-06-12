@@ -1,8 +1,8 @@
 /****************************************************************************
- * apps/include/netutils/ntpclient.h
+ * meadow_os_info.c
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
+ *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,98 +33,123 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_NETUTILS_NTPCLIENT_H
-#define __APPS_INCLUDE_NETUTILS_NTPCLIENT_H 1
+#include <nuttx/config.h>
+
+#include <stdlib.h>
+#include <nuttx/kmalloc.h>
+
+#include <meadow/meadow_os.h>
+#include <meadow/meadow_hw_version.h>
+
+#include "../hcom_nx/hcom_nx_config_manager.h"
 
 /****************************************************************************
- * Included Files
+ * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/
-
-#include <nuttx/config.h>
+// #define USE_MEADOW_DEBUG_HELPERS
+#include <meadow/meadow_debug_helpers.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* Configuration ************************************************************/
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SERVERIP
-#  define CONFIG_NETUTILS_NTPCLIENT_SERVERIP 0x0a000001
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_PORTNO
-#  define CONFIG_NETUTILS_NTPCLIENT_PORTNO 123
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_STACKSIZE
-#  define CONFIG_NETUTILS_NTPCLIENT_STACKSIZE 2048
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SERVERPRIO
-#  define CONFIG_NETUTILS_NTPCLIENT_SERVERPRIO 100
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_POLLDELAYSEC
-#  define CONFIG_NETUTILS_NTPCLIENT_POLLDELAYSEC 60
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SIGWAKEUP
-#  define CONFIG_NETUTILS_NTPCLIENT_SIGWAKEUP 18
-#endif
-
-#define NTP_INITIAL_SOCKET_TIMEOUT      5
-#define NTP_MAXIMUM_SOCKET_TIMEOUT      40
 
 /****************************************************************************
- * Public Types
+ * Local type defintions.
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Private Data
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: meadow_os_power_cycle_count
+ *
+ * Description:
+ *  Get the number of times the board has been through a power cycle
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  Number of times the board has been power cycled.
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+uint32_t meadow_os_power_cycle_count(void)
 {
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-/****************************************************************************
- * Name: ntpc_start
- *
- * Description:
- *   Start the NTP daemon
- *
- * Returned Value:
- *   On success, the non-negative task ID of the NTPC daemon is returned;
- *   On failure, a negated errno value is returned.
- *
- ****************************************************************************/
-int ntpc_start(void);
-
-/****************************************************************************
- * Name: ntpc_stop
- *
- * Description:
- *   Stop the NTP daemon
- *
- * Returned Value:
- *   None.
- *
- ****************************************************************************/
-void ntpc_stop(void);
-
-#ifndef CONFIG_DISABLE_SIGNALS
-// int ntpc_stop(void);
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
+    return(0);
 }
-#endif
 
-#endif /* __APPS_INCLUDE_NETUTILS_NTPCLIENT_H */
+/****************************************************************************
+ * Name: meadow_os_reset_cycle_count
+ *
+ * Description:
+ *  Get the number of times the board has been through a reset (including
+ *  power cycles).
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  Number of times the board has been reset.
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+uint32_t meadow_os_reset_cycle_count(void)
+{
+    return(0);
+}
+
+/****************************************************************************
+ * Name: meadow_os_reset_reason
+ *
+ * Description:
+ *  What was the cause of the last reset?
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  Cause of the last reset?
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+uint32_t meadow_os_reset_reason(void)
+{
+    return(0);
+}
+
+/****************************************************************************
+ * Name: meadow_os_hardware_version
+ *
+ * Description:
+ *  Hardware version / type that the OS is running on.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  Hardware version / type
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+uint32_t meadow_os_hardware_version(void)
+{
+    return(meadow_hw_version_get());
+}

@@ -1,5 +1,5 @@
 /****************************************************************************
- * netutils/ntpclient/ntpclient.c
+ * netutils/ntpclient/meadow_ntpclient.c
  *
  *   Copyright (C) 2014, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -32,7 +32,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
+// [MAKE-IT-BUILD]
+// Renamed from ntpclient.c to meadow_ntpclient.c. Not sure this was needed
+// to get things to build, but Nuttx has a ntpclient.c defined in 'apps'
 /****************************************************************************
  * 
  * This file is a modified version of the NTPClient application file in the
@@ -64,7 +66,7 @@
 #include <arpa/inet.h>
 #include <nuttx/kthread.h>
 
-#include "ntpclient.h"
+#include "meadow_ntpclient.h"
 
 #include "ntpv3.h"
 

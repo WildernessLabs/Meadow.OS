@@ -37,7 +37,7 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/spi/qspi.h>
 
-#include "meadow_temp_rebase.h"
+#include <meadow/meadow_temp_rebase.h>  // THIS IS TEMPORARY
 #include "stm32f777zit6-meadow.h"
 
 #include <meadow/meadow_hw_version.h>
@@ -214,7 +214,7 @@ void stm32_boardinitialize(void)
  ****************************************************************************/
 
 // Rebase Note: This function is where Meadow does a lot of initialization.
-// This code was copied from Legacy Meadow.
+// This code was copied from Legacy Meadow, pretty much without any changes.
 // 
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)
@@ -350,7 +350,7 @@ void board_late_initialize(void)
  #endif
 
     default:
-      syslog(1, "%s@%d-Unknown MTD:%d, meadowHwVer:%d\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
       return;
   }
 

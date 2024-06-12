@@ -57,6 +57,7 @@
 // Diagnostic only
 // #define USE_MEADOW_DEBUG_HELPERS
 #undef USE_MEADOW_DEBUG_HELPERS
+#include <meadow/meadow_apps_core_share.h>
 #include <meadow/meadow_debug_helpers.h>
 
 //===================================================================
@@ -199,7 +200,7 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
   ret = irq_attach(STM32_IRQ_TIM6, meadow_idle_mon_isr, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-irq_attach failed:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-irq_attach failed, ret:%d, errno:%d\n",
           __FILE__, __LINE__, ret, errno);
     return ret;
   }
@@ -220,7 +221,7 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
   ret = meadow_idle_mon_create_test_thread();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-meadow_idle_mon_create_test_thread failed:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-meadow_idle_mon_create_test_thread failed, ret:%d, errno:%d\n",
           __FILE__, __LINE__, ret, errno);
     return ret;
   }
@@ -234,7 +235,7 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
 // Return the current MCU idle percentage 0 - 100%
 int meadow_idle_monitor_get_value()
 {
-  static int IdlePercent;
+  static int IdlePercent = 0;
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 
@@ -243,10 +244,6 @@ int meadow_idle_monitor_get_value()
   {
     IdlePercent = 
         (_idleCountSnapShot * 100) / MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
-  }
-  else
-  {
-    IdlePercent = 0;
   }
 #endif    // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 

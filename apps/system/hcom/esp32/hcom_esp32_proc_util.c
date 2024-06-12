@@ -255,7 +255,7 @@ void hcom_esp32_util_restart_esp32(uint32_t userData)
   if(hcom_mono_ctrl_is_mono_enabled())
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-            "Mono must be disabled before restarting the ESP32");
+            "Runtime must be disabled before restarting the ESP32");
     hcom_logging_syslog(LOG_ERR, "%s@%d-%s\n", thisFile, __LINE__, hostMsg);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
               thisFile, __LINE__);
@@ -290,7 +290,7 @@ void hcom_esp32_util_read_esp32_mac(uint32_t userData)
   {
     char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-            "Mono must be disabled before reading the ESP32 MAC address");
+            "Runtime must be disabled before reading the ESP32 MAC address");
     hcom_logging_syslog(LOG_ERR, "%s@%d-%s\n", thisFile, __LINE__, hostMsg);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
               thisFile, __LINE__);
@@ -317,7 +317,7 @@ void hcom_esp32_util_read_esp32_mac(uint32_t userData)
   if(chipIdInfo != Esp32RegValueDATE_REG_VALUE_ESP32)
   {
     // Not ESP32 chip
-    syslog(LOG_ERR, "%s@%d- Chip not ESP32, expected:0x%08x, recvd:0x%08x\n",
+    syslog(LOG_ERR, "%s@%d- Chip not ESP32, expected:0x%08x, recvd:0x%08" PRIx32 "\n",
            __FILE__, __LINE__, Esp32RegValueDATE_REG_VALUE_ESP32,
            chipIdInfo);
     return;

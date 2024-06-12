@@ -46,6 +46,11 @@
 #endif
 
 #if STM32F7_NGPIO < 6
+//
+//  This condition should not manifest itself so suppress the cppcheck message and 
+//  let the compiler deal with it if it does.
+//
+// cppcheck-suppress preprocessorErrorDirective
 #  error "Required GPIO ports not enabled"
 #endif
 
@@ -147,8 +152,8 @@ static void stm32_sdramcommand(uint32_t command)
  * Public Functions
  ****************************************************************************/
 
-// Rebase Note: Between Nuttx 7 and 12 the function stm32_enablefmc was renamed
-// stm32_sdram_initialize. There was also some. The new code is being used.
+// Rebase Note: Between Nuttx 7 and 12 the function 'stm32_enablefmc' was renamed
+// 'stm32_sdram_initialize'. The new function is being used.
 
 /****************************************************************************
  * Name: stm32_sdram_initialize
@@ -237,15 +242,14 @@ void stm32_sdram_initialize(void)
  *
  ****************************************************************************/
 
-// Rebase Note: This function seems to be an orphan
+// Rebase Note: This function seems to have been orphaned
+// void stm32_disablefmc(void)
+// {
+//   uint32_t regval;
 
-void stm32_disablefmc(void)
-{
-  uint32_t regval;
+//   /* Disable AHB clocking to the FMC */
 
-  /* Disable AHB clocking to the FMC */
-
-  regval  = getreg32(STM32_RCC_AHB3ENR);
-  regval &= ~RCC_AHB3ENR_FMCEN;
-  putreg32(regval, STM32_RCC_AHB3ENR);
-}
+//   regval  = getreg32(STM32_RCC_AHB3ENR);
+//   regval &= ~RCC_AHB3ENR_FMCEN;
+//   putreg32(regval, STM32_RCC_AHB3ENR);
+// }

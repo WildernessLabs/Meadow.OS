@@ -11,7 +11,7 @@
 #include <arch/board/board.h>
 #include <nuttx/mqueue.h>
 #include <nuttx/signal.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <nuttx/spi/spi.h>
 
 #include <stdbool.h>
@@ -22,7 +22,7 @@
 #include "chip.h"
 #include "fcntl.h"
 #include "stm32_pwm.h"
-#include "stm32_i2c.h"
+#include <nuttx/i2c/i2c_master.h>
 #include "stm32f777zit6-meadow.h"
 #include "stm32_spi.h"
 
@@ -32,7 +32,7 @@
 #include <nuttx/timers/watchdog.h>
 #include <sys/ioctl.h>
 #include "stm32_tim.h"
-#include "meadow-upd.h"
+#include <meadow/meadow-upd.h>
 #include <meadow/hcom_nuttx_shared.h>
 #include <meadow/hcom_shared_common.h>
 #include "stm32_uid.h" // stm32_get_uniqueid()
@@ -358,6 +358,46 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
     return ENODEV;
   }
 
+#if defined (CONFIG_STM32F7_SPI_DMA)
+  // The STM32F777 used in Meadow has a DMA transfer size limit of 65535
+  // bytes. For more information see Ref Man section 8.3.6 and 8.3.16 the
+  // last bullet,"...This means that a maximum of 65535 data items can be
+  // managed by the DMA in a single transaction."
+  if(data->txBuffer || data->rxBuffer)
+  {
+    if(data->length <= 0xffff)
+    {
+      SPI_EXCHANGE(target, data->txBuffer, data->rxBuffer, data->length);
+    }
+    else
+    {
+      uint32_t numbToSend = data->length;
+      uint8_t *txTempBuf = data->txBuffer;
+      uint8_t *rxTempBuf = data->rxBuffer;
+
+      // There is also a DMA requirement that the number be mulitple of 4 or 2,
+      // in some cases.
+      while(numbToSend > 65532)
+      {
+        // syslog(1, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
+        //           numbToSend, txTempBuf, rxTempBuf);
+        SPI_EXCHANGE(target, txTempBuf, rxTempBuf, 65532);
+        if(txTempBuf) txTempBuf += 65532;
+        if(rxTempBuf) rxTempBuf += 65532;
+        numbToSend -= 65532;
+      }
+
+      // syslog(1, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
+      //             numbToSend, txTempBuf, rxTempBuf);
+      SPI_EXCHANGE(target, txTempBuf, rxTempBuf, numbToSend);
+    }
+  }
+  else
+  {
+    // no read or write buffer
+    return EINVAL;
+  }
+#else
   // if we have only outbuffer, it's a write
   if(data->txBuffer)
   {
@@ -382,7 +422,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
     // no read or write buffer
     return EINVAL;
   }
-  
+#endif
   return OK;
 }
 

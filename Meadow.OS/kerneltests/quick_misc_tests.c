@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs\stm32f777zit6-meadow\src\kerneltests\quick_misc_tests.c
  * 
- *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2023-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,11 @@
  ****************************************************************************/
 
 #include "../hcom_nx/hcom_nx_common.h"
-
 #include <meadow/hcom_shared_common.h>
+
+// Only build if configured
+#if defined(CONFIG_QUICK_MISC_TESTS)
+#pragma message "(--) quick_misc_tests.c"
 
 // Diagnostic always as this is test code
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -53,7 +56,7 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-// static char *thisFile = __FILE__;
+// Copied from meadow_interrupt.c
 
 /************************************************************************************
  * Public Data
@@ -62,16 +65,26 @@
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
-  
+
+/************************************************************************************
+ * Public Functions
+ ************************************************************************************/
+// set developer -d 10 come here
+void meadow_kt_quick_misc_tests(uint32_t userData)
+{
+  syslog(2, "Quick and Misc tests received 'set developer -d 10 -v %lu'.\n", userData);
+
+  switch(userData)
+  {
+    case 1:
+    default:
+      syslog(2, "Undefined test for meadow_kt_quick_misc_tests, userData:%lu. NO TEST DEFINED\n", userData);
+      break;
+  }
+}
 
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
 
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
-void meadow_kt_quick_misc_tests(uint32_t userData)
-{
-  syslog(1, "Reached meadow_kt_quick_misc_tests, userData:%lu\n", userData);
-}
+#endif  // #if defined(CONFIG_QUICK_MISC_TESTS)
