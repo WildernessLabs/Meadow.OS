@@ -890,8 +890,6 @@ FAR struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd,
   if (eraseend > geo.neraseblocks)
     {
       ferr("ERROR: sub-region too big\n");
-      syslog(1, "%s@%d-Error Exit-sub-region too big, eraseend:%lu geo.neraseblocks:%lu\n",
-                __FILE__, __LINE__, eraseend, geo.neraseblocks);
       return NULL;
     }
 

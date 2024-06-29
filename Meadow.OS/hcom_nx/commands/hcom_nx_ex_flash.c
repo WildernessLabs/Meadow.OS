@@ -595,7 +595,6 @@ static int flash_file(const char *path, off_t size, off_t offset)
 
   info("Erasing flash memory");
 
-  int offsetInPages = offset / geo.blocksize;
   int offsetInEraseBlocks = offset / geo.erasesize;
 
   size_t numBlocksToErase = fileSize / geo.erasesize;

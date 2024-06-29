@@ -99,8 +99,6 @@ extern "C"
 #define getreg64(a)    (*(volatile uint64_t *)(a))
 #define putreg64(v,a)  (*(volatile uint64_t *)(a) = (v))
 
-#define HCOM_NX_FLASH_FILE_PARTITION_COUNT_MAX 8
-
 // PATH_MAX is defined by Nuttx in limits.h. It's 256 or less.
 // For a buffer large enough for the path PLUS file name we this length
 #define HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
@@ -121,6 +119,7 @@ extern "C"
 #ifdef CONFIG_FS_LITTLEFS
 #define HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE "littlefs"
 #define HCOM_NX_FILE_MOUNT_FORCE_FORMAT "forceformat"
+
 // Note:The following string must fit into a buffer whose size is defined
 // by HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH
 #define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
@@ -198,11 +197,10 @@ bool hcom_nx_fs_is_mounted(uint32_t partitionId);
 int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 
 #ifdef CONFIG_FS_LITTLEFS
-  int hcom_nx_create_littlefs_support_init_master(FAR struct mtd_dev_s *master_flash_mtd);
 #ifdef CONFIG_MTD_PARTITION
-  int hcom_nx_create_littlefs_init_1_part(uint32_t partitionId, struct mtd_dev_s *partMtd);
+  int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
 #endif
-  int hcom_nx_create_littlefs_mount_format_1_part(uint32_t partitionId);
+  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
