@@ -86,7 +86,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s 
   }
 
 #if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Registering part %d\n", thisFile, __LINE__, partitionId);
+  syslog(LOG_DEBUG, "%s@%d-Registering part %ld\n", thisFile, __LINE__, partitionId);
 #endif
 
   if (partMtd == NULL)
@@ -102,7 +102,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s 
           HCOM_NX_FILE_MOUNT_POINT_SOURCE, partitionId);
 
 #if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Register part %d as '%s'. MTD:%p\n",
+  syslog(LOG_DEBUG, "%s@%d-Register part %ld as '%s'. MTD:%p\n",
            thisFile, __LINE__, partitionId, partName, partMtd);
 #endif
 
@@ -128,7 +128,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
   int ret;
 
 #if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-LittleFS mount part %d\n", thisFile, __LINE__, partitionId);
+  syslog(LOG_DEBUG, "%s@%d-LittleFS mount part %ld\n", thisFile, __LINE__, partitionId);
 #endif
 
   // First we'll attempt to mount the device. A mount failure with a specific
@@ -158,7 +158,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
   // Detected an error that LittleFS's file system needs to be formatted.
 
 #if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "Part %d format required\n", partitionId);
+  syslog(LOG_DEBUG, "Part %ld format required\n", partitionId);
 #endif
 
   // This call will format then mount. Note: the last argument causes LittleFS
@@ -176,7 +176,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
 #if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
   else
   {
-    syslog(LOG_DEBUG, "Part %d formatted\n", partitionId);
+    syslog(LOG_DEBUG, "Part %ld formatted\n", partitionId);
   }
 #endif
 

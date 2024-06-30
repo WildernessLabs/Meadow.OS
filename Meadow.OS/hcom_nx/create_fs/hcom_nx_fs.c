@@ -84,11 +84,12 @@ struct partition_info
 static char *thisFile = __FILE__;
 
 static FAR struct partition_info _partInfo[MEADOW_FS_PARTITION_TOTAL_COUNT];
-
 static uint32_t _pagesPerEraSector;
 
 // The order in this array determines to partition number. With partition the
 // partition number (0-n) is the same as the index in this array.
+// However, the code will place these in flash memory starting with the last
+// entry, this is to match the legacy flash layout.
 static uint32_t _partitionSizes[] = { MEADOW_FS_PARTITION_INIT_SIZE_FLAG,
                                       HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,
                                       HCOM_NX_FS_NUTTX_UPDATE_SIZE,
@@ -356,9 +357,9 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   
   _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
-  int partBlockOff = 0;      // Offset increases with each partition
   uint32_t totalBytesInExtFlash = meadow_hw_version_flash_size();
   uint32_t primaryPartSize = totalBytesInExtFlash;
+  int partBlockOff = 0;      // Offset increases with each partition
 
   // Since the space available for the primary partition is the total flash
   // size - all the smaller partitions, find value.
@@ -371,12 +372,17 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   }
 
   // Create each partition
-  for (partitionId = 0; partitionId < MEADOW_FS_PARTITION_TOTAL_COUNT; partitionId++)
+#if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
+  int totalBytes = 0;
+#endif
+  for(int partInverted = MEADOW_FS_PARTITION_TOTAL_COUNT - 1;
+      partInverted >= 0;
+      partInverted--)
   {
-    // Get the number of bytes in each partition
-    uint32_t partSizeInBytes = _partitionSizes[partitionId];
+    // Get the number of bytes in each partition starting with the last one.
+    // This is to match legacy Meadow.
+    uint32_t partSizeInBytes = _partitionSizes[partInverted];
 
-    // The primary partition size is just calculated and is variable
     if(partSizeInBytes == MEADOW_FS_PARTITION_INIT_SIZE_FLAG)
       partSizeInBytes = primaryPartSize;
 
@@ -385,23 +391,30 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
     size_t partSize = nBlocksInPart * geo.blocksize;
-
-    syslog(LOG_DEBUG, "%s@%d-Creating partition:%d, offset:%u size:%d bytes (%d Kb), bad size?:%ld\n",
+    totalBytes += partSize;
+    syslog(LOG_DEBUG, "%s@%d-Creating partition:%d, BlkOffset:%u size:%d bytes (%d Kb), not 4k:%ld\n",
              thisFile, __LINE__,
-             partitionId, partBlockOff, partSize,
+             partInverted, partBlockOff, partSize,
              partSize/1024, partSize % geo.erasesize);
 #endif
 
-    _partInfo[partitionId].partPageOffset = partBlockOff;
-    _partInfo[partitionId].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
-    if (_partInfo[partitionId].mtdPart == NULL)
+    _partInfo[partInverted].partPageOffset = partBlockOff;
+    _partInfo[partInverted].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
+    if (_partInfo[partInverted].mtdPart == NULL)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, offset=%d nPages=%d\n",
-               thisFile, __LINE__, partitionId, partBlockOff, nBlocksInPart);
+               thisFile, __LINE__, partInverted, partBlockOff, nBlocksInPart);
       break;
     }
 
     partBlockOff += nBlocksInPart;
   }
+
+#if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
+  syslog(LOG_DEBUG, "%s@%d-Created %d partitions, Total size:%d bytes (%d Kb)\n",
+            thisFile, __LINE__,
+            MEADOW_FS_PARTITION_TOTAL_COUNT, totalBytes, totalBytes/1024);
+#endif
+
   return OK;
 }
