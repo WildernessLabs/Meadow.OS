@@ -245,8 +245,9 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
 #endif  // #ifdef CONFIG_MTD_PARTITION
 
  #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Attempting to mount part:%" PRId32 " as '%s' to '%s' for type '%s', mnt cmd '%s'\n",
-        thisFile, __LINE__, partitionId, finalSourceName, fullMountPtName, fileSystemType, mountCommand);
+  syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
+        thisFile, __LINE__, partitionId, finalSourceName,
+        fullMountPtName, fileSystemType, mountCommand);
  #endif
 
   // e.g. mount("/dev/ram0", "/mnt", "vfat", 0, NULL);  // Needs backing block device
@@ -265,8 +266,7 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
   _partInfo[partitionId].isPartMounted = true;
   
  #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Mounted partition %" PRId32 " as '%s' to '%s' for type '%s'\n",
-        thisFile, __LINE__, partitionId, finalSourceName, fullMountPtName, fileSystemType);
+  syslog(LOG_DEBUG, "%s@%d-Mount successful\n", thisFile, __LINE__);
  #endif
         
   free(finalSourceName);
@@ -332,10 +332,9 @@ int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flash_mtd)
 
 //======================================================================
 // Partitions the entire flash chip with the defined partition boundaries.
-// This also sets the size of each partition
 int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 {
-  // The Nuttx CONFIG_MTD_PARTITION is ignored in the following
+  // The Nuttx build configuration 'CONFIG_MTD_PARTITION' is ignored here
 
   FAR struct mtd_geometry_s geo;
   int partitionId;
@@ -354,7 +353,6 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 #endif
 
   // Create a mtd object for each partition
-  
   _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
   uint32_t totalBytesInExtFlash = meadow_hw_version_flash_size();
@@ -366,7 +364,16 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   for (partitionId = 0; partitionId < MEADOW_FS_PARTITION_TOTAL_COUNT; partitionId++)
   {
     if(partitionId == MEADOW_FS_PARTITION_OF_FS)
-      continue;
+      continue;   // Can't use this partition's size yet
+
+    // Verify that each partition's size is valid
+    if(_partitionSizes[partitionId] % geo.erasesize != 0)
+    {
+      syslog(LOG_ERR, "%s@%d-Partition %d size (%lu) is not a multiple of erase size (%lu)\n",
+              thisFile, __LINE__, partitionId,
+              _partitionSizes[partitionId], geo.erasesize);
+      return -EINVAL;     // Invalid argument
+    }
 
     primaryPartSize -= _partitionSizes[partitionId];
   }
@@ -392,10 +399,9 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
     size_t partSize = nBlocksInPart * geo.blocksize;
     totalBytes += partSize;
-    syslog(LOG_DEBUG, "%s@%d-Creating partition:%d, BlkOffset:%u size:%d bytes (%d Kb), not 4k:%ld\n",
+    syslog(LOG_DEBUG, "%s@%d-Creating partition:%d, BlkOffset:%u size:%d bytes (%d Kb)\n",
              thisFile, __LINE__,
-             partInverted, partBlockOff, partSize,
-             partSize/1024, partSize % geo.erasesize);
+             partInverted, partBlockOff, partSize, partSize/1024);
 #endif
 
     _partInfo[partInverted].partPageOffset = partBlockOff;
