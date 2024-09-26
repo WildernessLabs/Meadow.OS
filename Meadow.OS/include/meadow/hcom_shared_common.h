@@ -774,14 +774,15 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
-/* Rebase Note: This infrastruct isn't in place yet added to defconfig
-  # CONFIG_HCOM_MONO_STDERR_STDOUT is not set
+/* Rebase Note: This infrastructure isn't in place yet. Added to defconfig
+  '# CONFIG_HCOM_MONO_STDERR_STDOUT is not set'
   To prevent runtime errors for code not ready to use yet
 */
+
 // These needed Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
-// To enable/disable stdout and stder use CONFIG_HCOM_MONO_STDERR_STDOUT
+// To enable/disable stdout and stderr use CONFIG_HCOM_MONO_STDERR_STDOUT
 
 
 //--------------------------------------------------------------------
@@ -839,8 +840,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // via a once / second syslog output message
 #define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD    0
 
-// Build test code for rotary encoder. Remove when test code configuration
-// implemented.
+// Build the code for rotary encoder, both runtime and tests.
 #define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        1
 
 #endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H

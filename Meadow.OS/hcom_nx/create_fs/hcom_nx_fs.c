@@ -60,17 +60,22 @@
 // Show debugging information set to 1
 #define HCOM_NX_FS_INCLUDE_DEBUG_LOGGING 1
 
-// The Primary partition size can only be determined after starting Meadow
+// The Primary partition size can only be determined after starting Meadow.
+// This is because we must support 2 different flash chips with different
+// sizes.
 #define MEADOW_FS_PARTITION_INIT_SIZE_FLAG (0xffffffff) // Used to identify
 #define MEADOW_FS_PARTITION_OF_FS (0)
 
 // Already defined in /Meadow.OS/Meadow.OS/include/meadow/hcom_shared_common.h
-// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000  // 3MB
-// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000       // 2MB reserved space for updates
-// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE  0x1C0000       // (2MB - 256KB)
-#define MEADOW_FS_PARTITION_256K_PART_SIZE (256 * 1024) // 0x40000
+// Here for reference
+// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000  // 3MB Mono partition
+// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000       // 2MB update space
+// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE  0x1C0000       // 2MB-256KB=1,835,008
+#define MEADOW_FS_PARTITION_256K_PART_SIZE (256 * 1024) // 0x40000 (262,144)
 #define MEADOW_FS_PARTITION_TOTAL_COUNT (5)
 
+
+// This structure stores the information about each partition
 struct partition_info
 {
   struct mtd_dev_s *mtdPart;
@@ -90,11 +95,11 @@ static uint32_t _pagesPerEraSector;
 // partition number (0-n) is the same as the index in this array.
 // However, the code will place these in flash memory starting with the last
 // entry, this is to match the legacy flash layout.
-static uint32_t _partitionSizes[] = { MEADOW_FS_PARTITION_INIT_SIZE_FLAG,
-                                      HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,
-                                      HCOM_NX_FS_NUTTX_UPDATE_SIZE,
-                                      HCOM_NX_FS_OTA_RESERVED_SPACE,
-                                      MEADOW_FS_PARTITION_256K_PART_SIZE};
+static uint32_t _partitionSizes[] = { MEADOW_FS_PARTITION_INIT_SIZE_FLAG,  // 0
+                                      HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,  // 1
+                                      HCOM_NX_FS_NUTTX_UPDATE_SIZE,        // 2
+                                      HCOM_NX_FS_OTA_RESERVED_SPACE,       // 3
+                                      MEADOW_FS_PARTITION_256K_PART_SIZE}; // 4
 
 /****************************************************************************
  * Private Function Prototypes
@@ -369,7 +374,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     // Verify that each partition's size is valid
     if(_partitionSizes[partitionId] % geo.erasesize != 0)
     {
-      syslog(LOG_ERR, "%s@%d-Partition %d size (%lu) is not a multiple of erase size (%lu)\n",
+      syslog(LOG_ERR, "%s@%d-Partition %d, size (%lu) not multiple of erase size (%lu)\n",
               thisFile, __LINE__, partitionId,
               _partitionSizes[partitionId], geo.erasesize);
       return -EINVAL;     // Invalid argument
@@ -382,13 +387,14 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
   int totalBytes = 0;
 #endif
-  for(int partInverted = MEADOW_FS_PARTITION_TOTAL_COUNT - 1;
-      partInverted >= 0;
-      partInverted--)
+
+  for(partitionId = MEADOW_FS_PARTITION_TOTAL_COUNT - 1;
+      partitionId >= 0;
+      partitionId--)
   {
     // Get the number of bytes in each partition starting with the last one.
     // This is to match legacy Meadow.
-    uint32_t partSizeInBytes = _partitionSizes[partInverted];
+    uint32_t partSizeInBytes = _partitionSizes[partitionId];
 
     if(partSizeInBytes == MEADOW_FS_PARTITION_INIT_SIZE_FLAG)
       partSizeInBytes = primaryPartSize;
@@ -399,17 +405,17 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
     size_t partSize = nBlocksInPart * geo.blocksize;
     totalBytes += partSize;
-    syslog(LOG_DEBUG, "%s@%d-Creating partition:%d, BlkOffset:%u size:%d bytes (%d Kb)\n",
+    syslog(LOG_DEBUG, "%s@%d-Creating part:%d, Offset:%u size:%d (%d Kb)\n",
              thisFile, __LINE__,
-             partInverted, partBlockOff, partSize, partSize/1024);
+             partitionId, partBlockOff, partSize, partSize/1024);
 #endif
 
-    _partInfo[partInverted].partPageOffset = partBlockOff;
-    _partInfo[partInverted].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
-    if (_partInfo[partInverted].mtdPart == NULL)
+    _partInfo[partitionId].partPageOffset = partBlockOff;
+    _partInfo[partitionId].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
+    if (_partInfo[partitionId].mtdPart == NULL)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, offset=%d nPages=%d\n",
-               thisFile, __LINE__, partInverted, partBlockOff, nBlocksInPart);
+               thisFile, __LINE__, partitionId, partBlockOff, nBlocksInPart);
       break;
     }
 

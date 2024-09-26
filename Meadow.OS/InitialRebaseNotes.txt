@@ -23,4 +23,9 @@ been renamed 'meadow_syscall_support.h'. Contents are different too.
 To support the 1.2 to 1.9 effort, I added both files. Please delete
 delete the old one when ready.
 
+6. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
+always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
+be removed and made perminant, although it is not integrated in to
+Meadow.Core.
+
 

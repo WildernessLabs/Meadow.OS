@@ -309,7 +309,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
   // 2. A path name beginning with '/meadow0/'
   // 3. A path name beginning with '/sdcard/'
   // 4. A path name being only '/'
-  // This call will catergorize as one of the above or error. It is assumes
+  // This call will categorize as one of the above or error. It is assumes
   // that the last '/' signifies the start of the file name, unless it is
   // a file list command.
   catType = hcom_dir_mgmt_categorize_pathname(dnldShared->dnldOrigPathName,
@@ -330,7 +330,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
                 thisFile, __LINE__);
       return -ENOMEM;   // No Memory
     }
-    
+
     snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
             "Path name '%s' is invalid\n", dnldShared->dnldOrigPathName);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
