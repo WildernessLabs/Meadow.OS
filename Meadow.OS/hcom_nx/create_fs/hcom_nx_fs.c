@@ -52,28 +52,15 @@
 #include <dirent.h>
 #include <meadow/meadow_hw_version.h>
 
-#pragma message "(--) hcom_nx_fs.c"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-// Show debugging information set to 1
+// To show debugging information set to 1
 #define HCOM_NX_FS_INCLUDE_DEBUG_LOGGING 1
 
-// The Primary partition size can only be determined after starting Meadow.
-// This is because we must support 2 different flash chips with different
-// sizes.
-#define MEADOW_FS_PARTITION_INIT_SIZE_FLAG (0xffffffff) // Used to identify
-#define MEADOW_FS_PARTITION_OF_FS (0)
-
-// Already defined in /Meadow.OS/Meadow.OS/include/meadow/hcom_shared_common.h
-// Here for reference
-// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000  // 3MB Mono partition
-// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000       // 2MB update space
-// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE  0x1C0000       // 2MB-256KB=1,835,008
-#define MEADOW_FS_PARTITION_256K_PART_SIZE (256 * 1024) // 0x40000 (262,144)
-#define MEADOW_FS_PARTITION_TOTAL_COUNT (5)
-
+#if (HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0)
+#pragma message "(--) hcom_nx_fs.c"
+#endif
 
 // This structure stores the information about each partition
 struct partition_info
@@ -83,6 +70,28 @@ struct partition_info
   off_t partPageOffset;
 };
 
+// The File System partition size can only be determined after starting
+// Meadow. This is because we support 2 different flash chips with different
+// sizes.
+#define MEADOW_FILE_SYSTEM_SIZE_UNKNOWN (0xffffffff)
+#define MEADOW_FS_PARTITION_OF_FS (0)
+
+// Already defined in /Meadow.OS/Meadow.OS/include/meadow/hcom_shared_common.h
+// However, some of these are WRONG. And HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE
+// not yet merged.
+// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000 // 3MB
+// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000   // (2MB - 256KB)
+
+// WRONG - Defined in Legacy but wrong value not used in Legacy or here
+// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000 // 2MB reserved space for updates
+// This is the correct value with different #define until merged.
+#define HCOM_NX_FS_CORRECTED_OTA_SPACE 0x1000    // 4k update space
+
+// DEFINED IN LEGACY, BUT NEED TO MERGE LATEST MEADOW
+// This is 'sizeof(OTASpace)'
+#define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
+#define MEADOW_FS_PARTITION_TOTAL_COUNT (5)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -91,15 +100,28 @@ static char *thisFile = __FILE__;
 static FAR struct partition_info _partInfo[MEADOW_FS_PARTITION_TOTAL_COUNT];
 static uint32_t _pagesPerEraSector;
 
-// The order in this array determines to partition number. With partition the
-// partition number (0-n) is the same as the index in this array.
-// However, the code will place these in flash memory starting with the last
-// entry, this is to match the legacy flash layout.
-static uint32_t _partitionSizes[] = { MEADOW_FS_PARTITION_INIT_SIZE_FLAG,  // 0
-                                      HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,  // 1
-                                      HCOM_NX_FS_NUTTX_UPDATE_SIZE,        // 2
-                                      HCOM_NX_FS_OTA_RESERVED_SPACE,       // 3
-                                      MEADOW_FS_PARTITION_256K_PART_SIZE}; // 4
+// Taken from Meadow repo 27Sep24
+// Runtime      - Size: 3145728 ( 3072 Kb), Offset:0x00000000
+// Nuttx update - Size: 1835008 ( 1792 Kb), Offset:0x00300000
+// OTA State    - Size:    4096 (    4 Kb), Offset:0x004c0000
+// Assert Data  - Size:   32768 (   32 Kb), Offset:0x004c1000
+// File System  - Size:62091264 (60636 Kb), Offset:0x004c9000
+
+static char *_partitionNames[] = {"Runtime     ",
+                                  "Nuttx update",
+                                  "OTA State   ",
+                                  "Assert Data ",
+                                  "File System "};
+
+// The order in this array determines to partition numbers. The last entry
+// will be at offset 0 in the flash chip's addressing.
+// However, the code will place these in flash memory layout starting with the
+// last element, to the first to match the legacy flash layout.
+static uint32_t _partitionSizes[] = {MEADOW_FILE_SYSTEM_SIZE_UNKNOWN, // File system
+                                     HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE, // 32k
+                                     HCOM_NX_FS_CORRECTED_OTA_SPACE, // OTA struct 4k
+                                     HCOM_NX_FS_NUTTX_UPDATE_SIZE,   // Nuttx update 1792k
+                                     HCOM_NX_FS_MONO_RAW_PARTITION_SIZE}; // Runtime 3072
 
 /****************************************************************************
  * Private Function Prototypes
@@ -353,7 +375,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d- MTD Geo info - numb erase sectors %lu, eraseSize %lu page size %lu\n",
+  syslog(LOG_DEBUG, "%s@%d-MTD Geo info - numb erase sectors %lu, eraseSize %lu page size %lu\n",
           thisFile, __LINE__, geo.neraseblocks, geo.erasesize, geo.blocksize);
 #endif
 
@@ -362,14 +384,13 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   uint32_t totalBytesInExtFlash = meadow_hw_version_flash_size();
   uint32_t primaryPartSize = totalBytesInExtFlash;
-  int partBlockOff = 0;      // Offset increases with each partition
 
   // Since the space available for the primary partition is the total flash
-  // size - all the smaller partitions, find value.
+  // size minus all the smaller partitions, find value.
   for (partitionId = 0; partitionId < MEADOW_FS_PARTITION_TOTAL_COUNT; partitionId++)
   {
     if(partitionId == MEADOW_FS_PARTITION_OF_FS)
-      continue;   // Can't use this partition's size yet
+      continue;   // Can't use partition of file system
 
     // Verify that each partition's size is valid
     if(_partitionSizes[partitionId] % geo.erasesize != 0)
@@ -384,6 +405,8 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   }
 
   // Create each partition
+  uint32_t partBlockOff = 0;      // Offset increases with each partition
+
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
   int totalBytes = 0;
 #endif
@@ -393,28 +416,29 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
       partitionId--)
   {
     // Get the number of bytes in each partition starting with the last one.
-    // This is to match legacy Meadow.
     uint32_t partSizeInBytes = _partitionSizes[partitionId];
 
-    if(partSizeInBytes == MEADOW_FS_PARTITION_INIT_SIZE_FLAG)
-      partSizeInBytes = primaryPartSize;
+    if(partSizeInBytes == MEADOW_FILE_SYSTEM_SIZE_UNKNOWN)
+      partSizeInBytes = primaryPartSize;    // The remaining space
 
     // Find the number of blocks in this partition
-    int nBlocksInPart = partSizeInBytes / geo.blocksize;
+    uint32_t nBlocksInPart = partSizeInBytes / geo.blocksize;
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-    size_t partSize = nBlocksInPart * geo.blocksize;
-    totalBytes += partSize;
-    syslog(LOG_DEBUG, "%s@%d-Creating part:%d, Offset:%u size:%d (%d Kb)\n",
+    totalBytes += partSizeInBytes;
+    syslog(LOG_DEBUG, "%s@%d-%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08x\n",
              thisFile, __LINE__,
-             partitionId, partBlockOff, partSize, partSize/1024);
+             _partitionNames[partitionId],
+             partitionId,
+             partSizeInBytes, partSizeInBytes/1024,
+             partBlockOff * geo.blocksize);
 #endif
 
     _partInfo[partitionId].partPageOffset = partBlockOff;
     _partInfo[partitionId].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
     if (_partInfo[partitionId].mtdPart == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, offset=%d nPages=%d\n",
+      syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, Block Offset=%lu nParts=%lu\n",
                thisFile, __LINE__, partitionId, partBlockOff, nBlocksInPart);
       break;
     }
@@ -423,9 +447,10 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
+  int actualPartCnt = partitionId == -1 ? MEADOW_FS_PARTITION_TOTAL_COUNT : partitionId;
   syslog(LOG_DEBUG, "%s@%d-Created %d partitions, Total size:%d bytes (%d Kb)\n",
             thisFile, __LINE__,
-            MEADOW_FS_PARTITION_TOTAL_COUNT, totalBytes, totalBytes/1024);
+            actualPartCnt, totalBytes, totalBytes/1024);
 #endif
 
   return OK;
