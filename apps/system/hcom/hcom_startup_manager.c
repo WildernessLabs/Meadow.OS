@@ -106,7 +106,7 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
  * Public Functions
  ****************************************************************************/
 // This is the hcom tasks main thread, created by Nuttx when it has finished
-// initializing and starting the OS. This thread will do all the following
+// initializating and starting the OS. This thread will do all the following
 // initialization of hcom, then becomes the thread that receives CLI messages.
 // Other hcom threads are created by this thread or one of it's child threads.
 // This means that they are all in the same "task group." See the following
@@ -114,7 +114,6 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
 // Rebase Note: Was called hcom_main() via CONFIG_USER_ENTRYPOINT="hcom_main"
-// now defined by a different defconfig entry CONFIG_INIT_ENTRYPOINT
 int hcom_main(int argc, char *argv[])
 {
   int ret;
@@ -165,7 +164,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   syslog(2, "Startup Manager 4\n"); usleep(20 * 1000);
 #endif
 
-  /* // Rebase Note: Requires UPD or new syscall
+  /* // Rebase Note: Requires UPD
   // Restores previous syslog mask from the battery backed register (BBR).
   // Note: This needs to be third because all hcom_logging_syslog
   // calls are filtered by the results of this call. Nothing to wait for.

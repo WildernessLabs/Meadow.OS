@@ -214,7 +214,7 @@ void stm32_boardinitialize(void)
  ****************************************************************************/
 
 // Rebase Note: This function is where Meadow does a lot of initialization.
-// This code was copied from Legacy Meadow, pretty much without any changes.
+// This code was copied from Legacy Meadow.
 // 
 #ifdef CONFIG_BOARD_LATE_INITIALIZE
 void board_late_initialize(void)

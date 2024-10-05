@@ -172,6 +172,9 @@ static void esp_littlefs_free_fds(esp_littlefs_t * efs) {
     efs->cache_size = efs->fd_count = 0;
 }
 
+// Rebase Note: based on Nuttx V12 (/Meadow.OS/nuttx/fs/littlefs/lfs_vfs.c)
+// this remapping function needs to be re-evaluated against
+// littlefs_convert_result()
 static int lfs_errno_remap(enum lfs_error err) {
     switch(err){
         case LFS_ERR_OK:          return 0;

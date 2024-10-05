@@ -267,7 +267,6 @@ uint32_t meadow_hw_version_find_device_ver(FAR struct qspi_dev_s *qspi)
 {
   uint32_t gpioValue = meadow_hw_version_find_gpio_ver();
 
-syslog(1, "%s@%d-2\n", __FILE__, __LINE__);
   switch(gpioValue)
   {
     case MEADOW_F7_HW_VERSION_GPIO_ID_CCMV2:
@@ -306,8 +305,6 @@ uint32_t meadow_hw_version_from_flash_chip(FAR struct qspi_dev_s *qspi)
   int ret;
   uint8_t devInfo[3];
   
-syslog(1, "%s@%d-Entered\n", __FILE__, __LINE__);
-
   if(_meadowVersionKnown)
   {
     return _meadowVer;
@@ -321,12 +318,9 @@ syslog(1, "%s@%d-Entered\n", __FILE__, __LINE__);
     syslog(LOG_ERR, "Initial QSPI read failed:%d\n", ret);
     return ret;
   }
-syslog(1, "%s@%d-Successfully read flash chip verions\n", __FILE__, __LINE__);
 
   // Get the bits we need for the flash chip ID
   uint32_t flashId = (uint32_t) (devInfo[0] << 16 | devInfo[1] << 8 | devInfo[2]);
-
-syslog(1, "%s@%d-Successfully read flash chip ID:%lu\n", __FILE__, __LINE__, flashId);
   
   switch(flashId)
   {
@@ -347,8 +341,8 @@ syslog(1, "%s@%d-Successfully read flash chip ID:%lu\n", __FILE__, __LINE__, fla
     break;
   }
 
-  syslog(LOG_INFO, "Meadow hardware version:%ld, Flash chip mfg:0x%02x chip type:0x%02x, capacity:0x%02x\n",
-        _meadowVer, devInfo[0], devInfo[1], devInfo[2]);
+  // syslog(LOG_INFO, "Meadow hardware version:%ld, Flash chip mfg:0x%02x chip type:0x%02x, capacity:0x%02x\n",
+  //       _meadowVer, devInfo[0], devInfo[1], devInfo[2]);
 
   if(_meadowVer != MEADOW_F7_HW_VERSION_NUMB_UNKNOWN)
     _meadowVersionKnown = true;
