@@ -55,7 +55,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 // Show debugging information set to 1
-#define HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING 1
+#define HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING (0)
 
 /* Configuration ************************************************************/
 
