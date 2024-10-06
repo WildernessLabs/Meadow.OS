@@ -1,6 +1,9 @@
 # Last Changed 4Oct24
-# This is a simple tool to test using git merge-file to determine the best
-# way it can be used in our Nuttx v12 rebase efforts.
+# This is a tool to use the 'git merge-file 'utility' to  do a 3-way merge
+# from Legacy Meadow to the Meadow version that will use Nuttx V12.
+# 
+# See tje companion tool's source file for information on how to use
+# these tools.
 
 import subprocess
 import csv
@@ -78,7 +81,8 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
     rebasePN = rebaseRepoPath + rebase
     ongoingPN = ongoingRepoPath + ongoing
     
-    # Only process if all 3 files are available. Otherwise git merge-file reports an error
+
+    # Only use git merge-file if all 3 files are available.
     if(conditionInt == COND_ALL_3_MERGE_OKAY):
         previousPN = previousRepoPath + previous
 
@@ -103,6 +107,9 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
         # else:     # Error
         #     print(f"{numbMergeAttempt} Error: {subProcResult}")
 
+    # This is the other automatic option. We copy the file from ongoing to
+    # rebase, since we have all we need, and using git merge-file will
+    # output an error.
     elif(conditionInt == COND_NOT_IN_PREVIOUS):
         # If no previous file then the file needs to be copied from
         # ongoing to rebase
