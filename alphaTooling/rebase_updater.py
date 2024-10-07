@@ -93,16 +93,17 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 #   instructions.
 #  3. Use the rebase_merge_files.py tool to do the merging.
 # 
-# Fix Condition 1 - this Condition is common and is corrected by deciding
-#  were the file should go in Rebase and adding the path to the Rebase column.
-#  Then in the Condition column change the '1' to a '5' and let the tool
-#  copy the file.
+# Fix Condition 1 (New File) - this Condition is common and is corrected by
+#  deciding were the file should go in Rebase and adding the path to the
+#  Rebase column. Then in the Condition column change the '1' to a '5' and
+#  let the tool copy the file.
 # 
-# Fix Condition 3 - this condition is rare. The question to answer is why
-#  wasn't this file added the last time the tools was executed? Was it
-#  deleted, if so why? This may require manual action within the Rebase's
-#  file system. Once resolved the entry can removed from the
-#  MergeListData.csv file, as the work is done.
+# Fix Condition 3 (Not in Rebase) - this condition is rare since the file was
+#  in a previous update and is still in ongoing. The question is, why wasn't
+#  this file added the last time the tool was executed? Maybe it was added and
+#  has since been deleted from Rebase.
+#  This will require investigation and likely manual changes, both to Rebase
+#  file system and to the MergeListData.csv file.
 #
 # Other Conditions
 # Duplicate - This file name occurs in more than once in the same repo
