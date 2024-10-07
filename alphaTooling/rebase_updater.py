@@ -106,6 +106,16 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 #  during the last update. Was it deleted or renamed in Rebase?
 #  This will require investigation and likely possibly manual changes, both to
 #  Rebase file system and to the MergeListData.csv file.
+#
+# Fix Condition 6 (not in ongoing) - this conditions exists when a file is
+#  deleted, moved or renamed in ongoing. This file had been renamed
+
+# During Rebase update from Legacy Meadow, it was found that, the meadow
+#  version of ntp_client.c and ntp_client.h had been renamed only in Rebase
+#  Meadow to meadow_ntpclient.c and meadow_ntpclient.h. This cause the
+#  rebase_updater.py tool to place Rebase's meadow_ntpclient.* in a separate
+#  CSV row (condition 3) from Legacy ntp_client.* (condition 4).
+#  Manually, modified CSV file so all were in the same row (condition 7).
 
 # Other Conditions
 # The following are used to define the rebase constants
