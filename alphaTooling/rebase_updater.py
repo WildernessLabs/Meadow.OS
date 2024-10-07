@@ -97,16 +97,17 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 #  deciding were the file should go in Rebase and adding the path to the
 #  Rebase column. Then in the Condition column change the '1' to a '5' and
 #  let the tool copy the file.
+#  One way to do this is to find the file in Legacy Meadow, then find a file
+#  in the same directory and find this other file in Rebase Meadow. Then put
+#  the new file in the same directory as the one just found.
 # 
-# Fix Condition 3 (Not in Rebase) - this condition is rare since the file was
-#  in a previous update and is still in ongoing. The question is, why wasn't
-#  this file added the last time the tool was executed? Maybe it was added and
-#  has since been deleted from Rebase.
-#  This will require investigation and likely manual changes, both to Rebase
-#  file system and to the MergeListData.csv file.
-#
+# Fix Condition 3 (Not in Rebase) - this condition is rare since the file is
+#  in a previous update and still in ongoing. The question is, was it added
+#  during the last update. Was it deleted or renamed in Rebase?
+#  This will require investigation and likely possibly manual changes, both to
+#  Rebase file system and to the MergeListData.csv file.
+
 # Other Conditions
-# Duplicate - This file name occurs in more than once in the same repo
 # The following are used to define the rebase constants
 COND_UNKNOWN_CONDITION    = 0    # default 'condition' value
 COND_ONLY_IN_ONGOING      = 1
