@@ -91,10 +91,11 @@
 #define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
 #define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
 #define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"
-// This is the size of the mono runtime
-#define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000 // 3MB
-#define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000 // 2MB reserved space for updates
-#define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000   // (2MB - 256KB)
+
+#define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
+#define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
+#define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
+#define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
 
 //==================================================
 // Host text message buffer sizes for text messages
@@ -126,6 +127,9 @@
 #define UPDATE_OS_DIR UPDATE_DIR "os/"
 #define UPDATE_FIRMWARE_DIR UPDATE_DIR "firmware/"
 #define ROLLBACK_DIR "/meadow0/rollback"
+#define CRASH_DIR "/meadow0/crash"
+#define MEADOW_SYSTEM_DIR                         "/meadow0/system"
+#define MEADOW_SYSTEM_OS_PERSISTENT_DATA_FILE     MEADOW_SYSTEM_DIR "/os_data.bin"
 
 //==================================================
 //  Network interface types.
@@ -152,66 +156,175 @@
 #define CELL_M95_MODULE_NAME         "M95"
 #define CELL_BG95M3_MODULE           0x00000002
 #define CELL_BG95M3_MODULE_NAME      "BG95M3"
+#define CELL_EG21GL_MODULE           0x00000003
+#define CELL_EG21GL_MODULE_NAME      "EG21GL"
 
 //  Cell network operation modes.
 //
 //  These values are flag values.
-#define CELL_UNKNOWN_MODE           0xffffffff
-#define CELL_UNKNOWN_MODE_NAME      "Unknown"
-#define CELL_CATM1_MODE             0x00000000
-#define CELL_CATM1_MODE_NAME        "CATM1"
-#define CELL_NBIOT_MODE             0x00000001
-#define CELL_NBIOT_MODE_NAME        "NBIOT"
-#define CELL_GSM_MODE               0x00000002
-#define CELL_GSM_MODE_NAME          "GSM"
+#define CELL_UNKNOWN_MODE                  0xffffffff
+#define CELL_UNKNOWN_MODE_NAME             "Unknown"
+#define CELL_CATM1_MODE                    0x00000000
+#define CELL_CATM1_MODE_NAME               "CATM1"
+#define CELL_NBIOT_MODE                    0x00000001
+#define CELL_NBIOT_MODE_NAME               "NBIOT"
+#define CELL_GSM_MODE                      0x00000002
+#define CELL_GSM_MODE_NAME                 "GSM"
+#define CELL_UTRAN_MODE                    0x00000003
+#define CELL_UTRAN_MODE_NAME               "UTRAN"
+#define CELL_GSM_W_EGPRS_MODE              0x00000004
+#define CELL_GSM_W_EGPRS_MODE_NAME         "GSM_W_EGPRS"
+#define CELL_UTRAN_W_HSDPA_MODE            0x00000005
+#define CELL_UTRAN_W_HSDPA_MODE_NAME       "UTRAN_W_HSDPA"
+#define CELL_UTRAN_W_HSUPA_MODE            0x00000006
+#define CELL_UTRAN_W_HSUPA_MODE_NAME       "UTRAN_W_HSUPA"
+#define CELL_UTRAN_W_HSDPA_HSUPA_MODE      0x00000007
+#define CELL_UTRAN_W_HSDPA_HSUPA_MODE_NAME "UTRAN_W_HSDPA_HSUPA"
+#define CELL_E_UTRAN_MODE                  0x00000008
+#define CELL_E_UTRAN_MODE_NAME             "E_UTRAN"
+#define CELL_CDMA_MODE                     0x00000064
+#define CELL_CDMA_MODE_NAME                "CDMA"
 
 //  Meadow F7FeatherV2 pin names
-#define F7_MICRO_V2_A00_PIN_NAME "A00"
-#define F7_MICRO_V2_A01_PIN_NAME "A01"
-#define F7_MICRO_V2_A02_PIN_NAME "A02"
-#define F7_MICRO_V2_A03_PIN_NAME "A03"
-#define F7_MICRO_V2_A04_PIN_NAME "A04"
-#define F7_MICRO_V2_A05_PIN_NAME "A05"
-#define F7_MICRO_V2_D00_PIN_NAME "D00"
-#define F7_MICRO_V2_D01_PIN_NAME "D01"
-#define F7_MICRO_V2_D02_PIN_NAME "D02"
-#define F7_MICRO_V2_D03_PIN_NAME "D03"
-#define F7_MICRO_V2_D04_PIN_NAME "D04"
-#define F7_MICRO_V2_D05_PIN_NAME "D05"
-#define F7_MICRO_V2_D06_PIN_NAME "D06"
-#define F7_MICRO_V2_D07_PIN_NAME "D07"
-#define F7_MICRO_V2_D08_PIN_NAME "D08"
-#define F7_MICRO_V2_D09_PIN_NAME "D09"
-#define F7_MICRO_V2_D10_PIN_NAME "D10"
-#define F7_MICRO_V2_D11_PIN_NAME "D11"
-#define F7_MICRO_V2_D12_PIN_NAME "D12"
-#define F7_MICRO_V2_D13_PIN_NAME "D13"
-#define F7_MICRO_V2_D14_PIN_NAME "D14"
-#define F7_MICRO_V2_D15_PIN_NAME "D15"
+#define F7_MICRO_V2_A4_PIN_NAME  "A4"
+#define F7_MICRO_V2_A5_PIN_NAME  "A5"
+#define F7_MICRO_V2_A3_PIN_NAME  "A3"
+#define F7_MICRO_V2_B0_PIN_NAME  "B0"
+#define F7_MICRO_V2_B1_PIN_NAME  "B1"
+#define F7_MICRO_V2_C0_PIN_NAME  "C0"
+#define F7_MICRO_V2_I9_PIN_NAME  "I9"
+#define F7_MICRO_V2_H13_PIN_NAME "H13"
+#define F7_MICRO_V2_H10_PIN_NAME "H10"
+#define F7_MICRO_V2_B8_PIN_NAME  "B8"
+#define F7_MICRO_V2_B9_PIN_NAME  "B9"
+#define F7_MICRO_V2_B4_PIN_NAME  "B4"
+#define F7_MICRO_V2_B13_PIN_NAME "B13"
+#define F7_MICRO_V2_B7_PIN_NAME  "B7"
+#define F7_MICRO_V2_B6_PIN_NAME  "B6"
+#define F7_MICRO_V2_C6_PIN_NAME  "C6"
+#define F7_MICRO_V2_C7_PIN_NAME  "C7"
+#define F7_MICRO_V2_C9_PIN_NAME  "C9"
+#define F7_MICRO_V2_B14_PIN_NAME "B14"
+#define F7_MICRO_V2_B15_PIN_NAME "B15"
+#define F7_MICRO_V2_B12_PIN_NAME "B12"
+#define F7_MICRO_V2_G12_PIN_NAME "G12"
 
 //  Correspondent MCU pin names for F7FeatherV2
-#define F7_MICRO_V2_A00_PIN GPIO_PORTA | GPIO_PIN4
-#define F7_MICRO_V2_A01_PIN GPIO_PORTA | GPIO_PIN5
-#define F7_MICRO_V2_A02_PIN GPIO_PORTA | GPIO_PIN3
-#define F7_MICRO_V2_A03_PIN GPIO_PORTB | GPIO_PIN0
-#define F7_MICRO_V2_A04_PIN GPIO_PORTB | GPIO_PIN1
-#define F7_MICRO_V2_A05_PIN GPIO_PORTC | GPIO_PIN0
-#define F7_MICRO_V2_D00_PIN GPIO_PORTI | GPIO_PIN9
-#define F7_MICRO_V2_D01_PIN GPIO_PORTH | GPIO_PIN13
-#define F7_MICRO_V2_D02_PIN GPIO_PORTH | GPIO_PIN10
-#define F7_MICRO_V2_D03_PIN GPIO_PORTB | GPIO_PIN8
-#define F7_MICRO_V2_D04_PIN GPIO_PORTB | GPIO_PIN9
-#define F7_MICRO_V2_D05_PIN GPIO_PORTB | GPIO_PIN4
-#define F7_MICRO_V2_D06_PIN GPIO_PORTB | GPIO_PIN13
-#define F7_MICRO_V2_D07_PIN GPIO_PORTB | GPIO_PIN7
-#define F7_MICRO_V2_D08_PIN GPIO_PORTB | GPIO_PIN6
-#define F7_MICRO_V2_D09_PIN GPIO_PORTC | GPIO_PIN6
-#define F7_MICRO_V2_D10_PIN GPIO_PORTC | GPIO_PIN7
-#define F7_MICRO_V2_D11_PIN GPIO_PORTC | GPIO_PIN9
-#define F7_MICRO_V2_D12_PIN GPIO_PORTB | GPIO_PIN14
-#define F7_MICRO_V2_D13_PIN GPIO_PORTB | GPIO_PIN15
-#define F7_MICRO_V2_D14_PIN GPIO_PORTB | GPIO_PIN12
-#define F7_MICRO_V2_D15_PIN GPIO_PORTG | GPIO_PIN12
+#define F7_MICRO_V2_A4_PIN  GPIO_PORTA | GPIO_PIN4
+#define F7_MICRO_V2_A5_PIN  GPIO_PORTA | GPIO_PIN5
+#define F7_MICRO_V2_A3_PIN  GPIO_PORTA | GPIO_PIN3
+#define F7_MICRO_V2_B0_PIN  GPIO_PORTB | GPIO_PIN0
+#define F7_MICRO_V2_B1_PIN  GPIO_PORTB | GPIO_PIN1
+#define F7_MICRO_V2_C0_PIN  GPIO_PORTC | GPIO_PIN0
+#define F7_MICRO_V2_I9_PIN  GPIO_PORTI | GPIO_PIN9
+#define F7_MICRO_V2_H13_PIN GPIO_PORTH | GPIO_PIN13
+#define F7_MICRO_V2_H10_PIN GPIO_PORTH | GPIO_PIN10
+#define F7_MICRO_V2_B8_PIN  GPIO_PORTB | GPIO_PIN8
+#define F7_MICRO_V2_B9_PIN  GPIO_PORTB | GPIO_PIN9
+#define F7_MICRO_V2_B4_PIN  GPIO_PORTB | GPIO_PIN4
+#define F7_MICRO_V2_B13_PIN GPIO_PORTB | GPIO_PIN13
+#define F7_MICRO_V2_B7_PIN  GPIO_PORTB | GPIO_PIN7
+#define F7_MICRO_V2_B6_PIN  GPIO_PORTB | GPIO_PIN6
+#define F7_MICRO_V2_C6_PIN  GPIO_PORTC | GPIO_PIN6
+#define F7_MICRO_V2_C7_PIN  GPIO_PORTC | GPIO_PIN7
+#define F7_MICRO_V2_C9_PIN  GPIO_PORTC | GPIO_PIN9
+#define F7_MICRO_V2_B14_PIN GPIO_PORTB | GPIO_PIN14
+#define F7_MICRO_V2_B15_PIN GPIO_PORTB | GPIO_PIN15
+#define F7_MICRO_V2_B12_PIN GPIO_PORTB | GPIO_PIN12
+#define F7_MICRO_V2_G12_PIN GPIO_PORTG | GPIO_PIN12
+
+//==================================================
+//  Fault handler bit definitions.
+
+/**
+ * @brief Meadow OS Component has errored
+ */
+#define FAULT_LOGGING_COMPONENT_ERRORED         (1 << 0)
+
+/**
+ * @brief Meadow OS Component has started phase 1 logging.
+ */
+#define FAULT_LOGGING_PHASE1_STARTED            (1 << 1)
+
+/**
+ * @brief Meadow OS Component has completed phase 1 logging.
+ */
+#define FAULT_LOGGING_PHASE1_COMPLETED          (1 << 2)
+
+/**
+ * @brief Meadow OS Component has started phase 2 logging.
+ */
+#define FAULT_LOGGING_PHASE2_STARTED            (1 << 3)
+
+/**
+ * @brief Meadow OS Component has completed phase 2 logging.
+ */
+#define FAULT_LOGGING_PHASE2_COMPLETED          (1 << 4)
+
+/**
+ * @brief Number of bits to shift the OS component fault logging flags in the status register.
+ */
+#define FAULT_LOGGING_OS_BIT_SHIFT              0
+
+/**
+ * @brief Number of bits to shift the runtime component fault logging flags in the status register.
+ */
+#define FAULT_LOGGING_RT_BIT_SHIFT              8
+
+/**
+ * @brief Meadow OS Component has errored
+ */
+#define FAULT_LOGGING_OS_COMPONENT_ERRORED      (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_OS_BIT_SHIFT)
+
+/**
+ * @brief Meadow OS Component has started phase 1 logging.
+ */
+#define FAULT_LOGGING_OS_PHASE1_STARTED         (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
+
+/**
+ * @brief Meadow OS Component has completed phase 1 logging.
+ */
+#define FAULT_LOGGING_OS_PHASE1_COMPLETED       (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
+
+/**
+ * @brief Meadow OS Component has started phase 2 logging.
+ */
+#define FAULT_LOGGING_OS_PHASE2_STARTED         (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
+
+/**
+ * @brief Meadow OS Component has completed phase 2 logging.
+ */
+#define FAULT_LOGGING_OS_PHASE2_COMPLETED       (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
+
+/**
+ * @brief Meadow RT Component has errored
+ */
+#define FAULT_LOGGING_RT_COMPONENT_ERRORED      (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_RT_BIT_SHIFT)
+
+/**
+ * @brief Meadow RT Component has started phase 1 logging.
+ */
+#define FAULT_LOGGING_RT_PHASE1_STARTED         (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
+
+/**
+ * @brief Meadow RT Component has completed phase 1 logging.
+ */
+#define FAULT_LOGGING_RT_PHASE1_COMPLETED       (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
+
+/**
+ * @brief Meadow RT Component has started phase 2 logging.
+ */
+#define FAULT_LOGGING_RT_PHASE2_STARTED         (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
+
+/**
+ * @brief Meadow RT Component has completed phase 2 logging.
+ */
+#define FAULT_LOGGING_RT_PHASE2_COMPLETED       (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
+
+/**
+ * @brief File creation error (RT has tried to create a log file but failed).
+ */
+#define FAULT_LOGGING_RT_FILE_ERROR             ((1 << 5) << FAULT_LOGGING_RT_BIT_SHIFT)
 
 //==================================================
 //  Structure to hold cell network interface information
@@ -323,6 +436,11 @@ struct meadow_network_interface_s
   uint32_t gateway;
 
   /**
+   *  @brief DNS address.
+   */
+  uint32_t dns_address;
+
+  /**
    *  @brief Changing default gateway?
    */
   bool gateway_changed;
@@ -423,6 +541,33 @@ struct meadow_version_number_s
 };
 typedef struct meadow_version_number_s meadow_version_number_t;
 
+/**
+ * @brief Where should the ESP log messages be sent?
+ */
+typedef enum esp_log_destination_e
+{
+  esp_log_destination_none = 0,
+  esp_log_destination_uart = 1,
+  esp_log_destination_jtag = 2,
+  esp_log_destination_udp = 3,
+} esp_log_destination_t;
+
+/**
+ * @brief Table to hold the names of the log destinations along with the enum value.
+ */
+typedef struct meadow_log_destinations_s
+{
+  /**
+   * @brief Name of the log destination.
+   */
+  char *name;
+
+  /**
+   * @brief Value of the log destination.
+   */
+  esp_log_destination_t destination;
+} meadow_log_destinations_t;
+
 //  Structure to hold the configuration of the Meadow board.
 struct meadow_configuration_s
 {
@@ -463,6 +608,11 @@ struct meadow_configuration_s
    *  @brief Should profiler output be diverted to UART1?
    */
   uint8_t use_uart1_for_profiling;
+
+  /**
+   * @brief Copy the managed application output to UART (COM1) ?
+   */
+  uint8_t copy_application_output_to_uart;
 
   /**
    *  @brief Clock speed of the SPI interface between the STM32 and the ESP32.
@@ -579,6 +729,21 @@ struct meadow_configuration_s
    *  @brief Automatically reconnect to the preconfigured access point?
    */
   uint8_t automatically_reconnect;
+
+  /**
+   * @brief Which components should generate log messages?
+   */
+  char *esp_log_components;
+
+  /**
+   * @brief Where should any ESP log messages be sent?
+   */
+  esp_log_destination_t esp_log_destination;
+
+  /**
+   * @brief UDP port to send ESP32 messages to when UDP logging is active.
+   */
+  uint32_t esp_log_udp_port;
 
   /**
    * @brief MAC address of the board. 
@@ -730,12 +895,12 @@ typedef struct mono_signature_s mono_signature_t;
 //
 //  Default interface name used to communicate with the cell module.
 //
-#define DEFAULT_CELL_INTERFACE "/dev/ttyS1"
+#define DEFAULT_CELL_INTERFACE "/dev/ttyS0"
 
 //
 //  Default turn on pin used to activate the cell module.
 //
-#define DEFAULT_CELL_TURN_ON_PIN "D10"
+#define DEFAULT_CELL_TURN_ON_PIN "A3"
 
 //
 //  Default cell network operation mode
@@ -756,6 +921,23 @@ typedef struct mono_signature_s mono_signature_t;
 //  Default Cell PAP authentication password
 //
 #define DEFAULT_CELL_PAP_PASSWORD ""
+
+#define MEADOW_UART1_NAME "/dev/ttyS0"
+
+#define MEADOW_UART4_NAME "/dev/ttyS1"
+
+//
+//  Used to communicate with the ESP32.
+//
+#define MEADOW_UART5_NAME "/dev/ttyS2"
+
+#define MEADOW_UART6_NAME "/dev/ttyS3"
+
+#define MEADOW_COM1_NAME "COM1"
+
+#define MEADOW_COM4_NAME "COM4"
+
+#define MEADOW_COM6_NAME "COM6"
 
 //==================================================
 // These identify the stm32f7 uarts used by meadow
@@ -819,6 +1001,10 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // if you wish to have them compiled into Meadow
 #define HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD          0
 
+// The following will force Meadow into an infinite sleep/wake cycle.
+// It was intended to verify that Meadow.OS could Sleep/Wake without failing.
+#define HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER        0
+
 //-------------------------------------------------------------------
 // Include test code
 #define HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD      0
@@ -844,3 +1030,12 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        1
 
 #endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/**
+ * @brief Should we copy the application output to the UART (COM1)?
+ */
+extern bool g_copy_application_output_to_uart;

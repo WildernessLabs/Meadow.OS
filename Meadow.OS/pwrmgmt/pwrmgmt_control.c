@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_control.c
  * 
- *   Copyright (C) 2022-2023 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2022-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@
 // Note: Nuttx has it's own power management implementation but after studying
 // it, I decided to not use it because it made some assumptions about behavior
 // that I thought were not in line with how Meadow was to operate. That said
-// I did use the Nuttx implemention for "inspirition". Peter Moody 25Mar22
+// I did use the Nuttx implementation for "inspiration". Peter Moody 25Mar22
 
 /****************************************************************************
  * Included Files
@@ -83,19 +83,23 @@
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
+// #pragma message "(--) pwrmgmt_control.c"
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
+#define PWR_MGMT_MAX_CALLBACKS_AVAILABLE (6)
+
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-
 static char *thisFile = __FILE__;
-static uint32_t _rgbLedState;
+static bool _firstTime = true;
+
+static sem_t _lowPwrCtrlEntry;
 
 // Space for n callbacks for notification of entering low-power mode
-#define PWR_MGMT_MAX_CALLBACKS_AVAILABLE (6)
 static pwr_mgmt_notify_callback _regCallback[PWR_MGMT_MAX_CALLBACKS_AVAILABLE];
 
 /************************************************************************************
@@ -110,14 +114,14 @@ static pwr_mgmt_notify_callback _regCallback[PWR_MGMT_MAX_CALLBACKS_AVAILABLE];
 // featured implementation. The number that can signup is fixed at build
 // time and there's no unsubscribe.
 // Possible future feature:
-// To allow a registered receipient to post-pone the entry into low-power
-// would require first telling each receipient of the pending change. Each
-// receipient can responds with yes or no. In either case the receipient is
+// To allow a registered recipient to postpone the entry into low-power
+// would require first telling each recipient of the pending change. Each
+// recipient can responds with yes or no. In either case the recipient is
 // responsible to prevent entry into a state where it will get busy.
 // If all respond yes, the low-power mode is entered immediately, by again
 // notifying each callback that low-power transition is happening now.
 // If one or more callbacks indicated that they were busy then entry into
-// the low-power state is post-poned and the caller is responsible to keep
+// the low-power state is postponed and the caller is responsible to keep
 // attempting to enter the low-power state until the busy situation passes.
 static int pwrmgmt_notify_registered_modules(bool lpStart)
 {
@@ -135,7 +139,7 @@ static int pwrmgmt_notify_registered_modules(bool lpStart)
 
     // syslog(2, "%s@%d-Notifying - callback:%p, %s\n", __FILE__, __LINE__, callback, lpStart ? "true" : "false");
 
-    // Notify registered receipient announcing what's about to happen
+    // Notify registered recipient announcing what's about to happen
     ret = callback(lpStart);
     if(ret < 0)
     {
@@ -149,17 +153,13 @@ static int pwrmgmt_notify_registered_modules(bool lpStart)
 }
 
 //===============================================================
-// This function controls the idle threads behavior by prevent it from calling
-// the WFI or WFE op codes until the stop-mode has completed. If this isn't
-// done, when the configuration for stop mode is incomplete the MCU can lock
-// up.
+// This function controls the idle threads behavior by preventing it from
+// using the WFI or WFE op codes until the stop-mode has completed. If this
+// isn't done, when the configuration for stop mode is incomplete the MCU can
+// lock up.
 static void pwrmgmt_idle_behavior_control(bool allowWaitOp)
 {
-  irqstate_t flags;
-
-  flags = enter_critical_section();
   up_idle_pwrmgmt_set_idle_behavior(allowWaitOp);
-  leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -224,15 +224,21 @@ int meadow_power_mgmt_initialize()
 // It contains the steps to put F7 into Stop mode and recover
 int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 {
-  int ret = OK;
+  int ret;
 
   MEADOW_TRACE_INFORMATION( "Received command to sleep for %d seconds\n",
           wakeupPeriod);
 
-  // It should not be possible to call this twice since in low-power mode the
-  // MCU isn't running.
+  // Only do this once
+  if(_firstTime)
+  {
+    _firstTime = false;
+    // Create semaphore to only allow single thread here
+    sem_init(&_lowPwrCtrlEntry, 0, 1);
+  }
 
-  if(wakeupPeriod == 0)
+  // Don't sleep for less than 2 seconds
+  if(wakeupPeriod < 2)
     return OK;
 
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
@@ -256,15 +262,24 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 #error "Select Low-Power timing scheme"
 #endif
 
-  // Notify CLI (if listening) of imminent low-power mode entry.
-  uint8_t hdrMsg[HCOM_PROTOCOL_HEADER_MSG_LENGTH];
-  HcomProtoTextMsg_t *msgHdrMsg = (HcomProtoTextMsg_t *)hdrMsg;
-  msgHdrMsg->stdHeader.rqstType = HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR;
-  msgHdrMsg->stdHeader.userData = 0;
-  msgHdrMsg->stdHeader.extraData = 0;
-  
-  ret = hcom_nx_host_send_std_msg_data(msgHdrMsg, HCOM_PROTOCOL_HEADER_MSG_LENGTH,
-            thisFile, __LINE__);
+  // Get the semaphore to insure only one caller at a time
+  do
+  {
+    ret = sem_trywait(&_lowPwrCtrlEntry);
+    if(ret == OK)
+      break;
+
+    if(errno == -EINTR)
+      continue;
+
+    return -EALREADY;    // Error exit
+
+  } while(true);
+
+  // This will route the message to app side and on to CLI.
+  char *lowPowerNext = "Entering low-power mode\n";
+  hcom_nx_route_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
+            lowPowerNext, strlen(lowPowerNext));
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error attempting to send msg to host, ret:%d\n",
@@ -280,6 +295,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(ret != OK)
   {
     // Some code module is busy.
+    sem_post(&_lowPwrCtrlEntry);
     return -EBUSY;
   }
 
@@ -295,20 +311,25 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
+
+    sem_post(&_lowPwrCtrlEntry);
     return ret;
   }
 
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-  // Configure Wakeup/Alarm hardware and stop period
+  // Configure Wakeup/Alarm hardware and stop period.
   // Using the RTC Alarm allows waking up at a future time. However, since
-  // there's no year or month comparison, only day of the month, this only
-  // allows, at most, a period of one month ahead. This has been limited
-  // to 28 days - 1 second so it is consistent and not different for each
-  // month.
+  // there's no year or month comparison available, only day of the month,
+  // this only allows, at most, a period of one month ahead. This has been
+  // limited to 28 days - 1 second so it is consistent and not different for
+  // each month.
   ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+
+    sem_post(&_lowPwrCtrlEntry);
+
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
     return ret;
@@ -316,11 +337,13 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
 #elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
   // Using the RTC Wakeup Timer allows setting a future time up to 0xffff seconds
-  // into the future ( a bit over 18 hours).
+  // into the future (a little over 18 hours).
   ret = pwrmgmt_config_rtc_timer_wakeup_seconds(wakeupPeriod);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+
+    sem_post(&_lowPwrCtrlEntry);
 
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
@@ -333,13 +356,17 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   //---------------------------------------------------------------------
   // Enter stop mode and wait for specified time to expire. Actually, not
-  // "waiting" but being in stop mode. This, call returns when the F7 has
-  // returned to normal operation.
+  // "waiting" but in stop mode. This call returns when the F7 has returned
+  // to normal operation.
+  // Note in this function we will leave the critical section just before
+  // entering low-power and reenter via ISR when time to wakeup.
   ret = pwrmgmt_enter_stop_mode();
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
     pwrmgmt_idle_behavior_control(true);
+
+    sem_post(&_lowPwrCtrlEntry);
     return ret;
   }
   
@@ -355,7 +382,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   // Notify concerned modules that low-power mode has ended. If a module has
   // a problem restarting it will be returned as an error, which will be output
-  // and ignored.
+  // and things will continue.
   ret = pwrmgmt_notify_registered_modules(false);
   if(ret < 0)
   {
@@ -366,6 +393,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   // operation.
   pwrmgmt_idle_behavior_control(true);
 
+  // Can now be reentered 
+    sem_post(&_lowPwrCtrlEntry);
   return ret;
 }
 

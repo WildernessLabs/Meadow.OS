@@ -266,7 +266,6 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
 int hcom_mono_ctrl_mono_main_setup(void);
 bool hcom_mono_ctrl_is_mono_enabled(void);
 int hcom_mono_ctrl_start_mono_main(void);
-int hcom_pppd_start(void);
 int meadow_cell_scanner(char *response);
 int hcom_mono_ctrl_mono_appears_to_be_running(void);
 void hcom_mono_ctrl_disable_mono(uint32_t userData);
@@ -340,13 +339,10 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16]);
 void hcom_via_nx_restore_uart_reconfig(uint32_t uartId);
 uint32_t hcom_via_nx_get_hw_version(void);
 uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd);
-int hcom_via_nx_esp32_enter_prog_mode(void);
 void hcom_via_nx_mono_has_started(void);
 size_t hcom_via_nx_provide_cli_trace_transport(char *buff, size_t bufLen);
 size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
         char *buff, size_t bufLen);
-int hcom_via_nx_esp32_restart_esp32(void);
-int hcom_via_nx_start_espcp_running(void);
 void hcom_via_nx_diag_fd_inode(int fd);
 void hcom_via_nx_diag_fd_inode_read(int fd, struct inode **inodeOut);
 int hcom_via_nx_execute_espcp_tests(uint32_t);
@@ -364,10 +360,7 @@ int hcom_via_nx_update_OS2(void);
 int hcom_nx_exec_ex_update_ESP32(void);
 int hcom_via_nx_get_update_state(uint8_t flag);
 int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state);
-int hcom_via_nx_register_host_msg_send_callback(send_host_std_msg_data hostCallback);
-#if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
 int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback);
-#endif
 
 // -----------------------------------------------
 // Methods found in meadow_utils.c
@@ -446,6 +439,11 @@ void diag_misc_tests_overload_mcu(uint32_t userData);
 void diag_ethernet_chat_server(uint32_t userData);
 
 void tensorflow_tests_hello_world(uint32_t userData);
+void meadow_os_userspace_assert_test(uint32_t userData);
+void meadow_os_userspace_board_reset_test(uint32_t userdata);
+void meadow_bbd_write_read_test(uint32_t userdata);
+void meadow_bbd_write_and_reset_test(uint32_t userdata);
+void meadow_bbd_read_after_reset_test(uint32_t userdata);
 
 // This macro calls a function adding file and line info. I kept the entire
 // macro on a single line to reduce line number confusion. The ## is needed

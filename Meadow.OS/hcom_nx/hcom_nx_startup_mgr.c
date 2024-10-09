@@ -47,6 +47,9 @@
 
 #include "stm32f777zit6-meadow.h"
 #include "hcom_nx_config_manager.h"
+#include <meadow/hcom_bbreg_defn.h>
+#include <meadow/meadow_os.h>
+#include <meadow/meadow_os_fault_handling.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>
@@ -132,6 +135,21 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
   //
+  //  The bootloader will have put the reset reason into BBR30 for us.
+  //
+  meadow_os_reset_update_counters();
+  syslog(1, "Meadow reset code: 0x%02x, reset count: %d, power cycle count %d\n", meadow_os_reset_reason(),
+            meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
+
+  //
+  //  We need to perform early initialisation of the ESP system to put
+  //  message queues for any error handling in place.  It needs to be
+  //  performed before the configuration file is read incase the config
+  //  file contains errors that need to be reported to core.
+  //
+  espcp_early_init();
+
+  //
   //  Initialise the configuration system.
   //
   hcom_nx_config_init();
@@ -158,6 +176,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false, (config->use_uart1_for_profiling ? true : false));
   hcom_nx_config_unlock();
 
+  meadow_os_fault_handler_check_fault_code();
+
   //
   //  Set the system clock to the OS build time to help with SSL.
   //
@@ -171,36 +191,12 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+  syslog(2,  "hcom_nx_setup_mgr 1c\n"); usleep(5 * 1000);
 #endif
 
-
-/* Rebase ESP Note: Do ESP32 configuration and execution after STM32F7
-  if (reset_esp32)
-  {
-    ret = espcp_init();
-    if (ret != OK)
-    {
-      syslog(LOG_EMERG, "ERROR: ESP32 initialization failed:%d\n", ret);
-      return ret;
-    }
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 8\n"); usleep(5 * 1000);
-#endif
-
-    ret = espcp_enter_run_mode();
-    if (ret != OK)
-    {
-      syslog(LOG_EMERG, "ERROR: ESP32 enter run mode failed:%d\n", ret);
-      return ret;
-    }
-  }
-*/
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 9\n"); usleep(5 * 1000);
+#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+  syslog(2,  "hcom_nx_setup_mgr 2a\n"); usleep(5 * 1000);
 #endif
 
 // Rebase Note: This does nothing without ethernet
@@ -320,21 +316,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   hcom_nx_config_unlock();
 #endif
 
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 18\n"); usleep(5 * 1000);
-#endif
-
-  // Initialize sending HCOM messages to CLI from Nuttx side
-  ret = hcom_nx_host_send_setup();
-  if (ret != OK)
-  {
-    syslog(LOG_ERR,"ERROR: Failed to initialize host send:%d\n", ret);
-    return ret;
-  }
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 19\n"); usleep(5 * 1000);
-#endif
-
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && \
     defined(CONFIG_NETDEV_LATEINIT)
   if(meadow_hw_version_ethernet_supported())
@@ -427,8 +408,34 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
 #endif
 
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "-->hcom_nx_setup_mgr 22-Successful exit\n"); usleep(5 * 1000);
+  if (reset_esp32)
+  {
+    ret = espcp_late_init();
+    if (ret != OK)
+    {
+      syslog(LOG_EMERG, "ERROR: ESP32 initialization failed:%d\n", ret);
+      return ret;
+    }
+
+    ret = espcp_enter_run_mode();
+    if (ret != OK)
+    {
+      syslog(LOG_EMERG, "ERROR: ESP32 enter run mode failed:%d\n", ret);
+      return ret;
+    }
+  }
+
+#if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
+ret = pwmmgmt_test_sleep_wake_only_setup();
+if (ret < 0)
+{
+  syslog(LOG_ERR, "ERROR: Failed to initialize sleep/wake:%d\n", ret);
+  return ret;
+}
+#endif
+
+#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+  syslog(2,  "hcom_nx_setup_mgr 8-Successful exit\n"); usleep(5 * 1000);
 #endif
 
   return OK;

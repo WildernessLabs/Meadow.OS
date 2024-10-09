@@ -46,10 +46,15 @@
 #if defined (CONFIG_MEADOW_CLOUD)
 #include "ota/hcom_ota.h"
 #endif
+#include "cell/hcom_pppd.h"
+#include "misc/espcp_utils.h"
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
 #include "esp32/hcom_esp32_comms.h"
+#include "esp32/hcom_esp32_network_monitor.h"
 #endif
+
+#include <meadow/meadow_os.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -136,6 +141,21 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   // Special non-standard nuttx function required for signaling semaphores
   sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
 
+  //
+  //  We take a copy of the config and set and application global variables first
+  //  to make them available to the various components that need them.  Doing this
+  //  at startup saves having to make repeated calls to get the configuration from
+  //  the OS.
+  //
+  meadow_configuration_t *config = meadow_os_deep_copy_config();
+  if (config == NULL)
+  {
+    hcom_logging_syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+  g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
+  meadow_os_config_free_resources(config);
+
   // Allocates memory for moving reading ramlog. Nothing to wait for.
   ret = hcom_diag_logging_setup();
   if (ret < 0)
@@ -200,6 +220,12 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     hcom_logging_syslog(LOG_CRIT, "%s@%d-setup misc %d\n", thisFile, __LINE__, ret);
     return ret;
   }
+
+  //
+  //  Start the ESP UART network monitor thread and then reset the ESP32.
+  //
+  hcom_esp32_network_monitor_start();
+  meadow_os_espcp_reset();
 
   // Only sets a bool if CONFIG_SYSTEM_NSH set
   ret = hcom_diag_nsh_support_setup();
@@ -423,30 +449,30 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   syslog(2, "Startup Manager 23\n"); usleep(20 * 1000);
 #endif
 
-  // Start PPPD app needed by cell driver, when cell interface is enabled
-  /* FIXME: */
-  /*ret = hcom_pppd_start();
-  if (ret < 0)
-  {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
-  }*/
+  // Open ESP32 events message queue on user space side
+  espcp_open_esp32_events_message_queue();
 
   // Run system updaters, which apply any OS and filesystem updates that have been staged
-// [MAKE-IT-BUILD]
-// ??? EVEN WITH '#if defined (CONFIG_MEADOW_CLOUD)', linker still saw os_update etc.
-// NO CLEAN WAY TO TELL NUTTX THAT CONFIG_MEADOW_CLOUD IS NOT DEFINED
-// #if defined (CONFIG_MEADOW_CLOUD)
-//   os_update();
-//   app_update();
-//   firmware_update();
-// #endif
+  os_update();
+  app_update();
+  firmware_update();
 
-#ifdef CONFIG_EXAMPLES_MONO
-  hcom_mono_ctrl_start_mono_main();
+  // Last stop, start mono
+  int monoStartResult = hcom_mono_ctrl_start_mono_main();
+
+  // Start PPPD app needed by cell driver, when cell interface is enabled
+  // and Mono is running
+  if (monoStartResult == OK)
+  {
+    ret = hcom_pppd_start();
+    if (ret < 0)
+    {
+      hcom_logging_syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
+    }
+  }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 24\n"); usleep(20 * 1000);
-#endif
 #endif
 
   // This startup thread was created by Nuttx. It will now be used to run the

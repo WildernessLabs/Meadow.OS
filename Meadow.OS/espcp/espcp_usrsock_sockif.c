@@ -67,6 +67,7 @@
 
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
+#include <meadow/meadow_watchdog.h>
 
 /****************************************************************************
  * Definitions.
@@ -184,7 +185,26 @@ static sem_t _espcp_poll_requests_mutex;
  ****************************************************************************/
 static inline void espcp_lock_poll_requests_queue(void)
 {
-    sem_wait(&_espcp_poll_requests_mutex);
+    //
+    //  Ideally we would use the line below (commented out) but for now we will
+    //  use the block of code following this in order to see if we are getting an interrupt
+    //  signal when we are waiting for the semaphore.  This may be causing the poll
+    //  timeout issue.
+    //
+    // while ((sem_wait(&_espcp_poll_requests_mutex) != 0) && (get_errno() == EINTR));
+    while (sem_wait(&_espcp_poll_requests_mutex) != 0)
+    {
+        int error = get_errno();
+        if (error != EINTR)
+        {
+            syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", error);
+            break;
+        }
+        else
+        {
+            syslog(LOG_INFO, "Interrupted waiting for poll requests mutex, retrying mutex\n");
+        }
+    }
 }
 
 /****************************************************************************
@@ -739,8 +759,12 @@ int espcp_usrsock_close(struct socket *psock)
 {
     MEADOW_TRACE_INFORMATION("close(%d)\n", psock->s_esp32_sockfd);
 
+    struct wdog_s g_watchdog_close;
+    meadow_watchdog_activate(&g_watchdog_close, WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
+
     if (espcp_get_configuration()->esp_not_responding)
     {
+        meadow_watchdog_deactivate(&g_watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -751,6 +775,7 @@ int espcp_usrsock_close(struct socket *psock)
     espcp_close_request_t *request = (espcp_close_request_t *) zalloc(sizeof(espcp_close_request_t));
     if (request == NULL)
     {
+        meadow_watchdog_deactivate(&g_watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENOMEM\n");
         return(-ENOMEM);
     }
@@ -811,6 +836,7 @@ int espcp_usrsock_close(struct socket *psock)
     }
 
     espcp_delete_message_and_payload(message);
+    meadow_watchdog_deactivate(&g_watchdog_close);
 
     MEADOW_TRACE_INFORMATION("close - socket %d, result %d\n", psock->s_esp32_sockfd, result);
 
@@ -1579,7 +1605,7 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
     int result = 0;
 
     espcp_lock_poll_requests_queue();
-    espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests, 
+    espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_find_item(_espcp_poll_requests, 
                                                 (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
     espcp_unlock_poll_requests_queue();
 
@@ -1595,13 +1621,15 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
         espcp_poll_request_t *request = (espcp_poll_request_t *) zalloc(sizeof(espcp_poll_request_t));
         if (request == NULL)
         {
+            espcp_lock_poll_requests_queue();
+            gl_remove_item(_espcp_poll_requests, (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
             free(pr);
+            espcp_unlock_poll_requests_queue();
             return (-ENOMEM);
         }
         request->socket_handle = psock->s_esp32_sockfd;
         request->setup = 0;
         request->setup_message_id = pr->request_id;
-        free(pr);
 
         int payload_length = espcp_poll_request_buffer_size(request);
         uint8_t *payload = (uint8_t *) zalloc(payload_length);
@@ -1640,6 +1668,10 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
             }
         }
 
+        espcp_lock_poll_requests_queue();
+        gl_remove_item(_espcp_poll_requests, (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
+        free(pr);
+        espcp_unlock_poll_requests_queue();
         espcp_delete_message_and_payload(message);
     }
 
@@ -1668,12 +1700,13 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
     {
         request_id = ipr->setup_message_id;
         espcp_lock_poll_requests_queue();
-        espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests, 
+        espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_find_item(_espcp_poll_requests, 
                                                     request_id, espcp_usrsock_poll_request_compare_message_id);
         if (pr != NULL)
         {
-            MEADOW_TRACE_INFORMATION("poll interrupt handler - found orginating request %08x\n", request_id);
+            MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08x\n", request_id);
             pr->fd->revents = ipr->returned_events;
+            MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%hd revents=%hd\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
             //MEADOW.OS REBASE: Install poll callback!!!
             pr->fd->cb(pr->fd);
             free(pr);
@@ -1709,8 +1742,12 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
 {
     MEADOW_TRACE_INFORMATION("poll(%d, 0x%08x, %d)\n", psock->s_esp32_sockfd, (uint32_t) fds, setup ? 1 : 0);
 
+    struct wdog_s g_watchdog_poll;
+    meadow_watchdog_activate(&g_watchdog_poll, WATCHDOG_POLL_TIMEOUT_MILLISECONDS, POLL_WATCHDOG);
+
     if (espcp_get_configuration()->esp_not_responding)
     {
+        meadow_watchdog_deactivate(&g_watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -1725,6 +1762,8 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
         result = espcp_usrsock_poll_teardown(psock, fds);
         MEADOW_TRACE_INFORMATION("poll - teardown returned %d\n", result);
     }
+
+    meadow_watchdog_deactivate(&g_watchdog_poll);
     MEADOW_TRACE_INFORMATION("poll - socket %d, result %d\n", psock->s_esp32_sockfd, result);
 
     return (result);
@@ -1758,6 +1797,7 @@ ssize_t espcp_usrsock_recvfrom(struct socket *psock, void *buffer, size_t len,
                                int flags, struct sockaddr *from, socklen_t *fromlen)
 {
     MEADOW_TRACE_INFORMATION("recvfrom(%d, 0x%08x, %d, %d, 0x%08x, 0x%08x)\n", psock->s_esp32_sockfd, (uint32_t) buffer, len, flags, (uint32_t) from, (uint32_t) fromlen);
+
 
     if (espcp_get_configuration()->esp_not_responding)
     {
@@ -1794,7 +1834,7 @@ ssize_t espcp_usrsock_recvfrom(struct socket *psock, void *buffer, size_t len,
     espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
                                             espcp_wi_fi_function_recv_from, espcp_status_codes_completed_ok,
                                             espcp_get_next_message_id(), payload, payload_length);
-    int32_t result;
+    int32_t result = -1;
     if (message == NULL)
     {
         free(payload);
@@ -1860,7 +1900,7 @@ ssize_t espcp_usrsock_recvfrom(struct socket *psock, void *buffer, size_t len,
                     result = -ENOMEM;
                     break;
                 default:
-                    result = -1;
+                    // No need for a default action here as result is set to -1.
                     break;
             }
         }
@@ -1993,8 +2033,6 @@ ssize_t espcp_usrsock_sendto(struct socket *psock, const void *buffer,
                             espcp_integer_and_errno_response_t *response = espcp_extract_integer_and_errno_response(message->payload);
                             if (response == NULL)
                             {
-                                free(payload);
-                                free(message);
                                 result = -ENOMEM;
                             }
                             else
@@ -2719,9 +2757,12 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
 int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psock)
 {
     MEADOW_TRACE_INFORMATION("socket(%d, %d, %d, %d)\n", domain, type, protocol, psock->s_esp32_sockfd);
+    struct wdog_s g_watchdog_socket;
+    meadow_watchdog_activate(&g_watchdog_socket, WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS, SOCKET_WATCHDOG);
 
     if (espcp_get_configuration()->esp_not_responding)
     {
+        meadow_watchdog_deactivate(&g_watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -2731,6 +2772,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     espcp_socket_request_t *request = (espcp_socket_request_t *) zalloc(sizeof(espcp_socket_request_t));
     if (request == NULL)
     {
+        meadow_watchdog_deactivate(&g_watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENOMEM\n");
         return (-ENOMEM);
     }
@@ -2743,6 +2785,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     if (payload == NULL)
     {
         free(request);
+        meadow_watchdog_deactivate(&g_watchdog_socket);
         return (-ENOMEM);
     }
     espcp_encode_socket_request(request, payload);
@@ -2755,6 +2798,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     if (message == NULL)
     {
         free(payload);
+        meadow_watchdog_deactivate(&g_watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENOMEM\n");
         return (-ENOMEM);
     }
@@ -2799,6 +2843,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     }
 
     espcp_delete_message_and_payload(message);
+    meadow_watchdog_deactivate(&g_watchdog_socket);
 
     MEADOW_TRACE_INFORMATION("socket - socket %d, result %d\n", psock->s_esp32_sockfd, result);
 

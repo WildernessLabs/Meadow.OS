@@ -208,37 +208,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     is_mounted->isMounted = hcom_nx_fs_is_mounted(is_mounted->partitionId);
     return OK;
 
-#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  case HCOM_NX_UPD_ESP32_ENTER_PROG_MODE:
-    espcp_enter_programming_mode();
-    return OK;
-
-  case HCOM_NX_UPD_ESP32_RESTART_ESP32:
-    espcp_reset();
-    return OK;
-
-  case HCOM_NX_UPD_START_ESPCP_RUNNING:
-  {
-    // Start the ESP32 coprocessor.
-    ret = espcp_init();
-    if(ret != OK)
-    {
-      syslog(LOG_EMERG, "ERROR: ESP32 initialization failed:%d\n", ret);
-      return ret;
-    }
-
-    ret = espcp_enter_run_mode();
-    if(ret != OK)
-    {
-      syslog(LOG_EMERG, "ERROR: ESP32 enter run mode failed:%d\n", ret);
-      return ret;
-    }
-
-    //FIXME: usrsock_register_sockif(&g_usrsock_sockif_esp32);
-    return OK;
-  }
-#endif
-
   case HCOM_NX_UPD_MONO_HAS_STARTED:
 #if defined (CONFIG_RAMLOG_SYSLOG)
     return hcom_nx_trace_msg_mono_started();
@@ -254,8 +223,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #endif
     return OK;
 
-// At present (Sept 2021) The only use for this feature is with ethernet
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
   case HCOM_NX_UPD_HOST_TEXT_TRANSPORT:
     text_transport = (hcom_nx_upd_host_text_transport_t *)arg;
     text_transport->msg_length = hcom_nx_text_to_host_transport(
@@ -263,7 +230,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               text_transport->transport_buf,
               text_transport->buf_length);
     return OK;
-#endif
 
   case HCOM_NX_UPD_RESTORE_UART_CONFIG:
     return hcom_nx_restore_uart_reconfig(arg);
@@ -302,7 +268,9 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     rtcWakeupTime = (hcom_nx_upd_rtc_wakeup_time_t*)arg;
     ret = pwrmgmt_mono_cmd_time_wakeup_period(rtcWakeupTime->hdrMsg,
               rtcWakeupTime->msgLen);
-#endif
+#endif  // HCOM_INCLUDE_ISO8601_SUPPORT > 0
+
+#endif  // defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
   case HCOM_NX_UPD_UPDATE_OS1:
     // Stage a updated OS bin
@@ -313,7 +281,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     // Stage a updated external flash OS bin
     ret = hcom_nx_exec_ex_flash_OS_update_flash2();
     return ret;
-#endif
 
 // At present (Sept 2021) The only use for this feature is with ethernet
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
@@ -339,13 +306,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     }
     break;
 #endif
-
-  case HCOM_NX_UPD_HOST_SEND_MSG_CB:
-    {
-      send_host_std_msg_data *hostCallback = (send_host_std_msg_data*) arg;
-      return hcom_nx_host_send_set_send_callback(*hostCallback);
-    }
-    break;
 
   default:
     syslog(LOG_ERR, "%s@%d-unknown hcom nx upd command:%d\n", thisFile, __LINE__, cmd);
