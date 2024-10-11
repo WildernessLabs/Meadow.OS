@@ -71,8 +71,8 @@
 #include "hardware/stm32f76xx77xx_memorymap.h"
 
 // Need one line from here so that chip/stm32_otg.h will build
-#include "stm32_otg.h"
-#include "chip/stm32_otg.h"
+#define STM32_OTG_BASE        STM32_USBOTGFS_BASE
+#include "hardware/stm32_otg.h"
 
 #include "hardware/stm32f76xx77xx_pwr.h"
 #include "hardware/stm32_exti.h"

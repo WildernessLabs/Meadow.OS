@@ -45,8 +45,8 @@
 //
 //  Following two includes are needed for the battery backed register definitions.
 //
-#include "chip/stm32f76xx77xx_memorymap.h"
-#include "chip/stm32_rtcc.h"
+#include "hardware/stm32_memorymap.h"
+#include "hardware/stm32_rtcc.h"
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os_battery_backed_domain.h>

@@ -181,9 +181,15 @@ CSRCS += $(MEADOW_OS_DIR)/meadow_cloud/meadow_cloud.c
 endif
 
 #
-#	Add Meadow OS syscall implementations.
+#	Add Meadow OS methods.
 #
-CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_os_config.c
+CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_os_config.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_info.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_exceptions.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_fault_handling.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_battery_backed_domain.c
 
 endif
 endif # MEADOW_OS
