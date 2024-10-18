@@ -170,7 +170,9 @@ static void hcom_esp32_network_monitor_process_line(char *line)
     {
         if (strncmp(line, "+++", 3) == 0)
         {
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
             meadow_os_espcp_monitor_process_line(line);
+#endif
         }
         else
         {

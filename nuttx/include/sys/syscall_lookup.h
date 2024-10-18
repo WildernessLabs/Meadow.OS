@@ -402,12 +402,8 @@ SYSCALL_LOOKUP(meadow_os_bbd_register_set_value, 2)
 SYSCALL_LOOKUP(meadow_os_bbd_strdup_from_sram, 2)
 SYSCALL_LOOKUP(meadow_os_bbd_strdup_to_sram, 1)
 SYSCALL_LOOKUP(meadow_os_config_free_resources, 1)
-SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
 SYSCALL_LOOKUP(meadow_os_deep_copy_config, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
 SYSCALL_LOOKUP(meadow_os_get_gateway_address, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
 SYSCALL_LOOKUP(meadow_os_hardware_version, 0)
 SYSCALL_LOOKUP(meadow_os_native_protocol_version, 0)
 SYSCALL_LOOKUP(meadow_os_power_cycle_count, 0)
@@ -417,6 +413,13 @@ SYSCALL_LOOKUP(meadow_os_reset_reason, 0)
 SYSCALL_LOOKUP(stm32_configgpio, 1)
 SYSCALL_LOOKUP(stm32_gpiowrite, 2)
 SYSCALL_LOOKUP(stm32_unconfiggpio, 1)
+#endif
+
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
+SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
+SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
+SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
 #endif
 
 /* I/O event notification facility */

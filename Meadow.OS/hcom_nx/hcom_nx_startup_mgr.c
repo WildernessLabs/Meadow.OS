@@ -147,7 +147,9 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //  performed before the configuration file is read incase the config
   //  file contains errors that need to be reported to core.
   //
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   espcp_early_init();
+#endif
 
   //
   //  Initialise the configuration system.
@@ -408,6 +410,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
 #endif
 
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   if (reset_esp32)
   {
     ret = espcp_late_init();
@@ -424,6 +427,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
       return ret;
     }
   }
+#endif
 
 #if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
 ret = pwmmgmt_test_sleep_wake_only_setup();

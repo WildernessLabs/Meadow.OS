@@ -125,7 +125,9 @@ int hcom_esp32_util_init_comms_enter_boot_mode()
   hcom_esp32_recv_expect_command_type(Esp32CommandUndefined);
 
   // Reset the ESP32 and enter programming mode.
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   meadow_os_espcp_enter_programming_mode();
+#endif
   _connectionActive = false;
 
   // The esp will send text for about 1.1 seconds so we'll just wait
@@ -236,7 +238,9 @@ void hcom_esp32_util_restart_esp32(uint32_t userData)
   }
 
   // Restart the ESP32 via GPIO lines
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   meadow_os_espcp_reset();
+#endif
 
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "ESP32 has been restarted");
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
@@ -320,8 +324,9 @@ void hcom_esp32_util_read_esp32_mac(uint32_t userData)
           macAddr, thisFile, __LINE__);
 
   // Restart the ESP32 via GPIO lines
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   meadow_os_espcp_reset();
-
+#endif
   hcom_esp32_stop_and_prep_for_restart();
 }
 

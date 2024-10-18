@@ -153,7 +153,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     hcom_logging_syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", thisFile, __LINE__);
     return -ENOMEM;
   }
+  #if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
   g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
+  #endif
   meadow_os_config_free_resources(config);
 
   // Allocates memory for moving reading ramlog. Nothing to wait for.
@@ -225,7 +227,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   //  Start the ESP UART network monitor thread and then reset the ESP32.
   //
   hcom_esp32_network_monitor_start();
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   meadow_os_espcp_reset();
+#endif
 
   // Only sets a bool if CONFIG_SYSTEM_NSH set
   ret = hcom_diag_nsh_support_setup();
