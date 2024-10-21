@@ -65,12 +65,10 @@
 
 static void espcp_network_connected_event_handler(espcp_message_t *message);
 static void espcp_network_disconnected_event_handler(espcp_message_t *message);
+static void espcp_network_got_ip_event_handler(espcp_message_t *);
 
 static void espcp_system_get_configuration_event_handler(espcp_message_t *);
 static void espcp_system_error_event_handler(espcp_message_t *);
-
-static void espcp_pass_to_managed_event_handler(espcp_message_t *);
-
 
 /****************************************************************************
  * Private Data
@@ -84,6 +82,7 @@ static espcp_event_handlers_t _wifi_handlers[] =
     { espcp_wi_fi_function_interrupt_poll_response, espcp_usrsock_poll_interrupt_handler },
     { espcp_wi_fi_function_network_connected_event, espcp_network_connected_event_handler },
     { espcp_wi_fi_function_network_disconnected_event, espcp_network_disconnected_event_handler },
+    { espcp_wi_fi_function_network_got_ip_event, espcp_network_got_ip_event_handler},
     { END_OF_HANDLERS_VALUE, NULL }
 };
 
@@ -368,8 +367,6 @@ espcp_message_t *espcp_get_event_data(uint32_t message_id)
  ****************************************************************************/
 void espcp_dispatch_event(espcp_message_t *message)
 {
-    MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
-
     if (message != NULL)
     {
         espcp_event_handlers_t *handler = NULL;
@@ -418,8 +415,6 @@ void espcp_dispatch_event(espcp_message_t *message)
             }
         }
     }
-
-    MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
 }
 
 /****************************************************************************
@@ -444,6 +439,7 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
     {
         if ((message->payload_length > 0) && (message->payload != NULL))
         {
+            meadow_configuration_t *config;
             espcp_system_configuration_t *esp_config = espcp_extract_system_configuration(message->payload);
             if (esp_config != NULL)
             {
@@ -452,19 +448,45 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
                 free(esp_config);
                 hcom_nx_config_process_wifi_credentials_file();
                 hcom_nx_config_lock();
-                meadow_configuration_t *config = hcom_nx_config_get_pointer();
-                syslog(LOG_INFO, "ESP32 Coprocessor ready, firmware version %s\n", config->esp_version.long_string);
-                // bool start = (config->automatically_start_network == 1) && (config->default_access_point != NULL);
+                config = hcom_nx_config_get_pointer();
+                syslog(LOG_INFO, "ESP32 Coprocessor ready, firmware version %s\n", config->esp_version.long_string); 
                 hcom_nx_config_unlock();
-                //
-                //  The above comment (start) and the code below is commented out as the automatic network start
-                //  control has now passed to Core.
-                //
-                // if (start)
-                // {
-                //     espcp_queue_add_nonblocking_message(espcp_message_types_header, espcp_esp32_interfaces_wi_fi, 
-                //                                         espcp_wi_fi_function_connect_to_default_access_point, NULL, 0);
-                // }
+            }
+            //
+            //  Send logging configuration to the ESP32.
+            //
+            hcom_nx_config_lock();
+            config = hcom_nx_config_get_pointer();
+            espcp_logging_configuration_t logging_config;
+            logging_config.interface = config->esp_log_destination;
+            logging_config.udp_port = config->esp_log_udp_port;
+            //
+            //  Note that we do not need to strdup the string as it will be copied
+            //  when the payload is encoded.  Also, the config is still locked at
+            //  this point.
+            //
+            logging_config.components_to_log = config->esp_log_components;
+            int payload_length = espcp_encoded_logging_configuration_buffer_size(&logging_config);
+            uint8_t *payload = (uint8_t *) zalloc(payload_length);
+            if (payload != NULL)
+            {
+                espcp_encode_logging_configuration(&logging_config, payload);
+            }
+            hcom_nx_config_unlock();
+
+            if (payload != NULL)
+            {
+                espcp_message_t *logging_configuration_message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
+                                                       espcp_system_function_logging_configuration, espcp_status_codes_completed_ok,
+                                                       espcp_get_next_message_id(), payload, payload_length);
+                if (logging_configuration_message != NULL)
+                {
+                    espcp_queue_message(logging_configuration_message, false);
+                }
+                else
+                {
+                    free(payload);
+                }
             }
         }
     }
@@ -524,32 +546,20 @@ static void espcp_network_connected_event_handler(espcp_message_t *message)
     if (message->status_code == espcp_status_codes_completed_ok)
     {
         bool get_time;
-        // if (message->payload != NULL)
-        // {
-        //     espcp_connect_event_data_t *connect_data = espcp_extract_connect_event_data(message->payload);
-        //     espcp_config_lock();
-        //     espcp_configuration_t *esp_config = espcp_get_configuration();
-        //     if (esp_config->default_gateway != connect_data->gateway)
-        //     {
-        //         struct in_addr inaddr = { };
-        //         inaddr.s_addr = connect_data->gateway;
-        //         if (meadow_eth_utils_set_dns(&inaddr) == 0)
-        //         {
-        //             esp_config->default_gateway = connect_data->gateway;
-        //         }
-        //     }
-        //     espcp_config_unlock();
-        // }
+
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
         get_time = config->get_network_time_at_startup;
-        hcom_nx_config_unlock();
 
         if (message->payload != NULL)
         {
             espcp_connect_event_data_t *connect_data = espcp_extract_connect_event_data(message->payload);
             hcom_nx_config_add_default_gateway_dns_file(config, connect_data->gateway);
+            hcom_nx_config_update_network_interface(config, connect_data->ip_address,
+                                                    connect_data->gateway,
+                                                    connect_data->subnet_mask);
         }
+        hcom_nx_config_unlock();
 
         if (get_time)
         {
@@ -582,6 +592,8 @@ static void espcp_network_disconnected_event_handler(espcp_message_t *message)
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
         get_time = config->get_network_time_at_startup;
+        config->default_interface->gateway_changed = false;
+        hcom_nx_config_clear_network_interface(config);
         hcom_nx_config_unlock();
         if (get_time)
         {
@@ -612,6 +624,7 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
     if (hcom_nx_bbreg_is_bbr_bit_set(HCOM_BBREG_USER_RQST_MONO_ENABLE_BIT))
     {
         MEADOW_TRACE_INFORMATION("Mono is disabled, message for managed code will be deleted.\n");
+        MEADOW_TRACE_INFORMATION("Message interface: %d, function: %d, status code: %d\n", message->interface, message->function, message->status_code);
         delete_message = true;
     }
     else
@@ -622,7 +635,9 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
         eventData.function = message->function;
         eventData.status_code = message->status_code;
 
-        MEADOW_TRACE_INFORMATION("Interface: %d, function: %d, status code: %d\n", eventData.interface, eventData.function, eventData.status_code);
+        #if defined(USE_MEADOW_DEBUG_HELPERS)
+            espcp_dump_message(message);
+        #endif
 
         if (message->payload_length > 0)
         {
@@ -673,6 +688,38 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
     {
         espcp_delete_message_and_payload(message);
     }
+    MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
+}
 
+/****************************************************************************
+ * Name: espcp_network_got_ip_event_handler
+ *
+ * Description:
+ *   This event handler will be called when got IP address from an access point.
+ *
+ * Input Parameters:
+ *   message - Message from the ESP32 containing event data.
+ *
+ ****************************************************************************/
+static void espcp_network_got_ip_event_handler(espcp_message_t *message)
+{
+    MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
+    if (message->status_code == espcp_status_codes_completed_ok)
+    {
+        hcom_nx_config_lock();
+        meadow_configuration_t *config = hcom_nx_config_get_pointer();
+
+        if (message->payload != NULL)
+        {
+            espcp_got_ip_event_data_t *espcp_got_ip_data = espcp_extract_got_ip_event_data(message->payload);
+            if (config->default_interface->dns_address != espcp_got_ip_data->dns_address)
+            {
+                hcom_nx_config_update_dns_address(config, espcp_got_ip_data->dns_address);
+                hcom_nx_config_add_dns_address_into_file(espcp_got_ip_data->dns_address);
+            }
+        }
+        hcom_nx_config_unlock();
+    }
+    espcp_pass_to_managed_event_handler(message);
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
 }

@@ -59,7 +59,6 @@
 
 #include <nuttx/board.h>
 #include <nuttx/mm/mm.h>
-#include <nuttx/config.h>
 #include <limits.h>
 
 #include <nuttx/arch.h>
@@ -70,6 +69,7 @@
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_thread_config.h>
+#include <meadow/meadow_os_persistent_data.h>
 
 // #include "../../bootloader/Core/Inc/ota_data.h"
 
@@ -139,6 +139,10 @@ extern "C"
 // This #define may not control all ISO-8601 code, as maybe it should
 #define HCOM_INCLUDE_ISO8601_SUPPORT 0
 
+// This define controls if the way the external flash chip is divided for
+// Meadow is shown at startup.
+#define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (1)
+
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
@@ -159,12 +163,6 @@ extern "C"
   // HCOM command handling
   int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
 
-  // Allows Nuttx side to send std messages to host (e.g CLI).
-  int hcom_nx_host_send_setup(void);
-  int hcom_nx_host_send_set_send_callback(send_host_std_msg_data hostCallback);
-  int hcom_nx_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
-          size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
-
   // External flash
   int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd);
   int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmd_data);
@@ -174,9 +172,19 @@ extern "C"
   int hcom_nx_exec_ex_flash_OS_update_flash1(void);
   int hcom_nx_exec_ex_flash_OS_update_flash2(void);
   uint32_t hcom_nx_exec_ex_flash_get_block_size(void);
+  int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *);
   int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destinationAddress);
+  int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, off_t offset);
   int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock, void *destinationAddress, uint32_t numberOfBlocks);
-  
+  int hcom_nx_exec_ex_flash_read_persistent_data(meadow_os_persistent_data_t *data);
+  int hcom_nx_exec_ex_flash_write_persistent_data(meadow_os_persistent_data_t *data);
+  uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
+  int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
+  int hcom_nx_exec_ex_flash_read_assertion_data(const char *data);
+  #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
+  void hcom_nx_exec_ex_flash_syslog_external_flash_regions(void);
+  #endif
+
   // Syslog tracing
   int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData);
   int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData);
@@ -211,7 +219,7 @@ int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
   // Public functions to manage power management
   int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
   int pwrmgmt_most_recent_wakeup_reason(void);
-  int pwrmgmt_exit_stop_mode(bool gpioWakeup);
+  int pwrmgmt_isr_gpio_wakeup_code(void);
 
   // Power Management Real-time clock hardware available to mono
   int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg, size_t packetSize);
@@ -258,6 +266,10 @@ uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
 int hcom_nx_diagnostic_app_execute(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t msgLen);
 int meadow_idle_monitor_setup(void);
+
+#if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
+int pwmmgmt_test_sleep_wake_only_setup(void);
+#endif
 
   // Diagnostics
 #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0

@@ -37,9 +37,9 @@ CFLAGS += -I "$(TOPDIR)/../mbedtls/include"
 HCOM_DIR = ../../../hcom/
 ASRCS =
 HCOM_SRCS = comms/hcom_host_encode.c \
+	comms/hcom_host_receive.c \
 	comms/hcom_host_enq_deq.c \
 	comms/hcom_host_preprocess.c \
-	comms/hcom_host_receive.c \
 	comms/hcom_host_route.c \
 	comms/hcom_host_send.c \
 	comms/hcom_host_watchdog.c \
@@ -71,10 +71,15 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	nx_rqsts/hcom_via_nx_access.c \
 	tests/bbreg_tests.c \
 	tests/developer_tests.c \
+	tests/hcom_dir_mgmt_tests.c \
 	tests/vs_debug_tests.c \
 	tests/diag_gpio_tests.c \
 	tests/diag_misc_tests.c \
-	tests/diag_ethernet_chat_test.c
+	tests/diag_ethernet_chat_test.c \
+	tests/tensorflow_tests.c \
+	tests/meadow_os_userspace_tests.c \
+	tests/meadow_bbd_tests.c \
+	misc/espcp_utils.c
 
 ifeq ($(CONFIG_MEADOW_CLOUD),y)
  HCOM_SRCS += ota/hcom_ota.c
@@ -85,7 +90,8 @@ ifeq ($(CONFIG_HCOM_ESP32_COMMS),y)
  esp32/hcom_esp32_proc_recv.c \
  esp32/hcom_esp32_proc_util.c \
  esp32/hcom_esp32_proc_xmit.c \
- esp32/hcom_esp32_uart_comms.c
+ esp32/hcom_esp32_uart_comms.c \
+ esp32/hcom_esp32_network_monitor.c
 endif
 
 MAINSRC = hcom_startup_manager.c

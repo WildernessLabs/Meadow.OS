@@ -10,8 +10,8 @@ rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase whi
 # This is where each of the 3 repo can be found
 # rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/"
 
-previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/v1.2/"
-ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/v1.9/"
+previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/older/"
+ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/newer/"
 
 # Location of CSV file named 'MergeListData.csv'
 csvListDataPath = "/Users/lexas/upgrade-rebased-Meadow.OS/dirTextFiles/"
