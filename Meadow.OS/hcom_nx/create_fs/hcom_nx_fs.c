@@ -140,7 +140,7 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 {
   int ret;
-
+  
   _pagesPerEraSector = 0;
 
   for(int i = 0; i < MEADOW_FS_PARTITION_TOTAL_COUNT; i++)
@@ -382,12 +382,27 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   // Create a mtd object for each partition
   _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
-  uint32_t totalBytesInExtFlash = meadow_hw_version_flash_size();
-  uint32_t primaryPartSize = totalBytesInExtFlash;
+  size_t nEraseBlocks = geo.neraseblocks;
+  nEraseBlocks -= (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / geo.erasesize);
+  int nPages = (nEraseBlocks / numberOfPartitions) * _pagesPerEraSector;
 
-  // Since the space available for the primary partition is the total flash
-  // size minus all the smaller partitions, find value.
-  for (partitionId = 0; partitionId < MEADOW_FS_PARTITION_TOTAL_COUNT; partitionId++)
+  // Reserve some size in the flash for Mono raw partition.
+  int offsetInPages = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / geo.blocksize;
+
+  // Rebase Note: Adding the HCOM_NX_FS_OTA_RESERVED_SPACE (0x200000) causes
+  // the mtd_partition() call to fail because offsetInPages is larger that
+  // nPages, an illegal condition. In mtd_partition() the compare code
+  // if (eraseend > geo.neraseblocks) fails because "sub-region too big."
+  // With eraseend = 16896 and geo.neraseblocks = 16384.
+  //
+  // Removed the following
+  // -------------------------------
+  // Reserve some space in flash for OTA update images
+  // offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
+  //--------------------------------
+
+  // Create multiple mtd objects, one for each partition
+  for (partitionId = 0; partitionId < numberOfPartitions; partitionId++)
   {
     if(partitionId == MEADOW_FS_PARTITION_OF_FS)
       continue;   // Can't use partition of file system

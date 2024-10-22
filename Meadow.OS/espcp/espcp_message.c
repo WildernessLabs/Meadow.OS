@@ -252,7 +252,30 @@ static meadow_debug_mapping_t status_codes[] =
     { espcp_status_codes_connection_failed, "espcp_status_codes_connection_failed" },
     { espcp_status_codes_ap_tsf_reset, "espcp_status_codes_ap_tsf_reset" },
     { espcp_status_codes_unmapped_error_code, "espcp_status_codes_unmapped_error_code" },
-    { espcp_status_codes_unknown_configuration_item, "espcp_status_codes_unknown_configuration_item" }
+    { espcp_status_codes_unknown_configuration_item, "espcp_status_codes_unknown_configuration_item" },
+    { espcp_status_codes_cannot_start_access_point, "espcp_status_codes_cannot_start_access_point" },
+    { espcp_status_codes_dhcp_configuration_error, "espcp_status_codes_dhcp_configuration_error" },
+    { espcp_status_codes_access_point_not_started, "espcp_status_codes_access_point_not_started" },
+    { espcp_status_codes_access_point_already_started, "espcp_status_codes_access_point_already_started" },
+    { espcp_status_codes_not_implemented, "espcp_status_codes_not_implemented" },
+    { espcp_status_codes_file_not_found, "espcp_status_codes_file_not_found" },
+    { espcp_status_codes_thread_pool_is_full, "espcp_status_codes_thread_pool_is_full" },
+    { espcp_status_codes_unexpected_coprocessor_restart, "espcp_status_codes_unexpected_coprocessor_restart" },
+    { espcp_status_codes_invalid_configuration_file, "espcp_status_codes_invalid_configuration_file" },
+    { espcp_status_codes_invalid_WiFi_configuration_file, "espcp_status_codes_invalid_WiFi_configuration_file" },
+    { espcp_status_codes_invalid_cell_configuration_file, "espcp_status_codes_invalid_cell_configuration_file" },
+    { espcp_status_codes_network_deadlock, "espcp_status_codes_network_deadlock" },
+    { espcp_status_codes_esp_reset_unknown, "espcp_status_codes_esp_reset_unknown" },
+    { espcp_status_codes_esp_reset_power_on, "espcp_status_codes_esp_reset_power_on" },
+    { espcp_status_codes_esp_reset_external_gpio, "espcp_status_codes_esp_reset_external_gpio"}, 
+    { espcp_status_codes_esp_reset_software, "espcp_status_codes_esp_reset_software" },
+    { espcp_status_codes_esp_reset_panic, "espcp_status_codes_esp_reset_panic" },
+    { espcp_status_codes_esp_reset_interrupt_watchdog, "espcp_status_codes_esp_reset_interrupt_watchdog" },
+    { espcp_status_codes_esp_reset_task_watchdog, "espcp_status_codes_esp_reset_task_watchdog" },
+    { espcp_status_codes_esp_reset_other_watchdog, "espcp_status_codes_esp_reset_other_watchdog" },
+    { espcp_status_codes_esp_reset_deep_sleep, "espcp_status_codes_esp_reset_deep_sleep" },
+    { espcp_status_codes_esp_reset_brownout, "espcp_status_codes_esp_reset_brownout" },
+    { espcp_status_codes_esp_reset_sdio, "espcp_status_codes_esp_reset_sdio" },
 };
 
 /**
@@ -265,7 +288,8 @@ static meadow_debug_mapping_t interfaces[] =
     { espcp_esp32_interfaces_blue_tooth, "espcp_esp32_interfaces_blue_tooth" },
     { espcp_esp32_interfaces_mesh_network, "espcp_esp32_interfaces_mesh_network" },
     { espcp_esp32_interfaces_system, "espcp_esp32_interfaces_system" },
-    { espcp_esp32_interfaces_transport, "espcp_esp32_interfaces_transport" }
+    { espcp_esp32_interfaces_transport, "espcp_esp32_interfaces_transport" },
+    { espcp_esp32_interfaces_wired_ethernet, "espcp_esp32_interfaces_wired_ethernet" },
 };
 
 /**
@@ -308,7 +332,15 @@ static meadow_debug_mapping_t wifi_functions[] =
     { espcp_wi_fi_function_network_connected_event, "espcp_wi_fi_function_network_connected_event" },
     { espcp_wi_fi_function_network_disconnected_event, "espcp_wi_fi_function_network_disconnected_event" },
     { espcp_wi_fi_function_ntp_update_event, "espcp_wi_fi_function_ntp_update_event" },
-    { espcp_wi_fi_function_error_event, "espcp_wi_fi_function_error_event" }
+    { espcp_wi_fi_function_error_event, "espcp_wi_fi_function_error_event" },
+    { espcp_wi_fi_function_start_access_point, "espcp_wi_fi_function_start_access_point" },
+    { espcp_wi_fi_function_stop_access_point, "espcp_wi_fi_function_stop_access_point" },
+    { espcp_wi_fi_function_access_point_started_event, "espcp_wi_fi_function_access_point_started_event" },
+    { espcp_wi_fi_function_access_point_stopped_event, "espcp_wi_fi_function_access_point_stopped_event" },
+    { espcp_wi_fi_function_node_connected_event, "espcp_wi_fi_function_node_connected_event" },
+    { espcp_wi_fi_function_node_disconnected_event, "espcp_wi_fi_function_node_disconnected_event" },
+    { espcp_wi_fi_function_network_connection_retry_count_exceeded_event, "espcp_wi_fi_function_network_connection_retry_count_exceeded_event" },
+    { espcp_wi_fi_function_network_connecting_event, "espcp_wi_fi_function_network_connecting_event" },
 };
 
 /**
@@ -418,6 +450,7 @@ void espcp_dump_message(espcp_message_t *message)
     uint32_t mapping_length = 0;
     switch (message->interface)
     {
+        case espcp_esp32_interfaces_wired_ethernet:
         case espcp_esp32_interfaces_wi_fi:
             mapping = wifi_functions;
             mapping_length = sizeof(wifi_functions);
@@ -443,4 +476,17 @@ void espcp_dump_message(espcp_message_t *message)
     MEADOW_TRACE_INFORMATION("************************************************************\n");
 }
 
-#endif
+#else
+
+/**
+ *  @brief Dump the given message to the debug output.
+ * 
+ * This is intentionally empty as the debug helpers are not enabled and is here to ensure that the system will link
+ * correctly if the debug helpers are not enabled in this file but are enabled elsewhere.
+ */
+void espcp_dump_message(espcp_message_t *message)
+{
+
+}
+
+#endif // USE_MEADOW_DEBUG_HELPERS

@@ -226,12 +226,9 @@ typedef struct hcom_nx_upd_host_send_cb_s
 #define HCOM_NX_UPD_CLI_COMMAND                 7
 #define HCOM_NX_UPD_GET_MCU_ID                  8
 #define HCOM_NX_UPD_IS_PART_MOUNTED             9
-#define HCOM_NX_UPD_ESP32_ENTER_PROG_MODE       10
 #define HCOM_NX_UPD_RESTORE_UART_CONFIG         11
-#define HCOM_NX_UPD_ESP32_RESTART_ESP32         12
 #define HCOM_NX_UPD_DIAG_FD_INODE               15
 #define HCOM_NX_UPD_GET_MCU_SER_NUMB            16
-#define HCOM_NX_UPD_START_ESPCP_RUNNING         17
 #define HCOM_NX_UPD_EXECUTE_ESPCP_TESTS         18
 #define HCOM_NX_UPD_ENTER_INTO_DFU_MODE         19
 #define HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU     20
@@ -252,7 +249,7 @@ typedef struct hcom_nx_upd_host_send_cb_s
 #define HCOM_NX_UPD_GET_UPDATE_FLAG             35
 #define HCOM_NX_UPD_SET_UPDATE_FLAG             36
 #define HCOM_NX_UPD_COPY_RUNTIME_TO_RAM         37
-#define HCOM_NX_UPD_HOST_SEND_MSG_CB            38
+// 38 has been deleted as it is no longer used.
 #define HCOM_NX_UPD_REG_PWR_MGMT_CB             39
 
 #endif  // __INCLUDE_MEADOW_HCOM_NX_SHARED__H

@@ -45,6 +45,7 @@
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>
+
 #include "../diag/hcom_diag_gpio.h"
 
 /****************************************************************************
@@ -160,7 +161,21 @@ static meadow_test_t _tests[] =
 #endif
 
   //
-  //  ESP tests 1000 - 1200
+  //  Meadow OS tests (900-999)
+  //
+  //  These are not NuttX tests, they are tests for Wilderness Labs specific features.
+  //
+#if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { 900, "User space assert", meadow_os_userspace_assert_test },
+    { 901, "User space meadow_os_reset_board", meadow_os_userspace_board_reset_test },
+    { 902, "Kernel space assert", meadow_kt_assert_test },
+    { 903, "Battery Backed Domain register tests", meadow_bbd_write_read_test },
+    { 904, "Battery Backed Domain write and reset test", meadow_bbd_write_and_reset_test },
+    { 905, "Battery Backed Domain read after reset test", meadow_bbd_read_after_reset_test },
+#endif
+
+  //
+  //  ESP tests 1000 - 1199
   //
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { 1000, "All ESP32 tests", meadow_kt_espcp_tests },

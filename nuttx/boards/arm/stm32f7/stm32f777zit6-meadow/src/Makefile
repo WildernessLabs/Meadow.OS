@@ -21,7 +21,7 @@
 include $(TOPDIR)/Make.defs
 
 
-CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
+CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c stm32_reset.c
 
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS += stm32_autoleds.c
@@ -146,7 +146,8 @@ $(MEADOW_OS_DIR)/espcp/espcp_system.c \
 $(MEADOW_OS_DIR)/espcp/espcp_common.c \
 $(MEADOW_OS_DIR)/espcp/espcp_usrsock_sockif.c \
 $(MEADOW_OS_DIR)/espcp/espcp_event_handlers.c \
-$(MEADOW_OS_DIR)/espcp/espcp_file_system.c
+$(MEADOW_OS_DIR)/espcp/espcp_file_system.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c
 endif
 
 CSRCS += $(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \
@@ -181,9 +182,14 @@ CSRCS += $(MEADOW_OS_DIR)/meadow_cloud/meadow_cloud.c
 endif
 
 #
-#	Add Meadow OS syscall implementations.
+#	Add Meadow OS methods.
 #
-CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_os_config.c
+CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_os_config.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_info.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_exceptions.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_fault_handling.c \
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_battery_backed_domain.c
 
 endif
 endif # MEADOW_OS

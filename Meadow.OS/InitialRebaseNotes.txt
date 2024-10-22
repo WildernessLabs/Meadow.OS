@@ -28,4 +28,3 @@ always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
 be removed and made perminant, although it is not integrated in to
 Meadow.Core.
 
-
