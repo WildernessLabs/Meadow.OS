@@ -242,14 +242,13 @@ void stm32_sdram_initialize(void)
  *
  ****************************************************************************/
 
-// Rebase Note: This function seems to have been orphaned
-// void stm32_disablefmc(void)
-// {
-//   uint32_t regval;
+void stm32_disablefmc(void)
+{
+  uint32_t regval;
 
-//   /* Disable AHB clocking to the FMC */
+  /* Disable AHB clocking to the FMC */
 
-//   regval  = getreg32(STM32_RCC_AHB3ENR);
-//   regval &= ~RCC_AHB3ENR_FMCEN;
-//   putreg32(regval, STM32_RCC_AHB3ENR);
-// }
+  regval  = getreg32(STM32_RCC_AHB3ENR);
+  regval &= ~RCC_AHB3ENR_FMCEN;
+  putreg32(regval, STM32_RCC_AHB3ENR);
+}
