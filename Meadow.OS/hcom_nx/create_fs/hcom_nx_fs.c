@@ -76,20 +76,17 @@ struct partition_info
 #define MEADOW_FILE_SYSTEM_SIZE_UNKNOWN (0xffffffff)
 #define MEADOW_FS_PARTITION_OF_FS (0)
 
-// Already defined in /Meadow.OS/Meadow.OS/include/meadow/hcom_shared_common.h
-// However, some of these are WRONG. And HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE
-// not yet merged.
-// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000 // 3MB
-// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000   // (2MB - 256KB)
+// These are in hcom_shared_common.h and most are used in this module.
+// However, HCOM_NX_FS_OTA_RESERVED_SPACE is wrong in Legacy Meadow and
+// therefore a replacement value is used here.
+// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
+// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
+// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
+// #define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
 
-// WRONG - Defined in Legacy but wrong value not used in Legacy or here
-// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000 // 2MB reserved space for updates
-// This is the correct value with different #define until merged.
-#define HCOM_NX_FS_CORRECTED_OTA_SPACE 0x1000    // 4k update space
-
-// DEFINED IN LEGACY, BUT NEED TO MERGE LATEST MEADOW
 // This is 'sizeof(OTASpace)'
-#define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
+#define HCOM_NX_FS_CORRECTED_OTA_SPACE 0x1000             // 4k OTA space
+
 #define MEADOW_FS_PARTITION_TOTAL_COUNT (5)
 
 /****************************************************************************
@@ -100,28 +97,31 @@ static char *thisFile = __FILE__;
 static FAR struct partition_info _partInfo[MEADOW_FS_PARTITION_TOTAL_COUNT];
 static uint32_t _pagesPerEraSector;
 
-// Taken from Meadow repo 27Sep24
+// Taken from Meadow repo via syslog 27Sep24. This defines the partitioning
+// layout to match.
 // Runtime      - Size: 3145728 ( 3072 Kb), Offset:0x00000000
 // Nuttx update - Size: 1835008 ( 1792 Kb), Offset:0x00300000
 // OTA State    - Size:    4096 (    4 Kb), Offset:0x004c0000
 // Assert Data  - Size:   32768 (   32 Kb), Offset:0x004c1000
 // File System  - Size:62091264 (60636 Kb), Offset:0x004c9000
 
-static char *_partitionNames[] = {"Runtime     ",
-                                  "Nuttx update",
-                                  "OTA State   ",
+// Since they are created starting at offset 0, this array must
+// be backwards too
+static char *_partitionNames[] = {"File System ",
                                   "Assert Data ",
-                                  "File System "};
+                                  "OTA State   ",
+                                  "Nuttx update",
+                                  "Runtime     "};
 
 // The order in this array determines to partition numbers. The last entry
 // will be at offset 0 in the flash chip's addressing.
 // However, the code will place these in flash memory layout starting with the
 // last element, to the first to match the legacy flash layout.
-static uint32_t _partitionSizes[] = {MEADOW_FILE_SYSTEM_SIZE_UNKNOWN, // File system
-                                     HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE, // 32k
-                                     HCOM_NX_FS_CORRECTED_OTA_SPACE, // OTA struct 4k
-                                     HCOM_NX_FS_NUTTX_UPDATE_SIZE,   // Nuttx update 1792k
-                                     HCOM_NX_FS_MONO_RAW_PARTITION_SIZE}; // Runtime 3072
+static uint32_t _partitionSizes[] = {MEADOW_FILE_SYSTEM_SIZE_UNKNOWN,
+                                     HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE,
+                                     HCOM_NX_FS_CORRECTED_OTA_SPACE,
+                                     HCOM_NX_FS_NUTTX_UPDATE_SIZE,
+                                     HCOM_NX_FS_MONO_RAW_PARTITION_SIZE};
 
 /****************************************************************************
  * Private Function Prototypes
@@ -379,30 +379,14 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
           thisFile, __LINE__, geo.neraseblocks, geo.erasesize, geo.blocksize);
 #endif
 
-  // Create a mtd object for each partition
   _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
-  size_t nEraseBlocks = geo.neraseblocks;
-  nEraseBlocks -= (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / geo.erasesize);
-  int nPages = (nEraseBlocks / numberOfPartitions) * _pagesPerEraSector;
+  // Need total flash size so we can find the primary partition size
+  uint32_t primaryPartSize = geo.neraseblocks * geo.erasesize;
 
-  // Reserve some size in the flash for Mono raw partition.
-  int offsetInPages = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / geo.blocksize;
-
-  // Rebase Note: Adding the HCOM_NX_FS_OTA_RESERVED_SPACE (0x200000) causes
-  // the mtd_partition() call to fail because offsetInPages is larger that
-  // nPages, an illegal condition. In mtd_partition() the compare code
-  // if (eraseend > geo.neraseblocks) fails because "sub-region too big."
-  // With eraseend = 16896 and geo.neraseblocks = 16384.
-  //
-  // Removed the following
-  // -------------------------------
-  // Reserve some space in flash for OTA update images
-  // offsetInPages += HCOM_NX_FS_OTA_RESERVED_SPACE / geo.blocksize;
-  //--------------------------------
-
-  // Create multiple mtd objects, one for each partition
-  for (partitionId = 0; partitionId < numberOfPartitions; partitionId++)
+  // Create multiple mtd objects, one for each partition. This loop calculates
+  // the size of the primary partition used for the file system.
+  for (partitionId = 0; partitionId < MEADOW_FS_PARTITION_TOTAL_COUNT; partitionId++)
   {
     if(partitionId == MEADOW_FS_PARTITION_OF_FS)
       continue;   // Can't use partition of file system
@@ -412,10 +396,12 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     {
       syslog(LOG_ERR, "%s@%d-Partition %d, size (%lu) not multiple of erase size (%lu)\n",
               thisFile, __LINE__, partitionId,
-              _partitionSizes[partitionId], geo.erasesize);
+              _partitionSizes[partitionId],
+              geo.erasesize);
       return -EINVAL;     // Invalid argument
     }
 
+    // Calculate the primary partition's size
     primaryPartSize -= _partitionSizes[partitionId];
   }
 
@@ -441,7 +427,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
     totalBytes += partSizeInBytes;
-    syslog(LOG_DEBUG, "%s@%d-%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08x\n",
+    syslog(LOG_DEBUG, "%s@%d-%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08lx\n",
              thisFile, __LINE__,
              _partitionNames[partitionId],
              partitionId,
@@ -449,7 +435,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
              partBlockOff * geo.blocksize);
 #endif
 
-    _partInfo[partitionId].partPageOffset = partBlockOff;
+    // Create partition
     _partInfo[partitionId].mtdPart = mtd_partition(mtd, partBlockOff, nBlocksInPart);
     if (_partInfo[partitionId].mtdPart == NULL)
     {
@@ -457,6 +443,8 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
                thisFile, __LINE__, partitionId, partBlockOff, nBlocksInPart);
       break;
     }
+
+    _partInfo[partitionId].partPageOffset = partBlockOff;
 
     partBlockOff += nBlocksInPart;
   }
