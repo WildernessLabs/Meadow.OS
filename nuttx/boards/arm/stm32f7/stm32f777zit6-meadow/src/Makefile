@@ -95,7 +95,6 @@ $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_bbreg_access.c \
 $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_upd_route_cmd.c \
 $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_config_manager.c \
 $(MEADOW_OS_DIR)/hcom_nx/commands/hcom_nx_ex_flash.c \
-$(MEADOW_OS_DIR)/hcom_nx/comms/hcom_nx_host_send.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_littlefs.c \
 $(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_route_text_to_host.c \
