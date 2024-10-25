@@ -196,13 +196,13 @@ extern "C"
   size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t bufLen);
 #endif
 
-  // Low-level file system
+  // Low-level file system support
   int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd);
   int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
                                         const char *fileSystemType, uint32_t partitionId,
                                         const char *mountCommand);
-bool hcom_nx_fs_is_mounted(uint32_t partitionId);
-int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
+  bool hcom_nx_fs_is_mounted(uint32_t partitionId);
+  int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 
 #ifdef CONFIG_FS_LITTLEFS
 #ifdef CONFIG_MTD_PARTITION

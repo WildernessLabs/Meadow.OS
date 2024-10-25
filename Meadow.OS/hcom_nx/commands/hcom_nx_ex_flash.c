@@ -45,6 +45,7 @@
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/hcom_bbreg_defn.h>
+#include <meadow/meadow_partition_share.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
@@ -59,6 +60,8 @@
  ****************************************************************************/
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
+
+#define MEADOW_PARTITION_FLASH_USE_PARTITIONS (1)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -587,10 +590,27 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
           (char*)monoEraseFlashMsg1, thisFile, __LINE__);
 
+  size_t numBlocksToErase = fileSize / geo.erasesize;
+#if (MEADOW_PARTITION_FLASH_USE_PARTITIONS > 0)
+  struct meadow_part_info partInfo;
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PARTITION_MONO_PARTITION, &partInfo);
+  if(ret > 0)
+  {
+    cmdData->logLevel = LOG_ERR;
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+            "%s@%d-Mono runtime binary part info unknown", thisFile, __LINE__);
+    return -1;
+  }
+
+  // (--) WHICH ONE IS RIGHT? IN THIS CASE THEY ARE IDENTICAL
+  MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);
+  MTD_ERASE(partInfo.mtdPart, 0, numBlocksToErase);
+#else
   // This assumes that the space for Meadow.OS.Runtime.bin is the very first
   // thing in the external flash memory.
-  size_t numBlocksToErase = fileSize / geo.erasesize;
   MTD_ERASE(_mtd, 0, numBlocksToErase);
+  int (*erase)(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
+#endif
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
