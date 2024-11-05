@@ -92,6 +92,7 @@
 #define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
 #define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"
 
+// These are copied from Legacy Meadow and can be somewhat misleading
 #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
 #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
 #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)

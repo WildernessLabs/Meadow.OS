@@ -61,6 +61,7 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
+// Set to '1' to use MTD partitions to access the external flash
 #define MEADOW_PARTITION_FLASH_USE_PARTITIONS (1)
 
 /****************************************************************************
@@ -591,9 +592,11 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
           (char*)monoEraseFlashMsg1, thisFile, __LINE__);
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
+  
+// (--) New partitioning code
 #if (MEADOW_PARTITION_FLASH_USE_PARTITIONS > 0)
   struct meadow_part_info partInfo;
-  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PARTITION_MONO_PARTITION, &partInfo);
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_SIZE_OS_RUNTIME, &partInfo);
   if(ret > 0)
   {
     cmdData->logLevel = LOG_ERR;
@@ -603,8 +606,10 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   }
 
   // (--) WHICH ONE IS RIGHT? IN THIS CASE THEY ARE IDENTICAL
+  // Since the runtime partition start at offset 0
   MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);
   MTD_ERASE(partInfo.mtdPart, 0, numBlocksToErase);
+// (--) New partitioning code
 #else
   // This assumes that the space for Meadow.OS.Runtime.bin is the very first
   // thing in the external flash memory.
@@ -941,7 +946,7 @@ typedef struct
  * Name: hcom_nx_exec_ex_flash_OS_update_flash1
  *
  * Description:
- *   Part 1 update - AUpdate the operating system.
+ *   Part 1 update - Update the operating system.
  * 
  * Input Parameters:
  *   None.
