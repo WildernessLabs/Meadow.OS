@@ -203,6 +203,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
     for test in $unittests
     do
         case $test in
+        case $test in
             esp)
             echo "ESP tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ESP_TESTS
@@ -263,13 +264,53 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SD_CARD_TESTS
             BUILD_TESTS=true
             ;;
+            tensorflow)
+            echo "Tensorflow tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TENSORFLOW_TESTS
+            BUILD_TESTS=true
+            ;;
+            misc)
+            echo "Miscellaneous tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable QUICK_MISC_TESTS
+            BUILD_TESTS=true
+            ;;
+            dirmgmt)
+            echo "Directory management tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DIR_MGMT_TESTS
+            BUILD_TESTS=true
+            ;;
+            adc)
+            echo "Analog to Digital conversion tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ADC_TESTS
+            BUILD_TESTS=true
+            ;;
+            dac)
+            echo "Digital to Analog conversion tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DAC_TESTS
+            BUILD_TESTS=true
+            ;;
+            spidma)
+            echo "SPI DMA tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SPI_DMA_TESTS
+            BUILD_TESTS=true
+            ;;
+            rotenc)
+            echo "Rotary Encoder tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS
+            BUILD_TESTS=true
+            ;;
+            os)
+            echo "Operating system tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS
+            BUILD_TESTS=true
+            ;;
             all)
             echo "All tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS
             BUILD_TESTS=true
             ;;
             *)
-            printf "Uknown unit test $test."
+            printf "Unknown unit test $test."
             exit 1
             ;;
         esac
