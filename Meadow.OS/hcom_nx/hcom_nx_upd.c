@@ -277,9 +277,12 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   case HCOM_NX_UPD_UPDATE_OS1:
     // Stage a updated OS bin
+#if (MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH == 0)
+    // Don't do this if testing
     ret = hcom_nx_exec_ex_flash_OS_update_flash1();
     return ret;
-  
+#endif
+
   case HCOM_NX_UPD_UPDATE_OS2:
     // Stage a updated external flash OS bin
     ret = hcom_nx_exec_ex_flash_OS_update_flash2();
