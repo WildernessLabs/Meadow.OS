@@ -203,6 +203,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
     for test in $unittests
     do
         case $test in
+        case $test in
             esp)
             echo "ESP tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ESP_TESTS
