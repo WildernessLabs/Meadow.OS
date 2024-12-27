@@ -415,6 +415,68 @@ SYSCALL_LOOKUP(stm32_gpiowrite, 2)
 SYSCALL_LOOKUP(stm32_unconfiggpio, 1)
 #endif
 
+#if defined(CONFIG_ESP_TESTS)
+SYSCALL_LOOKUP(meadow_kt_espcp_tests, 1)
+SYSCALL_LOOKUP(meadow_kt_espcp_load_test_web_page, 1)
+SYSCALL_LOOKUP(meadow_kt_espcp_load_test_large_file_download, 1)
+#endif
+
+#if defined(CONFIG_ETHERNET_TESTS)
+SYSCALL_LOOKUP(meadow_kt_ethernet_tests, 1)
+SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_large_file_download, 1)
+SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_web_page, 1)
+#endif
+
+#if defined(CONFIG_BG77_TESTS)
+SYSCALL_LOOKUP(meadow_kt_bg77_tests, 1)
+#endif
+
+#if defined(CONFIG_SD_CARD_TESTS)
+SYSCALL_LOOKUP(meadow_kt_sd_card_tests, 1)
+#endif
+
+#if defined(CONFIG_POWER_MANAGEMENT_TESTS)
+SYSCALL_LOOKUP(meadow_kt_power_management_tests, 1)
+#endif
+
+#if defined(CONFIG_ISO8601_TESTS)
+SYSCALL_LOOKUP(meadow_kt_iso8601_tests, 1)
+#endif
+
+#if defined(CONFIG_QUICK_MISC_TESTS)
+SYSCALL_LOOKUP(meadow_kt_quick_misc_tests, 1)
+#endif
+
+#if defined(CONFIG_ADC_TESTS)
+SYSCALL_LOOKUP(meadow_kt_adc_tests, 1)
+#endif
+
+#if defined(CONFIG_DAC_TESTS)
+SYSCALL_LOOKUP(meadow_kt_dac_tests, 1)
+#endif
+
+#if defined(CONFIG_MEADOW_INTERRUPT_TESTS)
+SYSCALL_LOOKUP(meadow_kt_meadow_interrupt_tests, 1)
+#endif
+
+#if defined(CONFIG_SPI_DMA_TESTS)
+SYSCALL_LOOKUP(meadow_kt_spi_dma_tests, 1)
+#endif
+
+#if defined(CONFIG_ROTARY_ENCODER_TESTS)
+SYSCALL_LOOKUP(meadow_kt_rotary_encoder_tests, 1)
+#endif
+
+#if defined(CONFIG_MEADOW_OS_TESTS)
+SYSCALL_LOOKUP(meadow_kt_assert_test, 1)
+#endif
+
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
+SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
+SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
+SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
+#endif
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
 SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
 SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)

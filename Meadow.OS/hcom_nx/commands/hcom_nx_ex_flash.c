@@ -1112,8 +1112,10 @@ int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length
   else
   {
     uint32_t location = hcom_nx_exec_ex_flash_assert_data_location();
-    off_t amount_to_write = length > HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE ? HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE : length;
-    result = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t *) data, amount_to_write, location);
+    off_t amount_to_write = length > HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE ? \
+              HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE : length;
+    result = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t *) data,
+              amount_to_write, location);
   }
 
   return(result);
@@ -1174,7 +1176,7 @@ int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
  *   OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
  *   OS Persisted  - Size:    4096 (    4 KB), Offset:0x004c1000
  *   Assert Data   - Size:   32768 (   32 KB), Offset:0x004c2000
- *   Unused Space  - Size:  221184 (  216 KB), Offset:0x004ca000
+ *   Unused        - Size:  221184 (  216 KB), Offset:0x004ca000
  *   File System   - Size:61865984 (60416 KB), Offset:0x00500000
  * 
  * Input Parameters:
@@ -1256,7 +1258,7 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 #if MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0
 //===========================================================================
 // Verifies specific pattern has been written in the first 5 MB of flash
-// correctly. It uses syslog to display the data on both side of the layout
+// correctly. It uses syslog to display the data on both side of the flash
 // boundaries. It is called using 'developer -d 10 -v 2'.
 void hcom_nx_exec_ex_flash_verify_segments()
 {
@@ -1448,10 +1450,10 @@ void hcom_nx_exec_ex_flash_verify_segments()
 #endif    // #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
 }
 
-//----------------------------------------------------------------
-// Populates buffer for flashing
-static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen, char *writeBuf,
-          char *titleMsg, int fillChar)
+//===============================================================
+// Populates buffer for flashing. Used for testing below
+static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen,
+          char *writeBuf, char *titleMsg, int fillChar)
 {
   int offset;
   uint32_t titleLen = strlen(titleMsg);
@@ -1484,7 +1486,6 @@ static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen, char *write
  *  to be read and used to populate the related spaces.
  *
  ****************************************************************************/
-  // This function 
 void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
 {  
   int ret;
@@ -1493,7 +1494,7 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   uint32_t writeBufLen;
   uint32_t prevUseSpace = 0;
 
-  syslog(2, "%s@%d-**>>Please wait, 5 MB of flash being populated<<**\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated <<**\n", thisFile, __LINE__);
 
   //----------------------------------------------------------------
   // First is 3MB for runtime. Assumes Meadow.OS.Runtime.bin has been replaced

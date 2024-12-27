@@ -36,12 +36,16 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+#include <nuttx/config.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_shared_common.h>
 
 // Only build if configured
 #if defined(CONFIG_QUICK_MISC_TESTS)
+
+#include <meadow/meadow_kernel_tests.h>
+
 #pragma message "(--) quick_misc_tests.c"
 
 // Diagnostic always as this is test code
@@ -72,10 +76,12 @@
 // set developer -d 10 come here
 void meadow_kt_quick_misc_tests(uint32_t userData)
 {
-  syslog(2, "Quick and Misc tests received 'set developer -d 10 -v %lu'.\n", userData);
+  syslog(2, "Quick and Misc tests received 'set developer -d 10 -v %lu'.\n",
+            userData);
 
   switch(userData)
   {
+    // This is defined in hcom_shared_common.h
 #if(MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0)
     case 1:
       // Fill the 5MB reserved space with a pattern
@@ -89,7 +95,8 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 
 #endif
     default:
-      syslog(2, "Undefined test for meadow_kt_quick_misc_tests, userData:%lu. NO TEST DEFINED\n", userData);
+      syslog(2, "Undefined test in meadow_kt_quick_misc_tests, userData:%lu\n",
+                userData);
       break;
   }
 }
