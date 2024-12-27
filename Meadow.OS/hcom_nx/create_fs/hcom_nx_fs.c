@@ -84,7 +84,7 @@ static FAR struct mtd_dev_s *_extFlashMtd;
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
 
-static FAR struct meadow_part_info _partInfo[MEADOW_FLASH_PART_INFO_TOTAL];
+static FAR struct meadow_part_info _partInfo[MEADOW_FLASH_PART_NUMB_TOTAL];
 
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
 // layout that Meadow.OS must match.
@@ -93,28 +93,29 @@ static FAR struct meadow_part_info _partInfo[MEADOW_FLASH_PART_INFO_TOTAL];
 // OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
 // OS Persisted  - Size:    4096 (    4 KB), Offset:0x004c1000
 // Assert Data   - Size:   32768 (   32 KB), Offset:0x004c2000
-// Reserved      - Size:  221184 (  216 KB), Offset:0x004ca000
+// Unused        - Size:  221184 (  216 KB), Offset:0x004ca000
 // File System   - Size:61865984 (60416 KB), Offset:0x00500000
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
 // Since they are created starting at offset 0, this array must
 // be backwards too
-static char *_partitionNames[] = {"File System ",
-                                  "Unused Space",
-                                  "Assert Data ",
-                                  "OTA State   ",
-                                  "Nuttx update",
-                                  "Runtime     "};
+static char *_partitionNames[] = {"File System  ",
+                                  "Unused       ",
+                                  "Assert Data  ",
+                                  "OS Persisted ",
+                                  "OTA State    ",
+                                  "Meadow update",
+                                  "Runtime      "};
 #endif
 
 // The order in this array determines to partition numbers. The last entry
 // will be at offset 0 in the flash chip's addressing.
-// However, the startup code, place these in flash memory layout, starting
+// However, the startup code, places these in flash memory layout, starting
 // with the last element, to the first to match the legacy flash layout.
-
-static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_UNKNOWN,
+static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_UNKNOWN,    // File System
                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
+                                     MEADOW_FLASH_PART_SIZE_OS_PERSIST,
                                      MEADOW_FLASH_PART_SIZE_OTA_STATE,
                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
                                      MEADOW_FLASH_PART_SIZE_OS_RUNTIME};
@@ -134,11 +135,11 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 // partition and returns an instance of struct meadow_part_info. 
 int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info *partInfo)
 {
-  if(partNumb > MEADOW_FLASH_PART_INFO_PARENT_PART)
+  if(partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART)
     return -EINVAL;     // Invalid argument
 
   // If user wants to access information about entire flash
-  if(partNumb == MEADOW_FLASH_PART_INFO_PARENT_PART)
+  if(partNumb == MEADOW_FLASH_PART_NUMB_PARENT_PART)
   {
     // (--) I think this is wrong. The partInfo array should have all
     // the necessary information! Not a special case for this option.
@@ -173,7 +174,7 @@ int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 
   _pagesPerEraSector = 0;
 
-  for(int i = 0; i < MEADOW_FLASH_PART_INFO_TOTAL; i++)
+  for(int i = 0; i < MEADOW_FLASH_PART_NUMB_TOTAL; i++)
   {
     _partInfo[i].mtdPart = NULL;
     _partInfo[i].isPartMounted = false;
@@ -214,8 +215,8 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
 
   //------------------------------------------------------------------------
   syslog(LOG_INFO, "F/S creating %d partition%s\n",
-            MEADOW_FLASH_PART_INFO_TOTAL,
-            MEADOW_FLASH_PART_INFO_TOTAL > 1 ? "s" : "");
+            MEADOW_FLASH_PART_NUMB_TOTAL,
+            MEADOW_FLASH_PART_NUMB_TOTAL > 1 ? "s" : "");
 
   // Create the partitions in the external flash
   ret = hcom_fs_init_partitions(mtd);
@@ -422,7 +423,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   // This loop validates each partition and calculates the primary partition's
   // size used for the file system.
-  for (partitionNumber = 0; partitionNumber < MEADOW_FLASH_PART_INFO_TOTAL; partitionNumber++)
+  for (partitionNumber = 0; partitionNumber < MEADOW_FLASH_PART_NUMB_TOTAL; partitionNumber++)
   {
     if(partitionNumber == MEADOW_FS_PARTITION_OF_FS)
       continue;   // Can't use partition of file system
@@ -450,7 +451,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   // Create multiple mtd objects, one for each partition.
   // This loop runs backwards so all remaining space can be for file system
-  for(partitionNumber = MEADOW_FLASH_PART_INFO_TOTAL - 1;
+  for(partitionNumber = MEADOW_FLASH_PART_NUMB_TOTAL - 1;
       partitionNumber >= 0;
       partitionNumber--)
   {
@@ -493,7 +494,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_INFO_TOTAL : partitionNumber;
+  int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_NUMB_TOTAL : partitionNumber;
   syslog(LOG_DEBUG, "%s@%d-Created %d partitions, Total size:%d bytes (%d Kb)\n",
             thisFile, __LINE__,
             actualPartCnt, totalBytes, totalBytes/1024);

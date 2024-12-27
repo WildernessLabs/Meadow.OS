@@ -24,14 +24,24 @@
 // Partition sizes. There are pieces and parts scattered around. This does not
 // need to be the "Master" list, just a single location for all partition size
 // information.
+// Note: The naming and definitions are from legacy Meadow where the upper part
+// of flash space evolved over 4-5 years. Some of the following are defined
+// in 'include/meadow/hcom_shared_common.h'.
 //
 // The File System partition size can only be determined after starting
 // Meadow. Because we support different flash chips with different sizes.
-#define MEADOW_FLASH_PART_SIZE_UNKNOWN      (0xffffffff)  // Discover at start
+#define MEADOW_FLASH_PART_SIZE_UNKNOWN      (0xffffffff)
+
+// All reserved is 3MB + 2MB = 5MB
 #define MEADOW_FLASH_PART_SIZE_ALL_RESERVED (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
                                              HCOM_NX_FS_OTA_RESERVED_SPACE)
+// 3MB is for the Meadow OS
 #define MEADOW_FLASH_PART_SIZE_OS_RUNTIME   (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE)
+
+// The remaining for OS Update is 2MB - 256kB
 #define MEADOW_FLASH_PART_SIZE_OS_UPDATE    (HCOM_NX_FS_NUTTX_UPDATE_SIZE)
+
+// The following represent the remaining 256kB of data
 #define MEADOW_FLASH_PART_SIZE_OTA_STATE    (4096)
 #define MEADOW_FLASH_PART_SIZE_OS_PERSIST   (4096)
 #define MEADOW_FLASH_PART_SIZE_ASSERT_DATA  (HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE)
@@ -43,14 +53,15 @@
                                              MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
 
 // Partition assignment numbers
-#define MEADOW_FLASH_PART_INFO_RUNTIME      (0)
-#define MEADOW_FLASH_PART_INFO_NUTTX_UPDATE (1)
-#define MEADOW_FLASH_PART_INFO_OTA_SPACE    (2)
-#define MEADOW_FLASH_PART_INFO_ASSERT_DATA  (3)
-#define MEADOW_FLASH_PART_INFO_UNUSED_SPACE (4)
-#define MEADOW_FLASH_PART_INFO_FILE_SYS     (5)
-#define MEADOW_FLASH_PART_INFO_PARENT_PART  (6) // The entire flash space
-#define MEADOW_FLASH_PART_INFO_TOTAL        (6)
+#define MEADOW_FLASH_PART_NUMB_RUNTIME      (0)
+#define MEADOW_FLASH_PART_NUMB_NUTTX_UPDATE (1)
+#define MEADOW_FLASH_PART_NUMB_OTA_SPACE    (2)
+#define MEADOW_FLASH_PART_NUMB_OS_PERSIST   (3)
+#define MEADOW_FLASH_PART_NUMB_ASSERT_DATA  (4)
+#define MEADOW_FLASH_PART_NUMB_UNUSED_SPACE (5)
+#define MEADOW_FLASH_PART_NUMB_FILE_SYS     (6)
+#define MEADOW_FLASH_PART_NUMB_PARENT_PART  (7) // The entire flash space
+#define MEADOW_FLASH_PART_NUMB_TOTAL        (7)
 
 // This structure defines the information about each external flash partition
 struct meadow_part_info
