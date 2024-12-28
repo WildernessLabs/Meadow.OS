@@ -609,7 +609,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   
 // (--) New partitioning code
 #if (MEADOW_PARTITION_FLASH_USE_PARTITIONS > 0)
-  struct meadow_part_info partInfo;
+  struct meadow_part_info_s partInfo;
   ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_SIZE_OS_RUNTIME, &partInfo);
   if(ret > 0)
   {
@@ -1217,13 +1217,14 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 
   // Segment 2 - OTAState
   thisOffset += HCOM_NX_FS_NUTTX_UPDATE_SIZE;
-  syslog(1, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",            sizeof(OTAState),
+  syslog(1, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",
+            sizeof(OTAState),
             sizeof(OTAState)/1024,
            thisOffset);
 
   // Segment 3 - OS Persisted Data
   thisOffset += flashEraseSize;
-  syslog(1, "OS Persisted  - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(1, "OS Persisted  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           flashEraseSize,
           flashEraseSize/1024,
           thisOffset);
@@ -1239,7 +1240,7 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 
   // Segment 5 - Unused flash space
   thisOffset += HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
-  syslog(1, "Unused Space  - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(1, "Unused Space  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           totalReserved - thisOffset,
           (totalReserved - thisOffset)/1024,
           thisOffset);
@@ -1541,7 +1542,7 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   // Third is the OTAState
   writeBufLen = sizeof(OTAState);
   titleMsg = "This is Segment 3 used for OTAState, fill with D.";
-  syslog(2, "%s@%d-Segment 3 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Segment 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1589,7 +1590,7 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   // Fifth is a 32KB region for assert data
   titleMsg = "This is Segment 5 used for assertion data, fill with P.";
   writeBufLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
-  syslog(2, "%s@%d-Segment 5 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Segment 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1613,7 +1614,7 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   uint32_t reservedFlashLen = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
             HCOM_NX_FS_OTA_RESERVED_SPACE;
   writeBufLen = reservedFlashLen - prevUseSpace;
-  syslog(2, "%s@%d-Segment 6 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Segment 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
               writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 

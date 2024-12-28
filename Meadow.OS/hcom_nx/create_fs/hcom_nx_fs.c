@@ -64,17 +64,6 @@
 
 #define MEADOW_FS_PARTITION_OF_FS (0)
 
-// These are in hcom_shared_common.h and most are used in this module.
-// However, HCOM_NX_FS_OTA_RESERVED_SPACE is wrong in Legacy Meadow and
-// therefore a replacement value is used here.
-// #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
-// #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
-// #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
-// #define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
-
-// This is 'sizeof(OTASpace)'
-#define HCOM_NX_FS_CORRECTED_OTA_SPACE 0x1000             // 4k OTA space
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -83,11 +72,10 @@ static char *thisFile = __FILE__;
 static FAR struct mtd_dev_s *_extFlashMtd;
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
-
-static FAR struct meadow_part_info _partInfo[MEADOW_FLASH_PART_NUMB_TOTAL];
+static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_NUMB_TOTAL];
 
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
-// layout that Meadow.OS must match.
+// layout that Meadow.OS must initially match.
 // Runtime       - Size: 3145728 ( 3072 KB), Offset:0x00000000
 // Meadow update - Size: 1835008 ( 1792 KB), Offset:0x00300000
 // OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
@@ -132,28 +120,14 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
  * Public Functions
  ****************************************************************************/
 // This function accepts a Partition define and resolves it to a specific
-// partition and returns an instance of struct meadow_part_info. 
-int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info *partInfo)
+// partition and returns an instance of struct meadow_part_info_s.
+// Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
+// flash flash chip's MTD and the flash chip's size.
+int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info_s *partInfo)
 {
   if(partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART)
     return -EINVAL;     // Invalid argument
 
-  // If user wants to access information about entire flash
-  if(partNumb == MEADOW_FLASH_PART_NUMB_PARENT_PART)
-  {
-    // (--) I think this is wrong. The partInfo array should have all
-    // the necessary information! Not a special case for this option.
-
-    // Special case to retrieve entire flash information
-    partInfo->isPartMounted   = false;
-    partInfo->mtdPart         = _extFlashMtd;
-    partInfo->byteOffset      = 0;
-    partInfo->blockOffset     = 0;
-    partInfo->partSize        = _totalFlashSize;
-    return OK;
-  }
-  
-  // Individual partitions
   partInfo->isPartMounted   = _partInfo[partNumb].isPartMounted;
   partInfo->mtdPart         = _partInfo[partNumb].mtdPart;
   partInfo->byteOffset      = _partInfo[partNumb].byteOffset;
@@ -458,6 +432,8 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     // Get the number of bytes in this partition.
     uint32_t partSizeInBytes = _partitionSizes[partitionNumber];
 
+    // Is this the unknown partition (i.e. File System) whose size has been
+    // unknown? Well, the size is known now.
     if(partSizeInBytes == MEADOW_FLASH_PART_SIZE_UNKNOWN)
     {
       partSizeInBytes = primaryPartSize;    // The remaining space
@@ -492,6 +468,14 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
     firstBlockOff += totBlocksInPart;
   }
+
+  // After creating all the partitions, fill in the last array element
+  // with the information for the entire file system.
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].isPartMounted   = false;
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].mtdPart         = _extFlashMtd;
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].byteOffset      = 0;
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].blockOffset     = 0;
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].partSize        = _totalFlashSize;
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
   int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_NUMB_TOTAL : partitionNumber;

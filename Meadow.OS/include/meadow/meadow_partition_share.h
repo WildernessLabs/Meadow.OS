@@ -64,7 +64,7 @@
 #define MEADOW_FLASH_PART_NUMB_TOTAL        (7)
 
 // This structure defines the information about each external flash partition
-struct meadow_part_info
+struct meadow_part_info_s
 {
     struct mtd_dev_s *mtdPart;
     off_t byteOffset;
@@ -74,6 +74,6 @@ struct meadow_part_info
 };
 
 // Obtains the flash partition information for a single partition
-int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info *partInfo);
+int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info_s *partInfo);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H
