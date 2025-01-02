@@ -85,12 +85,12 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 #if(MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0)
     case 1:
       // Fill the 5MB reserved space with a pattern
-      hcom_nx_exec_ex_flash_fill_5mb_of_flash();
+      hcom_nx_flash_testing_fill_5mb_of_flash();
       break;
 
     case 2:
       // Verify flash layout Test
-      hcom_nx_exec_ex_flash_verify_segments();
+      hcom_nx_flash_testing_verify_regions();
       break;
 
 #endif

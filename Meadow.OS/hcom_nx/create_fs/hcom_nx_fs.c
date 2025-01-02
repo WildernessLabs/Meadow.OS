@@ -123,10 +123,17 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 // partition and returns an instance of struct meadow_part_info_s.
 // Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
 // flash flash chip's MTD and the flash chip's size.
-int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info_s *partInfo)
+int hcom_nx_fs_get_partition_info(int partNumb,
+          struct meadow_part_info_s *partInfo,
+          struct hcom_nx_cmd_data *cmdData)
 {
-  if(partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART)
+  if(partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART | partNumb < 0)
+  {
+    cmdData->logLevel = LOG_ERR;
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+            "%s@%d-Partition number out of range", thisFile, __LINE__);
     return -EINVAL;     // Invalid argument
+  }
 
   partInfo->isPartMounted   = _partInfo[partNumb].isPartMounted;
   partInfo->mtdPart         = _partInfo[partNumb].mtdPart;

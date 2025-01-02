@@ -21,18 +21,19 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
-// Partition sizes. There are pieces and parts scattered around. This does not
-// need to be the "Master" list, just a single location for all partition size
-// information.
-// Note: The naming and definitions are from legacy Meadow where the upper part
-// of flash space evolved over 4-5 years. Some of the following are defined
-// in 'include/meadow/hcom_shared_common.h'.
+// FWIW: The naming and definitions for the flash segments of the Original
+// Meadow OS evolved over 4-5 years. Some of the following are defined
+// in 'include/meadow/hcom_shared_common.h'. Therefore, in Original Meadow
+// are pieces and parts of each flash segment in different locations.
+// This is a consolidated list with common naming to be used in the Meadow OS
+// with Nuttx V12 and later.
 //
-// The File System partition size can only be determined after starting
-// Meadow. Because we support different flash chips with different sizes.
+// The final File System partition size can only be determined after starting
+// Meadow, this is because we support different flash chips with different
+// total sizes and File System partition size is the remaining space.
 #define MEADOW_FLASH_PART_SIZE_UNKNOWN      (0xffffffff)
 
-// All reserved is 3MB + 2MB = 5MB
+// All reserved totals 3MB + 2MB = 5MB
 #define MEADOW_FLASH_PART_SIZE_ALL_RESERVED (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
                                              HCOM_NX_FS_OTA_RESERVED_SPACE)
 // 3MB is for the Meadow OS
@@ -41,7 +42,7 @@
 // The remaining for OS Update is 2MB - 256kB
 #define MEADOW_FLASH_PART_SIZE_OS_UPDATE    (HCOM_NX_FS_NUTTX_UPDATE_SIZE)
 
-// The following represent the remaining 256kB of data
+// The following represent the additional 256kB of data
 #define MEADOW_FLASH_PART_SIZE_OTA_STATE    (4096)
 #define MEADOW_FLASH_PART_SIZE_OS_PERSIST   (4096)
 #define MEADOW_FLASH_PART_SIZE_ASSERT_DATA  (HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE)
@@ -74,6 +75,8 @@ struct meadow_part_info_s
 };
 
 // Obtains the flash partition information for a single partition
-int hcom_nx_fs_get_partition_info(int partNumb, struct meadow_part_info_s *partInfo);
+int hcom_nx_fs_get_partition_info(int partNumb,
+                    struct meadow_part_info_s *partInfo,
+                    struct hcom_nx_cmd_data *cmdData);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H

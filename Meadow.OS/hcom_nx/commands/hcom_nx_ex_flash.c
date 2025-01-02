@@ -607,28 +607,21 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
-// (--) New partitioning code
+// (--) New partitioning code - UNTESTED
 #if (MEADOW_PARTITION_FLASH_USE_PARTITIONS > 0)
   struct meadow_part_info_s partInfo;
-  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_SIZE_OS_RUNTIME, &partInfo);
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_RUNTIME,
+            &partInfo, cmdData);
   if(ret > 0)
-  {
-    cmdData->logLevel = LOG_ERR;
-    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Mono runtime binary part info unknown", thisFile, __LINE__);
-    return -1;
-  }
+    return ret;
 
-  // (--) WHICH ONE IS RIGHT? IN THIS CASE THEY ARE IDENTICAL
   // Since the runtime partition start at offset 0
   MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);
-  MTD_ERASE(partInfo.mtdPart, 0, numBlocksToErase);
 // (--) New partitioning code
 #else
   // This assumes that the space for Meadow.OS.Runtime.bin is the very first
   // thing in the external flash memory.
   MTD_ERASE(_mtd, 0, numBlocksToErase);
-  int (*erase)(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
 #endif
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
@@ -1202,34 +1195,34 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 
   flashEraseSize = geo.erasesize;
 
-  // Segment 0 - Meadow.OS.Runtime.bin
+  // Region 0 - Meadow.OS.Runtime.bin
   syslog(1, "Runtime       - Size:%8u (%5u KB), Offset:0x%08lx\n",
             HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,
             HCOM_NX_FS_MONO_RAW_PARTITION_SIZE/1024,
             thisOffset);
 
-  // Segment 1 - Meadow.OS.Update.bin
+  // Region 1 - Meadow.OS.Update.bin
   thisOffset += HCOM_NX_FS_MONO_RAW_PARTITION_SIZE;
   syslog(1, "Meadow Update - Size:%8u (%5u KB), Offset:0x%08lx\n",
             HCOM_NX_FS_NUTTX_UPDATE_SIZE,
             HCOM_NX_FS_NUTTX_UPDATE_SIZE/1024,
             thisOffset);
 
-  // Segment 2 - OTAState
+  // Region 2 - OTAState
   thisOffset += HCOM_NX_FS_NUTTX_UPDATE_SIZE;
   syslog(1, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",
             sizeof(OTAState),
             sizeof(OTAState)/1024,
            thisOffset);
 
-  // Segment 3 - OS Persisted Data
+  // Region 3 - OS Persisted Data
   thisOffset += flashEraseSize;
   syslog(1, "OS Persisted  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           flashEraseSize,
           flashEraseSize/1024,
           thisOffset);
 
-  // Segment 4 - Assert Data
+  // Region 4 - Assert Data
   // See hcom_nx_exec_ex_flash_persistent_data_location();
   thisOffset += flashEraseSize;
   syslog(1, "Assert Data   - Size:%8u (%5u KB), Offset:0x%08lx\n",
@@ -1238,14 +1231,14 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 
         thisOffset);
 
-  // Segment 5 - Unused flash space
+  // Region 5 - Unused flash space
   thisOffset += HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
   syslog(1, "Unused Space  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           totalReserved - thisOffset,
           (totalReserved - thisOffset)/1024,
           thisOffset);
 
-// Segment 6 - available for file system
+  // Region 6 - available for file system
   // Get the flash chip size based on the hardware version
   int fileSystemSize = meadow_hw_version_flash_size() - totalReserved;
   thisOffset += (totalReserved - thisOffset);
@@ -1261,13 +1254,13 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
 // Verifies specific pattern has been written in the first 5 MB of flash
 // correctly. It uses syslog to display the data on both side of the flash
 // boundaries. It is called using 'developer -d 10 -v 2'.
-void hcom_nx_exec_ex_flash_verify_segments()
+void hcom_nx_flash_testing_verify_regions()
 {
 #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
   #define HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY (2)
 
   int ret;
-  uint32_t segmentLen;
+  uint32_t regionLen;
   uint32_t prevUseSpace = 0;
   uint32_t full5MBFlash = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
             HCOM_NX_FS_OTA_RESERVED_SPACE;
@@ -1284,7 +1277,7 @@ void hcom_nx_exec_ex_flash_verify_segments()
     return;
   }
 
-  // The segments all begin and end on block boundaries, therefore at least
+  // The regions all begin and end on block boundaries, therefore at least
   // 2 blocks must normally be read and the last bit of the first and the
   // first bit of the second are output separately. 
   //----------------------------------------------------------------------
@@ -1307,7 +1300,7 @@ void hcom_nx_exec_ex_flash_verify_segments()
   //----------------------------------------------------------------------
   // 2 - 
   startBlock = prevUseSpace / block_size;
-  // Start reading 1 block before the beginning of the segment and end after
+  // Start reading 1 block before the beginning of the region and end after
   // 2 blocks have been displayed.
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
@@ -1329,7 +1322,7 @@ void hcom_nx_exec_ex_flash_verify_segments()
 
   //----------------------------------------------------------------------
   // 3
-  segmentLen = sizeof(OTAState);
+  regionLen = sizeof(OTAState);
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1350,11 +1343,11 @@ void hcom_nx_exec_ex_flash_verify_segments()
   hcom_nx_diag_print_buffer(flashBuffer,
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
-  prevUseSpace += segmentLen;
+  prevUseSpace += regionLen;
 
   //----------------------------------------------------------------------
   // 4
-  segmentLen = hcom_nx_exec_ex_flash_get_erase_block_size();
+  regionLen = hcom_nx_exec_ex_flash_get_erase_block_size();
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1375,11 +1368,11 @@ void hcom_nx_exec_ex_flash_verify_segments()
   hcom_nx_diag_print_buffer(flashBuffer,
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
-  prevUseSpace += segmentLen;
+  prevUseSpace += regionLen;
 
   //----------------------------------------------------------------------
   // 5
-  segmentLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
+  regionLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1400,11 +1393,11 @@ void hcom_nx_exec_ex_flash_verify_segments()
   hcom_nx_diag_print_buffer(flashBuffer,
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
-  prevUseSpace += segmentLen;
+  prevUseSpace += regionLen;
 
   //----------------------------------------------------------------------
-  // 6 - Whatever is left. Need to add code to show end of segment too
-  segmentLen = full5MBFlash - prevUseSpace;
+  // 6 - Whatever is left. Need to add code to show end of region too
+  regionLen = full5MBFlash - prevUseSpace;
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1425,7 +1418,7 @@ void hcom_nx_exec_ex_flash_verify_segments()
   hcom_nx_diag_print_buffer(flashBuffer,
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
-  prevUseSpace += segmentLen;   // Now offset is start of file system
+  prevUseSpace += regionLen;   // Now offset is start of file system
 
   // ----------
   // Show the end too + 256 of file system
@@ -1469,11 +1462,11 @@ static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen,
 }
 
 /****************************************************************************
- * Name: int hcom_nx_exec_ex_flash_fill_5mb_of_flash()
+ * Name: int hcom_nx_flash_testing_fill_5mb_of_flash()
  *
  * Description:
  *   Fills all 6 regions of the 5MB space in the external flash with easily
- *   detectable data.
+ *   identifiable data.
  *  Called using 'developer -d 10 -v 1'
  *
  * Input Parameters:
@@ -1487,7 +1480,7 @@ static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen,
  *  to be read and used to populate the related spaces.
  *
  ****************************************************************************/
-void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
+void hcom_nx_flash_testing_fill_5mb_of_flash()
 {  
   int ret;
   char *titleMsg;
@@ -1501,13 +1494,13 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   // First is 3MB for runtime. Assumes Meadow.OS.Runtime.bin has been replaced
   // with a fake version.
   // File is filled with a title string then filled with the 'A' character
-  syslog(2, "%s@%d-Segment 1 Writing %7u bytes at offset 0x%08lx\n",
+  syslog(2, "%s@%d-Region 1 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
             HCOM_NX_FS_MONO_RAW_PARTITION_SIZE, prevUseSpace);
   usleep(100 * 1000);
 
-  // Can't use hcom_nx_exec_ex_flash_OS_update_flash2 because it deletes the
-  // file. This is copied from there.
+  // Note:Can't use hcom_nx_exec_ex_flash_OS_update_flash2 because it deletes
+  // the file. This is copied from there.
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME,
             HCOM_NX_FS_MONO_RAW_PARTITION_SIZE, 0x0);
   if(ret < 0)
@@ -1520,7 +1513,7 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Second is a 1835008 byte file Meadow.OS.Update.bin
   // File is filled with 'B' characters after title string
-  syslog(2, "%s@%d-Segment 2 Writing %7u bytes at offset 0x%08lx\n",
+  syslog(2, "%s@%d-Region 2 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
             HCOM_NX_FS_NUTTX_UPDATE_SIZE, prevUseSpace);
   usleep(100 * 1000);
@@ -1541,8 +1534,8 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Third is the OTAState
   writeBufLen = sizeof(OTAState);
-  titleMsg = "This is Segment 3 used for OTAState, fill with D.";
-  syslog(2, "%s@%d-Segment 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  titleMsg = "This is Region 3 used for OTAState, fill with D.";
+  syslog(2, "%s@%d-Region 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1567,9 +1560,9 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
 
   //----------------------------------------------------------------
   // Fourth is a region for persisted data.
-  titleMsg = "This is Segment 4 used for persisted data, fill with H.";
+  titleMsg = "This is Region 4 used for persisted data, fill with H.";
   writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
-  syslog(2, "%s@%d-Segment 4 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 4 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1588,9 +1581,9 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
 
   //----------------------------------------------------------------
   // Fifth is a 32KB region for assert data
-  titleMsg = "This is Segment 5 used for assertion data, fill with P.";
+  titleMsg = "This is Region 5 used for assertion data, fill with P.";
   writeBufLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
-  syslog(2, "%s@%d-Segment 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1610,18 +1603,18 @@ void hcom_nx_exec_ex_flash_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // 6th is all remaining space in the 5MB flash
   // All the remaining flash space within the 5MB allocation
-  titleMsg = "This is Segment 6 currently not used, fill with Q.";
+  titleMsg = "This is Region 6 currently not used, fill with Q.";
   uint32_t reservedFlashLen = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
             HCOM_NX_FS_OTA_RESERVED_SPACE;
   writeBufLen = reservedFlashLen - prevUseSpace;
-  syslog(2, "%s@%d-Segment 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
               writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
   writeBuf = zalloc(writeBufLen);
   hcom_nx_exec_ex_fill_layout_buffer(writeBufLen, writeBuf, titleMsg, 'Q');
 
-  // offset is the offset after the previous segment.
+  // offset is the offset after the previous region.
   ret = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t *)writeBuf, writeBufLen,
             prevUseSpace);
   free(writeBuf);
