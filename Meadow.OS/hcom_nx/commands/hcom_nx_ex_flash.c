@@ -845,7 +845,7 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
 static int flash_file(const char *path, off_t size, off_t offset)
 {
   struct hcom_nx_cmd_data *cmdData = NULL;
-  error("Flashing that file %s\n", path);
+  error("Flashing the file %s\n", path);
   int ret;
 
   int filefd = open(path, O_RDONLY);
@@ -1488,7 +1488,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   uint32_t writeBufLen;
   uint32_t prevUseSpace = 0;
 
-  syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated <<**\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated (~2 minutes) <<**\n", thisFile, __LINE__);
 
   //----------------------------------------------------------------
   // First is 3MB for runtime. Assumes Meadow.OS.Runtime.bin has been replaced
@@ -1562,7 +1562,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Fourth is a region for persisted data.
   titleMsg = "This is Region 4 used for persisted data, fill with H.";
   writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
-  syslog(2, "%s@%d-Region 4 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -1626,5 +1626,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
 
   // Test flash. It should all be filled
   ASSERT((prevUseSpace + writeBufLen) == reservedFlashLen);
+
+  syslog(2, "%s@%d-Successfully flashed all regions\n", thisFile, __LINE__);
 }
 #endif  // #if MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0

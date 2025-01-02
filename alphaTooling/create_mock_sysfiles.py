@@ -11,7 +11,7 @@ destFilePath = "/mnt/c/HcomFiles/Write/Text/fake/"
 runtimeFileName = destFilePath + "Meadow.OS.Runtime.bin.fake"
 # This file needs to be 0x00300000 bytes long
 runTimeSize = 0x00300000
-runtimeIntro = "This is Segment 1 used for the Meadow Runtime file, filled with A."
+runtimeIntro = "This is Region 1 used for the Meadow Runtime file, filled with A."
 
 f_runtimeFile = open(runtimeFileName, "w")
 f_runtimeFile.write(runtimeIntro)
@@ -25,7 +25,7 @@ f_runtimeFile.close
 updateFileName = destFilePath + "Meadow.OS.Update.bin.fake"
 # This file needs to be 0x001C0000 bytes
 updateSize = 0x001C0000
-updateIntro = "This is Segment 2 used for the Meadow Update file, filled with B."
+updateIntro = "This is Region 2 used for the Meadow Update file, filled with B."
 
 # Open the command file and read it at one time to solve the readline problem
 # with detecting EOF
