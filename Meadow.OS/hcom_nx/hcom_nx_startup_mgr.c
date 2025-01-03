@@ -96,7 +96,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
-  hcom_nx_exec_ex_flash_syslog_external_flash_regions(mtd);
+  hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(mtd);
 #endif
 
 // Initialize the file system first so config file can be read by others

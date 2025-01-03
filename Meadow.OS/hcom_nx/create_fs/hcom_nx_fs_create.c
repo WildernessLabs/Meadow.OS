@@ -52,6 +52,10 @@
 #warning "LittleFS is not configured. No file system can exist"
 #endif
 
+#if (HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0)
+#pragma message "(--) hcom_nx_fs_create.c"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -72,7 +76,7 @@ static char *thisFile = __FILE__;
 static FAR struct mtd_dev_s *_extFlashMtd;
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
-static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_NUMB_TOTAL];
+static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
 
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
 // layout that Meadow.OS must initially match.
@@ -155,7 +159,7 @@ int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 
   _pagesPerEraSector = 0;
 
-  for(int i = 0; i < MEADOW_FLASH_PART_NUMB_TOTAL; i++)
+  for(int i = 0; i < MEADOW_FLASH_PART_TOTAL_PARTITIONS; i++)
   {
     _partInfo[i].mtdPart = NULL;
     _partInfo[i].isPartMounted = false;
@@ -196,8 +200,8 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
 
   //------------------------------------------------------------------------
   syslog(LOG_INFO, "F/S creating %d partition%s\n",
-            MEADOW_FLASH_PART_NUMB_TOTAL,
-            MEADOW_FLASH_PART_NUMB_TOTAL > 1 ? "s" : "");
+            MEADOW_FLASH_PART_TOTAL_PARTITIONS,
+            MEADOW_FLASH_PART_TOTAL_PARTITIONS > 1 ? "s" : "");
 
   // Create the partitions in the external flash
   ret = hcom_fs_init_partitions(mtd);
@@ -385,7 +389,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   // This loop validates each partition and calculates the primary partition's
   // size used for the file system.
-  for (partitionNumber = 0; partitionNumber < MEADOW_FLASH_PART_NUMB_TOTAL; partitionNumber++)
+  for (partitionNumber = 0; partitionNumber < MEADOW_FLASH_PART_TOTAL_PARTITIONS; partitionNumber++)
   {
     if(partitionNumber == MEADOW_FS_PARTITION_OF_FS)
       continue;   // Can't use partition of file system
@@ -413,7 +417,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   // Create multiple mtd objects, one for each partition.
   // This loop runs backwards so all remaining space can be for file system
-  for(partitionNumber = MEADOW_FLASH_PART_NUMB_TOTAL - 1;
+  for(partitionNumber = MEADOW_FLASH_PART_TOTAL_PARTITIONS - 1;
       partitionNumber >= 0;
       partitionNumber--)
   {
@@ -466,7 +470,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].partSize        = _totalFlashSize;
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_NUMB_TOTAL : partitionNumber;
+  int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_TOTAL_PARTITIONS : partitionNumber;
   syslog(LOG_DEBUG, "%s@%d-Created %d partitions, Total size:%d bytes (%d Kb)\n",
             thisFile, __LINE__,
             actualPartCnt, totalBytes, totalBytes/1024);

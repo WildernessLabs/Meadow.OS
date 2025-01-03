@@ -55,6 +55,10 @@
 
 #include <sys/stat.h>
 
+#if (HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0)
+#pragma message "(--) hcom_nx_fs_flash.c"
+#endif
+
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/
@@ -1114,6 +1118,7 @@ int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length
   return(result);
 }
 
+// (--) Note this function has no callers
 /****************************************************************************
  * Name: hcom_nx_exec_ex_flash_read_assertion_data
  *
@@ -1156,7 +1161,7 @@ int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
 
 #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
 /****************************************************************************
- * Name: hcom_nx_exec_ex_flash_syslog_external_flash_regions
+ * Name: hcom_nx_exec_ex_flash_syslog_qspi_flash_regions
  *
  * Description:
  *   Mimicking the above code, to output, via syslog, the name, start and size
@@ -1182,7 +1187,7 @@ int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
  *  none.
  *
  ****************************************************************************/
-void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *mtd)
+void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
 {
   uint32_t thisOffset = 0;
   uint32_t flashEraseSize;
@@ -1241,7 +1246,7 @@ void hcom_nx_exec_ex_flash_syslog_external_flash_regions(FAR struct mtd_dev_s *m
   // Get the flash chip size based on the hardware version
   uint32_t fileSystemSize = meadow_hw_version_flash_size() - totalReserved;
   thisOffset += (totalReserved - thisOffset);
-  syslog(1, "File System   - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(1, "File System   - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           fileSystemSize,
           fileSystemSize/1024,
           thisOffset);
@@ -1568,7 +1573,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Fourth is a region for persisted data.
   titleMsg = "This is Segment 4 used for persisted data, fill with H.";
   writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
-  syslog(2, "%s@%d-Segment 4 Writing %7u bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Segment 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 

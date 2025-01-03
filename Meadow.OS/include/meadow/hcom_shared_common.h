@@ -964,7 +964,9 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
-//
+// This will enable debug code in the hcom_nx/create_fs/ files.
+#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       1
+
 // When set to 1 the syslog mask is set for all tracing except for
 // debug. At startup syslog messages are routed to UART1 without
 // the need for configuration or the CLI Uart Trace command.

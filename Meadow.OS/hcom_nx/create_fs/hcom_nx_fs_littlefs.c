@@ -51,12 +51,13 @@
 #include <dirent.h>
 #include <errno.h>
 
+#if (HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0)
+#pragma message "(--) hcom_nx_fs_littlefs.c"
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-// Show debugging information set to 1
-#define HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING 1
-
 /* Configuration ************************************************************/
 
 /****************************************************************************
@@ -71,7 +72,6 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-//=====================================================================================
 // Each littlefs partition is initialized here.
 // The individual partitions have already been created
 int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd)
@@ -84,7 +84,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s 
     return -ENOMEM;
   }
 
-#if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-Registering part %ld\n", thisFile, __LINE__, partitionId);
 #endif
 
@@ -100,7 +100,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s 
   snprintf_chk(partName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s0p%d",
           HCOM_NX_FILE_MOUNT_POINT_SOURCE, partitionId);
 
-#if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-Register part %ld as '%s'. MTD:%p\n",
            thisFile, __LINE__, partitionId, partName, partMtd);
 #endif
@@ -126,7 +126,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
 {
   int ret;
 
-#if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-LittleFS mount part %ld\n", thisFile, __LINE__, partitionId);
 #endif
 
@@ -156,7 +156,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
 
   // Detected an error that LittleFS's file system needs to be formatted.
 
-#if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "Part %ld format required\n", partitionId);
 #endif
 
@@ -172,7 +172,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
               HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId, ret);
   }
 
-#if HCOM_NX_FS_LITTLEFS_INCLUDE_DEBUG_LOGGING > 0
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   else
   {
     syslog(LOG_DEBUG, "Part %ld formatted\n", partitionId);
