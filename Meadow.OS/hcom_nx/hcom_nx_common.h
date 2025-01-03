@@ -191,9 +191,6 @@ extern "C"
 
   // Low-level file system support
   int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd);
-  int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
-                                        const char *fileSystemType, uint32_t partitionId,
-                                        const char *mountCommand);
   bool hcom_nx_fs_is_mounted(uint32_t partitionId);
   int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 

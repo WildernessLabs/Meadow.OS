@@ -120,6 +120,71 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s 
 }
 #endif
 
+//==============================================================================
+// This method is called to mount a partition
+static int hcom_nx_create_littlefs_low_level_mount(const char *sourceDevice,
+          const char *targetDevice, const char *fileSystemType,
+          uint32_t partitionNumber, const char *mountCommand)
+{
+  int ret;
+  char *finalSourceName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
+  if(finalSourceName == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+  
+  char *fullMountPtName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
+  if(fullMountPtName == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    free(finalSourceName);
+    return -ENOMEM;
+  }
+
+  // e.g. /dev/smart0 or dev/little0
+  snprintf_chk(finalSourceName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s0p%d", sourceDevice, partitionNumber);
+
+  // e.g. /meadow0
+  snprintf_chk(fullMountPtName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s%d", targetDevice, partitionNumber);
+
+ #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+  syslog(LOG_DEBUG, "Attempt to mount partition %ld as '%s' to '%s' type '%s'\n",
+           partitionNumber, finalSourceName, fullMountPtName, fileSystemType);
+ #endif
+
+ #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+  syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
+        thisFile, __LINE__, partitionNumber, finalSourceName,
+        fullMountPtName, fileSystemType, mountCommand);
+ #endif
+
+  // e.g. mount("/dev/ram0", "/mnt", "vfat", 0, NULL);  // Needs backing block device
+  // e.g. mount(NULL, "/mnt", "nxffs", 0, NULL);        // When no backing block device
+  ret = mount(finalSourceName, fullMountPtName, fileSystemType, 0, mountCommand);
+  if (ret < 0)
+  {
+    // The mount function puts the error code into errno
+    int errnumb = get_errno();
+    // Return to the specific file system code to determine if formatting needed
+    free(finalSourceName);
+    free(fullMountPtName);
+    return -errnumb;
+  }
+
+  // (--) move code to caller
+  // _partInfo[partitionNumber].isPartMounted = true;
+  
+ #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+  syslog(LOG_DEBUG, "%s@%d-Mount successful\n", thisFile, __LINE__);
+ #endif
+        
+  free(finalSourceName);
+  free(fullMountPtName);
+
+  return OK;
+}
+
 //=====================================================================================
 // Mount each LittleFS partition and format, if needed
 int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
@@ -133,7 +198,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
   // First we'll attempt to mount the device. A mount failure with a specific
   // error return indicates formatting is needed. If this happens we'll call
   // again but provide the 'force mount' command.
-  ret = hcom_nx_create_fs_mount(HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
+  ret = hcom_nx_create_littlefs_low_level_mount(HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
                                             HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId, NULL);
   if(ret >= 0)
     return OK;   // Mount successful, exit
@@ -162,7 +227,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
 
   // This call will format then mount. Note: the last argument causes LittleFS
   // to format and then mount.
-  ret = hcom_nx_create_fs_mount(HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
+  ret = hcom_nx_create_littlefs_low_level_mount(HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_FILE_MOUNT_POINT_TARGET,
                                             HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partitionId,
                                             HCOM_NX_FILE_MOUNT_FORCE_FORMAT);
   if (ret < 0)

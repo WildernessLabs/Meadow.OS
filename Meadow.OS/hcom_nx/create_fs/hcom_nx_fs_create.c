@@ -240,71 +240,9 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   }
 #endif
 
-  syslog(LOG_NOTICE, "F/S creation complete\n");
-  return OK;
-}
-
-//==============================================================================
-// This method is called from littlefs to mount either a partition or the
-// only partition in the file system 
-int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
-                                        const char *fileSystemType, uint32_t partitionNumber,
-                                        const char *mountCommand)
-{
-  int ret;
-  char *finalSourceName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(finalSourceName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    return -ENOMEM;
-  }
-  
-  char *fullMountPtName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(fullMountPtName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    free(finalSourceName);
-    return -ENOMEM;
-  }
-
-  // e.g. /dev/smart0 or dev/little0
-  snprintf_chk(finalSourceName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s0p%d", sourceDevice, partitionNumber);
-
-  // e.g. /meadow0
-  snprintf_chk(fullMountPtName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s%d", targetDevice, partitionNumber);
-
- #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "Attempt to mount partition %ld as '%s' to '%s' type '%s'\n",
-           partitionNumber, finalSourceName, fullMountPtName, fileSystemType);
- #endif
-
- #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
-        thisFile, __LINE__, partitionNumber, finalSourceName,
-        fullMountPtName, fileSystemType, mountCommand);
- #endif
-
-  // e.g. mount("/dev/ram0", "/mnt", "vfat", 0, NULL);  // Needs backing block device
-  // e.g. mount(NULL, "/mnt", "nxffs", 0, NULL);        // When no backing block device
-  ret = mount(finalSourceName, fullMountPtName, fileSystemType, 0, mountCommand);
-  if (ret < 0)
-  {
-    // The mount function puts the error code into errno
-    int errnumb = get_errno();
-    // Return to the specific file system code to determine if formatting needed
-    free(finalSourceName);
-    free(fullMountPtName);
-    return -errnumb;
-  }
-
-  _partInfo[partitionNumber].isPartMounted = true;
-  
- #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Mount successful\n", thisFile, __LINE__);
- #endif
-        
-  free(finalSourceName);
-  free(fullMountPtName);
+  _partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].isPartMounted = true;
+  syslog(LOG_NOTICE, "F/S creation complete. File System partition:%d\n",
+            MEADOW_FLASH_PART_NUMB_FILE_SYS);
 
   return OK;
 }
