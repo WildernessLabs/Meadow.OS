@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\create_fs\hcom_nx_fs.c
+ * \configs\stm32f777zit6-meadow\src\hcom_nx\create_fs\hcom_nx_fs_create.c
  * 
  *   Copyright (C) 2019 - 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -59,7 +59,7 @@
 #define HCOM_NX_FS_INCLUDE_DEBUG_LOGGING 1
 
 #if (HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0)
-#pragma message "(--) hcom_nx_fs.c"
+#pragma message "(--) hcom_nx_fs_create.c"
 #endif
 
 #define MEADOW_FS_PARTITION_OF_FS (0)
