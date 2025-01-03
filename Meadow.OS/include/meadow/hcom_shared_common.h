@@ -79,14 +79,9 @@
 // that has no concept of partitioning.
 #define HCOM_FILE_MOUNT_POINT_TARGET "/meadow"
 
-// Partitioning changes will effect the following
-#ifdef CONFIG_MTD_PARTITION
+// Partitioning
 #define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow0"
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow0/Meadow.dll"
-#else
-#define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow"
-#define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow/Meadow.dll"
-#endif
 
 #define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
 #define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"

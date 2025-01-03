@@ -71,7 +71,6 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-#ifdef CONFIG_MTD_PARTITION
 //=====================================================================================
 // Each littlefs partition is initialized here.
 // The individual partitions have already been created
@@ -182,4 +181,3 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId)
 
   return ret;
 }
-#endif

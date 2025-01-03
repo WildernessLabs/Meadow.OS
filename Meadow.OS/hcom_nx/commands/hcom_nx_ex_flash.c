@@ -562,11 +562,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   int lastPercentSent = 0;
 
   // Check for Mono runtime binary on filesystem.
-#ifdef CONFIG_MTD_PARTITION
   const char runtimePath[] = "/meadow0/" HCOM_NX_FS_MONO_RUNTIME_FILENAME;
-#else
-  const char runtimePath[] = "/meadow/" HCOM_NX_FS_MONO_RUNTIME_FILENAME;
-#endif
 
   int filefd = open(runtimePath, O_RDONLY);
   if (filefd == -1)
@@ -615,7 +611,8 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   if(ret > 0)
     return ret;
 
-  // Since the runtime partition start at offset 0
+  syslog(1, "%s@%d-Using Partition info to erase flash\n", thisFile, __LINE__);
+
   MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);
 // (--) New partitioning code
 #else

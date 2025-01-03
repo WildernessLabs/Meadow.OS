@@ -211,8 +211,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   syslog(LOG_DEBUG, "Partitioning complete. Init file system\n");
 
   // Initialize the file system
-#if (defined CONFIG_FS_LITTLEFS && defined CONFIG_MTD_PARTITION)
-
+#if defined CONFIG_FS_LITTLEFS
   // File System only on 1 partition
   ret = hcom_nx_create_one_littlefs_file_dev(MEADOW_FS_PARTITION_OF_FS,
                     _partInfo[MEADOW_FS_PARTITION_OF_FS].mtdPart);
@@ -264,7 +263,6 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
     return -ENOMEM;
   }
 
-#ifdef CONFIG_MTD_PARTITION
   // e.g. /dev/smart0 or dev/little0
   snprintf_chk(finalSourceName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s0p%d", sourceDevice, partitionNumber);
 
@@ -275,16 +273,6 @@ int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
   syslog(LOG_DEBUG, "Attempt to mount partition %ld as '%s' to '%s' type '%s'\n",
            partitionNumber, finalSourceName, fullMountPtName, fileSystemType);
  #endif
-
-#else  // #ifdef CONFIG_MTD_PARTITION
-
-  // e.g. mount("/dev/little", "/meadow", "littlefs", 0, NULL);
-  strcpy(finalSourceName, sourceDevice);
-  strcpy(fullMountPtName, targetDevice);
-
-  syslog(LOG_INFO, "Mounting '%s' to '%s' type '%s'\n",
-           finalSourceName, fullMountPtName, fileSystemType);
-#endif  // #ifdef CONFIG_MTD_PARTITION
 
  #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
@@ -349,15 +337,10 @@ int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flash_mtd)
     return -ENOMEM;
   }
 
-#ifdef CONFIG_MTD_PARTITION
   // Register the MTD driver so that it can be accessed from the VFS
   // master mtd becomes '/dev/extflash
   snprintf_chk(finalSourceName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH,
             "%s0", HCOM_NX_FILE_MOUNT_POINT_SOURCE);
-#else
-  // Since there are no partitions we register as '/dev/little'
-  strncpy(finalSourceName, HCOM_NX_FILE_MOUNT_POINT_SOURCE, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
-#endif
 
   ret = register_mtddriver(finalSourceName, master_flash_mtd, 0755, NULL);
   if (ret < 0)
@@ -376,8 +359,6 @@ int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flash_mtd)
 // Partitions the entire flash chip with the defined partition boundaries.
 int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 {
-  // The Nuttx build configuration 'CONFIG_MTD_PARTITION' is ignored here
-
   FAR struct mtd_geometry_s geo;
   int partitionNumber;
 

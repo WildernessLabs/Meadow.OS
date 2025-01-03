@@ -103,13 +103,6 @@ extern "C"
 // For a buffer large enough for the path PLUS file name we this length
 #define HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
 
-#ifdef CONFIG_MTD_PARTITION
-// Any number 2 - 8
-#define HCOM_NX_NUMBER_OF_FS_PARTITIONS 1
-#else
-// 1 if no partitions in use
-#define HCOM_NX_NUMBER_OF_FS_PARTITIONS 1
-#endif
 
 // #define UPDATE_DIR "/meadow0/update/"
 // #define UPDATE_APP_DIR UPDATE_DIR "app"
@@ -205,9 +198,7 @@ extern "C"
   int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 
 #ifdef CONFIG_FS_LITTLEFS
-#ifdef CONFIG_MTD_PARTITION
   int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
-#endif
   int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId);
 #endif
 
