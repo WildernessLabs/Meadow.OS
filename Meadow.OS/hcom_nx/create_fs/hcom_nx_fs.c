@@ -1,7 +1,7 @@
 /****************************************************************************
  * \configs\stm32f777zit6-meadow\src\hcom_nx\create_fs\hcom_nx_fs.c
  * 
- *   Copyright (C) 2019 - 2024 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,8 +85,8 @@ static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_NUMB_TOTAL];
 // File System   - Size:61865984 (60416 KB), Offset:0x00500000
 
 #if HCOM_NX_FS_INCLUDE_DEBUG_LOGGING > 0
-// Since they are created starting at offset 0, this array must
-// be backwards too
+// Since they are created starting at offset 0 (Runtime), this array must
+// be backwards
 static char *_partitionNames[] = {"File System  ",
                                   "Unused       ",
                                   "Assert Data  ",
