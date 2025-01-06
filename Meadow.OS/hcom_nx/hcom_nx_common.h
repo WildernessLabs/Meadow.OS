@@ -196,7 +196,8 @@ extern "C"
 
 #ifdef CONFIG_FS_LITTLEFS
   int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
-  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId);
+  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId,
+            const char *mountPoint);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

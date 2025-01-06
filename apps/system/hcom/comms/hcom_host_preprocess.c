@@ -42,6 +42,7 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_dnld_shared.h>
 #include <sys/mount.h>
+#include <meadow/meadow_partition_share.h>
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
 #pragma message "(--) hcom_host_preprocess.c"
@@ -101,7 +102,7 @@ int hcom_host_process_setup()
   }
 
   // One time allocation for the download shared structure
-  _dnldShared = malloc(sizeof(hcom_dnld_shared_t));
+  _dnldShared = zalloc(sizeof(hcom_dnld_shared_t));
   if (_dnldShared == NULL)
   {
     hcom_logging_syslog(LOG_ERR, "%s@%d-Download shared allocation failed\n",
@@ -113,7 +114,8 @@ int hcom_host_process_setup()
   }
 
   // Initialize download shared structure
-  memset(_dnldShared, 0, sizeof(hcom_dnld_shared_t));
+  // Currently only 1 partition allowed
+  _dnldShared->dnldFilePartId = MEADOW_FLASH_PART_NUMB_FILE_SYS;
   _dnldShared->dnldRqstCat = pathnameNotUsed;
   _dnldShared->dnldFileFD = -1;
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateInvalid;

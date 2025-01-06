@@ -70,16 +70,10 @@
 #  define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
-// New while adding subdirectories
-#define HCOM_MEADOW0_PATH_NAME_PREFIX "/meadow0"
+// Used by OS and apps (hcom_mono_control.c, hcom_nx_littlefs.c, etc.)
+#define MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME "/meadow0"
 
-// This #define is should be removed, because at this time (13Nov23)
-// partitioning isn't being used. And hasn't been used in the Meadow file
-// system, from the beginning. Also, there's been a fair amount of code written
-// that has no concept of partitioning.
-#define HCOM_FILE_MOUNT_POINT_TARGET "/meadow"
-
-// Partitioning
+// Used by meadow_client_cert.h and tensorflow_tests.c 
 #define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow0"
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow0/Meadow.dll"
 

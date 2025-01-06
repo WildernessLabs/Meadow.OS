@@ -61,7 +61,7 @@
 #define MEADOW_FLASH_PART_NUMB_ASSERT_DATA  (4)
 #define MEADOW_FLASH_PART_NUMB_UNUSED_SPACE (5)
 #define MEADOW_FLASH_PART_NUMB_FILE_SYS     (6)
-#define MEADOW_FLASH_PART_TOTAL_PARTITIONS  (7)
+#define MEADOW_FLASH_PART_TOTAL_PARTITIONS  (7) // Total number of partitions
 #define MEADOW_FLASH_PART_NUMB_PARENT_PART  (7) // Represents QSPI flash space
 
 // This structure defines the information about each external flash partition

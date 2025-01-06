@@ -484,7 +484,8 @@ bool hcom_mono_ctrl_are_needed_files_here()
   while (neededApps[listOff] != NULL)
   {
     char appPath[64];
-    snprintf_chk(appPath, 64, "%s/%s", MONO_MEADOW_EXECUTABLE_PARTITION_NAME, neededApps[listOff]);
+    snprintf_chk(appPath, 64, "%s/%s", MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
+              neededApps[listOff]);
 
     int fd = open(appPath, O_RDONLY);
     if (fd == -1)

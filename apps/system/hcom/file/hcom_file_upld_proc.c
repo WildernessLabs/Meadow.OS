@@ -125,7 +125,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
     return;
   }
 
-  strncpy(fullMountPtName, HCOM_MEADOW0_PATH_NAME_PREFIX,
+  strncpy(fullMountPtName, MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
             HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
 
   fileName = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
