@@ -68,7 +68,7 @@ static char *thisFile = __FILE__;
 static FAR struct mtd_dev_s *_extFlashMtd;
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
-static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
+static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
 
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
 // layout that Meadow.OS must initially match.
@@ -81,14 +81,33 @@ static FAR struct meadow_part_info_s _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITION
 // File System   - Size:61865984 (60416 KB), Offset:0x00500000
 
 // The order in this array determines to partition numbers. At this time
-// offset/partition 6 will be mounted as the file system /meadow0.
-static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_OS_RUNTIME,
+// partition 6 will be mounted as the file system /meadow0.
+static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
                                      MEADOW_FLASH_PART_SIZE_OTA_STATE,
                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST,
                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
                                      MEADOW_FLASH_PART_SIZE_UNKNOWN};
+
+/*
+// (--) may not be needed!!
+// // The order in this array must match the order in _partitionSizes, except
+// // for an initial offset of 0.
+// static uint32_t _partitionOffsets[] =
+// {
+//   0,    // Mono Runtime
+//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
+//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+//      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+//      MEADOW_FLASH_PART_SIZE_OS_UPDATE + MEADOW_FLASH_PART_SIZE_OTA_STATE,
+//   MEADOW_FLASH_PART_SIZE_OS_PERSIST,
+//   MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
+//   MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
+//   MEADOW_FLASH_PART_SIZE_UNKNOWN};
+*/
 
 // These 2 arrays could be moved to hcom_nx_fs_create.c
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
@@ -113,14 +132,14 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
  * Public Functions
  ****************************************************************************/
 // This function accepts a Partition define and resolves it to a specific
-// partition and returns an instance of struct meadow_part_info_s.
+// partition and returns an instance of struct meadow_part_info_t.
 // Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
 // flash flash chip's MTD and the flash chip's size.
 int hcom_nx_fs_get_partition_info(int partNumb,
-          struct meadow_part_info_s *partInfo,
+          meadow_part_info_t *partInfo,
           struct hcom_nx_cmd_data *cmdData)
 {
-  if(partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART | partNumb < 0)
+  if((partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART) | (partNumb < 0))
   {
     cmdData->logLevel = LOG_ERR;
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,

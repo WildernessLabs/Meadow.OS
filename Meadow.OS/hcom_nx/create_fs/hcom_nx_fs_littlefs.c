@@ -141,17 +141,11 @@ static int hcom_nx_create_littlefs_low_level_mount(const char *sourceDevice,
   snprintf_chk(finalSourceName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH,
             "%s0p%d", sourceDevice, partitionNumber);
 
-  // '/meadow0'
-  // snprintf_chk(fullMountPtName, HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH,
-  //           "%s%d", targetDevice, MEADOW_FLASH_PART_FILE_SYS_DISPLAY_PART);
-
  #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "--> %s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
+  syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
         thisFile, __LINE__, partitionNumber, finalSourceName,
         MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
         fileSystemType, mountCommand);
-
-  usleep(100 * 1000);
  #endif
 
   // e.g. mount("/dev/littlefs0p6", "meadowOS"", "vfat", 0, NULL);  // Needs backing block device

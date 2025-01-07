@@ -66,7 +66,7 @@
 #include <meadow/meadow_debug_helpers.h>
 
 // Set to '1' to use MTD partitions to access the external flash
-#define MEADOW_PARTITION_FLASH_USE_PARTITIONS (1)
+#define DEV_USE_PARTITIONS_FOR_REFACTORING (1)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -361,7 +361,8 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-flash erase SectorOffset %d, err:%d\n", thisFile, __LINE__, sectorOffset, ret);
+            "%s@%d-flash erase SectorOffset %d, err:%d\n",
+                      thisFile, __LINE__, sectorOffset, ret);
     return ret;
   }
    return OK;
@@ -464,7 +465,8 @@ int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
  *  _mtd is set for the current flash driver.
  *
  ****************************************************************************/
-int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destinationAddress)
+int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber,
+          void *destinationAddress)
 {
   MTD_BREAD(_mtd, blockNumber, 1, destinationAddress);
   return OK;
@@ -495,7 +497,8 @@ int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destin
  *
  ****************************************************************************/
 // #pragma GCC optimize("O0")
-int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock, void *destinationAddress, uint32_t numberOfBlocks)
+int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
+          void *destinationAddress, uint32_t numberOfBlocks)
 {
   uint32_t currentBlock = startBlock;
   uint32_t blocksRemaining = numberOfBlocks;
@@ -592,7 +595,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   }
 
   off_t fileSize = fileStatus.st_size;
-  if (fileSize != HCOM_NX_FS_MONO_RAW_PARTITION_SIZE)
+  if (fileSize != MEADOW_FLASH_PART_SIZE_MONO_RUNTIME)
   {
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
@@ -611,8 +614,8 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
 // (--) New partitioning code
-#if (MEADOW_PARTITION_FLASH_USE_PARTITIONS > 0)
-  struct meadow_part_info_s partInfo;
+#if (DEV_USE_PARTITIONS_FOR_REFACTORING > 0)
+  meadow_part_info_t partInfo;
   ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_RUNTIME,
             &partInfo, cmdData);
   if(ret > 0)
@@ -972,7 +975,9 @@ int hcom_nx_exec_ex_flash_OS_update_flash1(void)
 {
   int ret;
   OTAState state = {0};
-  ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME, HCOM_NX_FS_NUTTX_UPDATE_SIZE, HCOM_NX_FS_MONO_RAW_PARTITION_SIZE);
+  ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME,
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME);
   if (ret)
     return ret;
 
@@ -986,7 +991,9 @@ int hcom_nx_exec_ex_flash_OS_update_flash1(void)
   //  Save the current OTA state to flash
   //
   state.update = 0x1;
-  ret = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t*)&state, sizeof(OTAState), HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE);
+  ret = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t*)&state,
+            MEADOW_FLASH_PART_SIZE_OTA_STATE,
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE);
   if (ret)
     return ret;
   ret = unlink(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME);
@@ -1016,7 +1023,7 @@ int hcom_nx_exec_ex_flash_OS_update_flash2(void)
 {
   int ret;
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE, 0x0);
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, 0x0);
   if (ret)
     return ret;
 
@@ -1052,7 +1059,7 @@ int hcom_nx_exec_ex_flash_OS_update_flash2(void)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void)
 {
-  uint32_t location = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE;
+  uint32_t location = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE;
   location += hcom_nx_exec_ex_flash_get_erase_block_size();
   return(location);
 }
@@ -1076,7 +1083,8 @@ uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_assert_data_location(void)
 {
-  uint32_t location = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE;
+  uint32_t location = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE;
   location += (2 * hcom_nx_exec_ex_flash_get_erase_block_size());
   return(location);
 }
@@ -1109,8 +1117,8 @@ int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length
   else
   {
     uint32_t location = hcom_nx_exec_ex_flash_assert_data_location();
-    off_t amount_to_write = length > HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE ? \
-              HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE : length;
+    off_t amount_to_write = length > MEADOW_FLASH_PART_SIZE_ASSERT_DATA ? \
+              MEADOW_FLASH_PART_SIZE_ASSERT_DATA : length;
     result = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t *) data,
               amount_to_write, location);
   }
@@ -1147,7 +1155,7 @@ int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
   {
     uint32_t location = hcom_nx_exec_ex_flash_assert_data_location();
     uint32_t pageLocation = location / hcom_nx_exec_ex_flash_get_block_size();
-    size_t pagesToRead = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE / hcom_nx_exec_ex_flash_get_block_size();
+    size_t pagesToRead = MEADOW_FLASH_PART_SIZE_ASSERT_DATA / hcom_nx_exec_ex_flash_get_block_size();
     
     size_t pagesRead = MTD_BREAD(_mtd, pageLocation, pagesToRead, data);
     if (pagesRead != pagesToRead)
@@ -1191,8 +1199,8 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
 {
   uint32_t thisOffset = 0;
   uint32_t flashEraseSize;
-  uint32_t totalReserved = (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
-                       HCOM_NX_FS_OTA_RESERVED_SPACE);
+  uint32_t totalReserved = (MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                       MEADOW_FLASH_PART_SIZE_OTHER_RESERVED);
   // uint32_t meadowVersion = meadow_hw_version_get();
   struct mtd_geometry_s geo;
 
@@ -1202,22 +1210,22 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
 
   // Segment 0 - Meadow.OS.Runtime.bin
   syslog(1, "Runtime       - Size:%8u (%5u KB), Offset:0x%08lx\n",
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE/1024,
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME/1024,
             thisOffset);
 
   // Segment 1 - Meadow.OS.Update.bin
-  thisOffset += HCOM_NX_FS_MONO_RAW_PARTITION_SIZE;
+  thisOffset += MEADOW_FLASH_PART_SIZE_MONO_RUNTIME;
   syslog(1, "Meadow Update - Size:%8u (%5u KB), Offset:0x%08lx\n",
-            HCOM_NX_FS_NUTTX_UPDATE_SIZE,
-            HCOM_NX_FS_NUTTX_UPDATE_SIZE/1024,
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE/1024,
             thisOffset);
 
   // Segment 2 - OTAState
-  thisOffset += HCOM_NX_FS_NUTTX_UPDATE_SIZE;
+  thisOffset += MEADOW_FLASH_PART_SIZE_OS_UPDATE;
   syslog(1, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",
-            sizeof(OTAState),
-            sizeof(OTAState)/1024,
+            MEADOW_FLASH_PART_SIZE_OTA_STATE,
+            MEADOW_FLASH_PART_SIZE_OTA_STATE/1024,
            thisOffset);
 
   // Segment 3 - OS Persisted Data
@@ -1231,12 +1239,12 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
   // See hcom_nx_exec_ex_flash_persistent_data_location();
   thisOffset += flashEraseSize;
   syslog(1, "Assert Data   - Size:%8u (%5u KB), Offset:0x%08lx\n",
-          HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE,
-          HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE/1024,
+          MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
+          MEADOW_FLASH_PART_SIZE_ASSERT_DATA/1024,
           thisOffset);
 
   // Segment 5 - Unused flash space
-  thisOffset += HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
+  thisOffset += MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
   syslog(1, "Unused Space  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           totalReserved - thisOffset,
           (totalReserved - thisOffset)/1024,
@@ -1266,8 +1274,8 @@ void hcom_nx_flash_testing_verify_regions()
   int ret;
   uint32_t segmentLen;
   uint32_t prevUseSpace = 0;
-  uint32_t full5MBFlash = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
-            HCOM_NX_FS_OTA_RESERVED_SPACE;
+  uint32_t full5MBFlash = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+            MEADOW_FLASH_PART_SIZE_OTHER_RESERVED;
   uint32_t startBlock;
 
   // Find the boundary address and dump 512 bytes (256 before to 256 after).
@@ -1299,7 +1307,7 @@ void hcom_nx_flash_testing_verify_regions()
   syslog(2, "\nTop of 1st (Runtime)\n");
   hcom_nx_diag_print_buffer(flashBuffer, block_size, 1);
 
-  prevUseSpace = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE;
+  prevUseSpace = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME;
 
   //----------------------------------------------------------------------
   // 2 - 
@@ -1322,11 +1330,11 @@ void hcom_nx_flash_testing_verify_regions()
   hcom_nx_diag_print_buffer(flashBuffer,
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
-  prevUseSpace += HCOM_NX_FS_NUTTX_UPDATE_SIZE;
+  prevUseSpace += MEADOW_FLASH_PART_SIZE_OS_UPDATE;
 
   //----------------------------------------------------------------------
   // 3
-  segmentLen = sizeof(OTAState);
+  segmentLen = MEADOW_FLASH_PART_SIZE_OTA_STATE;
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1376,7 +1384,7 @@ void hcom_nx_flash_testing_verify_regions()
 
   //----------------------------------------------------------------------
   // 5
-  segmentLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
+  segmentLen = MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
@@ -1505,47 +1513,48 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // File is filled with a title string then filled with the 'A' character
   syslog(2, "%s@%d-Segment 1 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE, prevUseSpace);
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, prevUseSpace);
   usleep(100 * 1000);
 
   // Can't use hcom_nx_exec_ex_flash_OS_update_flash2 because it deletes the
   // file. This is copied from there.
   // Looks for '/meadow0/update/os/Meadow.OS.Runtime.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE, 0x0);
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, 0x0);
   if(ret < 0)
   {
     syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); 
     return;
   }
-  prevUseSpace = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE;
+  prevUseSpace = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME;
 
   //----------------------------------------------------------------
   // Second is a 1835008 byte file Meadow.OS.Update.bin
   // File is filled with 'B' characters after title string
   syslog(2, "%s@%d-Segment 2 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
-            HCOM_NX_FS_NUTTX_UPDATE_SIZE, prevUseSpace);
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE, prevUseSpace);
   usleep(100 * 1000);
 
   // Can't use hcom_nx_exec_ex_flash_OS_update_flash1 because it deletes the
   // file. This is copied from there.
   // Looks for '/meadow0/update/os/Meadow.OS.Update.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME,
-            HCOM_NX_FS_NUTTX_UPDATE_SIZE,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE);
+            MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME);
   if(ret < 0)
   {
     syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
 
-  prevUseSpace += HCOM_NX_FS_NUTTX_UPDATE_SIZE;
+  prevUseSpace += MEADOW_FLASH_PART_SIZE_OS_UPDATE;
 
   //----------------------------------------------------------------
   // Third is the OTAState
-  writeBufLen = sizeof(OTAState);
+  // 
   titleMsg = "This is Segment 3 used for OTAState, fill with D.";
+  writeBufLen = MEADOW_FLASH_PART_SIZE_OTA_STATE;
   syslog(2, "%s@%d-Segment 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
@@ -1556,9 +1565,9 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
 
   // Write the writeBuf to the flash
   // See hcom_nx_exec_ex_flash_OS_update_flash1() for rational
-  ASSERT(HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE == prevUseSpace);
+  ASSERT(MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE == prevUseSpace);
   ret = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t*) writeBuf, writeBufLen,
-            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE);
+            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE);
 
   free(writeBuf);
   if(ret < 0)
@@ -1572,7 +1581,8 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Fourth is a region for persisted data.
   titleMsg = "This is Segment 4 used for persisted data, fill with H.";
-  writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
+  // writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
+  writeBufLen = MEADOW_FLASH_PART_SIZE_OS_PERSIST;
   syslog(2, "%s@%d-Segment 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
@@ -1593,7 +1603,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Fifth is a 32KB region for assert data
   titleMsg = "This is Segment 5 used for assertion data, fill with P.";
-  writeBufLen = HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE;
+  writeBufLen = MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
   syslog(2, "%s@%d-Segment 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
@@ -1615,8 +1625,8 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // 6th is all remaining space in the 5MB flash
   // All the remaining flash space within the 5MB allocation
   titleMsg = "This is Segment 6 currently not used, fill with Q.";
-  uint32_t reservedFlashLen = HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + \
-            HCOM_NX_FS_OTA_RESERVED_SPACE;
+  uint32_t reservedFlashLen = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+            MEADOW_FLASH_PART_SIZE_OTHER_RESERVED;
   writeBufLen = reservedFlashLen - prevUseSpace;
   syslog(2, "%s@%d-Segment 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
               writeBufLen, prevUseSpace);
