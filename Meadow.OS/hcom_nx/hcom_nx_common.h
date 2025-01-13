@@ -173,6 +173,9 @@ extern "C"
   uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
   int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
   int hcom_nx_exec_ex_flash_read_assertion_data(const char *data);
+  uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
+  uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void);
+  int flash_file(const char *path, off_t size, off_t offset);
   #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
   void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd);
   #endif

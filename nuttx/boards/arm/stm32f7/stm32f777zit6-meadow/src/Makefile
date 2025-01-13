@@ -99,7 +99,8 @@ $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_create.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_littlefs.c \
 $(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_route_text_to_host.c \
 $(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_trace_msg_proc.c \
-$(MEADOW_OS_DIR)/hcom_nx/tests/hcom_nx_qspi_flash_tests.c
+$(MEADOW_OS_DIR)/hcom_nx/tests/hcom_nx_qspi_flash_tests.c \
+$(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c
 
 ifeq ($(CONFIG_ARCH_IDLE_CUSTOM),y)
 CSRCS +=  $(MEADOW_OS_DIR)/misc/meadow_idle_monitor.c
