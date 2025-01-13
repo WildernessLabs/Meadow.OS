@@ -71,7 +71,7 @@ static uint32_t _pagesPerEraSector;
 static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
 
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
-// layout that Meadow.OS must initially match.
+// layout that Meadow.OS must match.
 // Runtime       - Size: 3145728 ( 3072 KB), Offset:0x00000000
 // Meadow update - Size: 1835008 ( 1792 KB), Offset:0x00300000
 // OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
@@ -90,26 +90,6 @@ static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
                                      MEADOW_FLASH_PART_SIZE_UNKNOWN};
 
-/*
-// (--) may not be needed!!
-// // The order in this array must match the order in _partitionSizes, except
-// // for an initial offset of 0.
-// static uint32_t _partitionOffsets[] =
-// {
-//   0,    // Mono Runtime
-//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
-//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE,
-//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-//      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
-//   MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-//      MEADOW_FLASH_PART_SIZE_OS_UPDATE + MEADOW_FLASH_PART_SIZE_OTA_STATE,
-//   MEADOW_FLASH_PART_SIZE_OS_PERSIST,
-//   MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
-//   MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
-//   MEADOW_FLASH_PART_SIZE_UNKNOWN};
-*/
-
-// These 2 arrays could be moved to hcom_nx_fs_create.c
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
 static char *_partitionNames[] = {"Runtime      ",
                                   "Meadow update",

@@ -21,15 +21,16 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
-// Note: The naming and definitions for the flash segments in the Original
+// Note: The naming and definitions of the flash segments in the Original
 // Meadow OS evolved over several years. Therefore, in Original Meadow,
-// pieces and parts of each flash region have been spread in different
+// pieces and parts of each flash segment has been spread in different
 // places. Mark Stevens did a great job of consolidating the definitions
-// in 'include/meadow/hcom_shared_common.h'. Three of these definitions are
-// used below. Other definitions where not defined until now.
+// in 'include/meadow/hcom_shared_common.h'. In that spirit I have defined
+// defined all the flash segments in this file.
 //
 // Using partitions should make it much easier to modify the flash layout if
-// this ever becomes necessary.
+// this ever becomes necessary. And protect each segment from being
+// overwritten.
 
 // 3MB is for the Meadow OS
 #define MEADOW_FLASH_PART_SIZE_MONO_RUNTIME   (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE)
@@ -44,23 +45,25 @@
 #define MEADOW_FLASH_PART_SIZE_ALL_RESERVED   (MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
                                                MEADOW_FLASH_PART_SIZE_OTHER_RESERVED)
 
-// The following define flash within the additional 256kB of data
-#define MEADOW_FLASH_PART_SIZE_OTA_STATE      (4096)
-#define MEADOW_FLASH_PART_SIZE_OS_PERSIST     (4096)
+// The following define the flash within the additional 256kB of data.
+// Comments related to how it was was defined in the Original Meadow OS.
+#define MEADOW_FLASH_PART_SIZE_OTA_STATE      (4096)  // From sizeof(OTAState)
+#define MEADOW_FLASH_PART_SIZE_OS_PERSIST     (4096)  // From geo.erasesize
 #define MEADOW_FLASH_PART_SIZE_ASSERT_DATA    (HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE)
 
-// How much space is currently unused?
-#define MEADOW_FLASH_PART_SIZE_UNUSED_SPACE  (MEADOW_FLASH_PART_SIZE_ALL_RESERVED - \
-                                                (MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                                 MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-                                                 MEADOW_FLASH_PART_SIZE_OTA_STATE + \
-                                                 MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
-                                                 MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
+// How much space is currently unused of the 3MB reserved?
+#define MEADOW_FLASH_PART_SIZE_UNUSED_SPACE (MEADOW_FLASH_PART_SIZE_ALL_RESERVED - \
+                                             (MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                              MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+                                              MEADOW_FLASH_PART_SIZE_OTA_STATE + \
+                                              MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
+                                              MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
 
-// The final partition (the File System) size, can only be determined after
-// starting Meadow. This is because it supports different flash chips with
-// different sizes. The File System partition size is all remaining space.
-#define MEADOW_FLASH_PART_SIZE_UNKNOWN        (0xffffffff)
+// The final partition is the File System, it can only be determined after
+// starting Meadow. This is because we support different flash chips with
+// different sizes. The File System partition size is all remaining flash
+// space.
+#define MEADOW_FLASH_PART_SIZE_UNKNOWN      (0xffffffff)
 
 // Partition assignment numbers
 #define MEADOW_FLASH_PART_NUMB_RUNTIME      (0)
