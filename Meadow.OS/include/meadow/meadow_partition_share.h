@@ -93,4 +93,7 @@ int hcom_nx_fs_get_partition_info(int partNumb,
                     meadow_part_info_t *partInfo,
                     struct hcom_nx_cmd_data *cmdData);
 
+// Return pointer to the partition size array
+uint32_t *hcom_nx_fs_get_partition_sizes(void);
+
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H

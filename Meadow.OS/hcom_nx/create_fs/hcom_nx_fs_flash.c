@@ -55,10 +55,6 @@
 
 #include <sys/stat.h>
 
-#if (HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0)
-#pragma message "(--) hcom_nx_fs_flash.c"
-#endif
-
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/

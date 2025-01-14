@@ -80,8 +80,7 @@ static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
 // Unused        - Size:  221184 (  216 KB), Offset:0x004ca000
 // File System   - Size:61865984 (60416 KB), Offset:0x00500000
 
-// The order in this array determines to partition numbers. At this time
-// partition 6 will be mounted as the file system /meadow0.
+// The order in this array determines the partition numbers.
 static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
                                      MEADOW_FLASH_PART_SIZE_OTA_STATE,
@@ -111,6 +110,13 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+// Return pointer to the partition size array
+uint32_t *hcom_nx_fs_get_partition_sizes(void)
+{
+  return _partitionSizes;
+}
+
+//===========================================================================
 // This function accepts a Partition define and resolves it to a specific
 // partition and returns an instance of struct meadow_part_info_t.
 // Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
@@ -187,7 +193,6 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
 {
   int ret;
 
-  //------------------------------------------------------------------------
   syslog(LOG_INFO, "F/S creating %d partition%s\n",
             MEADOW_FLASH_PART_TOTAL_PARTITIONS,
             MEADOW_FLASH_PART_TOTAL_PARTITIONS > 1 ? "s" : "");
