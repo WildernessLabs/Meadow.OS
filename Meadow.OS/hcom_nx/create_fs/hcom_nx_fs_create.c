@@ -89,6 +89,37 @@ static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
                                      MEADOW_FLASH_PART_SIZE_UNKNOWN};
 
+// Partition memory offsets           // Runtime offset
+static uint32_t _partitionOffsets[] = {0,
+                                      // Meadow update offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
+                                      // OTA State offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+                                      // OS Persisted offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+                                      MEADOW_FLASH_PART_SIZE_OTA_STATE,
+                                      // Assert Data offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
+                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST,
+                                      // Unused offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
+                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
+                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
+                                      // File System offset
+                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
+                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
+                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
+                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
+                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA + \
+                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE
+};
+
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
 static char *_partitionNames[] = {"Runtime      ",
                                   "Meadow update",
@@ -117,20 +148,25 @@ uint32_t *hcom_nx_fs_get_partition_sizes(void)
 }
 
 //===========================================================================
+// Return offset of each partition
+uint32_t *hcom_nx_fs_get_partition_offsets(void)
+{
+  return _partitionOffsets;
+}
+
+//===========================================================================
 // This function accepts a Partition define and resolves it to a specific
 // partition and returns an instance of struct meadow_part_info_t.
 // Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
 // flash flash chip's MTD and the flash chip's size.
-int hcom_nx_fs_get_partition_info(int partNumb,
-          meadow_part_info_t *partInfo,
-          struct hcom_nx_cmd_data *cmdData)
+int hcom_nx_fs_get_partition_info(uint32_t partNumb,
+          meadow_part_info_t *partInfo)
 {
   if((partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART) | (partNumb < 0))
   {
-    cmdData->logLevel = LOG_ERR;
-    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Partition number out of range", thisFile, __LINE__);
-    return -EINVAL;     // Invalid argument
+    syslog(LOG_ERR, "%s@%d-Partition number:%lu out of range\n",
+              thisFile, __LINE__, partNumb);
+    return -EINVAL;
   }
 
   partInfo->isPartMounted   = _partInfo[partNumb].isPartMounted;
@@ -138,6 +174,7 @@ int hcom_nx_fs_get_partition_info(int partNumb,
   partInfo->byteOffset      = _partInfo[partNumb].byteOffset;
   partInfo->blockOffset     = _partInfo[partNumb].blockOffset;
   partInfo->partSize        = _partInfo[partNumb].partSize;
+
   return OK;
 }
 

@@ -44,25 +44,19 @@
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/hcom_bbreg_defn.h>
-#include <meadow/meadow_partition_share.h>
 #include <meadow/meadow_hw_version.h>
-
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
 #include "stm32_uid.h"          // stm32_get_uniqueid()
-
 #include <sys/boardctl.h>
-
 #include <sys/stat.h>
+#include <meadow/meadow_partition_share.h>
 
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
-
-// Set to '1' to use MTD partitions to access the external flash
-#define DEV_USE_PARTITIONS_FOR_REFACTORING (1)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -494,17 +488,52 @@ int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber,
  ****************************************************************************/
 // #pragma GCC optimize("O0")
 int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
-          void *destinationAddress, uint32_t numberOfBlocks)
+            void *destinationAddress, uint32_t numberOfBlocks)
 {
-  uint32_t currentBlock = startBlock;
+  uint32_t currentBlock;
   uint32_t blocksRemaining = numberOfBlocks;
   void *destination = destinationAddress;
   uint32_t blockSize = hcom_nx_exec_ex_flash_get_block_size();
   int result = OK;
 
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+    uint32_t partNumb;
+    uint32_t blockOffset;
+    meadow_part_info_t partInfo;
+
+    // From the block number, get the partition number and the block offset
+    result = hcom_nx_flash_conv_blk_to_part_offset(startBlock,
+            &partNumb, &blockOffset);
+    if(result < 0)
+    {
+      syslog(1, "%s@%d-Error:%d converting block to partition\n",
+                thisFile, __LINE__, result);
+      return result;
+    }
+
+    // Get the partition information
+    result = hcom_nx_fs_get_partition_info(partNumb, &partInfo);
+    if(result < 0)
+    {
+      syslog(1, "%s@%d-Error:%d getting partition info\n",
+                thisFile, __LINE__, result);
+      return result;
+    }
+
+    // Different starting block when using partitions. Because each partition
+    // starts at block 0.
+    currentBlock = blockOffset;
+#else    
+    currentBlock = startBlock;
+#endif
+
   while (blocksRemaining > 0)
   {
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+    MTD_BREAD(partInfo.mtdPart, currentBlock, 1, destination);
+#else
     MTD_BREAD(_mtd, currentBlock, 1, destination);
+#endif
     currentBlock++;
     destination += blockSize;
     blocksRemaining--;
@@ -538,7 +567,188 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
   }
 
   return(result);
+
 }
+
+
+
+//   int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
+//             void *destinationAddress, uint32_t numberOfBlocks)
+// {
+//   uint32_t currentBlock;
+//   uint32_t blocksRemaining = numberOfBlocks;
+//   void *destination = destinationAddress;
+//   uint32_t blockSize = hcom_nx_exec_ex_flash_get_block_size();
+//   int result = OK;
+
+// #if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+//     uint32_t partNumb;
+//     uint32_t blockOffset;
+//     meadow_part_info_t partInfo;
+
+//     result = hcom_nx_flash_conv_blk_to_part_offset(startBlock, &partNumb, &blockOffset);
+//     if(result < 0)
+//     {
+//       syslog(1, "%s@%d-Error:%d converting block to partition\n", thisFile, __LINE__, result);
+//       return result;
+//     }
+
+//     // Get the partition information
+//     result = hcom_nx_fs_get_partition_info(partNumb, &partInfo);
+//     if(result < 0)
+//     {
+//       syslog(1, "%s@%d-Error:%d getting partition info\n", thisFile, __LINE__, result);
+//       return result;
+//     }
+
+//     // Different starting block when using partitions. Because each partition
+//     // starts at block 0.
+//     currentBlock = blockOffset;
+// #else    
+//     currentBlock = startBlock;
+// #endif
+
+//   while (blocksRemaining > 0)
+//   {
+// #if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+//     MTD_BREAD(partInfo.mtdPart, currentBlock, 1, destination);
+// #else
+//     MTD_BREAD(_mtd, currentBlock, 1, destination);
+// #endif
+//     currentBlock++;
+//     destination += blockSize;
+//     blocksRemaining--;
+//   }
+// #if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS == 0
+//   //
+//   //  Now verify the copy.
+//   //
+//   void *buffer = kmm_malloc(blockSize);
+//   if (buffer == NULL)
+//   {
+//     result = -1;
+//   }
+//   else
+//   {
+//     currentBlock = startBlock;
+//     blocksRemaining = numberOfBlocks;
+//     destination = destinationAddress;
+//     while (blocksRemaining > 0)
+//     {
+//       MTD_BREAD(_mtd, currentBlock, 1, buffer);
+//       if (memcmp(buffer, destination, blockSize) != 0)
+//       {
+//         result = -1;
+//         break;
+//       }
+//       currentBlock++;
+//       destination += blockSize;
+//       blocksRemaining--;
+//     }
+//     kmm_free(buffer);
+//   }
+// #endif
+//   return(result);
+// }
+
+// #if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+// {
+//   // (--) Modified version using partitions
+//   // No longer allowed to get flash data across partitions.
+//   // Returned data will be 0x00000000
+//   {
+//     // uint32_t currentBlock = startBlock;
+//     uint32_t blocksRemaining = numberOfBlocks;
+//     void *destination = destinationAddress;
+//     uint32_t blockSize = hcom_nx_exec_ex_flash_get_block_size();
+//     int result = OK;
+
+//     uint32_t partNumb;
+//     uint32_t blockOffset;
+//     meadow_part_info_t partInfo;
+
+//     result = hcom_nx_flash_conv_blk_to_part_offset(startBlock, &partNumb, &blockOffset);
+//     if(result < 0)
+//     {
+//       syslog(1, "%s@%d-Error:%d converting block to partition\n", thisFile, __LINE__, result);
+//       return result;
+//     }
+
+//     // Get the partition information
+//     result = hcom_nx_fs_get_partition_info(partNumb, &partInfo);
+//     if(result < 0)
+//     {
+//       syslog(1, "%s@%d-Error:%d getting partition info\n", thisFile, __LINE__, result);
+//       return result;
+//     }
+
+//     // Different starting block when using partitions. Because each partition
+//     // starts at block 0.
+//     uint32_t currentBlock = blockOffset;
+
+//     while (blocksRemaining > 0)
+//     {
+//       MTD_BREAD(partInfo.mtdPart, currentBlock, 1, destination);
+//       // MTD_BREAD(_mtd, currentBlock, 1, destination);
+//       currentBlock++;
+//       destination += blockSize;
+//       blocksRemaining--;
+//     }
+
+//     return(result);
+//   }
+// }
+// #else
+// Original code
+// #pragma GCC optimize("O0")
+
+// int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
+//             void *destinationAddress, uint32_t numberOfBlocks)
+// {
+//   uint32_t currentBlock = startBlock;
+//   uint32_t blocksRemaining = numberOfBlocks;
+//   void *destination = destinationAddress;
+//   uint32_t blockSize = hcom_nx_exec_ex_flash_get_block_size();
+//   int result = OK;
+
+//   while (blocksRemaining > 0)
+//   {
+//     MTD_BREAD(_mtd, currentBlock, 1, destination);
+//     currentBlock++;
+//     destination += blockSize;
+//     blocksRemaining--;
+//   }
+//   //
+//   //  Now verify the copy.
+//   //
+//   void *buffer = kmm_malloc(blockSize);
+//   if (buffer == NULL)
+//   {
+//     result = -1;
+//   }
+//   else
+//   {
+//     currentBlock = startBlock;
+//     blocksRemaining = numberOfBlocks;
+//     destination = destinationAddress;
+//     while (blocksRemaining > 0)
+//     {
+//       MTD_BREAD(_mtd, currentBlock, 1, buffer);
+//       if (memcmp(buffer, destination, blockSize) != 0)
+//       {
+//         result = -1;
+//         break;
+//       }
+//       currentBlock++;
+//       destination += blockSize;
+//       blocksRemaining--;
+//     }
+//     kmm_free(buffer);
+//   }
+
+//   return(result);
+// }
+// #endif
 
 /****************************************************************************
  * Name: hcom_nx_exec_ex_flash_mono_flash
@@ -610,12 +820,17 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
 // (--) New partitioning code
-#if (DEV_USE_PARTITIONS_FOR_REFACTORING > 0)
+#if (MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0)
   meadow_part_info_t partInfo;
-  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_RUNTIME,
-            &partInfo, cmdData);
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_RUNTIME, &partInfo);
   if(ret > 0)
+  {
+    cmdData->logLevel = LOG_ERR;
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+            "%s@%d-Error getting partition info for runtime partition.\n",
+            thisFile, __LINE__);
     return ret;
+  }
 
   // Since the runtime partition start at offset 0
   MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);

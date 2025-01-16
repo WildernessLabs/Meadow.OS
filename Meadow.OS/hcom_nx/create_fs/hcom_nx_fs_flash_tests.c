@@ -60,8 +60,7 @@ void hcom_nx_flash_testing_verify_regions()
   int ret;
   uint32_t segmentLen;
   uint32_t prevUseSpace = 0;
-  uint32_t full5MBFlash = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-            MEADOW_FLASH_PART_SIZE_OTHER_RESERVED;
+  uint32_t full5MBFlash = MEADOW_FLASH_PART_SIZE_ALL_RESERVED;
   uint32_t startBlock;
 
   // Find the boundary address and dump 512 bytes (256 before to 256 after).
@@ -102,6 +101,27 @@ void hcom_nx_flash_testing_verify_regions()
   // 2 blocks have been displayed.
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+
+  // Read the block after boundary into end of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+#else
   // Read the block before and the block after
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
@@ -111,6 +131,7 @@ void hcom_nx_flash_testing_verify_regions()
     free(flashBuffer);
     return;
   }
+#endif
 
   syslog(2, "\nBottom of 1st and Top of 2nd (Meadow Update)\n");
   hcom_nx_diag_print_buffer(flashBuffer,
@@ -127,15 +148,47 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
   // Read the block before and the block after
+  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
+  // if(ret < 0)
+  // {
+  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+  //   usleep(3000 * 1000);
+  //   free(flashBuffer);
+  //   return;
+  // }
+
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+
+  // Read the block after boundary into end of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+#else
+  // Read the block before and the block after
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-    usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
+#endif
 
   syslog(2, "\nBottom of 2nd and Top of 3rd (OTA State)\n");
   hcom_nx_diag_print_buffer(flashBuffer,
@@ -144,23 +197,55 @@ void hcom_nx_flash_testing_verify_regions()
   prevUseSpace += segmentLen;
 
   //----------------------------------------------------------------------
-  // 4
+  // 4 -Persisted data
   segmentLen = hcom_nx_exec_ex_flash_get_erase_block_size();
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
+  // // Read the block before and the block after
+  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
+  // if(ret < 0)
+  // {
+  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+  //   usleep(3000 * 1000);
+  //   free(flashBuffer);
+  //   return;
+  // }
+
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+
+  // Read the block after boundary into end of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+#else
   // Read the block before and the block after
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-    usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
+#endif
 
   syslog(2, "\nBottom of 3rd and Top of 4th (OS Persisted)\n");
   hcom_nx_diag_print_buffer(flashBuffer,
@@ -169,23 +254,55 @@ void hcom_nx_flash_testing_verify_regions()
   prevUseSpace += segmentLen;
 
   //----------------------------------------------------------------------
-  // 5
+  // 5 - Assert
   segmentLen = MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
 
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before and the block after
+  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
+  // if(ret < 0)
+  // {
+  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+  //   usleep(3000 * 1000);
+  //   free(flashBuffer);
+  //   return;
+  // }
+
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+
+  // Read the block after boundary into end of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+#else
   // Read the block before and the block after
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-    usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
+#endif
 
   syslog(2, "\nBottom of 4th and Top of 5th (Assert Data)\n");
   hcom_nx_diag_print_buffer(flashBuffer,
@@ -194,7 +311,7 @@ void hcom_nx_flash_testing_verify_regions()
   prevUseSpace += segmentLen;
 
   //----------------------------------------------------------------------
-  // 6 - Whatever is left. Need to add code to show end of segment too
+  // 6 - Unused before file system
   segmentLen = full5MBFlash - prevUseSpace;
 
   // Backup 1/2 256 so boundary is at the center of the dump
@@ -202,15 +319,46 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2;   // 1 block before, 1 after
 
   // Read the block before and the block after
+  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
+  // if(ret < 0)
+  // {
+  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+  //   usleep(3000 * 1000);
+  //   free(flashBuffer);
+  //   return;
+  // }
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+
+  // Read the block after boundary into end of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+#else
+  // Read the block before and the block after
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-    usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
+#endif
 
   syslog(2, "\nBottom of 5th and Top of 6th (Reserved)\n");
   hcom_nx_diag_print_buffer(flashBuffer,
@@ -218,12 +366,40 @@ void hcom_nx_flash_testing_verify_regions()
 
   prevUseSpace += segmentLen;   // Now offset is start of file system
 
-  // ----------
+  // ----------------------------------------------------------------
   // Show the end too + 256 of file system
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2;   // 1 block before, 1 after
 
-  // Read the block before and the block after
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+  // Read the block before boundary into start of buffer
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
+            (void *) flashBuffer, 1);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+  
+  syslog(2, "\nBottom of 6th partition\n");
+  hcom_nx_diag_print_buffer(flashBuffer, block_size, 1);
+
+  // Attempt to read the block after boundary, which is the file system.
+  // This read should fail.
+  ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
+            (void *) flashBuffer + block_size, 1);
+  if(ret < 0)
+  {
+    syslog(1, "%s@%d-This successfully failed:%d\n",
+              thisFile, __LINE__, ret); usleep(3000 * 1000);
+    free(flashBuffer);
+    return;
+  }
+  syslog(2, "\nStart of File System\n");
+  hcom_nx_diag_print_buffer(flashBuffer+ block_size , block_size, 1);
+#else
+  // Read the final 2 blocks this will have no problem reading the file system
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
@@ -239,6 +415,7 @@ void hcom_nx_flash_testing_verify_regions()
             block_size * HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY, 1);
 
   free(flashBuffer);
+#endif
 #endif    // #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
 }
 
@@ -277,7 +454,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
 
   syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated <<**\n", thisFile, __LINE__);
 
-  // Fake files generated by /home/peter/wl/Meadow.OS/alphaTooling/create_mock_sysfiles.py
+  // Fake files generated by /Meadow.OS/alphaTooling/create_mock_sysfiles.py
   // Use something like the following to download the fake files to Meadow.
   // meadow file write -f C:\HcomFiles\Write\Text\fake\Meadow.OS.Runtime.bin.fake -t /meadow0/update/os/Meadow.OS.Runtime.bin
   // meadow file write -f C:\HcomFiles\Write\Text\fake\Meadow.OS.Update.bin.fake -t /meadow0/update/os/Meadow.OS.Update.bin
@@ -292,7 +469,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   usleep(100 * 1000);
 
   // Can't use hcom_nx_exec_ex_flash_OS_update_flash2 because it deletes the
-  // file. This is copied from there.
+  // file.
   // Looks for '/meadow0/update/os/Meadow.OS.Runtime.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME,
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, 0x0);
@@ -312,7 +489,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   usleep(100 * 1000);
 
   // Can't use hcom_nx_exec_ex_flash_OS_update_flash1 because it deletes the
-  // file. This is copied from there.
+  // file.
   // Looks for '/meadow0/update/os/Meadow.OS.Update.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME,
             MEADOW_FLASH_PART_SIZE_OS_UPDATE,
@@ -420,7 +597,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
     return;
   }
 
-  syslog(2, "%s@%d-First 5 MB has beenFlashed for testing successfully\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-First 5 MB flashed for testing successfully\n", thisFile, __LINE__);
 
   // Test flash. It should all be filled
   ASSERT((prevUseSpace + writeBufLen) == reservedFlashLen);

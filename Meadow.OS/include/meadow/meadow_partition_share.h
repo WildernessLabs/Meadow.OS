@@ -21,16 +21,21 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
+// Set to '1' to use MTD partitions to access the external flash
+#define MEADOW_FLASH_PART_DIAG_USE_PARTITIONS (1)
+
+// Show syslog messages?
+#define MEADOW_FLASH_PART_SHOW_SYSLOG (1)
+
 // Note: The naming and definitions of the flash segments in the Original
-// Meadow OS evolved over several years. Therefore, in Original Meadow,
-// pieces and parts of each flash segment has been spread in different
-// places. Mark Stevens did a great job of consolidating the definitions
-// in 'include/meadow/hcom_shared_common.h'. In that spirit I have defined
-// defined all the flash segments in this file.
+// Meadow OS evolved over several years. In the Original Meadow, pieces
+// and parts of each flash segment has been spread in different places.
+// Mark Stevens did a great job of consolidating the definitions in
+// 'include/meadow/hcom_shared_common.h'.
 //
-// Using partitions should make it much easier to modify the flash layout if
-// this ever becomes necessary. And protect each segment from being
-// overwritten.
+// Using partitions should make it much cleaner and easier to modify the flash
+// layout if this ever becomes necessary. It also protects each segment from
+// being overwritten.
 
 // 3MB is for the Meadow OS
 #define MEADOW_FLASH_PART_SIZE_MONO_RUNTIME   (HCOM_NX_FS_MONO_RAW_PARTITION_SIZE)
@@ -60,9 +65,9 @@
                                               MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
 
 // The final partition is the File System, it can only be determined after
-// starting Meadow. This is because we support different flash chips with
-// different sizes. The File System partition size is all remaining flash
-// space.
+// initializing Meadow. This is because we support different flash chips with
+// different sizes. The final File System partition size is all remaining
+// flash space.
 #define MEADOW_FLASH_PART_SIZE_UNKNOWN      (0xffffffff)
 
 // Partition assignment numbers
@@ -89,11 +94,16 @@ struct meadow_part_info_s
 typedef struct meadow_part_info_s meadow_part_info_t;
 
 // Obtains the flash partition information for a single partition
-int hcom_nx_fs_get_partition_info(int partNumb,
-                    meadow_part_info_t *partInfo,
-                    struct hcom_nx_cmd_data *cmdData);
+int hcom_nx_fs_get_partition_info(uint32_t partNumb,
+                    meadow_part_info_t *partInfo);
 
 // Return pointer to the partition size array
 uint32_t *hcom_nx_fs_get_partition_sizes(void);
+
+// Return pointer to the partition offset array
+uint32_t *hcom_nx_fs_get_partition_offsets(void);
+
+int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
+          uint32_t *blockOffset);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H
