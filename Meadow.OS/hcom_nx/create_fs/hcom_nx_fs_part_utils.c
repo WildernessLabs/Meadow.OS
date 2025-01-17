@@ -80,7 +80,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
           thisFile, __LINE__, blockNum, addrOfBlock);
 #endif
 
-  // Check partition numbers to see if the block is in one of them
+  // Loop through the partitions looking for the partition with this block
   for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
   {
 #if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
@@ -89,70 +89,75 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
             partitionOffsets[activePart], partitionOffsets[activePart + 1]);
 #endif
 
-// MOVE THIS TEST ABOVE THE LOOP
-    if(activePart == MEADOW_FLASH_PART_NUMB_FILE_SYS)
-    {
-      // File System is last partition and should only be accessed via the
-      // file system.
-      syslog(LOG_ERR, "%s@%d-Error:File System flash restricted\n",
-              thisFile, __LINE__);
-      usleep(1000 * 1000);    // Make sure this is seen
-      return -EINVAL;     // Invalid argument
-      // _assert;
-    }
-
     // Look at the starting and ending offset of this partition and determine
     // if the requested block is here
     if((addrOfBlock >= partitionOffsets[activePart]) && (addrOfBlock < partitionOffsets[activePart + 1]))
     {
 #if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
-      syslog(1, "%s@%d-Partition:%lu, is correct, it's between 0x%08lx and 0x%08lx, now find 0x%08lx\n",
-                thisFile, __LINE__, activePart,
-                partitionOffsets[activePart], partitionOffsets[activePart + 1],
-                addrOfBlock);
+      syslog(1, "%s@%d-Partition:%lu, is correct. 0x%08lx is between 0x%08lx and 0x%08lx\n",
+                thisFile, __LINE__, activePart, addrOfBlock,
+                partitionOffsets[activePart], partitionOffsets[activePart + 1]);
 #endif
+    break;
+    }
+  }
 
-// BREAK THE FOLLOWING OUT OF THE LOOP, THAT IS, USE THE LOOP ONLY TO FIND THE PARTITION.
-      // Right partition, now figure out if an offset is needed
-      if(addrOfBlock != partitionOffsets[activePart])
-      {
-        // Need intra partition offset. How far into the partition is the block?
-        uint32_t intraPartMemOffset = addrOfBlock - partitionOffsets[activePart];
+  if(activePart == MEADOW_FLASH_PART_TOTAL_PARTITIONS)
+  {
+    // Block is not in any partition
+    syslog(LOG_ERR, "%s@%d-Block %06ld not in any partition\n",
+            thisFile, __LINE__, blockNum);
+    return -EINVAL;     // Invalid argument
+  }
 
-        // Is this flash address a multiple of the block size?
-        if(intraPartMemOffset % hcom_nx_exec_ex_flash_get_block_size() != 0)
-        {
-          syslog(LOG_ERR, "%s@%d-Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
-                  thisFile, __LINE__, blockNum, hcom_nx_exec_ex_flash_get_block_size(),
-                  hcom_nx_exec_ex_flash_get_erase_block_size());
-          return -EINVAL;     // Invalid argument
-        }
+  // One exception, the last partition, the file system is restricted
+  if(activePart == MEADOW_FLASH_PART_NUMB_FILE_SYS)
+  {
+    // File System is last partition and should not be accessed
+    syslog(LOG_ERR, "%s@%d-Error:File System flash is restricted\n",
+            thisFile, __LINE__);
+    // usleep(1000 * 1000);    // Make sure this is seen
+    // _assert;
+    return -EINVAL;     // Invalid argument
+  }
 
-        // Save the block offset
-        *blockOffset = intraPartMemOffset / hcom_nx_exec_ex_flash_get_block_size();
+  // Partition is good, if not at the start, an offset is needed
+  if(addrOfBlock != partitionOffsets[activePart])
+  {
+    // Need intra block partition offset
+    uint32_t intraPartMemOffset = addrOfBlock - partitionOffsets[activePart];
 
-        // Check if offset is outside the range of the partition's size.
-        uint32_t *partSizes = hcom_nx_fs_get_partition_sizes();
-        uint32_t partSize = partSizes[activePart];
+    // Is this flash address a multiple of the block size?
+    if(intraPartMemOffset % hcom_nx_exec_ex_flash_get_block_size() != 0)
+    {
+      syslog(LOG_ERR, "%s@%d-Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
+              thisFile, __LINE__, blockNum, hcom_nx_exec_ex_flash_get_block_size(),
+              hcom_nx_exec_ex_flash_get_erase_block_size());
+      return -EINVAL;     // Invalid argument
+    }
+
+    // Save the block offset
+    *blockOffset = intraPartMemOffset / hcom_nx_exec_ex_flash_get_block_size();
+
+    // Check if offset is outside the range of the partition's size.
+    uint32_t *partSizes = hcom_nx_fs_get_partition_sizes();
+    uint32_t partSize = partSizes[activePart];
 
 #if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
-        syslog(1, "%s@%d-Partition size:%ld and offset is:%lu \n",
-                  thisFile, __LINE__, intraPartMemOffset, partSize);
+    syslog(1, "%s@%d-Partition size:%ld and offset is:%lu \n",
+              thisFile, __LINE__, intraPartMemOffset, partSize);
 #endif
-        if(intraPartMemOffset >= partSize)
-        {
-          syslog(LOG_ERR, "%s@%d-Block offset:%lu is outside of the partition:%lu\n",
-                  thisFile, __LINE__, *blockOffset, partSize);
-          return -EINVAL;
-        }
-      }
-      else
-      {
-        // Start of partition so offset is 0
-        *blockOffset = 0;
-      }
-      break;
+    if(intraPartMemOffset >= partSize)
+    {
+      syslog(LOG_ERR, "%s@%d-Block offset:%lu is outside of the partition:%lu\n",
+              thisFile, __LINE__, *blockOffset, partSize);
+      return -EINVAL;
     }
+  }
+  else
+  {
+    // Start of partition so offset is 0
+    *blockOffset = 0;
   }
 
   *partNumb = activePart;
@@ -162,7 +167,6 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
           thisFile, __LINE__, *partNumb, *blockOffset);
 #endif
 
-  // Find the MTD device for this partition and return it
   int ret = hcom_nx_fs_get_partition_info(activePart, &partInfo);
   if(ret < 0)
   {
@@ -171,6 +175,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
     return ret;
   }
 
+  // Return the MTD device for this partition
   *partMtd = partInfo.mtdPart;
 
   return OK;
