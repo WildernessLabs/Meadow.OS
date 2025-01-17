@@ -95,7 +95,7 @@ typedef struct meadow_part_info_s meadow_part_info_t;
 
 // Obtains the flash partition information for a single partition
 int hcom_nx_fs_get_partition_info(uint32_t partNumb,
-                    meadow_part_info_t *partInfo);
+          meadow_part_info_t *partInfo);
 
 // Return pointer to the partition size array
 uint32_t *hcom_nx_fs_get_partition_sizes(void);
@@ -103,7 +103,7 @@ uint32_t *hcom_nx_fs_get_partition_sizes(void);
 // Return pointer to the partition offset array
 uint32_t *hcom_nx_fs_get_partition_offsets(void);
 
-int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
-          uint32_t *blockOffset);
+int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
+          struct mtd_dev_s **partMtd, uint32_t *partNumb, uint32_t *blockOffset);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H

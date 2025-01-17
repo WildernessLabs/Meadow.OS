@@ -64,9 +64,10 @@ static char *thisFile = __FILE__;
  ****************************************************************************/
 // This function will take a block number and return the partition number and
 // the block offset within the partition.
-int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
-          uint32_t *blockOffset)
+int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
+          struct mtd_dev_s **partMtd, uint32_t *partNumb, uint32_t *blockOffset)
 {
+  meadow_part_info_t partInfo;    // Partition information including MTD
   uint32_t activePart;
   uint32_t *partitionOffsets = hcom_nx_fs_get_partition_offsets();
   uint32_t addrOfBlock = blockNum * hcom_nx_exec_ex_flash_get_block_size();
@@ -88,11 +89,12 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
             partitionOffsets[activePart], partitionOffsets[activePart + 1]);
 #endif
 
+// MOVE THIS TEST ABOVE THE LOOP
     if(activePart == MEADOW_FLASH_PART_NUMB_FILE_SYS)
     {
       // File System is last partition and should only be accessed via the
       // file system.
-      syslog(LOG_ERR, "%s@%d-Direct access to file system is not allowed\n",
+      syslog(LOG_ERR, "%s@%d-Error:File System flash restricted\n",
               thisFile, __LINE__);
       usleep(1000 * 1000);    // Make sure this is seen
       return -EINVAL;     // Invalid argument
@@ -110,6 +112,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
                 addrOfBlock);
 #endif
 
+// BREAK THE FOLLOWING OUT OF THE LOOP, THAT IS, USE THE LOOP ONLY TO FIND THE PARTITION.
       // Right partition, now figure out if an offset is needed
       if(addrOfBlock != partitionOffsets[activePart])
       {
@@ -158,6 +161,17 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum, uint32_t *partNumb,
   syslog(1, "%s@%d-Returning partition:%lu, blockOffset:%lu\n",
           thisFile, __LINE__, *partNumb, *blockOffset);
 #endif
+
+  // Find the MTD device for this partition and return it
+  int ret = hcom_nx_fs_get_partition_info(activePart, &partInfo);
+  if(ret < 0)
+  {
+    syslog(1, "%s@%d-Error:%d getting partition info\n",
+              thisFile, __LINE__, ret);
+    return ret;
+  }
+
+  *partMtd = partInfo.mtdPart;
 
   return OK;
 }
