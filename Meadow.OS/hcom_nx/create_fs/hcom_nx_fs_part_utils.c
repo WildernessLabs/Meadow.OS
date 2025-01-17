@@ -50,6 +50,9 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
+// Show syslog messages?
+#define MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS (0)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -75,7 +78,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
   *partNumb = 0xffffffff;
   *blockOffset = 0;
 
-#if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
+#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
   syslog(1, "-->%s@%d-Block Number:%06lu is Block Addr:0x%08lx\n",
           thisFile, __LINE__, blockNum, addrOfBlock);
 #endif
@@ -83,7 +86,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
   // Loop through the partitions looking for the partition with this block
   for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
   {
-#if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
+#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
         syslog(1, "%s@%d-Looking at Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
             thisFile, __LINE__, activePart,
             partitionOffsets[activePart], partitionOffsets[activePart + 1]);
@@ -93,7 +96,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
     // if the requested block is here
     if((addrOfBlock >= partitionOffsets[activePart]) && (addrOfBlock < partitionOffsets[activePart + 1]))
     {
-#if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
+#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
       syslog(1, "%s@%d-Partition:%lu, is correct. 0x%08lx is between 0x%08lx and 0x%08lx\n",
                 thisFile, __LINE__, activePart, addrOfBlock,
                 partitionOffsets[activePart], partitionOffsets[activePart + 1]);
@@ -143,7 +146,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
     uint32_t *partSizes = hcom_nx_fs_get_partition_sizes();
     uint32_t partSize = partSizes[activePart];
 
-#if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
+#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
     syslog(1, "%s@%d-Partition size:%ld and offset is:%lu \n",
               thisFile, __LINE__, intraPartMemOffset, partSize);
 #endif
@@ -162,7 +165,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
 
   *partNumb = activePart;
 
-#if MEADOW_FLASH_PART_SHOW_SYSLOG > 0
+#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
   syslog(1, "%s@%d-Returning partition:%lu, blockOffset:%lu\n",
           thisFile, __LINE__, *partNumb, *blockOffset);
 #endif

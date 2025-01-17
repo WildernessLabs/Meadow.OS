@@ -512,15 +512,6 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
       return result;
     }
 
-    // Get the partition information
-    result = hcom_nx_fs_get_partition_info(partNumb, &partInfo);
-    if(result < 0)
-    {
-      syslog(1, "%s@%d-Error:%d getting partition info\n",
-                thisFile, __LINE__, result);
-      return result;
-    }
-
     // Different starting block when using partitions. Because each partition
     // starts at block 0.
     currentBlock = blockOffset;
