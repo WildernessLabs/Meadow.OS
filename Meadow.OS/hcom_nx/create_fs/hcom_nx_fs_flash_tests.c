@@ -391,7 +391,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(1, "%s@%d-This successfully failed:%d\n",
+    syslog(1, "%s@%d-This \"successfully\" failed:%d\n",
               thisFile, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;

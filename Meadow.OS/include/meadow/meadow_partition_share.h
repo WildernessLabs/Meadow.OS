@@ -104,6 +104,11 @@ uint32_t *hcom_nx_fs_get_partition_sizes(void);
 uint32_t *hcom_nx_fs_get_partition_offsets(void);
 
 int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
-          struct mtd_dev_s **partMtd, uint32_t *partNumb, uint32_t *blockOffset);
+          struct mtd_dev_s **partMtd, uint32_t *partNumb,
+          uint32_t *blockOffset);
+
+// Partition aware MTD read function
+void partMtdRead(void* oldMtd, uint32_t startBlock,
+                    uint32_t numberOfBlocks, void *destinationAddress);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H

@@ -490,39 +490,16 @@ int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber,
 int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
             void *destinationAddress, uint32_t numberOfBlocks)
 {
-  uint32_t currentBlock;
+  uint32_t currentBlock = startBlock;
   uint32_t blocksRemaining = numberOfBlocks;
   void *destination = destinationAddress;
   uint32_t blockSize = hcom_nx_exec_ex_flash_get_block_size();
   int result = OK;
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
-    uint32_t partNumb;
-    uint32_t blockOffset;
-    meadow_part_info_t partInfo;
-    struct mtd_dev_s *partMtd;
-
-    // From the block number, get the partition number and the block offset
-    result = hcom_nx_flash_conv_blk_to_part_offset(startBlock,
-            &partMtd, &partNumb, &blockOffset);
-    if(result < 0)
-    {
-      syslog(1, "%s@%d-Error:%d converting block to partition\n",
-                thisFile, __LINE__, result);
-      return result;
-    }
-
-    // Different starting block when using partitions. Because each partition
-    // starts at block 0.
-    currentBlock = blockOffset;
-#else    
-    currentBlock = startBlock;
-#endif
-
   while (blocksRemaining > 0)
   {
 #if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
-    MTD_BREAD(partMtd, currentBlock, 1, destination);
+    partMtdRead(_mtd, currentBlock, 1, destination);
 #else
     MTD_BREAD(_mtd, currentBlock, 1, destination);
 #endif
@@ -545,7 +522,11 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
     destination = destinationAddress;
     while (blocksRemaining > 0)
     {
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+      partMtdRead(_mtd, currentBlock, 1, buffer);
+#else
       MTD_BREAD(_mtd, currentBlock, 1, buffer);
+#endif
       if (memcmp(buffer, destination, blockSize) != 0)
       {
         result = -1;
