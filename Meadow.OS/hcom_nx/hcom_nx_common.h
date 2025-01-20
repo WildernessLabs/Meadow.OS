@@ -172,7 +172,7 @@ extern "C"
   int hcom_nx_exec_ex_flash_write_persistent_data(meadow_os_persistent_data_t *data);
   uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
   int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
-  int hcom_nx_exec_ex_flash_read_assertion_data(const char *data);
+  int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data);
   uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
   uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void);
   int flash_file(const char *path, off_t size, off_t offset);

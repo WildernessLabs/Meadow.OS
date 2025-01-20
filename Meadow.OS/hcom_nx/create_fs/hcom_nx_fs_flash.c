@@ -142,6 +142,35 @@ static FAR struct mtd_dev_s *_mtd;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: MTD_BREAD_Proxy
+ *
+ * Description:
+ *  Stand-in for MTD_READ.
+ *
+ * Input Parameters:
+ *  mtd - Pointer to the flash driver.
+ *  startBlock - Starting block number.
+ *  numbBlocks - Number of blocks to read.
+ *  destAddr - Destination address.
+ * 
+ * Returned Value:
+ *  MTD_BREAD_Proxy's number read.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static int MTD_BREAD_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock, 
+          uint32_t numbBlocks, uint8_t *destAddr)
+{
+#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+    return partMtdBread(startBlock, numbBlocks, destAddr);
+#else
+    return MTD_BREAD(mtd, startBlock, numbBlocks, destAddr);
+#endif
+}
+
+/****************************************************************************
  * Name: hcom_nx_exec_ex_flash_setup
  *
  * Description:
@@ -276,7 +305,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   notErasedSectors = 0;
   for (sectorCounter = 0; sectorCounter < geo.neraseblocks; sectorCounter++)
   {
-    size_t pagesRead = MTD_BREAD(_mtd, sectorCounter * writeable_pages_per_sector,
+    size_t pagesRead = MTD_BREAD_Proxy(_mtd, sectorCounter * writeable_pages_per_sector,
                                   writeable_pages_per_sector, readBuffer);
     if (pagesRead == writeable_pages_per_sector)
     {
@@ -458,7 +487,7 @@ int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
 int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber,
           void *destinationAddress)
 {
-  MTD_BREAD(_mtd, blockNumber, 1, destinationAddress);
+  MTD_BREAD_Proxy(_mtd, blockNumber, 1, destinationAddress);
   return OK;
 }
 
@@ -498,11 +527,7 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
 
   while (blocksRemaining > 0)
   {
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
-    partMtdRead(_mtd, currentBlock, 1, destination);
-#else
-    MTD_BREAD(_mtd, currentBlock, 1, destination);
-#endif
+    MTD_BREAD_Proxy(_mtd, currentBlock, 1, destination);
     currentBlock++;
     destination += blockSize;
     blocksRemaining--;
@@ -522,11 +547,7 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
     destination = destinationAddress;
     while (blocksRemaining > 0)
     {
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
-      partMtdRead(_mtd, currentBlock, 1, buffer);
-#else
-      MTD_BREAD(_mtd, currentBlock, 1, buffer);
-#endif
+      MTD_BREAD_Proxy(_mtd, currentBlock, 1, buffer);
       if (memcmp(buffer, destination, blockSize) != 0)
       {
         result = -1;
@@ -612,27 +633,9 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
-// (--) New partitioning code
-#if (MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0)
-  meadow_part_info_t partInfo;
-  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_RUNTIME, &partInfo);
-  if(ret > 0)
-  {
-    cmdData->logLevel = LOG_ERR;
-    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Error getting partition info for runtime partition.\n",
-            thisFile, __LINE__);
-    return ret;
-  }
-
-  // Since the runtime partition start at offset 0
-  MTD_ERASE(partInfo.mtdPart, partInfo.byteOffset, numBlocksToErase);
-// (--) New partitioning code
-#else
   // This assumes that the space for Meadow.OS.Runtime.bin is the very first
   // thing in the external flash memory.
   MTD_ERASE(_mtd, 0, numBlocksToErase);
-#endif
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
@@ -715,7 +718,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       goto cleanup;
     }
 
-    MTD_BREAD(_mtd, i, 1, verify);
+    MTD_BREAD_Proxy(_mtd, i, 1, verify);
     if (memcmp(buf, verify, geo.blocksize) != 0)
     {
       cmdData->logLevel = LOG_ERR;
@@ -819,7 +822,7 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
       }
 
       // verify
-      MTD_BREAD(_mtd, i + offsetInPages, 1, buf);
+      MTD_BREAD_Proxy(_mtd, i + offsetInPages, 1, buf);
       if (memcmp(buf, data_buf, geo.blocksize) != 0)
       {
         syslog(LOG_ERR, "Error while verifying block %d.\n", i);
@@ -929,7 +932,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     //
     //  Don't we need to add numBlocksToSkip here?
     //
-    MTD_BREAD(_mtd, i, 1, verify);
+    MTD_BREAD_Proxy(_mtd, i, 1, verify);
 
     if (memcmp(buf, verify, geo.blocksize) != 0)
     {
@@ -1147,7 +1150,7 @@ int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length
  *  data must be large enough to hold the assertion data.
  *
  ****************************************************************************/
-int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
+int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data)
 {
   int result = OK;
 
@@ -1161,7 +1164,7 @@ int hcom_nx_exec_ex_flash_read_assertion_data(const char *data)
     uint32_t pageLocation = location / hcom_nx_exec_ex_flash_get_block_size();
     size_t pagesToRead = MEADOW_FLASH_PART_SIZE_ASSERT_DATA / hcom_nx_exec_ex_flash_get_block_size();
     
-    size_t pagesRead = MTD_BREAD(_mtd, pageLocation, pagesToRead, data);
+    size_t pagesRead = MTD_BREAD_Proxy(_mtd, pageLocation, pagesToRead, data);
     if (pagesRead != pagesToRead)
     {
       result = -EIO;

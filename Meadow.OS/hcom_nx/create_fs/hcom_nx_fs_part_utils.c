@@ -189,17 +189,15 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t flashBlockNum,
 }
 
 //====================================================================
-// This function calls the MTD_BREAD function.
-// Included the oldMtd so same signature as MTD_BREAD.
-void partMtdRead(void* oldMtd, uint32_t startBlock,
-          uint32_t numberOfBlocks, void *destinationAddress)
+// This function calls MTD_BREAD using the appropriate mtd and offset
+int partMtdBread(uint32_t startBlock, uint32_t numbBlocks, uint8_t *destAddr)
 {
    uint32_t partBlockOff;
    struct mtd_dev_s *partMtd;
 
-   // From the block number, get the partition and block offset
-   int ret = hcom_nx_flash_conv_blk_to_part_offset(startBlock,
-           &partMtd, NULL, &partBlockOff);
+   // From the starting block number, get the partition and block offset
+   int ret = hcom_nx_flash_conv_blk_to_part_offset(startBlock, &partMtd,
+           NULL, &partBlockOff);
    if(ret < 0)
    {
      syslog(1, "%s@%d-Error:%d converting block to partition\n",
@@ -207,6 +205,6 @@ void partMtdRead(void* oldMtd, uint32_t startBlock,
      return ret;
    }
 
-   MTD_BREAD(partMtd, partBlockOff, numberOfBlocks, destinationAddress);
+   return MTD_BREAD(partMtd, partBlockOff, numbBlocks, destAddr);
 }
 

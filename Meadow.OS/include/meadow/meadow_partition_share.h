@@ -108,7 +108,7 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t blockNum,
           uint32_t *blockOffset);
 
 // Partition aware MTD read function
-void partMtdRead(void* oldMtd, uint32_t startBlock,
-                    uint32_t numberOfBlocks, void *destinationAddress);
+int partMtdBread(uint32_t startBlock,
+          uint32_t numberOfBlocks, uint8_t *destAddr);
 
 #endif // __INCLUDE_MEADOWOS_PARTITION_SHARE_H
