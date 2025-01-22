@@ -39,7 +39,9 @@ static char *thisFile = __FILE__;
 
 /****************************************************************************
  * Pre-processor Definitions
- ****************************************************************************/  
+ ****************************************************************************/
+
+#define MEADOW_FLASH_PART_TESTS_USE_PARTITIONS (1)
 
 /****************************************************************************
  * Private Function Prototypes
@@ -101,7 +103,7 @@ void hcom_nx_flash_testing_verify_regions()
   // 2 blocks have been displayed.
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -158,7 +160,7 @@ void hcom_nx_flash_testing_verify_regions()
   //   return;
   // }
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -215,7 +217,7 @@ void hcom_nx_flash_testing_verify_regions()
   //   return;
   // }
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -261,7 +263,7 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before and the block after
   // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
   //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
@@ -328,7 +330,7 @@ void hcom_nx_flash_testing_verify_regions()
   //   free(flashBuffer);
   //   return;
   // }
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -371,7 +373,7 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2;   // 1 block before, 1 after
 
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
+#if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -463,13 +465,12 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // First is 3MB for runtime. Assumes Meadow.OS.Runtime.bin has been
   // replaced with a fake version in Meadow.
   // File is filled with a title string then filled with the 'A' character
-  syslog(2, "%s@%d-Segment 1 Writing %7u bytes at offset 0x%08lx\n",
+  syslog(2, "%s@%d-Region 1 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, prevUseSpace);
   usleep(100 * 1000);
 
-  // Can't use hcom_nx_exec_ex_flash_OS_update_flash2 because it deletes the
-  // file.
+  // Can't use hcom_nx_exec_ex_flash_OS_update_flash2 it deletes the file.
   // Looks for '/meadow0/update/os/Meadow.OS.Runtime.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_MONO_RUNTIME_FILENAME,
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, 0x0);
@@ -483,13 +484,12 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Second is a 1835008 byte file Meadow.OS.Update.bin
   // File is filled with 'B' characters after title string
-  syslog(2, "%s@%d-Segment 2 Writing %7u bytes at offset 0x%08lx\n",
+  syslog(2, "%s@%d-Region 2 Writing %7u bytes at offset 0x%08lx\n",
             thisFile, __LINE__,
             MEADOW_FLASH_PART_SIZE_OS_UPDATE, prevUseSpace);
   usleep(100 * 1000);
 
-  // Can't use hcom_nx_exec_ex_flash_OS_update_flash1 because it deletes the
-  // file.
+  // Can't use hcom_nx_exec_ex_flash_OS_update_flash1 it deletes the file.
   // Looks for '/meadow0/update/os/Meadow.OS.Update.bin'
   ret = flash_file(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME,
             MEADOW_FLASH_PART_SIZE_OS_UPDATE,
@@ -507,7 +507,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // 
   titleMsg = "This is Segment 3 used for OTAState, fill with D.";
   writeBufLen = MEADOW_FLASH_PART_SIZE_OTA_STATE;
-  syslog(2, "%s@%d-Segment 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -533,9 +533,8 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   //----------------------------------------------------------------
   // Fourth is a region for persisted data.
   titleMsg = "This is Segment 4 used for persisted data, fill with H.";
-  // writeBufLen = hcom_nx_exec_ex_flash_get_erase_block_size();
   writeBufLen = MEADOW_FLASH_PART_SIZE_OS_PERSIST;
-  syslog(2, "%s@%d-Segment 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -556,7 +555,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Fifth is a 32KB region for assert data
   titleMsg = "This is Segment 5 used for assertion data, fill with P.";
   writeBufLen = MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
-  syslog(2, "%s@%d-Segment 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -580,7 +579,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   uint32_t reservedFlashLen = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
             MEADOW_FLASH_PART_SIZE_OTHER_RESERVED;
   writeBufLen = reservedFlashLen - prevUseSpace;
-  syslog(2, "%s@%d-Segment 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
               writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -597,7 +596,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
     return;
   }
 
-  syslog(2, "%s@%d-First 5 MB flashed for testing successfully\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-First 5 MB flashed ready for testing\n", thisFile, __LINE__);
 
   // Test flash. It should all be filled
   ASSERT((prevUseSpace + writeBufLen) == reservedFlashLen);

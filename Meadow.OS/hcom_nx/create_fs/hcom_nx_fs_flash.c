@@ -90,7 +90,7 @@
     }                                                                                          \
   } while (0);
 
-#if defined(USE_MEADOW_DEBUG_HELPERS)
+#if defined(MEADOW_DEBUG_HELPERS)
 //
 //  Output information messages when debugging.
 //
@@ -100,7 +100,7 @@
     if (cmdData)                                                      \
     {                                                                 \
       char buf2[256];                                                 \
-      snprintf(buf2, sizeof(buf2), "%s@d-%s\n", thisFile, __LINE__, x); \
+      snprintf(buf2, sizeof(buf2), "%s@%d-%s\n", thisFile, __LINE__, x); \
       snprintf(buf2, sizeof(buf2), buf2, ##__VA_ARGS__);              \
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,   \
                              buf2, thisFile, __LINE__);               \
@@ -118,6 +118,7 @@
 //
 #define info(x, ...)
 #endif
+
 
 /****************************************************************************
  * Private Data
@@ -151,7 +152,7 @@ static FAR struct mtd_dev_s *_mtd;
  *  mtd - Pointer to the flash driver.
  *  startBlock - Starting block number.
  *  numbBlocks - Number of blocks to read.
- *  destAddr - Destination address.
+ *  destBuff - Destination address.
  * 
  * Returned Value:
  *  MTD_BREAD_Proxy's number read.
@@ -161,12 +162,69 @@ static FAR struct mtd_dev_s *_mtd;
  *
  ****************************************************************************/
 static int MTD_BREAD_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock, 
-          uint32_t numbBlocks, uint8_t *destAddr)
+          uint32_t numbBlocks, uint8_t *destBuff)
 {
-#if MEADOW_FLASH_PART_DIAG_USE_PARTITIONS > 0
-    return partMtdBread(startBlock, numbBlocks, destAddr);
+#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
+    return partMtdBRead(startBlock, numbBlocks, destBuff);
 #else
-    return MTD_BREAD(mtd, startBlock, numbBlocks, destAddr);
+    return MTD_BREAD(mtd, startBlock, numbBlocks, destBuff);
+#endif
+}
+
+/****************************************************************************
+ * Name: MTD_BWRITE_Proxy
+ *
+ * Description:
+ *  Stand-in for MTD_BWRITE.
+ *
+ * Input Parameters:
+ *  mtd - Pointer to the flash driver.
+ *  startBlock - Starting block number.
+ *  numbBlocks - Number of blocks to write.
+ *  sourceBuff - Source address.
+ * 
+ * Returned Value:
+ *  MTD_BWRITE_Proxy's number written.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static int MTD_BWRITE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock, 
+          uint32_t numbBlocks, uint8_t *sourceBuff)
+{
+#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
+    return partMtdBWrite(startBlock, numbBlocks, sourceBuff);
+#else
+    return MTD_BWRITE(mtd, startBlock, numbBlocks, sourceBuff);
+#endif
+}
+
+/****************************************************************************
+ * Name: MTD_ERASE_Proxy
+ *
+ * Description:
+ *  Stand-in for MTD_ERASE.
+ *
+ * Input Parameters:
+ *  mtd - Pointer to the flash driver.
+ *  startBlock - Starting block number.
+ *  numbBlocks - Number of blocks to erase.
+ * 
+ * Returned Value:
+ *  Error status of call (< 0 is error).
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static int MTD_ERASE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
+          uint32_t numbBlocks)
+{
+#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
+    return partMtdErase(startBlock, numbBlocks);
+#else
+    return MTD_ERASE(mtd, startBlock, numbBlocks);
 #endif
 }
 
@@ -370,11 +428,37 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
 {
   int ret;
 
+#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
+  // The reason this code is necessary is that access to the file system
+  // partition is restricted. Therefore, we must directly call MTD_ERASE, and
+  // not use the MTD_ERASE_Proxy or the call will fail.
+  meadow_part_info_t partInfo;
+
+  // Get the MTD for the file system partition. This function does not
+  // restrict the caller. Where MTD_ERASE would.
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_FILE_SYS,
+            &partInfo);
+
+  // Erase the first few sectors of the file system partition and restart
+  ret = MTD_ERASE(partInfo.mtdPart, 0, 16);
+  if (ret < 0)
+  {
+    cmdData->logLevel = LOG_ERR;
+    // Don't use snprintf_chk here
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+          "%s@%d-flash erase partition %d, err:%d\n",
+          thisFile, __LINE__, MEADOW_FLASH_PART_NUMB_FILE_SYS, ret);
+    return ret;
+  }
+  return OK;
+
+#else
   // userData has partition id
   int sectorOffset = hcom_nx_fs_1st_erase_sector_of_partition(cmdData->userData);
 
   // Erase the first few sectors of the partition and restart the MCU
-  ret = MTD_ERASE(_mtd, sectorOffset, 16);
+  // Can't use this because the file system partition is off-limits to callers
+  ret = MTD_ERASE_Proxy(_mtd, sectorOffset, 16);
   if (ret < 0)
   {
     cmdData->logLevel = LOG_ERR;
@@ -384,7 +468,9 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
                       thisFile, __LINE__, sectorOffset, ret);
     return ret;
   }
-   return OK;
+  return OK;
+
+#endif
 }
 
 /****************************************************************************
@@ -633,9 +719,12 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
-  // This assumes that the space for Meadow.OS.Runtime.bin is the very first
-  // thing in the external flash memory.
-  MTD_ERASE(_mtd, 0, numBlocksToErase);
+  ret = MTD_ERASE_Proxy(_mtd, MEADOW_PART_ADDR_OFFSET_RUNTIME,
+            numBlocksToErase);
+  if (ret < 0)
+  {
+    return -ret;
+  }
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
@@ -656,7 +745,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       goto cleanup;
     }
 
-    ssize_t writtenBlocks = MTD_BWRITE(_mtd, i, 1, buf);
+    ssize_t writtenBlocks = MTD_BWRITE_Proxy(_mtd, i, 1, buf);
     if (writtenBlocks != 1)
     {
       cmdData->logLevel = LOG_ERR;
@@ -790,6 +879,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
  ****************************************************************************/
 int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, off_t offset)
 {
+  int ret;
   struct hcom_nx_cmd_data *cmdData = NULL;
   struct mtd_geometry_s geo;
   _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
@@ -800,10 +890,11 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
   int offsetInEraseBlocks = offset / geo.erasesize;
   size_t numBlocksToWrite = size / geo.blocksize;
   size_t numBlocksToErase = size / geo.erasesize;
-  int blockserased = MTD_ERASE(_mtd, offsetInEraseBlocks, numBlocksToErase);
-  if (blockserased < 0)
+
+  ret = MTD_ERASE_Proxy(_mtd, offsetInEraseBlocks, numBlocksToErase);
+  if (ret < 0)
   {
-    return -1;
+    return -ret;
   }
   info("Erase success\n");
 
@@ -813,7 +904,7 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
     {
       memcpy(buf,data_buf, geo.blocksize);
 
-      ssize_t writtenBlocks = MTD_BWRITE(_mtd, i + offsetInPages, 1, buf);
+      ssize_t writtenBlocks = MTD_BWRITE_Proxy(_mtd, i + offsetInPages, 1, buf);
       if (writtenBlocks != 1)
       {
         error("Error while writing block %d to flash\n", i);
@@ -858,12 +949,13 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
 int flash_file(const char *path, off_t size, off_t offset)
 {
   struct hcom_nx_cmd_data *cmdData = NULL;
-  error("Flashing the file %s\n", path);
+  info("Flashing the file %s\n", path);
   int ret;
 
   int filefd = open(path, O_RDONLY);
   if (filefd == -1)
   {
+    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("%s@%d-File not found: %s.\n", thisFile, __LINE__, path);
     return -errno;
   }
@@ -872,6 +964,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   ret = fstat(filefd, &fileStatus);
   if (ret < 0)
   {
+    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("%s@%d-fstat of %s failed errno:%d\n", thisFile, __LINE__, path, errno);
     return -errno;
   }
@@ -879,6 +972,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   off_t fileSize = fileStatus.st_size;
   if (fileSize != size)
   {
+    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("File has invalid size. Expected %" PRId32 ", got %" PRId32 "\n", size, fileSize);
     return -1;
   }
@@ -887,14 +981,23 @@ int flash_file(const char *path, off_t size, off_t offset)
   _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 
   info("Erasing flash memory\n");
-
+  syslog(1, "%s@%d-GEO Erase size:%lu. GEO Block size:%lu\n",
+            thisFile, __LINE__, geo.erasesize, geo.blocksize);
+  usleep(100 * 1000);
+  
   int offsetInEraseBlocks = offset / geo.erasesize;
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
-  int blockserased = MTD_ERASE(_mtd, offsetInEraseBlocks, numBlocksToErase);
-  if (blockserased < 0)
+
+  syslog(1, "%s@%d-Erase offset in blocks:%u. Number of blocks to erase:%u, Update offset:0x%08x\n",
+            thisFile, __LINE__, offsetInEraseBlocks, numBlocksToErase, MEADOW_PART_ADDR_OFFSET_NUTTX_UPDATE);
+  usleep(100 * 1000);
+
+  ret = MTD_ERASE_Proxy(_mtd, offsetInEraseBlocks, numBlocksToErase);
+  if (ret < 0)
   {
-    return -1;
+    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
+    return -ret;
   }
   info("Erase success\n");
 
@@ -905,11 +1008,12 @@ int flash_file(const char *path, off_t size, off_t offset)
   {
     if (read(filefd, buf, geo.blocksize) < 0)
     {
+      syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
       error("Error reading from %s\n", path);
       goto cleanup;
     }
 
-    ssize_t writtenBlocks = MTD_BWRITE(_mtd, i + numBlocksToSkip, 1, buf);
+    ssize_t writtenBlocks = MTD_BWRITE_Proxy(_mtd, i + numBlocksToSkip, 1, buf);
     if (writtenBlocks != 1)
     {
       error("Error while writing block %d to flash\n", i);
@@ -917,13 +1021,13 @@ int flash_file(const char *path, off_t size, off_t offset)
     }
 
     // 10%, 20% etc
-    int lastPercentSent = 0;
+    static int lastPercentSent = 0;
     int percentDone = (i * 100) / numBlocksToWrite;
     if (percentDone / 10 != lastPercentSent)
     {
       lastPercentSent = percentDone / 10;
-
-      info("Flashing %d%% complete\n", percentDone);
+      // The 'info' macro doesn't work here???
+      syslog(2, "Flashing %d%% complete\n", percentDone);
     }
 
 #define NUTTX_UPDATE_VERIFY 0
@@ -941,7 +1045,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     }
 #endif
   }
-  info("Flash operation complete\n");
+  info("Flash operation completed\n");
 cleanup:
   close(filefd);
   // if(cmdData->logLevel != LOG_NONE)
@@ -1000,7 +1104,8 @@ int hcom_nx_exec_ex_flash_OS_update_flash1(void)
   state.update = 0x1;
   ret = hcom_nx_exec_ex_flash_write_buffer_to_flash((uint8_t*)&state,
             MEADOW_FLASH_PART_SIZE_OTA_STATE,
-            MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE);
+// (--) CONSOLIDATE THESE TWO INTO MEADOW_PART_ADDR_OFFSET_OTA_SPACE            
+            HCOM_NX_FS_MONO_RAW_PARTITION_SIZE + HCOM_NX_FS_NUTTX_UPDATE_SIZE);
   if (ret)
     return ret;
   ret = unlink(UPDATE_OS_DIR HCOM_NX_FS_NUTTX_UPDATE_FILENAME);
@@ -1066,6 +1171,7 @@ int hcom_nx_exec_ex_flash_OS_update_flash2(void)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void)
 {
+// (--) CONSOLIDATE THESE TWO INTO MEADOW_PART_ADDR_OFFSET_OTA_SPACE            
   uint32_t location = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + MEADOW_FLASH_PART_SIZE_OS_UPDATE;
   location += hcom_nx_exec_ex_flash_get_erase_block_size();
   return(location);
@@ -1090,6 +1196,7 @@ uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_assert_data_location(void)
 {
+// (--) CONSOLIDATE THESE TWO INTO MEADOW_PART_ADDR_OFFSET_OTA_SPACE            
   uint32_t location = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
             MEADOW_FLASH_PART_SIZE_OS_UPDATE;
   location += (2 * hcom_nx_exec_ex_flash_get_erase_block_size());

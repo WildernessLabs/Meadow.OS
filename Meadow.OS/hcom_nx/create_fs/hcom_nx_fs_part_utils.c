@@ -50,13 +50,65 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
-// Show syslog messages?
-#define MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS (0)
+// Show syslog messages, good for debugging?
+#define MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG (0)
+
+#if (MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH)
+#pragma message "(--) hcom_nx_ex_part_utils.c"
+#endif
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 static char *thisFile = __FILE__;
+
+// Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
+// layout that Meadow.OS must match.
+// Runtime       - Size: 3145728 ( 3072 KB), Offset:0x00000000
+// Meadow update - Size: 1835008 ( 1792 KB), Offset:0x00300000
+// OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
+// OS Persisted  - Size:    4096 (    4 KB), Offset:0x004c1000
+// Assert Data   - Size:   32768 (   32 KB), Offset:0x004c2000
+// Unused        - Size:  221184 (  216 KB), Offset:0x004ca000
+// File System   - Size:61865984 (60416 KB), Offset:0x00500000
+
+// The order in this array determines the partition numbers.
+static uint32_t _partitionSizes[] = 
+{
+  MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
+  MEADOW_FLASH_PART_SIZE_OS_UPDATE,
+  MEADOW_FLASH_PART_SIZE_OTA_STATE,
+  MEADOW_FLASH_PART_SIZE_OS_PERSIST,
+  MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
+  MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
+  MEADOW_FLASH_PART_SIZE_UNKNOWN
+};
+
+// Partition memory offsets
+static uint32_t _partitionOffsets[] =
+{
+  MEADOW_PART_ADDR_OFFSET_RUNTIME,
+  MEADOW_PART_ADDR_OFFSET_NUTTX_UPDATE,
+  MEADOW_PART_ADDR_OFFSET_OTA_SPACE,
+  MEADOW_PART_ADDR_OFFSET_OS_PERSIST,
+  MEADOW_PART_ADDR_OFFSET_ASSERT_DATA,
+  MEADOW_PART_ADDR_OFFSET_UNUSED_SPACE,
+  MEADOW_PART_ADDR_OFFSET_FILE_SYS
+};
+
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+static char *_partitionNames[] =
+{
+  "Runtime      ",
+  "Meadow update",
+  "OTA State    ",
+  "OS Persisted ",
+  "Assert Data  ",
+  "Unused       ",
+  "File System  "
+  };
+#endif
+
 
 /****************************************************************************
  * Private Function Prototypes
@@ -65,42 +117,66 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// This function will take a block number and return the partition number and
-// the block offset within the partition.
-int hcom_nx_flash_conv_blk_to_part_offset(uint32_t flashBlockNum,
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+// Return pointer to the partition name array
+char **hcom_nx_fs_get_partition_names(void)
+{
+  return _partitionNames;
+}
+#endif
+
+//===========================================================================
+// Return pointer to the partition size array
+uint32_t *hcom_nx_fs_get_partition_sizes(void)
+{
+  return _partitionSizes;
+}
+
+//===========================================================================
+// Return the array of offset of each partition
+uint32_t *hcom_nx_fs_get_partition_offsets(void)
+{
+  return _partitionOffsets;
+}
+
+//================================================================================
+// Erase blocks and Read/Write starting addresses are different! Erase blocks are
+// 4096 bytes and Read/Write blocks are 256 bytes. Therefore, this functions
+// uses the starting byte offset.
+// This function will take a byte address and return partition mtd,
+// partition number and offset of the block within the partition
+int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
           struct mtd_dev_s **partMtd, uint32_t *partNumb,
           uint32_t *partBlockOff)
 {
   meadow_part_info_t partInfo;    // Partition information including MTD
   uint32_t activePart;
   uint32_t *partitionOffsets = hcom_nx_fs_get_partition_offsets();
-  uint32_t addrOfBlock =
-            flashBlockNum * hcom_nx_exec_ex_flash_get_block_size();
-
-#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
-  syslog(1, "-->%s@%d-Block Number:%06lu is Block Addr:0x%08lx\n",
-          thisFile, __LINE__, flashBlockNum, addrOfBlock);
-#endif
 
   // Loop through the partitions looking for the partition with this block
   for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
   {
-#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
-        syslog(1, "%s@%d-Looking at Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
-            thisFile, __LINE__, activePart,
-            partitionOffsets[activePart], partitionOffsets[activePart + 1]);
+#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+    syslog(1, "-->%s@%d-Checking Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
+        thisFile, __LINE__, activePart,
+        partitionOffsets[activePart], partitionOffsets[activePart + 1]);
 #endif
 
     // Look at the starting and ending offset of this partition and determine
     // if the requested block is here.
-    if((addrOfBlock >= partitionOffsets[activePart]) && (addrOfBlock < partitionOffsets[activePart + 1]))
+    if((startByteAddr >= partitionOffsets[activePart]) && \
+       (startByteAddr < partitionOffsets[activePart + 1]))
     {
-#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
-      syslog(1, "%s@%d-Partition:%lu, is correct. 0x%08lx is between 0x%08lx and 0x%08lx\n",
-                thisFile, __LINE__, activePart, addrOfBlock,
-                partitionOffsets[activePart], partitionOffsets[activePart + 1]);
+#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+      syslog(1, "-->%s@%d-Partition:%lu, matches. 0x%08lx between 0x%08lx and 0x%08lx\n",
+                thisFile, __LINE__,
+                activePart,
+                startByteAddr,
+                partitionOffsets[activePart],
+                partitionOffsets[activePart + 1]);
+      usleep(20 * 1000);    // Make sure this is seen
 #endif
-    break;    // On success, break out of loop
+      break;    // On success, break out of loop
     }
   }
 
@@ -108,34 +184,39 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t flashBlockNum,
   if(activePart == MEADOW_FLASH_PART_TOTAL_PARTITIONS)
   {
     // Block is not in any partition
-    syslog(LOG_ERR, "%s@%d-Block %06ld did not match any partition\n",
-            thisFile, __LINE__, flashBlockNum);
     return -EINVAL;     // Invalid argument
   }
 
-  // One exception, the last partition, the file system is restricted
+  // However, the last partition, the file system is restricted
   if(activePart == MEADOW_FLASH_PART_NUMB_FILE_SYS)
   {
     // File System is last partition and should not be accessed
-    syslog(LOG_ERR, "%s@%d-Error:File System flash is restricted\n",
+    syslog(1, "%s@%d-Error:File System flash is restricted\n",
             thisFile, __LINE__);
-    // usleep(1000 * 1000);    // Make sure this is seen
+    // syslog(LOG_ERR, "%s@%d-Error:File System flash is restricted\n",
     // _assert;
+    usleep(20 * 1000); // Make sure this is seen
     return -EINVAL;     // Invalid argument
   }
 
   // Partition is good, if not at the start, an offset is needed
-  if(addrOfBlock != partitionOffsets[activePart])
+  if(startByteAddr != partitionOffsets[activePart])
   {
     // Need intra block partition offset
-    uint32_t intraPartMemOffset = addrOfBlock - partitionOffsets[activePart];
+    uint32_t intraPartMemOffset = startByteAddr - partitionOffsets[activePart];
 
     // Is this flash address a multiple of the block size?
     if(intraPartMemOffset % hcom_nx_exec_ex_flash_get_block_size() != 0)
     {
-      syslog(LOG_ERR, "%s@%d-Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
-              thisFile, __LINE__, flashBlockNum, hcom_nx_exec_ex_flash_get_block_size(),
+      syslog(1, "%s@%d-Error:Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
+              thisFile, __LINE__,
+              startByteAddr,
+              hcom_nx_exec_ex_flash_get_block_size(),
               hcom_nx_exec_ex_flash_get_erase_block_size());
+      // syslog(LOG_ERR, "%s@%d-Error:Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
+      //         thisFile, __LINE__, startByteAddr, hcom_nx_exec_ex_flash_get_block_size(),
+      //         hcom_nx_exec_ex_flash_get_erase_block_size());
+      usleep(20 * 1000);  // Make sure this is seen
       return -EINVAL;     // Invalid argument
     }
 
@@ -146,30 +227,24 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t flashBlockNum,
     uint32_t *partSizes = hcom_nx_fs_get_partition_sizes();
     uint32_t partSize = partSizes[activePart];
 
-#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
-    syslog(1, "%s@%d-Partition size:%ld and offset is:%lu \n",
+#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+    syslog(1, "-->%s@%d-Partition size:%ld and offset is:%lu \n",
               thisFile, __LINE__, intraPartMemOffset, partSize);
+    usleep(20 * 1000);    // Make sure this is seen
 #endif
+
     if(intraPartMemOffset >= partSize)
     {
       syslog(LOG_ERR, "%s@%d-Block offset:%lu is outside of the partition:%lu\n",
               thisFile, __LINE__, *partBlockOff, partSize);
+      usleep(20 * 1000);  // Make sure this is seen
       return -EINVAL;
     }
   }
   else
   {
-    // Start of partition so offset is 0
     *partBlockOff = 0;
   }
-
-  if(partNumb != NULL)
-    *partNumb = activePart;
-
-#if MEADOW_FLASH_PART_SHOW_SYSLOG_UTILS > 0
-  syslog(1, "%s@%d-Returning partition:%lu, partBlockOff:%lu\n",
-          thisFile, __LINE__, *partNumb, *partBlockOff);
-#endif
 
   if(partMtd != NULL)
   {
@@ -178,33 +253,108 @@ int hcom_nx_flash_conv_blk_to_part_offset(uint32_t flashBlockNum,
     {
       syslog(1, "%s@%d-Error:%d getting partition info\n",
                 thisFile, __LINE__, ret);
+      // syslog(LOG_ERR, "%s@%d-Error:%d getting partition info\n",
+      //           thisFile, __LINE__, ret);
+      usleep(20 * 1000);  // Make sure this is seen
       return ret;
     }
 
     // Return the MTD device for this partition
     *partMtd = partInfo.mtdPart;
   }
+  
+#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+  syslog(1, "-->%s@%d-Returning partition:%lu, partBlockOff:%lu\n",
+          thisFile, __LINE__, activePart, *partBlockOff);
+
+  syslog(1, "-->%s@%d-mtdPart:%p, byteOffset:%lu, blockOffset:%lu, isPartMounted:%u, partSize:%u \n",
+          thisFile, __LINE__, partInfo.mtdPart, partInfo.byteOffset,
+          partInfo.blockOffset, partInfo.isPartMounted, partInfo.partSize);
+  usleep(20 * 1000);    // Make sure this is seen
+#endif
+
+  if(partNumb != NULL)
+   *partNumb = activePart;
 
   return OK;
 }
 
 //====================================================================
-// This function calls MTD_BREAD using the appropriate mtd and offset
-int partMtdBread(uint32_t startBlock, uint32_t numbBlocks, uint8_t *destAddr)
+// This function calls MTD_BREAD using the correct partition and offset for
+// the partition
+// MTD_BREAD uses the 256 byte "page" for reading
+int partMtdBRead(uint32_t startBlock, uint32_t numbBlocks, uint8_t *destBuff)
 {
-   uint32_t partBlockOff;
-   struct mtd_dev_s *partMtd;
+  struct mtd_dev_s *partMtd;
+  uint32_t partBlockOff;
+  uint32_t startOffsetBytes;
 
-   // From the starting block number, get the partition and block offset
-   int ret = hcom_nx_flash_conv_blk_to_part_offset(startBlock, &partMtd,
+  // From the starting block number, get the partition and block offset
+  // Must convert startBlock offset to byte offset for finding partition etc.
+  startOffsetBytes = startBlock * hcom_nx_exec_ex_flash_get_block_size();
+  int ret = hcom_nx_flash_block_offset_to_part_offset(startOffsetBytes, &partMtd,
            NULL, &partBlockOff);
-   if(ret < 0)
-   {
-     syslog(1, "%s@%d-Error:%d converting block to partition\n",
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:%d converting block to partition\n",
                thisFile, __LINE__, ret);
-     return ret;
-   }
+    return ret;
+  }
 
-   return MTD_BREAD(partMtd, partBlockOff, numbBlocks, destAddr);
+  return MTD_BREAD(partMtd, partBlockOff, numbBlocks, destBuff);
 }
 
+//====================================================================
+// This function calls MTD_BWRITE using the correct partition and offset for
+// the partition
+// MTD_BWRITE uses the 256 byte "page" for writing 
+int partMtdBWrite(uint32_t startBlock, uint32_t numbBlocks, uint8_t *sourceBuff)
+{
+  struct mtd_dev_s *partMtd;
+  uint32_t partBlockOff;
+  uint32_t startOffsetBytes;
+
+  // From the starting block number, get the partition and block offset
+  // Must convert startBlock offset to byte offset for finding partition etc.
+  startOffsetBytes = startBlock * hcom_nx_exec_ex_flash_get_block_size();
+  int ret = hcom_nx_flash_block_offset_to_part_offset(startOffsetBytes, &partMtd,
+           NULL, &partBlockOff);
+  if(ret < 0)
+  {
+    syslog(1, "%s@%d-Error:%d converting block to partition\n",
+              thisFile, __LINE__, ret);
+    return ret;
+  }
+
+// #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+//   syslog(1, "%s@%d-partMtdBWrite called. startBlock:%lu numbBlocks:%lu, part:%lu, partOff:%lu\n",
+//             thisFile, __LINE__, startBlock, numbBlocks, partNumb, partBlockOff);
+// #endif
+
+   return MTD_BWRITE(partMtd, partBlockOff, numbBlocks, sourceBuff);
+}
+
+//====================================================================
+// This function calls MTD_ERASE using the partition corrected mtd and offset
+// MTD_ERASE uses the 4096 byte "sector" for erasing
+int partMtdErase(uint32_t startBlock, uint32_t numbBlocks)
+{
+  struct mtd_dev_s *partMtd;
+  uint32_t partBlockOff;
+  uint32_t startOffsetBytes;
+
+  // From the starting block number, get the partition and block offset
+  // Must convert startBlock offset to byte offset for finding partition etc.
+  // Note: MTD_ERASE's startBlock is in 4096 byte erase blocks.
+  startOffsetBytes = startBlock * hcom_nx_exec_ex_flash_get_erase_block_size();
+  int ret = hcom_nx_flash_block_offset_to_part_offset(startOffsetBytes, &partMtd,
+           NULL, &partBlockOff);
+  if(ret < 0)
+  {
+    syslog(1, "%s@%d-Error:%d converting block to partition\n",
+              thisFile, __LINE__, ret);
+    return ret;
+  }
+
+  return MTD_ERASE(partMtd, partBlockOff, numbBlocks);
+}

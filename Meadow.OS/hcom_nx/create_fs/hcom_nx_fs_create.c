@@ -70,66 +70,6 @@ static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
 static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
 
-// Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
-// layout that Meadow.OS must match.
-// Runtime       - Size: 3145728 ( 3072 KB), Offset:0x00000000
-// Meadow update - Size: 1835008 ( 1792 KB), Offset:0x00300000
-// OTA State     - Size:    4096 (    4 KB), Offset:0x004c0000
-// OS Persisted  - Size:    4096 (    4 KB), Offset:0x004c1000
-// Assert Data   - Size:   32768 (   32 KB), Offset:0x004c2000
-// Unused        - Size:  221184 (  216 KB), Offset:0x004ca000
-// File System   - Size:61865984 (60416 KB), Offset:0x00500000
-
-// The order in this array determines the partition numbers.
-static uint32_t _partitionSizes[] = {MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
-                                     MEADOW_FLASH_PART_SIZE_OS_UPDATE,
-                                     MEADOW_FLASH_PART_SIZE_OTA_STATE,
-                                     MEADOW_FLASH_PART_SIZE_OS_PERSIST,
-                                     MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
-                                     MEADOW_FLASH_PART_SIZE_UNUSED_SPACE,
-                                     MEADOW_FLASH_PART_SIZE_UNKNOWN};
-
-// Partition memory offsets           // Runtime offset
-static uint32_t _partitionOffsets[] = {0,
-                                      // Meadow update offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
-                                      // OTA State offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE,
-                                      // OS Persisted offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-                                      MEADOW_FLASH_PART_SIZE_OTA_STATE,
-                                      // Assert Data offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
-                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST,
-                                      // Unused offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
-                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
-                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
-                                      // File System offset
-                                      MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
-                                      MEADOW_FLASH_PART_SIZE_OS_UPDATE + \
-                                      MEADOW_FLASH_PART_SIZE_OTA_STATE + \
-                                      MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
-                                      MEADOW_FLASH_PART_SIZE_ASSERT_DATA + \
-                                      MEADOW_FLASH_PART_SIZE_UNUSED_SPACE
-};
-
-#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-static char *_partitionNames[] = {"Runtime      ",
-                                  "Meadow update",
-                                  "OTA State    ",
-                                  "OS Persisted ",
-                                  "Assert Data  ",
-                                  "Unused       ",
-                                  "File System  "};
-#endif
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -141,24 +81,12 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Return pointer to the partition size array
-uint32_t *hcom_nx_fs_get_partition_sizes(void)
-{
-  return _partitionSizes;
-}
 
 //===========================================================================
-// Return offset of each partition
-uint32_t *hcom_nx_fs_get_partition_offsets(void)
-{
-  return _partitionOffsets;
-}
-
-//===========================================================================
-// This function accepts a Partition define and resolves it to a specific
-// partition and returns an instance of struct meadow_part_info_t.
-// Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART will return the
-// flash flash chip's MTD and the flash chip's size.
+// This function accepts a Partition number and resolves it to a specific
+// partition and returns a populated meadow_part_info_t.
+// Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART returns the
+// meadow_part_info_t for the entire flash flash chip.
 int hcom_nx_fs_get_partition_info(uint32_t partNumb,
           meadow_part_info_t *partInfo)
 {
@@ -286,18 +214,21 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
 }
 
 //=====================================================================
-// (--) Check this for usage
+// (--)Ignores provided partition number, the file system's partition is always
+// MEADOW_FLASH_PART_NUMB_FILE_SYS.
 bool hcom_nx_fs_is_mounted(uint32_t partitionNumber)
 {
-  return (_partInfo[partitionNumber].isPartMounted);
+  return (_partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].isPartMounted);
 }
 
 //=====================================================================
-// (--) Check this for usage
 // Used to implement RenewFileSys and maybe others
+// (--) Ignore provided partition number, the file system's partition is always
+// MEADOW_FLASH_PART_NUMB_FILE_SYS.
+// (--) FIX THIS NO NEED TO PASS IN PARTITION NUMBER
 int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionNumber)
 {
-  return (_partInfo[partitionNumber].byteOffset / _pagesPerEraSector);
+  return (_partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].byteOffset / _pagesPerEraSector);
 }
 
 //=====================================================================
@@ -342,6 +273,11 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   FAR struct mtd_geometry_s geo;
   int partitionNumber;
 
+  uint32_t *partitionSizes = hcom_nx_fs_get_partition_sizes();
+#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+  char **partitionNames = hcom_nx_fs_get_partition_names();
+#endif
+
   // Get geometry of QSPI Flash
   int ret = mtd->ioctl(mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
   if (ret < 0)
@@ -374,17 +310,17 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
       continue;   // Can't use partition of file system
 
     // Verify that each partition's size is valid
-    if(_partitionSizes[partitionNumber] % geo.erasesize != 0)
+    if(partitionSizes[partitionNumber] % geo.erasesize != 0)
     {
       syslog(LOG_ERR, "%s@%d-Partition %d, size (%lu) not multiple of erase size (%lu)\n",
               thisFile, __LINE__, partitionNumber,
-              _partitionSizes[partitionNumber],
+              partitionSizes[partitionNumber],
               geo.erasesize);
       return -EINVAL;     // Invalid argument
     }
 
     // Continue to calculate the primary partition's size
-    primaryPartSize -= _partitionSizes[partitionNumber];
+    primaryPartSize -= partitionSizes[partitionNumber];
   }
 
   // Create each partition
@@ -400,7 +336,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
        partitionNumber++)
   {
     // Get the number of bytes in this partition.
-    uint32_t partSizeInBytes = _partitionSizes[partitionNumber];
+    uint32_t partSizeInBytes = partitionSizes[partitionNumber];
 
     // Is this the File System partition? If so its size has been unknown.
     // Well, the size is known now.
@@ -417,7 +353,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     totalBytes += partSizeInBytes;
     syslog(LOG_DEBUG, "%s@%d-%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08lx, Block Offset %5lu\n",
              thisFile, __LINE__,
-             _partitionNames[partitionNumber],
+             partitionNames[partitionNumber],
              partitionNumber,
              partSizeInBytes, partSizeInBytes/1024,
              firstBlockOff * geo.blocksize,
