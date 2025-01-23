@@ -143,6 +143,59 @@ static FAR struct mtd_dev_s *_mtd;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: hcom_nx_exec_ex_flash_setup
+ *
+ * Description:
+ *  Copy the pointer to the flash driver into a static local variable.
+ *
+ * Input Parameters:
+ *  mtd - Pointer to the flash driver.
+ *
+ * Returned Value:
+ *  OK
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd)
+{
+  _mtd = mtd;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: hcom_nx_exec_ex_flash_get_geometry
+ *
+ * Description:
+ *  Get a pointer to the geometry structure for the flash memory.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  OK if successful, -1 otherwise.
+ *
+ * Assumptions/Limitations:
+ *  _mtd is set for the current flash driver.
+ *
+ ****************************************************************************/
+int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
+{
+  int result = OK;
+
+  if (geometry != NULL)
+  {
+    if (_mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) geometry)) != 0)
+    {
+      result = -1;
+    }
+  }
+
+  return(result);
+}
+
+/****************************************************************************
  * Name: MTD_BREAD_Proxy
  *
  * Description:
@@ -152,7 +205,7 @@ static FAR struct mtd_dev_s *_mtd;
  *  mtd - Pointer to the flash driver.
  *  startBlock - Starting block number.
  *  numbBlocks - Number of blocks to read.
- *  destBuff - Destination address.
+ *  destBuff - Destination buffer address.
  * 
  * Returned Value:
  *  MTD_BREAD_Proxy's number read.
@@ -181,7 +234,7 @@ static int MTD_BREAD_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
  *  mtd - Pointer to the flash driver.
  *  startBlock - Starting block number.
  *  numbBlocks - Number of blocks to write.
- *  sourceBuff - Source address.
+ *  sourceBuff - Source buffer address.
  * 
  * Returned Value:
  *  MTD_BWRITE_Proxy's number written.
@@ -226,28 +279,6 @@ static int MTD_ERASE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
 #else
     return MTD_ERASE(mtd, startBlock, numbBlocks);
 #endif
-}
-
-/****************************************************************************
- * Name: hcom_nx_exec_ex_flash_setup
- *
- * Description:
- *  Copy the pointer to the flash driver into a static local variable.
- *
- * Input Parameters:
- *  mtd - Pointer to the flash driver.
- *
- * Returned Value:
- *  OK
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd)
-{
-  _mtd = mtd;
-  return OK;
 }
 
 /****************************************************************************
@@ -519,37 +550,6 @@ uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void)
 
   _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) &geo));
   return(geo.erasesize);
-}
-
-/****************************************************************************
- * Name: hcom_nx_exec_ex_flash_get_geometry
- *
- * Description:
- *  Get a pointer to the geometry structure for the flash memory.
- *
- * Input Parameters:
- *  None.
- *
- * Returned Value:
- *  OK if successful, -1 otherwise.
- *
- * Assumptions/Limitations:
- *  _mtd is set for the current flash driver.
- *
- ****************************************************************************/
-int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
-{
-  int result = OK;
-
-  if (geometry != NULL)
-  {
-    if (_mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) geometry)) != 0)
-    {
-      result = -1;
-    }
-  }
-
-  return(result);
 }
 
 /****************************************************************************

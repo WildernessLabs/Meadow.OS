@@ -65,7 +65,6 @@
  ****************************************************************************/
 static char *thisFile = __FILE__;
 
-static FAR struct mtd_dev_s *_extFlashMtd;
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
 static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
@@ -113,8 +112,6 @@ int hcom_nx_fs_get_partition_info(uint32_t partNumb,
 int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 {
   int ret;
-
-  _extFlashMtd = mtd;
 
   _pagesPerEraSector = 0;
 
@@ -378,7 +375,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   // After creating all the partitions, fill in the last array element
   // with the information for the entire flash drive.
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].isPartMounted   = false;
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].mtdPart         = _extFlashMtd;
+  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].mtdPart         = mtd;
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].byteOffset      = 0;
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].blockOffset     = 0;
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].partSize        = _totalFlashSize;

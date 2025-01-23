@@ -149,17 +149,6 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
-  // Read the block before and the block after
-  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
-  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
-  // if(ret < 0)
-  // {
-  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-  //   usleep(3000 * 1000);
-  //   free(flashBuffer);
-  //   return;
-  // }
-
 #if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
@@ -205,17 +194,6 @@ void hcom_nx_flash_testing_verify_regions()
   // Backup 1/2 256 so boundary is at the center of the dump
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
-
-  // // Read the block before and the block after
-  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
-  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
-  // if(ret < 0)
-  // {
-  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-  //   usleep(3000 * 1000);
-  //   free(flashBuffer);
-  //   return;
-  // }
 
 #if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
@@ -264,17 +242,6 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2; // 1 block before, 1 after
 
 #if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
-  // Read the block before and the block after
-  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
-  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
-  // if(ret < 0)
-  // {
-  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-  //   usleep(3000 * 1000);
-  //   free(flashBuffer);
-  //   return;
-  // }
-
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
             (void *) flashBuffer, 1);
@@ -320,16 +287,6 @@ void hcom_nx_flash_testing_verify_regions()
   startBlock = prevUseSpace / block_size;
   startBlock -= HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2;   // 1 block before, 1 after
 
-  // Read the block before and the block after
-  // ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
-  //           (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
-  // if(ret < 0)
-  // {
-  //   syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
-  //   usleep(3000 * 1000);
-  //   free(flashBuffer);
-  //   return;
-  // }
 #if MEADOW_FLASH_PART_TESTS_USE_PARTITIONS > 0
   // Read the block before boundary into start of buffer
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock,
@@ -388,7 +345,7 @@ void hcom_nx_flash_testing_verify_regions()
   hcom_nx_diag_print_buffer(flashBuffer, block_size, 1);
 
   // Attempt to read the block after boundary, which is the file system.
-  // This read should fail.
+  // This read should FAIL.
   ret = hcom_nx_exec_ex_flash_copy_blocks_to_memory(startBlock + 1,
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)

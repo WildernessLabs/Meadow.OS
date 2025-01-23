@@ -33,7 +33,8 @@
  *
  ****************************************************************************/
 
-// This module contains utility code for use with partitioned flash memory
+// This module contains utility code for use with partitioned flash memory.
+// Some similar functions are in hcom_nx_fs_create.c.
 
 /****************************************************************************
  * Included Files
@@ -106,7 +107,7 @@ static char *_partitionNames[] =
   "Assert Data  ",
   "Unused       ",
   "File System  "
-  };
+};
 #endif
 
 
@@ -118,7 +119,7 @@ static char *_partitionNames[] =
  * Public Functions
  ****************************************************************************/
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-// Return pointer to the partition name array
+// Return pointer to the partition name array. Only used for diagnostics.
 char **hcom_nx_fs_get_partition_names(void)
 {
   return _partitionNames;
@@ -138,6 +139,14 @@ uint32_t *hcom_nx_fs_get_partition_offsets(void)
 {
   return _partitionOffsets;
 }
+
+//===========================================================================
+
+  // struct mtd_geometry_s geo;
+
+  // _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) &geo));
+
+  // return(geo.blocksize);
 
 //================================================================================
 // Erase blocks and Read/Write starting addresses are different! Erase blocks are

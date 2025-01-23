@@ -34,8 +34,6 @@
 #include <sys/boardctl.h>
 
 #include "mpu.h"
-#include <nuttx/mtd/mtd.h>
-#include <nuttx/spi/qspi.h>
 
 #include <meadow/meadow_temp_rebase.h>  // THIS IS TEMPORARY
 #include "stm32f777zit6-meadow.h"
@@ -43,7 +41,6 @@
 #include <meadow/meadow_hw_version.h>
 
 #ifdef CONFIG_STM32F7_QUADSPI
-#  include <nuttx/mtd/mtd.h>
 #  include "stm32_qspi.h"
 
 #  ifdef CONFIG_FS_FAT
