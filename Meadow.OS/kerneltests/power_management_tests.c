@@ -322,7 +322,7 @@ int pwrmgmt_enter_test_sleep_x_times_for_y_seconds()
     // DEBUG_SET_HIGH(DEBUG_PIN_V2_D03);
     // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
   }
-  // syslog(1, "-->%s@%d-Entered. Creating thread.\n", thisFile, __LINE__);
+  // syslog(2, "-->%s@%d-Entered. Creating thread.\n", thisFile, __LINE__);
 
   int thread_id = kthread_create("SleepTest",
                                 100,
@@ -538,7 +538,7 @@ static void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[]);
 // Called when starting to initialize the thread used to run the test
 int pwmmgmt_test_sleep_wake_only_setup()
 {
-  // syslog(1, "-->%s@%d-Entered. Creating thread.\n", thisFile, __LINE__);
+  // syslog(2, "-->%s@%d-Entered. Creating thread.\n", thisFile, __LINE__);
   int thread_id = kthread_create("SleepWakeForever",
                                 100,
                                 4096,
@@ -562,7 +562,7 @@ void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[])
   const uint awakeSeconds = 2;
   uint maxCount = 0xffffffff;
 
-  syslog(1, "===>Before SleepWake Cycle starts\n");
+  syslog(2, "===>Before SleepWake Cycle starts\n");
 
   // Wait 5 seconds to insure everything in Meadow.OS us running
   sleep(5);
@@ -585,7 +585,7 @@ void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[])
       continue;
     };
 
-    syslog(1, "===>SleepWake Cycle #%05lu, Sleeping for %lu seconds\n", i + 1, stopModeSeconds);
+    syslog(2, "===>SleepWake Cycle #%05lu, Sleeping for %lu seconds\n", i + 1, stopModeSeconds);
 
     stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, true);
     stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, true);
@@ -597,12 +597,12 @@ void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[])
 
     if(ret < 0)
     {
-      syslog(1, "===>SleepWake Cycle #%05lu, Error:ret:%d, errno:%d, continuing\n",
+      syslog(2, "===>SleepWake Cycle #%05lu, Error:ret:%d, errno:%d, continuing\n",
                 i + 1, ret, errno);
     }
 
     // Sleep ended
-    syslog(1, "===>SleepWake Cycle #%05lu, Awake for %lu seconds\n", i + 1, awakeSeconds);
+    syslog(2, "===>SleepWake Cycle #%05lu, Awake for %lu seconds\n", i + 1, awakeSeconds);
     sleep(awakeSeconds);
   }
 

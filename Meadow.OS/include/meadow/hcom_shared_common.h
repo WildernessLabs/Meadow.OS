@@ -1021,7 +1021,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        0
 
 // Test partitioning of 5 MB of external flash
-#define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH  1
+#define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH  0
 #if MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0
 void hcom_nx_flash_testing_fill_5mb_of_flash(void);
 void hcom_nx_flash_testing_verify_regions(void);

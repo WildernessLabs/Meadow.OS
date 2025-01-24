@@ -186,7 +186,7 @@ int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
 
   if (geometry != NULL)
   {
-    if (_mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) geometry)) != 0)
+    if (_mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)geometry) != 0)
     {
       result = -1;
     }
@@ -955,7 +955,6 @@ int flash_file(const char *path, off_t size, off_t offset)
   int filefd = open(path, O_RDONLY);
   if (filefd == -1)
   {
-    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("%s@%d-File not found: %s.\n", thisFile, __LINE__, path);
     return -errno;
   }
@@ -964,7 +963,6 @@ int flash_file(const char *path, off_t size, off_t offset)
   ret = fstat(filefd, &fileStatus);
   if (ret < 0)
   {
-    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("%s@%d-fstat of %s failed errno:%d\n", thisFile, __LINE__, path, errno);
     return -errno;
   }
@@ -972,7 +970,6 @@ int flash_file(const char *path, off_t size, off_t offset)
   off_t fileSize = fileStatus.st_size;
   if (fileSize != size)
   {
-    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
     error("File has invalid size. Expected %" PRId32 ", got %" PRId32 "\n", size, fileSize);
     return -1;
   }
@@ -981,22 +978,14 @@ int flash_file(const char *path, off_t size, off_t offset)
   _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
 
   info("Erasing flash memory\n");
-  syslog(1, "%s@%d-GEO Erase size:%lu. GEO Block size:%lu\n",
-            thisFile, __LINE__, geo.erasesize, geo.blocksize);
-  usleep(100 * 1000);
   
   int offsetInEraseBlocks = offset / geo.erasesize;
-
   size_t numBlocksToErase = fileSize / geo.erasesize;
-
-  syslog(1, "%s@%d-Erase offset in blocks:%u. Number of blocks to erase:%u, Update offset:0x%08x\n",
-            thisFile, __LINE__, offsetInEraseBlocks, numBlocksToErase, MEADOW_PART_ADDR_OFFSET_NUTTX_UPDATE);
-  usleep(100 * 1000);
 
   ret = MTD_ERASE_Proxy(_mtd, offsetInEraseBlocks, numBlocksToErase);
   if (ret < 0)
   {
-    syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error\n", thisFile, __LINE__);
     return -ret;
   }
   info("Erase success\n");
@@ -1008,7 +997,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   {
     if (read(filefd, buf, geo.blocksize) < 0)
     {
-      syslog(1, "%s@%d-Error\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-Error\n", thisFile, __LINE__);
       error("Error reading from %s\n", path);
       goto cleanup;
     }
@@ -1323,28 +1312,28 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
   flashEraseSize = geo.erasesize;
 
   // Segment 0 - Meadow.OS.Runtime.bin
-  syslog(1, "Runtime       - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(2, "Runtime       - Size:%8u (%5u KB), Offset:0x%08lx\n",
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME,
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME/1024,
             thisOffset);
 
   // Segment 1 - Meadow.OS.Update.bin
   thisOffset += MEADOW_FLASH_PART_SIZE_MONO_RUNTIME;
-  syslog(1, "Meadow Update - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(2, "Meadow Update - Size:%8u (%5u KB), Offset:0x%08lx\n",
             MEADOW_FLASH_PART_SIZE_OS_UPDATE,
             MEADOW_FLASH_PART_SIZE_OS_UPDATE/1024,
             thisOffset);
 
   // Segment 2 - OTAState
   thisOffset += MEADOW_FLASH_PART_SIZE_OS_UPDATE;
-  syslog(1, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(2, "OTA State     - Size:%8u (%5u KB), Offset:0x%08lx\n",
             MEADOW_FLASH_PART_SIZE_OTA_STATE,
             MEADOW_FLASH_PART_SIZE_OTA_STATE/1024,
            thisOffset);
 
   // Segment 3 - OS Persisted Data
   thisOffset += flashEraseSize;
-  syslog(1, "OS Persisted  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
+  syslog(2, "OS Persisted  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           flashEraseSize,
           flashEraseSize/1024,
           thisOffset);
@@ -1352,14 +1341,14 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
   // Segment 4 - Assert Data
   // See hcom_nx_exec_ex_flash_persistent_data_location();
   thisOffset += flashEraseSize;
-  syslog(1, "Assert Data   - Size:%8u (%5u KB), Offset:0x%08lx\n",
+  syslog(2, "Assert Data   - Size:%8u (%5u KB), Offset:0x%08lx\n",
           MEADOW_FLASH_PART_SIZE_ASSERT_DATA,
           MEADOW_FLASH_PART_SIZE_ASSERT_DATA/1024,
           thisOffset);
 
   // Segment 5 - Unused flash space
   thisOffset += MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
-  syslog(1, "Unused Space  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
+  syslog(2, "Unused Space  - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           totalReserved - thisOffset,
           (totalReserved - thisOffset)/1024,
           thisOffset);
@@ -1368,7 +1357,7 @@ void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd)
   // Get the flash chip size based on the hardware version
   uint32_t fileSystemSize = meadow_hw_version_flash_size() - totalReserved;
   thisOffset += (totalReserved - thisOffset);
-  syslog(1, "File System   - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
+  syslog(2, "File System   - Size:%8lu (%5lu KB), Offset:0x%08lx\n",
           fileSystemSize,
           fileSystemSize/1024,
           thisOffset);

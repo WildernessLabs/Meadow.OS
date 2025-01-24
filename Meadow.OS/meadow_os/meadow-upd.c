@@ -379,7 +379,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
       // in some cases.
       while(numbToSend > 65532)
       {
-        // syslog(1, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
+        // syslog(2, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
         //           numbToSend, txTempBuf, rxTempBuf);
         SPI_EXCHANGE(target, txTempBuf, rxTempBuf, 65532);
         if(txTempBuf) txTempBuf += 65532;
@@ -387,7 +387,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
         numbToSend -= 65532;
       }
 
-      // syslog(1, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
+      // syslog(2, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
       //             numbToSend, txTempBuf, rxTempBuf);
       SPI_EXCHANGE(target, txTempBuf, rxTempBuf, numbToSend);
     }

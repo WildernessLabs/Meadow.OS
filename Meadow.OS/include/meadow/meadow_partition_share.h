@@ -23,9 +23,9 @@
 
 // Set to '1' to use MTD partitions to access the external flash
 #define MEADOW_FLASH_PART_ONLY_USE_PARTITIONS (1)
-
-// Show syslog messages?
-#define MEADOW_FLASH_PART_SHOW_SYSLOG (1)
+// The HCOM_NX_EX_FLASH_SHOW_FLASH_STATS define is in hcom_nx_common.h@175.
+// Couldn't be here because it needed to control the build of more global
+// objects.
 
 // Note: The naming and definitions of the flash segments in the Original
 // Meadow OS evolved over several years. In the Original Meadow, pieces

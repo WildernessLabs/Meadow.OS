@@ -131,8 +131,8 @@ extern "C"
 // This #define may not control all ISO-8601 code, as maybe it should
 #define HCOM_INCLUDE_ISO8601_SUPPORT 0
 
-// This define controls if the way the external flash chip is divided for
-// Meadow is shown at startup.
+// This define controls if the display of the flash chip layout is show at
+// startup
 #define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (1)
 
 /****************************************************************************************************
