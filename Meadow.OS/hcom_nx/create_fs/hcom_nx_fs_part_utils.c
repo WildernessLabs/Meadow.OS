@@ -97,7 +97,8 @@ static uint32_t _partitionOffsets[] =
   MEADOW_PART_ADDR_OFFSET_FILE_SYS
 };
 
-#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+#if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
+          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
 static char *_partitionNames[] =
 {
   "Runtime      ",
@@ -117,8 +118,10 @@ static char *_partitionNames[] =
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-// Return pointer to the partition name array. Only used for diagnostics.
+#if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
+          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
+
+// Returns pointer to the partition name array. Only used for diagnostics.
 char **hcom_nx_fs_get_partition_names(void)
 {
   return _partitionNames;
@@ -126,7 +129,7 @@ char **hcom_nx_fs_get_partition_names(void)
 #endif
 
 //===========================================================================
-// Return pointer to the partition size array
+// Returns pointer to the partition size array
 uint32_t *hcom_nx_fs_get_partition_sizes(void)
 {
   return _partitionSizes;

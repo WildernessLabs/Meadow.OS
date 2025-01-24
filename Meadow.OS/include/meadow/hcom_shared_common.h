@@ -959,7 +959,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
 // This will enable debug code in the hcom_nx/create_fs/ files.
-#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       1
+#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       0
 
 // When set to 1 the syslog mask is set for all tracing except for
 // debug. At startup syslog messages are routed to UART1 without
@@ -970,7 +970,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // full of data, showing hex and ascii. Duplicate code is created
 // on both the apps and nuttx side of hcom. On Apps side 
 // hcom_diag_print_buffer on Nuttx hcom_nx_diag_print_buffer
-#define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE           1
+#define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE           0
  // To output non-null terminated string. This won't work if binary in buffer
  // syslog(2, "%.*s\n", textLen, buffer);
 

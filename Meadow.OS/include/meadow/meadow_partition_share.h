@@ -21,12 +21,17 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
-// Set to '1' to use MTD partitions to access the external flash
+// Set to '1' to use Partitions to access the external flash
 #define MEADOW_FLASH_PART_ONLY_USE_PARTITIONS (1)
+
 // The HCOM_NX_EX_FLASH_SHOW_FLASH_STATS define is in hcom_nx_common.h@175.
 // Couldn't be here because it needed to control the build of more global
 // objects.
 
+// This enables the ouput of partition information at startup
+#define HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP (1)
+
+//-------------------------------------------------------------------------
 // Note: The naming and definitions of the flash segments in the Original
 // Meadow OS evolved over several years. In the Original Meadow, pieces
 // and parts of each flash segment has been spread in different places.
@@ -136,12 +141,12 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t flashBlockNum,
           uint32_t *addrOfBlock);
 
 // Partition aware MTD read function
-int partMtdBRead(uint32_t startBlock,
-          uint32_t numberOfBlocks, uint8_t *destBuff);
+int partMtdBRead(uint32_t startBlock, uint32_t numberOfBlocks,
+        uint8_t *destBuff);
 
 // Partition aware MTD write function
-int partMtdBWrite(uint32_t startBlock,
-          uint32_t numberOfBlocks, uint8_t *sourceBuff);
+int partMtdBWrite(uint32_t startBlock, uint32_t numberOfBlocks,
+        uint8_t *sourceBuff);
 
 // Partition aware MTD erase function
 int partMtdErase(uint32_t startBlock, uint32_t numberOfBlocks);
