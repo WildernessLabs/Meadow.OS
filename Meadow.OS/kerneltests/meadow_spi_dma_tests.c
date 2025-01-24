@@ -429,14 +429,14 @@ void spi_test_main_work_function(FAR void *arg)
 
       while(numbToSend > 65532)
       {
-        // syslog(1, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
+        // syslog(2, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
         //           numbToSend, txTempBuf, rxTempBuf);
         SPI_EXCHANGE(testOps->spiDev, txTempBuf, rxTempBuf, 65532);
         txTempBuf += 65532;
         rxTempBuf += 65532;
         numbToSend -= 65532;
       }
-      // syslog(1, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
+      // syslog(2, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
       //             numbToSend, txTempBuf, rxTempBuf);
       SPI_EXCHANGE(testOps->spiDev, txTempBuf, rxTempBuf, numbToSend);
     }

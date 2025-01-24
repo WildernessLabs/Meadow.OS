@@ -103,13 +103,6 @@ extern "C"
 // For a buffer large enough for the path PLUS file name we this length
 #define HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
 
-#ifdef CONFIG_MTD_PARTITION
-// Any number 2 - 8
-#define HCOM_NX_NUMBER_OF_FS_PARTITIONS 1
-#else
-// 1 if no partitions in use
-#define HCOM_NX_NUMBER_OF_FS_PARTITIONS 1
-#endif
 
 // #define UPDATE_DIR "/meadow0/update/"
 // #define UPDATE_APP_DIR UPDATE_DIR "app"
@@ -138,8 +131,8 @@ extern "C"
 // This #define may not control all ISO-8601 code, as maybe it should
 #define HCOM_INCLUDE_ISO8601_SUPPORT 0
 
-// This define controls if the way the external flash chip is divided for
-// Meadow is shown at startup.
+// This define controls if the display of the flash chip layout is show at
+// startup
 #define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (1)
 
 /****************************************************************************************************
@@ -179,9 +172,12 @@ extern "C"
   int hcom_nx_exec_ex_flash_write_persistent_data(meadow_os_persistent_data_t *data);
   uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
   int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
-  int hcom_nx_exec_ex_flash_read_assertion_data(const char *data);
+  int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data);
+  uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
+  uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void);
+  int flash_file(const char *path, off_t size, off_t offset);
   #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
-  void hcom_nx_exec_ex_flash_syslog_external_flash_regions(void);
+  void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd);
   #endif
 
   // Syslog tracing
@@ -196,19 +192,15 @@ extern "C"
   size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t bufLen);
 #endif
 
-  // Low-level file system
+  // Low-level file system support
   int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd);
-  int hcom_nx_create_fs_mount(const char *sourceDevice, const char *targetDevice,
-                                        const char *fileSystemType, uint32_t partitionId,
-                                        const char *mountCommand);
-bool hcom_nx_fs_is_mounted(uint32_t partitionId);
-int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
+  bool hcom_nx_fs_is_mounted(uint32_t partitionId);
+  int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 
 #ifdef CONFIG_FS_LITTLEFS
-#ifdef CONFIG_MTD_PARTITION
   int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
-#endif
-  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId);
+  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId,
+            const char *mountPoint);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

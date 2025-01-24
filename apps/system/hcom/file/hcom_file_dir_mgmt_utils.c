@@ -401,7 +401,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     // to have '/meadow0/' prepended to the filename as CLIv1 default.
     // (e.g. /meadow0/filename.ext).
     dnldFileAndPathLen = strlen(dnldShared->dnldOrigPathName) + \
-              strlen(HCOM_MEADOW0_PATH_NAME_PREFIX) + 2; // Room for '/' + NULL
+              strlen(MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME) + 2; // Room for '/' + NULL
 
     dnldShared->dnldFullPathName = malloc(dnldFileAndPathLen + 1);
     if(dnldShared->dnldFullPathName == NULL)
@@ -411,7 +411,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     }
 
     snprintf_chk(dnldShared->dnldFullPathName, dnldFileAndPathLen, "%s/%s",
-                              HCOM_MEADOW0_PATH_NAME_PREFIX,
+                              MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
                               dnldShared->dnldOrigPathName);
   }
   else

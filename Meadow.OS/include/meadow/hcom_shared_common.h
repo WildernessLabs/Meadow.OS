@@ -70,28 +70,18 @@
 #  define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
-// New while adding subdirectories
-#define HCOM_MEADOW0_PATH_NAME_PREFIX "/meadow0"
+// Used by OS and apps (hcom_mono_control.c, hcom_nx_littlefs.c, etc.)
+#define MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME "/meadow0"
 
-// This #define is should be removed, because at this time (13Nov23)
-// partitioning isn't being used. And hasn't been used in the Meadow file
-// system, from the beginning. Also, there's been a fair amount of code written
-// that has no concept of partitioning.
-#define HCOM_FILE_MOUNT_POINT_TARGET "/meadow"
-
-// Partitioning changes will effect the following
-#ifdef CONFIG_MTD_PARTITION
+// Used by meadow_client_cert.h and tensorflow_tests.c 
 #define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow0"
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow0/Meadow.dll"
-#else
-#define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow"
-#define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow/Meadow.dll"
-#endif
 
 #define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
 #define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
 #define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"
 
+// These are copied from Legacy Meadow and can be somewhat misleading
 #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
 #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
 #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
@@ -968,7 +958,9 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
-//
+// This will enable debug code in the hcom_nx/create_fs/ files.
+#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       0
+
 // When set to 1 the syslog mask is set for all tracing except for
 // debug. At startup syslog messages are routed to UART1 without
 // the need for configuration or the CLI Uart Trace command.
@@ -1026,7 +1018,14 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD    0
 
 // Build the code for rotary encoder, both runtime and tests.
-#define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        1
+#define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        0
+
+// Test partitioning of 5 MB of external flash
+#define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH  0
+#if MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0
+void hcom_nx_flash_testing_fill_5mb_of_flash(void);
+void hcom_nx_flash_testing_verify_regions(void);
+#endif
 
 #endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
 

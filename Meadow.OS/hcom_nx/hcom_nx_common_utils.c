@@ -254,13 +254,14 @@ void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8
     hexOffset = HCOM_UTIL_HEXADECIMAL_OFFSET;
     asciiOffset = HCOM_UTIL_ASCII_OFFSET;
 
+    // Loop for each character
     for (rowByteOffset = 0; rowByteOffset < HCOM_UTIL_BYTES_PER_LINE; rowByteOffset++)
     {
       off_t buffOffset = rowStartOffset + rowByteOffset;
       if (buffOffset >= bufLen)
         break;        // Reached the end of the buffer's data
 
-      // Grab the next byte to output
+      // Get the next byte to output
       uint8_t nextByte = buffer[buffOffset];
 
       // Save the hex value (add '.' half way)
@@ -286,12 +287,15 @@ void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8
     }
 
     // This row is ready
-    lineBuff[hexOffset] = 0x20;   // Replace last hex null with a space
-    lineBuff[asciiOffset++] = 0x0a; // line feed
-    lineBuff[asciiOffset] = 0x00; // null terminator
+    lineBuff[hexOffset]     = 0x20;   // Replace last hex null with a space
+    lineBuff[asciiOffset++] = 0x0a;   // line feed
+    lineBuff[asciiOffset]   = 0x00;   // null terminator
 
     // Output one line
     logger(msgPriority, lineBuff);
+    // On long dumps without this delay, overrun some Nuttx buffer and crash
+    if(bufLen > 4096)
+      usleep(10 * 1000);    // Give time to write line
   }
 }
 #else
