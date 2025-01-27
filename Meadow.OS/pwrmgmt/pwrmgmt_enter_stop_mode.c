@@ -60,7 +60,7 @@
 #include "stm32_pm.h"
 
 #include <syslog.h>
-
+#include "stm32_rcc.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/hcom_bbreg_defn.h>
 

@@ -1108,12 +1108,12 @@ int hcom_nx_exec_profiler_do_not_send_to_uart1(struct hcom_nx_cmd_data *cmdData)
   return OK;
 }
 
+#if defined (CONFIG_RAMLOG_SYSLOG)
 //======================================================================================
 // Called by meadow configuration after it has started. Once the meadow configuration
 // has been parsed this method is called if it determines tracing should be enabled.
 void hcom_nx_trace_insure_correct_config(bool uartTracing, bool cliTracing, bool uartProfiling)
 {
-#if defined (CONFIG_RAMLOG_SYSLOG)
 
   if (uartProfiling)
   {
@@ -1142,5 +1142,5 @@ void hcom_nx_trace_insure_correct_config(bool uartTracing, bool cliTracing, bool
     hcom_nx_trace_msg_lazy_initialization();
   }
 
-#endif
 }
+#endif

@@ -25,7 +25,7 @@
 #include <nuttx/i2c/i2c_master.h>
 #include "stm32f777zit6-meadow.h"
 #include "stm32_spi.h"
-
+#include "arm_internal.h"
 #include <dirent.h>
 
 #include <nuttx/timers/timer.h>

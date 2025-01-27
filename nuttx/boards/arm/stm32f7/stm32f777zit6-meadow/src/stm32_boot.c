@@ -32,10 +32,10 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/spi/qspi.h>
 #include <sys/boardctl.h>
-
+#include "stm32_pwr.h"
 #include "mpu.h"
 
-#include <meadow/meadow_temp_rebase.h>  // THIS IS TEMPORARY
+#include <meadow/meadow_temp_rebase.h>  // THIS MAY NOT BE TEMPORARY
 #include "stm32f777zit6-meadow.h"
 
 #include <meadow/meadow_hw_version.h>
@@ -219,8 +219,7 @@ void board_late_initialize(void)
   int ret;
 #ifdef CONFIG_STM32F7_QUADSPI
   FAR struct qspi_dev_s *qspi;
-  FAR struct mtd_dev_s *mtd;
-  struct qspi_meminfo_s meminfo;
+  FAR struct mtd_dev_s *mtd = NULL;
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Initialize the syslog message pump
