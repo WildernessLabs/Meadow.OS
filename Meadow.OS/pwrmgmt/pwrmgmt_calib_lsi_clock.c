@@ -82,7 +82,7 @@
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
-
+#include "arm_internal.h"
 #include "pwrmgmt_local.h"
 #include <meadow/hcom_bbreg_defn.h>
 

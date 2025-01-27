@@ -142,7 +142,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //  The bootloader will have put the reset reason into BBR30 for us.
   //
   meadow_os_reset_update_counters();
-  syslog(2, "Meadow reset code: 0x%02x, reset count: %d, power cycle count %d\n", meadow_os_reset_reason(),
+  syslog(2, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(),
             meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
 
   //
@@ -178,8 +178,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "-->hcom_nx_setup_mgr 5\n"); usleep(5 * 1000);
 #endif
 
+#if defined (CONFIG_RAMLOG_SYSLOG)
   // Start trace messaging if so configured
   hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false, (config->use_uart1_for_profiling ? true : false));
+#endif
   hcom_nx_config_unlock();
 
   meadow_os_fault_handler_check_fault_code();

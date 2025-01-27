@@ -140,7 +140,7 @@ uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
     // Not supporting Year or Month 
     // The value can be a floating point (e.g 1.5 minutes). This should always
     // read 2 items, a floating point and a type
-    if (sscanf(ptr, "%lf%c%n", &value, &type, &charsParsed) != 2)
+    if (sscanf(ptr, "%lf%c%ln", &value, &type, &charsParsed) != 2)
     {
       syslog(LOG_ERR, "Parsing error in sscanf for '%s'\n", isoTimePeriod);
       return -EFTYPE; // Format error

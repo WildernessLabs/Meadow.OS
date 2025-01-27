@@ -129,7 +129,9 @@ int hcom_nx_fs_get_partition_info(uint32_t partNumb,
 // Return pointer to the partition information array
 uint32_t *hcom_nx_fs_get_partition_offsets(void);
 uint32_t *hcom_nx_fs_get_partition_sizes(void);
-#if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
+
+#if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
+          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
 char **hcom_nx_fs_get_partition_names(void);
 #endif
 // Return pointer to the partition offset array

@@ -442,7 +442,7 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
             strcpy(config->default_cell_settings->mode, "100");
             break;
         default:
-            syslog(LOG_INFO, "Mode %u not supported on EG21-GL module", mode);
+            syslog(LOG_INFO, "Mode %lu not supported on EG21-GL module", mode);
             strcpy(config->default_cell_settings->mode, "");
             break;
         }
@@ -1525,7 +1525,7 @@ void hcom_nx_config_add_dns_address_into_file(uint32_t dns)
             {
                 memset(new_nameserver, 0, new_server_size);
                 sprintf(new_nameserver,
-                        "nameserver %u.%u.%u.%u\n",
+                        "nameserver %lu.%lu.%lu.%lu\n",
                         (dns & 0xff),
                         (dns >> 8) & 0xff,
                         (dns >> 16) & 0xff,
