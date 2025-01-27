@@ -28,3 +28,13 @@ always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
 be removed and made perminant, although it is not integrated in to
 Meadow.Core.
 
+7. The function hcom_nx_upd_diag_fd_inode() in
+Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is no longer useable with Nuttx 12.
+Why? Because it directly accessed internal Nuttx structures that appear to
+have totally changed in Nuttx 12. The code is currently commented out and a
+syslog inserted as a place holder.
+
+8. The file meadow_client_cert.c probably works but, I prevent the code from
+building because it generates a bunch of warnings. This is temporary until the
+reset if the errors have been addressed.
+

@@ -11,9 +11,13 @@
 #include <meadow/meadow_client_cert.h>
 #include <meadow/meadow_apps_core_share.h>
 
+#define HCOM_DONT_BUILD_CLIENT_CERT_YET (1)
+
+#if HCOM_DONT_BUILD_CLIENT_CERT_YET == 0
 static int client_cert_buf_size = 0;
 static int private_key_buf_size = 0;
 static int private_key_pass_buf_size = 0;
+#endif
 
 /****************************************************************************
  * Name: meadow_client_cert_initialize
@@ -37,6 +41,9 @@ static int private_key_pass_buf_size = 0;
  ****************************************************************************/
 int meadow_client_cert_initialize() {
 
+#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
+    return OK;
+#else
     // Loading client certificate
     syslog(LOG_INFO, "Checking for a client certificate in STM storage.\n");
     int ret;
@@ -179,10 +186,14 @@ int meadow_client_cert_initialize() {
     free(private_key_pass);
 
     return OK;
+#endif
 }
 
 int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr, int *client_cert_len, FAR const char **private_key_buf_ptr, int *private_key_len, FAR const char **private_key_pass_buf_ptr, int *private_key_pass_len)
 {
+#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
+    return OK;
+#else
     syslog(LOG_INFO, "Retrieving client cert credentials from ESP32...\n");
 
     int16_t client_cert_length;
@@ -229,10 +240,15 @@ int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr
     *private_key_pass_len = private_key_pass_length;
 
     return OK;
+#endif
 }
 
 int meadow_client_cert_release_credentials(FAR const char **client_cert_buf_ptr, FAR const char **private_key_buf_ptr, FAR const char **private_key_pass_buf_ptr)
 {
+#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
+    return OK;
+#else
+
     if (*client_cert_buf_ptr != NULL)
     {
         memset(*client_cert_buf_ptr, client_cert_buf_size, 0);
@@ -255,4 +271,5 @@ int meadow_client_cert_release_credentials(FAR const char **client_cert_buf_ptr,
     }
 
     return OK;
+#endif
 }

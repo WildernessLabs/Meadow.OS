@@ -11,6 +11,7 @@
 //
 
 #include <nuttx/semaphore.h>
+#include <nuttx/mtd/mtd.h>
 
 // THIS #DEFINE IS ONLY USEFUL WHILE PORTING MEADOW FROM NUTTX 7.X TO 12.X
 // it allows using legacy Meadow code or newer Nuttx v12 code where there are

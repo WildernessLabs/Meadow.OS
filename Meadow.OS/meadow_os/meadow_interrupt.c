@@ -64,6 +64,8 @@
 #include "meadow_interrupt.h"
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
+#include <nuttx/clock.h>
+#include "hcom_nx/hcom_nx_common.h"
 
 #if defined (CONFIG_MEADOW_INTERRUPT_TESTS)
 #pragma message "(--) meadow_interrupt.c"
