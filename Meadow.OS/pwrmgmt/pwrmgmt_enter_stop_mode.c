@@ -244,7 +244,7 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
 
 //======================================================================
 // This public function is called from Meadow GPIO interrupt handling code.
-// This allows a GPIO interrupt to be configured for stop mode wakeup.
+// This allows a GPIO interrupts to be configured for stop mode wakeup.
 int pwrmgmt_isr_gpio_wakeup_code()
 {
   // This check is for the case when a GPIO interrupt is received while

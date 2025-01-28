@@ -354,7 +354,7 @@ struct meadow_esp32_firmware_desc {
 }
 };
 
-static enum firmware_update_error
+enum firmware_update_error
 {
   FIRMWARE_NOT_FOUND = -1, // required firmware file not found
   FIRMWARE_OPEN_ERROR = -2, // file exists, but other error while opening
@@ -392,7 +392,7 @@ int hcom_nx_exec_ex_update_ESP32()
     strncat(firmware_fullpath, meadow_esp32_firmware[i].filename, PATH_MAX);
     char firmware_fullpath_md5[PATH_MAX];
     strncpy(firmware_fullpath_md5, firmware_fullpath, PATH_MAX);
-    strncat(firmware_fullpath_md5, ".md5", PATH_MAX);
+    strncat(firmware_fullpath_md5, ".md5", PATH_MAX - 1);
     uint8_t *file_ptr = NULL;
     uint8_t *md5_hash_buf = NULL;
     FILE *firmware = NULL;

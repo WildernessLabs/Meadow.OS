@@ -143,7 +143,10 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   struct hcom_nx_upd_bbr_update *bbr_update;
   struct hcom_nx_cmd_data *cmdData;
   struct hcom_nx_upd_is_part_mounted *is_mounted;
+#if defined (CONFIG_RAMLOG_SYSLOG)
   hcom_nx_upd_cli_trace_transport_t *trace_transport;
+#endif
+
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
   hcom_nx_upd_host_text_transport_t *text_transport;
 #endif
@@ -324,26 +327,30 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 // ====================================================================
 // This is use to determine for diagnostics to see the information
 // related to file descriptors
+// REBASE - THIS FUNCTION IS NOT USEABLE AS IT IS WITH NUTTX 12 AS IT APPEARS LIKE THE
+// NUTTX INTERNAL STRUCTURES HAVE CHANGED.
 int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 {
-  struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
-  is_fd_valid = (struct hcom_nx_upd_diag_fd_inode_s *)arg;
+  // struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
+  // is_fd_valid = (struct hcom_nx_upd_diag_fd_inode_s *)arg;
 
-  // Note the caller's task group may be different
-  FAR struct tcb_s *thisTcb = this_task();
-  FAR struct file *fileList;
+  // // Note the caller's task group may be different
+  // FAR struct tcb_s *thisTcb = this_task();
+  // FAR struct file *fileList;
 
-  // Get pointer to the task's file list
-  fileList = thisTcb->group->tg_filelist.fl_files;
+  // // Get pointer to the task's file list
+  // fileList = thisTcb->group->tg_filelist.fl_files;
 
-  is_fd_valid->inodeAddr = fileList[is_fd_valid->fileDescriptor].f_inode;
+  // is_fd_valid->inodeAddr = fileList[is_fd_valid->fileDescriptor].f_inode;
 
-  syslog(LOG_NOTICE, "Task:'%s', fd:%" PRId32 ", inode addr:%p [%" PRId32 "]\n",
-          thisTcb->name,
-          is_fd_valid->fileDescriptor,
-          fileList[is_fd_valid->fileDescriptor].f_inode,
-          is_fd_valid->fileDescriptor);
+  // syslog(LOG_NOTICE, "Task:'%s', fd:%" PRId32 ", inode addr:%p [%" PRId32 "]\n",
+  //         thisTcb->name,
+  //         is_fd_valid->fileDescriptor,
+  //         fileList[is_fd_valid->fileDescriptor].f_inode,
+  //         is_fd_valid->fileDescriptor);
 
+  syslog(1, "%s@%d-This function is not compatable with Nuttx 12\n",
+            thisFile, __LINE__);
   return OK;
 }
 

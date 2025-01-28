@@ -56,5 +56,6 @@
 typedef int (*pwr_mgmt_notify_callback)(bool lpStart);
 
 int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callback);
+int meadow_power_mgmt_initialize(void);
 
 #endif // __CONFIG_MEADOW_SRC_MEADOW_PWR_MGMT__H

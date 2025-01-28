@@ -53,7 +53,7 @@
  ****************************************************************************/
 
 static mqd_t espcp_events_queue_handler = (mqd_t) - 1;
-static char *thisFile = __FILE__;
+// static char *thisFile = __FILE__;
 
 /****************************************************************************
  * Private Functions
@@ -129,11 +129,12 @@ int espcp_open_esp32_events_message_queue()
  *   None
  *
  ****************************************************************************/
-static void espcp_close_events_message_queue(void)
-{
-  mq_close(espcp_events_queue_handler);
-  espcp_events_queue_handler = (mqd_t) - 1;
-}
+// MEADOW.OS REBASE - Function is not used, generates warning as such.
+// static void espcp_close_events_message_queue(void)
+// {
+//   mq_close(espcp_events_queue_handler);
+//   espcp_events_queue_handler = (mqd_t) - 1;
+// }
 
 /****************************************************************************
  * Name: espcp_encode_event_data

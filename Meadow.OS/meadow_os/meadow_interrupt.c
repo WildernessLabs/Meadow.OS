@@ -64,6 +64,8 @@
 #include "meadow_interrupt.h"
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
+#include <nuttx/clock.h>
+#include "hcom_nx/hcom_nx_common.h"
 
 #if defined (CONFIG_MEADOW_INTERRUPT_TESTS)
 #pragma message "(--) meadow_interrupt.c"
@@ -472,7 +474,7 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
     syslog(LOG_INFO, "mint-(debo)-0x%02x DEBOUNCE Starting\n", gpioInfoAddr->PinId);
-    gpioInfoAddr->TimeProcessingBegan = clock_systimer();
+    gpioInfoAddr->TimeProcessingBegan = clock_systime_ticks();
 #endif
 
     // In the case both Glitch and Debounce are requested, Glitch has
@@ -504,7 +506,7 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
     return glit_debo_ret_check_next_gpio;   // Not done yet
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-  uint32_t procTime = clock_systimer() - gpioInfoAddr->TimeProcessingBegan;
+  uint32_t procTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
   syslog(LOG_INFO, "mint-(debo)-0x%02x Debounce proccessing ended in %d ms\n",
             gpioInfoAddr->PinId, procTime);
 #endif
@@ -537,7 +539,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
     syslog(LOG_INFO, "mint-(glitch)-0x%02x Glitch Starting\n", gpioInfoAddr->PinId);
 #endif
-    gpioInfoAddr->TimeProcessingBegan = clock_systimer();
+    gpioInfoAddr->TimeProcessingBegan = clock_systime_ticks();
   }
 
   gpioInfoAddr->GlitchTimeoutsCounter++;
@@ -562,7 +564,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
   {
     // GPIO state has changed from previous, save the new state and restart
     // the timer.
-    gpioInfoAddr->TimeProcessingBegan = clock_systimer();
+    gpioInfoAddr->TimeProcessingBegan = clock_systime_ticks();
     gpioInfoAddr->GlitchTimeoutsCounter = 0;
     gpioInfoAddr->GlitchPrevGpioState = currentState;
 
@@ -577,7 +579,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
   if(gpioInfoAddr->GlitchConfiguredDuration > MEADOW_INTERRUPT_GLITCH_TIME_USE_MS)
   {
     // Check elapsed time based on sys clock
-    uint32_t elapedTimeMs = clock_systimer() - gpioInfoAddr->TimeProcessingBegan;
+    uint32_t elapedTimeMs = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
     if(elapedTimeMs < gpioInfoAddr->GlitchConfiguredDuration/MEADOW_INTERRUPT_TICK_MILLISEC_FACTOR)
       return glit_debo_ret_check_next_gpio;   // Not done yet
   }
@@ -591,7 +593,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
   // We've found a stable state!
   // Finished checking, GPIO state stable for filter time.
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-  uint32_t totalTime = clock_systimer() - gpioInfoAddr->TimeProcessingBegan;
+  uint32_t totalTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
   syslog(LOG_INFO, "mint-(glitch)-0x%02x Glitch completed in %d ms, timeouts:%d\n",
           gpioInfoAddr->PinId, totalTime, gpioInfoAddr->GlitchTimeoutsCounter);
 #endif

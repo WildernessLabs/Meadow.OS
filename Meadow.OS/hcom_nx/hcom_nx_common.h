@@ -185,6 +185,8 @@ extern "C"
   int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData);
   int hcom_nx_exec_trace_do_not_send_to_uart1(struct hcom_nx_cmd_data *cmdData);
   int hcom_nx_exec_trace_forward_to_uart1(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_profiler_forward_to_uart1(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_profiler_do_not_send_to_uart1(struct hcom_nx_cmd_data *cmdData);
 #if defined (CONFIG_RAMLOG_SYSLOG)
   int hcom_nx_trace_msg_proc_setup(void);
   int hcom_nx_trace_msg_mono_started(void);

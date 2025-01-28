@@ -172,7 +172,9 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", thisFile, __LINE__);
     return ERROR;
   }
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   bool reset_esp32 = config->reset_esp32_at_startup;
+#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "-->hcom_nx_setup_mgr 5\n"); usleep(5 * 1000);
@@ -199,11 +201,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "hcom_nx_setup_mgr 1c\n"); usleep(5 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "hcom_nx_setup_mgr 2a\n"); usleep(5 * 1000);
 #endif
 
@@ -444,7 +446,7 @@ if (ret < 0)
 }
 #endif
 
-#if HCOM_DIAG_INCLUDE_STARTUP_SYSLOG > 0
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "hcom_nx_setup_mgr 8-Successful exit\n"); usleep(5 * 1000);
 #endif
 
