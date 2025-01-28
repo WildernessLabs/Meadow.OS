@@ -41,6 +41,8 @@
 #include "espcp/espcp_common.h"
 #include "espcp/espcp_encoders.h"
 #include "hcom_nx/hcom_nx_config_manager.h"
+#include "stm32_i2c.h"
+
 // #include "pwrmgmt/pwrmgmt_local.h"
 
 /****************************************************************************
