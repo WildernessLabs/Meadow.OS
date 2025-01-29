@@ -749,9 +749,11 @@ void espcp_deep_sleep(void)
     //
     //  This code is derived from the various methods in net_sockets.c
     //
+
 #if 0
-    MEADOW.OS REBASE: The following code prevents the build from completing.
-    It seems the API for managing kernel socket list has changed.
+MEADOW.OS REBASE: The following code prevents the Meadow.OS build from
+completing. It seems the API for managing kernel the socket list has
+changed.
 
     struct socketlist *list = sched_getsockets();
     if (list)
