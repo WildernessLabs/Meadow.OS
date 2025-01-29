@@ -35,9 +35,8 @@
 #include "stm32_pwr.h"
 #include "mpu.h"
 
-#include <meadow/meadow_temp_rebase.h>  // THIS MAY NOT BE TEMPORARY
+#include "misc/meadow_reinit_flash_size.h"
 #include "stm32f777zit6-meadow.h"
-
 #include <meadow/meadow_hw_version.h>
 
 #ifdef CONFIG_STM32F7_QUADSPI
@@ -308,12 +307,10 @@ void board_late_initialize(void)
   // the defconfig value that is not the correct flash size we must fix it.
   if(flashSize != CONFIG_STM32F7_QSPI_FLASH_SIZE)
   {
-    // Note: the stm32f7_qspi_hw_reinitialize() function was added to an existing
-    // Nuttx module for Meadow. It updates the stm32f7's internal register value
-    // to correct any flash size error orginally introduced by the
-    // stm32f7_qspi_initialize() function previously called.
-
-    stm32f7_qspi_hw_reinitialize(flashSize);
+    // Note: the meadow_qspi_hw_reinitialize() updates the stm32f7's internal
+    // register value to correct any flash size error originally introduced by
+    // startup code initializing a different flash chip.
+    meadow_qspi_hw_reinitialize(flashSize);
   }
 
  #if defined(CONFIG_ARM_MPU)
