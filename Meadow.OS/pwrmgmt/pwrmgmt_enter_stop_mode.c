@@ -85,6 +85,7 @@
 
 #include "stm32f777zit6-meadow.h"
 #include "hcom_nx/hcom_nx_common.h"
+#include "misc/meadow_stm32f7_clockenable.h"
 
 #include "stm32_alarm.h"
 
@@ -234,7 +235,7 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
   // Reconfigure the internal clocks. Restarts the clocks as defined in
   // board.h. Starting these clocks, will allow the remaining wakeup code
   // to be executed.
-  stm32_clockenable();
+  meadow_clockenable();
 
   // Don't leave ISR until the clocks have been fully enabled
   asm volatile ("dsb");
@@ -262,7 +263,7 @@ int pwrmgmt_isr_gpio_wakeup_code()
   // Reconfigure the internal clocks. Restarts the clocks as defined in
   // board.h. Starting these clocks, will allow the remaining wakeup code
   // to be executed.
-  stm32_clockenable();
+  meadow_clockenable();
 
   // Don't leave ISR until the clocks have been fully enabled
   asm volatile ("dsb");

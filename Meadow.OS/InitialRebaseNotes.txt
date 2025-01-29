@@ -62,9 +62,3 @@ totally rewrote timer support. I started to explore but soon realized I
 was getting into a rabbit hole. While we use timers for Kernel side things,
 these don't depend on Nuttx support. This could take several days, it
 requires defconfig changes.
-
-9. Meadow.OS/pwrmgmt/pwrmgmt_enter_stop_mode.c:237 warning: implicit
-declaration of function 'stm32_clockenable'. This is because in legacy
-Meadow we cheated and hid some #ifdef / #endif pairs to cause code to be
-built even though the the underlying #define was not defined so we could
-use some Nuttx code.

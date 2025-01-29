@@ -46,7 +46,6 @@
 
 #include "stm32_gpio.h"   // stm32_configgpio
 #include "stm32_exti.h"   // STM32_EXTI_PR
-#include "stm32_rcc.h"    // stm32_clockenable
 #include "up_arch.h"      // putreg32
 #include "nvic.h"         // NVIC access
 #include "meadow-upd.h"   // mint_config_interrupt(cfg);
