@@ -31,35 +31,31 @@ because the new rebase automation tooling indicated it was missing. However,
 it doesn't seem to be needed in the build (it build without the file) and
 the file only contains one entry: include <sys/boardctl.h>
 
-3. Added a new file stm32f7_qspi_hw_reinitialize() function to 
-Meadow.OS/Meadow.OS/meadow_os/meadow_temp_rebase.c & .h. This is
-temporary and the function needs to be moved to a permanent home.
-
-4. The files in /Meadow.OS/apps/system/hcom/comms/ are still the old files.
+3. The files in /Meadow.OS/apps/system/hcom/comms/ are still the old files.
 To switch to 1.9 files modify Makefile '\comms\hcom_host_process.c' rename
 to '\comms\hcom_host_preprocess.c'. [I think this is already done]
 
-5. Looks like Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
+4. Looks like Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
 To support the 1.2 to 1.9 effort, I added both files. Please delete
 delete the old one when ready.
 
-6. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
+5. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
 always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
 be removed and made perminant, although it is not integrated in to
 Meadow.Core.
 
-7. The function hcom_nx_upd_diag_fd_inode() in
+6. The function hcom_nx_upd_diag_fd_inode() in
 Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is no longer useable with Nuttx 12.
 Why? Because it directly accessed internal Nuttx structures that appear to
 have totally changed in Nuttx 12. The code is currently commented out and a
 syslog inserted as a place holder.
 
-8. The file meadow_client_cert.c probably works but, I prevented the code from
+7. The file meadow_client_cert.c probably works but, I prevented the code from
 building because it generates a bunch of warnings. This is temporary until the
 reset if the errors have been addressed.
 
-9. Meadow.OS/meadow_os/meadow-upd.c:509
+8. Meadow.OS/meadow_os/meadow-upd.c:509
 warning: implicit declaration of function 'stm32_pwminitialize'
 Looked easy enough, until I started to dig. Looks like the Nuttx team
 totally rewrote timer support. I started to explore but soon realized I
@@ -67,7 +63,7 @@ was getting into a rabbit hole. While we use timers for Kernel side things,
 these don't depend on Nuttx support. This could take several days, it
 requires defconfig changes.
 
-10. Meadow.OS/pwrmgmt/pwrmgmt_enter_stop_mode.c:237 warning: implicit
+9. Meadow.OS/pwrmgmt/pwrmgmt_enter_stop_mode.c:237 warning: implicit
 declaration of function 'stm32_clockenable'. This is because in legacy
 Meadow we cheated and hid some #ifdef / #endif pairs to cause code to be
 built even though the the underlying #define was not defined so we could
