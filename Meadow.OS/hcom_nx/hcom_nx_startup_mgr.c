@@ -202,11 +202,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 1c\n"); usleep(5 * 1000);
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "hcom_nx_setup_mgr 2a\n"); usleep(5 * 1000);
+  syslog(2,  "-->hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
 #endif
 
 // Rebase Note: This does nothing without ethernet

@@ -139,6 +139,7 @@ extern "C"
  * Public Functions
  ****************************************************************************************************/
   int hcom_nx_upd_initialize(void);
+  int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd);
   int hcom_nx_utils_startup_handling_of_trace_level(void);
 
   // Common Utils
@@ -152,7 +153,7 @@ extern "C"
   size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
           char *buff, size_t buffLen);
 
-  // HCOM command handling
+  // HCOM command handling on the Nuttx kernel side
   int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
 
   // External flash
