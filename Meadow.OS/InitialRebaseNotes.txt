@@ -1,7 +1,8 @@
 Notes related to initial rebase efforts (last updated 28Jan2025):
 
 Nuttx code warnings:
-1. The warning from /nuttx/fs/partition/fs_partition.c
+1. The warning from /nuttx/fs/partition/fs_partition.c see below is from Nuttx
+// code.
 CC:  partition/fs_partition.c partition/fs_partition.c: In function 'register_partition':
 partition/fs_partition.c:96:40: warning: '%s' directive output may be truncated writing up to 256 bytes into a region of size 255 [-Wformat-truncation=]
    96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
@@ -10,7 +11,8 @@ partition/fs_partition.c:96:7: note: 'snprintf' output 2 or more bytes (assuming
    96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
       |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-2. The warning from '/home/peter/wl/Meadow.OS'/nuttx/arch/arm/src/stm32f7/stm32_ethernet.c'
+2. The warning from
+'/home/peter/wl/Meadow.OS'/nuttx/arch/arm/src/stm32f7/stm32_ethernet.c' is also Nuttx code.
 CC:  chip/stm32_ethernet.c chip/stm32_ethernet.c:2950:12: warning: 'stm32_phyread' defined but not used [-Wunused-function]
  2950 | static int stm32_phyread(uint16_t phydevaddr,
 
@@ -18,47 +20,41 @@ This may be a configuration change since Legacy Meadow.
 
 Other Notes
 ------------------------
-Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
-commented out.
+1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
+committed out.
 
-1. The first comment lines in most of our files are now wrong. The top lines
-often contains old copyright information, wrong file location and the
+2. The first first comment lines in most of our files are now wrong. The top
+lines often contains old copyright information, wrong file location and the
 wrong date, e.g. '/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c'. No
-technical value but, should still be done.
+technical value but, should still be done. We should have a standard format.
 
-2. I added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+3. I added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
 because the new rebase automation tooling indicated it was missing. However,
 it doesn't seem to be needed in the build (it build without the file) and
 the file only contains one entry: include <sys/boardctl.h>
 
-3. The files in /Meadow.OS/apps/system/hcom/comms/ are still the old files.
-To switch to 1.9 files modify Makefile '\comms\hcom_host_process.c' rename
-to '\comms\hcom_host_preprocess.c'. [I think this is already done]
-
 4. Looks like Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
-To support the 1.2 to 1.9 effort, I added both files. Please delete
-delete the old one when ready.
+Legacy Meadow currently has no references to meadow_syscall.h.
+This needs to be fixed to match the most current legacy Meadow.
 
-5. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
-always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
-be removed and made perminant, although it is not integrated in to
-Meadow.Core.
-
-6. The function hcom_nx_upd_diag_fd_inode() in
+5. The function hcom_nx_upd_diag_fd_inode() in
 Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is no longer useable with Nuttx 12.
-Why? Because it directly accessed internal Nuttx structures that appear to
-have totally changed in Nuttx 12. The code is currently commented out and a
-syslog inserted as a place holder.
+Why? Because it directly accessed internal Nuttx structures that no longer
+exist in Nuttx 12. The code is currently commented out and I inserted
+a syslog statement as a place holder.
 
-7. The file meadow_client_cert.c probably works but, I prevented the code from
-building because it generates a bunch of warnings. This is temporary until the
-reset if the errors have been addressed.
+6. The file meadow_client_cert.c probably works but, I prevented the code from
+building because it generates a lot of warnings. This is temporary until the
+the warnings have been addressed.
 
-8. Meadow.OS/meadow_os/meadow-upd.c:509
+7. Meadow.OS/meadow_os/meadow-upd.c:509
 warning: implicit declaration of function 'stm32_pwminitialize'
 Looked easy enough, until I started to dig. Looks like the Nuttx team
-totally rewrote timer support. I started to explore but soon realized I
-was getting into a rabbit hole. While we use timers for Kernel side things,
-these don't depend on Nuttx support. This could take several days, it
-requires defconfig changes.
+totally rewrote timer support, with different configuration options.
+While we use timers for Meadow.OS things, these don't depend on Nuttx
+support.
+
+8. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
+always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
+be removed and made permanent? Is it integrated in to Meadow.Core?

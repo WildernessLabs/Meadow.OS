@@ -11,8 +11,8 @@
 #include <meadow/meadow_client_cert.h>
 #include <meadow/meadow_apps_core_share.h>
 
-// MEADOW.OS REBASE - This was added while removing build warnings. It also
-// removes all the code in this file.
+// MEADOW.OS REBASE - This was added while removing build warnings.
+// It removes all the code in this file.
 #define HCOM_DONT_BUILD_CLIENT_CERT_YET (1)
 
 #if HCOM_DONT_BUILD_CLIENT_CERT_YET == 0

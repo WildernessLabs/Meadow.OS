@@ -161,11 +161,15 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
       HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE) &&
       (packetSize > HCOM_PROTOCOL_STD_HDR_SIZE))
   {
-    // This looks to be a text message. It's length indicates it does contain
-    // text.
-    int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
-    if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
-      textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
+    // This looks to be a text type message. Does it's length indicates it does contain
+    // text?
+    // But only show a few characters.
+    // int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
+    // if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
+    //   textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
+
+    // Display the whole message
+    int textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
 
     syslog(2, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
           requestStr, hostRqstType, packetSize, textLen, 
