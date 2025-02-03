@@ -268,19 +268,20 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
       if(userData != 1234 && strcmp(entry->d_name, "proc") == 0)
         return OK; // ignore procfs information
 
+      // Don't display /. and /..
+      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+        continue;
+
       snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%*s%s/\n", indent, "", entry->d_name);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
                 0, hostMsg, thisFile, __LINE__);
 
-      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-        continue;
-
       char path[256];
       snprintf_chk(path, sizeof(path), "%s/%s", name, entry->d_name);
       
       // Recursion is here
-      hcom_file_lists_all_dev_dir_and_files(path, indent + 1, userData);
+      hcom_file_lists_all_dev_dir_and_files(path, indent + 3, userData);
     }
     else
     {
