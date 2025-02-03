@@ -11,15 +11,9 @@
 #include <meadow/meadow_client_cert.h>
 #include <meadow/meadow_apps_core_share.h>
 
-// MEADOW.OS REBASE - This was added while removing build warnings.
-// It removes all the code in this file.
-#define HCOM_DONT_BUILD_CLIENT_CERT_YET (1)
-
-#if HCOM_DONT_BUILD_CLIENT_CERT_YET == 0
 static int client_cert_buf_size = 0;
 static int private_key_buf_size = 0;
 static int private_key_pass_buf_size = 0;
-#endif
 
 /****************************************************************************
  * Name: meadow_client_cert_initialize
@@ -43,9 +37,6 @@ static int private_key_pass_buf_size = 0;
  ****************************************************************************/
 int meadow_client_cert_initialize() {
 
-#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
-    return OK;
-#else
     // Loading client certificate
     syslog(LOG_INFO, "Checking for a client certificate in STM storage.\n");
     int ret;
@@ -81,7 +72,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate
         syslog(LOG_INFO, "Storing client certificate length: %d\nContent: %s\n", client_cert_len, client_cert);
-        ret = espcp_file_system_write_file(CLIENT_CERT_FILE, (const char *)client_cert, client_cert_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_FILE, (uint8_t *)client_cert, client_cert_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
@@ -124,7 +115,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate private key
         syslog(LOG_INFO, "Storing private key length: %d\nContent: %s\n", private_key_len, private_key);
-        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_FILE, (const char *)private_key, private_key_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_FILE, (uint8_t *)private_key, private_key_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
@@ -170,7 +161,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate private key passphrase
         syslog(LOG_INFO, "Storing private key passphrase length: %d\nContent: %s\n", private_key_pass_len, private_key_pass);
-        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, (const char *)private_key_pass, private_key_pass_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, (uint8_t *)private_key_pass, private_key_pass_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key passphrase.\n");
@@ -188,18 +179,17 @@ int meadow_client_cert_initialize() {
     free(private_key_pass);
 
     return OK;
-#endif
 }
 
-int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr, int *client_cert_len, FAR const char **private_key_buf_ptr, int *private_key_len, FAR const char **private_key_pass_buf_ptr, int *private_key_pass_len)
+int meadow_client_cert_retrieve_credentials(uint8_t **client_cert_buf_ptr,
+                    int *client_cert_len, uint8_t **private_key_buf_ptr,
+                    int *private_key_len, uint8_t **private_key_pass_buf_ptr,
+                    int *private_key_pass_len)
 {
-#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
-    return OK;
-#else
     syslog(LOG_INFO, "Retrieving client cert credentials from ESP32...\n");
 
     int16_t client_cert_length;
-    const char *client_cert_buf = espcp_file_system_read_file(CLIENT_CERT_FILE, &client_cert_length);
+    uint8_t *client_cert_buf = espcp_file_system_read_file(CLIENT_CERT_FILE, &client_cert_length);
     if (client_cert_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert\n");
@@ -214,7 +204,7 @@ int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr
     syslog(LOG_INFO, "Retrieving client cert private key from ESP32...\n");
 
     int16_t private_key_length;
-    const char *private_key_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_FILE, &private_key_length);
+    uint8_t *private_key_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_FILE, &private_key_length);
     if (private_key_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert private key\n");
@@ -229,7 +219,7 @@ int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr
     syslog(LOG_INFO,"Retrieving client cert private key pass from ESP32...\n");
 
     int16_t private_key_pass_length;
-    const char *private_key_pass_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
+    uint8_t *private_key_pass_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
     if (private_key_pass_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert private key passphrase\n");
@@ -242,36 +232,32 @@ int meadow_client_cert_retrieve_credentials(FAR const char **client_cert_buf_ptr
     *private_key_pass_len = private_key_pass_length;
 
     return OK;
-#endif
 }
 
-int meadow_client_cert_release_credentials(FAR const char **client_cert_buf_ptr, FAR const char **private_key_buf_ptr, FAR const char **private_key_pass_buf_ptr)
+int meadow_client_cert_release_credentials(char **client_cert_buf_ptr,
+                    char **private_key_buf_ptr,
+                    char **private_key_pass_buf_ptr)
 {
-#if HCOM_DONT_BUILD_CLIENT_CERT_YET > 0
-    return OK;
-#else
-
     if (*client_cert_buf_ptr != NULL)
     {
-        memset(*client_cert_buf_ptr, client_cert_buf_size, 0);
+        memset(*client_cert_buf_ptr, 0, client_cert_buf_size);
         free(*client_cert_buf_ptr);
         *client_cert_buf_ptr = NULL;
     }
 
     if (*private_key_buf_ptr != NULL)
     {
-        memset(*private_key_buf_ptr, private_key_buf_size, 0);
+        memset(*private_key_buf_ptr, 0, private_key_buf_size);
         free(*private_key_buf_ptr);
         *private_key_buf_ptr = NULL;
     }
 
     if (*private_key_pass_buf_ptr != NULL)
     {
-        memset(*private_key_pass_buf_ptr, private_key_pass_buf_size, 0);
+        memset(*private_key_pass_buf_ptr, 0, private_key_pass_buf_size);
         free(*private_key_pass_buf_ptr);
         *private_key_pass_buf_ptr = NULL;
     }
 
     return OK;
-#endif
 }
