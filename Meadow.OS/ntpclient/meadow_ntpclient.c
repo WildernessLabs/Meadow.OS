@@ -71,7 +71,6 @@
 #include "ntpv3.h"
 
 #include "../hcom_nx/hcom_nx_common.h"
-#include <meadow/hcom_nuttx_shared.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 #include "../misc/long_period_scheduler.h"
 #include "../espcp/espcp_message.h"

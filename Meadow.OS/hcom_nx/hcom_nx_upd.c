@@ -327,8 +327,8 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 // ====================================================================
 // This is use to determine for diagnostics to see the information
 // related to file descriptors
-// REBASE - THIS FUNCTION IS NOT USEABLE AS IT IS WITH NUTTX 12 AS IT APPEARS LIKE THE
-// NUTTX INTERNAL STRUCTURES HAVE CHANGED.
+// MEADOW.OS REBASE - THIS FUNCTION IS NOT USEABLE. NUTTX 12 INTERNAL
+// STRUCTURES HAVE CHANGED.
 int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 {
   // struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
@@ -349,7 +349,7 @@ int hcom_nx_upd_diag_fd_inode(unsigned long arg)
   //         fileList[is_fd_valid->fileDescriptor].f_inode,
   //         is_fd_valid->fileDescriptor);
 
-  syslog(1, "%s@%d-This function is not compatable with Nuttx 12\n",
+  syslog(1, "%s@%d-This function is not useable with Nuttx 12\n",
             thisFile, __LINE__);
   return OK;
 }
