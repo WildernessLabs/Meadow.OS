@@ -18,43 +18,35 @@ CC:  chip/stm32_ethernet.c chip/stm32_ethernet.c:2950:12: warning: 'stm32_phyrea
 
 This may be a configuration change since Legacy Meadow.
 
-Other Notes
+Other Things that need attention
 ------------------------
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
 committed out.
 
-2. The first first comment lines in most of our files are now wrong. The top
-lines often contains old copyright information, wrong file location and the
-wrong date, e.g. '/apps/examples/hcom/tests/hcom_dir_mgmt_tests.c'. No
-technical value but, should still be done. We should have a standard format.
+2. The first first comment lines in most of our files are not correct. The
+first few lines often contains old copyright information, wrong file location
+and the wrong date. While no technical value but, should be done. We need a
+standard format to follow.
 
 3. I added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
 because the new rebase automation tooling indicated it was missing. However,
-it doesn't seem to be needed in the build (it build without the file) and
+it doesn't seem to be needed in the build (it built without the file) and
 the file only contains one entry: include <sys/boardctl.h>
 
-4. Looks like Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
+4. Perhaps Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
-Legacy Meadow currently has no references to meadow_syscall.h.
-This needs to be fixed to match the most current legacy Meadow.
+Legacy Meadow at present has no references to meadow_syscall.h.
+This needs to be fixed to match the most current Legacy Meadow.
 
 5. The function hcom_nx_upd_diag_fd_inode() in
-Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is no longer useable with Nuttx 12.
+Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is not useable with Nuttx 12.
 Why? Because it directly accessed internal Nuttx structures that no longer
 exist in Nuttx 12. The code is currently commented out and I inserted
-a syslog statement as a place holder.
+a syslog statement as a place holder and added MEADOW.OS REBASE so it
+could be easily found,
 
-6. The file meadow_client_cert.c probably works but, I prevented the code from
-building because it generates a lot of warnings. This is temporary until the
-the warnings have been addressed.
-
-7. Meadow.OS/meadow_os/meadow-upd.c:509
-warning: implicit declaration of function 'stm32_pwminitialize'
-Looked easy enough, until I started to dig. Looks like the Nuttx team
-totally rewrote timer support, with different configuration options.
-While we use timers for Meadow.OS things, these don't depend on Nuttx
-support.
-
-8. Why not remove CONFIG_MEADOW_PWR_MGMT_SUPPORT as a options as it is
-always part of Meadow.OS. MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER should also
-be removed and made permanent? Is it integrated in to Meadow.Core?
+6. Meadow.OS/meadow_os/meadow-upd.c:509 the warning: implicit declaration
+of function 'stm32_pwminitialize'. Looked easy, until I started to dig. Looks
+like Nuttx 12 has a totally different set of configuration options. Timers are
+used for Meadow.OS and Meadow.Core. However, the timer configuration entries
+are only needed by Meadow.Core.

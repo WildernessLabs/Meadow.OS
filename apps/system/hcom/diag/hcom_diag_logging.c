@@ -44,7 +44,6 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
-#include <meadow/hcom_nuttx_shared.h>
 
 #include <nuttx/config.h>
 #include "syslog.h"

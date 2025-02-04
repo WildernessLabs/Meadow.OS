@@ -43,7 +43,6 @@
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
-#include <meadow/hcom_nuttx_shared.h>
 
 #include <assert.h>
 

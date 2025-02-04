@@ -39,7 +39,6 @@
  * Included Files
  ****************************************************************************/
 #include "hcom_nx_common.h"
-#include <meadow/hcom_nuttx_shared.h>
 #include <meadow/meadow_ethnet_common.h>
 #include "../espcp/espcp_coprocessor.h"
 #include <assert.h>
