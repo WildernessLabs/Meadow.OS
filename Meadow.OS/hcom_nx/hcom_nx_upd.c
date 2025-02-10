@@ -72,9 +72,9 @@
 #include <meadow/hcom_upd_shared.h>
 #include "hcom_nx_common.h"
 #include <meadow/hcom_bbreg_defn.h>
-#include <meadow/hcom_nuttx_shared.h>
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
+#include <meadow/hcom_dfu_mode_entry.h>
 
 #include "../espcp/espcp_coprocessor.h"
 #include "../espcp/espcp_usrsock.h"
