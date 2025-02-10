@@ -33,7 +33,7 @@
 #include <sys/ioctl.h>
 #include "stm32_tim.h"
 #include <meadow/meadow-upd.h>
-#include <meadow/hcom_nuttx_shared.h>
+
 #include <meadow/hcom_shared_common.h>
 #include "stm32_uid.h" // stm32_get_uniqueid()
 #include "hcom_nx/hcom_nx_common.h"
