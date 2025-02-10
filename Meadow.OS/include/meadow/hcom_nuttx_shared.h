@@ -1,7 +1,7 @@
 /****************************************************************************
  * \include\meadow\hcom_nuttx_shared.h
  * 
- *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@
 #define __INCLUDE_HCOM_NUTTX_SHARED__H
 
 // This file is copied from repo on each build.
-// To modify the repo version must be changed.
+// To modify this file the repo version must be changed.
 
 // Update the following for each release build
 #define HCOM_DEVICE_INFO_PRODUCT "Meadow"
