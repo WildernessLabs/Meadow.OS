@@ -35,8 +35,6 @@
 #ifndef __INCLUDE_HCOM_NUTTX_SHARED__H
 #define __INCLUDE_HCOM_NUTTX_SHARED__H
 
-#include <unistd.h>
-
 // This file is copied from repo on each build.
 // To modify the repo version must be changed.
 
