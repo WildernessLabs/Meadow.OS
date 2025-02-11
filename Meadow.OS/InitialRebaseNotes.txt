@@ -1,8 +1,13 @@
-Notes related to initial rebase efforts (last updated 28Jan2025):
+Notes related to initial rebase efforts (last updated 10Feb2025):
 
 Nuttx code warnings:
-1. The warning from /nuttx/fs/partition/fs_partition.c see below is from Nuttx
-// code.
+The warning from:
+1. /nuttx/arch/arm/src/stm32f7/stm32_ethernet.c' is in Nuttx code.
+CC:  chip/stm32_ethernet.c chip/stm32_ethernet.c:2950:12: warning: 'stm32_phyread' defined but not used [-Wunused-function]
+ 2950 | static int stm32_phyread(uint16_t phydevaddr,
+This may go away if ethernet is configured?
+
+2. /nuttx/fs/partition/fs_partition.c is also in Nuttx Code.
 CC:  partition/fs_partition.c partition/fs_partition.c: In function 'register_partition':
 partition/fs_partition.c:96:40: warning: '%s' directive output may be truncated writing up to 256 bytes into a region of size 255 [-Wformat-truncation=]
    96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
@@ -10,21 +15,15 @@ partition/fs_partition.c:96:40: warning: '%s' directive output may be truncated 
 partition/fs_partition.c:96:7: note: 'snprintf' output 2 or more bytes (assuming 258) into a destination of size 256
    96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
       |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-2. The warning from
-'/home/peter/wl/Meadow.OS'/nuttx/arch/arm/src/stm32f7/stm32_ethernet.c' is also Nuttx code.
-CC:  chip/stm32_ethernet.c chip/stm32_ethernet.c:2950:12: warning: 'stm32_phyread' defined but not used [-Wunused-function]
- 2950 | static int stm32_phyread(uint16_t phydevaddr,
-
-This may be a configuration change since Legacy Meadow.
+Configuration change since Legacy Meadow?
 
 Other Things that need attention
 ------------------------
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
 committed out.
 
-2. The first first comment lines in most of our files are not correct. The
-first few lines often contains old copyright information, wrong file location
+2. The first comment lines in most of our files are not correct. The first
+few lines often contains old copyright information, wrong file location
 and the wrong date. While no technical value but, should be done. We need a
 standard format to follow.
 
@@ -43,7 +42,7 @@ Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is not useable with Nuttx 12.
 Why? Because it directly accessed internal Nuttx structures that no longer
 exist in Nuttx 12. The code is currently commented out and I inserted
 a syslog statement as a place holder and added MEADOW.OS REBASE so it
-could be easily found,
+could be easily found.
 
 6. Meadow.OS/meadow_os/meadow-upd.c:509 the warning: implicit declaration
 of function 'stm32_pwminitialize'. Looked easy, until I started to dig. Looks
