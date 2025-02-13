@@ -17,18 +17,20 @@ partition/fs_partition.c:96:7: note: 'snprintf' output 2 or more bytes (assuming
       |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Configuration change since Legacy Meadow?
 
-6. Meadow.OS/meadow_os/meadow-upd.c:509 the warning: implicit declaration
-of function 'stm32_pwminitialize'. 
+3. 'Meadow.OS/meadow_os/meadow-upd.c:509 the warning: implicit declaration
+of function 'stm32_pwminitialize''. This was solved by configuring a timer.
+This way both the header and 'c' file were available to the compiler.
 
 Other Things that need attention
 ------------------------
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
-committed out.
+are some form of workaround in the code.
 
 2. It looks like the F7FeatherV1 flash chip is not configured.
-The Legacy Meadow's defconfig file adds CONFIG_S25FL_QSPIMODE=3
-and CONFIG_MTD_S25FL=y for this flash chips support.
+The Legacy Meadow's defconfig file adds CONFIG_S25FL_QSPIMODE=3 and 
+CONFIG_MTD_S25FL=y to defconfig for this flash chip's support.
 
+In progress
 3. Perhaps Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
 Legacy Meadow at present has no references to meadow_syscall.h.
@@ -37,19 +39,17 @@ This needs to be fixed to match the most current Legacy Meadow.
 4. The function 'hcom_nx_upd_diag_fd_inode()' in
 Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is not useable with Nuttx 12.
 Why? Because it directly accessed internal Nuttx structures that no longer
-exist in Nuttx 12. The code is currently commented out and I inserted
-a syslog statement as a place holder and added MEADOW.OS REBASE so it
-could be easily found.
+exist in Nuttx 12, or at least are not accessable. The code was commented out
+and I inserted a syslog statement as a place holder and added
+'MEADOW.OS REBASE' so it could be easily found.
 
-5. The first comment lines in most of our files are not correct. The first
-few lines often contains old copyright information, wrong file location
-and the wrong date. While no technical value but, should be done. We need a
-standard format to follow.
+5. The first comment lines in our files Meadow files are incorrect. The first
+few lines often contains inconsistent old copyright information, a wrong file
+location and the wrong date. While no technical value, it should be done. We
+need a standard format to follow.
 
-6. Peter added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
-because the new rebase tooling to move files from Legacy to Rebase Meadow
-indicated it was missing. However, it doesn't seem to be needed in the build
-(it built without the file) and the file only contains one entry:
+6. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+because the new tooling (that more easily moves files from Legacy to Rebase
+ eadow) indicated it was missing. However, it doesn't seem to be needed in the build
+(it builds without the file) and the file only contains one entry:
 'include <sys/boardctl.h>'
-
-
