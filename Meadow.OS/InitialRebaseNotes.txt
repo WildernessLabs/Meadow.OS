@@ -48,7 +48,18 @@ few lines often contains inconsistent old copyright information, a wrong file
 location and the wrong date. While no technical value, it should be done. We
 need a standard format to follow.
 
-6. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+6. The defconfig file contained some entires that using 'make savedefconfig'
+removed. This is the list.
+# CONFIG_MEADOW_CLOUD is not set
+CONFIG_EXAMPLES_MONO=y
+CONFIGFS_LITTLEFS_NAME_MAX=255
+CONFIG_MTD_S25FL=y
+CONFIG_BOARD_INITTHREAD_STACKSIZE=4096
+These either no longer exist in Nuttx 12 or have been renamed or have
+prerequisite that were not met. Look at these one-by-one to determine
+required action.
+
+7. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
 because the new tooling (that more easily moves files from Legacy to Rebase
  eadow) indicated it was missing. However, it doesn't seem to be needed in the build
 (it builds without the file) and the file only contains one entry:
