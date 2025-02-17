@@ -30,7 +30,6 @@ are some form of workaround in the code.
 The Legacy Meadow's defconfig file adds CONFIG_S25FL_QSPIMODE=3 and 
 CONFIG_MTD_S25FL=y to defconfig for this flash chip's support.
 
-In progress
 3. Perhaps Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
 been renamed 'meadow_syscall_support.h'. Contents are different too.
 Legacy Meadow at present has no references to meadow_syscall.h.
@@ -49,11 +48,10 @@ location and the wrong date. While no technical value, it should be done. We
 need a standard format to follow.
 
 6. The defconfig file contained some entires that using 'make savedefconfig'
-removed. This is the list.
+removed. This is the list. These may need to be added to an appropriate
+Kconfig or removed as no longer needed or there name changed.
 # CONFIG_MEADOW_CLOUD is not set
 CONFIG_EXAMPLES_MONO=y
-CONFIGFS_LITTLEFS_NAME_MAX=255
-CONFIG_MTD_S25FL=y
 CONFIG_BOARD_INITTHREAD_STACKSIZE=4096
 These either no longer exist in Nuttx 12 or have been renamed or have
 prerequisite that were not met. Look at these one-by-one to determine
@@ -65,3 +63,5 @@ because the new tooling (that more easily moves files from Legacy to Rebase
 (it builds without the file) and the file only contains one entry:
 'include <sys/boardctl.h>'
 
+In progress
+8. The F7FeatherV1 flash chip s25fl1.c is not included in Nuttx 12

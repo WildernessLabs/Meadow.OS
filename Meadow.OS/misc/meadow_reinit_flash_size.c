@@ -50,12 +50,13 @@
 /****************************************************************************
  * Public Function
  ****************************************************************************/
-// The Meadow function that initialized qspi used a fixed value defined
+// The Meadow function that initialized qspi uses a fixed value defined
 // in CONFIG_STM32F7_QSPI_FLASH_SIZE as the initial flash size. Since we've
-// been called here the size must have been wrong. Therefore, we override
+// been called here the size must have been wrong. Therefore, we'll override
 // the initial register values.
-// This function was called stm32f7_qspi_hw_reinitialize() in legacy meadow
-// and was located in one of the Nuttx files.
+// In Legacy Meadow, this function (not file) was added to the Nuttx code base.
+// It has been added here, in a Meadow file, to minimize the number of Nuttx
+// code changes.
 void meadow_qspi_hw_reinitialize(int flashSize)
 {  
   uint32_t regval;
