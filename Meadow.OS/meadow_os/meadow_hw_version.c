@@ -329,8 +329,8 @@ uint32_t meadow_hw_version_from_flash_chip(FAR struct qspi_dev_s *qspi)
     _meadowVer = MEADOW_F7_HW_VERSION_NUMB_F7V1;
     break;
 
-    // WinBond 64MB chip. The F7v2 board can have either of these a 'Q' or
-    // 'M' winbond chip
+    // WinBond 64MB chip. The F7v2 board can have either of these: 'Q' or
+    // 'M' and the driver takes care of the difference.
     case MEADOW_QSPI_FLASH_WINBOND_W25Q512JVxxQ:
     case MEADOW_QSPI_FLASH_WINBOND_W25Q512JVxxM:
     _meadowVer = MEADOW_F7_HW_VERSION_NUMB_F7V2;

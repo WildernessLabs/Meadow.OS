@@ -309,7 +309,7 @@ void board_late_initialize(void)
   if(flashSize != CONFIG_STM32F7_QSPI_FLASH_SIZE)
   {
     // Note: the meadow_qspi_hw_reinitialize() updates the stm32f7's internal
-    // register value to correct any flash size error originally introduced by
+    // register values to correct any flash size error originally introduced by
     // startup code initializing a different flash chip.
     meadow_qspi_hw_reinitialize(flashSize);
   }
