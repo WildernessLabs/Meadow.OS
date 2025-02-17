@@ -204,7 +204,7 @@
  #define S25FL256L_SECTOR_SIZE      (4*1024)  /* Sector size: 1 << 12 = 4KB */
  #define S25FL256L_SECTOR_SHIFT     (12)      /* Sector size: 1 << 12 = 4KB */
 
- #define S25FL256L_SECTOR_COUNT     (8192)    /* Sector count: (8192)
+ #define S25FL256L_SECTOR_COUNT     (8192)    /* Sector count: (8192) */
  #define S25FL256L_PAGE_SIZE        (256)     /* Page size: 1 << 8 = 256B */
  #define S25FL256L_PAGE_SHIFT       (8)       /* Page size: 1 << 8 = 256B */
  #define S25FL256L_QSPI_ADDRLEN     (4) 
@@ -849,7 +849,7 @@
  
        if (ret < 0)
          {
-           ferr("ERROR: QSPI_MEMORY failed writing address=%06x\n",
+           ferr("ERROR: QSPI_MEMORY failed writing address=%06lx\n",
                 address);
            return ret;
          }
@@ -1012,7 +1012,7 @@
                geo->neraseblocks = priv->nsectors;
                ret               = OK;
  
-               finfo("blocksize: %d erasesize: %d neraseblocks: %d\n",
+               finfo("blocksize: %ld erasesize: %ld neraseblocks: %ld\n",
                      geo->blocksize, geo->erasesize, geo->neraseblocks);
              }
          }
