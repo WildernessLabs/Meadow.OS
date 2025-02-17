@@ -66,7 +66,11 @@
 #include <meadow/meadow_ethnet_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
 
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
+
+// MEADOW.OS REBASE - delete this file when everything is working.
+// It was added long ago to test ethernet. But this is not longer
+// useful. CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X is a place holder.
+#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X)
 
 #if defined(CONFIG_LIBC_NETDB) && defined(CONFIG_NETDB_DNSCLIENT)
 #  include <netdb.h>
@@ -876,5 +880,5 @@ int hcom_nx_diagnostic_app_execute(const HcomProtoHdrMsg_t *hdrMsg,
   return EXIT_SUCCESS;
 }
 
-#endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
+#endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X)
 

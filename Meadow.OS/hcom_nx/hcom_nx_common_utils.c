@@ -38,6 +38,7 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 #include "syslog.h"
+#include "arm_internal.h"
 
 #include "hcom_nx_common.h"
 #include <meadow/hcom_bbreg_defn.h>

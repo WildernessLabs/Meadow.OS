@@ -48,6 +48,7 @@
 #include "stm32_pwr.h"
 #include "stm32_rtc.h"
 #include "stm32_exti.h"
+#include "arm_internal.h"
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"

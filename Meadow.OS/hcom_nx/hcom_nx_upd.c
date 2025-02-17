@@ -53,6 +53,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
+#include "arm_internal.h"
 
 #include "chip.h"
 #include "fcntl.h"
@@ -143,13 +144,12 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   struct hcom_nx_upd_bbr_update *bbr_update;
   struct hcom_nx_cmd_data *cmdData;
   struct hcom_nx_upd_is_part_mounted *is_mounted;
+  hcom_nx_upd_host_text_transport_t *text_transport;
+
 #if defined (CONFIG_RAMLOG_SYSLOG)
   hcom_nx_upd_cli_trace_transport_t *trace_transport;
 #endif
 
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
-  hcom_nx_upd_host_text_transport_t *text_transport;
-#endif
   hcom_nx_upd_get_hw_ver_t *hardwareVer;
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   hcom_nx_upd_rtc_set_time_t *rtcSetTime;
@@ -226,8 +226,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #endif
     return OK;
 
-#if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
-
   case HCOM_NX_UPD_HOST_TEXT_TRANSPORT:
     text_transport = (hcom_nx_upd_host_text_transport_t *)arg;
     text_transport->msg_length = hcom_nx_text_to_host_transport(
@@ -235,7 +233,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               text_transport->transport_buf,
               text_transport->buf_length);
     return OK;
-#endif
 
   case HCOM_NX_UPD_RESTORE_UART_CONFIG:
     return hcom_nx_restore_uart_reconfig(arg);

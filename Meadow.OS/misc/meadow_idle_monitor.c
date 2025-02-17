@@ -44,6 +44,7 @@
 #include <arch/board/board.h>
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
+#include "arm_internal.h"
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_misc_diag.h>

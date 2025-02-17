@@ -41,6 +41,7 @@
 #include <nuttx/kmalloc.h>
 
 #include <arch/board/board.h>
+#include "arm_internal.h"
 
 //
 //  Following two includes are needed for the battery backed register definitions.
