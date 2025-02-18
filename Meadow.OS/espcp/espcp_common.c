@@ -101,10 +101,10 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     espcp_configuration_t *configuration = espcp_get_configuration();
     if (espcp_add_message_to_queue(configuration->request_queue, message) == espcp_status_codes_completed_ok)
     {
+
+        // MEADOW.OS REBASE: The 'net_lockedwait' function prevented the Meadow.OS build
+        // from completing. It seems the 'net_lockedwait' function is no longer in Nuttx 12
 #if 0
-MEADOW.OS REBASE: The net_lockedwait function prevents the Meadow.OS build
-from completing. It seems the API for managing kernel the socket list has
-changed.
         if (block)
         {
             //
@@ -115,7 +115,10 @@ changed.
             while ((net_lockedwait(message->semaphore) != 0) && (get_errno() == EINTR));
         }
         result = espcp_status_codes_completed_ok;
+#else
+        syslog(1, "%s@%d-Would have raised a espcp queued message here.", __FILE__, __LINE__);
 #endif
+
     }
     return (result);
 }

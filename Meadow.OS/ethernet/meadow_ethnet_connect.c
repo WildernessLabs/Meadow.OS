@@ -520,10 +520,14 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
 
   close(sockDescp);
 
-  // MEADOW.OS REBASE - To build ethernet needed to remove this dependency
-  // on ESP32 code.
+  // MEADOW.OS REBASE - To build ethernet needed to remove this espcp
+  // dependency.
+#if(0)
   // Past the new link status to Meadow
-  // espcp_queue_ethernet_connection_changed_event(isLinkUp);
+  espcp_queue_ethernet_connection_changed_event(isLinkUp);
+#else
+  syslog(1, "%s@%d-Would have raised NTP time change message here.", __FILE__, __LINE__);
+#endif
 
   return OK;
 }

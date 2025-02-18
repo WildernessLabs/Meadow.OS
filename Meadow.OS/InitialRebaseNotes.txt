@@ -35,19 +35,12 @@ been renamed 'meadow_syscall_support.h'. Contents are different too.
 Legacy Meadow at present has no references to meadow_syscall.h.
 This needs to be fixed to match the most current Legacy Meadow.
 
-4. The function 'hcom_nx_upd_diag_fd_inode()' in
-Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_upd.c is not useable with Nuttx 12.
-Why? Because it directly accessed internal Nuttx structures that no longer
-exist in Nuttx 12, or at least are not accessable. The code was commented out
-and I inserted a syslog statement as a place holder and added
-'MEADOW.OS REBASE' so it could be easily found.
-
-5. The first comment lines in our files Meadow files are incorrect. The first
+4. The first comment lines in our files Meadow files are incorrect. The first
 few lines often contains inconsistent old copyright information, a wrong file
 location and the wrong date. While no technical value, it should be done. We
 need a standard format to follow.
 
-6. The defconfig file contained some entires that using 'make savedefconfig'
+5. The defconfig file contained some entires that using 'make savedefconfig'
 removed. This is the list. These may need to be added to an appropriate
 Kconfig or removed as no longer needed or there name changed.
 # CONFIG_MEADOW_CLOUD is not set
@@ -57,11 +50,11 @@ These either no longer exist in Nuttx 12 or have been renamed or have
 prerequisite that were not met. Look at these one-by-one to determine
 required action.
 
-7. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
-because the new tooling (that more easily moves files from Legacy to Rebase
- eadow) indicated it was missing. However, it doesn't seem to be needed in the build
+6. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+because the new tooling (that moves files from Legacy to Rebase) indicated it
+was missing. However, it doesn't seem to be needed in the build
 (it builds without the file) and the file only contains one entry:
 'include <sys/boardctl.h>'
 
 In progress
-8. The F7FeatherV1 flash chip s25fl1.c is not included in Nuttx 12
+7. Get Ethernet to build and run.

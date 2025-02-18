@@ -67,9 +67,11 @@
 #include "../hcom_nx/hcom_nx_common.h"
 
 
-// MEADOW.OS REBASE - delete this file when everything is working.
-// It was added long ago to test ethernet. But this is not longer
-// useful. CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X is a place holder.
+// MEADOW.OS REBASE - Tech Debt - delete this file when appropriate.
+// It was added long ago to test ethernet. But is not longer needed.
+// Note: The function 'hcom_nx_diagnostic_app_execute' is the entry point.
+
+// CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X is a quick way to remove the code.
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD_X)
 
 #if defined(CONFIG_LIBC_NETDB) && defined(CONFIG_NETDB_DNSCLIENT)

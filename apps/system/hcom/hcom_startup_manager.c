@@ -457,7 +457,12 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   espcp_open_esp32_events_message_queue();
 
   // Run system updaters, which apply any OS and filesystem updates that have been staged
-// MEADOW.OS REBASE the following cause the following build errors:
+#if(0)
+  os_update();
+  app_update();
+  firmware_update();
+#endif
+// MEADOW.OS REBASE the 3 lines above caused the following build errors:
 //
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':
 // /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:461: undefined reference to `os_update'
@@ -465,29 +470,28 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:463: undefined reference to `firmware_update'
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:473: undefined reference to `hcom_pppd_start'
 
-  // os_update();
-  // app_update();
-  // firmware_update();
-
   // Last stop, start mono
-
-// MEADOW.OS REBASE the following cause the following build errors:
+#if(0)
+  int monoStartResult = hcom_mono_ctrl_start_mono_main();
+#endif
+// MEADOW.OS REBASE the above line cause the following build errors:
 //
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':
 // /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:480: undefined reference to `hcom_pppd_start'
 
-  // int monoStartResult = hcom_mono_ctrl_start_mono_main();
-
-  // // Start PPPD app needed by cell driver, when cell interface is enabled
-  // // and Mono is running
-  // if (monoStartResult == OK)
-  // {
-  //   ret = hcom_pppd_start();
-  //   if (ret < 0)
-  //   {
-  //     hcom_logging_syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
-  //   }
-  // }
+  // Start PPPD app needed by cell driver, when cell interface is enabled
+  // and Mono is running
+#if(0)
+  if (monoStartResult == OK)
+  {
+    ret = hcom_pppd_start();
+    if (ret < 0)
+    {
+      hcom_logging_syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
+    }
+  }
+#endif
+// MEADOW.OS REBASE the above not useable without previous code
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Startup Manager 24\n"); usleep(20 * 1000);

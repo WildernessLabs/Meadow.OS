@@ -32,9 +32,12 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 // [MEADOW.OS REBASE MAKE-IT-BUILD]
-// Renamed from ntpclient.c to meadow_ntpclient.c. Not sure this was needed
-// to get things to build, but Nuttx has a ntpclient.c defined in 'apps'
+// Renamed from ntpclient.c to meadow_ntpclient.c to get things to build,
+// not sure this was the only way.
+// Note: Nuttx has a ntpclient.c defined in 'apps'
+
 /****************************************************************************
  * 
  * This file is a modified version of the NTPClient application file in the
@@ -383,18 +386,21 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
  ****************************************************************************/
 void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
 {
-    // MEADOW.OS REBASE - To build ethernet needed to remove this dependency
-    // on ESP32 code.
-
-    // espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
-    // if (message != NULL)
-    // {
-    //     message->message_type = espcp_message_types_event;
-    //     message->interface = interface;
-    //     message->function = espcp_wi_fi_function_ntp_update_event;
-    //     message->status_code = espcp_status_codes_completed_ok;
-    //     espcp_dispatch_event(message);
-    // }
+    // MEADOW.OS REBASE - To build ethernet, needed to remove this dependency
+    // on espcp_dispatch_event.
+#if(0)
+    espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
+    if (message != NULL)
+    {
+        message->message_type = espcp_message_types_event;
+        message->interface = interface;
+        message->function = espcp_wi_fi_function_ntp_update_event;
+        message->status_code = espcp_status_codes_completed_ok;
+        espcp_dispatch_event(message);
+    }
+#else
+    syslog(1, "%s@%d-Would have raised NTP time change message here.", __FILE__, __LINE__);
+#endif
 }
 
 /****************************************************************************
