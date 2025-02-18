@@ -32,7 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-// [MAKE-IT-BUILD]
+// [MEADOW.OS REBASE MAKE-IT-BUILD]
 // Renamed from ntpclient.c to meadow_ntpclient.c. Not sure this was needed
 // to get things to build, but Nuttx has a ntpclient.c defined in 'apps'
 

@@ -48,10 +48,6 @@
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 
-// [MAKE-IT-BUILD]
-// Added to allow Meadow to build within Meadow.OS
-#include <meadow/meadow_temp_rebase.h>
-
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
  ****************************************************************************/

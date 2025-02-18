@@ -520,8 +520,10 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
 
   close(sockDescp);
 
+  // MEADOW.OS REBASE - To build ethernet needed to remove this dependency
+  // on ESP32 code.
   // Past the new link status to Meadow
-  espcp_queue_ethernet_connection_changed_event(isLinkUp);
+  // espcp_queue_ethernet_connection_changed_event(isLinkUp);
 
   return OK;
 }

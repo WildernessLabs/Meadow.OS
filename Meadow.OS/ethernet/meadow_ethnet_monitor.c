@@ -42,7 +42,7 @@
 // Currently, this implementation checks if the LAN chip is the LAN9355 and if
 // not will not run.
 
-// At this time Nuttx has no specific support for the LAN9355. Howerver, it 
+// At this time Nuttx has no specific support for the LAN9355. However, it 
 // was found that LAN8742A configuration would also support the LAN9355 for
 // basic operation.
 

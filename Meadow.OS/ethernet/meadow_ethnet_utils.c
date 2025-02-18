@@ -1,7 +1,7 @@
 /****************************************************************************
  * /nuttx/configs/stm32f777zit6-meadow/src/ethernet/meadow_meadow_eth_utils.c
  * 
- *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
