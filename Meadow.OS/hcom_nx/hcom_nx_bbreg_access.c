@@ -47,6 +47,7 @@
 #include <meadow/hcom_bbreg_defn.h>
 
 #include <arch/board/board.h>
+#include "arm_internal.h"
 #include "stm32_gpio.h"
 
 //===================================================================

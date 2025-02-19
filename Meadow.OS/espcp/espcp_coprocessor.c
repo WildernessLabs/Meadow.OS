@@ -750,10 +750,10 @@ void espcp_deep_sleep(void)
     //  This code is derived from the various methods in net_sockets.c
     //
 
+    // MEADOW.OS REBASE: The following code prevents the Meadow.OS build from
+    // completing. It seems the API for managing kernel the socket list has
+    // changed. Plus the 'net_lockedwait' is no longer supported.
 #if 0
-MEADOW.OS REBASE: The following code prevents the Meadow.OS build from
-completing. It seems the API for managing kernel the socket list has
-changed.
 
     struct socketlist *list = sched_getsockets();
     if (list)
@@ -773,7 +773,10 @@ changed.
         
         nxsem_post(&list->sl_sem);
     }
+#else
+    syslog(1, "%s@%d-Would have raised espcp deep sleep message here.", __FILE__, __LINE__);
 #endif
+
     //
     //  Lastly, wait for the message to have been sent.
     //
@@ -889,8 +892,14 @@ int espcp_late_init(void)
     {
         espcp_usrsock_init();
         result = espcp_thread_start(g_espcp_configuration);
-        // MEADOW.OS REBASE: Nuttx no longer registers usrsock like this
-        // usrsock_register_sockif(&g_usrsock_sockif_esp32);
+
+        // MEADOW.OS REBASE: Nuttx 12 seems to no longer registers usrsock in
+        // this way.
+#if (0)
+        usrsock_register_sockif(&g_usrsock_sockif_esp32);
+#else
+        syslog(1, "%s@%d-Would have registered usrsock here.", __FILE__, __LINE__);
+#endif
         espcp_gpio_init();
         espcp_spi_init();
 

@@ -40,6 +40,7 @@
 #include <sys/stat.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/kmalloc.h>
+#include "arm_internal.h"
 
 #include <arch/board/board.h>
 #include "../hcom_nx/hcom_nx_common.h"

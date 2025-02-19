@@ -129,7 +129,9 @@ int espcp_open_esp32_events_message_queue()
  *   None
  *
  ****************************************************************************/
-// MEADOW.OS REBASE - Function is not used, generates warning as such.
+// MEADOW.OS REBASE - This function is not called, it generated a warning
+// because of this.
+
 // static void espcp_close_events_message_queue(void)
 // {
 //   mq_close(espcp_events_queue_handler);

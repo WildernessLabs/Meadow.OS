@@ -1,7 +1,7 @@
 /****************************************************************************
  * /nuttx/configs/stm32f777zit6-meadow/src/ethernet/meadow_meadow_eth_utils.c
  * 
- *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <nuttx/net/dns.h>
 #include <net/route.h>
 #include <net/if.h>
+#include "arm_internal.h"
 
 #include <meadow/hcom_shared_common.h>
 #include <chip.h>
@@ -85,7 +86,7 @@ void meadow_eth_utils_syslog_ip_mac(void)
   meadow_eth_utils_get_ipv4(MEADOW_ETHMAC_DEVICENAME, &ipaddr);
   meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
 
-  syslog(LOG_INFO, "Ethernet active MAC:%02x:%02x:%02x:%02x:%02x:%02x, IP:%d.%d.%d.%d\n",
+  syslog(LOG_INFO, "Ethernet active MAC:%02x:%02x:%02x:%02x:%02x:%02x, IP:%ld.%ld.%ld.%ld\n",
             ((uint8_t*)macAddr)[0], ((uint8_t*)macAddr)[1], ((uint8_t*)macAddr)[2],
             ((uint8_t*)macAddr)[3], ((uint8_t*)macAddr)[4], ((uint8_t*)macAddr)[5],
             (ipaddr.s_addr       ) & 0xff,

@@ -32,9 +32,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-// [MAKE-IT-BUILD]
-// Renamed from ntpclient.c to meadow_ntpclient.c. Not sure this was needed
-// to get things to build, but Nuttx has a ntpclient.c defined in 'apps'
+
+// [MEADOW.OS REBASE MAKE-IT-BUILD]
+// Renamed from ntpclient.c to meadow_ntpclient.c to get things to build,
+// not sure this was the only way.
+// Note: Nuttx has a ntpclient.c defined in 'apps'
 
 #ifndef __APPS_INCLUDE_NETUTILS_NTPCLIENT_H
 #define __APPS_INCLUDE_NETUTILS_NTPCLIENT_H 1

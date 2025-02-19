@@ -53,6 +53,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
+#include "arm_internal.h"
 
 #include "chip.h"
 #include "fcntl.h"
@@ -143,13 +144,12 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   struct hcom_nx_upd_bbr_update *bbr_update;
   struct hcom_nx_cmd_data *cmdData;
   struct hcom_nx_upd_is_part_mounted *is_mounted;
+  hcom_nx_upd_host_text_transport_t *text_transport;
+
 #if defined (CONFIG_RAMLOG_SYSLOG)
   hcom_nx_upd_cli_trace_transport_t *trace_transport;
 #endif
 
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
-  hcom_nx_upd_host_text_transport_t *text_transport;
-#endif
   hcom_nx_upd_get_hw_ver_t *hardwareVer;
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   hcom_nx_upd_rtc_set_time_t *rtcSetTime;
@@ -226,8 +226,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #endif
     return OK;
 
-#if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
-
   case HCOM_NX_UPD_HOST_TEXT_TRANSPORT:
     text_transport = (hcom_nx_upd_host_text_transport_t *)arg;
     text_transport->msg_length = hcom_nx_text_to_host_transport(
@@ -235,7 +233,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               text_transport->transport_buf,
               text_transport->buf_length);
     return OK;
-#endif
 
   case HCOM_NX_UPD_RESTORE_UART_CONFIG:
     return hcom_nx_restore_uart_reconfig(arg);
@@ -325,32 +322,38 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 }
 
 // ====================================================================
-// This is use to determine for diagnostics to see the information
-// related to file descriptors
-// MEADOW.OS REBASE - THIS FUNCTION IS NOT USEABLE. NUTTX 12 INTERNAL
-// STRUCTURES HAVE CHANGED.
+// This was use to allow diagnostics to see the information related
+// to file descriptors.
 int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 {
-  // struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
-  // is_fd_valid = (struct hcom_nx_upd_diag_fd_inode_s *)arg;
+  // MEADOW.OS REBASE - The following code is no longer usable. It appears that
+  // Nuttx has changed the internal code that was accessed by this function.
+  //
+  // Since this is diagnostic (IIRC) was added by me, and hasn't been used in
+  // years it, and all infrastructure, can be completely removed.
+  #if(0)
+  struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
+  is_fd_valid = (struct hcom_nx_upd_diag_fd_inode_s *)arg;
 
-  // // Note the caller's task group may be different
-  // FAR struct tcb_s *thisTcb = this_task();
-  // FAR struct file *fileList;
+  // Note the caller's task group may be different
+  FAR struct tcb_s *thisTcb = this_task();
+  FAR struct file *fileList;
 
-  // // Get pointer to the task's file list
-  // fileList = thisTcb->group->tg_filelist.fl_files;
+  // Get pointer to the task's file list
+  fileList = thisTcb->group->tg_filelist.fl_files;
 
-  // is_fd_valid->inodeAddr = fileList[is_fd_valid->fileDescriptor].f_inode;
+  is_fd_valid->inodeAddr = fileList[is_fd_valid->fileDescriptor].f_inode;
 
-  // syslog(LOG_NOTICE, "Task:'%s', fd:%" PRId32 ", inode addr:%p [%" PRId32 "]\n",
-  //         thisTcb->name,
-  //         is_fd_valid->fileDescriptor,
-  //         fileList[is_fd_valid->fileDescriptor].f_inode,
-  //         is_fd_valid->fileDescriptor);
+  syslog(LOG_NOTICE, "Task:'%s', fd:%" PRId32 ", inode addr:%p [%" PRId32 "]\n",
+          thisTcb->name,
+          is_fd_valid->fileDescriptor,
+          fileList[is_fd_valid->fileDescriptor].f_inode,
+          is_fd_valid->fileDescriptor);
+#else
+  syslog(1, "%s@%d-The function 'hcom_nx_upd_diag_fd_inode()' is not useable \
+    with Nuttx 12\n", thisFile, __LINE__);
+#endif
 
-  syslog(1, "%s@%d-This function is not useable with Nuttx 12\n",
-            thisFile, __LINE__);
   return OK;
 }
 

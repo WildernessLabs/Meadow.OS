@@ -1513,6 +1513,10 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     request->setup = 1;
     request->setup_message_id = espcp_get_next_message_id();
 
+    // The following comment looks to have been added by Alexis. I added
+    // 'MEADOW.OS REBASE' to the comment so it could be looked at by someone who
+    // knew what the comment means.
+
     //MEADOW.OS REBASE: Install poll callback!
 
     int payload_length = espcp_poll_request_buffer_size(request);
@@ -1707,7 +1711,13 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08x\n", request_id);
             pr->fd->revents = ipr->returned_events;
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%hd revents=%hd\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
+
+            // The following comment looks to have been added by Alexis. I
+            // added 'MEADOW.OS REBASE' to the comment so it could be looked
+            // at by someone who knew what the comment means.
+
             //MEADOW.OS REBASE: Install poll callback!!!
+
             pr->fd->cb(pr->fd);
             free(pr);
         }
