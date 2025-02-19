@@ -204,7 +204,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "-->hcom_nx_setup_mgr 7\n"); usleep(5 * 1000);
 #endif
 
-// Rebase Note: This does nothing without ethernet
   ret = hcom_nx_route_text_to_host_setup();
   if (ret < 0)
   {

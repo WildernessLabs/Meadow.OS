@@ -70,8 +70,6 @@
 // // #undef USE_MEADOW_DEBUG_HELPERS
 // #include <meadow/meadow_debug_helpers.h>
 
-// At present (Sept 2021) The only use for this feature is with ethernet
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -214,10 +212,3 @@ size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
   // Return to userland with the message and its length
   return msgLength;
 }
-
-#else
-int hcom_nx_route_text_to_host_setup()
-{
-  return OK;
-}
-#endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
