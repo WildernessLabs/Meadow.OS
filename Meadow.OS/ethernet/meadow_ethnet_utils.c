@@ -112,7 +112,7 @@ int meadow_eth_utils_verify_lan9355(void)
     return ret;
   }
 
-  MEADOW_TRACE_INFORMATION("%s@%d-mon - Chip Id:0x%08x\n", thisFile, __LINE__, lanChipId);
+  MEADOW_TRACE_INFORMATION("%s@%d-mon - Chip Id:0x%08lx\n", thisFile, __LINE__, lanChipId);
 
   if((lanChipId & 0xffff0000) != 0x93550000)
   {

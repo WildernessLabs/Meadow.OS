@@ -111,6 +111,7 @@
 #define DHCP_OPTION_SUBNET_MASK 1
 #define DHCP_OPTION_ROUTER 3
 #define DHCP_OPTION_DNS_SERVER 6
+#define DHCP_OPTION_HOST_NAME 12
 #define DHCP_OPTION_REQ_IPADDR 50
 #define DHCP_OPTION_LEASE_TIME 51
 #define DHCP_OPTION_MSG_TYPE 53
@@ -171,39 +172,23 @@ static const uint8_t magic_cookie[4] = {99, 130, 83, 99};
  * Private Functions
  ****************************************************************************/
 
-
-/****************************************************************************
- * Name: meadow_eth_diag_show_dhcp_info
- ****************************************************************************/
 #if defined (USE_MEADOW_DEBUG_HELPERS)
-static void meadow_eth_diag_show_dhcp_info(struct dhcp_info_s *dhcp_info)
-{
-  MEADOW_TRACE_INFORMATION("  Got IP address %d.%d.%d.%d\n",
-        (dhcp_info->ipaddr.s_addr) & 0xff,
-        (dhcp_info->ipaddr.s_addr >> 8) & 0xff,
-        (dhcp_info->ipaddr.s_addr >> 16) & 0xff,
-        (dhcp_info->ipaddr.s_addr >> 24) & 0xff);
-  MEADOW_TRACE_INFORMATION("  Got netmask %d.%d.%d.%d\n",
-        (dhcp_info->netmask.s_addr) & 0xff,
-        (dhcp_info->netmask.s_addr >> 8) & 0xff,
-        (dhcp_info->netmask.s_addr >> 16) & 0xff,
-        (dhcp_info->netmask.s_addr >> 24) & 0xff);
-  MEADOW_TRACE_INFORMATION("  Got DNS server %d.%d.%d.%d\n",
-        (dhcp_info->dnsaddr.s_addr) & 0xff,
-        (dhcp_info->dnsaddr.s_addr >> 8) & 0xff,
-        (dhcp_info->dnsaddr.s_addr >> 16) & 0xff,
-        (dhcp_info->dnsaddr.s_addr >> 24) & 0xff);
-  MEADOW_TRACE_INFORMATION("  Got default router %d.%d.%d.%d\n",
-        (dhcp_info->default_router.s_addr) & 0xff,
-        (dhcp_info->default_router.s_addr >> 8) & 0xff,
-        (dhcp_info->default_router.s_addr >> 16) & 0xff,
-        (dhcp_info->default_router.s_addr >> 24) & 0xff);
-  MEADOW_TRACE_INFORMATION("  Lease expiration time %d seconds\n", dhcp_info->lease_time);
-}
+static void meadow_eth_diag_show_dhcp_info(struct dhcp_info_s *dhcp_info);
 #endif
+
 /****************************************************************************
  * Name: meadow_eth_dhcp_add<option>
  ****************************************************************************/
+
+ static FAR uint8_t *dhcpc_addhostname(FAR const char *hostname,
+  FAR uint8_t *optptr)
+{
+int len = strlen(hostname);
+*optptr++ = DHCP_OPTION_HOST_NAME;
+*optptr++ = len;
+memcpy(optptr, hostname, len);
+return optptr + len;
+}
 
 static FAR uint8_t *meadow_eth_dhcp_addmsgtype(FAR uint8_t *optptr, uint8_t type)
 {
@@ -254,6 +239,7 @@ static FAR uint8_t *meadow_eth_dhcp_addend(FAR uint8_t *optptr)
 static int meadow_eth_dhcp_sendmsg(FAR struct meadow_eth_dhcp_state_s *pdhcpc,
                          FAR struct dhcp_info_s *presult, int msgtype)
 {
+  char hostname[HOST_NAME_MAX + 1];
   struct sockaddr_in addr;
   FAR uint8_t *pend;
   in_addr_t serverid = INADDR_BROADCAST;
@@ -275,6 +261,13 @@ static int meadow_eth_dhcp_sendmsg(FAR struct meadow_eth_dhcp_state_s *pdhcpc,
   pend = &pdhcpc->packet.options[4];
   pend = meadow_eth_dhcp_addmsgtype(pend, msgtype);
 
+  /* Get the current host name */
+
+  if (gethostname(hostname, sizeof(hostname)) || (0 == strlen(hostname)))
+  {
+    strlcpy(hostname, CONFIG_NETUTILS_DHCPC_HOST_NAME, sizeof(hostname));
+  }
+
   /* Handle the message specific settings */
 
   switch (msgtype)
@@ -286,6 +279,8 @@ static int meadow_eth_dhcp_sendmsg(FAR struct meadow_eth_dhcp_state_s *pdhcpc,
          * unicast traffic before being fully configured.
          */
     pdhcpc->packet.flags = HTONS(BOOTP_BROADCAST); /*  Broadcast bit. */
+
+    pend = dhcpc_addhostname(hostname, pend);
     pend = meadow_eth_dhcp_addreqoptions(pend);
     break;
 
@@ -322,8 +317,26 @@ static int meadow_eth_dhcp_sendmsg(FAR struct meadow_eth_dhcp_state_s *pdhcpc,
   addr.sin_port = HTONS(DHCPC_SERVER_PORT);
   addr.sin_addr.s_addr = serverid;
 
-  return sendto(pdhcpc->sockfd, &pdhcpc->packet, len, 0,
-                (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+  syslog(1, "%s@%d-DHCP-Sending DHCPDISCOVER msgtype:%d, len:%d\n",
+              __FILE__, __LINE__, msgtype, len);
+  // hcom_nx_diag_print_buffer((const uint8_t*)&pdhcpc->packet, len, 1);
+
+  set_errno(OK);
+
+    // So we can hook on gdb
+  ssize_t sendtoRet = sendto(pdhcpc->sockfd, &pdhcpc->packet, len, 0,
+    (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
+  
+  syslog(1, "%s@%d-DHCP-sendto ret:%d, errno:%d\n\n", __FILE__, __LINE__, sendtoRet, errno);
+  if(get_errno() != OK)
+  {
+    return ERROR;
+  }
+
+  return sendtoRet;
+
+  // return sendto(pdhcpc->sockfd, &pdhcpc->packet, len, 0,
+  //               (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
 }
 
 /****************************************************************************
@@ -419,7 +432,7 @@ static void *meadow_eth_dhcp_open(FAR const char *interface, FAR const void *mac
   FAR struct meadow_eth_dhcp_state_s *pdhcpc;
   struct sockaddr_in addr;
   struct timeval tv;
-  int ret;
+  int ret = 0;
 
   /* Allocate an internal DHCP structure */
 
@@ -530,6 +543,8 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
   int retries;
   int state;
 
+  memset(presult, 0, sizeof(*presult));
+
   // Save the currently assigned IP address (should be INADDR_ANY)
   oldaddr.s_addr = 0;
   ret = meadow_eth_utils_get_ipv4(pdhcpc->interface, &oldaddr);
@@ -564,9 +579,12 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
         return ret;
       }
 
-      // Get the DHCPOFFER response
-      result = recv(pdhcpc->sockfd, &pdhcpc->packet,
-                    sizeof(struct dhcp_msg), 0);
+      // Get the DHCPDISCOVER response
+      result = recv(pdhcpc->sockfd, &pdhcpc->packet, sizeof(struct dhcp_msg), 0);
+      
+      // syslog(1, "%s@%d-The DHCP request recv result:%d\n", __FILE__, __LINE__, result);
+      // hcom_nx_diag_print_buffer(&pdhcpc->packet, sizeof(struct dhcp_msg), 1);
+      
       if (result >= 0)
       {
         msgtype = meadow_eth_dhcp_parsemsg(pdhcpc, result, presult);
@@ -574,7 +592,7 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
         {
           // Save the serverid from the presult so that it is not clobbered by a
           // new OFFER.
-          MEADOW_TRACE_INFORMATION("Received OFFER from %08x, offered:%08x\n",
+          MEADOW_TRACE_INFORMATION("Received OFFER from %08lx, offered:%08lx\n",
                 ntohl(presult->serverid.s_addr),
                 ntohl(presult->ipaddr.s_addr));
 
@@ -588,7 +606,7 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
           state = STATE_HAVE_OFFER;
         }
       }
-      else if (errno != EAGAIN)
+      else if (errno != EAGAIN && errno != EINTR)
       {
         // An error has occurred.
         syslog(LOG_ERR, "%s@%d-failed ret:%d errno:%d\n", thisFile, __LINE__, ret, errno);
@@ -596,6 +614,8 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
       }
       else
       {
+        syslog(1, "%s@%d-The DHCP request timed out. recv ret:%d, errno:%d\n",
+                    __FILE__, __LINE__, result, errno);
         // This is a timeout error (meaning that nothing was received on this
         // socket for a period of time). We loop and send the DISCOVER command
         // again.
@@ -684,6 +704,36 @@ static int meadow_eth_dhcp_request(FAR void *handle, FAR struct dhcp_info_s *pre
 
   return OK;
 }
+
+/****************************************************************************
+ * Name: meadow_eth_diag_show_dhcp_info
+ ****************************************************************************/
+#if defined (USE_MEADOW_DEBUG_HELPERS)
+static void meadow_eth_diag_show_dhcp_info(struct dhcp_info_s *dhcp_info)
+{
+  MEADOW_TRACE_INFORMATION("  Got IP address %ld.%ld.%ld.%ld\n",
+        (dhcp_info->ipaddr.s_addr) & 0xff,
+        (dhcp_info->ipaddr.s_addr >> 8) & 0xff,
+        (dhcp_info->ipaddr.s_addr >> 16) & 0xff,
+        (dhcp_info->ipaddr.s_addr >> 24) & 0xff);
+  MEADOW_TRACE_INFORMATION("  Got netmask %ld.%ld.%ld.%ld\n",
+        (dhcp_info->netmask.s_addr) & 0xff,
+        (dhcp_info->netmask.s_addr >> 8) & 0xff,
+        (dhcp_info->netmask.s_addr >> 16) & 0xff,
+        (dhcp_info->netmask.s_addr >> 24) & 0xff);
+  MEADOW_TRACE_INFORMATION("  Got DNS server %ld.%ld.%ld.%ld\n",
+        (dhcp_info->dnsaddr.s_addr) & 0xff,
+        (dhcp_info->dnsaddr.s_addr >> 8) & 0xff,
+        (dhcp_info->dnsaddr.s_addr >> 16) & 0xff,
+        (dhcp_info->dnsaddr.s_addr >> 24) & 0xff);
+  MEADOW_TRACE_INFORMATION("  Got default router %ld.%ld.%ld.%ld\n",
+        (dhcp_info->default_router.s_addr) & 0xff,
+        (dhcp_info->default_router.s_addr >> 8) & 0xff,
+        (dhcp_info->default_router.s_addr >> 16) & 0xff,
+        (dhcp_info->default_router.s_addr >> 24) & 0xff);
+  MEADOW_TRACE_INFORMATION("  Lease expiration time %ld seconds\n", dhcp_info->lease_time);
+}
+#endif
 
 /****************************************************************************
  * Name: meadow_eth_dhcp_get_dhcp_info

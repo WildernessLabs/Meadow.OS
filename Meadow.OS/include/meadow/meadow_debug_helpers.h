@@ -65,12 +65,14 @@
 #if defined(USE_MEADOW_DEBUG_HELPERS) || defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 
 // #if defined(__KERNEL__) && defined(CONFIG_BUILD_PROTECTED)
-#if defined(CONFIG_BUILD_PROTECTED) && !defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
-    #define LOG_INFO    1
-    #define LOG_DEBUG   1
-    #define LOG_CRIT    1
-    #define LOG_ERR     1
-#endif
+// MEADOW.OS REBASE - When MEADOW_USE_HCOM_DEBUG_HELPERS is defined in Meadow
+// Rebase, the following create warnings about being redefined
+// #if defined(CONFIG_BUILD_PROTECTED) && !defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
+//     #define LOG_INFO    1
+//     #define LOG_DEBUG   1
+//     #define LOG_CRIT    1
+//     #define LOG_ERR     1
+// #endif
 
 #if defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 
