@@ -119,7 +119,7 @@ enum
  * Private Function Prototypes
  ************************************************************************************/
 
-static void adc_test_initialize(uint32_t numberGpio);
+static void adc_test_initialize(uint numberGpio);
 static int adc_test_create_testing_thread(void);
 static void *adc_test_kthread_func(int argc, char *argv[]);
 static void show_all_data_in_buffer(char *headerText, double dataBuffer[],

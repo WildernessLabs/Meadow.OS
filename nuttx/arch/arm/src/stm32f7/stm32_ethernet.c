@@ -3986,7 +3986,7 @@ static int stm32_ethconfig(struct stm32_ethmac_s *priv)
  *
  ****************************************************************************/
 
- // I found that with CONFIG_NETDEV_LATEINIT defined the build would fail
+// I found that with CONFIG_NETDEV_LATEINIT defined the build would fail
 // because of the 'static' declaration found here. It appears that 
 // CONFIG_NETDEV_LATEINIT doesn't mean do the "normal" initialization later
 // but, don't use the "normal" initialization code, supply your own

@@ -61,7 +61,7 @@
 "lseek","unistd.h","","off_t","int","off_t","int"
 "lstat","sys/stat.h","","int","FAR const char *","FAR struct stat *"
 "lutimens","sys/stat.h","","int","FAR const char *","const struct timespec [2]|FAR const struct timespec *"
-"meadow_adc_configure","meadow/meadow_syscall_support.h","defined (CONFIG_STM32F7_DMA2)","int","uint8_t*","uint","double *"
+"meadow_adc_configure","meadow/meadow_syscall_support.h","defined (CONFIG_STM32F7_DMA2)","int","uint8_t*","uint32_t","double *"
 "meadow_adc_read_values","meadow/meadow_syscall_support.h","defined (CONFIG_STM32F7_DMA2)","int"
 "meadow_adc_read_temp_vbat","meadow/meadow_syscall_support.h","defined (CONFIG_STM32F7_DMA2)","int","double *","double *"
 "meadow_kt_adc_tests","meadow/meadow_kernel_tests.h","defined(CONFIG_ADC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)","void","uint32_t"
