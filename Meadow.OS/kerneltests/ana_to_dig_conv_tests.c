@@ -119,7 +119,7 @@ enum
  * Private Function Prototypes
  ************************************************************************************/
 
-static void adc_test_initialize(uint numberGpio);
+static void adc_test_initialize(uint32_t numberGpio);
 static int adc_test_create_testing_thread(void);
 static void *adc_test_kthread_func(int argc, char *argv[]);
 static void show_all_data_in_buffer(char *headerText, double dataBuffer[],
@@ -265,9 +265,7 @@ void adc_test_initialize(uint32_t numberGpio)
   // hcom_nx_diag_print_buffer(gpioList, 16, 1);
   
   // Calling configuration API to set things up
-  ret = meadow_adc_configure(gpioList,
-                            numberGpio,   // Determines how many GPIOs
-                            _voltageResultBuf);
+  ret = meadow_adc_configure(gpioList, numberGpio, _voltageResultBuf);
   if(ret < 0)
   {
     syslog(2, "%s@%d-Error:meadow_adc_configure() returned:%d, errno:%d\n",

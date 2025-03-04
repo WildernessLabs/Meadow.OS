@@ -55,7 +55,7 @@
  ************************************************************************************/
 
 // Meadow ADC
-int meadow_adc_configure(uint8_t gpioList[], uint32_t gpioCount, double *userDataBuf);
+int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount, double *userDataBuf);
 int meadow_adc_read_values(void);
 int meadow_adc_read_temp_vbat(double *batteryVoltage, double *temperatureValue);
 

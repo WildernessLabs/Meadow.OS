@@ -83,7 +83,8 @@ $(MEADOW_OS_DIR)/misc/parse_iso8601_time.c \
 $(MEADOW_OS_DIR)/misc/long_period_scheduler.c \
 $(MEADOW_OS_DIR)/misc/meadow_client_cert.c \
 $(MEADOW_OS_DIR)/misc/meadow_reinit_flash_size.c \
-$(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c
+$(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c \
+$(MEADOW_OS_DIR)/misc/meadow_adc.c
 
 MEADOW_OS_DIR=Meadow.OS
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR)

@@ -80,11 +80,11 @@
 #include "meadow_ethnet_local.h"
 #include <nuttx/net/netconfig.h>
 
-
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 
-/* Pre-processor Definitions
-**************************************************************************/
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 /* Configuration */
 
@@ -168,7 +168,7 @@ struct dhcpc_state_s
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = thisFile;
+static char *thisFile = __FILE__;
 
 static const uint8_t magic_cookie[4] =
 {
@@ -178,6 +178,7 @@ static const uint8_t magic_cookie[4] =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: dhcpc_add<option>
  ****************************************************************************/
@@ -791,7 +792,7 @@ int dhcpc_request(FAR void *handle, FAR struct dhcp_info_s *presult)
                    * and break out of the loop.
                    */
 
-                 meadow_eth_utils_set_ipv4(pdhcpc->interface,
+                  meadow_eth_utils_set_ipv4(pdhcpc->interface,
                                       &presult->ipaddr);
                   state = STATE_HAVE_OFFER;
                 }
@@ -985,7 +986,8 @@ int dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback)
 
   return OK;
 }
-// Ported from Meadow
+
+// MEADOW.OS REBASE to Nuttx 12 - Ported from Meadow
 /****************************************************************************
  * Name: meadow_eth_dhcp_get_dhcp_info
  ****************************************************************************/
@@ -1005,7 +1007,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
     return -errno;
   }
 
-    // (--) WAS - MEADOW_TRACE_INFORMATION
+  // (--) Diagnostic
   syslog(1, "%s@%d- REQUESTING IP via DHCP\n", thisFile, __LINE__);
 
   // This call sets all the dhcp_info fields

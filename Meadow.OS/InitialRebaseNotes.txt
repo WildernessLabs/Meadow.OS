@@ -26,21 +26,15 @@ Other Things that need attention
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
 are some form of workaround in the code.
 
-2. It looks like the F7FeatherV1 flash chip is not configured.
-The Legacy Meadow's defconfig file adds CONFIG_S25FL_QSPIMODE=3 and 
-CONFIG_MTD_S25FL=y to defconfig for this flash chip's support.
+2. Meadow/nuttx/include/meadow/'meadow_syscall.h' should be merged with
+'meadow_syscall_support.h'.
 
-3. Perhaps Meadow/nuttx/include/meadow/'meadow_syscall.h' has been
-been renamed 'meadow_syscall_support.h'. Contents are different too.
-Legacy Meadow at present has no references to meadow_syscall.h.
-This needs to be fixed to match the most current Legacy Meadow.
-
-4. The first comment lines in our files Meadow files are incorrect. The first
+3. The first comment lines in our files Meadow files are incorrect. The first
 few lines often contains inconsistent old copyright information, a wrong file
 location and the wrong date. While no technical value, it should be done. We
 need a standard format to follow.
 
-5. The defconfig file contained some entires that using 'make savedefconfig'
+4. The defconfig file contained some entires that using 'make savedefconfig'
 removed. This is the list. These may need to be added to an appropriate
 Kconfig or removed as no longer needed or there name changed.
 # CONFIG_MEADOW_CLOUD is not set
@@ -50,11 +44,11 @@ These either no longer exist in Nuttx 12 or have been renamed or have
 prerequisite that were not met. Look at these one-by-one to determine
 required action.
 
-6. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+5. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
 because the new tooling (that moves files from Legacy to Rebase) indicated it
 was missing. However, it doesn't seem to be needed in the build
 (it builds without the file) and the file only contains one entry:
 'include <sys/boardctl.h>'
 
 In progress
-7. Get Ethernet to build and run.
+6. Get Ethernet to build and run.
