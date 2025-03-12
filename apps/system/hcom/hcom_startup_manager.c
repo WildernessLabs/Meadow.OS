@@ -118,8 +118,8 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
-// Rebase Note: Was called hcom_main() via CONFIG_USER_ENTRYPOINT="hcom_main"
-// now defined by a different defconfig entry CONFIG_INIT_ENTRYPOINT
+// Rebase Note: Name was defined via CONFIG_USER_ENTRYPOINT="hcom_main". This
+// configuration option was renamed to CONFIG_INIT_ENTRYPOINT
 int hcom_main(int argc, char *argv[])
 {
   int ret;
@@ -129,7 +129,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 1\n"); usleep(10 * 1000);
+  syslog(2, "Apps startup manager 1\n"); usleep(10 * 1000);
 #endif
 
   // To better control the startup sequence a semaphore is used.
@@ -167,7 +167,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 2\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 2\n"); usleep(20 * 1000);
 #endif
 
   // Note: This needs to be early because all battery backed register
@@ -180,11 +180,11 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     return ret;
   }
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 3\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 3\n"); usleep(20 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 4\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 4\n"); usleep(20 * 1000);
 #endif
 
   /* // Rebase Note: Requires UPD or new syscall
@@ -200,7 +200,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   */
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 5\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 5\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -212,7 +212,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 7\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 7\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -240,7 +240,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
   
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 8\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 8\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -252,7 +252,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 9\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 9\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -272,7 +272,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 10\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 10\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -284,7 +284,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 11\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 11\n"); usleep(20 * 1000);
 #endif
   // Allocates memory and sets a few internal variable states
   ret = hcom_file_write_setup();
@@ -295,7 +295,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 12\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 12\n"); usleep(20 * 1000);
 #endif
 
   // Allocates memory and initializes hcom circular buffer
@@ -307,7 +307,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 13\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 13\n"); usleep(20 * 1000);
 #endif
 
   // Sets one variable
@@ -319,7 +319,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 14\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 14\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
@@ -338,7 +338,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 15\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 15\n"); usleep(20 * 1000);
 #endif
 
   // Creates a fifo and a thread to receive stderr
@@ -357,7 +357,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 16\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 16\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
@@ -371,7 +371,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 17\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 17\n"); usleep(20 * 1000);
 #endif
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
@@ -385,7 +385,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 18\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 18\n"); usleep(20 * 1000);
 #endif
   // Allocates memory and sets some internal variables
   ret = hcom_host_send_setup();
@@ -396,7 +396,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 19\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 19\n"); usleep(20 * 1000);
 #endif
 
   // Creates a thread to run hcom USB serial receive
@@ -414,7 +414,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 20\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 20\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting syslog messages to CLI. But, only if BBR requests it.
@@ -426,7 +426,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 21\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 21\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting text messages to Host.
@@ -438,7 +438,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 22\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 22\n"); usleep(20 * 1000);
 #endif
 
   // Minor setup, configures blue led as output
@@ -450,7 +450,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 23\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 23\n"); usleep(20 * 1000);
 #endif
 
   // Open ESP32 events message queue on user space side
@@ -470,12 +470,13 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:463: undefined reference to `firmware_update'
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:473: undefined reference to `hcom_pppd_start'
 
-  // Last stop, start mono
+// Last stop, start mono
+// MEADOW.OS REBASE - Besides a build error without mono built attempting to
+// start it is a bad idea.
 #if(0)
   int monoStartResult = hcom_mono_ctrl_start_mono_main();
 #endif
-// MEADOW.OS REBASE the above line cause the following build errors:
-//
+// The above line cause the following build errors:
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':
 // /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:480: undefined reference to `hcom_pppd_start'
 
@@ -494,7 +495,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 // MEADOW.OS REBASE the above not useable without previous code
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Startup Manager 24\n"); usleep(20 * 1000);
+  syslog(2, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);
 #endif
 
   // This startup thread was created by Nuttx. It will now be used to run the

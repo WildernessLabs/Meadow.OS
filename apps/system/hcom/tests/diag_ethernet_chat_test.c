@@ -36,10 +36,10 @@
 // This code was originally modeled after /tcpblaster/tcpblaster_server.c
 
 // This is only a test to determine if TCP is working, nothing more.
-// There are a couple of problems!
+// There are a couple of limitations!
 // 1) It can only connect with one client, ever. And cannot reconnect to the
 //    same client.
-// 2) This code runs via the HCOM receive thread so, no more HCOM.
+// 2) This code runs via the HCOM processing thread so, no more HCOM processing.
 // 3) When the client is terminated Meadow must be restarted.
 // 4) Only works once.
 
@@ -171,17 +171,14 @@ FAR void *diag_ethernet_chat_thread(FAR void *arg)
     goto errout_with_listensd;
   }
 
-  /* Bind the socket to our assigned ip */
-
   netlib_get_ipv4addr(MEADOW_ETHMAC_DEVICENAME, &ipaddr);
-  myaddr.sin_addr.s_addr        = htonl(ipaddr.s_addr);
+  syslog(1, "%s@%d-At this point, IP Address is:0x%08lx\n", __FILE__, __LINE__, ipaddr.s_addr);
+  
+  myaddr.sin_addr.s_addr        = INADDR_ANY;
   myaddr.sin_family             = AF_INET;
   myaddr.sin_port               = htons(ETHERNET_CHAT_TEST_PORT_NO);
 
   addrlen = sizeof(struct sockaddr_in);
-
-  syslog(LOG_INFO, "chat-Binding to IPv4 Address: %08lx\n",
-         (unsigned long)myaddr.sin_addr.s_addr);
 
   if (bind(listensd, (struct sockaddr*)&myaddr, addrlen) < 0)
   {
@@ -347,8 +344,8 @@ int echo_message_to_sender(int sockfd, char *recvBuff, size_t recvSize)
   }
   else
   {
-    // syslog(LOG_ERR, "-->Chat Server:Succefully sent %d of %d bytes\n",
-    //         nbytessent, recvSize);
+    syslog(LOG_ERR, "-->Chat Server:Successfully sent %d of %d bytes\n",
+            nbytessent, recvSize);
   }
   
   free(outbuf);

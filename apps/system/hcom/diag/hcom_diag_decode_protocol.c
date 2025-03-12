@@ -163,7 +163,7 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
   {
     // This looks to be a text type message. Does it's length indicates it does contain
     // text?
-    // But only show a few characters.
+    // These few lines only show a few characters of the text
     // int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
     // if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
     //   textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;

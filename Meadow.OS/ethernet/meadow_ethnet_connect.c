@@ -165,6 +165,10 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
   hcom_nx_config_lock();
   meadow_configuration_t *config = hcom_nx_config_get_pointer();
   _configUseDhcp = config->default_interface->use_dhcp == 1 ? true : false;
+
+  syslog(1, "%s@%d-Per Config, using '%s' for IP address\n", __FILE__, __LINE__,
+    _configUseDhcp ? "DHCP":"Static");
+
   if(!_configUseDhcp)
   {
     _configStaticIpAddr  = NTOHL(config->default_interface->ip_address);
@@ -206,6 +210,9 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       waketime.tv_sec += leaseTimeSec;
       
       // Wait for lease time to expire or the link status to change
+      syslog(1, "-->%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
+                thisFile, __LINE__);
+
       MEADOW_TRACE_INFORMATION("%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
                 thisFile, __LINE__);
       ret = sem_timedwait(&_connectSem, &waketime);
