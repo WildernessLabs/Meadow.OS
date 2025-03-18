@@ -210,9 +210,6 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       waketime.tv_sec += leaseTimeSec;
       
       // Wait for lease time to expire or the link status to change
-      syslog(1, "-->%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
-                thisFile, __LINE__);
-
       MEADOW_TRACE_INFORMATION("%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
                 thisFile, __LINE__);
       ret = sem_timedwait(&_connectSem, &waketime);

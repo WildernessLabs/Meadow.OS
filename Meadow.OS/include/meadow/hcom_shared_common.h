@@ -976,7 +976,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Outputs to syslog the PID of each new thread
 #define HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS    0
 
-// When Meadow startup never finishes, these defines make it easy to dind
+// When Meadow startup never finishes, these defines make it easier to find
 // the last command executed.
 #define HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG           0
 #define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG          0

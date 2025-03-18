@@ -1,5 +1,5 @@
 /****************************************************************************
- * /apps/examples/hcom/tests/ethernet_chat_test.c
+ * /Meadow.OS/apps/system/hcom/tests/diag_ethernet_chat_test.c
  * 
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -142,7 +142,6 @@ FAR void *diag_ethernet_chat_thread(FAR void *arg)
   int acceptsd;
   int nbytesread;
   int optval;
-  struct in_addr ipaddr;
 
   syslog(LOG_INFO, "chat-Meadow Ethernet Chat Server starting\n");
 
@@ -171,8 +170,9 @@ FAR void *diag_ethernet_chat_thread(FAR void *arg)
     goto errout_with_listensd;
   }
 
-  netlib_get_ipv4addr(MEADOW_ETHMAC_DEVICENAME, &ipaddr);
-  syslog(1, "%s@%d-At this point, IP Address is:0x%08lx\n", __FILE__, __LINE__, ipaddr.s_addr);
+  // struct in_addr ipaddr;
+  // netlib_get_ipv4addr(MEADOW_ETHMAC_DEVICENAME, &ipaddr);
+  // syslog(2, "%s@%d-At this point, IP Address is:0x%08lx\n", __FILE__, __LINE__, ipaddr.s_addr);
   
   myaddr.sin_addr.s_addr        = INADDR_ANY;
   myaddr.sin_family             = AF_INET;
