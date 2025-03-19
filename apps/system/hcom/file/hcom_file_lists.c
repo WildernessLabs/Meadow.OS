@@ -236,8 +236,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
 
 // ==============================================================
 // THIS IS AN UNDOCUMENTED FEATURE
-// The above statement is no longer true. This feature is being used by some
-// part of CLI, unsure of the usage
+// This feature is being used by some part of CLI, unsure of usage
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData)
 {
   // Changing "/" to "meadow0" will only show meadow files

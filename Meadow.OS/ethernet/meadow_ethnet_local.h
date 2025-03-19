@@ -66,9 +66,9 @@
  * Private Data
  ****************************************************************************/
 
-// Note in Nuttx there were 2 structs one named 'dhcp_state_s' and one named
-// 'dhcp_state'. This struct was 'dhcp_state' it's here as 'dhcp_info_s' to
-// avoid additional confusion.
+// Note in Nuttx 12 there were 2 structs one named 'dhcp_state_s' another
+// named 'dhcp_state'. This struct was named 'dhcp_state' it's here as
+// 'dhcp_info_s' to avoid additional confusion.
 struct dhcp_info_s
 {
   struct in_addr serverid;
@@ -84,7 +84,7 @@ struct dhcp_info_s
  ****************************************************************************/
 
 // Utilities
-void meadow_eth_utils_syslog_ip_mac(void);
+void meadow_eth_utils_syslog_ip_mac(bool useDhcp);
 int meadow_eth_utils_get_hw_mac(const char *interfaceName, uint8_t *macAddr);
 int meadow_eth_utils_exec_ifup(const char *interfaceName);
 int meadow_eth_utils_exec_ifdown(const char *interfaceName);
@@ -116,5 +116,57 @@ int meadow_eth_mon_config_lan9355_irq(void);
 
 int meadow_eth_conn_startup(void);
 int meadow_eth_conn_link_status_changed(bool linkStatusUp);
+
+
+
+/////////////////////////////////////////////////////////////////////// 
+// STUFF FROM V12 v
+
+// Copied from /Meadow.OS/esp32/components/F7Services/WiFi/WiFiRequestHandler.hpp
+// but needed here
+#define _SIOCBASE           (0x0700)            /* Socket ioctl commands */
+#define _IOC(type,nr)       ((type)|(nr))
+#define _SIOC(nr)           _IOC(_SIOCBASE,nr)
+#define SIOCGIFADDR         _SIOC(0x0001)       /* Get IP address */
+
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+ typedef void (*dhcpc_callback_t)(FAR struct dhcp_info_s *presult);
+ 
+ /****************************************************************************
+  * Public Function Prototypes
+  ****************************************************************************/
+ 
+ #ifdef __cplusplus
+ #define EXTERN extern "C"
+ extern "C"
+ {
+ #else
+ #define EXTERN extern
+ #endif
+ 
+ FAR void *dhcpc_open(FAR const char *interface,
+                      FAR const void *mac_addr, int mac_len);
+ int  dhcpc_request(FAR void *handle, FAR struct dhcp_info_s *presult);
+ int  dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback);
+ void dhcpc_cancel(FAR void *handle);
+ void dhcpc_close(FAR void *handle);
+ 
+ // Added 
+ #ifdef CONFIG_NET_IPv4
+int netlib_get_ipv4addr(FAR const char *ifname, FAR struct in_addr *addr);
+int netlib_set_ipv4addr(FAR const char *ifname,
+                        FAR const struct in_addr *addr);
+#endif
+
+ #undef EXTERN
+ #ifdef __cplusplus
+ }
+ #endif
+/////////////////////////////////////////////////////////////////////// 
+
 
 #endif // __CONFIGS_MEADOW_SRC_MEADOW_ETHNET_LOCAL__H

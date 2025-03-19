@@ -267,7 +267,7 @@ static int TestParsingISO8601TimePeriod(void)
         // else {syslog(2, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 199) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:199 Got:%lu\n",
+        if(secondsTillAlarm != 199) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:199 Got:%llu\n",
                   ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         // else {syslog(2, "Test#%d Passed '%s' Expected:199 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
@@ -279,7 +279,7 @@ static int TestParsingISO8601TimePeriod(void)
         // else {syslog(2, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 0) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:0 Got:%lu\n",
+        if(secondsTillAlarm != 0) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:0 Got:%llu\n",
                   ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         // else {syslog(2, "Test#%d Passed '%s' Expected:0 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
@@ -298,7 +298,7 @@ static int TestParsingISO8601TimePeriod(void)
         // else {syslog(2, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 180) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:180 Got:%lu\n",
+        if(secondsTillAlarm != 180) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:180 Got:%llu\n",
                   ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         // else {syslog(2, "Test#%d Passed '%s' Expected:180 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
@@ -310,7 +310,7 @@ static int TestParsingISO8601TimePeriod(void)
         // else {syslog(2, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 1) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:1 Got:%lu\n",
+        if(secondsTillAlarm != 1) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:1 Got:%llu\n",
                   ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         // else {syslog(2, "Test#%d Passed '%s' Expected:1 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
@@ -329,7 +329,7 @@ static int TestParsingISO8601TimePeriod(void)
         // else {syslog(2, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 60) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:60 Got:%lu\n",
+        if(secondsTillAlarm != 60) {syslog(2, "FAILED ret:%d in time period:%d-'%s' Expected:60 Got:%llu\n",
                   ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         // else {syslog(2, "Test#%d Passed '%s' Expected:60 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }

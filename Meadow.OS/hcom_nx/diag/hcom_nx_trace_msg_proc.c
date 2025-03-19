@@ -66,7 +66,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG (384)
+#define HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG (512)
 #define HCOM_TRACE_RAMLOG_READ_BUF_SIZE (256)
 #define HCOM_TRACE_LOCAL_SYSLOG_CIR_BUF_SIZE (HCOM_TRACE_RAMLOG_READ_BUF_SIZE * 5)
 #define HCOM_TRACE_RAMLOG_SERIAL_NAME ("/dev/ttyS0")    // UART 1

@@ -413,6 +413,9 @@ SYSCALL_LOOKUP(meadow_os_reset_reason, 0)
 SYSCALL_LOOKUP(stm32_configgpio, 1)
 SYSCALL_LOOKUP(stm32_gpiowrite, 2)
 SYSCALL_LOOKUP(stm32_unconfiggpio, 1)
+SYSCALL_LOOKUP(meadow_adc_configure, 3)
+SYSCALL_LOOKUP(meadow_adc_read_values, 0)
+SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
 #endif
 
 #if defined(CONFIG_ESP_TESTS)

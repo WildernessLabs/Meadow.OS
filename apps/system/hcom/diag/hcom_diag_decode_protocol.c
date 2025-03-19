@@ -133,6 +133,7 @@ char *hcom_diag_find_meadow_request_type(uint16_t rqstType)
     case HCOM_MDOW_REQUEST_RTC_WAKEUP_TIME_CMD:     return "RTC_SET_WAKEUP_TIME";
     case HCOM_MDOW_REQUEST_DEBUGGING_DEBUGGER_DATA: return "DEBUGGING_DEBUGGER_DATA";
     case HCOM_MDOW_REQUEST_DEVELOPER:               return "DEVELOPER";
+    case HCOM_MDOW_REQUEST_GET_FILES_AND_FOLDERS:   return "NESTED FILES & FOLDERS";
     case HCOM_MDOW_REQUEST_QSPI_FLASH_INIT:         return "QSPI_FLASH_INIT";
     case HCOM_MDOW_REQUEST_QSPI_FLASH_WRITE:        return "QSPI_FLASH_WRITE";
     case HCOM_MDOW_REQUEST_QSPI_FLASH_READ:         return "QSPI_FLASH_READ";
@@ -163,7 +164,7 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
   {
     // This looks to be a text type message. Does it's length indicates it does contain
     // text?
-    // But only show a few characters.
+    // These few lines only show a few characters of the text
     // int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
     // if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
     //   textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;

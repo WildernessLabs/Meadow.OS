@@ -141,7 +141,7 @@ int meadow_eth_monitor_link_status_isr(int irq, void *context, void *arg)
   bool linkNowUp = false;
  
   // Nuttx has already acknowledged the GPIO interrupt that generated this
-  // call. But, the LAN9355 requiries 2 register reads for each PHY.
+  // call. But, the LAN9355 requires 2 register reads for each PHY.
   // In this register PHY A bit 9 link up, bit 4 link down.
   (void) meadow_lan9355_phyread_16(1, LAN9355_PHY_INTERRUPT_SOURCE, &temp16);
   (void) meadow_lan9355_phyread_16(2, LAN9355_PHY_INTERRUPT_SOURCE, &temp16);

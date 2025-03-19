@@ -42,6 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// MEADOW.OS REBASE - COMBINE THIS FILE WITH meadow_syscall_support.h
 // Had trouble finding the appropriate header in syscall.csv for these
 // functions.
 int stm32_configgpio(uint32_t cfgset);
