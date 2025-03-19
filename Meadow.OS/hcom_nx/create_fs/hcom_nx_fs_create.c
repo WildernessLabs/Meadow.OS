@@ -271,7 +271,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   int partitionNumber;
 
   uint32_t *partitionSizes = hcom_nx_fs_get_partition_sizes();
-#if HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0
+#if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
   char **partitionNames = hcom_nx_fs_get_partition_names();
 #endif
 
@@ -283,9 +283,9 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 
-#if HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0
-  syslog(2, "%s@%d-MTD Geo info - total erase sectors %lu, eraseSize %lu block/page size %lu\n",
-          thisFile, __LINE__, geo.neraseblocks, geo.erasesize, geo.blocksize);
+#if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
+  syslog(LOG_INFO, "MTD Geo info - total erase sectors %lu, eraseSize %lu block/page size %lu\n",
+          geo.neraseblocks, geo.erasesize, geo.blocksize);
 #endif
 
   _pagesPerEraSector = geo.erasesize / geo.blocksize;
@@ -323,7 +323,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   // Create each partition
   uint32_t firstBlockOff = 0;      // Offset increases with each partition
 
-#if HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0
+#if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
   int totalBytes = 0;
 #endif
 
@@ -346,10 +346,9 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     _partInfo[partitionNumber].blockOffset = firstBlockOff;
     _partInfo[partitionNumber].byteOffset = firstBlockOff * geo.blocksize;
 
-#if HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0
+#if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
     totalBytes += partSizeInBytes;
-    syslog(2, "%s@%d-%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08lx, Block Offset %5lu\n",
-             thisFile, __LINE__,
+    syslog(LOG_INFO, "%s part:%d, size:%8lu (%5lu Kb), Byte Offset:0x%08lx, Block Offset %5lu\n",
              partitionNames[partitionNumber],
              partitionNumber,
              partSizeInBytes, partSizeInBytes/1024,
@@ -380,10 +379,9 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].blockOffset     = 0;
   _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].partSize        = _totalFlashSize;
 
-#if HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0
+#if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
   int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_TOTAL_PARTITIONS : partitionNumber;
-  syslog(2, "%s@%d-Created %d partitions, Total size:%d bytes (%d Kb)\n",
-            thisFile, __LINE__,
+  syslog(LOG_INFO, "Created %d partitions, Total size:%d bytes (%d Kb)\n",
             actualPartCnt, totalBytes, totalBytes/1024);
 #endif
 

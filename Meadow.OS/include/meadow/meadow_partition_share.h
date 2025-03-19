@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/Meadow.OS/include/meadow/meadow_partition_share.h
+ * /Meadow.OS/include/meadow/meadow_partition_share.h
  * 
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -24,12 +24,12 @@
 // Set to '1' to use Partitions to access the external flash
 #define MEADOW_FLASH_PART_ONLY_USE_PARTITIONS (1)
 
+// This enables the ouput of partition information at startup
+#define HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP (1)
+
 // The HCOM_NX_EX_FLASH_SHOW_FLASH_STATS define is in hcom_nx_common.h@175.
 // Couldn't be here because it needed to control the build of more global
 // objects.
-
-// This enables the ouput of partition information at startup
-#define HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP (1)
 
 //-------------------------------------------------------------------------
 // Note: The naming and definitions of the flash segments in the Original
@@ -131,7 +131,7 @@ uint32_t *hcom_nx_fs_get_partition_offsets(void);
 uint32_t *hcom_nx_fs_get_partition_sizes(void);
 
 #if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
-          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
+          (HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0))
 char **hcom_nx_fs_get_partition_names(void);
 #endif
 // Return pointer to the partition offset array

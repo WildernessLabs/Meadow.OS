@@ -98,7 +98,7 @@ static uint32_t _partitionOffsets[] =
 };
 
 #if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
-          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
+          (HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0))
 static char *_partitionNames[] =
 {
   "Runtime      ",
@@ -119,7 +119,7 @@ static char *_partitionNames[] =
  * Public Functions
  ****************************************************************************/
 #if ((HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0) || \
-          (HCOM_NX_CREATE_FS_INCLUDE_PARTITION_AT_STARTUP > 0))
+          (HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0))
 
 // Returns pointer to the partition name array. Only used for diagnostics.
 char **hcom_nx_fs_get_partition_names(void)

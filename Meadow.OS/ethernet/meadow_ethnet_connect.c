@@ -166,9 +166,6 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
   meadow_configuration_t *config = hcom_nx_config_get_pointer();
   _configUseDhcp = config->default_interface->use_dhcp == 1 ? true : false;
 
-  syslog(1, "%s@%d-Per Config, using '%s' for IP address\n", __FILE__, __LINE__,
-    _configUseDhcp ? "DHCP":"Static");
-
   if(!_configUseDhcp)
   {
     _configStaticIpAddr  = NTOHL(config->default_interface->ip_address);
@@ -328,7 +325,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     }
 
     // Show via syslog user that ethernet is up etc.
-    meadow_eth_utils_syslog_ip_mac();
+    meadow_eth_utils_syslog_ip_mac(_configUseDhcp);
 
     // Now that everything is ready, report that the status is up
     ret = meadow_eth_conn_report_link_status_change(true);

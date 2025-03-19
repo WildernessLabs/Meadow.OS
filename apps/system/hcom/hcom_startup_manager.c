@@ -118,8 +118,9 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
-// Rebase Note: Name was defined via CONFIG_USER_ENTRYPOINT="hcom_main". This
-// configuration option was renamed to CONFIG_INIT_ENTRYPOINT
+// MEADOW.OS REBASE Note: Name was defined using
+// CONFIG_USER_ENTRYPOINT="hcom_main" in Legacy Meadow. Nuttx 12 renamed this
+// to CONFIG_INIT_ENTRYPOINT.
 int hcom_main(int argc, char *argv[])
 {
   int ret;

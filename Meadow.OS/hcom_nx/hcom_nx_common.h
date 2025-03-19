@@ -119,13 +119,13 @@ extern "C"
 #define PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM
 // #define PWRMGMT_LOW_PWR_EXIT_USE_WAKEUP_TIMER
 
-// Support ISO-8601 time stardard
+// Support ISO-8601 time standard
 // This #define may not control all ISO-8601 code, as maybe it should
 #define HCOM_INCLUDE_ISO8601_SUPPORT 0
 
-// This define controls if the display of the flash chip layout is show at
+// This define controls if the legacy flash chip layout scheme is display at
 // startup
-#define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (1)
+#define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (0)
 
 /****************************************************************************************************
  * Public Functions

@@ -77,7 +77,7 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-void meadow_eth_utils_syslog_ip_mac(void)
+void meadow_eth_utils_syslog_ip_mac(bool useDhcp)
 {
   uint8_t macAddr[IFHWADDRLEN];
   struct in_addr ipaddr;
@@ -86,13 +86,14 @@ void meadow_eth_utils_syslog_ip_mac(void)
   meadow_eth_utils_get_ipv4(MEADOW_ETHMAC_DEVICENAME, &ipaddr);
   meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
 
-  syslog(LOG_INFO, "Ethernet active MAC:%02x:%02x:%02x:%02x:%02x:%02x, IP:%ld.%ld.%ld.%ld\n",
+  syslog(LOG_INFO, "Ethernet active MAC:%02x:%02x:%02x:%02x:%02x:%02x, IP:%ld.%ld.%ld.%ld (%s)\n",
             ((uint8_t*)macAddr)[0], ((uint8_t*)macAddr)[1], ((uint8_t*)macAddr)[2],
             ((uint8_t*)macAddr)[3], ((uint8_t*)macAddr)[4], ((uint8_t*)macAddr)[5],
             (ipaddr.s_addr       ) & 0xff,
             (ipaddr.s_addr >> 8  ) & 0xff,
             (ipaddr.s_addr >> 16 ) & 0xff,
-            (ipaddr.s_addr >> 24 ) & 0xff);
+            (ipaddr.s_addr >> 24 ) & 0xff,
+            useDhcp ? "DHCP" : "Static");
 }
 
 //=======================================================
