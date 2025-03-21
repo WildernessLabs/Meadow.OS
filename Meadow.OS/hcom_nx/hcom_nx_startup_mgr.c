@@ -44,10 +44,11 @@
 #include <assert.h>
 #include "../misc/meadow_logging.h"
 
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx_config_manager.h"
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_os.h>
+#include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)

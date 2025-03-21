@@ -32,7 +32,7 @@
 
 #include <nuttx/fs/fs.h>
 
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 
 /****************************************************************************
  * Public Functions

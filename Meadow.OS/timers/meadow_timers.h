@@ -51,7 +51,7 @@
 #include <nuttx/semaphore.h>
 #include <nuttx/arch.h>
 
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 
 #include <sys/ioctl.h>
 #include <nuttx/timers/timer.h>

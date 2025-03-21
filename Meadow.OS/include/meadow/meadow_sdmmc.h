@@ -46,8 +46,14 @@
  * SDCard Support
  ****************************************************************************************************/
 
+ #if defined (CONFIG_STM32F7_SDMMC2)
+ int stm32_sdio_initialize_meadow(void);
+ #endif
+ 
 // NCD because C=Card, D=Detection and N=because the pin is pulled to ground
 // (i.e. not) when the SD card is inserted. Better would be 'nCD'.
+#define GPIO_MEADOW_SDIO_NCD  (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTG|GPIO_PIN6)
+
 #define HAVE_MEADOW_NCD   1
 
 #if defined(CONFIG_STM32F7_SDMMC1) || defined(CONFIG_STM32F7_SDMMC2)
@@ -60,10 +66,6 @@
 
 #if !defined(HAVE_SDIO) || !defined(GPIO_MEADOW_SDIO_NCD)
 #  undef HAVE_MEADOW_NCD
-#endif
-
-#ifdef HAVE_MEADOW_NCD
-static int stm32_ncd_interrupt(int irq, FAR void *context, void *arg);
 #endif
 
 #if defined(CONFIG_STM32F7_SDMMC1)

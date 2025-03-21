@@ -42,7 +42,7 @@
 #include "arm_internal.h"
 #include "stm32_otg.h"
 #include "stm32_gpio.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 
 #ifdef CONFIG_STM32F7_OTGFS
 

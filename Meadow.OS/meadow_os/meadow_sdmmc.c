@@ -54,13 +54,10 @@
 #include <nuttx/irq.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-// #include <string.h>
-// #include <sys/mount.h>
 
+#include "stm32_sdmmc.h"
+#include <meadow/meadow_sdmmc.h>
 #include "stm32_gpio.h"
-#include "meadow_sdmmc.h"
-// #include <meadow/meadow_hw_version.h>
-// #include <meadow/hcom_shared_common.h>
 
 #if defined (CONFIG_SD_CARD_TESTS)
 #pragma message "(--) meadow_sdmmc.c"
@@ -133,7 +130,6 @@ int stm32_sdio_initialize_meadow(void)
   int ret;
 
 #ifdef HAVE_MEADOW_NCD
-
   // Configure the card detect GPIO PG6 defined in
   // nuttx/configs/stm32f777zit6-meadow/include/board.h
   stm32_configgpio(GPIO_MEADOW_SDIO_NCD);

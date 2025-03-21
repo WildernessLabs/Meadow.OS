@@ -24,6 +24,10 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+// MEADOW.OS REBASE
+// This header file looks like a combination of board.h and a catch-all for
+// some of the definitions that are didn't have a home.
+// This should be cleaned up and each header have a clear purpose.
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>

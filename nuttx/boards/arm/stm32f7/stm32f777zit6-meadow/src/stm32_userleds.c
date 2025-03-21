@@ -31,7 +31,7 @@
 #include <debug.h>
 
 #include "stm32_gpio.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 
 #ifndef CONFIG_ARCH_LEDS
 

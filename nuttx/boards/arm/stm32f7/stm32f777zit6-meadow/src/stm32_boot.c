@@ -36,7 +36,7 @@
 #include "mpu.h"
 
 #include "misc/meadow_reinit_flash_size.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include <meadow/meadow_hw_version.h>
 #include "hcom_nx/hcom_nx_common.h"
 

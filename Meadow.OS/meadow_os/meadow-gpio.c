@@ -65,7 +65,7 @@
 
 #include "chip.h"
 #include "fcntl.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include "stm32_adc.h"
 // #include "chip/stm32_adc.h"
 
