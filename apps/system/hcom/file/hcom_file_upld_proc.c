@@ -300,13 +300,16 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
     return -errno;
   }
 
+  // syslog(2, "%s@%d-start_file_upload, Checksum calc ok\n",
+  //         thisFile, __LINE__); usleep(20 * 1000);
+
   // Report to the host upload success thus far and wait for a response
   activeFileNameLen = strlen(dnldShared->dnldFullPathName) + 1;
   totalMsgLength = activeFileNameLen + HCOM_PROTOCOL_FILE_MSG_LENGTH;
 
   // syslog(2, "%s@%d-start_file_upload, from FS fileSize:%ld, totalMsgLength:%lu, fileNameLen:%lu\n",
   //         thisFile, __LINE__, fileSize, totalMsgLength, activeFileNameLen); usleep(20 * 1000);
-  
+
   fileMsg = (HcomProtoFileMsg_t *)malloc(totalMsgLength);
   if(fileMsg == NULL)
   {
@@ -337,7 +340,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   memcpy(fileMsg->fileInfo.fileName, dnldShared->dnldFullPathName,
             activeFileNameLen);
 
-  // syslog(2, "Up---> File CRC is:0x%08x, filesize:%lu, filename:'%s'. Sending 'Init upload OK' to HOST\n",
+  // syslog(2, "Up---> File CRC is:0x%0l8x, filesize:%lu, filename:'%s'. Sending 'Init upload OK' to HOST\n",
   //           crc32Checksum, fileSize, fileMsg->fileInfo.fileName);
 
   // This message contains what the host needs to start receiving a file
@@ -359,6 +362,8 @@ int hcom_file_upld_proc_begin_file_uploading(hcom_dnld_shared_t *dnldShared)
 {
   int ret;
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
+
+  // syslog(2, "Up---> %s@%d-Start file upload\n", thisFile, __LINE__);
 
   if(_uploadAction != HcomUpldActionInitialized)
   {
@@ -409,6 +414,8 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   HcomProtoBinMsg_t *binMsg;
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
 
+  // syslog(2, "Up---> %s@%d-Building upload packet\n", thisFile, __LINE__);
+
   // Seek to beginning
   off_t offset = lseek(fd, 0, SEEK_SET);
   if (offset == (off_t)-1)
@@ -440,6 +447,8 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 
   do
   {
+    // syslog(2, "Up---> %s@%d-Entered upload loop\n", thisFile, __LINE__);
+    
     // Read bin data into the buffer after the header
     nbytes = read(fd, binMsg->binData, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
     if (nbytes < 0)

@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32f777zit6-meadow.h
+ * /Meadow.OS/include/meadow/stm32f777zit6-meadow.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -26,8 +26,8 @@
  ****************************************************************************/
 // MEADOW.OS REBASE
 // This header file looks like a combination of board.h and a catch-all for
-// some of the definitions that are didn't have a home.
-// This should be cleaned up and each header have a clear purpose.
+// some of the definitions that didn't have a home. It is pretty much
+// identical to the original file in legacy Meadow with the same name.
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>

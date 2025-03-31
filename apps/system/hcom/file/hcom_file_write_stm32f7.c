@@ -113,22 +113,24 @@ int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
   dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT | O_TRUNC, 0644);
   if (dnldShared->dnldFileFD == -1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
+    hcom_logging_syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n",
               thisFile, __LINE__, dnldShared->dnldFullPathName, get_errno());
     return -get_errno();
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", thisFile, __LINE__, dnldShared->dnldFullPathName);
+  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", thisFile, __LINE__,
+    dnldShared->dnldFullPathName);
 #endif
 
   return OK;
 }
 
 //==================================================================
-// When data to be added to a file is received, it arrives here for writing.
+// When file data is received, it is written to the media here.
+// This function writes to the Meadow file system and SDCards.
 int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
-          const uint8_t *fileWriteData, const size_t fileWriteSize)
+          const uint8_t *fileWriteData, const size_t fileWriteSize )
 {
   uint8_t *writeDataBuff = NULL;
 
@@ -146,6 +148,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
     if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
       return -ENOENT; // No such file or directory
     
+    // Just copy pointer no buffer needed
     writeDataBuff = (uint8_t *)fileWriteData;
   }
   else if(dnldShared->dnldRqstCat == pathnameSdcard)
@@ -175,9 +178,15 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
   nbytes = write(dnldShared->dnldFileFD, writeDataBuff, fileWriteSize);
   if (nbytes < 0)
   {
-    int Errno = get_errno();
     hcom_logging_syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n",
-             thisFile, __LINE__, dnldShared->dnldFullPathName, dnldShared->dnldFileFD, Errno);
+             thisFile, __LINE__, dnldShared->dnldFullPathName,
+             dnldShared->dnldFileFD, errno);
+
+    if(dnldShared->dnldFileFD > 0)
+    {
+      close(dnldShared->dnldFileFD);
+      dnldShared->dnldFileFD = -1;
+    }
 
     if(dnldShared->dnldRqstCat == pathnameSdcard)
       free(writeDataBuff);
@@ -185,16 +194,15 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
     return nbytes;
   }
 
-  // Only free if allocated (i.e. sdcard)
+  // Only free if allocated for sdcard
   if(dnldShared->dnldRqstCat == pathnameSdcard)
-  {
     free(writeDataBuff);
-  }
 
   if (nbytes < fileWriteSize)
   {
     hcom_logging_syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n",
-             thisFile, __LINE__, dnldShared->dnldFullPathName, nbytes, fileWriteSize);
+             thisFile, __LINE__, dnldShared->dnldFullPathName,
+             nbytes, fileWriteSize);
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)

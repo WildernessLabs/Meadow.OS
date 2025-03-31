@@ -89,12 +89,12 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg);    // This is a dup
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-// set developer -d 16 comes here
+// set developer -p 16 comes here
 void meadow_kt_meadow_interrupt_tests(uint32_t userData)
 {
   static bool firstTime = true;
 
-  syslog(2, "Meadow interrupt tests received 'set developer -d 16 -v %lu'\n", userData);
+  syslog(2, "Meadow interrupt tests received 'set developer -p 16 -v %lu'\n", userData);
 
   switch(userData)
   {

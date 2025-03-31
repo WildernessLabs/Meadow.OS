@@ -168,7 +168,7 @@ static int hcom_nx_sdcard_read_test_file(void)
   off_t offset = lseek(_activeFd, 0, SEEK_SET);
   if (offset == (off_t)-1)
   {
-    syslog(2, "%s@%d-ERROR: lseek failed. ret:%d, errno:%d\n", thisFile, __LINE__, offset, errno);
+    syslog(2, "%s@%d-ERROR: lseek failed. ret:%ld, errno:%d\n", thisFile, __LINE__, offset, errno);
     return -errno;
   }
 
@@ -177,8 +177,8 @@ static int hcom_nx_sdcard_read_test_file(void)
   ssize_t nbytes = read(_activeFd, buffer, 1024);
   if(nbytes < 0)
   {
-    free(buffer);
     syslog(2, "%s@%d-ERROR: reading failed. ret:%d, errno:%d\n", thisFile, __LINE__, nbytes, errno);
+    free(buffer);
     return nbytes;
   }
 
@@ -299,7 +299,7 @@ static int hcom_nx_sdcard_file_stat_test(void)
 
   off_t fileSize = fileStatus.st_size;
 
-  syslog(2, "fstat successful. file size:%d bytes\n", fileSize);
+  syslog(2, "fstat successful. file size:%ld bytes\n", fileSize);
   return fileSize;
 }
 
@@ -328,7 +328,7 @@ static int hcom_nx_sdcard_fsync_file(void)
 }
 
 //===================================================================
-// 'set developer -d 7' for these tests
+// 'set developer -p 7' for these tests
 // Route the test to the correct destination
 int meadow_kt_sd_card_tests(uint32_t userData)
 {
@@ -336,56 +336,56 @@ int meadow_kt_sd_card_tests(uint32_t userData)
   {
     case 100:  // format as fat32
     // Future. For now use NSH or PC to format FAT32
-    syslog(2, "sdcard tests received %u this is NOT a supported option\n", userData);
+    syslog(2, "sdcard tests received %lu this is NOT a supported option\n", userData);
     break;
 
     case 101: // mount
-    syslog(2, "sdcard tests received %u to execute mount test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute mount test\n", userData);
     return hcom_nx_sdcard_mount_card();
     break;
 
     case 102: // Open test file
-    syslog(2, "sdcard tests received %u to execute open testfile.txt\n", userData);
+    syslog(2, "sdcard tests received %lu to execute open testfile.txt\n", userData);
     return hcom_nx_sdcard_open_test_file();
     break;
 
     case 103: // Write test file
-    syslog(2, "sdcard tests received %u to execute write test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute write test\n", userData);
     return hcom_nx_sdcard_write_test_file();
     break;
 
     case 104: // Read test file
-    syslog(2, "sdcard tests received %u to execute read test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute read test\n", userData);
     return hcom_nx_sdcard_read_test_file();
     break;
 
     case 105: // Close test file
-    syslog(2, "sdcard tests received %u to execute close test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute close test\n", userData);
     return hcom_nx_sdcard_close_test_file();
     break;
 
     case 106: // umount
-    syslog(2, "sdcard tests received %u to execute umount test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute umount test\n", userData);
     return hcom_nx_sdcard_unmount_card();
     break;
 
     case 107: // Delete test file
-    syslog(2, "sdcard tests received %u to execute delete test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute delete test\n", userData);
     return hcom_nx_sdcard_delete_test_file();
     break;
 
     case 108: // File Stat test file
-    syslog(2, "sdcard tests received %u to execute fstat test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute fstat test\n", userData);
     return hcom_nx_sdcard_file_stat_test();
     break;
 
     case 109: // fsync test file
-    syslog(2, "sdcard tests received %u to execute fsync test\n", userData);
+    syslog(2, "sdcard tests received %lu to execute fsync test\n", userData);
     return hcom_nx_sdcard_fsync_file();
     break;
 
     default:
-    syslog(2, "Unknown value %u passed to hcom_nx_exec_sdcard_tests()\n", userData);
+    syslog(2, "Unknown value %lu passed to hcom_nx_exec_sdcard_tests()\n", userData);
     break;
   }
 

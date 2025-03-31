@@ -104,7 +104,7 @@ static void spi_test_main_work_function(FAR void *arg);
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-// developer -d 17 comes here
+// developer -p 17 comes here
 void meadow_kt_spi_dma_tests(uint32_t userData)
 {
   memset(_testOps, 0, sizeof(SPITestingOptions));

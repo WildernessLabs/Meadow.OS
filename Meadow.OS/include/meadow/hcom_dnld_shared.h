@@ -70,7 +70,7 @@ enum hcom_download_dir_type_identifier
   HcomDnldDirTypeMmcsd0  = 2,
 };
 
-// This enum is used to catorgize CLI file/directory requests
+// This enum is used to categorize CLI file/directory requests
 enum hcom_file_msg_cat_e
 {
   pathnameNotUsed         = 0xff, // Flag to indicate cleaned
@@ -80,17 +80,21 @@ enum hcom_file_msg_cat_e
   pathnameOriginal        = 3,    // No '/' found
   pathnameMeadow          = 4,    // Starts with '/meadow0/'
   pathnameSdcard          = 5,    // Starts with '/sdcard/'
+  pathnameSdcardNoConfig  = 6,    // Starts with '/sdcard/' but not config
+  pathnameSingleSlash     = 7,    // Starts with '/' or '/dev' (see below)
+  pathnameSlashSlash      = 8     // Starts with '/anytext/'   (see below)
 
-  // The following 2 path names ('/' and '/text/') where originally thought to
-  // be needed, but have been removed. This means that only '/meadow0' and
-  // /sdcard' are accessable to the HCOM user.
-  // e.g. '/' for file list to examine items from the root which are
-  // not '/meadow0/ or /sdcard/ (e.g. to find /dev).
-  // pathnameSingleSlash     = 6,    // Just '/' for file list to see root
+  // The following 2 path names ('/' and '/anytext/') where originally thought to
+  // be needed, but are not categorized as error conditions. This means that only
+  // '/meadow0' and /sdcard' are accessible to the HCOM user.
 
-  // e.g. '/text/' Future - if file list is to examine items from the
-  // root (e.g. /dev/).
+  // pathnameSingleSlash     = 6,    // Just '/' for file list at the root
+  // e.g. '/' for file list to examine items from the root, and not restricted
+  // to '/meadow0/' or '/sdcard/' (e.g. '/' or '/dev').
+  
   // pathnameSlashSlash      = 7
+  // e.g. '/anytext/' is future, if file list is to examine items from the other
+  // top level directories (e.g. '/dev/').
 };
 
 // This struct is memset to zero by processing during initialization

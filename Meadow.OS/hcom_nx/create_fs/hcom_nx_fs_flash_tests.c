@@ -53,7 +53,7 @@ static char *thisFile = __FILE__;
 
 // Verifies specific pattern has been written in the first 5 MB of flash
 // correctly. It uses syslog to display the data on both side of the flash
-// boundaries. It is called using 'developer -d 10 -v 2'.
+// boundaries. It is called using 'developer -p 10 -v 2'.
 void hcom_nx_flash_testing_verify_regions()
 {
 #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
@@ -402,7 +402,7 @@ static void hcom_nx_exec_ex_fill_layout_buffer(uint32_t writeBufLen,
 // This assumes Fake files for Meadow.OS.Runtime.bin and
 // Meadow.OS.Update.bin. are ready to be read from the Meadow file system
 // and used to populate the related spaces.
-// It is called using 'developer -d 10 -v 1'.
+// It is called using 'developer -p 10 -v 1'.
 void hcom_nx_flash_testing_fill_5mb_of_flash()
 {  
   int ret;

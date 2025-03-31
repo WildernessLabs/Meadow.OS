@@ -55,7 +55,6 @@
 #include <sys/statfs.h>
 #include <sys/ioctl.h>
 #include <nuttx/fs/fs.h>
-#include <nuttx/fs/dirent.h>
 
 #define HCOM_DIR_MGMT_TST_SHOW_FULL_FILE_STATUS (0)
 
@@ -408,7 +407,7 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories_start(const char *rootDi
 /****************************************************************************
  * Public Functions
  ***************************************************************************/
-// These tests are developer -d 13
+// These tests are developer -p 13
 void meadow_dir_mgmt_tests(uint32_t userData)
 {
   int ret;
@@ -417,7 +416,7 @@ void meadow_dir_mgmt_tests(uint32_t userData)
   uint32_t freeBytes;
   uint32_t usedBytes;
 
-  syslog(2, "Directory management received 'set developer -d 13 -v %lu'\n", userData);
+  syslog(2, "Directory management received 'set developer -p 13 -v %lu'\n", userData);
   usleep(20 * 1000);
 
   // We assume sdcard needs to be mounted and if not, an error message, we'll

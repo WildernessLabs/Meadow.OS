@@ -73,10 +73,10 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-// set developer -d 10 come here
+// set developer -p 10 come here
 void meadow_kt_quick_misc_tests(uint32_t userData)
 {
-  syslog(2, "Quick and Misc tests received 'set developer -d 10 -v %lu'.\n",
+  syslog(2, "Quick and Misc tests received 'set developer -p 10 -v %lu'.\n",
             userData);
 
   switch(userData)

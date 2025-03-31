@@ -102,7 +102,7 @@ static FAR void *diag_ethernet_chat_thread(FAR void *arg);
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Called from a CLI developer -d 5 -v 0 to begin running, userData is not used
+// Called from a CLI developer -p 5 -v 0 to begin running, userData is not used
 void diag_ethernet_chat_server(uint32_t userData)
 {
   // Create a thread to run the chat server
