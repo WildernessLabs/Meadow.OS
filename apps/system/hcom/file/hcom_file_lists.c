@@ -235,8 +235,8 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
 #endif    // HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR
 
 // ==============================================================
-// THIS IS AN UNDOCUMENTED FEATURE
-// This feature is being used by some part of CLI, unsure of usage
+// This undocumented feature is being used by some part of CLI, unsure of
+// usage. Another /Meadow.OS/apps/system/hcom/tests/hcom_dir_mgmt_tests.c
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData)
 {
   // Changing "/" to "meadow0" will only show meadow files

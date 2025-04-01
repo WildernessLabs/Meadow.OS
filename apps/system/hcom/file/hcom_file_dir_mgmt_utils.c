@@ -243,7 +243,7 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
 
       *pathNameElements = find_pathname_element_count(pathName, strLen);
 #if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(2, "-->%s@%d-Directory-pathname for SDCard found in path name:'%s'\n",
+      syslog(2, "-->%s@%d-Directory-pathname for SDCard found at path name:'%s'\n",
                 thisFile, __LINE__, pathName);
 #endif
       return pathnameSdcard;
@@ -554,7 +554,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
 // as needed in the hcom_dnld_shared_t structure.
 //
 // The 'isFileMsgType' bool determines if the received messages used the
-// HcomProtoFileMsg_t or HcomProtoTextMsg_t struct to send the path name.
+// 'HcomProtoFileMsg_t' or 'HcomProtoTextMsg_t' struct to send the path name.
 //
 // The 'endExpectFileName' bool determines if the CLI provided pathname
 // information ending in 'dir/filename' or '.../directory/'. Both are legal.
@@ -591,7 +591,7 @@ int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared,
   }
 
   // Note: isFileMsgType is only true based for a few request types. These are
-  // 3 for stm32f7 and for 1 for ESP32;
+  // 3 for stm32f7 and for 1 for ESP32.
   if(isFileMsgType)
   {
     HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *)hdrMsg;
@@ -622,7 +622,7 @@ int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared,
             pathNameLength, endExpectFileName);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Eval pathname '%d', ret:%d, errno:%d\n",
+    syslog(1, "%s@%d-Eval pathname: '%s', ret:%d, errno:%d\n",
               thisFile, __LINE__, pathName, ret, errno);
   }
 

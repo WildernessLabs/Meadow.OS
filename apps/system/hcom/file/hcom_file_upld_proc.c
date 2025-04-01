@@ -260,7 +260,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
             dnldShared->dnldFullPathName, errno);
     }
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-opening '%s', errno:%d\n",
+    hcom_logging_syslog(LOG_ERR, "%s@%d-Failed to open '%s', errno:%d\n",
                 thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
 
     // This message will notify the user
@@ -284,6 +284,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
           "%s@%d-CRC calculation error:%d\n", thisFile, __LINE__, detectError);
+
     hcom_logging_syslog(LOG_ERR, "%s@%d-CRC calculation error:%d\n",
               thisFile, __LINE__, detectError);
 

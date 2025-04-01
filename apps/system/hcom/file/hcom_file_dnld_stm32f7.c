@@ -313,8 +313,8 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   uint32_t blockSizeKB; // Required by function call but not used
   int detectError = OK;
 
-  uint32_t actualFileCrc = hcom_file_misc_calc_crc_for_file(dnldShared->dnldFullPathName,
-                &fileSize, &blockSizeKB, &detectError);
+  uint32_t actualFileCrc = hcom_file_misc_calc_crc_for_file(
+    dnldShared->dnldFullPathName, &fileSize, &blockSizeKB, &detectError);
 
   // Report to host
   hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
@@ -330,7 +330,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
               thisFile, __LINE__, detectError);
 
     snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-            "Download of '%s' state unknown due to checksum calulation fault:%d",
+            "Download of '%s' state unknown due to checksum calculation fault:%d",
             dnldShared->dnldOrigPathName, detectError);
     msgToSend = hostMsg;
     requestType = HCOM_HOST_REQUEST_TEXT_ERROR;
