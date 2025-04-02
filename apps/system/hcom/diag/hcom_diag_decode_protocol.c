@@ -64,7 +64,7 @@ char *hcom_diag_find_host_request_type(uint16_t hostRqstType);
  * Public Functions
  ****************************************************************************/
 // Takes a hcom message and outputs a string containing the header information
-void hcom_diag_decode_data_packet_type(decodedSize)
+void hcom_diag_decode_data_packet_type(size_t decodedSize)
 {
   syslog(2, "---------- Meadow Data (%d bytes) ----------\n", decodedSize);
 }
@@ -157,21 +157,22 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
 
   char *requestStr = hcom_diag_find_host_request_type(hostRqstType);
 
-  // Separate the messages that have text and show some of the text
+  // Separate the messages that have text and show text
   if(((hostRqstType & HCOM_PROTOCOL_REQUEST_TYPE_MASK) == \
       HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE) &&
       (packetSize > HCOM_PROTOCOL_STD_HDR_SIZE))
   {
-    // This looks to be a text type message. Does it's length indicates it does contain
-    // text?
-    // These few lines only show a few characters of the text
-    // int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
-    // if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
-    //   textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
-
+    // This looks to be a text type message. It's length indicates it does contain
+    // text
+#if (1)
     // Display the whole message
     int textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
-
+#else
+    // Only show the first few characters of the text
+    int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
+    if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
+      textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
+#endif
     syslog(2, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
           requestStr, hostRqstType, packetSize, textLen, 
           hostRawMsg + HCOM_PROTOCOL_STD_HDR_SIZE);

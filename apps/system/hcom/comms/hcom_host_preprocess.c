@@ -674,8 +674,6 @@ int hcom_host_preprocess_packet(hcom_dnld_shared_t *dnldShared,
       }
     }
   }
-
-  // File Read?
   else if(requestType == HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT)
   {
 #if defined (CONFIG_DIR_MGMT_TESTS)
@@ -788,13 +786,15 @@ int hcom_host_preprocess_packet(hcom_dnld_shared_t *dnldShared,
     // Even if error, don't exit may need to cleanup first
   }
 
-  // These commands indicate that it's time to cleanup from some file related
-  // activity.
+  // These commands indicate that it's time to cleanup from most file
+  // related activity.
+  // Don't add HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT to this if statement. It's
+  // dnldShared must be preserved until the file has been sent to CLI.
+  // HCOM_MDOW_REQUEST_UPLOAD_START_DATA_SEND will take care of the cleanup.
   if( requestType == HCOM_MDOW_REQUEST_END_FILE_TRANSFER ||
       requestType == HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END ||
       requestType == HCOM_MDOW_REQUEST_UPLOAD_START_DATA_SEND ||
       requestType == HCOM_MDOW_REQUEST_DELETE_FILE_BY_NAME ||
-      requestType == HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT ||
 #if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
       requestType == HCOM_MDOW_REQUEST_LIST_PARTITION_FILES ||
       requestType == HCOM_MDOW_REQUEST_LIST_PART_FILES_AND_CRC ||

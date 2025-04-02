@@ -419,7 +419,7 @@ void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0
 void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t packetSize);
-void hcom_diag_decode_data_packet_type(int decodedSize);
+void hcom_diag_decode_data_packet_type(size_t decodedSize);
 void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
         const uint16_t hostRqstType, const size_t packetSize);
 #endif
