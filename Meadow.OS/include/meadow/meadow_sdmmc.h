@@ -46,7 +46,7 @@
  * SDCard Support
  ****************************************************************************************************/
 #if defined (CONFIG_STM32F7_SDMMC1)
-#pragma error "CONFIG_STM32F7_SDMMC1 is not supported on the Meadow"
+#error "CONFIG_STM32F7_SDMMC1 is not supported on the Meadow"
 #endif
 
 #if defined (CONFIG_STM32F7_SDMMC2)
