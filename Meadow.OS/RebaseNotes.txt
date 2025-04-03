@@ -1,0 +1,92 @@
+Notes related to initial rebase efforts (last updated 10Feb2025):
+
+-----------------------------------------------------------------------
+Using Python tools to bring changes from Legacy Meadow to Rebase
+ (thanks to Alexis for the writeup).
+ a. N = Our current “source rebase point”. An incrementing number indicating
+    the latest point where our code was upgraded. Right now for example, we
+    are at source-rebase-point-4 from Feb 21st, so N=4
+
+ b. In your classic Meadow.OS workspace dir, go to the latest commit on main
+    and git tag it as source-rebase-point-[N+1] . git push the tag.
+
+ c. Create a root directory for this process, something like rebase-upgrade.
+ 
+ d. In your root, create directories 'older' 'newer' and 'target':
+     - older - git clone Classic Meadow.OS here so that ends up in
+       older/Meadow - then git checkout source-rebase-point-N.
+
+     - newer - git clone Classic Meadow.OS  here so that it is in
+       newer/Meadow - then git checkout source-rebase-point-[N+1].
+
+     - target - git clone Rebase Meadow.OS here so that it is in
+       target/Meadow.OS - you should already be placed on latest main commit,
+       which is correct
+You should be ready to run the Python scripts, which must be modified to
+ correctly point to the paths you created above. 
+
+-----------------------------------------------------------------------
+Build Warnings from Nuttx code:
+1. /nuttx/fs/partition/fs_partition.c is Nuttx Code.
+CC:  partition/fs_partition.c partition/fs_partition.c: In function 'register_partition':
+partition/fs_partition.c:96:40: warning: '%s' directive output may be truncated writing up to 256 bytes into a region of size 255 [-Wformat-truncation=]
+   96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
+      |                                        ^~
+partition/fs_partition.c:96:7: note: 'snprintf' output 2 or more bytes (assuming 258) into a destination of size 256
+   96 |       snprintf(path, sizeof(path), "%s/%s", reg->dir, part->name);
+      |       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+2. 'Meadow.OS/meadow_os/meadow-upd.c:509 the warning: implicit declaration
+of function 'stm32_pwminitialize''. This was solved by configuring a timer.
+This way both the header and 'c' file were available to the compiler.
+
+-------------------------------------------------------------
+Other Things that need attention
+1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
+are some form of workaround or change is needed in the code.
+
+2. Meadow/nuttx/include/meadow/'meadow_syscall.h' should be merged with
+'meadow_syscall_support.h'.
+
+3. The first few lines in our files Meadow files are incorrect. These contain
+inconsistent old copyright information, likely a wrong file location and the
+wrong copyright date. While no technical value, it should be done. We need a
+standard format to follow.
+
+4. The defconfig file contained some entires that using 'make savedefconfig'
+removed. This is the list. These may need to be added to an appropriate
+Kconfig or removed as no longer needed or there name changed.
+# CONFIG_MEADOW_CLOUD is not set
+CONFIG_EXAMPLES_MONO=y
+CONFIG_BOARD_INITTHREAD_STACKSIZE=4096
+These either no longer exist in Nuttx 12 or have been renamed or have
+prerequisite that are not being met. Look at these one-by-one to determine
+required action.
+
+5. I (Peter) added /Meadow.OS/nuttx/include/sys/boardctl.h, to Rebase, mostly
+because the new tooling (that moves files from Legacy to Rebase) indicated it
+was missing. However, it doesn't seem to be needed in the build
+(it builds without the file) and the file only contains one entry:
+'include <sys/boardctl.h>'
+
+6. For File System Information, but doesn't seem to work???
+CONFIG_DEBUG_FEATURES=y
+CONFIG_DEBUG_ERROR=y
+CONFIG_DEBUG_WARN=y
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_FS_ERROR=y
+CONFIG_DEBUG_FS_WARN=y
+CONFIG_DEBUG_FS_INFO=y
+
+-----------------------------------------------------------------
+Things to look into:
+1. hcom_logging_syslog - It seems hcom_logging_syslog() entries do nothing when called.
+2. Failed download - When a file download fails the file seems to be left in the file
+   System with a length of 0.
+3. SD-Card mounting - Nuttx 12 has automount code for sd-cards. We should consider using it.
+4. Syslog no ramlog - Using syslog doesn't use a in memory buffer.
+5. Move Code - Check for code in nuttx/arch/arm/src/board for code that should be moved
+   to a different location.
+6. Meadow.OS is confusing - The current implementation uses Meadow.OS for the repo name,
+   a next level directory name and for a symlink. Two of these names should be changed.
+7. 
