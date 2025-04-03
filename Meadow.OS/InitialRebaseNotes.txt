@@ -50,5 +50,11 @@ was missing. However, it doesn't seem to be needed in the build
 (it builds without the file) and the file only contains one entry:
 'include <sys/boardctl.h>'
 
-In progress
-6. Get Ethernet to build and run.
+6. For File System Information, but doesn't seem to work???
+CONFIG_DEBUG_FEATURES=y
+CONFIG_DEBUG_ERROR=y
+CONFIG_DEBUG_WARN=y
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_FS_ERROR=y
+CONFIG_DEBUG_FS_WARN=y
+CONFIG_DEBUG_FS_INFO=y

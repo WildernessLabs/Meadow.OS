@@ -56,6 +56,7 @@
 #include <nuttx/mmcsd.h>
 
 #include "stm32_sdmmc.h"
+#include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_sdmmc.h>
 #include "stm32_gpio.h"
 
@@ -171,11 +172,6 @@ int stm32_sdio_initialize_meadow(void)
   // Use SD card detect pin to check if a card is inserted
   _CurrentSdInserted = !stm32_gpioread(GPIO_MEADOW_SDIO_NCD);
 
-  // syslog(LOG_DEBUG, "%s@%d-At startup. Card was %s, now is %s\n",
-  //           __FILE__, __LINE__,
-  //           _PreviousSdInserted ? "In" : "Out",
-  //           _CurrentSdInserted ? "In" : "Out");
-
   sdio_mediachange(_SdioDev, _CurrentSdInserted);
 
   // Note: I found no way to auto-mount via the interrupts, directly or using
@@ -183,9 +179,22 @@ int stm32_sdio_initialize_meadow(void)
   // and use it's thread, but I didn't have time to attempt implementing this.
   // Nuttx does have an Automount feature but with the rehosting to Nuttx V12
   // in progress decided to wait for it. (12Dec23 Peter)
-
+  // This code is in the Nuttx V12 Rebase and it can now auto mount.
   _PreviousSdInserted = _CurrentSdInserted;
+  if(_CurrentSdInserted)
+  {
+    syslog(LOG_INFO, "%s@%d-At startup SD-Card is inserted, will attempt to mount\n",
+       __FILE__, __LINE__);
 
+    ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
+    MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
+    if(ret < 0)
+    {
+      syslog(LOG_ERR, "%s@%d-ERROR: Startup - SDCard mount failed. ret:%d, errno:%d\n",
+        __FILE__, __LINE__, ret, errno);
+      return ret;
+    }
+  }
 #else
   /* Assume that the SD card is inserted.  What choice do we have? */
   sdio_mediachange(_SdioDev, true);

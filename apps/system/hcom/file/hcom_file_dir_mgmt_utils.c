@@ -248,7 +248,6 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
 #endif
       return pathnameSdcard;
     }
-#if defined (CONFIG_DIR_MGMT_TESTS)
     else
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
@@ -256,7 +255,6 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
 #endif
       return pathnameSdcardNoConfig;
     }
-#endif
   }
 #endif    // CONFIG_STM32F7_SDMMC2
 
