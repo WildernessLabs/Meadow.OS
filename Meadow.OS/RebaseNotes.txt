@@ -89,4 +89,5 @@ Things to look into:
    to a different location.
 6. Meadow.OS is confusing - The current implementation uses Meadow.OS for the repo name,
    a next level directory name and for a symlink. Two of these names should be changed.
-7. 
+7. Should something be done with /Meadow.OS/include/meadow/stm32f777zit6-meadow.h header?
+   It's kind of a mess.

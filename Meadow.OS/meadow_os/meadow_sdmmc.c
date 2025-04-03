@@ -179,7 +179,6 @@ int stm32_sdio_initialize_meadow(void)
   // and use it's thread, but I didn't have time to attempt implementing this.
   // Nuttx does have an Automount feature but with the rehosting to Nuttx V12
   // in progress decided to wait for it. (12Dec23 Peter)
-  // This code is in the Nuttx V12 Rebase and it can now auto mount.
   _PreviousSdInserted = _CurrentSdInserted;
   if(_CurrentSdInserted)
   {
