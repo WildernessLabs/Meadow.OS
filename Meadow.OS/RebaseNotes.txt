@@ -91,3 +91,4 @@ Things to look into:
    a next level directory name and for a symlink. Two of these names should be changed.
 7. Should something be done with /Meadow.OS/include/meadow/stm32f777zit6-meadow.h header?
    It's kind of a mess.
+8. Use Copilot or another tool to look for memory and file descriptor leaks.
