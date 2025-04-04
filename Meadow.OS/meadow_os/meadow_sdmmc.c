@@ -54,6 +54,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
+#include <sys/mount.h>
 
 #include "stm32_sdmmc.h"
 #include <meadow/hcom_shared_common.h>
@@ -186,7 +187,7 @@ int stm32_sdio_initialize_meadow(void)
        __FILE__, __LINE__);
 
     ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-    MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
+      MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-ERROR: Startup - SDCard mount failed. ret:%d, errno:%d\n",

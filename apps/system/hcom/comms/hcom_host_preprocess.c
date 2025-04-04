@@ -528,7 +528,7 @@ int hcom_host_preprocess_packet(hcom_dnld_shared_t *dnldShared,
   // determines if the packet is a command or data.
   HcomProtoDataMsg_t *hcomDataMsg = (HcomProtoDataMsg_t *) decodedPacket;
 
-  // hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
+  // hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data seq:%d, msglen:%d\n",
   //           thisFile, __LINE__, hcomDataMsg->seqNumber, decodedSize);
 
   // Test to determine if this is a data packet or a command
@@ -571,8 +571,8 @@ int hcom_host_preprocess_packet(hcom_dnld_shared_t *dnldShared,
     {
       // CLI is confused or something else is wrong. We should never receive a
       // packet with a sequence number when no download is active.
-      hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data received but no active download\n",
-                thisFile, __LINE__);
+      // hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data received but no active download\n",
+      //           thisFile, __LINE__);
     }
 
     // Finished with preprocessing for this data packet

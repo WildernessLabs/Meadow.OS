@@ -215,6 +215,8 @@ char *hcom_diag_find_host_request_type(uint16_t hostRqstType)
     case HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR:      return "'TEXT_NEXT_LOW_PWR'  ";
     case HCOM_HOST_REQUEST_DEBUGGING_MONO_DATA:    return "'DEBUGGING_MONO_DATA'";
     case HCOM_HOST_REQUEST_UPLOADING_FILE_DATA:    return "'UPLOADING_FILE_DATA'";
+    case HCOM_HOST_REQUEST_SEND_INITIAL_FILE_BYTES: return "'INITIAL FILE BYTES'";
+    
     default:
       return "Host Request Type not found";
   }
