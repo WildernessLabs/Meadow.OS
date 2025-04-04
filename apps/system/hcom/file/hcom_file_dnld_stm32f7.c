@@ -184,7 +184,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
 }
 
 //============================================================================
-// Process a data packet
+// Process a data packet by writing the file to the file system.
 int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
           const size_t packetSize, hcom_dnld_shared_t *dnldShared)
 {
@@ -269,7 +269,9 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
 
     // Notify host
     snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-              "Write of '%s', seq %d failed", dnldShared->dnldOrigPathName, seqNumb);
+              "Write of '%s', seq %d failed, ret:%ld, errno:%ld",
+              dnldShared->dnldOrigPathName, seqNumb, ret, errno);
+
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             thisFile, __LINE__);
 
@@ -311,8 +313,8 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   uint32_t blockSizeKB; // Required by function call but not used
   int detectError = OK;
 
-  uint32_t actualFileCrc = hcom_file_misc_calc_crc_for_file(dnldShared->dnldFullPathName,
-                &fileSize, &blockSizeKB, &detectError);
+  uint32_t actualFileCrc = hcom_file_misc_calc_crc_for_file(
+    dnldShared->dnldFullPathName, &fileSize, &blockSizeKB, &detectError);
 
   // Report to host
   hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
@@ -328,7 +330,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
               thisFile, __LINE__, detectError);
 
     snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-            "Download of '%s' state unknown due to checksum calulation fault:%d",
+            "Download of '%s' state unknown due to checksum calculation fault:%d",
             dnldShared->dnldOrigPathName, detectError);
     msgToSend = hostMsg;
     requestType = HCOM_HOST_REQUEST_TEXT_ERROR;
@@ -350,22 +352,21 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
     }
     else
     {
-      if (dnldShared->dnldCalcFileCrc != dnldShared->dnldInitFileCrc ||
-          dnldShared->dnldCalcFileCrc != actualFileCrc)
+      if (dnldShared->dnldCalcFileSize != dnldShared->dnldInitFileSize)
       {
         snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-                "Download of '%s' failed due to checksum mismatch, f/s read:0x%08X, dnld calc:0x%08X, sender:0x%08X",
-                dnldShared->dnldOrigPathName, actualFileCrc,
-                dnldShared->dnldCalcFileCrc, dnldShared->dnldInitFileCrc);
+                "Download of '%s' failed due to file size mismatch calculated:%d, sender:%d",
+                dnldShared->dnldOrigPathName, dnldShared->dnldCalcFileSize,
+                dnldShared->dnldInitFileSize);
         msgToSend = hostMsg;
         requestType = HCOM_HOST_REQUEST_TEXT_ERROR;
       }
       else
       {
         snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-                "Download of '%s' failed due to file size mismatch calculated:%d, sender:%d",
-                dnldShared->dnldOrigPathName, dnldShared->dnldCalcFileSize,
-                dnldShared->dnldInitFileSize);
+                "Download of '%s' failed due to checksum mismatch, f/s re-read:0x%08X, dnld calc:0x%08X, sender:0x%08X",
+                dnldShared->dnldOrigPathName, actualFileCrc,
+                dnldShared->dnldCalcFileCrc, dnldShared->dnldInitFileCrc);
         msgToSend = hostMsg;
         requestType = HCOM_HOST_REQUEST_TEXT_ERROR;
       }

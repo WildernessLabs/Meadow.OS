@@ -54,7 +54,10 @@
 // the code it enables can be removed
 // Note: This change caused the protocol version to move from 7 to 8
 // (8Dec23 Peter Moody)
-#define HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR (1)
+// MEADOW.OS REBASE - Setting #define to 0 will cause the legacy behavior to
+// not be supported in the Rebase. Primary reason to remove it is that the
+// legacy behavior doesn't support the nested file system.
+#define HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR (0)
 
 // Hold the current protocol version number.  This can be used to allow
 // communication between older versions of CLI and the OS.
@@ -360,7 +363,7 @@ enum HcomMeadowRequestType
   HCOM_MDOW_REQUEST_GET_DEVICE_NAME         = 0x1f | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
 
   // >>> Breaking protocol change.
-  // ToDo: HCOM_MDOW_REQUEST_GET_INITIAL_FILE_BYTES is miscategorized should be
+  // ToDo: HCOM_MDOW_REQUEST_GET_INITIAL_FILE_BYTES is mis-categorized should be
   // HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE since it is a header followed by text
   HCOM_MDOW_REQUEST_GET_INITIAL_FILE_BYTES  = 0x20 | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
   HCOM_MDOW_REQUEST_UPLOAD_START_DATA_SEND  = 0x21 | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
@@ -427,6 +430,8 @@ enum HcomHostRequestType
   HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY      = 0x0E | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL      = 0x0F | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
 
+  // This definition is wrong as it contains file information in a
+  // struct HcomProtoFileMsg_s.
   HCOM_HOST_REQUEST_INIT_UPLOAD_OKAY        = 0x10 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL        = 0x11 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   

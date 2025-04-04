@@ -59,7 +59,6 @@
  ****************************************************************************/
 static char *thisFile = __FILE__;
 
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
 #pragma message "(--) hcom_file_lists.c"
@@ -73,6 +72,7 @@ static int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, u
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
 // This single function handles file list with and without CRC checksum.
 int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
           hcom_dnld_shared_t *dnldShared, bool isCrcNeeded)
@@ -235,8 +235,8 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
 #endif    // HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR
 
 // ==============================================================
-// THIS IS AN UNDOCUMENTED FEATURE
-// This feature is being used by some part of CLI, unsure of usage
+// This undocumented feature is being used by some part of CLI, unsure of
+// usage. Another /Meadow.OS/apps/system/hcom/tests/hcom_dir_mgmt_tests.c
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData)
 {
   // Changing "/" to "meadow0" will only show meadow files

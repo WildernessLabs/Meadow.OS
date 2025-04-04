@@ -35,7 +35,7 @@
 #include "stm32_fmc.h"
 #include "stm32_gpio.h"
 #include "stm32_rcc.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 
 /****************************************************************************
  * Pre-processor Definitions

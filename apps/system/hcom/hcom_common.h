@@ -239,8 +239,11 @@ int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared);
 
 // -----------------------------------------------
 // File listing functions
+#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
 int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
         hcom_dnld_shared_t *dnldShared, bool isCrcNeeded);
+#endif
+
 int hcom_file_lists_files_and_crc_in_partition(uint32_t partitionId);
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData);
 
@@ -416,7 +419,7 @@ void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0
 void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t packetSize);
-void hcom_diag_decode_data_packet_type(int decodedSize);
+void hcom_diag_decode_data_packet_type(size_t decodedSize);
 void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
         const uint16_t hostRqstType, const size_t packetSize);
 #endif

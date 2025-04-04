@@ -55,7 +55,6 @@
 #include <sys/statfs.h>
 #include <sys/ioctl.h>
 #include <nuttx/fs/fs.h>
-#include <nuttx/fs/dirent.h>
 
 #define HCOM_DIR_MGMT_TST_SHOW_FULL_FILE_STATUS (0)
 
@@ -332,8 +331,66 @@ int hcom_dir_mgmt_tst_log_directories_files(const char *initialDir)
   return OK;
 }
 
-//--------------------------------------------------------------------------
+//===================================================================
+// Show file name and size
+int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
+      int indent)
+{
+  int ret = OK;
+  off_t fileSize;
+  int fd = -1;
+  char * fullPath;
+  struct stat fileStatus;
+
+  fullPath = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
+  if(fullPath == NULL)
+  {
+    syslog(1, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+
+  snprintf_chk(fullPath, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s/%s",
+            rootDir, fileName);
+
+  // Existing file - open read only
+  fd = open(fullPath, O_RDONLY);
+  if (fd < 0)
+  {
+    syslog(1, "%s@%d-Opening '%s' failed, errno: %d\n",
+                thisFile, __LINE__, fullPath, errno);
+    free(fullPath);
+    return 0;
+  }
+
+  ret = fstat(fd, &fileStatus);
+  if (ret < 0)
+  {
+    hcom_logging_syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
+          thisFile, __LINE__, fullPath, errno);
+    return 0;
+  }
+
+  fileSize = fileStatus.st_size;
+
+  ret = close(fd);
+  if (ret < 0)
+  {
+    syslog(1, "%s@%d-close %s, errno:%d\n",
+              thisFile, __LINE__, fullPath, errno);
+    return 0;
+  }
+
+  // Show as indented list
+  syslog(2, "%*s%s [file %ld bytes]\n", indent, "", fileName, fileSize);
+  free(fullPath);
+
+  return ret;
+}
+
+//===================================================================
 // NOTE - Recursive function
+// There are 2 copies of this function (different names). One here and the
+// other in /Meadow.OS/apps/system/hcom/file/hcom_file_lists.c
 static int hcom_dir_mgmt_tst_recurse_nested_directories(const char *rootDir,
             char *hostMsg, struct dirent *entry, int indent)
 {
@@ -369,14 +426,21 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories(const char *rootDir,
     {
       // All non-directory types
       char *entryType;
-      if(DIRENT_ISFILE(entry->d_type)) {entryType = "file";}
+      if(DIRENT_ISFILE(entry->d_type))
+      {
+#if 1
+        hcom_dir_mgmt_tst_display_file_info(rootDir, entry->d_name, indent);
+        continue;
+#else
+        entryType = "file";
+#endif
+      }
       else if(DIRENT_ISCHR(entry->d_type)) {entryType = "char";}
       else if(DIRENT_ISBLK(entry->d_type)) {entryType = "block";}
       else if(DIRENT_ISLINK(entry->d_type)) {entryType = "link";}
       else {entryType = "????";}
 
       syslog(2, "%*s%s [%s]\n", indent, "", entry->d_name, entryType);
-
     }
 #endif
   }
@@ -402,13 +466,86 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories_start(const char *rootDi
 }
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+static int hcom_dir_mgmt_unmount_sdcard(void)
+{
+  int ret;
+
+  ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
+  if(ret < 0)
+  {
+    syslog(2, "%s@%d-ERROR:unmount_sdcard failed. ret:%d, errno:%d\n",
+              thisFile, __LINE__, ret, errno);
+  }
+  else
+  {
+    syslog(2, "===> %s@%d-umount successful\n", thisFile, __LINE__);
+    usleep(20 * 1000);
+  }
+  return ret;
+}
+
+//=====================================================================
+// This function attempts to mount the SD-Card. If it fails, it will
+// unmount and try again.
+static int hcom_dir_mgmt_mount_sdcard(void)
+{
+  // Attempt to mount, if it fails, unmount and try again.
+  int ret;
+  int attempts = 2;
+  do
+  {
+    // Attempt to mount the SD-Card
+    // mount(source, target, fstype, mountflags, data)
+    // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
+    ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
+              MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
+    if(ret >= 0)
+    {
+      syslog(2, "===> %s@%d-Mounted SDCard, Success (attempts:%d)\n",
+        thisFile, __LINE__, attempts);
+      usleep(20 * 1000);
+      break; // Successfully mounted, done
+    }
+    else
+    {
+      // SDCard may not exist(errno = ENODEV)
+      syslog(2, "%s@%d-ERROR:Mount failed. ret:%d, errno:%d (attempts:%d)\n",
+        thisFile, __LINE__, ret, errno, attempts);
+
+      // May have been left mounted, so unmount the SD-Card
+      // and try to mount again.
+      ret = hcom_dir_mgmt_unmount_sdcard();
+      if(ret < 0)
+      {
+        // Error syslog already displayed
+        return ret;
+      }
+      continue; // Try to mount again
+    }
+  }
+  while(attempts-- > 0);
+
+  // Ran out of attempts to mount the SD-Card
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-ERROR:SDCard Mount failed. ret:%d, errno:%d (attempts:%d)\n",
+      thisFile, __LINE__, ret, errno, attempts);
+    return ret;
+  }
+
+  return ret;
+}
+
+ /****************************************************************************
  * Public Functions
  ***************************************************************************/
-// These tests are developer -d 13
+// These tests are developer -p 13
 void meadow_dir_mgmt_tests(uint32_t userData)
 {
   int ret;
@@ -417,15 +554,12 @@ void meadow_dir_mgmt_tests(uint32_t userData)
   uint32_t freeBytes;
   uint32_t usedBytes;
 
-  syslog(2, "Directory management received 'set developer -d 13 -v %lu'\n", userData);
+  syslog(2, "Directory management received 'set developer -p 13 -v %lu'\n", userData);
   usleep(20 * 1000);
 
-  // We assume sdcard needs to be mounted and if not, an error message, we'll
-  // ignore.
-  // mount(source, target, fstype, mountflags, data)
-  // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-  ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-            MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
+  // We assume sdcard needs to be mounted
+  ret = hcom_dir_mgmt_mount_sdcard();
+
   if(ret < 0)
     syslog(2, "SD-Card mount attempt failed. ret:%d, errno:%d\n", ret, errno);
   else
@@ -499,12 +633,7 @@ void meadow_dir_mgmt_tests(uint32_t userData)
 
   if(isMounted)
   {
-    ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
-    if(ret < 0)
-      syslog(2, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
-
-    syslog(2, "===> umount successful\n");
+    (void) hcom_dir_mgmt_unmount_sdcard();
   }
 }
 

@@ -67,7 +67,7 @@ CSRCS += stm32_idle.c
 endif
 
 ifeq ($(CONFIG_STM32F7_SDMMC2),y)
-CSRCS += meadow_sdmmc.c
+CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_sdmmc.c
 endif
 
 ifdef MEADOW_OS

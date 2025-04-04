@@ -166,7 +166,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
   struct tm tmNowRtc;
   static int testCount = 0;
 
-  syslog(2, "Power Management tests received 'set developer -d 8 -v %lu'\n", userData);
+  syslog(2, "Power Management tests received 'set developer -p 8 -v %lu'\n", userData);
 
   testCount++;
 

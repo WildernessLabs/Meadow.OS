@@ -51,7 +51,7 @@
 #include <nuttx/mqueue.h>
 #include <errno.h>
 #include "chip.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
 #include <chip/stm32f76xx77xx_rcc.h>

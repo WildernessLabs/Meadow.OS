@@ -216,7 +216,9 @@ extern "C"
 
 #endif    // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
+#if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 int hcom_nx_exec_test_sdcard_setup(void);
+#endif
 
 // Low-level QSPI flash tests
 #if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0

@@ -160,6 +160,16 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
       hcom_diag_logging_change_trace_level(userData);
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
       break;
+
+    // This case is 'undocumented' and intended for the development team.
+    // However, I think, CLI or the VS and/or VSCode extensions use this to
+    // get a nested list of files. So, don't remove it.
+    case HCOM_MDOW_REQUEST_GET_FILES_AND_FOLDERS:
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0, thisFile, __LINE__);
+      hcom_file_lists_all_dev_dir_and_files_start(userData);
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
+      break;
+
 #if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
     case HCOM_MDOW_REQUEST_LIST_PARTITION_FILES:
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0, thisFile, __LINE__);
@@ -390,12 +400,6 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_DEVELOPER:
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0, thisFile, __LINE__);
       hcom_developer_tests_developer(hdrMsg->stdHeader.extraData, userData);
-      hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
-      break;
-
-    case HCOM_MDOW_REQUEST_GET_FILES_AND_FOLDERS:
-      hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0, thisFile, __LINE__);
-      hcom_file_lists_all_dev_dir_and_files_start(userData);
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
       break;
 

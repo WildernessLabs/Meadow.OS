@@ -80,6 +80,8 @@ static char *thisFile = __FILE__;
  * Public Functions
  ****************************************************************************/
 // This single function handles file list with and without CRC checksum.
+// This is called directly from hcom_host_route.c and sends the file list
+// to the CLI.
 int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
           hcom_dnld_shared_t *dnldShared, bool isCrcNeeded)
 {

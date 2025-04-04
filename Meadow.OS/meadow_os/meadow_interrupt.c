@@ -51,7 +51,7 @@
 #include <errno.h>
 #include "chip.h"
 #include "arm_internal.h"
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
 #include "stm32_gpio.h"

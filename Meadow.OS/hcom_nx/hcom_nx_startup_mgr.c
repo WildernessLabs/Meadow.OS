@@ -44,10 +44,11 @@
 #include <assert.h>
 #include "../misc/meadow_logging.h"
 
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx_config_manager.h"
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_os.h>
+#include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
@@ -307,7 +308,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #if defined (CONFIG_STM32F7_SDMMC2)
   hcom_nx_config_lock();
   config = hcom_nx_config_get_pointer();
-
   if (config->sd_storage_supported)
   {
     ret = stm32_sdio_initialize_meadow();
@@ -317,11 +317,15 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
       syslog(LOG_ERR,"ERROR: Failed to initialize MMC/SD driver:%d\n", ret);
     }
   }
+  else
+  {
+    syslog(LOG_INFO, "%s@%d-SD Card not configured for use\n", __FILE__, __LINE__);
+  }
   hcom_nx_config_unlock();
+#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "Kernel startup manager 18\n"); usleep(5 * 1000);
-#endif
 #endif
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
@@ -380,10 +384,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   {
     syslog(LOG_INFO, "Ethernet not supported by this device\n");
   }
+#endif  // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
+
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(2,  "Kernel startup manager 19\n"); usleep(5 * 1000);
 #endif
-#endif    // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
 
 #if defined(CONFIG_NETUTILS_PPPD)
   hcom_nx_config_lock();

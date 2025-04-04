@@ -65,7 +65,7 @@
 #include <arch/board/board.h>
 #include "stm32_gpio.h"
 
-#include "stm32f777zit6-meadow.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx/hcom_nx_common.h"
 
 #include "../espcp/espcp_coprocessor.h"
