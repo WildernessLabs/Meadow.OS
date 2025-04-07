@@ -337,7 +337,7 @@ void hcom_host_recv_open_connection()
 // needed. This thread is the only thread receiving via USB serial data.
 bool hcom_host_recv_received_data()
 {
-  hcom_logging_syslog(1, "%s@%d-HCOM Waiting for '%s' message\n",
+  hcom_logging_syslog(LOG_DEBUG, "%s@%d-HCOM Waiting for '%s' message\n",
             thisFile, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
 
   // Stay in this loop "forever"

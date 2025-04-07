@@ -230,7 +230,10 @@ void hcom_diag_logging_change_trace_level(uint32_t userData)
   newSyslogMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO);
 #endif
 
-  hcom_bbreg_clear_then_set_bbr_bits(HCOM_BBREG_RESTART_SYSLOG_CONFIG_VALUE_MASK, newSyslogMask);
+  // Set the new syslog mask
+  hcom_bbreg_clear_then_set_bbr_bits(HCOM_BBREG_RESTART_SYSLOG_CONFIG_VALUE_MASK,
+    newSyslogMask);
+
   int oldSyslogMask = setlogmask(newSyslogMask);
   _syslogMask = newSyslogMask;
 
@@ -423,7 +426,7 @@ void hcom_logging_syslog(int priority, FAR const IPTR char *fmt, ...)
   syslog(priority, _f7syslogTextBuf);
 
 #if defined CONFIG_RAMLOG_SYSLOG
-  stringLen = stringLen;    // Keep conpiler from warning (I know there's a better way...)
+  stringLen = stringLen;    // Keep compiler from warning (I know there's a better way...)
 #else
   // syslog - check if these should be routed to host.
   // Note: there's no timestamp for these messages

@@ -180,15 +180,15 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 3\n"); usleep(20 * 1000);
-#endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Apps startup manager 4\n"); usleep(20 * 1000);
 #endif
 
-  /* // Rebase Note: Requires UPD or new syscall
+  // MEADOW.OS REBASE Note: This feature is only available on the apps side. To make it
+  // available on the nuttx side, the hcom_diag_logging_setup() function
+  // would need to be called in the nuttx side of hcom.
+  //
   // Restores previous syslog mask from the battery backed register (BBR).
   // Note: This needs to be third because all hcom_logging_syslog
   // calls are filtered by the results of this call. Nothing to wait for.
@@ -198,7 +198,6 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
     syslog(LOG_CRIT, "%s@%d-hcom_logging_syslog_mask_init failed:%d\n", thisFile, __LINE__, ret);
     return ret; 
   }
-  */
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(2, "Apps startup manager 5\n"); usleep(20 * 1000);

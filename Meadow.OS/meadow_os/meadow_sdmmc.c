@@ -183,7 +183,7 @@ int stm32_sdio_initialize_meadow(void)
   _PreviousSdInserted = _CurrentSdInserted;
   if(_CurrentSdInserted)
   {
-    syslog(LOG_INFO, "%s@%d-At startup SD-Card is inserted, will attempt to mount\n",
+    syslog(LOG_DEBUG, "%s@%d-At startup SD-Card is inserted, will attempt to mount\n",
        __FILE__, __LINE__);
 
     ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
