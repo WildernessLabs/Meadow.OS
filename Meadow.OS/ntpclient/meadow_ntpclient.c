@@ -33,9 +33,9 @@
  *
  ****************************************************************************/
 
-// [MEADOW.OS REBASE MAKE-IT-BUILD]
+// MEADOW.OS REBASE
 // Renamed from ntpclient.c to meadow_ntpclient.c to get things to build,
-// not sure this was the only way.
+// not sure if this was the only way to fix the build.
 // Note: Nuttx has a ntpclient.c defined in 'apps'
 
 /****************************************************************************
@@ -387,8 +387,9 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
 void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
 {
     // MEADOW.OS REBASE - To build ethernet, needed to remove this dependency
-    // on espcp_dispatch_event.
-#if(0)
+    // on espcp_dispatch_event at least for now.
+
+#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
     espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
     if (message != NULL)
     {

@@ -103,8 +103,10 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     {
 
         // MEADOW.OS REBASE: The 'net_lockedwait' function prevented the Meadow.OS build
-        // from completing. It seems the 'net_lockedwait' function is no longer in Nuttx 12
-#if 0
+        // from completing. It seems the 'net_lockedwait' function is no longer available
+        // to this code or has been removed from the NuttX build in Nuttx 12.
+
+#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
         if (block)
         {
             //

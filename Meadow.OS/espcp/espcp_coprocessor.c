@@ -752,9 +752,8 @@ void espcp_deep_sleep(void)
 
     // MEADOW.OS REBASE: The following code prevents the Meadow.OS build from
     // completing. It seems the API for managing kernel the socket list has
-    // changed. Plus the 'net_lockedwait' is no longer supported.
-#if 0
-
+    // changed. And maybe the 'net_lockedwait' is no longer supported.
+#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
     struct socketlist *list = sched_getsockets();
     if (list)
     {
@@ -895,7 +894,7 @@ int espcp_late_init(void)
 
         // MEADOW.OS REBASE: Nuttx 12 seems to no longer registers usrsock in
         // this way.
-#if (0)
+#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
         usrsock_register_sockif(&g_usrsock_sockif_esp32);
 #else
         syslog(1, "%s@%d-Would have registered usrsock here.", __FILE__, __LINE__);

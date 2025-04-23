@@ -28,6 +28,7 @@
 // This header file looks like a combination of board.h and a catch-all for
 // some of the definitions that didn't have a home. It is pretty much
 // identical to the original file in legacy Meadow with the same name.
+// Someday, it would be nice to cleanup the Meadow header files.
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>

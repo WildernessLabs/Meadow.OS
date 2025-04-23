@@ -1027,6 +1027,9 @@ void hcom_nx_flash_testing_fill_5mb_of_flash(void);
 void hcom_nx_flash_testing_verify_regions(void);
 #endif
 
+// Set to 0 to not include ESP32 in the build.
+#define MEADOW_BUILD_EXCLUDE_ESP32_CODE               1
+
 #endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
 
 /****************************************************************************

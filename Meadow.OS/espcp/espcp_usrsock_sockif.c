@@ -1514,9 +1514,9 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     request->setup_message_id = espcp_get_next_message_id();
 
     // The following comment looks to have been added by Alexis. I added
-    // 'MEADOW.OS REBASE' to the comment so it could be looked at by someone who
-    // knew what the comment means.
-
+    // MEADOW.OS REBASE to the comment so it could be looked at by someone who
+    // knew what the comment means and not forgotten.
+    //
     //MEADOW.OS REBASE: Install poll callback!
 
     int payload_length = espcp_poll_request_buffer_size(request);
@@ -1714,8 +1714,8 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
 
             // The following comment looks to have been added by Alexis. I
             // added 'MEADOW.OS REBASE' to the comment so it could be looked
-            // at by someone who knew what the comment means.
-
+            // at by someone who knew what the comment means and not forgotten.
+            //
             //MEADOW.OS REBASE: Install poll callback!!!
 
             pr->fd->cb(pr->fd);

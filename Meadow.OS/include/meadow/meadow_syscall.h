@@ -44,7 +44,7 @@
 
 // MEADOW.OS REBASE - COMBINE THIS FILE WITH meadow_syscall_support.h
 // Had trouble finding the appropriate header in syscall.csv for these
-// functions.
+// functions in Legacy Meadow. So added them here.
 int stm32_configgpio(uint32_t cfgset);
 int stm32_unconfiggpio(uint32_t cfgset);
 void stm32_gpiowrite(uint32_t pinset, int value);
