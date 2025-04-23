@@ -327,10 +327,10 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 {
   // MEADOW.OS REBASE - The following code is no longer usable. It appears that
-  // Nuttx has changed the internal code that was accessed by this function.
+  // Nuttx 12 has changed the internal code that was accessed by this function.
   //
-  // Since this is diagnostic (IIRC) was added by me, and hasn't been used in
-  // years it, and all infrastructure, can be completely removed.
+  // Since this is diagnostic (I think) was added by me, and hasn't been used in
+  // years, it and all infrastructure can be completely removed.
   #if(0)
   struct hcom_nx_upd_diag_fd_inode_s *is_fd_valid;
   is_fd_valid = (struct hcom_nx_upd_diag_fd_inode_s *)arg;

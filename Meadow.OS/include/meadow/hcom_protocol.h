@@ -54,9 +54,10 @@
 // the code it enables can be removed
 // Note: This change caused the protocol version to move from 7 to 8
 // (8Dec23 Peter Moody)
+//
 // MEADOW.OS REBASE - Setting #define to 0 will cause the legacy behavior to
-// not be supported in the Rebase. Primary reason to remove it is that the
-// legacy behavior doesn't support the nested file system.
+// NOT be supported in the Rebase. The legacy behavior doesn't support the
+// nested file system. Time to remove the code?
 #define HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR (0)
 
 // Hold the current protocol version number.  This can be used to allow

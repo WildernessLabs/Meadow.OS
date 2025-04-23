@@ -66,7 +66,6 @@
 #include <meadow/meadow_ethnet_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
 
-
 // MEADOW.OS REBASE - Tech Debt - delete this file when appropriate.
 // It was added long ago to test ethernet. But is not longer needed.
 // Note: The function 'hcom_nx_diagnostic_app_execute' is the entry point.

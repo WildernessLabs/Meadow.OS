@@ -990,7 +990,6 @@ int dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback)
   return OK;
 }
 
-// MEADOW.OS REBASE to Nuttx 12 - Ported from Meadow
 /****************************************************************************
  * Name: meadow_eth_dhcp_get_dhcp_info
  ****************************************************************************/

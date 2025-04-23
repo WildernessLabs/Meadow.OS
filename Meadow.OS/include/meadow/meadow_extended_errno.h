@@ -36,8 +36,10 @@
 #define __MEADOW_EXTENDED_ERRNO_H
 
 // Added this file for MEADOW.OS REBASE to improve file pathname handling
+// when there are errors in the path name.
 
-// In nuttx/include/errno.h we find: "Users can add values starting here"
+// In nuttx/include/errno.h we find:
+// "Users can add values starting here"
 // #define __ELASTERROR        2000
 
 // Something is wrong with the path name
