@@ -12,7 +12,7 @@ set_openocd_variables() {
     #
     # Custom version of nuttx aware openocd
     #
-    if [ -z "$MEADOW_MACOS_OPENOCD" ]; then
+    if [ -z "$MEADOW_MACOS_OPENOCD_DIR" ]; then
       echo "Environment variable MEADOW_MACOS_OPENOCD is not set. Please set it to the path where Meadow OpenOCD is located."
       exit -1
     fi
