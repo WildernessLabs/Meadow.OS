@@ -3,34 +3,13 @@
 #set -e
 scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 
-#
-#   Work out the OS so that we can change actions per OS where necessary.
-#
-shopt -s nocasematch
-case "$(uname -a)" in
-  *darwin*)
-    OS="mac"
-    ;;
-  *linux*)
-    OS="linux"
-    ;;
-  cygwin*|mingw32*|msys*|mingw*)
-    OS="windows"
-    ;;
-  *)
-    OS="unknown"
-    ;;
-esac
+. $scriptdir/scripts/common_methods.sh
+. $scriptdir/scripts/debug_methods.sh
 
-#trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+set_os_name
+check_if_interactive
 
-# Check if the shell is interactive.
-if [[ $- == *i* ]]; then
-  red=`tput setaf 1`
-  green=`tput setaf 2`
-  reset=`tput sgr0`
-  bold=`tput bold`
-fi
+set_openocd_variables
 
 stutil="$scriptdir/stlink/build/Release/src/gdbserver/st-util"
 
@@ -82,32 +61,9 @@ case $i in
 esac
 done
 
-run_command() {
-  if $VERBOSE; then
-    echo
-    $1
-  else
-    $1 &>/dev/null
-  fi
-}
-
-check_command_status() {
-  exit_status=$?
-  if [ $exit_status -ne 0 ]; then
-    printf " ${red}error${reset}\n"
-    if ! $VERBOSE; then
-        printf "Re-run the script with --verbose flag to see the output.\n"
-    fi
-    exit 1
-  else
-    printf " ${green}success${reset}\n"
-  fi
-}
-
 #
 # Launch QEMU debug server if in QEMU mode.
 #
-
 QEMU_BIN_ARM="qemu/build/arm-softmmu/qemu-system-arm"
 QEMU_BIN_XTENSA="qemu-esp32/build/xtensa-softmmu/qemu-system-xtensa"
 
@@ -180,13 +136,7 @@ fi
 
 if [ "$SERVER" = true ] ; then
   if [ "$OCD" = true ] ; then
-    if [[ "$OS" == "mac" ]]; then
-      exec "$scriptdir/openocd/src/openocd" "-s$scriptdir/openocd/tcl" "-f$scriptdir/debug.cfg"
-    elif [[ "$OS" == "linux" ]]; then
-        exec "openocd" "-s/usr/local/share/openocd/scripts" "-f$scriptdir/debug.cfg"
-    else
-        printf "Unsupported OS ${bold}$OS${reset}.\n"
-    fi
+    exec "$MEADOW_OPENOCD_COMMAND" "-s${MEADOW_OPENOCD_SCRIPT_DIR}" "-f$scriptdir/debug.cfg"
   else
     exec $stutil -v -m --semihosting
   fi
