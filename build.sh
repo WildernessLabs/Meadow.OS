@@ -149,21 +149,39 @@ esac
 DEFCONFIG_FILE=$scriptdir/nuttx/configs/stm32f777zit6-meadow/meadow_os/defconfig
 NUTTX_CONFIG="stm32f777zit6-meadow:$CONFIG"
 
-NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
-if $FORCE; then
-    if [ -r "$scriptdir/nuttx/.config" ]; then
-        printf "Cleaning NuttX (already configured)..."
-        run_command "make -C $scriptdir/nuttx distclean -j8 $MAKE_OPTIONS"
-        check_command_status
-    fi
-fi
+# NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
+# if $FORCE; then
+#     if [ -r "$scriptdir/nuttx/.config" ]; then
+#         printf "Cleaning NuttX (already configured)..."
+#         run_command "make -C $scriptdir/nuttx distclean -j8 $MAKE_OPTIONS"
+#         check_command_status
+#     fi
+# fi
 
-if [ ! -r "$scriptdir/nuttx/.config" ]; then
-    printf "Configuring NuttX...\n"
-    run_command "$scriptdir/nuttx/tools/configure.sh $NUTTX_CONFIG"
+# if [ ! -r "$scriptdir/nuttx/.config" ]; then
+#     printf "Configuring NuttX...\n"
+#     run_command "$scriptdir/nuttx/tools/configure.sh $NUTTX_CONFIG"
 
-    run_command "make -C $scriptdir/nuttx context"
-    check_command_status
+#     run_command "make -C $scriptdir/nuttx context"
+#     check_command_status
+# fi
+
+#
+# Added the ability to clean only the code created by Wilderness Labs
+#
+# This option allows for a clean of only the frequently edited files which
+# reduces the compilation time.
+#
+if $WLCLEAN || $CLEAN; then
+    find $scriptdir/apps/examples -name "*.o" -type f -exec rm {} \;
+    find $scriptdir/Meadow.OS -name "*.o" -type f -exec rm {} \;
+    run_command "make -C $scriptdir/nuttx clean -j8"
+    run_command "make $MEADOW_ADDITIONAL_MAKE_OPTIONS -C $scriptdir/bootloader/Debug clean"
+    #
+    # Sometimes the libapps.a file can become corrupt due to a previously failed
+    # build.  If this happens, remove it so that it can be rebuilt.
+    #
+    find $scriptdir -name libapps.a -exec rm {} \;
 fi
 
 #
