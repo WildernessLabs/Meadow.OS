@@ -324,9 +324,11 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
 esp32/main/build_info.h
 esp32/main/build_info.template.bak
 Meadow.OS/include/meadow/hcom_nuttx_shared.h.bak
 nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
-bootloader/Debug/Core/Src/console.o
-bootloader/Debug/Meadow.BL.map
+**/*.o
+**/Meadow.BL.*
+# bootloader/Debug/Meadow.BL.map
