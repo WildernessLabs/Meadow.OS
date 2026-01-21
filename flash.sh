@@ -2,32 +2,13 @@
 
 scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 
-#
-#   Work out the OS so that we can change actions per OS where necessary.
-#
-shopt -s nocasematch
-case "$(uname -a)" in
-  *darwin*)
-    OS="mac"
-    ;;
-  *linux*)
-    OS="linux"
-    ;;
-  cygwin*|mingw32*|msys*|mingw*)
-    OS="windows"
-    ;;
-  *)
-    OS="unknown"
-    ;;
-esac
+. $scriptdir/scripts/common_methods.sh
+. $scriptdir/scripts/debug_methods.sh
 
-# Check if the shell is interactive.
-if [[ $- == *i* ]]; then
-  red=`tput setaf 1`
-  green=`tput setaf 2`
-  reset=`tput sgr0`
-  bold=`tput bold`
-fi
+set_os_name
+check_if_interactive
+
+set_openocd_variables
 
 VERBOSE=true
 FORCE=false
@@ -75,28 +56,6 @@ if [ "$HELP" = true ]; then
   echo "  -r|--reset                   Use STM32CubeProgrammer to reset the board"
   exit 0
 fi
-
-run_command() {
-  if $VERBOSE; then
-    echo
-    $1
-  else
-    $1 &>/dev/null
-  fi
-}
-
-check_command_status() {
-  exit_status=$?
-  if [ $exit_status -ne 0 ]; then
-    printf " ${red}error${reset}\n"
-    if ! $VERBOSE; then
-      printf "Try using the --verbose flag to see the output.\n"
-    fi
-    exit 1
-  else
-    printf " ${green}success${reset}\n"
-  fi
-}
 
 #
 #   Reset the board if requested and possible.  This requires STM32CuberProgrammer
@@ -147,23 +106,9 @@ if [ "$DFU" = true ] ; then
   run_command "dfu-util -a 0 -D $scriptdir/nuttx/Meadow.OS.bin -s 0x08000000"
   check_command_status
 else
-  printf "Flashing nuttx binaries using OpenOCD... "
-  if [[ "$OS" == "mac" ]]; then
-    #
-    # Custom version of nuttx aware openocd
-    #
-    run_command "$scriptdir/openocd/src/openocd -s$scriptdir/openocd/tcl -f$scriptdir/flash.cfg"
-    check_command_status
-  elif [[ "$OS" == "linux" ]]; then
-    # 
-    # For Linux the default openocd is being used
-    # 
-    run_command "openocd -s //usr/local/share/openocd/scripts -f $scriptdir/flash.cfg"
-    check_command_status
-else
-    printf "Unsupported OS ${bold}$OS${reset}.\n"
-    exit -1
-  fi
+  printf "Flashing nuttx binaries using OpenOCD..."
+  run_command "${MEADOW_OPENOCD_COMMAND} -s${MEADOW_OPENOCD_SCRIPT_DIR} -f$scriptdir/flash.cfg"
+  check_command_status
 fi
 
 reset_meadow
