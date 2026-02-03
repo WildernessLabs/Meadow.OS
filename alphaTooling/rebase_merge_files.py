@@ -1,24 +1,25 @@
 # Last Changed 4Oct24
-# This is a tool to use the 'git merge-file 'utility' to  do a 3-way merge
+# Use this tool second, after using rebase_updater.py and after manually
+# updating the resulting CSV file.
+# This tool uses the 'git merge-file 'utility' to do a 3-way merge
 # from Legacy Meadow to the Meadow version that will use Nuttx V12.
 # 
-# See tje companion tool's source file for information on how to use
+# See the companion tool's source file for information on how to use
 # these tools.
-
 import subprocess
 import csv
 
-# This is the active Meadow.OS branch
-rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase while doing development work
+# Cloned for rebase merge. This is the address of the Meadow.OS file that
+# will updated with the latest legacy changes
+# rebaseRepoPath =   "/home/peter/wl/" 
+rebaseRepoPath =   "/home/peter/wl/Rebase-source-rebase-point-5/rebase/" 
 
-# This is where each of the 3 repo can be found
-# rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/"
+# These 2 where cloned from a tag from the legacy Meadow repo
+previousRepoPath = "/home/peter/wl/Rebase-source-rebase-point-5/previous/"
+ongoingRepoPath =  "/home/peter/wl/Rebase-source-rebase-point-5/ongoing/"
 
-previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/older/"
-ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/newer/"
-
-# Location of CSV file named 'MergeListData.csv'
-csvListDataPath = "/Users/lexas/upgrade-rebased-Meadow.OS/dirTextFiles/"
+# Location of Output and diagnostic files
+csvListDataPath = "/home/peter/wl/Rebase-source-rebase-point-5/tempProcFiles/"
 
 # The condition field of the csv file will contain one of these values
 COND_UNKNOWN_CONDITION    = 0    #This is the default 'condition' value
@@ -29,26 +30,26 @@ COND_ONLY_IN_REBASE       = 4
 COND_NOT_IN_PREVIOUS      = 5
 COND_NOT_IN_ONGOING       = 6
 COND_ALL_3_MERGE_OKAY     = 7
-COND_PREVIOUS_REPEATED    = 8
-COND_REBASE_REPEATED      = 9
+COND_PREVIOUS_DUPLICATE   = 8
+COND_REBASE_DUPLICATE     = 9
 
-condTypeNames = ["COND_UNKNOWN_CONDITION:",
-                 "COND_ONLY_IN_ONGOING:  ",
-                 "COND_ONLY_IN_PREVIOUS: ",
-                 "COND_NOT_IN_REBASE:    ",
-                 "COND_ONLY_IN_REBASE:   ",
-                 "COND_NOT_IN_PREVIOUS:  ",
-                 "COND_NOT_IN_ONGOING:   ",
-                 "COND_ALL_3_MERGE_OKAY: ",
-                 "COND_PREVIOUS_REPEATED:",
-                 "COND_REBASE_REPEATED:  "]
+condTypeNames = ["COND_UNKNOWN_CONDITION: ",
+                 "COND_ONLY_IN_ONGOING:   ",
+                 "COND_ONLY_IN_PREVIOUS:  ",
+                 "COND_NOT_IN_REBASE:     ",
+                 "COND_ONLY_IN_REBASE:    ",
+                 "COND_NOT_IN_PREVIOUS:   ",
+                 "COND_NOT_IN_ONGOING:    ",
+                 "COND_ALL_3_MERGE_OKAY:  ",
+                 "COND_PREVIOUS_DUPLICATE:",
+                 "COND_REBASE_DUPLICATE:  "]
 
 # Add up the totals here
 condTotals = [0,0,0,0,0,0,0,0,0,0]
-numbMergeAttempt = 0
+linesProcessed = 0
 
-# Expect a file named "MergeListData.csv"
-csvFilePathName = csvListDataPath + "MergeListData.csv"
+# Expect a file named "MergeListDataCorrected.csv"
+csvFilePathName = csvListDataPath + "MergeListDataCorrected.csv"
 f_mergeList = open(csvFilePathName, "r")
 csvFileReader = csv.reader(f_mergeList, delimiter=',')
 
@@ -80,7 +81,6 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
     # Need full path names, unless not in previous
     rebasePN = rebaseRepoPath + rebase
     ongoingPN = ongoingRepoPath + ongoing
-    
 
     # Only use git merge-file if all 3 files are available.
     if(conditionInt == COND_ALL_3_MERGE_OKAY):
@@ -88,38 +88,29 @@ for csvLineIndex, csvLine in enumerate(csvFileReader):
 
         subProcResult = subprocess.run(["git", "merge-file", rebasePN, previousPN, ongoingPN],
                                      capture_output=True, text=True)
-        numbMergeAttempt += 1
-        if(subProcResult.returncode == 0):
-            continue      # 0 = merge with no conflicts
-
-         # 1-127 = number of conflicts
-        if(subProcResult.returncode > 0 and subProcResult.returncode < 128):
-            print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge conflict(s): `{rebasePN}`")
+        # Show every line processed
+        if(subProcResult.returncode == 0):      # = 0 merge with no conflicts
+            print(f"{csvLineIndex} -  Successfully merged:{rebasePN}")
+        elif(subProcResult.returncode > 0 and subProcResult.returncode < 128): # 1-127 = number of conflicts
+            print(f"{csvLineIndex} - {subProcResult.returncode} Merge Conflicts:{rebasePN}")
         else:     # Error
-            print(f"{numbMergeAttempt} Error: {subProcResult}")
+            print(f"{csvLineIndex} - GIT Merge Error:{subProcResult}")
 
-        # DEBUG VERSION
-        # numbMergeAttempt += 1
-        # if(subProcResult.returncode == 0):      # = 0 merge with no conflicts
-        #     print(f"{numbMergeAttempt} Successfully merged:{rebasePN}")
-        # elif(subProcResult.returncode > 0 and subProcResult.returncode < 128): # 1-127 = number of conflicts
-        #     print(f"{numbMergeAttempt} - {subProcResult.returncode} Merge Conflicts in: {rebasePN}")
-        # else:     # Error
-        #     print(f"{numbMergeAttempt} Error: {subProcResult}")
-
-    # This is the other automatic option. We copy the file from ongoing to
-    # rebase, since we have all we need, and using git merge-file will
-    # output an error.
+    # The other automatic option. We copy the file from ongoing to rebase,
+    # since we have all we need. Using git merge-file will output an error.
+    #
+    # This copy will NOT create directories, if new directories are needed
+    # they must be added  manually.
     elif(conditionInt == COND_NOT_IN_PREVIOUS):
         # If no previous file then the file needs to be copied from
         # ongoing to rebase
         subProcResult = subprocess.run(["cp", "-r", ongoingPN, rebasePN])
         if(subProcResult.returncode == 0):
-            continue      # 0 = copy successful
-
-        print(f"File copy of `{ongoingPN}` to `{rebasePN}` returned:{subProcResult.returncode}")
+            print(f"{csvLineIndex} - Successfully copied `{ongoingPN}` to `{rebasePN}`")
+        else:
+            print(f"{csvLineIndex} - File copied `{ongoingPN}` to `{rebasePN}` returned:{subProcResult.returncode}")
     else:
-        print(f"Ignoring `{rebasePN}`")
+        print(f"{csvLineIndex} - Ignoring `{rebasePN}`")
 
 # Loop exit
 

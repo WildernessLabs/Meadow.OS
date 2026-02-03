@@ -288,9 +288,9 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   }
 
   // Notify registered modules that low-power is about to begin.
-  // Currently, (10Jul23) there are 4 modules that are notified before entering
+  // Currently, (10Jul23) there are 3 modules that are notified before entering
   // a low-power state. These are:hcom_host_receive, hcom_host_send,
-  // hcom_stderr_redirect and hcom_stdout_redirect.
+  // hcom_stdxxx_redirect.
   ret = pwrmgmt_notify_registered_modules(true);
   if(ret != OK)
   {
