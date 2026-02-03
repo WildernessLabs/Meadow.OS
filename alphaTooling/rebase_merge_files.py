@@ -9,7 +9,9 @@
 import subprocess
 import csv
 
-# Cloned for rebase merge
+# Cloned for rebase merge. This is the address of the Meadow.OS file that
+# will updated with the latest legacy changes
+# rebaseRepoPath =   "/home/peter/wl/" 
 rebaseRepoPath =   "/home/peter/wl/Rebase-source-rebase-point-5/rebase/" 
 
 # These 2 where cloned from a tag from the legacy Meadow repo
@@ -17,7 +19,7 @@ previousRepoPath = "/home/peter/wl/Rebase-source-rebase-point-5/previous/"
 ongoingRepoPath =  "/home/peter/wl/Rebase-source-rebase-point-5/ongoing/"
 
 # Location of Output and diagnostic files
-csvListDataPath = "/home/peter/wl/Rebase-source-rebase-point-5/dirTextFiles/"
+csvListDataPath = "/home/peter/wl/Rebase-source-rebase-point-5/tempProcFiles/"
 
 # The condition field of the csv file will contain one of these values
 COND_UNKNOWN_CONDITION    = 0    #This is the default 'condition' value

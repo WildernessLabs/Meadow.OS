@@ -15,15 +15,17 @@ import csv
 # describe the usage in this application.
 
 # The 3 repos are:
-#  rebaseRepoPath - This is the current Rebase to update (i.e. a recently
-#    cloned Meadow.OS rebase).
-#  previousRepoPath - This code was cloned from the Legacy Meadow at the time
-#    Meadow.OS rebase was last updated (previous update).
+#  rebaseRepoPath - This is the Rebase to update (i.e. a recently clone
+#    Meadow.OS).
+#  previousRepoPath - This code was cloned from the Legacy Meadow. It was
+#    tagged at the time Meadow.OS was last updated.
 #  ongoingRepoPath - This is a snapshot of the current Legacy Meadow repo.
 #
 # Peter 03Feb2026
-# rebaseRepoPath - is a clone if Meadow Rebase at the time of the Merge
-rebaseRepoPath =   "/home/peter/wl/"
+# Cloned for rebase merge. This is the address of the Meadow.OS file that
+# will updated with the latest legacy changes
+# rebaseRepoPath =   "/home/peter/wl/" 
+rebaseRepoPath =   "/home/peter/wl/Rebase-source-rebase-point-5/rebase/" 
 
 # These 2 are cloned from tags in the legacy Meadow repo
 # previousRepoPath is from source-rebase-point-4
