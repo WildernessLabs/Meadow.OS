@@ -1,5 +1,6 @@
-# Last Changed 4Oct24
-# This will build a list of files. The list will be CSV in nature and consist of columns
+# Last Changed 30Jan2026
+# Use this tool after cloning the 3 version of meadow. See below
+# for additional instructions. 
 
 import subprocess
 # import pathlib
@@ -7,33 +8,46 @@ from dataclasses import dataclass
 import time
 import csv
 
-# Specific paths depending on the way the files are organized
+# Specific paths depend on the way the 3 repos are organized
 # Note: the 'current', 'base', and 'other' terms defined by the
 # 'git merge-file' documentation are not used. Instead the terms
 # used are 'rebase', 'previous' and 'ongoing' as these better
 # describe the usage in this application.
-# VVVVVVVVVVV Changed this from sample files to live files to keep 
-# up to date information available
 
-# This is the active Meadow.OS repo
-rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase while doing development work
+# The 3 repos are:
+#  rebaseRepoPath - This is the current Rebase to update (i.e. a recently
+#    cloned Meadow.OS rebase).
+#  previousRepoPath - This code was cloned from the Legacy Meadow at the time
+#    Meadow.OS rebase was last updated (previous update).
+#  ongoingRepoPath - This is a snapshot of the current Legacy Meadow repo.
+#
+# Peter 03Feb2026
+# rebaseRepoPath - is a clone if Meadow Rebase at the time of the Merge
+rebaseRepoPath =   "/home/peter/wl/Meadow.OS"
 
-# Use this for testing
-# rebaseRepoPath =   "/home/peter/wl/RebaseRepos/RB.1-12Mar/" # rebase
+# These 2 are cloned from tags in the legacy Meadow repo
+# previousRepoPath is from source-rebase-point-4
+previousRepoPath = "/home/peter/wl/Rebase-source-rebase-point-5/previous/"
 
+# previousRepoPath is from source-rebase-point-5
+ongoingRepoPath =  "/home/peter/wl/Rebase-source-rebase-point-5/ongoing/"
+# Output and diagnostic files
+finalCsvListPath = "/home/peter/wl/Rebase-source-rebase-point-5/tempProcFiles/"
+
+# Used by Alexis on his machine in early 2024
+# rebaseRepoPath =   "/Users/lexas/upgrade-rebased-Meadow.OS/target/" # rebase while doing development work
 # These point to a set of repos for doing dev work
-previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/v1.2/" # previous
-ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/v1.9/" # ongoing
+# previousRepoPath = "/Users/lexas/upgrade-rebased-Meadow.OS/v1.2/" # previous
+# ongoingRepoPath =  "/Users/lexas/upgrade-rebased-Meadow.OS/v1.9/" # ongoing
+# Output files and diagnostic files
+# finalCsvListPath = "/Users/lexas/upgrade-rebased-Meadow.OS/tempProcFiles/"
 
+# ------------------------------------------------------------
 absRepoPaths = [rebaseRepoPath, previousRepoPath, ongoingRepoPath]
 
-# Output files and diagnostic files
-finalCsvListPath = "/Users/lexas/upgrade-rebased-Meadow.OS/dirTextFiles/"
-
-# There are some exclusions (such as sqlite and mono) that will be added as
-# Meadow.OS matures
-# The following are all the places
-# Meadow files should be found Rebase (other)
+# There are some exclusions (such as sqlite and mono) that can be added as
+# Meadow.OS matures.
+# The following are all the places Meadow rebase files are found
 rebaseRepoPaths = ["Meadow.OS/apps/system/hcom",
                    "Meadow.OS/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include",
                    "Meadow.OS/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/kernel",
@@ -72,6 +86,50 @@ ongoingFileNamesList  = []
 repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
                      ongoingFileNamesList]
 
+# The following has been copied from work done by Alexis and explains
+# a method for keeping the legacy files organized.
+# -------------------------------------------------------------------
+# Using Python tools to bring changes from Legacy Meadow to Rebase
+
+#  a. N = Our current “source rebase point”. An incrementing number indicating
+#     the latest point where our code was upgraded. Right now for example, we
+#     are at 'source-rebase-point-4' from Feb 21st, so N=4
+
+#  b. In your legacy Meadow.OS workspace dir, go to the latest commit on main
+#     and git tag it as 'source-rebase-point-[N+1]' . git push the tag.
+
+#    Create a tag: git tag branch source-rebase-point-N
+#    Push the tag: git push origin --tags
+#    Note below using '--single-branch' is faster but leaves in a detached head state
+#    - navigate to: '~/wl/RebaseRepos<date>-tag-[N]/previous'
+#    - git clone --branch source-rebase-point-[N] https://github.com/WildernessLabs/Meadow.git
+#    - navigate to: '~/wl/RebaseRepos<date>-tag-[N+1]/ongoing'
+#    - git clone --branch source-rebase-point-[N+1] https://github.com/WildernessLabs/Meadow.git
+
+#  c. Create a root directory for this process, something like rebase-upgrade.
+ 
+#  d. In your root, create directories 'previous' 'ongoing' and 'rebase':
+#      - previous - git clone Legacy Meadow.OS here so that ends up in
+#        previous/Meadow - then git checkout source-rebase-point-N.
+
+#      - ongoing - git clone Legacy Meadow.OS here so that it is in
+#        ongoing/Meadow - then git checkout source-rebase-point-[N+1].
+
+#      - rebase - git clone Rebase Meadow.OS here so that it is in
+#        rebase/Meadow.OS - you should already be placed on latest main commit,
+#        which is correct
+
+#      - tempProcFiles - this directory if used to store files needed during
+#        processing.l
+    
+# You should be ready to run the Python scripts, which must be modified to
+#  correctly point to the paths you created above. 
+
+#  After the above steps are followed to create 4 sub-directories
+# 
+#  this tool creates a list of files which must be manually edited to produce
+# a list useable for doing the merge.
+
 # ----------------------------------------------------------------------------
 # In the following table describes possible condition values and action needed
 # based on the condition code generated by this tool. 
@@ -81,18 +139,41 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 # 0.   0     0      0    Ignore     Not possible, unused pattern
 # 1.   0     0      1    Inspect    New file recently added to Legacy  (May need to manually add, no destination)
 # 2.   0     1      0    Ignore     Prev file deleted since last merge (If only Prev, it's not needed in Rebase)
-# 3.   0     1      1    Inspect    File not in Rebase yet             (Why not in rebase already?)
+# 3.   0     1      1    Inspect    File not in Rebase yet             (Why not in rebase, renamed?)
 # 4.   1     0      0    Ignore     Only Rebase, added to Rebase       (Name changed or added directly to Rebase)
-# 5.   1     0      1    Tool       New in Legacy, copy to rebase      (Copies file to rebase, location is known)
+# 5.   1     0      1    Tool       New in Legacy, will copy to rebase (Tool will copy file to rebase)
 # 6.   1     1      0    Inspect    Deleted, moved, renamed in ongoing (Very likely should be deleted)
 # 7.   1     1      1    Tool       Desired result, just merge         (3-way merge, since all 3 files known)
 #
-# Action to take before using tool.
-#  1. Copy the ModifyMergeListFull.csv file to a file named MergeListData.csv.
-#  2. Where the 'Condition' field contains a 1 or 3, use the following
-#   instructions.
-#  3. Use the rebase_merge_files.py tool to do the merging.
-# 
+# Note: If the above 'Action' column contains 'Inspect' these rows in the
+#   'MergeListData.csv' will need to be individually inspected and the
+#   appropriate.
+#
+#  1. Recommended, make a copy of the MergeListData.csv. It will be modified.
+#  2. Check the 'DuplicateEntries.txt' file duplicate files in Meadow Rebase.
+#   Take appropriate action to rectify the duplicate issue.
+#  3. Using a spreadsheet program import the MergeListData.csv.
+#  4. If a row in the 'MergeListData.csv' file contains a 'Condition' value
+#   of 1, 3 or 6, (in rare cases 8 and 9) some change(s) is/are needed. Both
+#   to the files and to the 'MergeListData.csv' file data. The ultimate goal
+#   is to end up with only 4, 5 or 7 in the 'MergeListData.csv' file's
+#   'Conditions' column.
+#   There are instructions following to give help in explaining the problem
+#   and suggestions on how to correct it.
+#  5. Once all the rows in the 'MergeListData.csv' file have been corrected
+#   launch the 'rebase_merge_files.py' tool to do the actual merging of the
+#   Rebase source code.
+#  6. After the 'rebase_merge_files.py' tool has finished the tool's output
+#   will indicate the action needed. If all went well the only remaining work
+#   will be merge conflicts. The tool has, at each merge conflict, modified 
+#   the source file's code, as would be done for any merge conflict.
+#   Other errors are possible such as file copy problems or the git merge-tool
+#   experiencing other problems with a file.
+#
+# Suggestions fixing conditions:
+#  It's okay to have a different file name in the rebase column than in the
+#  legacy files.
+#
 # Fix Condition 1 (New File) - this Condition is common and is corrected by
 #  deciding were the file should go in Rebase and adding the path to the
 #  Rebase column. Then in the Condition column change the '1' to a '5' and
@@ -101,25 +182,32 @@ repoFileNameLists = [rebaseFileNamesList, previousFileNamesList,
 #  in the same directory and find this other file in Rebase Meadow. Then put
 #  the new file in the same directory as the one just found.
 # 
-# Fix Condition 3 (Not in Rebase) - this condition is rare since the file is
-#  in a previous update and still in ongoing. The question is, was it added
-#  during the last update. Was it deleted or renamed in Rebase?
-#  This will require investigation and likely possibly manual changes, both to
-#  Rebase file system and to the MergeListData.csv file.
+# Fix Condition 3 (Not in Rebase) - this condition is usually caused when a
+#  file is delete or renamed in the Rebase. This will require investigation
+#  and likely possibly manual changes, both to Rebase file system and to
+#  the 'MergeListData.csv' file.
 #
 # Fix Condition 6 (not in ongoing) - this conditions exists when a file is
-#  deleted, moved or renamed in ongoing. This file had been renamed
+#  deleted, moved or renamed in ongoing. Different actions may be required
+#  in each case.
+#
+# Fix Condition 9 (likely duplicate) - Delete the bogus file or rename one of
+#  the files to there are not longer duplicates.
+#
+# Specific situation example:
+# 1. ntpclient - There were 2 version in legacy Meadow of 'ntp_client.c' and
+#  'ntp_client.h'. One used by Nuttx and one used by Meadow. One of these has
+#  been renamed in Rebase Meadow to 'meadow_ntpclient.c & h'. This was to 
+#  prevent duplicates in Rebase. However, this causes 'rebase_updater.py' tool
+#  to place Rebase's meadow_ntpclient.c & h in a separate CSV row (condition 3)
+#  from Legacy ntp_client.c & h (condition 4). Manually, modified CSV file so
+#  all are in the same row with condition 7, ready to merge. Rebase column
+#  file names 'meadow_ntpclient.c' and 'meadow_ntpclient.h'
+#  Ongoing and previous file names 'ntp_client.c' and 'ntp_client.h'.
 
-# During Rebase update from Legacy Meadow, it was found that, the meadow
-#  version of ntp_client.c and ntp_client.h had been renamed only in Rebase
-#  Meadow to meadow_ntpclient.c and meadow_ntpclient.h. This cause the
-#  rebase_updater.py tool to place Rebase's meadow_ntpclient.* in a separate
-#  CSV row (condition 3) from Legacy ntp_client.* (condition 4).
-#  Manually, modified CSV file so all were in the same row (condition 7).
-
-# Other Conditions
+# Conditions
 # The following are used to define the rebase constants
-COND_UNKNOWN_CONDITION    = 0    # default 'condition' value
+COND_UNKNOWN_CONDITION    = 0   # default 'condition' value
 COND_ONLY_IN_ONGOING      = 1
 COND_ONLY_IN_PREVIOUS     = 2
 COND_NOT_IN_REBASE        = 3
@@ -127,8 +215,8 @@ COND_ONLY_IN_REBASE       = 4
 COND_NOT_IN_PREVIOUS      = 5
 COND_NOT_IN_ONGOING       = 6
 COND_ALL_3_MERGE_OKAY     = 7
-COND_PREVIOUS_REPEATED    = 8
-COND_REBASE_REPEATED      = 9
+COND_PREVIOUS_REPEATED    = 8   # Unexpected
+COND_REBASE_REPEATED      = 9   # Unexpected
 
 # ----------------------------------------------------------------------------
 # This defines the data collected and analyzed for the 3 files
@@ -200,7 +288,7 @@ for singleRepoPathList in repoPathLists:
 # #---------------------------------------------------------------
 # # diagnostic - write the results into 3 files for inspection
 # diagFileNames = ["rebaseDiag", "previousDiag", "ongoingDiag"]
-# timestamp = time.strftime("%Y%m%d-%H%M%S-")
+# diagTimestamp = time.strftime("%Y%m%d-%H%M%S-")
 # repoIndex = 0
 
 # # For each of the 3 repos lists get each list of files
@@ -213,7 +301,7 @@ for singleRepoPathList in repoPathLists:
 
 #     # Create a unique name for the diagnostic file
 #     diagFileName = diagFileNames[repoIndex]
-#     diag_file_name = finalCsvListPath + timestamp + diagFileName + ".txt"
+#     diag_file_name = finalCsvListPath + diagTimestamp + diagFileName + ".txt"
 
 #     diag_file = open(diag_file_name, "w")
 
@@ -228,9 +316,9 @@ for singleRepoPathList in repoPathLists:
 # # diagnostic - end
 
 #---------------------------------------------------------------
-# As a sanity check, find within each repo what filenames occur in more
-# than one place. While this is not an illegal conditions it is one that
-# may need to be invested and could cause confusion.
+# Find within each repo what filenames occur in more than one
+# place. While this is not an illegal conditions it is one that
+# may need to be invested and could cause tool confusion.
 timestamp = time.strftime("%Y%m%d-%H%M%S-")
 duplicateFileName = finalCsvListPath + timestamp + "DuplicateEntries.txt"
 duplicate_file = open(duplicateFileName, "w")
@@ -300,7 +388,7 @@ for ongoingIndex, ongoingFileName in enumerate(ongoingFileNamesList):
             tempEntry.rebasePathName = rebaseFileNm
             rebaseMatchFound += 1
 
-    # Need to capture the current status if known
+    # Need to capture the current condition, if known
     if(prevMatchFound == 1):
         if(rebaseMatchFound == 1):
             tempEntry.condition = COND_ALL_3_MERGE_OKAY
@@ -380,7 +468,7 @@ for rebaseIndex, rebaseFileName in enumerate(rebaseFileNamesList):
 #-----------------------------------------------------------------
 # We have 2 dictionaries containing previous and rebase entires which have
 # no counter part in ongoing.
-# For those cases were previous and rebase contain the same file name,
+# For those cases where previous and rebase contain the same file name,
 # we combine them into a single entry. Otherwise, each gets it's own entry.
 # Get the 'intersection' between the 2 (only in both)
 inBothPrevRebase = tempPrevFileDict.keys() & tempRebaseFileDict.keys()
@@ -449,14 +537,16 @@ for consolidatedIndex, consolidateEntry in enumerate(consolidatedFileList):
 # Output the final consolidated list to a csv file.
 # Create a unique name for diagnostic file
 timestamp = time.strftime("%Y%m%d-%H%M%S-")
-csvPathNameFull = finalCsvListPath + timestamp + "MergeListFull.csv"
-with open(csvPathNameFull, 'w', newline="") as csvfile:
-    csvWriter = csv.writer(csvfile, delimiter='\n', quoting=csv.QUOTE_MINIMAL)
-    csvWriter.writerow(consolidatedFileList)
+
+# csvPathNameDbg = finalCsvListPath + timestamp + "MergeListDbg.csv"
+# with open(csvPathNameDbg, 'w', newline="") as csvfile:
+#     csvWriter = csv.writer(csvfile, delimiter='\n', quoting=csv.QUOTE_MINIMAL)
+#     csvWriter.writerow(consolidatedFileList)
 
 # Output just the data without the human readable information
-csvPathNameData = finalCsvListPath + timestamp + "MergeListRaw.csv"
+csvPathNameData = finalCsvListPath + timestamp + "MergeListData.csv"
 csvDataFile = open(csvPathNameData, "w")
+
 # Header
 csvDataLine = "Condition,Rebase,Previous,Ongoing"
 csvDataFile.write(csvDataLine + '\n')

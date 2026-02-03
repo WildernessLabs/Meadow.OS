@@ -5,23 +5,32 @@ Using Python tools to bring changes from Legacy Meadow to Rebase
  (thanks to Alexis for the writeup).
  a. N = Our current “source rebase point”. An incrementing number indicating
     the latest point where our code was upgraded. Right now for example, we
-    are at source-rebase-point-4 from Feb 21st, so N=4
+    are at 'source-rebase-point-4' from Feb 21st, so N=4
 
- b. In your classic Meadow.OS workspace dir, go to the latest commit on main
-    and git tag it as source-rebase-point-[N+1] . git push the tag.
+ b. In your legacy Meadow.OS workspace dir, go to the latest commit on main
+    and git tag it as 'source-rebase-point-[N+1]' . git push the tag.
+
+   Create a tag: git tag branch source-rebase-point-N
+   Push the tag: git push origin --tags
+   Note below using '--single-branch' is faster but leaves in a detached head state
+   - navigate to: '~/wl/RebaseRepos<date>-tag-[N]/previous'
+   - git clone --branch source-rebase-point-[N] https://github.com/WildernessLabs/Meadow.git
+   - navigate to: '~/wl/RebaseRepos<date>-tag-[N+1]/ongoing'
+   - git clone --branch source-rebase-point-[N+1] https://github.com/WildernessLabs/Meadow.git
 
  c. Create a root directory for this process, something like rebase-upgrade.
  
- d. In your root, create directories 'older' 'newer' and 'target':
-     - older - git clone Classic Meadow.OS here so that ends up in
-       older/Meadow - then git checkout source-rebase-point-N.
+ d. In your root, create directories 'previous' 'ongoing' and 'rebase':
+     - previous - git clone Legacy Meadow.OS here so that ends up in
+       previous/Meadow - then git checkout source-rebase-point-N.
 
-     - newer - git clone Classic Meadow.OS  here so that it is in
-       newer/Meadow - then git checkout source-rebase-point-[N+1].
+     - ongoing - git clone Legacy Meadow.OS here so that it is in
+       ongoing/Meadow - then git checkout source-rebase-point-[N+1].
 
-     - target - git clone Rebase Meadow.OS here so that it is in
-       target/Meadow.OS - you should already be placed on latest main commit,
+     - rebase - git clone Rebase Meadow.OS here so that it is in
+       rebase/Meadow.OS - you should already be placed on latest main commit,
        which is correct
+       
 You should be ready to run the Python scripts, which must be modified to
  correctly point to the paths you created above. 
 
@@ -79,11 +88,11 @@ CONFIG_DEBUG_FS_WARN=y
 CONFIG_DEBUG_FS_INFO=y
 
 -----------------------------------------------------------------
-Things to look into:
+Things to look into (no order):
 1. hcom_logging_syslog - It seems hcom_logging_syslog() entries do nothing when called.
 2. Failed download - When a file download fails the file seems to be left in the file
    System with a length of 0.
-3. SD-Card mounting - Nuttx 12 has automount code for sd-cards. We should consider using it.
+3. SD-Card mounting - Nuttx 12 has automount code for sd-cards. Should we consider using it?
 4. Syslog no ramlog - Using syslog doesn't use a in memory buffer.
 5. Move Code - Check for code in nuttx/arch/arm/src/board for code that should be moved
    to a different location.
@@ -94,5 +103,5 @@ Things to look into:
 8. Use Copilot or another tool to look for memory and file descriptor leaks.
 9. There are several places were HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE is used to define
    a buffer. However, when the code was written the maximum size of a HCOM message was
-   512 bytes, it is now 8192 bytes. There are  places were this needs to be checked.
+   512 bytes, it is now 8192 bytes. There are places were this may need to be corrected.
    
