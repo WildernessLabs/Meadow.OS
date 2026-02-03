@@ -23,7 +23,7 @@ import csv
 #
 # Peter 03Feb2026
 # rebaseRepoPath - is a clone if Meadow Rebase at the time of the Merge
-rebaseRepoPath =   "/home/peter/wl/Meadow.OS"
+rebaseRepoPath =   "/home/peter/wl/"
 
 # These 2 are cloned from tags in the legacy Meadow repo
 # previousRepoPath is from source-rebase-point-4
