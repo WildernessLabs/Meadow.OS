@@ -57,7 +57,7 @@ struct yaml_device_s
 typedef struct yaml_device_s yaml_device_t;
 
 /**
- *  Defintion of the fields in the yaml_device_s structure.
+ *  Definition of the fields in the yaml_device_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -142,11 +142,16 @@ struct yaml_coprocessor_s
      * @brief UDP port to use for log messages.
      */
     char *log_udp_port;
+
+    /**
+     * @brief Should the core dump be retrieved from the ESP32?
+     */
+    char *retrieve_core_dump;
 };
 typedef struct yaml_coprocessor_s yaml_coprocessor_t;
 
 /**
- *  Defintion of the fields in the yaml_coprocessor_s structure.
+ *  Definition of the fields in the yaml_coprocessor_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -159,6 +164,7 @@ static const cyaml_schema_field_t configuration_coprocessor_section_schema[] =
     CYAML_FIELD_STRING_PTR("LogComponents", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, log_components, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("LogDestination", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, log_destination, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("LogUdpPort", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, log_udp_port, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("RetrieveCoreDump", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, retrieve_core_dump, 0, CYAML_UNLIMITED),
 	CYAML_FIELD_END
 };
 
@@ -257,7 +263,7 @@ struct yaml_network_s
 typedef struct yaml_network_s yaml_network_t;
 
 /**
- *  Defintion of the fields in the yaml_network_s structure.
+ *  Definition of the fields in the yaml_network_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -303,7 +309,7 @@ struct yaml_internal_debug_s
 typedef struct yaml_internal_debug_s yaml_internal_debug_t;
 
 /**
- *  Defintion of the fields in the yaml_debug_s structure.
+ *  Definition of the fields in the yaml_debug_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -376,6 +382,12 @@ static const cyaml_schema_value_t configuration_schema =
     CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_configuration_t, configuration_fields_schema)
 };
 
+/********************************************************************************************************************************************************
+ *
+ *  WiFi configuration YAML description.
+ *
+ *******************************************************************************************************************************************************/ 
+
 /**
  *  Device configuration options from the YAML file.
  */
@@ -399,7 +411,7 @@ struct yaml_credentials_s
 typedef struct yaml_credentials_s yaml_credentials_t;
 
 /**
- *  Defintion of the fields in the yaml_credentials_s structure.
+ *  Definition of the fields in the yaml_credentials_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -447,6 +459,12 @@ static const cyaml_schema_value_t wifi_credentials_schema =
 {
     CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_wifi_credentials_t, wifi_credentials_fields_schema)
 };
+
+/********************************************************************************************************************************************************
+ *
+ *  Cell network configuration YAML description.
+ *
+ *******************************************************************************************************************************************************/
 
 /**
  *  Device settings options from the Cell config YAML file.
@@ -507,7 +525,7 @@ struct yaml_cell_settings_s
 typedef struct yaml_cell_settings_s yaml_cell_settings_t;
 
 /**
- *  Defintion of the fields in the yaml_cell_config_s structure.
+ *  Definition of the fields in the yaml_cell_config_s structure.
  *
  *  This is an array of the field definitions.
  */
@@ -553,3 +571,127 @@ static const cyaml_schema_value_t cell_settings_schema =
 {
     CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_cell_config_t, cell_settings_fields_schema)
 };
+
+/********************************************************************************************************************************************************
+ * 
+ *  Unit test configuration YAML description.
+ * 
+ *******************************************************************************************************************************************************/ 
+
+ #if defined(CONFIG_KERNEL_TESTS_SYSCALL)
+ 
+ /**
+ *  Test parameters from the YAML file.
+ */
+struct yaml_parameters_s
+{
+    /**
+     *  Test parameter 1
+     */
+    char *parameter1;
+
+    /**
+     *  Test parameter 2
+     */
+    char *parameter2;
+    
+    /**
+     *  Test parameter 3
+     */
+    char *parameter3;
+    
+    /**
+     *  Test parameter 4
+     */
+    char *parameter4;
+    
+    /**
+     *  Test parameter 5
+     */
+    char *parameter5;
+    
+    /**
+     *  Test parameter 6
+     */
+    char *parameter6;
+    
+    /**
+     *  Test parameter 7
+     */
+    char *parameter7;
+    
+    /**
+     *  Test parameter 8
+     */
+    char *parameter8;
+    
+    /**
+     *  Test parameter 9
+     */
+    char *parameter9;
+    
+    /**
+     *  Test parameter 10
+     */
+    char *parameter10;
+};
+typedef struct yaml_parameters_s yaml_parameters_t;
+
+/**
+ *  Definition of the fields in the yaml_parameters_s structure.
+ *
+ *  This is an array of the field definitions.
+ */
+static const cyaml_schema_field_t test_parameters_schema[] =
+{
+    CYAML_FIELD_STRING_PTR("Parameter1", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter1, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter2", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter2, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter3", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter3, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter4", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter4, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter5", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter5, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter6", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter6, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter7", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter7, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter8", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter8, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter9", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter9, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("Parameter10", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter10, 0, CYAML_UNLIMITED),
+	CYAML_FIELD_END
+};
+
+/**
+ *  This is a local definition of the configuration and it is aimed to be
+ *  used by the CYAML library when reading the configuration data from the
+ *  meadow.yaml configuration file.
+ *
+ *  This additional structure is used as some of the configuration
+ *  information in the globally available structure is derived from the
+ *  chip / board.
+ */
+struct yaml_test_parameters_s
+{
+    /**
+     *  Information about the test parameters
+     */ 
+    yaml_parameters_t *parameters;
+};
+typedef struct yaml_test_parameters_s yaml_test_parameters_t;
+
+/**
+ *  Definition of the fields in the struct yaml_test_parameters_t structure.
+ *
+ *  This is an array of the field definitions.
+ */
+static const cyaml_schema_field_t unit_test_parameters_fields_schema[] =
+{
+    CYAML_FIELD_MAPPING_PTR("TestParameters", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_test_parameters_t, parameters, test_parameters_schema),
+	CYAML_FIELD_END
+};
+
+/**
+ *  Top level schema for the data from the YAML configuration file is a mapping.
+ */
+static const cyaml_schema_value_t unit_test_parameters_schema =
+{
+    CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_test_parameters_t, unit_test_parameters_fields_schema)
+};
+
+#endif /* CONFIG_KERNEL_TESTS_SYSCALL */

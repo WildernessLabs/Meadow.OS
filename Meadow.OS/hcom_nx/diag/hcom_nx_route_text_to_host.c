@@ -70,6 +70,7 @@
 // // #undef USE_MEADOW_DEBUG_HELPERS
 // #include <meadow/meadow_debug_helpers.h>
 
+#if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -99,8 +100,7 @@ static sem_t _sendCliSem;
  ****************************************************************************/
 int hcom_nx_route_text_to_host_setup()
 {  
-  _sharedMsgBuff = (uint8_t *)malloc(HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE - \
-            HCOM_PROTOCOL_HEADER_MSG_LENGTH);
+  _sharedMsgBuff = (uint8_t *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(_sharedMsgBuff == NULL)
   {
     return -ENOMEM;
@@ -133,7 +133,7 @@ static void hcom_nx_route_text_wait_sem(sem_t *semaphore)
 }
 
 //=================================================================
-// Ship the a generic text message to host
+// Public entry to ship a generic text message to host
 // Note: The text must end with a '\n' character.
 int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
           size_t msgLen)
@@ -212,3 +212,17 @@ size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
   // Return to userland with the message and its length
   return msgLength;
 }
+#else
+// Dummy functions
+int hcom_nx_route_text_to_host_setup()
+{
+  return OK;
+}
+
+int hcom_nx_route_text_to_host(uint16_t requestType,
+  char *msgBuff, size_t msgLen)
+{
+  return OK;
+}
+
+#endif // #if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)

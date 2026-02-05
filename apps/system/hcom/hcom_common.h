@@ -263,6 +263,8 @@ uint32_t hcom_file_misc_calc_crc_for_file(char *completeFilePath, off_t *fileSiz
         uint32_t *blockSizeKB, int *detectError);
 uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
         off_t *fileSize, uint32_t *blockSizeKB, int *detectError);
+int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
+  bool ignoreENOENT);
 
 // -----------------------------------------------
 // Mono related
@@ -276,9 +278,11 @@ void hcom_mono_ctrl_enable_mono(uint32_t userData);
 void hcom_mono_ctrl_report_mono_enabled_state(uint32_t userData);
 
 // mono stdout & stderr to host
-int hcom_mono_stdxxx_read_setup(void);
+#if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
 void hcom_mono_stdxxx_read_shutdown(void);
+int hcom_mono_stdxxx_read_setup(void);
 int hcom_mono_stdxxx_redirect(void);
+#endif
 
 // mono Visual Studio interactions
 int hcom_mono_remote_dbg_setup(void);
@@ -339,7 +343,7 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16]);
 void hcom_via_nx_restore_uart_reconfig(uint32_t uartId);
 uint32_t hcom_via_nx_get_hw_version(void);
 uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd);
-void hcom_via_nx_mono_has_started(void);
+void hcom_via_nx_mono_has_started_alt(int alt_access_fd);
 size_t hcom_via_nx_provide_cli_trace_transport(char *buff, size_t bufLen);
 size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
         char *buff, size_t bufLen);
@@ -434,6 +438,7 @@ void diag_misc_tests_snprintf_on_nuttx(uint32_t userData);
 void hcom_meadow_sqlite_tests(uint32_t userData);
 void hcom_meadow_diag_gpio_tests(uint32_t userData);
 void meadow_dir_mgmt_tests(uint32_t userData);
+void cell_script_tests(uint32_t userData);
 
 void diag_misc_tests_overload_mcu(uint32_t userData);
 void diag_ethernet_chat_server(uint32_t userData);
@@ -444,11 +449,17 @@ void meadow_os_userspace_board_reset_test(uint32_t userdata);
 void meadow_bbd_write_read_test(uint32_t userdata);
 void meadow_bbd_write_and_reset_test(uint32_t userdata);
 void meadow_bbd_read_after_reset_test(uint32_t userdata);
+void meadow_os_cli_timeout_test(uint32_t userdata);
+void meadow_os_userspace_get_test_configuration_test(uint32_t userdata);
 
 // This macro calls a function adding file and line info. I kept the entire
 // macro on a single line to reduce line number confusion. The ## is needed
 // for those cases when the caller doesn't supply any additional arguments.
 #define snprintf_chk(Buf, Len, Fmt, ...) hcom_common_utils_snprintf_chk(Buf, Len, __FILE__, __LINE__, Fmt, ##__VA_ARGS__ )
+
+// Networking related functions.
+void hcom_common_utils_erase_dns_resolver_file(void);
+void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t server_count);
 
 //------------------------------------------------
 #endif // __ASSEMBLY__

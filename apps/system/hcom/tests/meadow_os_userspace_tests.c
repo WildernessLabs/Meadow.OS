@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#if defined (CONFIG_MEADOW_OS_TESTS)
+#if defined (CONFIG_MEADOW_OS_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
 
 #include <stdint.h>
 
@@ -109,6 +109,136 @@ void meadow_os_userspace_assert_test(uint32_t userdata)
 void meadow_os_userspace_board_reset_test(uint32_t userdata)
 {
     meadow_os_reset_board(0);
+}
+
+/****************************************************************************
+ * Name: meadow_os_userspace_send_parameter
+ *
+ * Description:
+ *  Send a parameter to the host for debugging purposes.
+ *
+ * Input Parameters:
+ *  buffer - Buffer to hold the formatted string.
+ *  buffer_length - Length of the buffer.
+ *  parameter_name - Name of the parameter to send.
+ *  parameter_value - Value of the parameter to send.
+ *
+ * Returned Value
+ *   None
+ *
+ * Assumptions/Limitations:
+ *   - The buffer should be large enough to hold the formatted string.
+ *   - If the parameter_value is NULL, it will be replaced with "NULL".
+ ****************************************************************************/
+void meadow_os_userspace_send_parameter(char * const buffer, uint32_t buffer_length, const char * const parameter_name, const char * const parameter_value)
+{
+    if ((buffer != NULL) && (buffer_length > 0) && (parameter_name != NULL))
+    {
+        snprintf_chk(buffer, buffer_length, "%s = %s", parameter_name, (parameter_value == NULL) ? "NULL" : parameter_value);
+        syslog(LOG_MTEST, "%s", buffer);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, buffer, __FILE__, __LINE__);
+    }
+    else
+    {
+        syslog(LOG_MTEST,
+            "Developer tests: Invalid parameters passed to meadow_os_userspace_send_parameter.\n");
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Invalid parameters passed to meadow_os_userspace_send_parameter.\n", __FILE__, __LINE__);
+    }
+}
+
+/****************************************************************************
+ * Name: meadow_os_userspace_get_test_configuration_test
+ *
+ * Description:
+ *  Get the test configuration from the kernel.
+ *
+ * Input Parameters:
+ *  userdata - Value passed to the test from the meadow command line.
+ *             See: -v / --value parameter in meadow command line.
+ *
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+void meadow_os_userspace_get_test_configuration_test(uint32_t userdata)
+{
+    char *hostMsg = malloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
+
+    if (hostMsg == NULL)
+    {
+        syslog(LOG_MTEST, "Developer tests: failed to allocate memory for hostMsg\n");
+        return;
+    }
+
+    unit_tests_configuration_t *config = meadow_os_get_unit_tests_config();
+    if (config != NULL)
+    {
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter1", config->parameter1);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter2", config->parameter2);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter3", config->parameter3);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter4", config->parameter4);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter5", config->parameter5);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter6", config->parameter6);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter7", config->parameter7);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter8", config->parameter8);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter9", config->parameter9);
+        meadow_os_userspace_send_parameter(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Parameter10", config->parameter10);
+    }
+    else
+    {
+        syslog(LOG_MTEST,
+            "Developer tests: failed to get unit tests configuration.\n");
+        
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+                "Failed to get unit tests configuration.\n", __FILE__, __LINE__);
+    }
+}
+
+/****************************************************************************
+ * Name: meadow_os_cli_timeout_test
+ *
+ * Description:
+ *  Provide a way to test the CLI timeout parameter.
+ *
+ * Input Parameters:
+ *  userdata - Value passed to the test from the meadow command line.
+ *             See: -v / --value parameter in meadow command line.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+void meadow_os_cli_timeout_test(uint32_t userdata)
+{
+    char *hostMsg = malloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
+
+    if (hostMsg == NULL)
+    {
+        syslog(LOG_MTEST, "Developer tests: failed to allocate memory for hostMsg\n");
+        return;
+    }
+
+    if (userdata == 0)
+    {
+        userdata = 60;
+    }
+
+    snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "CLI timeout test, sleeping for %lu seconds\n", userdata);
+    syslog(LOG_MTEST, "%s", hostMsg);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+    sleep(userdata);
+
+    snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Back from sleep.\n");
+    syslog(LOG_MTEST, "%s", hostMsg);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+    free(hostMsg);
 }
 
 #endif /* CONFIG_MEADOW_OS_TESTS */

@@ -50,9 +50,20 @@
 // #define MEADOW_USE_HCOM_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
+// #pragma GCC optimize("O0")    // Prevent code optimization
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#define HCOM_HOST_RECEIVE_BUFFER_SIZE (HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE + \
+  HCOM_HOST_RECEIVE_MAX_READ_SIZE + 1)
+
+// It seems the number of bytes requested for the read has little
+// relationship on the number read. A value higher than 256 makes no
+// difference. I assume it was because of the comms bandwidth limit.
+// But I set it higher since the buffer is large enough, so why not?
+#define HCOM_HOST_RECEIVE_MAX_READ_SIZE (512)
 
 /****************************************************************************
  * Private Data
@@ -95,7 +106,7 @@ int hcom_host_recv_setup()
   _lowPowerSoon = false;
   _firstTimeToConnect = true;
 
-  _recvDataBuffer = malloc(HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE);  
+  _recvDataBuffer = malloc(HCOM_HOST_RECEIVE_BUFFER_SIZE);
   if(_recvDataBuffer == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
@@ -208,7 +219,8 @@ FAR void *hcom_host_recv_pthread(FAR void *arg)
   bool delayBeforeRetry = false;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(2, "New pthread [PID:%d],'%s'\n", getpid(), HCOM_THREAD_NAME_HCOM_RECEIVE);
+  syslog(LOG_MDIAG, "New pthread [PID:%d],'%s'\n",
+    getpid(), HCOM_THREAD_NAME_HCOM_RECEIVE);
 #endif
 
   // Notify the startup manager that it can continue the startup process
@@ -273,7 +285,11 @@ int hcom_host_recv_restart_concluded()
   // then a `Concluded` message must be sent
   if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_RESTART_INITIATED_BY_HOST_CMD_BIT))
   {
-    hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
+    // Reset the flag so it only happens once
+    hcom_bbreg_clear_bbr_bits(HCOM_BBREG_RESTART_INITIATED_BY_HOST_CMD_BIT);
+
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
+      "", thisFile, __LINE__);
   }
 
   return OK;
@@ -333,21 +349,21 @@ void hcom_host_recv_open_connection()
 }
 
 //========================================================================
-// This thread receives all host data and may call transmit to responsed as
+// This thread receives all host data and may call transmit to response as
 // needed. This thread is the only thread receiving via USB serial data.
 bool hcom_host_recv_received_data()
 {
   hcom_logging_syslog(LOG_DEBUG, "%s@%d-HCOM Waiting for '%s' message\n",
             thisFile, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
 
-  // Stay in this loop "forever"
   while (!_shutting_down)
   {
     // This is a blocking read. read() will return:
     // (1) readReturn > 0 and readReturn is amount of data in buffer
     // (2) readReturn == 0 on end of file
     // (3) readReturn < 0 on a read error or interruption by a signal, value in errno
-    ssize_t readResult = read(_comms_read_fd, _recvDataBuffer, g_current_hcom_maximum_packet_size);
+    ssize_t readResult = read(_comms_read_fd, _recvDataBuffer,
+      HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE);
     if (readResult > 0)
     {
       // We've received some data. Next step is to write it into a circular

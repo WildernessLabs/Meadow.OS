@@ -327,11 +327,10 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   activeFileNameLen = strlen(dnldShared->dnldFullPathName) + 1;
   totalMsgLength = activeFileNameLen + HCOM_PROTOCOL_FILE_MSG_LENGTH;
 
-#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "Up---> %s@%d-start_file_upload, from FS fileSize:%ld, totalMsgLength:%u, fileNameLen:%u\n",
-        thisFile, __LINE__, fileSize, totalMsgLength, activeFileNameLen); usleep(20 * 1000);
-#endif
-
+  // syslog(LOG_MDIAG,
+  //   "%s@%d-start_file_upload, from FS fileSize:%ld, totalMsgLength:%lu, fileNameLen:%lu\n",
+  //   thisFile, __LINE__, fileSize, totalMsgLength, activeFileNameLen); usleep(20 * 1000);
+  
   fileMsg = (HcomProtoFileMsg_t *)malloc(totalMsgLength);
   if(fileMsg == NULL)
   {
@@ -362,10 +361,9 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   memcpy(fileMsg->fileInfo.fileName, dnldShared->dnldFullPathName,
             activeFileNameLen);
 
-#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "Up---> File CRC is:0x%0l8x, filesize:%lu, filename:'%s'. Sending 'Init upload OK' to HOST\n",
-    crc32Checksum, fileSize, fileMsg->fileInfo.fileName);
-#endif
+  // syslog(LOG_MDIAG,
+  //   "Up---> File CRC is:0x%08x, filesize:%lu, filename:'%s'. Sending 'Init upload OK' to HOST\n",
+  //   crc32Checksum, fileSize, fileMsg->fileInfo.fileName);
 
   // This message contains what the host needs to start receiving a file
   hcom_host_send_std_msg_data((HcomProtoHdrMsg_t *)fileMsg,
@@ -461,7 +459,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   }
 
   // Buffer to hold header + data
-  binMsg = (HcomProtoBinMsg_t *)malloc(g_current_hcom_maximum_packet_size);
+  binMsg = (HcomProtoBinMsg_t *)malloc(HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE);
   if(binMsg == NULL)
   {
     hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
@@ -507,11 +505,8 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
     }
   } while (nbytes > 0);
 
-#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "Up---> %s@%d-Data upload complete. Sent %d Msgs:, bytes:%d\n",
-          thisFile, __LINE__, sentCount, totalSent);
-#endif
-
+  // syslog(LOG_MDIAG, "UP--->%s@%d-Data upload complete. Sent %d Msgs:, bytes:%d\n",
+  //           thisFile, __LINE__, sentCount, totalSent);
   free(binMsg);
 
   // ---------------------------------------------------------------

@@ -85,7 +85,8 @@ void hcom_file_write_shutdown()
 }
 
 //==================================================================
-// The active file is the file currently being downloaded to flash
+// The active file is the file about to be downloaded to flash
+// This utility function is only used by 'hcom_file_dnld_stm32f7.c'
 int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
 {
   if (_shutting_down)
@@ -106,11 +107,11 @@ int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
 
   // Second (flags) parameter O_RDONLY, O_WRONLY, or O_RDWR ||
   // Third parameter 644 = owner has read and write permission, group has
-  // read and others have read 777 everyone has read write and execute
+  // read and others have read, 777 everyone has read write and execute
   // permission.
   set_errno(0);
 
-  dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT | O_TRUNC, 0644);
+  dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT, 0644);
   if (dnldShared->dnldFileFD == -1)
   {
     hcom_logging_syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n",
@@ -155,7 +156,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
   {
     // Found that the SD-Card write must be properly aligned or it writes data
     // to the file that is outside of the specified buffers beginning address.
-    // malloc will allocate memory that this 4-byte aligned.
+    // malloc will allocate memory which is 4-byte aligned.
     writeDataBuff = malloc(fileWriteSize);
     if(writeDataBuff == NULL)
     {
@@ -168,7 +169,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
   #if (HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0)
-  syslog(2, "------- %s@%d File Write show first 16 of %d ------\n",
+  syslog(LOG_MTEST, "------- %s@%d File Write show first 16 of %d ------\n",
             __FILE__, __LINE__, fileWriteSize);
   hcom_diag_print_buffer(writeDataBuff, 16, 1);
   #endif
@@ -243,6 +244,7 @@ int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared)
   }
 
   dnldShared->dnldFileFD = -1;
+  dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
   hcom_logging_syslog(LOG_DEBUG, "%s@%d-Closed %s\n", thisFile, __LINE__, dnldShared->dnldFullPathName);

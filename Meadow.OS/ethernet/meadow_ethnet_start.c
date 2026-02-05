@@ -82,7 +82,7 @@ int meadow_eth_mngr_startup()
   ret = meadow_eth_utils_verify_lan9355();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Installed LAN chip is not a LAN9355. ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-No LAN chip, or not a LAN9355. ret:%d, errno:%d\n",
               thisFile, __LINE__, ret, errno);
     return ret;
   }

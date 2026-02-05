@@ -43,6 +43,7 @@
 #include "../espcp/espcp_coprocessor.h"
 #include <assert.h>
 #include "../misc/meadow_logging.h"
+#include "../misc/long_period_scheduler.h"
 
 #include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx_config_manager.h"
@@ -50,6 +51,7 @@
 #include <meadow/meadow_os.h>
 #include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
+#include "meadow_interrupt.h"
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>
@@ -87,7 +89,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2, "Kernel startup manager 1\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG, "Kernel startup manager 1\n"); usleep(5 * 1000);
 #endif
 
   if (mtd == NULL)
@@ -110,7 +112,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 2\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 2\n"); usleep(5 * 1000);
 #endif
   //
   //  Only saves a copy of the mtd
@@ -126,7 +128,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 3\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 3\n"); usleep(5 * 1000);
 #endif
 
   //
@@ -135,14 +137,15 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   meadow_logging_init_os_logging();
   
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 4\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 4\n"); usleep(5 * 1000);
 #endif
 
   //
   //  The bootloader will have put the reset reason into BBR30 for us.
   //
   meadow_os_reset_update_counters();
-  syslog(2, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(),
+
+  syslog(LOG_MDIAG, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(),
             meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
 
   //
@@ -173,6 +176,9 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ERROR;
   }
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+  // Initialize the long-period scheduler
+  lps_start();
+
   bool reset_esp32 = config->reset_esp32_at_startup;
 #endif
 
@@ -197,12 +203,12 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
   hcom_nx_config_set_time_to_os_build_time();
   
-  // syslog(2, "YAML Config:Net I/F:%s, DHCP:%s\n",
+  // syslog(LOG_MDIAG, "YAML Config:Net I/F:%s, DHCP:%s\n",
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 7\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
 #endif
 
   ret = hcom_nx_route_text_to_host_setup();
@@ -213,7 +219,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 10\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 10\n"); usleep(5 * 1000);
 #endif
 
   ret = hcom_nx_utils_startup_handling_of_trace_level();
@@ -224,7 +230,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 11\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
 #endif
 
 #if (defined (CONFIG_FS_PROCFS) && defined (CONFIG_SYSTEM_NSH))
@@ -238,7 +244,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 12\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_TIMER_SUPPORT)
@@ -251,7 +257,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 13\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 13\n"); usleep(5 * 1000);
 #endif
 
   // Initialize hcom nuttx driver
@@ -263,7 +269,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 14\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 14\n"); usleep(5 * 1000);
 #endif
 
 #if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
@@ -276,7 +282,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 15\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -287,9 +293,16 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 #endif
+  // Setup meadow interrupt
+  ret = meadow_interrupt_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-initialization for meadow interrupt:%d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 16\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
@@ -302,7 +315,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 17\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 17\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_STM32F7_SDMMC2)
@@ -464,7 +477,7 @@ if (ret < 0)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 23-All successful\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 23-All successful\n"); usleep(5 * 1000);
 #endif
 
   return OK;

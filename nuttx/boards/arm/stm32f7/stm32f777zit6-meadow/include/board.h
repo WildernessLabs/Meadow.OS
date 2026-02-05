@@ -344,6 +344,9 @@
 #define LED_PANIC          7 /* The system has crashed   Blink  OFF   N/C  */
 #define LED_IDLE           8 /* MCU is is sleep mode     ON     OFF   OFF  */
 
+// #define BOARD_LTDC_WIDTH        800
+// #define BOARD_LTDC_HEIGHT       472
+
 /* Button definitions *******************************************************/
 
 /* The STM32F7 Discovery supports one button:
@@ -357,19 +360,34 @@
 
 /* LED definitions **********************************************************/
 
-/* LCD DISPLAY
- * (work in progress as of 2017 07 19)
- */
+#define MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
+#define MEADOW_ESP32_ONBOARD_BOOT_PIN_INPUT   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
 
-#define BOARD_LTDC_WIDTH        800
-#define BOARD_LTDC_HEIGHT       472
+/* Alternate function pin selections ************************************************/
 
-#define BOARD_LTDC_HSYNC        10
-#define BOARD_LTDC_HFP          10
-#define BOARD_LTDC_HBP          20
-#define BOARD_LTDC_VSYNC        2
-#define BOARD_LTDC_VFP          4
-#define BOARD_LTDC_VBP          2
+// Note: The source defns are from \arch\arm\src\stm32f7\chip\stm32f76xx77xx_pinmap.h
+
+// USART1 (Meadow COM1) (optional syslog output)
+#define GPIO_USART1_RX GPIO_USART1_RX_3 // PB15
+#define GPIO_USART1_TX GPIO_USART1_TX_3 // PB14
+
+// UART4 (Meadow COM4) (optional syslog output)
+#define GPIO_UART4_RX GPIO_UART4_RX_6 // PI9
+#define GPIO_UART4_TX GPIO_UART4_TX_5 // PH13
+
+/* UART5 (Meadow STM32F7 to ESP32) */
+
+#define GPIO_UART5_RX     (GPIO_UART5_RX_1|GPIO_SPEED_100MHz) /* PD2 */
+#define GPIO_UART5_TX     (GPIO_UART5_TX_3|GPIO_SPEED_100MHz) /* PB13 - default */
+#define GPIO_UART5_TX_V1  (GPIO_UART5_TX_3|GPIO_SPEED_100MHz) /* PB13 - F7v1 */
+#define GPIO_UART5_TX_V2  (GPIO_UART5_TX_1|GPIO_SPEED_100MHz) /* PC12 - F7v2 & CCMv2 */
+
+// UART6 (optional syslog output)
+// F7v1 and F7v2 both exposed UART6 but on different pins
+// F7v1 pins USART6_TX = D02 and USART6_RX = D05
+// F7v2 pins USART6_TX = D09 and USART6_RX = D10
+#define GPIO_USART6_RX GPIO_USART6_RX_1 // PC7
+#define GPIO_USART6_TX GPIO_USART6_TX_1 // PC6
 
 #define BOARD_LTDC_GCR_PCPOL    0
 #define BOARD_LTDC_GCR_DEPOL    0
@@ -416,27 +434,19 @@
 
 /* Alternate function pin selections ****************************************/
 
-/* USART6:
- *
- * These configurations assume that you are using a standard Arduio
- * RS-232 shield with the serial interface with RX on pin D0 and TX
- * on pin D1:
- *
- *   -------- ---------------
- *               STM32F7
- *   ARDUINO  FUNCTION  GPIO
- *   -- ----- --------- -----
- *   DO RX    USART6_RX PC7
- *   D1 TX    USART6_TX PC6
- *   -- ----- --------- -----
- */
+// ADC DMA mapping
+#define ADC1_DMA_CHAN DMAMAP_ADC1_2     // DMA2, Channel 0, Stream 4
 
-#define GPIO_USART6_RX (GPIO_USART6_RX_1|GPIO_SPEED_100MHz)
-#define GPIO_USART6_TX (GPIO_USART6_TX_1|GPIO_SPEED_100MHz)
+// If additional conflicts add the following to the function
+// 'DMA_HANDLE stm32_dmachannel(unsigned int dmamap)'.
+// syslog(2, "stm32_dmachannel(dmamap:0x%08x, DMA:%d, Chan:%d, Stream:%d)\n",
+//  dmamap, ((dmamap >> 7) & 1) + 1, ((dmamap >> 4) & 7), (dmamap & 0xf));
+// It won't show DMA initialized by Meadow.Core until it's initialized...
+// Also for meadow_adc.c the stream number will need to be changed for a
+// number of register uses.
+// Note: All SPI DMA configuration is hardcoded in stm32_spi.c
 
-/* USART1:
- * USART1 is connected to the "Virtual Com Port" lines
- * of the ST-LINK controller.
+/* SDMMC2 Pin mapping
  *
  *   -------- ---------------
  *               STM32F7
@@ -446,30 +456,6 @@
  *   VCP_TX   USART1_TX PA9
  *   -- ----- --------- -----
  */
-
-#define GPIO_USART1_RX (GPIO_USART1_RX_3|GPIO_SPEED_100MHz)
-#define GPIO_USART1_TX (GPIO_USART1_TX_3|GPIO_SPEED_100MHz)
-
-/* UART4 (Meadow "COM1" ) */
-
-#define GPIO_UART4_RX  (GPIO_UART4_RX_6|GPIO_SPEED_100MHz) /* PI9 */
-#define GPIO_UART4_TX  (GPIO_UART4_TX_5|GPIO_SPEED_100MHz) /* PH13 */
-
-/* UART5 (Meadow STM32F7 to ESP32) */
-
-#define GPIO_UART5_RX     (GPIO_UART5_RX_1|GPIO_SPEED_100MHz) /* PD2 */
-#define GPIO_UART5_TX     (GPIO_UART5_TX_3|GPIO_SPEED_100MHz) /* PB13 - default */
-#define GPIO_UART5_TX_V1  (GPIO_UART5_TX_3|GPIO_SPEED_100MHz) /* PB13 - F7v1 */
-#define GPIO_UART5_TX_V2  (GPIO_UART5_TX_1|GPIO_SPEED_100MHz) /* PC12 - F7v2 & CCMv2 */
-
-/* UART6
- * F7v1 and F7v2 both exposed UART6 but on different pins
- * F7v1 pins USART6_TX = D02 and USART6_RX = D05
- * F7v2 pins USART6_TX = D09 and USART6_RX = D10
- */
-
-#define GPIO_USART6_RX (GPIO_USART6_RX_1|GPIO_SPEED_100MHz) /* PC7 */
-#define GPIO_USART6_TX (GPIO_USART6_TX_1|GPIO_SPEED_100MHz) /* PC6 */
 
 /* Used to reconfigure F7's NJTRST pin as a non-debug GPIO at startup */
 

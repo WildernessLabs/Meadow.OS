@@ -63,8 +63,6 @@
 static char *thisFile = __FILE__;
 static int _syslogMask;
 
-static int _syslogMask;
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -123,7 +121,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
     _syslogMask &= 0x000000ff;   // LS 8 bits are syslog mask
   }
 
-#if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART1 > 0
+#if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART > 0
     _syslogMask = LOG_MASK(LOG_EMERG) | LOG_MASK(LOG_ALERT) | LOG_MASK(LOG_CRIT) |
               LOG_MASK(LOG_ERR) | LOG_MASK(LOG_WARNING) |
               LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO) /* | LOG_MASK(LOG_DEBUG) */;
@@ -198,11 +196,12 @@ int hcom_nx_common_utils_calculate_serial_numb(uint8_t mcu6ByteSerialNumb[], cha
 
 void hcom_nx_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t msgPriority)
 {
-  if ((_syslogMask & LOG_MASK(msgPriority)) == 0)
-  {
-    syslog(2, "diag print buffer exited, priority too low.\n");
-    return;
-  }
+  // (--) THIS IS BROKEN - comment out so all priorities pass
+  // if ((_syslogMask & LOG_MASK(msgPriority)) == 0)
+  // {
+  //   syslog(LOG_MDIAG, "diag print buffer exited, priority too low.\n");
+  //   return;
+  // }
 
   // Use the Nuttx standard 'syslog' for output
   hcom_nx_diag_print_buffer_x(buffer, bufLen, msgPriority, syslog);
@@ -210,7 +209,7 @@ void hcom_nx_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t
 #else
 void hcom_nx_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t msgPriority)
 {
-  syslog(2, "HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE not defined.\n");
+  syslog(LOG_MDIAG, "HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE not defined.\n");
 }
 #endif
 
@@ -249,7 +248,7 @@ void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8
     memset(lineBuff, 0x20, HCOM_UTIL_DISPLAY_LENGTH);
 
     // Buffer offset address
-    snprintf(&lineBuff[HCOM_UTIL_LEADING_SPACES], HCOM_UTIL_DISPLAY_LENGTH, "%08x ", rowStartOffset);
+    snprintf(&lineBuff[HCOM_UTIL_LEADING_SPACES], HCOM_UTIL_DISPLAY_LENGTH, "%08x ", buffer + rowStartOffset);
 
     hexOffset = HCOM_UTIL_HEXADECIMAL_OFFSET;
     asciiOffset = HCOM_UTIL_ASCII_OFFSET;

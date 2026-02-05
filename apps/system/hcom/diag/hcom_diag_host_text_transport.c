@@ -40,7 +40,7 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
+#if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -71,7 +71,7 @@ int hcom_host_text_transport_setup()
 
 //================================================================
 // Create a thread that can be used to transport the syslog message
-// from k-land to here in userland.
+// from nuttx land to here in userland.
 // This thread calls via hcom_via_nx_access into kernel land and lives
 // there until the a message is ready to be sent to the host text.
 void hcom_host_text_transport_create_thread()
@@ -98,7 +98,8 @@ void hcom_host_text_transport_create_thread()
 FAR void *hcom_host_text_transport_pthread(FAR void *arg)
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(2, "New pthread [PID:%d],'%s'\n", getpid(), HCOM_THREAD_NAME_HOST_TRANSPORT);
+  syslog(LOG_MDIAG, "New pthread [PID:%d],'%s'\n",
+    getpid(), HCOM_THREAD_NAME_HOST_TRANSPORT);
 #endif
 
   size_t stringLen;
@@ -128,7 +129,7 @@ FAR void *hcom_host_text_transport_pthread(FAR void *arg)
     }
 
     // String is NULL terminated but no '\n'. So, output the text carefully.
-    // syslog(2, "%s@%d-Sending msg:'%.*s' to CLI\n", __FILE__, __LINE__,
+    // syslog(LOG_MDIAG, "%s@%d-Sending msg:'%.*s' to CLI\n", __FILE__, __LINE__,
     //     strlen(hostTextMsgBuf), hostTextMsgBuf);
 
     // Forward to host_text and wait again for next message
@@ -151,4 +152,4 @@ int hcom_host_text_transport_setup()
   return OK;
 }
 
-#endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
+#endif // #if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)

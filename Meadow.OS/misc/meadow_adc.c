@@ -52,12 +52,12 @@
 #include <arch/stm32f7/chip.h>
 #include "stm32_gpio.h"
 #include "stm32_dma.h"
+#include "stm32_adc.h"
+#include "stm32_rcc.h"
+
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_syscall_support.h>
-#include "hardware/stm32f74xx77xx_adc.h"
-#include "hardware/stm32f76xx77xx_rcc.h"
-#include "hardware/stm32f76xx77xx_memorymap.h"
-#include "hardware/stm32f76xx77xx_dma.h"
+#include "../include/board.h"
 
 #ifndef CONFIG_STM32F7_DMA2
 #error "Meadow ADC requires CONFIG_STM32F7_DMA2 to be configured"
@@ -89,9 +89,12 @@
 #define ADC_ALL_POSSIBLE_ADC_INTERRUPTS (ADC_SR_OVR | ADC_SR_STRT | \
           ADC_SR_JSTRT | ADC_SR_JEOC | ADC_SR_EOC | ADC_SR_AWD)
 
-// #define ADC_SMPR_DEFAULT    ADC_SMPR_3       // 4 usec for 6 analogs (265kHz)
-#define ADC_SMPR_DEFAULT    ADC_SMPR_112     // 32 usec for 6 analogs (32kHz)
-// #define ADC_SMPR_DEFAULT    ADC_SMPR_480     // 124 usec for 6 analogs
+// Pick one of these to determine ADC sample time. There are several others
+// in stm32f74xx77xx_adc.h for fine tuning if needed.
+// #define ADC_SMPR_DEFAULT    ADC_SMPR_3     // 4 usec for 6 analogs (265kHz)
+#define ADC_SMPR_DEFAULT    ADC_SMPR_112      // 32 usec for 6 analogs (32kHz)
+// #define ADC_SMPR_DEFAULT    ADC_SMPR_480   // 124 usec for 6 analogs
+
 #define ADC_SMPR1_DEFAULT     ((ADC_SMPR_DEFAULT << ADC_SMPR1_SMP10_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP11_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP12_SHIFT) | \
@@ -101,6 +104,7 @@
                                (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP16_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP17_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR1_SMP18_SHIFT))
+
 #define ADC_SMPR2_DEFAULT     ((ADC_SMPR_DEFAULT << ADC_SMPR2_SMP0_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP1_SHIFT) | \
                                (ADC_SMPR_DEFAULT << ADC_SMPR2_SMP2_SHIFT) | \
@@ -154,8 +158,8 @@
 //  * Private Data
 //  ************************************************************************************/
 // From data sheet - GPIO to ADC1 channel input map
-// Entries represent the STM32F7's valid GPIOs the can be used for ADC1 or
-// ADC2. ADC3 has a few others that we'll ignore them for now.
+// Entries represent the STM32F7's valid GPIOs that can be used for ADC1 or
+// ADC2. ADC3 has a few others that we'll ignore for now.
 // The following values are matched to those supplied by the caller, but here
 // the position (0-16) defines the ADC multiplex position of the switch (see
 // Ref Man Figure 71). Other values are not used.
@@ -255,33 +259,33 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
 #if defined CONFIG_ADC_TESTS
   if(status == 0)
   {
-    syslog(2, "DMA ISR No Interrupts\n");
+    syslog(LOG_MTEST, "DMA ISR No Interrupts\n");
     return;
   }
   // Bit 0: Stream FIFO error interrupt flag
   if((status & DMA_STREAM_FEIF_BIT) != 0)
   {
-    syslog(2, "DMA ISR reason:FIFO error\n");
+    syslog(LOG_MTEST, "DMA ISR reason:FIFO error\n");
   }
 
   // Bit 2: Stream direct mode error interrupt flag
   if((status & DMA_STREAM_DMEIF_BIT) != 0)
   {
-    syslog(2, "DMA ISR reason:direct mode error\n");
+    syslog(LOG_MTEST, "DMA ISR reason:direct mode error\n");
   }
 
   // Bit 3: Stream Transfer Error flag
   if((status & DMA_STREAM_TEIF_BIT) != 0)
   {
     // CTEIF
-    syslog(2, "DMA ISR reason:Transfer Error\n");
+    syslog(LOG_MTEST, "DMA ISR reason:Transfer Error\n");
   }
   
   //------------------------------------------------------
   // Stream Half Transfer flag
   if((status & DMA_STREAM_HTIF_BIT) != 0)
   {
-    // syslog(2, "DMA ISR reason:Half Transfer\n");
+    // syslog(LOG_MTEST, "DMA ISR reason:Half Transfer\n");
   }
 #endif
 
@@ -290,7 +294,7 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
   if((status & DMA_STREAM_TCIF_BIT) != 0)
   {
 #if defined CONFIG_ADC_TESTS
-    syslog(2, "DMA ISR reason:Transfer Complete\n");
+    syslog(LOG_MTEST, "DMA ISR reason:Transfer Complete\n");
 #endif
 
     // The following test code toggles a GPIO output to cause an ADC analog
@@ -318,7 +322,7 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
       else
         _previousA00High = true;    // Was Low, now high
 
-      // syslog(2, "DMA:Transfer complete - setting GPIO LOW\n");
+      // syslog(LOG_MTEST, "DMA:Transfer complete - setting GPIO LOW\n");
       stm32_gpiowrite(ADC_TEST_PIN_CCM_D03_PB8, false);
     }
     else
@@ -329,7 +333,7 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
       else
          _previousA00High = false;   // Was high, now low
 
-      // syslog(2, "DMA:Transfer complete - setting GPIO HIGH\n");
+      // syslog(LOG_MTEST, "DMA:Transfer complete - setting GPIO HIGH\n");
       stm32_gpiowrite(ADC_TEST_PIN_CCM_D03_PB8, true);
    }
 #endif
@@ -337,9 +341,9 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
     // DMA2's SxCR register's will need to be re-enabled after each
     // conversion. This is because it's cleared whenever an a DMA transfer
     // has been completed.
-    regval  = getreg32(STM32_DMA2_S0CR);
+    regval  = getreg32(STM32_DMA2_S4CR);
     regval |= DMA_SCR_EN;
-    putreg32(regval, STM32_DMA2_S0CR);
+    putreg32(regval, STM32_DMA2_S4CR);
 
     // From Ref Man 15.8.1
     // At the end of the last DMA transfer (number of transfers configured in the
@@ -382,13 +386,13 @@ static int meadow_adc_conversion_isr(int irq, FAR void *context,
 #if defined CONFIG_ADC_TESTS
   if(adcStatusReg == 0)
   {
-    syslog(2, "-- ADC ISR-NO Interrupts --\n");
+    syslog(LOG_MTEST, "-- ADC ISR-NO Interrupts --\n");
     return OK;
   }
 
   if ((adcStatusReg & ADC_SR_AWD) != 0)
   {
-    syslog(2, "-- ADC ISR-WatchDog --\n");
+    syslog(LOG_MTEST, "-- ADC ISR-WatchDog --\n");
   }
 
   if ((adcStatusReg & ADC_SR_OVR) != 0)
@@ -403,14 +407,14 @@ static int meadow_adc_conversion_isr(int irq, FAR void *context,
     //    This is ADC
     // 3. Trigger the ADC to start the conversion (below)
     //    This is ADC
-    syslog(2, "-- ADC ISR-Over Run --\n");
+    syslog(LOG_MTEST, "-- ADC ISR-Over Run --\n");
   }
 
   // End of conversion
   // With DMA there is no End Of Conversion
   if ((adcStatusReg & ADC_SR_EOC) != 0)
   {
-    syslog(2, "-- ADC ISR-End of Conversion --\n");
+    syslog(LOG_MTEST, "-- ADC ISR-End of Conversion --\n");
   }
 #endif
 
@@ -444,29 +448,29 @@ static void meadow_adc_buffer_takesem(sem_t *semaphore)
 // Only for TESTING
 static void adc_test_display_basic_adc_regs(uint32_t baseADCAddr)
 {
-  syslog(2, "SR:  0x%08x CR1:  0x%08x CR2:  0x%08x\n",
+  syslog(LOG_MTEST, "SR:  0x%08x CR1:  0x%08x CR2:  0x%08x\n",
         getreg32(baseADCAddr + STM32_ADC_SR_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_CR1_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_CR2_OFFSET));
 
-  syslog(2, "SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
+  syslog(LOG_MTEST, "SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
         getreg32(baseADCAddr + STM32_ADC_SQR1_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_SQR2_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_SQR3_OFFSET));
 
-  syslog(2, "CCR:  0x%08x\n", getreg32(STM32_ADC_CCR));
+  syslog(LOG_MTEST, "CCR:  0x%08x\n", getreg32(STM32_ADC_CCR));
 }
 
 static void adc_test_display_basic_dma_regs(void)
 {
-  syslog(2, "S0CR:  0x%08x  S0NDTR: 0x%08x\n",
-        getreg32(STM32_DMA2_S0CR),
-        getreg32(STM32_DMA2_S0NDTR));
+  syslog(LOG_MTEST, "S0CR:  0x%08x  S0NDTR: 0x%08x\n",
+        getreg32(STM32_DMA2_S4CR),
+        getreg32(STM32_DMA2_S4NDTR));
 
-  syslog(2, "S0PAR: 0x%08x  S0M0AR: 0x%08x S0M1AR: 0x%08x\n",
-        getreg32(STM32_DMA2_S0PAR),
-        getreg32(STM32_DMA2_S0M0AR),
-        getreg32(STM32_DMA2_S0M1AR));
+  syslog(LOG_MTEST, "S0PAR: 0x%08x  S0M0AR: 0x%08x S0M1AR: 0x%08x\n",
+        getreg32(STM32_DMA2_S4PAR),
+        getreg32(STM32_DMA2_S4M0AR),
+        getreg32(STM32_DMA2_S4M1AR));
 }
 #endif
 
@@ -891,9 +895,9 @@ void meadow_adc_restart(void)
   uint32_t regval;
 
   // Enable DMA
-  regval  = getreg32(STM32_DMA2_S0CR);
+  regval  = getreg32(STM32_DMA2_S4CR);
   regval |= DMA_SCR_EN;
-  putreg32(regval, STM32_DMA2_S0CR);
+  putreg32(regval, STM32_DMA2_S4CR);
 
   // Start the ADC conversion
   regval  = getreg32(STM32_ADC1_BASE + STM32_ADC_CR2_OFFSET);
@@ -914,12 +918,11 @@ void meadow_adc_initialize(uint16_t *dmaAdcBuf, uint32_t userGpioXferCount)
     stm32_dmafree(_dmaHandle); 
   }
 
-  // Using Nuttx DMA to handle ADC DMA. Because of our SDCard implementation
-  // uses SDMMC2 which uses the other ADC DMA2 channel.
-  _dmaHandle = stm32_dmachannel(DMAMAP_ADC1_1);
+  // Using Nuttx DMA for ADC DMA.
+  _dmaHandle = stm32_dmachannel(ADC1_DMA_CHAN);
 
   // Configure the DMA SCR (Stream Control Register) values
-  regval = getreg32(STM32_DMA2_S0CR);
+  regval = getreg32(STM32_DMA2_S4CR);
   regval |=  DMA_SCR_MSIZE_16BITS;  // Size of memory transfer
   regval |= DMA_SCR_PSIZE_16BITS;   // Size of peripheral transfer
   // Memory increment mode. 0=mem addr is fixed, 1=mem addr increments
@@ -950,7 +953,7 @@ int meadow_adc_hardware_initialize(void)
   int ret;
 
 #if defined CONFIG_ADC_TESTS
-  syslog(2, "Entered meadow_adc_hardware_initialize()\n");
+  syslog(LOG_MTEST, "Entered meadow_adc_hardware_initialize()\n");
 #endif
 
   if(_hardwareConfigDone)
@@ -997,7 +1000,7 @@ int meadow_adc_hardware_initialize(void)
   }
 
 #if defined CONFIG_ADC_TESTS
-  // syslog(2, "Post hardware configuration register values:\n");
+  // syslog(LOG_MTEST, "Post hardware configuration register values:\n");
   // adc_test_display_basic_adc_regs(STM32_ADC1_BASE);
   // adc_test_display_basic_dma_regs();
 #endif
@@ -1091,7 +1094,7 @@ int meadow_adc_free_configuration_resources()
  * Public Functions
  ************************************************************************************/
 // This function can handle as few as 1 GPIO and as many as 16 GPIOs. It is
-// called for GPIO initialization. And if the gpioCount -s 0 it will release
+// called for GPIO initialization. And if the gpioCount is 0 it will release
 // any resources that have been claimed by an earlier configuration.
 // For VBat and Temperature values. A part of the configuration is needed for
 // both. This is not duplicated here.
@@ -1103,8 +1106,10 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   uint32_t mapOff = 0;
 
 #if defined CONFIG_ADC_TESTS
-  syslog(2, "Entry meadow_adc_configure() gpioCount:%lu, resultBuffer:%p\n",
+  syslog(LOG_MTEST, "Entry meadow_adc_configure() gpioCount:%lu, resultBuffer:%p\n",
             gpioCount, resultBuffer);
+
+  // Show register values
   adc_test_display_basic_adc_regs(STM32_ADC1_BASE);
   adc_test_display_basic_dma_regs();
 #endif
@@ -1194,7 +1199,7 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   _isMeadowAdcInitialized = true;
 
 #if defined CONFIG_ADC_TESTS
-  syslog(2, "Exit meadow_adc_configure()\n");
+  syslog(LOG_MTEST, "Exit meadow_adc_configure()\n");
   adc_test_display_basic_adc_regs(STM32_ADC1_BASE);
   adc_test_display_basic_dma_regs();
 #endif

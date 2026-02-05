@@ -45,7 +45,7 @@
 #include <errno.h>
 #include <debug.h>
 #include <sys/types.h>
-
+#include <meadow/hcom_shared_common.h>
 #include <ctype.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/kthread.h>
@@ -68,7 +68,7 @@
 #endif
 
 /****************************************************************************
- * Local type defintions.
+ * Local type definitions.
  ****************************************************************************/
 
 struct lps_configuration_s
@@ -207,6 +207,11 @@ static void lps_unlock(void)
  ****************************************************************************/
 static int lps_daemon(int argc, char **argv)
 {
+#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+    syslog(LOG_MDIAG, "New kthread [PID:%d],'%s'\n",
+        getpid(), LSPDAEMON_THREAD_NAME);
+#endif
+
     lps_lock();
     uint32_t period = lps_configuration.period;
     lps_unlock();
@@ -253,7 +258,7 @@ static int lps_daemon(int argc, char **argv)
  *  None
  *
  ****************************************************************************/
-static int lps_start(void)
+int lps_start(void)
 {
     int result = OK;
     //

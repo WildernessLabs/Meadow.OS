@@ -148,6 +148,8 @@ extern "C"
 
   // HCOM command handling on the Nuttx kernel side
   int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_profiler_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_profiler_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
 
   // External flash
   int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd);
@@ -158,6 +160,7 @@ extern "C"
   int hcom_nx_exec_ex_flash_OS_update_flash1(void);
   int hcom_nx_exec_ex_flash_OS_update_flash2(void);
   uint32_t hcom_nx_exec_ex_flash_get_block_size(void);
+  uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
   int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *);
   int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destinationAddress);
   int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, off_t offset);
@@ -167,9 +170,6 @@ extern "C"
   uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
   int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
   int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data);
-  uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
-  uint32_t hcom_nx_exec_ex_flash_persistent_data_location(void);
-  int flash_file(const char *path, off_t size, off_t offset);
   #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
   void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd);
   #endif
@@ -177,10 +177,8 @@ extern "C"
   // Syslog tracing
   int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData);
   int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_trace_do_not_send_to_uart1(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_trace_forward_to_uart1(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_profiler_forward_to_uart1(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_profiler_do_not_send_to_uart1(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_trace_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
+  int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
 #if defined (CONFIG_RAMLOG_SYSLOG)
   int hcom_nx_trace_msg_proc_setup(void);
   int hcom_nx_trace_msg_mono_started(void);

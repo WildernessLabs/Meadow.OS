@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs\stm32f777zit6-meadow\src\kerneltests\ana_to_dig_conv_tests.c
  * 
- *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2023, 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,7 +55,7 @@
 #include <meadow/meadow_syscall_support.h>
 #include "hcom_nx/hcom_nx_common.h"
 
-#if defined (CONFIG_ADC_TESTS)
+#if defined (CONFIG_ADC_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
 
 #pragma message "(--) ana_to_dig_conv_tests.c included"
 
@@ -137,41 +137,47 @@ void meadow_kt_adc_tests(uint32_t userData)
 
   _userData = userData;
 
-  syslog(2, "%s@%d-Entered meadow_kt_adc_tests, userData:%lu\n", __FILE__, __LINE__, userData);
+  syslog(LOG_MTEST, "%s@%d-Entered meadow_kt_adc_tests, userData:%lu\n",
+    __FILE__, __LINE__, userData);
   usleep(20 * 1000);
   
   switch(userData)
   {
     case configure0Gpio:
       // Initialize test code
-      syslog(2, "--------------- configure-0-Gpio ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- configure-0-Gpio ---------------\n");
+      usleep(20 * 1000);
       adc_test_initialize(0);
       _numbGpioActive = 0;
       break;
 
     case configure1Gpio:
       // Initialize test code
-      syslog(2, "--------------- configure-1-Gpio ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- configure-1-Gpio ---------------\n");
+      usleep(20 * 1000);
       adc_test_initialize(1);
       _numbGpioActive = 1;
       break;
     case configure8Gpio:
       // Initialize test code
-      syslog(2, "--------------- configure-8-Gpio ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- configure-8-Gpio ---------------\n");
+      usleep(20 * 1000);
       adc_test_initialize(8);
       _numbGpioActive = 8;
       break;
 
     case configure16Gpio:
       // Initialize test code
-      syslog(2, "--------------- configure-16-Gpio ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- configure-16-Gpio ---------------\n");
+      usleep(20 * 1000);
       adc_test_initialize(ADC_TESTS_MAX_GPIO_COUNT);
       _numbGpioActive = ADC_TESTS_MAX_GPIO_COUNT;
       break;
 
       // Read the data here after configuring
     case readGpioAnaOnce:
-      syslog(2, "--------------- readGpioAnaOnce ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- readGpioAnaOnce ---------------\n");
+      usleep(20 * 1000);
       ret = meadow_adc_read_values();
       if(ret < 0)
       {
@@ -182,30 +188,34 @@ void meadow_kt_adc_tests(uint32_t userData)
       break;
 
     case readTempBatOnce:
-      syslog(2, "--------------- readTempBatOnce ---------------\n");
+      syslog(LOG_MTEST, "--------------- readTempBatOnce ---------------\n");
       // Read the internal values of battery and temperature once
       ret = meadow_adc_read_temp_vbat(&batteryVoltage, &temperatureValue);
       if(ret < 0)
       {
         syslog(LOG_ERR, "Error:Internal vbat and temp conversion, ret:%d\n", ret);
       }
-      syslog(2, "TestApp:Vbat:%.3f, Temp:%.3f\n", batteryVoltage, temperatureValue);
+      syslog(LOG_MTEST, "TestApp:Vbat:%.3f, Temp:%.3f\n",
+        batteryVoltage, temperatureValue);
       break;
     
     case readGpioAnaOften:
-      syslog(2, "--------------- readGpioAnaOften ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- readGpioAnaOften ---------------\n");
+      usleep(20 * 1000);
       // Create a thread to test standard GPIO ADC operation often
       adc_test_create_testing_thread();
       break;
 
     case readTempBatOften:
-      syslog(2, "--------------- readTempBatOften ---------------\n");usleep(20 * 1000);
+      syslog(LOG_MTEST, "--------------- readTempBatOften ---------------\n");
+      usleep(20 * 1000);
       // Create a thread to test getting temperature & Vbat often
      adc_test_create_testing_thread();
       break;
 
     default:
-      syslog(2, "Undefined test for meadow_kt_adc_tests, userData:%lu\n", userData);
+      syslog(LOG_MTEST, "Undefined test for meadow_kt_adc_tests, userData:%lu\n",
+        userData);
       break;
   }
 }
@@ -220,13 +230,14 @@ void adc_test_initialize(uint32_t numberGpio)
   int ret;
   uint8_t gpioList[ADC_TESTS_MAX_GPIO_COUNT];   // Might as well prepare for max
 
-  syslog(2, "--> Entered adc_test_initialize()\n"); usleep(20 * 1000);
+  syslog(LOG_MTEST, "--> Entered adc_test_initialize()\n");
+  usleep(20 * 1000);
 
   // To test need to prepare a few things
   // A list of input points. Note points can be used more than once
 
-  // These need to be configured here for testing, but not for non-testing
-  // they'll be configured by Meadow.Core
+  // These need to be configured here for testing, but only for testing.
+  // For normal operation, they'll be configured by Meadow.Core
   stm32_configgpio(GPIO_V2_A00_IN4_PA4);
   stm32_configgpio(GPIO_V2_A01_IN5_PA5);
   stm32_configgpio(GPIO_V2_A02_IN3_PA3);
@@ -235,8 +246,9 @@ void adc_test_initialize(uint32_t numberGpio)
   stm32_configgpio(GPIO_V2_A05_IN10_PC0);
 
   // We'll use the first of these based on the ADC_TESTS_MAX_GPIO_COUNT
-  // value. If it is 1 then only used the first entry. It it is 6, we'll use
-  // the first 6 entries. For more than 6 we reuse the previous analog GPIOs
+  // value. If it is 1 then only used the first entry. If it is 6, we'll use
+  // the first 6 entries. For more than 6 we must reuse the previous analog
+  // GPIOs, all the way to 16 entries.
   //
   // The Nuttx GPIO Config holds the Port in bits 7:4 and the Pin in bits 3:0
   // this is all we need to setup the ADC
@@ -261,15 +273,15 @@ void adc_test_initialize(uint32_t numberGpio)
   gpioList[14] = GPIO_V2_A02_IN3_PA3  & 0x000000ff;
   gpioList[15] = GPIO_V2_A03_IN8_PB0  & 0x000000ff;
 
-  // syslog(2, "----- gpioList contains -----\n");
+  // syslog(LOG_MTEST, "----- gpioList contains -----\n");
   // hcom_nx_diag_print_buffer(gpioList, 16, 1);
   
   // Calling configuration API to set things up
   ret = meadow_adc_configure(gpioList, numberGpio, _voltageResultBuf);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:meadow_adc_configure() returned:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
+    syslog(LOG_MTEST, "%s@%d-Error:meadow_adc_configure() returned:%d, errno:%d\n",
+      __FILE__, __LINE__, ret, errno);
     usleep(20 * 1000);
   }
 }
@@ -325,10 +337,16 @@ void *adc_test_kthread_func(int argc, char *argv[])
       ret =  meadow_adc_read_temp_vbat(&batteryVoltage, &temperatureValue);
       if(ret < 0)
       {
-        syslog(LOG_ERR, "Error:Internal vbat and temp conversion, ret:%d\n", ret);
+        syslog(LOG_ERR, "Error:Internal vbat and temp conversion, ret:%d\n",
+          ret);
       }
       
-      syslog(2, "TestApp: Vbat:%f, Temp:%f\n", batteryVoltage, temperatureValue);
+      syslog(LOG_MTEST, "TestApp: Vbat:%f, Temp:%f\n",
+        batteryVoltage, temperatureValue);
+    }
+    else
+    {
+      syslog(LOG_MTEST, "ADC Test Thread should not be running\n");
     }
 
     // Just keep looping
@@ -385,7 +403,7 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
     }
 
     // Display this line of text
-    syslog(2, "%s:%s\n", headerText, lineBuff);
+    syslog(LOG_MTEST, "%s:%s\n", headerText, lineBuff);
 
     // Line by line show entire buffer
   } while (remainingElements > 0);
