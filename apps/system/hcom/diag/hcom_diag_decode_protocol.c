@@ -1,7 +1,7 @@
 /****************************************************************************
  * apps\examples\hcom\diag\hcom_diag_decode_protocol.c
  * 
- *   Copyright (C) 2021-2023 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2021-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,21 +63,25 @@ char *hcom_diag_find_host_request_type(uint16_t hostRqstType);
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Takes a hcom message and outputs a string containing the header information
-void hcom_diag_decode_data_packet_type(size_t decodedSize)
+// This is called when a data packet is received from CLI. Only the size is
+// shown because of the impact of output putting all of the data in hex.
+void hcom_diag_decode_data_packet_type(decodedSize)
 {
-  syslog(2, "---------- Meadow Data (%d bytes) ----------\n", decodedSize);
+  syslog(LOG_MDIAG, "---------- Meadow Data (%d bytes) ----------\n",
+    decodedSize);
 }
 
+//===========================================================================
+// Decode and display message received from CLI
 // Takes a hcom message and outputs a string containing the header information
 void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t packetSize)
 {
-  syslog(2, "-------------- Meadow Received ---------------\n");
+  syslog(LOG_MDIAG, "-------------- Meadow Received ---------------\n");
 
   uint16_t rqstType = hdrMsg->stdHeader.rqstType;
   char *requestStr = hcom_diag_find_meadow_request_type(rqstType);
-  syslog(2, "Received '%s' (0x%04x) %u bytes\n", requestStr,
+  syslog(LOG_MDIAG, "Received '%s' (0x%04x) %u bytes\n", requestStr,
             rqstType, packetSize);
   hcom_diag_print_buffer((const uint8_t *)hdrMsg, packetSize, 1);
 }
@@ -143,6 +147,7 @@ char *hcom_diag_find_meadow_request_type(uint16_t rqstType)
 }
 
 //======================================================================
+// Decode and display message set to CLI
 void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
           const uint16_t hostRqstType, const size_t packetSize)
 {
@@ -162,27 +167,23 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
       HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE) &&
       (packetSize > HCOM_PROTOCOL_STD_HDR_SIZE))
   {
-    // This looks to be a text type message. It's length indicates it does contain
-    // text
-#if (1)
-    // Display the whole message
-    int textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
-#else
-    // Only show the first few characters of the text
+    // This looks to be a text message. It's length indicates it does contain
+    // text.
     int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
     if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
       textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
-#endif
-    syslog(2, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
+
+    syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
           requestStr, hostRqstType, packetSize, textLen, 
           hostRawMsg + HCOM_PROTOCOL_STD_HDR_SIZE);
   }
   else
   {
     // No text
-    syslog(2, "->Sending %s (0x%04x) %03u bytes\n",
+    syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes\n",
           requestStr, hostRqstType, packetSize);
   }
+
 
   hcom_diag_print_buffer(hostRawMsg, packetSize, 1);
 }

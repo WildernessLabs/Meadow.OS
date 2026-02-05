@@ -42,7 +42,7 @@ yaml_get_version(int *major, int *minor, int *patch)
 YAML_DECLARE(void *)
 yaml_malloc(size_t size)
 {
-    void *result = (void *) kmm_malloc(size ? size : 1);
+    void *result = (void *) kmm_zalloc(size ? size : 1);
 
     MEADOW_TRACE_INFORMATION("Allocated %d bytes at address %p\n", size, result);
     return(result);

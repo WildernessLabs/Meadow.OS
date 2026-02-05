@@ -36,6 +36,7 @@
 #define __CONFIGS_MEADOW_SRC_HCOM_NX_CONFIG_MANAGER__H
 
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_unit_test_framework.h>
 #include "../libcyaml/cyaml.h"
 #include "../espcp/espcp_encoders.h"
 
@@ -44,7 +45,7 @@
  ****************************************************************************/
 
 //
-//  These defintions are determined by the ESP32.
+//  These definitions are determined by the ESP32.
 //
 #define MAXIMUM_SSID_LENGTH 32
 #define MAXIMUM_PASSWORD_LENGTH 64
@@ -60,6 +61,24 @@
 #define MAXIMUM_TURN_ON_PIN_LENGTH 8
 #define MAXIMUM_USER_LENGTH 64
 #define MAXIMUM_MODE_LENGTH 32
+
+/**
+ * @brief Name of the unit test configuration file.
+ */
+#define UNIT_TEST_CONFIGURATION_FILE_NAME "/meadow0/unittest.config.yaml"
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+* Public Data
+****************************************************************************/
+
+/**
+ * @brief Pointer to the unit test configuration structure.
+ */
+extern unit_tests_configuration_t *unit_tests_configuration;
 
 /****************************************************************************
  * Enums.
@@ -123,4 +142,6 @@ void hcom_nx_config_add_dns_address_into_file(uint32_t);
 void hcom_nx_config_update_network_interface(meadow_configuration_t *, uint32_t, uint32_t, uint32_t);
 void hcom_nx_config_update_dns_address(meadow_configuration_t *, uint32_t);
 void hcom_nx_config_clear_network_interface(meadow_configuration_t *);
+unit_tests_configuration_t *process_unit_tests_configuration_file(void);
+
 #endif // __CONFIGS_MEADOW_SRC_HCOM_NX_CONFIG_MANAGER__H

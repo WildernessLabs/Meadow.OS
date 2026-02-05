@@ -42,10 +42,7 @@
 #include <meadow/hcom_shared_common.h>
 
 // Only build if configured
-#if defined(CONFIG_QUICK_MISC_TESTS)
-
-#include <meadow/meadow_kernel_tests.h>
-
+#if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) quick_misc_tests.c"
 
 // Diagnostic always as this is test code
@@ -76,8 +73,8 @@
 // set developer -p 10 come here
 void meadow_kt_quick_misc_tests(uint32_t userData)
 {
-  syslog(2, "Quick and Misc tests received 'set developer -p 10 -v %lu'.\n",
-            userData);
+  syslog(LOG_MTEST, "Quick and Misc tests received 'set developer -p 10 -v %lu'.\n",
+    userData);
 
   switch(userData)
   {
@@ -95,8 +92,9 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 
 #endif
     default:
-      syslog(2, "Undefined test in meadow_kt_quick_misc_tests, userData:%lu\n",
-                userData);
+      syslog(LOG_MTEST,
+        "Undefined test for meadow_kt_quick_misc_tests, userData:%lu. NO TEST DEFINED\n",
+        userData);
       break;
   }
 }

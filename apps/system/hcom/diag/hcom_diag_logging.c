@@ -157,9 +157,9 @@ int hcom_logging_syslog_mask_init()
   char *traceCombo[] = {
     "none",
     "Host",
-    "UART1",
-    "Host+UART1"};
-  uint32_t destValue = hcom_bbreg_read_bbr_and_right_justify(HCOM_BBREG_TRACE_MSG_TO_HOST_AND_UART1_BIT_MASK);
+    "UART",
+    "Host+UART"};
+  uint32_t destValue = hcom_bbreg_read_bbr_and_right_justify(HCOM_BBREG_TRACE_MSG_TO_HOST_AND_UART_BIT_MASK);
   char *traceDest = traceCombo[destValue];
 #else
   char *traceDest = "unknown";
@@ -226,7 +226,7 @@ void hcom_diag_logging_change_trace_level(uint32_t userData)
       break;
   }
 
-#if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART1 > 0
+#if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART > 0
   newSyslogMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO);
 #endif
 
@@ -408,6 +408,11 @@ void hcom_logging_syslog(int priority, FAR const IPTR char *fmt, ...)
   va_start(args, fmt);
   int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, _f7syslogTextBuf,
             HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+  if(stringLen == -ENOMEM)
+  {
+    return;
+  }
+
   va_end(args);  
 
   // Depending on the nuttx configuration these messages may go to the
@@ -460,25 +465,29 @@ void hcom_logging_safe_ramlog(int priority, FAR const IPTR char *fmt,
   if ((_syslogMask & LOG_MASK(priority)) == 0)
     return;   // Nothing to do
   
-  char *_safeRamlogText;
-  _safeRamlogText = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(_safeRamlogText == NULL)
+  char *safeRamlogText;
+  safeRamlogText = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+  if(safeRamlogText == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return;
   }
 
-  int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, _safeRamlogText,
+  int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, safeRamlogText,
             HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+  if(stringLen == -ENOMEM)
+  {
+    return;
+  }
 
   // Note: no time stamp to these messages
-  if(_safeRamlogText[stringLen - 1] == 0x0a || _safeRamlogText[stringLen - 1] == 0x0d)
+  if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
     stringLen--;
-  if(_safeRamlogText[stringLen - 1] == 0x0a || _safeRamlogText[stringLen - 1] == 0x0d)
+  if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
     stringLen--;
 
-  hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, _safeRamlogText,
+  hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, safeRamlogText,
           stringLen, thisFile, __LINE__);
-  free(_safeRamlogText);
+  free(safeRamlogText);
 }
 #endif

@@ -84,10 +84,11 @@ enum hcom_file_msg_cat_e
   pathnameSingleSlash     = 7,    // Starts with '/' or '/dev' (see below)
   pathnameSlashSlash      = 8     // Starts with '/anytext/'   (see below)
 
-  // The following 2 path names ('/' and '/anytext/') where originally thought to
-  // be needed, but are not categorized as error conditions. This means that only
-  // '/meadow0' and /sdcard' are accessible to the HCOM user.
-
+  // The following 2 path names ('/' and '/text/') where originally thought to
+  // be needed, but have been removed. This means that only '/meadow0' and
+  // /sdcard' are accessible to the HCOM user.
+  // e.g. '/' for file list to examine items from the root which are
+  // not '/meadow0/ or /sdcard/ (e.g. to find /dev).
   // pathnameSingleSlash     = 6,    // Just '/' for file list at the root
   // e.g. '/' for file list to examine items from the root, and not restricted
   // to '/meadow0/' or '/sdcard/' (e.g. '/' or '/dev').
@@ -106,8 +107,8 @@ struct hcom_dnld_shared_s
   // These are completely managed by file handling code
   uint32_t dnldInitFileCrc;             // CRC that was received from CLI
   uint32_t dnldCalcFileCrc;             // CRC calculated over while receiving
-  uint32_t dnldInitFileSize;            // File size based on received CLI data
-  uint32_t dnldCalcFileSize;            // This size calculated while receiving
+  uint32_t dnldTotalFileSize;           // File size based on received CLI data
+  uint32_t dnldRecvdFileSize;           // This size calculated while receiving
   uint32_t dnldPathNameEleCount;        // Number of elements in pathname
   enum hcom_file_msg_cat_e dnldRqstCat; // Category of file rqst did CLI make?
   int dnldFileFD;                       // For persisting fd

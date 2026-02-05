@@ -37,11 +37,14 @@
 #include <sys/types.h>
 
 #include <nuttx/kthread.h>
+#include <nuttx/wqueue.h>
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 #include "espcp_event_handlers.h"
 #include "../espcp/espcp_system.h"
 #include "espcp_coprocessor.h"
+#include "espcp_message_dispatcher.h"
+#include "espcp_core_dump.h"
 #include "generic_list.h"
 #include "../ntpclient/meadow_ntpclient.h"
 #include "../ethernet/meadow_ethnet_local.h"
@@ -50,13 +53,19 @@
 #include <meadow/meadow_thread_config.h>
 #include <meadow/meadow_client_cert.h>
 
-// #define USE_MEADOW_DEBUG_HELPERS
+/****************************************************************************
+ * Uncomment the #define below to turn on debug help macros.
+ ****************************************************************************/
+ // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 /****************************************************************************
  * Definitions
  ****************************************************************************/
 
+/**
+ * @brief Marker to indicate that there are no more event handlers.
+ */
 #define END_OF_HANDLERS_VALUE       0xffffffff
 
 /****************************************************************************
@@ -142,6 +151,11 @@ static void *espcp_event_handler_thread(int argc, char *argv[])
 static void *espcp_event_handler_thread(void *parameters)
 #endif
 {
+#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+  syslog(LOG_MDIAG, "New kthread [PID:%d],'%s'\n",
+    getpid(), ESPCP_EVENT_HANDLER_THREAD_NAME);
+#endif
+
 #ifdef CONFIG_BUILD_PROTECTED
     espcp_config_lock();
     espcp_configuration_t *configuration = espcp_get_configuration();
@@ -491,6 +505,10 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
         }
     }
     espcp_delete_message_and_payload(message);
+
+    memset(&g_core_dump_work_struct, 0, sizeof(g_core_dump_work_struct));
+    int __attribute__((unused)) result = work_queue(USRWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
+    MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
 
     int ret = meadow_client_cert_initialize();
     if (ret < 0)

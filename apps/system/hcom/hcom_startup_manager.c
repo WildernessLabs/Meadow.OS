@@ -126,11 +126,12 @@ int hcom_main(int argc, char *argv[])
   int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
+  syslog(LOG_MDIAG, "Nuttx startup pthread [PID:%ld] hcom_main()\n", getpid());
+  usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 1\n"); usleep(10 * 1000);
+  syslog(LOG_MDIAG, "Startup Manager 1\n"); usleep(10 * 1000);
 #endif
 
   // To better control the startup sequence a semaphore is used.
@@ -142,6 +143,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   // Special non-standard nuttx function required for signaling semaphores
   sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
 
+  #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
   //
   //  We take a copy of the config and set and application global variables first
   //  to make them available to the various components that need them.  Doing this
@@ -158,6 +160,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
   #endif
   meadow_os_config_free_resources(config);
+#endif
 
   // Allocates memory for moving reading ramlog. Nothing to wait for.
   ret = hcom_diag_logging_setup();
@@ -168,7 +171,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 2\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Startup Manager 2\n"); usleep(20 * 1000);
 #endif
 
   // Note: This needs to be early because all battery backed register
@@ -182,7 +185,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 4\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 4\n"); usleep(20 * 1000);
 #endif
 
   // MEADOW.OS REBASE Note: This feature is only available on the apps side. To make it
@@ -200,7 +203,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 5\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 5\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -212,7 +215,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 7\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 7\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -240,7 +243,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
   
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 8\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 8\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -252,7 +255,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 9\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 9\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -272,7 +275,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 10\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 10\n"); usleep(20 * 1000);
 #endif
 
   // Sets internal variable state
@@ -284,8 +287,9 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 11\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 11\n"); usleep(20 * 1000);
 #endif
+
   // Allocates memory and sets a few internal variable states
   ret = hcom_file_write_setup();
   if (ret < 0)
@@ -295,7 +299,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 12\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 12\n"); usleep(20 * 1000);
 #endif
 
   // Allocates memory and initializes hcom circular buffer
@@ -307,7 +311,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 13\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 13\n"); usleep(20 * 1000);
 #endif
 
   // Sets one variable
@@ -319,7 +323,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 14\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 14\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
@@ -339,7 +343,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 16\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 16\n"); usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
@@ -353,7 +357,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 17\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 17\n"); usleep(20 * 1000);
 #endif
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
@@ -367,7 +371,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 18\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 18\n"); usleep(20 * 1000);
 #endif
   // Allocates memory and sets some internal variables
   ret = hcom_host_send_setup();
@@ -378,7 +382,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 19\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 19\n"); usleep(20 * 1000);
 #endif
 
   // Creates a thread to run hcom USB serial receive
@@ -396,7 +400,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 20\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 20\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting syslog messages to CLI. But, only if BBR requests it.
@@ -408,7 +412,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 21\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 21\n"); usleep(20 * 1000);
 #endif
 
   // This is for transporting text messages to Host.
@@ -420,7 +424,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 22\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 22\n"); usleep(20 * 1000);
 #endif
 
   // Minor setup, configures blue led as output
@@ -432,7 +436,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 23\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 23\n"); usleep(20 * 1000);
 #endif
 
   // Open ESP32 events message queue on user space side
@@ -444,6 +448,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
   app_update();
   firmware_update();
 #endif
+
 // MEADOW.OS REBASE the 3 lines above caused the following build errors:
 //
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':
@@ -477,7 +482,7 @@ syslog(2, "hcom_main() running\n"); usleep(10 * 1000);
 // MEADOW.OS REBASE the above not useable without previous code
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(2, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);
 #endif
 
   // This startup thread was created by Nuttx. It will now be used to run the

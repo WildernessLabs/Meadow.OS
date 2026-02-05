@@ -72,7 +72,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate
         syslog(LOG_INFO, "Storing client certificate length: %d\nContent: %s\n", client_cert_len, client_cert);
-        ret = espcp_file_system_write_file(CLIENT_CERT_FILE, (uint8_t *)client_cert, client_cert_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_FILE, (uint8_t *) client_cert, client_cert_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
@@ -115,7 +115,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate private key
         syslog(LOG_INFO, "Storing private key length: %d\nContent: %s\n", private_key_len, private_key);
-        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_FILE, (uint8_t *)private_key, private_key_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_FILE, (uint8_t *) private_key, private_key_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
@@ -161,7 +161,7 @@ int meadow_client_cert_initialize() {
 
         // Storing client certificate private key passphrase
         syslog(LOG_INFO, "Storing private key passphrase length: %d\nContent: %s\n", private_key_pass_len, private_key_pass);
-        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, (uint8_t *)private_key_pass, private_key_pass_len + 1);
+        ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, (uint8_t *) private_key_pass, private_key_pass_len + 1);
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key passphrase.\n");
@@ -181,15 +181,15 @@ int meadow_client_cert_initialize() {
     return OK;
 }
 
-int meadow_client_cert_retrieve_credentials(uint8_t **client_cert_buf_ptr,
-                    int *client_cert_len, uint8_t **private_key_buf_ptr,
-                    int *private_key_len, uint8_t **private_key_pass_buf_ptr,
+int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
+                    int *client_cert_len, const uint8_t **private_key_buf_ptr,
+                    int *private_key_len, const uint8_t **private_key_pass_buf_ptr,
                     int *private_key_pass_len)
 {
     syslog(LOG_INFO, "Retrieving client cert credentials from ESP32...\n");
 
     int16_t client_cert_length;
-    uint8_t *client_cert_buf = espcp_file_system_read_file(CLIENT_CERT_FILE, &client_cert_length);
+    const uint8_t *client_cert_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_FILE, &client_cert_length);
     if (client_cert_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert\n");
@@ -204,7 +204,7 @@ int meadow_client_cert_retrieve_credentials(uint8_t **client_cert_buf_ptr,
     syslog(LOG_INFO, "Retrieving client cert private key from ESP32...\n");
 
     int16_t private_key_length;
-    uint8_t *private_key_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_FILE, &private_key_length);
+    const uint8_t *private_key_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_FILE, &private_key_length);
     if (private_key_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert private key\n");
@@ -219,7 +219,7 @@ int meadow_client_cert_retrieve_credentials(uint8_t **client_cert_buf_ptr,
     syslog(LOG_INFO,"Retrieving client cert private key pass from ESP32...\n");
 
     int16_t private_key_pass_length;
-    uint8_t *private_key_pass_buf = espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
+    const uint8_t *private_key_pass_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
     if (private_key_pass_buf == NULL)
     {
         syslog(LOG_ERR, "Fail to retrieve client cert private key passphrase\n");
@@ -234,9 +234,9 @@ int meadow_client_cert_retrieve_credentials(uint8_t **client_cert_buf_ptr,
     return OK;
 }
 
-int meadow_client_cert_release_credentials(char **client_cert_buf_ptr,
-                    char **private_key_buf_ptr,
-                    char **private_key_pass_buf_ptr)
+int meadow_client_cert_release_credentials(char ** const client_cert_buf_ptr,
+    char ** const private_key_buf_ptr,
+    char ** const private_key_pass_buf_ptr)
 {
     if (*client_cert_buf_ptr != NULL)
     {

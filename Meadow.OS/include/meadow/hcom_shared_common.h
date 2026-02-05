@@ -106,7 +106,7 @@
 #define MEADOW_CONFIG_DEFAULT_DEVICE_NAME "MeadowF7"
 
 //==================================================
-// Meadow file logging defintions.
+// Meadow file logging definitions.
 #define MEADOW_LOGGING_OS_FILE_NAME    "/meadow0/meadow.log"
 
 #define HCOM_NX_FS_NUTTX_UPDATE_FILENAME "Meadow.OS.Update.bin"
@@ -589,12 +589,12 @@ struct meadow_configuration_s
   int trace_level;
 
   /**
-   *  @brief Should trace output be diverted to UART1?
+   *  @brief Should trace output be diverted to UART?
    */
   uint8_t use_uart1_for_trace;
 
   /**
-   *  @brief Should profiler output be diverted to UART1?
+   *  @brief Should profiler output be diverted to UART?
    */
   uint8_t use_uart1_for_profiling;
 
@@ -733,6 +733,11 @@ struct meadow_configuration_s
    * @brief UDP port to send ESP32 messages to when UDP logging is active.
    */
   uint32_t esp_log_udp_port;
+
+  /**
+   * @brief Should the core dump be retrieved from the ESP32?
+   */
+  bool esp_retrieve_core_dump;
 
   /**
    * @brief MAC address of the board. 
@@ -940,20 +945,28 @@ typedef struct mono_signature_s mono_signature_t;
 // Augments the normal Nuttx LOG_XXXX list
 #define LOG_NONE                         0xff
 
+// Meadow uses these syslog defines when doing diagnostics and testing,
+// since LOG_CRIT will always be output.
+#define LOG_MDIAG                       LOG_CRIT
+#define LOG_MTEST                       LOG_CRIT
+
 // typedef for sending messages to host (e.g. CLI) from nuttx side
 typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
-/* Rebase Note: This infrastructure isn't in place yet. Added to defconfig
+/* Rebase Note: This infrastructure isn't in place yet. Added to defconfig file
   '# CONFIG_HCOM_MONO_STDERR_STDOUT is not set'
-  To prevent runtime errors for code not ready to use yet
+  To prevent runtime errors for code not ready to use this feature.
+
+  Rebase Note: Cloud isn't ready, therefore is set to added to defconfig file
+  '# CONFIG_MEADOW_CLOUD is not set'
+  
 */
 
-// These needed Meadow features can be excluded from a build by
+// This Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
-// To enable/disable stdout and stderr use CONFIG_HCOM_MONO_STDERR_STDOUT
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
@@ -961,17 +974,32 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       0
 
 // When set to 1 the syslog mask is set for all tracing except for
-// debug. At startup syslog messages are routed to UART1 without
+// debug. At startup syslog messages are routed to UART without
 // the need for configuration or the CLI Uart Trace command.
-#define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART1    0
+#define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART     0
+
+// The only valid UART options are 1, 4 or 6. All other value are considered
+// a build error.
+// At this time this #define is only controls code in
+// '/configs/stm32f777zit6-meadow/src/hcom_nx/diag/hcom_nx_trace_msg_proc.c'
+// The default must be maintained as UART 1.
+#define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
+
+// This causes the build to add code that allows a function on the Nuttx
+// side to routed text messages to the user side and be sent to the
+// Host (CLI).
+// Set to 1 to include and 0 to exclude.
+// This should probably be removed as the code is often used by
+// other modules.
+#define HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST     1
 
 // Cause the build to include the ability to print a buffer
 // full of data, showing hex and ascii. Duplicate code is created
 // on both the apps and nuttx side of hcom. On Apps side 
-// hcom_diag_print_buffer on Nuttx hcom_nx_diag_print_buffer
+// 'hcom_diag_print_buffer' on Nuttx 'hcom_nx_diag_print_buffer'
 #define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE           0
  // To output non-null terminated string. This won't work if binary in buffer
- // syslog(2, "%.*s\n", textLen, buffer);
+ // syslog(LOG_XXX, "%.*s\n", textLen, buffer);
 
 // Outputs to syslog the PID of each new thread
 #define HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS    0
@@ -1006,9 +1034,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Include tests related to F7 timers
 #define MEADOW_INCLUDE_TIMER_HARDWARE_TESTS_IN_BUILD  0
 
-// Include a TCP echo server in the build for use with an external TCP client
-#define MEADOW_INCLUDE_ETHERNET_CHAT_TESTS_IN_BUILD   0
-
 // Include in the build code that shows the time being calculated
 // when low-power sleep is requested in seconds.
 #define MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC        0
@@ -1016,9 +1041,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Include the tests code for outputting the current idle percentage
 // via a once / second syslog output message
 #define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD    0
-
-// Build the code for rotary encoder, both runtime and tests.
-#define MEADOW_INCLUDE_CODE_FOR_ROTARY_ENCODER        0
 
 // Test partitioning of 5 MB of external flash
 #define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH  0
@@ -1035,8 +1057,9 @@ void hcom_nx_flash_testing_verify_regions(void);
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
+#if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
 /**
  * @brief Should we copy the application output to the UART (COM1)?
  */
 extern bool g_copy_application_output_to_uart;
+#endif

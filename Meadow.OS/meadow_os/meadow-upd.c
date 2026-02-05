@@ -25,13 +25,15 @@
 #include <nuttx/i2c/i2c_master.h>
 #include <meadow/stm32f777zit6-meadow.h>
 #include "stm32_spi.h"
-#include "arm_internal.h"
+#include "meadow_interrupt.h"
 #include <dirent.h>
+#include "arm_internal.h"
 
 #include <nuttx/timers/timer.h>
 #include <nuttx/timers/watchdog.h>
 #include <sys/ioctl.h>
 #include "stm32_tim.h"
+#include "stm32_i2c.h"
 #include <meadow/meadow-upd.h>
 
 #include <meadow/hcom_shared_common.h>
@@ -41,9 +43,6 @@
 #include "espcp/espcp_common.h"
 #include "espcp/espcp_encoders.h"
 #include "hcom_nx/hcom_nx_config_manager.h"
-#include "stm32_i2c.h"
-
-// #include "pwrmgmt/pwrmgmt_local.h"
 
 /****************************************************************************
  * Private Types
@@ -154,8 +153,6 @@ static int upd_get_set_configuration_value(upd_get_set_configuration_value_t *);
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-mqd_t s_int_queue;
 
 static const struct file_operations g_driver_operations =
 {
@@ -381,7 +378,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
       // in some cases.
       while(numbToSend > 65532)
       {
-        // syslog(2, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
+        // syslog(LOG_MDIAG, "->Send Loop-to send %lu bytes, tx:%p->rx:%p\n",
         //           numbToSend, txTempBuf, rxTempBuf);
         SPI_EXCHANGE(target, txTempBuf, rxTempBuf, 65532);
         if(txTempBuf) txTempBuf += 65532;
@@ -389,7 +386,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
         numbToSend -= 65532;
       }
 
-      // syslog(2, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
+      // syslog(LOG_MDIAG, "->Send Last-%lu bytes, tx:%p->rx:%p\n",
       //             numbToSend, txTempBuf, rxTempBuf);
       SPI_EXCHANGE(target, txTempBuf, rxTempBuf, numbToSend);
     }
@@ -569,33 +566,14 @@ static int upd_handle_pwm(int cmd, unsigned long arg)
   return OK;
 }
 
+// Called from hcom_via_nx_upd_driver_open() in hcom_via_nx_upd_driver_open.c
 static int upd_open(struct file *filep)
 {
-  extern mqd_t s_int_queue;
-  struct mq_attr attr;
-  attr.mq_flags = 0;
-  attr.mq_maxmsg = MINT_MSG_QUEUE_MAX_MSGS;
-  attr.mq_msgsize = MINT_MSG_QUEUE_MSG_SIZE;
-  attr.mq_curmsgs = 0;
-
-  if(s_int_queue == 0)
-  {
-    s_int_queue = mq_open(MINT_MSG_QUEUE_NAME, O_WRONLY | O_CREAT, 0660, &attr);
-    if (s_int_queue == (mqd_t)-1)
-    {
-      int errcode = get_errno();
-      syslog(LOG_ERR, "%s@%d-mq_open failed: %d\n", __FILE__, __LINE__, errcode);
-      return -errcode;
-    }
-  }
   return OK;
 }
 
 static int upd_close(struct file *filep)
 {
-  extern mqd_t s_int_queue;
-  mq_close(s_int_queue);
-
   return OK;
 }
 

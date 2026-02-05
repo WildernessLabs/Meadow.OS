@@ -291,12 +291,18 @@ int meadow_idle_mon_create_test_thread()
 void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
 {
   int idleValue;
-  
+
+#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+  syslog(LOG_MDIAG, "New kthread [PID:%d],'%s'\n",
+    getpid(), "Idle monitor");
+#endif
+
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
   while(true)
   {
     idleValue = meadow_idle_monitor_get_value();
-    MEADOW_TRACE_INFORMATION"MCU Idle percent:%d, snapshot:%d\n", idleValue, _idleCountSnapShot);
+    MEADOW_TRACE_INFORMATION"MCU Idle percent:%d, snapshot:%d\n",
+      idleValue, _idleCountSnapShot);
     sleep(1);
   }
 #endif
