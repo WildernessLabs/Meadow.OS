@@ -1,5 +1,7 @@
 /****************************************************************************
- * netutils/ntpclient/meadow_ntpclient.c
+ * /Meadow.OS/Meadow.OS/ntpclient/meadow_ntpclient.c
+ *
+ *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *
  *   Copyright (C) 2014, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -33,17 +35,18 @@
  *
  ****************************************************************************/
 
-// MEADOW.OS REBASE
-// Renamed from ntpclient.c to meadow_ntpclient.c to get things to build,
-// not sure if this was the only way to fix the build.
-// Note: Nuttx has a ntpclient.c defined in 'apps'
-
 /****************************************************************************
  * 
  * This file is a modified version of the NTPClient application file in the
  * NuttX apps repository.
  * 
+ * This version utilizes the Nuttx low-priority worker queue to periodically
+ * call the NTP server.
+ * 
  ****************************************************************************/
+
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
+// #pragma message "(--) meadow_ntpclient.c"
 
 /****************************************************************************
  * Included Files
@@ -68,14 +71,12 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <nuttx/kthread.h>
-
 #include "meadow_ntpclient.h"
-
 #include "ntpv3.h"
 
 #include "../hcom_nx/hcom_nx_common.h"
+#include <meadow/hcom_nuttx_shared.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
-#include "../misc/long_period_scheduler.h"
 #include "../espcp/espcp_message.h"
 #include "../espcp/espcp_event_handlers.h"
 
@@ -105,6 +106,8 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+static struct work_s ntp_work_queue;
 
 /****************************************************************************
  * Public Functions
@@ -350,7 +353,7 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
     //
     memset(server, 0, sizeof(struct sockaddr_in));
     server->sin_family = AF_INET;
-    server->sin_port = htons(CONFIG_NETUTILS_NTPCLIENT_PORTNO);
+    server->sin_port = htons(CONFIG_MEADOW_NTPCLIENT_PORTNO);
     he = gethostbyname(server_name);
     if ((he != NULL ) && (he->h_addrtype == AF_INET))
     {
@@ -368,17 +371,16 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
 }
 
 /****************************************************************************
- * Name: ntpc_daemon
+ * Name: ntpc_raise_time_changed_event
  *
  * Description:
- *  Implementation of the NTP daemon.  This method should be run in its own
- *  thread.
+ *  Prepares a message for the event to be dispatched.
  * 
  * Input Parameters:
- *  None.
+ *  enum espcp_esp32_interfaces interface.
  *
  * Returned Value:
- *  OK.
+ *  void.
  *
  * Assumptions/Limitations:
  *  None.
@@ -386,10 +388,6 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
  ****************************************************************************/
 void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
 {
-    // MEADOW.OS REBASE - To build ethernet, needed to remove this dependency
-    // on espcp_dispatch_event at least for now.
-
-#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
     espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
     if (message != NULL)
     {
@@ -397,19 +395,19 @@ void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
         message->interface = interface;
         message->function = espcp_wi_fi_function_ntp_update_event;
         message->status_code = espcp_status_codes_completed_ok;
-        espcp_dispatch_event(message);
+        
+        // REBASE NOTE: this call isn't implemented yet
+        // espcp_dispatch_event(message);
+        // syslog(LOG_MDIAG, "Like to call 'espcp_dispatch_event(message)' but, not implemented.");
     }
-#else
-    syslog(1, "%s@%d-Would have raised NTP time change message here.", __FILE__, __LINE__);
-#endif
 }
 
 /****************************************************************************
- * Name: ntpc_daemon
+ * Name: ntp_worker
  *
  * Description:
- *  Implementation of the NTP daemon.  This method should be run in its own
- *  thread.
+ *  Implementation of the NTP worker.  This function will be called by the
+ *    Nuttx low-priority worker queue thread.
  * 
  * Input Parameters:
  *  None.
@@ -421,7 +419,7 @@ void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
  *  None.
  *
  ****************************************************************************/
-static uint32_t ntpc_daemon(void)
+static void ntp_worker(void *arg)
 {
     struct sockaddr_in server;
     struct ntp_datagram_s xmit;
@@ -435,10 +433,11 @@ static uint32_t ntpc_daemon(void)
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
     uint32_t number_of_servers = config->ntp_servers_count;
+    uint32_t refresh_period = config->ntp_refresh_period_seconds;
     hcom_nx_config_unlock();
 
     bool getting_time = true;
-    uint32_t socket_timeout = NTP_INITIAL_SOCKET_TIMEOUT;
+    uint32_t socket_timeout = MEADOW_NTPCLIENT_SOCKET_TIMEOUT;
     int current_server = 0;
     char server_name[64];
     int retry_count = 0;
@@ -467,6 +466,7 @@ static uint32_t ntpc_daemon(void)
                     sched_unlock();
                     getting_time = false;
                     MEADOW_TRACE_INFORMATION("Time received from server.\n");
+                    // syslog(LOG_MDIAG, "NTP has read and set the time");
                     ntpc_raise_time_changed_event(espcp_esp32_interfaces_wi_fi);
                 }
             }
@@ -491,7 +491,11 @@ static uint32_t ntpc_daemon(void)
             }
         }
     }
-    return 0;
+
+    // Repeat with delay
+    work_queue(LPWORK, &ntp_work_queue, ntp_worker,
+        NULL, SEC2TICK(refresh_period));
+    return;
 }
 
 /****************************************************************************
@@ -502,7 +506,7 @@ static uint32_t ntpc_daemon(void)
  * Name: ntpc_start
  *
  * Description:
- *  Start the NTP daemon.
+ *  Start reading NTP time.
  * 
  * Input Parameters:
  *  None.
@@ -516,13 +520,12 @@ static uint32_t ntpc_daemon(void)
  ****************************************************************************/
 int ntpc_start(void)
 {
-    hcom_nx_config_lock();
-    meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    uint32_t refresh_period = config->ntp_refresh_period_seconds;
-    hcom_nx_config_unlock();
+    // Initial call
+    work_cancel(LPWORK, &ntp_work_queue);
+    memset(&ntp_work_queue, 0, sizeof(struct work_s));
 
-    ntpc_daemon();      // Force the first time then leave it to the scheduler.
-    return(lps_add_handler(ntpc_daemon, refresh_period));
+    // Call immediately
+    return(work_queue(LPWORK, &ntp_work_queue, ntp_worker, NULL, 0));
 }
 
 /****************************************************************************
@@ -543,5 +546,5 @@ int ntpc_start(void)
  ****************************************************************************/
 void ntpc_stop(void)
 {
-    lps_remove_handler(ntpc_daemon);
+    work_cancel(LPWORK, &ntp_work_queue);
 }
