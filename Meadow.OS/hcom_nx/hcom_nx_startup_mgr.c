@@ -1,7 +1,7 @@
 /****************************************************************************
  * \configs\stm32f777zit6-meadow\src\hcom_nx\hcom_nx_startup_mgr.c
  * 
- *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,6 @@
 #include "../espcp/espcp_coprocessor.h"
 #include <assert.h>
 #include "../misc/meadow_logging.h"
-#include "../misc/long_period_scheduler.h"
 
 #include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx_config_manager.h"
@@ -175,10 +174,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", thisFile, __LINE__);
     return ERROR;
   }
-#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  // Initialize the long-period scheduler
-  lps_start();
 
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   bool reset_esp32 = config->reset_esp32_at_startup;
 #endif
 

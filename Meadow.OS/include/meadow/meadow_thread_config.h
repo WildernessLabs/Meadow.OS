@@ -245,19 +245,6 @@
 #define USBHOST_TASK_STACKSIZE                      1024
 
 /**
- * The long period scheduler is used to execute tasks that need to be run regularly but 
- * over a long time base, i.e. they are infrequent.  Examples of this are the NTP time
- * synchronisation which run over a period that varies from minutes to hours or even days.
- * 
- * This thread will spend most of its time in a wait state.  It will wake at most once every
- * 60 seconds, process the queue to see if anything needs running, run stuff if needed and
- * then go back to sleep.
- */
-#define LPSDAEMON_THREAD_PRIORITY                   90
-#define LSPDAEMON_THREAD_NAME                       "LpsDaemon"
-#define LPSDAEMON_STACKSIZE                         4096
-
-/**
  * This task runs the mono runtime system and any threads created as part of
  * application execution.  Note that threads launched by Mono will also run at
  * this priority.  This has the effect of putting in a round-robin scheduling

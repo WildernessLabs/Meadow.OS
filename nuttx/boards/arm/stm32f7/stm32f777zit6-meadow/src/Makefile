@@ -80,7 +80,6 @@ $(MEADOW_OS_DIR)/meadow_os/meadow_hw_version.c \
 $(MEADOW_OS_DIR)/ntpclient/meadow_ntpclient.c \
 $(MEADOW_OS_DIR)/misc/meadow_cirbuf.c \
 $(MEADOW_OS_DIR)/misc/parse_iso8601_time.c \
-$(MEADOW_OS_DIR)/misc/long_period_scheduler.c \
 $(MEADOW_OS_DIR)/misc/meadow_client_cert.c \
 $(MEADOW_OS_DIR)/misc/meadow_reinit_flash_size.c \
 $(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c \

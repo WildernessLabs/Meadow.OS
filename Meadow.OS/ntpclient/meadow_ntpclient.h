@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/include/netutils/meadow_ntpclient.h
  *
+ *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
+ * 
  *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -52,32 +54,11 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SERVERIP
-#  define CONFIG_NETUTILS_NTPCLIENT_SERVERIP 0x0a000001
+#ifndef CONFIG_MEADOW_NTPCLIENT_PORTNO
+#  define CONFIG_MEADOW_NTPCLIENT_PORTNO 123
 #endif
 
-#ifndef CONFIG_NETUTILS_NTPCLIENT_PORTNO
-#  define CONFIG_NETUTILS_NTPCLIENT_PORTNO 123
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_STACKSIZE
-#  define CONFIG_NETUTILS_NTPCLIENT_STACKSIZE 2048
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SERVERPRIO
-#  define CONFIG_NETUTILS_NTPCLIENT_SERVERPRIO 100
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_POLLDELAYSEC
-#  define CONFIG_NETUTILS_NTPCLIENT_POLLDELAYSEC 60
-#endif
-
-#ifndef CONFIG_NETUTILS_NTPCLIENT_SIGWAKEUP
-#  define CONFIG_NETUTILS_NTPCLIENT_SIGWAKEUP 18
-#endif
-
-#define NTP_INITIAL_SOCKET_TIMEOUT      5
-#define NTP_MAXIMUM_SOCKET_TIMEOUT      40
+#define MEADOW_NTPCLIENT_SOCKET_TIMEOUT      5
 
 /****************************************************************************
  * Public Types
