@@ -101,7 +101,6 @@ static meadow_configuration_t *meadow_configuration = NULL;
  */
 static meadow_network_interface_t network_interfaces[] =
 {
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
     {
         .interface_type = MEADOW_IFT_ESP32,
         .name = MEADOW_IFT_ESP32_NAME,
@@ -109,9 +108,12 @@ static meadow_network_interface_t network_interfaces[] =
         .ip_address = 0,
         .netmask = 0,
         .gateway = 0,
-        .psock_methods = &g_usrsock_sockif_esp32
+        //
+        //  TODO: Change the methods pointer when we get WiFi working.
+        //
+        // .psock_methods = &g_usrsock_sockif_esp32
+        .psock_methods = NULL
     },
-#endif
     {
         .interface_type = MEADOW_IFT_ETHERNET,
         .name = MEADOW_IFT_ETHERNET_NAME,
