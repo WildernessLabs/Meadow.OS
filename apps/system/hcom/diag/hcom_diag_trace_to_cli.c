@@ -107,7 +107,7 @@ void hcom_trace_to_cli_create_thread()
   ret = pthread_create(&_cli_pthread, &attr, hcom_trace_to_cli_transport_pthread, NULL);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
               __FILE__, __LINE__, HCOM_THREAD_NAME_CLI_TRANSPORT, ret, errno);
   }
   return;

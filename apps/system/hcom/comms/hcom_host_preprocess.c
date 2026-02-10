@@ -82,7 +82,7 @@ static int hcom_host_preprocess_unmount_sdcard(char *MountPointName)
   ret = umount(MountPointName);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
               thisFile, __LINE__, ret, errno);
   }
 #if defined (CONFIG_DIR_MGMT_TESTS)
@@ -158,7 +158,7 @@ int hcom_host_process_setup()
   _packet_dest_buf = (uint8_t *)malloc(HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE);
   if (_packet_dest_buf == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Packet buffer allocation failed\n",
+    syslog(LOG_ERR, "%s@%d-Packet buffer allocation failed\n",
               thisFile, __LINE__);
     return -ENOMEM;
   }
@@ -166,7 +166,7 @@ int hcom_host_process_setup()
   _decode_dest_buf = (uint8_t *)malloc(HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE);
   if (_decode_dest_buf == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Decoded allocation failed\n",
+    syslog(LOG_ERR, "%s@%d-Decoded allocation failed\n",
               thisFile, __LINE__);
     free(_packet_dest_buf);
     return -ENOMEM;
@@ -176,7 +176,7 @@ int hcom_host_process_setup()
   _dnldShared = zalloc(sizeof(hcom_dnld_shared_t));
   if (_dnldShared == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Download shared allocation failed\n",
+    syslog(LOG_ERR, "%s@%d-Download shared allocation failed\n",
               thisFile, __LINE__);
 
     free(_packet_dest_buf);
@@ -195,7 +195,7 @@ int hcom_host_process_setup()
   ret = hcom_host_watchdog_initialize(_dnldShared);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Watchdog init failed:%d\n",
+    syslog(LOG_ERR, "%s@%d-Watchdog init failed:%d\n",
               thisFile, __LINE__, ret);
 
     free(_packet_dest_buf);
@@ -224,7 +224,7 @@ int hcom_host_process_setup()
   if (ret != OK)
   {
     
-    hcom_logging_syslog(LOG_ERR, "%s@%d-sigprocmask() failed:%d\n",
+    syslog(LOG_ERR, "%s@%d-sigprocmask() failed:%d\n",
               thisFile, __LINE__, ret);
               
     free(_packet_dest_buf);
@@ -278,7 +278,7 @@ int hcom_dir_mgmt_free_file_info(hcom_dnld_shared_t *dnldShared)
     ret = close(dnldShared->dnldFileFD);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Close of nldShared->dnldFileFD, ret:%d, errno %d\n",
+      syslog(LOG_ERR, "%s@%d-Close of nldShared->dnldFileFD, ret:%d, errno %d\n",
               thisFile, __LINE__, ret, errno);
     }
   }
@@ -363,7 +363,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     snprintf_chk(hostMsg, HCOM_TINY_HOST_STRING_BUFF_LENGTH,
             "Mono must be disabled for file %s", rqstTypeStr);
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-%s\n",
+    syslog(LOG_ERR, "%s@%d-%s\n",
             thisFile, __LINE__, hostMsg);
 
     // Let CLI user know the problem
@@ -425,7 +425,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
       ret = hcom_dir_mgmt_check_and_add_subdir(dnldShared);
       if(ret < 0)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Processing subdir, ret:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Processing subdir, ret:%d, errno:%d\n",
                   thisFile, __LINE__, ret, errno);
         hcom_dir_mgmt_free_file_info(dnldShared);
         return ret;
@@ -435,7 +435,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     ret = hcom_host_watchdog_dnld_timer_initialize();
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
       hcom_dir_mgmt_free_file_info(dnldShared);
       return ret;
@@ -446,7 +446,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
       hcom_dir_mgmt_free_file_info(dnldShared);
     }
@@ -472,7 +472,7 @@ int hcom_host_process_run_loop()
       if(ret == -ETIME)
       {
         // Watchdog timeout waiting for data
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Watchdog timeout during download\n",
+        syslog(LOG_ERR, "%s@%d-Watchdog timeout during download\n",
                   thisFile, __LINE__);
 
         // If any download/delete state information, delete it
@@ -480,7 +480,7 @@ int hcom_host_process_run_loop()
       }
       else
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Failed to dequeue message\n",
+        syslog(LOG_ERR, "%s@%d-Failed to dequeue message\n",
                   thisFile, __LINE__);
       }
       continue;
@@ -506,7 +506,7 @@ int hcom_host_process_run_loop()
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
               hostMsg, thisFile, __LINE__);
 
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Oversized packet received (%lu bytes)\n",
+      syslog(LOG_ERR, "%s@%d-Oversized packet received (%u bytes)\n",
                 thisFile, __LINE__, decodedPacketSize);
       usleep(20 * 1000);    // Make sure syslog finishes
         
@@ -529,7 +529,7 @@ int hcom_host_process_run_loop()
                 "Error during download or delete command processing",
                 thisFile, __LINE__);
 
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Processing data packet, ret:%d\n",
+        syslog(LOG_ERR, "%s@%d-Processing data packet, ret:%d\n",
                   thisFile, __LINE__, ret);
         usleep(20 * 1000);    // Make sure syslog finishes
       }
@@ -552,7 +552,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   uint16_t requestType;
   uint32_t userData;
 
-  // hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
+  // syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
   //           thisFile, __LINE__, hcomDataMsg->seqNumber, decodedSize);
 
   // All messages contain a sequence number field. The sequence number
@@ -577,7 +577,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
       if(ret < 0)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
                   thisFile, __LINE__, ret, errno);
         return ret;
       }
@@ -587,7 +587,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
                 dnldShared);
       if(ret < 0)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Receiving data, ret:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Receiving data, ret:%d, errno:%d\n",
                   thisFile, __LINE__, ret, errno);
         return ret;
       }
@@ -600,7 +600,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     {
       // CLI is confused or something else is wrong. We should never receive a
       // packet with a sequence number when no download is active.
-      hcom_logging_syslog(LOG_DEBUG, "%s@%d-Data received but no active download\n",
+      syslog(LOG_DEBUG, "%s@%d-Data received but no active download\n",
                 thisFile, __LINE__);
       return -EBADMSG;
     }
@@ -633,7 +633,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
           "update Meadow.CLI. (version received: %04x expected: %04x).",
           hdrMsg->stdHeader.version, HCOM_PROTOCOL_PREFERRED_VERSION_NUMBER);
 
-    hcom_logging_syslog(LOG_WARNING, "%s\n", hostMsg);
+    syslog(LOG_WARNING, "%s\n", hostMsg);
 
     uint16_t textRqstType = HCOM_HOST_REQUEST_TEXT_INFORMATION;
     if (hdrMsg->stdHeader.version < HCOM_PROTOCOL_MINIMUM_PROTOCOL_NUMBER)
@@ -695,7 +695,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
             decodedSize, false, false);
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
 
       return ret;   // On error exit
@@ -736,7 +736,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
             decodedSize, false, true);
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
 
       return ret;   // On error exit
@@ -775,7 +775,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       // Don't send another error message if mono not disabled
       if(ret != -EPERM)   // Not Permitted
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-File write/delete, ret:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-File write/delete, ret:%d, errno:%d\n",
                   thisFile, __LINE__, ret, errno);
       }
 
@@ -802,7 +802,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
               "'End' command received, but no active download",
               thisFile, __LINE__);
 
-      hcom_logging_syslog(LOG_ERR,
+      syslog(LOG_ERR,
                 "%s@%d-No active download, but 'Download End' received\n",
                 thisFile, __LINE__);
 
@@ -818,7 +818,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     ret = hcom_host_watchdog_dnld_timer_delete();
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
     }
   }
@@ -833,7 +833,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   if(ret < 0)
   {
     // Handle the command types that report errors
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Request Type:%u, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Request Type:%u, ret:%d, errno:%d\n",
               thisFile, __LINE__, requestType, ret, errno);
     // No point exiting now, just do the cleanup first
   }

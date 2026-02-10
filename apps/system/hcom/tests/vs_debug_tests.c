@@ -126,7 +126,7 @@ int MonoDebugTestInitialize()
     ret = pthread_create(&thread, &attr, hcom_vs_debug_test_pthread, NULL);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_CRIT, "%s@%d-create thread, err:%d\n", thisFile, __LINE__, ret);
+      syslog(LOG_CRIT, "%s@%d-create thread, err:%d\n", thisFile, __LINE__, ret);
       return ret;
     }
 

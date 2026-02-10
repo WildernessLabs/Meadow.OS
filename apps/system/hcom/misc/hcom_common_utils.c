@@ -115,14 +115,14 @@ int hcom_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, i
   // Handle buffer overflow here
   if(bufChk >= size)
   {
-    hcom_logging_syslog(LOG_WARNING, "%s@%d Host msg truncated, need:%d\n", fileName, lineNumb, bufChk + 1);
+    syslog(LOG_WARNING, "%s@%d Host msg truncated, need:%d\n", fileName, lineNumb, bufChk + 1);
     // This modifies the standard Nuttx snprintf behavior which would normally
     // return the size of needed buffer.
     return -ENAMETOOLONG;
   }
   else if(bufChk < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
+    syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
   }
 
   // Must be operations as usual
@@ -165,10 +165,10 @@ void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t
         return;
     }
     
-    hcom_logging_syslog(LOG_INFO, "User-provided DNS servers count: %d\n", server_count);
+    syslog(LOG_INFO, "User-provided DNS servers count: %ld\n", server_count);
     for (int index = 0; index < server_count; index++)
     {
-        hcom_logging_syslog(LOG_INFO, "%d: %s\n", index + 1, servers[index]);
+        syslog(LOG_INFO, "%d: %s\n", index + 1, servers[index]);
     }
     
     for (int index = 0; index < server_count; index++)

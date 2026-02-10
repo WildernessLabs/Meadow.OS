@@ -86,7 +86,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
   char *fileInformation = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(fileInformation == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
@@ -97,7 +97,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
   dirp = opendir(dnldShared->dnldFullPathName);
   if ( !dirp )
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
               thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
     free(fileInformation);
     return -ENOENT;
@@ -121,7 +121,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
         char *completeNameBuf = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
         if(completeNameBuf == NULL)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+          syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
           free(fileInformation);
           return -ENOMEM;
         }
@@ -138,7 +138,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
                   &fileSize, &blockSizeKB, &detectError);
         if(detectError < 0)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
+          syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
                     thisFile, __LINE__, detectError);
           
           free(completeNameBuf);
@@ -159,7 +159,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
                       fileInformation, thisFile, __LINE__);
 
-        hcom_logging_syslog(LOG_INFO, "%s@%d-%s%s checksum:0x%08x, %d KB (%u bytes)\n",
+        syslog(LOG_INFO, "%s@%d-%s%s checksum:0x%08x, %d KB (%u bytes)\n",
                   thisFile, __LINE__,
                   useFullPath ? dnldShared->dnldFullPathName : "",
                   direntry->d_name,
@@ -179,7 +179,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
                   fileInformation, thisFile, __LINE__);
 
-        hcom_logging_syslog(LOG_INFO, "%s@%d-%s%s\n",
+        syslog(LOG_INFO, "%s@%d-%s%s\n",
                   thisFile, __LINE__,
                   useFullPath ? dnldShared->dnldFullPathName : "",
                   direntry->d_name);
@@ -204,7 +204,7 @@ int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
                     fileInformation, thisFile, __LINE__);
                     
-      hcom_logging_syslog(LOG_INFO, "%s@%d-A total of %d file%s using %d KB (%u bytes)\n",
+      syslog(LOG_INFO, "%s@%d-A total of %d file%s using %d KB (%u bytes)\n",
                 thisFile, __LINE__,
                 fileCount, fileCount == 1 ? "" : "s", totalFlashSizeKB, totalSizeOfFiles);
     }
@@ -254,7 +254,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
 
   if (!(dir = opendir(name)))
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
+    syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
               thisFile, __LINE__, name);
     return -1;
   }

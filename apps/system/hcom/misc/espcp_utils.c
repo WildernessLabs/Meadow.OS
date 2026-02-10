@@ -110,7 +110,7 @@ int espcp_open_esp32_events_message_queue()
     espcp_events_queue_handler = mq_open(ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, 0666, &queue_attributes);
     if (espcp_events_queue_handler == (mqd_t) - 1)
     {
-        hcom_logging_syslog(LOG_ERR, "Failed to open queue for sending event messages\n");
+        syslog(LOG_ERR, "Failed to open queue for sending event messages\n");
         return EXIT_FAILURE;
     }
   }
@@ -188,7 +188,7 @@ int espcp_queue_event_messages(uint8_t *message)
 
     if (espcp_events_queue_handler == (mqd_t) - 1)
     {
-        hcom_logging_syslog(LOG_ERR, "ESP32 events message queue is not opened\n");
+        syslog(LOG_ERR, "ESP32 events message queue is not opened\n");
         return -1;
     }
 
@@ -196,7 +196,7 @@ int espcp_queue_event_messages(uint8_t *message)
     result = mq_send(espcp_events_queue_handler, (const char *)message, 13, ESPCP_DEFAULT_MESSAGE_PRIORITY);
     if (result == -1)
     {
-        hcom_logging_syslog(LOG_ERR, "Failed to queue the event message\n");
+        syslog(LOG_ERR, "Failed to queue the event message\n");
         return -1;
     }
 

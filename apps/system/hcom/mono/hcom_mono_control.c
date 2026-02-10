@@ -369,7 +369,7 @@ int hcom_mono_ctrl_start_mono_main()
   ret = stm32_configgpio(blueLedPinDefn);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-stm32_configgpio:%d\n",
+    syslog(LOG_ERR, "%s@%d-stm32_configgpio:%d\n",
                         thisFile, __LINE__, ret);
     return -1;
   }
@@ -389,7 +389,7 @@ int hcom_mono_ctrl_start_mono_main()
   // cleared by mono once mono is running correctly.
   hcom_bbreg_set_bbr_bits(HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT);
 
-  hcom_logging_syslog(LOG_NOTICE, "%s@%d-Attempting to start mono\n", thisFile, __LINE__);
+  syslog(LOG_NOTICE, "%s@%d-Attempting to start mono\n", thisFile, __LINE__);
 
   //------------------------------------------------------------
   // Read some configuration options from the config file.  These
@@ -416,7 +416,7 @@ int hcom_mono_ctrl_start_mono_main()
                          (FAR char *const *)argv);
   if (mono_pid > 0)
   {
-    hcom_logging_syslog(LOG_INFO, "%s@%d-MONO launched [pid:%d, pri:%d, stack size:%d]\n",
+    syslog(LOG_INFO, "%s@%d-MONO launched [pid:%d, pri:%d, stack size:%d]\n",
                         thisFile, __LINE__, mono_pid, MONO_TASK_PRIORITY,
                         MONO_TASK_STACKSIZE);
 
@@ -428,7 +428,7 @@ int hcom_mono_ctrl_start_mono_main()
     return OK;
   }
 
-  hcom_logging_syslog(LOG_ERR, "%s@%d-The task to run mono failed in create\n",
+  syslog(LOG_ERR, "%s@%d-The task to run mono failed in create\n",
                       thisFile, __LINE__);
 
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
@@ -448,7 +448,7 @@ bool hcom_mono_ctrl_should_mono_run()
 
   // For debugging when mono is not desired
 #if HCOM_DIAG_PREVENT_MONO_FROM_RUNNING > 0
-  hcom_logging_syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__,
+  syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__,
                       "Mono prevented from running by #define");
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
                                    "Mono prevented from running by #define", thisFile, __LINE__);
@@ -459,7 +459,7 @@ bool hcom_mono_ctrl_should_mono_run()
   if (!hcom_mono_ctrl_is_mono_enabled())
   {
     char *noStartReason = "Mono is disabled";
-    hcom_logging_syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, noStartReason);
+    syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, noStartReason);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
                                      noStartReason, thisFile, __LINE__);
     return false;
@@ -476,7 +476,7 @@ bool hcom_mono_ctrl_should_mono_run()
   if (!run_mono)
   {
     char *noStartReason = "Runtime will not start, it did not run correctly last time";
-    hcom_logging_syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, noStartReason);
+    syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, noStartReason);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
                                      noStartReason, thisFile, __LINE__);
     return false;
@@ -555,7 +555,7 @@ bool hcom_mono_ctrl_are_needed_files_here()
 
   if (errReason == NULL)
   {
-    hcom_logging_syslog(LOG_WARNING, "%s@%d-Cannot allocate memory\n", thisFile, __LINE__);
+    syslog(LOG_WARNING, "%s@%d-Cannot allocate memory\n", thisFile, __LINE__);
   }
   else
   {
@@ -563,7 +563,7 @@ bool hcom_mono_ctrl_are_needed_files_here()
                 "Mono will not start - the following file%s %s missing: %s",
                 listCount == 1 ? "" : "s", listCount == 1 ? "is" : "are",
                 missingFiles);
-    hcom_logging_syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, errReason);
+    syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, errReason);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
                                     errReason, thisFile, __LINE__);
 
@@ -616,7 +616,7 @@ bool hcom_mono_ctrl_do_versions_matched()
         }
         else
         {
-          hcom_logging_syslog(LOG_WARNING, "%s@%d-Memory Allocation error\n", thisFile, __LINE__);
+          syslog(LOG_WARNING, "%s@%d-Memory Allocation error\n", thisFile, __LINE__);
         }
       }
     }
@@ -627,7 +627,7 @@ bool hcom_mono_ctrl_do_versions_matched()
         errReason = zalloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
         if (errReason == NULL)
         {
-          hcom_logging_syslog(LOG_WARNING, "%s@%d-Cannot allocate memory\n", thisFile, __LINE__);
+          syslog(LOG_WARNING, "%s@%d-Cannot allocate memory\n", thisFile, __LINE__);
         }
         else
         {
@@ -642,7 +642,7 @@ bool hcom_mono_ctrl_do_versions_matched()
     }
     if (errReason != NULL)
     {
-      hcom_logging_syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, errReason);
+      syslog(LOG_WARNING, "%s@%d-%s\n", thisFile, __LINE__, errReason);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
                                       errReason, thisFile, __LINE__);
 
@@ -721,7 +721,7 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
   ret = hcom_mono_stdxxx_redirect();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-stdxxx_redirect:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-stdxxx_redirect:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 #endif
@@ -732,7 +732,7 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
   nx_access_fd = hcom_via_nx_upd_driver_open();
   if (nx_access_fd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-setup hcom nx access:%d\n", thisFile, __LINE__, nx_access_fd);
+    syslog(LOG_ERR, "%s@%d-setup hcom nx access:%d\n", thisFile, __LINE__, nx_access_fd);
     return nx_access_fd;
   }
 
@@ -752,7 +752,7 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
   ret = stm32_configgpio(blueLedPinDefn);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-stm32_configgpio:%d\n",
+    syslog(LOG_ERR, "%s@%d-stm32_configgpio:%d\n",
                         thisFile, __LINE__, ret);
     return -1;
   }
@@ -766,7 +766,7 @@ int hcom_mono_ctrl_mono_appears_to_be_running()
   // Finished interacting with nuttx side
   close(nx_access_fd);
 
-  hcom_logging_syslog(LOG_NOTICE, "%s@%d-Mono started successfully\n",
+  syslog(LOG_NOTICE, "%s@%d-Mono started successfully\n",
                       thisFile, __LINE__);
   return OK;
 }
@@ -787,7 +787,7 @@ int hcom_mono_remote_dbg_open_mono_sock()
   vsSockFd = socket(PF_LOCAL, SOCK_STREAM, 0);
   if (vsSockFd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Error:Socket creation failed vsSockFd:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error:Socket creation failed vsSockFd:%d errno:%d\n",
                         thisFile, __LINE__, vsSockFd, errno);
     return vsSockFd;
   }
@@ -812,7 +812,7 @@ int hcom_mono_remote_dbg_open_mono_sock()
     ret = connect(vsSockFd, (struct sockaddr *)&myaddr, addrlen);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_INFO, "%s@%d-Connect attempt failed, will retry, ret: %d, errno:%d attempt:%d\n",
+      syslog(LOG_INFO, "%s@%d-Connect attempt failed, will retry, ret: %d, errno:%d attempt:%d\n",
                           thisFile, __LINE__, ret, errno, attemptCnt);
       usleep(100 * 1000);
     }
@@ -820,7 +820,7 @@ int hcom_mono_remote_dbg_open_mono_sock()
 
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Mono Debug connect attempt failed after %d attempts, ret: %d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Mono Debug connect attempt failed after %d attempts, ret: %d, errno:%d\n",
                         thisFile, __LINE__, attemptCnt, ret, errno);
     return ret;
   }
@@ -842,7 +842,7 @@ int mono_main_proxy(int argcX, char *argvX[])
     dbgSD = hcom_mono_remote_dbg_open_mono_sock();
     if (dbgSD < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Opening remote dbg socket failed\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-Opening remote dbg socket failed\n", thisFile, __LINE__);
       return dbgSD; // This will terminate this thread and task-> mono won't start
     }
 
@@ -851,14 +851,14 @@ int mono_main_proxy(int argcX, char *argvX[])
     argv = (char **) malloc(argc * sizeof(char *));
     if (argv == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
     argv[0] = HCOM_MONO_REMOTE_DBG_CMD_LINE_DEBUG;
     argv[1] = (char * ) malloc(128);
     if (argv[1] == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       free(argv);
       return -ENOMEM;
     }

@@ -119,7 +119,7 @@ void diag_ethernet_chat_server(uint32_t userData)
   ret = pthread_create(&thread, &attr, diag_ethernet_chat_thread, NULL);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
               __FILE__, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
     return;
   }

@@ -95,14 +95,14 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
   char *fileInformation = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(fileInformation == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
   char *completeNameBuf = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(completeNameBuf == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     free(fileInformation);
     return -ENOMEM;
   }
@@ -114,7 +114,7 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
   dirp = opendir(dnldShared->dnldFullPathName);
   if ( !dirp )
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
               thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
     free(fileInformation);
     free(completeNameBuf);
@@ -159,7 +159,7 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
                   &fileSize, &blockSizeKB, &detectError);
         if(detectError < 0)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
+          syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
                     thisFile, __LINE__, detectError);
           
           free(completeNameBuf);

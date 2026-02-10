@@ -73,7 +73,7 @@ void hcom_misc_rqst_get_device_info(uint32_t userData)
   char *device_info = malloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
   if (device_info == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
             "Memory allocation error. No results can be sent", thisFile, __LINE__);
     return;
@@ -84,7 +84,7 @@ void hcom_misc_rqst_get_device_info(uint32_t userData)
   char *buffer = (char *) malloc(buffer_length);
   if (buffer == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
             "Memory allocation error. No results can be sent", thisFile, __LINE__);
     free(device_info);
