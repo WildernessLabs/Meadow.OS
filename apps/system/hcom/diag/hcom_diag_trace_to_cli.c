@@ -85,10 +85,11 @@ int hcom_trace_to_cli_setup()
 
 //================================================================
 // Create a thread that can be used to transport the syslog message
-// from k-land to here in userland.
-// This thread calls via hcom_via_nx_access into kernelland and lives
+// from kernel-land to here in user-land, were they are forwarded
+// to CLI (if needed).
+// This pthread calls via hcom_via_nx_access into kernel-land and waits
 // there until the a message is ready to be sent to the CLI.
-// Note: This can be called during startup or from a CLI command
+// Note: This can be called during startup or from a CLI command.
 void hcom_trace_to_cli_create_thread()
 {
   int ret;
@@ -134,8 +135,8 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
   // Stay in this loop until told to stop
   while(_trace_log_to_host)
   {
-    // Call into kernelland to get the next CLI syslog message. This thread will
-    // wait in kernelland until the next message or terminated, at either point
+    // Call into kernel-land to get the next CLI syslog message. This thread will
+    // wait in kernel-land until the next message or terminated, at either point
     // it will return.
     stringLen = hcom_via_nx_provide_cli_trace_transport(cliMsgBuf,
               HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
@@ -162,7 +163,7 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
 }
 
 //================================================================
-// Call by a CLI command that first calls into kernelland then makes
+// Call by a CLI command that first calls into kernel-land then makes
 // this call. It starts the thread that transports the syslog message
 // from k-land to userland.
 // Note: The battery backed register setting is updated in k-land
@@ -180,7 +181,7 @@ void hcom_trace_to_cli_enable_command(uint32_t userData)
 // 2. The k-land code is called via CLI and will cause our pthread to return.
 // 3. hcom_trace_to_cli_disable_cleanup() is called last to wait for the pthread
 //  to terminate
-// Note: The battery backed register setting is updated in kernelland
+// Note: The battery backed register setting is updated in kernel-land
 void hcom_trace_to_cli_disable_command(uint32_t userData)
 {
   // Prepare our pthread to exit when k-land sends it back
@@ -189,7 +190,7 @@ void hcom_trace_to_cli_disable_command(uint32_t userData)
 
 //================================================================
 // Call by a command from CLI. It will stop the thread that transports
-// messages to/from kernelland.
+// messages to/from kernel-land.
 void hcom_trace_to_cli_disable_cleanup(uint32_t userData)
 {
   // Wait for our pthread to exit

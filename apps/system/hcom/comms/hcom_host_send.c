@@ -214,9 +214,9 @@ int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
 
 //=====================================================================
 // This function is like the hcom_host_send_buffered_msg() function.
-// The difference is the protocol is now simpler because of using structs
-// to define the message types to be sent. Therefore, this function
-// eliminates the need for com_host_send_buffered_msg().
+// The difference is since the protocol is now simpler, because of using
+// structs to define the message being sent. Therefore, this function
+// eliminates the need for hcom_host_send_buffered_msg().
 // The messy work eliminated by structures by the caller.
 int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalLength)
@@ -246,8 +246,8 @@ int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
 // The following are first generation functions for sending data.
 //=====================================================================
 // They have been superseded by the above hcom_host_send_std_msg_data()
-// function. However, the time to refactor the code they support has yet
-// to be made available.
+// function. However, the time to refactor the code they support has never
+// been made available.
 //=====================================================================
 // Deprecated, best to use hcom_host_send_std_msg_data
 // THIS IS THE FUNCTION THAT SHOULD BE USED WHEN JUST SENDING A HEADER
