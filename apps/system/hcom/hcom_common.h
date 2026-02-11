@@ -385,7 +385,6 @@ void hcom_trace_to_cli_disable_cleanup(uint32_t userData);
 
 // These are syslog message helpers used throughout HCOM
 void hcom_logging_syslog_x(int priority, FAR const IPTR char *fmt, ...);
-void hcom_logging_safe_ramlog(int priority, FAR const IPTR char *fmt, va_list args);
 int hcom_logging_syslog_mask_init(void);
 
 //-------------------------------------------------------

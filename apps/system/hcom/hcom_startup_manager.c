@@ -175,7 +175,7 @@ int hcom_main(int argc, char *argv[])
 #endif
 
   // Note: This needs to be early because all battery backed register
-  // (BBR) access needs this (e.g. hcom_logging_syslog_mask_init).
+  // (BBR) access use this (e.g. hcom_logging_syslog_mask_init).
   // Opens the nuttx upd driver to allow nuttx access.
   ret = hcom_via_nx_upd_setup();
   if (ret < 0)
@@ -192,7 +192,7 @@ int hcom_main(int argc, char *argv[])
   // available on the nuttx side, the hcom_diag_logging_setup() function
   // would need to be called in the nuttx side of hcom.
   //
-  // Restores previous syslog mask from the battery backed register (BBR).
+  // Restore previous syslog mask from the battery backed register (BBR).
   // Note: This needs to be third because all hcom_logging_syslog
   // calls are filtered by the results of this call. Nothing to wait for.
   ret = hcom_logging_syslog_mask_init();

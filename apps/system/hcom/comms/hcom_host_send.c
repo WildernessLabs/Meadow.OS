@@ -207,7 +207,7 @@ int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
       hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
-      sourceFileName, sourceLineNumber, ret);
+        sourceFileName, sourceLineNumber, ret);
 
   return ret;
 }
@@ -257,7 +257,8 @@ void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
 {
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, NULL, 0);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-    hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n", sourceFileName, sourceLineNumber, ret);
+    hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      sourceFileName, sourceLineNumber, ret);
 }
 
 //=====================================================================

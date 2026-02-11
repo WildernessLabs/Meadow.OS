@@ -33,9 +33,9 @@
  *
  ****************************************************************************/
 
-// This functions are used to process the logging request. There was a time
-// we memory was unavailable for all but the briefest syslog messages. Much
-// of what that is in here is the result of the memory reduction effort.
+// These functions are used to process the logging request. There was a time
+// when memory was unavailable for all but the briefest syslog messages. Much
+// of what is in here is the result of the memory reduction effort.
 
 /****************************************************************************
  * Included Files
@@ -127,7 +127,7 @@ int hcom_logging_syslog_mask_init()
       _syslogMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO) | LOG_MASK(LOG_DEBUG);
       break;
     default:
-      hcom_logging_syslog(LOG_WARNING, "%s@%d-Unsupported config trace level of %d ignored\n",
+      syslog(LOG_WARNING, "%s@%d-Unsupported config trace level of %d ignored\n",
                   thisFile, __LINE__, iniValue);
       break;
   }
@@ -167,7 +167,7 @@ int hcom_logging_syslog_mask_init()
 
 
   // Provide some information that may be useful
-  hcom_logging_syslog(LOG_NOTICE, "Meadow %s %s, H/W:%s, Mono:%s, Trace level:0x%02x, to:%s (%s)\n",
+  syslog(LOG_NOTICE, "Meadow %s %s, H/W:%s, Mono:%s, Trace level:0x%02x, to:%s (%s)\n",
         config == NULL ? "" : config->os_version.long_string,
         isPowerOnRestart ? "restarted" :"rebooted",
         config != NULL ? config->hardware_version_text : "Unknown",
@@ -179,7 +179,7 @@ int hcom_logging_syslog_mask_init()
         "syslog");
 #endif
 
-  hcom_logging_syslog(LOG_NOTICE, "Mono version: %s\n", config == NULL ? "" : config->mono_version.long_string);
+  syslog(LOG_NOTICE, "Mono version: %s\n", config == NULL ? "" : config->mono_version.long_string);
 
   if (config != NULL)
   {
@@ -190,6 +190,7 @@ int hcom_logging_syslog_mask_init()
 }
 
 //=======================================================================================
+// Called from CLI command to changed the trace level
 void hcom_diag_logging_change_trace_level(uint32_t userData)
 {
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
@@ -273,107 +274,106 @@ void hcom_diag_logging_change_trace_level(uint32_t userData)
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
           thisFile, __LINE__);
 
-  hcom_logging_syslog(LOG_NOTICE, "%s@%d-%s\n\n",
-            thisFile, __LINE__, hostMsg);
+  syslog(LOG_NOTICE, "%s@%d-%s\n\n", thisFile, __LINE__, hostMsg);
 }
 
 //===================================================================
 // This is part of memory saving effort to remove from all the syslog
 // messages the need to identify the type of log. It's done here and
 // not in 100+ places.
-static int hcom_diag_logging_log_priority_to_text(int priority, char *textPri)
-{
-  switch (priority)
-  {
-  case LOG_EMERG:
-    strcpy(textPri, "(Emerg) ");
-    break;
-  case LOG_ALERT:
-    strcpy(textPri, "(Alert) ");
-    break;
-  case LOG_CRIT:
-    strcpy(textPri, "(Crit) ");
-    break;
- case LOG_ERR:
-    strcpy(textPri, "(Error) ");
-    break;
-  case LOG_WARNING:
-    strcpy(textPri, "(Warn) ");
-    break;
-  case LOG_NOTICE:
-    strcpy(textPri, "(Note) ");
-    break;
-  case LOG_INFO:
-    strcpy(textPri, "(Info) ");
-    break;
-   case LOG_DEBUG:
-    strcpy(textPri, "(Debug) ");
-    break;  
-  default:
-    strcpy(textPri, "(Pri ?) ");
-    break;
-  }
+// static int hcom_diag_logging_log_priority_to_text(int priority, char *textPri)
+// {
+//   switch (priority)
+//   {
+//   case LOG_EMERG:
+//     strcpy(textPri, "(Emerg) ");
+//     break;
+//   case LOG_ALERT:
+//     strcpy(textPri, "(Alert) ");
+//     break;
+//   case LOG_CRIT:
+//     strcpy(textPri, "(Crit) ");
+//     break;
+//  case LOG_ERR:
+//     strcpy(textPri, "(Error) ");
+//     break;
+//   case LOG_WARNING:
+//     strcpy(textPri, "(Warn) ");
+//     break;
+//   case LOG_NOTICE:
+//     strcpy(textPri, "(Note) ");
+//     break;
+//   case LOG_INFO:
+//     strcpy(textPri, "(Info) ");
+//     break;
+//    case LOG_DEBUG:
+//     strcpy(textPri, "(Debug) ");
+//     break;  
+//   default:
+//     strcpy(textPri, "(Pri ?) ");
+//     break;
+//   }
 
-  return strlen(textPri);
-}
+//   return strlen(textPri);
+// }
 
-//===================================================================
-// Builds the string for syslogs
-static int hcom_diag_logging_build_syslog_string(int priority,
-          FAR const IPTR char * fmtStr, va_list argsList,
-          char* finalString, int maxStringLen)
-{
-  // Adding the prefix here saves memory by removing
-  // the text at the start of each message
-  char labelPrefix[16];
-  int prefixLen = hcom_diag_logging_log_priority_to_text(priority, labelPrefix);
-  int fmtLength = strlen(fmtStr);
+// //===================================================================
+// // Builds the string for syslogs
+// static int hcom_diag_logging_build_syslog_string(int priority,
+//           FAR const IPTR char * fmtStr, va_list argsList,
+//           char* finalString, int maxStringLen)
+// {
+//   // Adding the prefix here saves memory by removing
+//   // the text at the start of each message
+//   char labelPrefix[16];
+//   int prefixLen = hcom_diag_logging_log_priority_to_text(priority, labelPrefix);
+//   int fmtLength = strlen(fmtStr);
 
-  char *finalFmt = malloc(prefixLen + fmtLength + 1); // room for '\0'
-  if(finalFmt == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    return -ENOMEM;
-  }
+//   char *finalFmt = malloc(prefixLen + fmtLength + 1); // room for '\0'
+//   if(finalFmt == NULL)
+//   {
+//     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+//     return -ENOMEM;
+//   }
 
-  memcpy(finalFmt, labelPrefix, prefixLen);
-  memcpy(finalFmt + prefixLen, fmtStr, fmtLength + 1); // include fmt's '\0'
+//   memcpy(finalFmt, labelPrefix, prefixLen);
+//   memcpy(finalFmt + prefixLen, fmtStr, fmtLength + 1); // include fmt's '\0'
 
-  // Create the complete message with prefix
-  // The Nuttx version of snprintf will truncate the string based on the buffer
-  // size but will always place a terminating NULL at the end.
-  int stringLen = vsnprintf(finalString, maxStringLen - 1, finalFmt, argsList);
-  // Since we cannot output a syslog warning here (it could cause an unending
-  // stream of syslog messages), we'll hope a truncated message will be
-  // noticed and acted on.
+//   // Create the complete message with prefix
+//   // The Nuttx version of snprintf will truncate the string based on the buffer
+//   // size but will always place a terminating NULL at the end.
+//   int stringLen = vsnprintf(finalString, maxStringLen - 1, finalFmt, argsList);
+//   // Since we cannot output a syslog warning here (it could cause an unending
+//   // stream of syslog messages), we'll hope a truncated message will be
+//   // noticed and acted on.
 
-  free(finalFmt);
-  return stringLen;
-}
+//   free(finalFmt);
+//   return stringLen;
+// }
 
 //=====================================================================
 // Wait for the thread writing to exit
-static void hcom_diag_logging_takesem(sem_t *semaphore)
-{
-  int ret;
+// static void hcom_diag_logging_takesem(sem_t *semaphore)
+// {
+//   int ret;
 
-  do
-  {
-    /* Take the semaphore (perhaps waiting) */
-    ret = sem_wait(semaphore);
-  }
-  while (ret == -EINTR);
-}
+//   do
+//   {
+//     /* Take the semaphore (perhaps waiting) */
+//     ret = sem_wait(semaphore);
+//   }
+//   while (ret == -EINTR);
+// }
 
 //===================================================================
 // This function is for those places where hcom is processing text to
-// send to the host PC. If hcom_logging_syslog had been used these calls
+// send to the host PC. If syslog had been used these calls
 // will introduce recursion as each syslog will create another syslog.
 void hcom_logging_syslog_x(int priority, FAR const IPTR char *fmt, ...)
 {
 #if defined CONFIG_RAMLOG_SYSLOG
   // Can't send to syslog because this will be a recursive. Can't send
-  // directly to the host because this also would be recursive too.
+  // directly to the host because this would be recursive too.
   return;
 #else
   if ((_syslogMask & LOG_MASK(priority)) == 0)
@@ -381,7 +381,7 @@ void hcom_logging_syslog_x(int priority, FAR const IPTR char *fmt, ...)
     return;   // Nothing to do
   }
 
-  // If nuttx is configured for outputting syslogs to the console
+  // If Nuttx is configured for outputting syslogs to the console
   // then this works. But, these cannot be routed to the host PC.
   va_list args;
   va_start(args, fmt);
@@ -390,104 +390,104 @@ void hcom_logging_syslog_x(int priority, FAR const IPTR char *fmt, ...)
 #endif
 }
 
-//===================================================================
-// Use this for syslogs writes that can be routed to host, which are
-// 99% of all syslog calls
-void hcom_logging_syslog(int priority, FAR const IPTR char *fmt, ...)
-{
-  // Prevent multiple threads from garbling message
-  hcom_diag_logging_takesem(&_f7syslogSem);
+// //===================================================================
+// // Use this for syslogs writes that can be routed to host, which are
+// // 99% of all syslog calls
+// void hcom_logging_syslog(int priority, FAR const IPTR char *fmt, ...)
+// {
+//   // Prevent multiple threads from garbling message
+//   hcom_diag_logging_takesem(&_f7syslogSem);
 
-  if ((_syslogMask & LOG_MASK(priority)) == 0)
-  {
-    sem_post(&_f7syslogSem);
-    return;   // Nothing to do
-  }
+//   if ((_syslogMask & LOG_MASK(priority)) == 0)
+//   {
+//     sem_post(&_f7syslogSem);
+//     return;   // Nothing to do
+//   }
 
-  va_list args;
-  va_start(args, fmt);
-  int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, _f7syslogTextBuf,
-            HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(stringLen == -ENOMEM)
-  {
-    return;
-  }
+//   va_list args;
+//   va_start(args, fmt);
+//   int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, _f7syslogTextBuf,
+//             HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   if(stringLen == -ENOMEM)
+//   {
+//     return;
+//   }
 
-  va_end(args);  
+//   va_end(args);  
 
-  // Depending on the nuttx configuration these messages may go to the
-  // ramlog, to the serial console or the bit-bucket.
-  //
-  // If ramlog is configured then the message is sent to syslog only. Nuttx
-  // adds a syslog timestamp (if so configured) and puts it in the nuttx
-  // ramlog buffer. The hcom_host_trace_ramlog read function reads it
-  // from ramlog and forwards the message to the host PC, if requested.
-  //
-  // If syslog is configured then the call to syslog writes the message to
-  // the configured UART for serial output. On return from the syslog call
-  // this code (immediately below) forwards it to the host PC, if trace is
-  // enabled
-  //
-  syslog(priority, _f7syslogTextBuf);
+//   // Depending on the nuttx configuration these messages may go to the
+//   // ramlog, to the serial console or the bit-bucket.
+//   //
+//   // If ramlog is configured then the message is sent to syslog only. Nuttx
+//   // adds a syslog timestamp (if so configured) and puts it in the nuttx
+//   // ramlog buffer. The hcom_host_trace_ramlog read function reads it
+//   // from ramlog and forwards the message to the host PC, if requested.
+//   //
+//   // If syslog is configured then the call to syslog writes the message to
+//   // the configured UART for serial output. On return from the syslog call
+//   // this code (immediately below) forwards it to the host PC, if trace is
+//   // enabled
+//   //
+//   syslog(priority, _f7syslogTextBuf);
 
-#if defined CONFIG_RAMLOG_SYSLOG
-  stringLen = stringLen;    // Keep compiler from warning (I know there's a better way...)
-#else
-  // syslog - check if these should be routed to host.
-  // Note: there's no timestamp for these messages
-  if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
-  {
-    // Strip off cr/lf since Meadow.CLI takes care of this
-    if(_f7syslogTextBuf[stringLen - 1] == 0x0a || _f7syslogTextBuf[stringLen - 1] == 0x0d)
-      stringLen--;
-    if(_f7syslogTextBuf[stringLen - 1] == 0x0a || _f7syslogTextBuf[stringLen - 1] == 0x0d)
-      stringLen--;
+// #if defined CONFIG_RAMLOG_SYSLOG
+//   stringLen = stringLen;    // Keep compiler from warning (I know there's a better way...)
+// #else
+//   // syslog - check if these should be routed to host.
+//   // Note: there's no timestamp for these messages
+//   if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
+//   {
+//     // Strip off cr/lf since Meadow.CLI takes care of this
+//     if(_f7syslogTextBuf[stringLen - 1] == 0x0a || _f7syslogTextBuf[stringLen - 1] == 0x0d)
+//       stringLen--;
+//     if(_f7syslogTextBuf[stringLen - 1] == 0x0a || _f7syslogTextBuf[stringLen - 1] == 0x0d)
+//       stringLen--;
   
-    hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, _f7syslogTextBuf,
-            stringLen, thisFile, __LINE__);
-  }
-#endif
-  sem_post(&_f7syslogSem);
-}
+//     hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, _f7syslogTextBuf,
+//             stringLen, thisFile, __LINE__);
+//   }
+// #endif
+//   sem_post(&_f7syslogSem);
+// }
 
-#if defined (CONFIG_RAMLOG_SYSLOG)
-//===================================================================
-// hcom_logging_safe_ramlog solves the problem that with ramlog 
-// enabled, we can't use syslog while processing the syslog message,
-// because it will cause "feedback", every syslog message would
-// generated another ramlog message. So, we go directly to the host
-// without going to syslog -> ramlog -> host PC.
-//===================================================================
-void hcom_logging_safe_ramlog(int priority, FAR const IPTR char *fmt,
-          va_list args)
-{
-  // Check priority but otherwise ignore syslog.
-  if ((_syslogMask & LOG_MASK(priority)) == 0)
-    return;   // Nothing to do
+// #if defined (CONFIG_RAMLOG_SYSLOG)
+// //===================================================================
+// // hcom_logging_safe_ramlog solves the problem that with ramlog 
+// // enabled, we can't use syslog while processing the syslog message,
+// // because it will cause "feedback", every syslog message would
+// // generated another ramlog message. So, we go directly to the host
+// // without going to syslog -> ramlog -> host PC.
+// //===================================================================
+// void hcom_logging_safe_ramlog(int priority, FAR const IPTR char *fmt,
+//           va_list args)
+// {
+//   // Check priority but otherwise ignore syslog.
+//   if ((_syslogMask & LOG_MASK(priority)) == 0)
+//     return;   // Nothing to do
   
-  char *safeRamlogText;
-  safeRamlogText = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(safeRamlogText == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    return;
-  }
+//   char *safeRamlogText;
+//   safeRamlogText = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   if(safeRamlogText == NULL)
+//   {
+//     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+//     return;
+//   }
 
-  int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, safeRamlogText,
-            HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(stringLen == -ENOMEM)
-  {
-    return;
-  }
+//   int stringLen = hcom_diag_logging_build_syslog_string(priority, fmt, args, safeRamlogText,
+//             HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   if(stringLen == -ENOMEM)
+//   {
+//     return;
+//   }
 
-  // Note: no time stamp to these messages
-  if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
-    stringLen--;
-  if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
-    stringLen--;
+//   // Note: no time stamp to these messages
+//   if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
+//     stringLen--;
+//   if(safeRamlogText[stringLen - 1] == 0x0a || safeRamlogText[stringLen - 1] == 0x0d)
+//     stringLen--;
 
-  hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, safeRamlogText,
-          stringLen, thisFile, __LINE__);
-  free(safeRamlogText);
-}
-#endif
+//   hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0, safeRamlogText,
+//           stringLen, thisFile, __LINE__);
+//   free(safeRamlogText);
+// }
+// #endif
