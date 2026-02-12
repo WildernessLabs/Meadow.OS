@@ -103,7 +103,6 @@
 //---------------------------------------------------------------------
 // Several of the meadow device names are defined here
 #define HCOM_COMMUNICATIONS_DEVICE_NAME "/dev/ttyACM0"
-#define HCOM_TRACE_RAMLOG_DEVICE_NAME "/dev/ramlog"
 #define HCOM_MONO_STDOUT_REDIRECT_FIFO "/dev/monostdout"
 #define HCOM_MONO_STDERR_REDIRECT_FIFO "/dev/monostderr"
 #define HCOM_MONO_REMOTE_DBG_SOCKET_NAME "/dev/monodbg"
