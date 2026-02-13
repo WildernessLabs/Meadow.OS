@@ -800,7 +800,7 @@ size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t buffLen)
 // this function signature like syslog so that this can be used as a substitute
 // for syslog.
 // Note:This function can ONLY be called from a kthread.
-// Note:Calling from a userland pthread will CRASH Nuttx.
+// Note:Calling from a user-land pthread will CRASH Nuttx.
 void hcom_nx_uart_direct(int priority, const char *fmt, ...)
 {
 #define HCOM_NX_UART_DIRECT_BUF_LEN (256)

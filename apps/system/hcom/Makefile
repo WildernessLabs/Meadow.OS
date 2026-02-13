@@ -44,7 +44,7 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	comms/hcom_host_send.c \
 	comms/hcom_host_watchdog.c \
 	diag/hcom_diag_gpio.c \
-	diag/hcom_diag_logging.c \
+	diag/hcom_diag_trace_priority.c \
 	diag/hcom_diag_misc.c \
 	diag/hcom_diag_nsh_support.c \
 	diag/hcom_diag_decode_protocol.c \

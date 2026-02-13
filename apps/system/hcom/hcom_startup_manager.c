@@ -159,24 +159,15 @@ int hcom_main(int argc, char *argv[])
   #if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
   g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
   #endif
+
   meadow_os_config_free_resources(config);
 #endif
 
-  // Allocates memory for moving reading ramlog. Nothing to wait for.
-  ret = hcom_diag_logging_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup logging utils:%d\n", thisFile, __LINE__, ret);
-    return ret;
-  }
-
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Startup Manager 2\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Startup Manager 1\n"); usleep(20 * 1000);
 #endif
-
-  // Note: This needs to be early because all battery backed register
-  // (BBR) access use this (e.g. hcom_logging_syslog_mask_init).
-  // Opens the nuttx upd driver to allow nuttx access.
+  
+  // Opens the nuttx upd driver to allow nuttx-side access.
   ret = hcom_via_nx_upd_setup();
   if (ret < 0)
   {
@@ -185,25 +176,21 @@ int hcom_main(int argc, char *argv[])
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 4\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 2\n"); usleep(20 * 1000);
 #endif
 
-  // MEADOW.OS REBASE Note: This feature is only available on the apps side. To make it
-  // available on the nuttx side, the hcom_diag_logging_setup() function
-  // would need to be called in the nuttx side of hcom.
-  //
   // Restore previous syslog mask from the battery backed register (BBR).
   // Note: This needs to be third because all hcom_logging_syslog
   // calls are filtered by the results of this call. Nothing to wait for.
-  ret = hcom_logging_syslog_mask_init();
+  ret = hcom_diag_trace_priority_level_init();
   if(ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-hcom_logging_syslog_mask_init failed:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", thisFile, __LINE__, ret);
     return ret; 
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 5\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 3\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -215,7 +202,7 @@ int hcom_main(int argc, char *argv[])
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 7\n"); usleep(20 * 1000);
+  syslog(LOG_MDIAG, "Apps startup manager 4\n"); usleep(20 * 1000);
 #endif
 
   // Does nothing
@@ -229,9 +216,22 @@ int hcom_main(int argc, char *argv[])
   //
   //  Start the ESP UART network monitor thread and then reset the ESP32.
   //
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Apps startup manager 5\n"); usleep(20 * 1000);
+#endif
+
   hcom_esp32_network_monitor_start();
+  
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Apps startup manager 6\n"); usleep(20 * 1000);
+#endif
+
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   meadow_os_espcp_reset();
+#endif
+
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Apps startup manager 7\n"); usleep(20 * 1000);
 #endif
 
   // Only sets a bool if CONFIG_SYSTEM_NSH set
@@ -334,6 +334,11 @@ int hcom_main(int argc, char *argv[])
     syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", thisFile, __LINE__, ret);
     return ret;
   }
+  
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Apps startup manager 15\n"); usleep(20 * 1000);
+#endif
+
   ret = hcom_startup_mgr_takesem(&_startupWaitSem);
   if (ret < 0)
   {
@@ -486,7 +491,7 @@ int hcom_main(int argc, char *argv[])
 #endif
 
   // This startup thread was created by Nuttx. It will now be used to run the
-  // task of processing messages. So, it won't return from this call.
+  // task of processing CLI messages. So, it won't return from this call.
   ret = hcom_host_process_setup();
   if (ret < 0)
   {
@@ -509,7 +514,6 @@ void hcom_manager_shutdown()
   hcom_mono_stdxxx_read_shutdown();
 #endif
   hcom_common_utils_shutdown();
-  hcom_diag_logging_shutdown();
   hcom_host_route_shutdown();  
   hcom_host_enq_deq_shutdown();
   hcom_host_send_shutdown();

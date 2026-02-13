@@ -171,7 +171,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_CHANGE_TRACE_LEVEL:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
         "", thisFile, __LINE__);
-      hcom_diag_logging_change_trace_level(userData);
+      hcom_diag_trace_priority_change_trace_level(userData);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
         "", thisFile, __LINE__);
       break;

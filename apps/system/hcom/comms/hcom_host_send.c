@@ -92,6 +92,7 @@ static bool hcom_host_send_is_host_xmit_blocked(void);
 static int hcom_host_send_low_power_notification(bool lpStart);
 static int hcom_host_send_open_transmit_connection(void);
 static void hcom_host_send_transmit_takesem(sem_t *semaphore);
+static void hcom_report_if_possible(int priority, FAR const IPTR char *fmt, ...);
 
 /****************************************************************************
  * Public Functions
@@ -206,7 +207,7 @@ int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
 
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-      hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
 
   return ret;
@@ -257,7 +258,7 @@ void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
 {
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, NULL, 0);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-    hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+    hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
       sourceFileName, sourceLineNumber, ret);
 }
 
@@ -270,7 +271,7 @@ void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
 {
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, bytes, msgLength);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-      hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
                 sourceFileName, sourceLineNumber, ret);
 }
 
@@ -287,7 +288,7 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, (uint8_t*) shortText, trueStrLen);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-    hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n", sourceFileName, sourceLineNumber, ret);
+    hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n", sourceFileName, sourceLineNumber, ret);
 }
 
 //=====================================================================
@@ -302,7 +303,7 @@ int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, (uint8_t*) shortText, msgLength);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
   {
-      hcom_logging_syslog_x(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
                 sourceFileName, sourceLineNumber, ret);
   }
 
@@ -542,7 +543,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
       toWriteOffset += writeRet;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Send %d bytes, sent %d (%d remaining) will %s\n\n",
+      hcom_report_if_possible(LOG_DEBUG, "%s@%d-Send %d bytes, sent %d (%d remaining) will %s\n\n",
           thisFile, __LINE__, encodedLength, writeRet, remainingBytes == 0 ? "exit" : "retry");
 #endif
 
@@ -568,7 +569,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
         usleep(HCOM_XMIT_MAX_BLOCKED_TIME_DELAY);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-        hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
+        hcom_report_if_possible(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
 #endif
 
         continue;
@@ -578,7 +579,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
       _lastXmitBlocked = true;
       
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-%d USB write attempts (wrote %d of %d bytes), message not sent\n",
+      hcom_report_if_possible(LOG_DEBUG, "%s@%d-%d USB write attempts (wrote %d of %d bytes), message not sent\n",
                 thisFile, __LINE__, blockedCount, remainingBytes, encodedLength);
 #endif
 
@@ -619,6 +620,28 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
   // Success exit
   _lastXmitBlocked = false;
   return OK;
+}
+
+//===================================================================
+// This function is for those places where hcom is processing text to
+// send to the host PC and something needs to be reported. The problem
+// is if we are using syslog and Meadow.OS was built with the configuration
+// 'CONFIG_RAMLOG_SYSLOG' calling to syslog would cause unending cycle.
+// of logs.
+void hcom_report_if_possible(int priority, FAR const IPTR char *fmt, ...)
+{
+#if defined CONFIG_RAMLOG_SYSLOG
+  // Can't send to syslog because this will be a recursive. Can't send
+  // directly to the host because this would be recursive too.
+  return;
+#else
+  // If Nuttx is configured for outputting syslogs to the console
+  // then this works. But, these cannot be routed to the host PC.
+  va_list args;
+  va_start(args, fmt);
+  vsyslog(priority, fmt, args);
+  va_end(args);
+#endif
 }
 
 //=====================================================================
