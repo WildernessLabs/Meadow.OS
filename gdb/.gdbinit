@@ -18,7 +18,7 @@ define load-nuttx-symbols
   # The following loads the bootloader symbols for debugging but is commented out for general use
   # as it adds over 45 seconds to the debugger startup.
   #
-#  add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
+  add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
   shell if test -f ../nuttx/nuttx_user.elf; then echo add-symbol-file -readnow ../nuttx/nuttx_user.elf; fi > /tmp/meadow_gdb
   source /tmp/meadow_gdb
 end
@@ -29,7 +29,7 @@ define reset-qemu
 end
 
 #
-#   These files are loaded after the NuttX symbol ffiles as references to
+#   These files are loaded after the NuttX symbol files as references to
 #   symbols are made in the files.  If they are loaded before the NuttX ELF
 #   files then they will fail.
 #
