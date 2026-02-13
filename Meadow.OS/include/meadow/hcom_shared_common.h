@@ -933,6 +933,9 @@ typedef struct mono_signature_s mono_signature_t;
 
 #define MEADOW_COM6_NAME "COM6"
 
+// For RAMLOG device (was /dev/ramlog in legacy)
+#define HCOM_TRACE_RAMLOG_DEVICE_NAME "/dev/kmsg"
+
 //==================================================
 // These identify the stm32f7 uarts used by meadow
 #define MEADOW_RECONFIG_MISCONFIGURED_UART1 1

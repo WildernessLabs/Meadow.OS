@@ -46,8 +46,8 @@
 /**
  *  The following trace macros are always defined.
  */
-#define MEADOW_CRITICAL_LOG(format, ...) hcom_logging_syslog((LOG_CRIT), format, ##__VA_ARGS__)
-#define MEADOW_EMERGENCY_LOG(format, ...) hcom_logging_syslog((LOG_EMERG), format, ##__VA_ARGS__)
+#define MEADOW_CRITICAL_LOG(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+#define MEADOW_EMERGENCY_LOG(format, ...) syslog((LOG_EMERG), format, ##__VA_ARGS__)
 
 #else
 
@@ -82,13 +82,13 @@
 //
 //  Trace and debug output macros from user space (HCOM etc.)
 //
-#define MEADOW_TRACE_INFORMATION(format, ...) hcom_logging_syslog((LOG_INFO), format, ##__VA_ARGS__)
+#define MEADOW_TRACE_INFORMATION(format, ...) syslog((LOG_INFO), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_DEBUG(format, ...) hcom_logging_syslog((LOG_DEBUG), format, ##__VA_ARGS__)
+#define MEADOW_TRACE_DEBUG(format, ...) syslog((LOG_DEBUG), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_ERROR(format, ...) hcom_logging_syslog((LOG_CRIT), format, ##__VA_ARGS__)
+#define MEADOW_TRACE_ERROR(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_CRITICAL(format, ...) hcom_logging_syslog((LOG_CRIT), format, ##__VA_ARGS__)
+#define MEADOW_TRACE_CRITICAL(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
 
 #else
 

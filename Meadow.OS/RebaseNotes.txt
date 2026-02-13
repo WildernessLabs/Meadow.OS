@@ -18,7 +18,7 @@ This way both the header and 'c' file were available to the compiler.
 -------------------------------------------------------------
 Other Things that need attention
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
-are some form of workaround or change is needed in the code.
+are some form of workaround or change, needed for the code to build.
 
 2. Meadow/nuttx/include/meadow/'meadow_syscall.h' should be merged with
 'meadow_syscall_support.h'.
@@ -28,8 +28,8 @@ inconsistent old copyright information, likely a wrong file location and the
 wrong copyright date. While no technical value, it should be done. We need a
 standard format to follow.
 
-4. The defconfig file contained some entires that using 'make savedefconfig'
-removed. This is the list. These may need to be added to an appropriate
+4. The 'defconfig' file contained some entires that using 'make savedefconfig'
+removes. This is the list. These may need to be added to an appropriate
 Kconfig or removed as no longer needed or there name changed.
 # CONFIG_MEADOW_CLOUD is not set
 CONFIG_EXAMPLES_MONO=y
@@ -56,23 +56,44 @@ CONFIG_DEBUG_FS_INFO=y
 -----------------------------------------------------------------
 This list needs to become several Meadow.OS Issues
 Things to look into (no order):
-1. hcom_logging_syslog - It seems hcom_logging_syslog() entries do nothing when called.
-   Should this custom syslog feature be removed?
+// Issue #86
+1. hcom_logging_syslog - It seems hcom_logging_syslog() entries do nothing when 
+   called. Should this custom syslog function be removed and simply use the
+   Nuttx syslog like is done on the kernel side.
+
+// Issue #92
 2. Syslog no ramlog - Using syslog doesn't use a in memory buffer.
+
+// Issue #87
 3. A failed download - When a file download fails the file seems to be left in the file
    System with a length of 0, not deleted.
+
+// Issue #88
 4. SD-Card mounting - Nuttx 12 has automount code for sd-cards. Should we consider using it?
+
+// 
 5. Move Code - Check for code in nuttx/arch/arm/src/board for code that should be moved
    to a different location.
+
 6. Meadow.OS is confusing - The current implementation uses Meadow.OS for the repo name,
    a next level directory name and for a symlink. Two of these names should be changed.
+
 7. Should something be done with /Meadow.OS/include/meadow/stm32f777zit6-meadow.h header?
    It's kind of a mess.
+
 8. Use Copilot or another tool to look for memory and file descriptor leaks.
+
 9. There are several places were HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE is used to define
    a buffer. However, when the code was written the maximum size of a HCOM message was
    512 bytes, it is now 8192 bytes. There are places were this needs to be corrected.
+
 10. In legacy hcom_stdout_redirect and hcom_stderr_redirect, have been replaced a single
-   with hcom_stdxxx_redirect. This needs to be untangled as soon as mono is in place.
-   Look for CONFIG_HCOM_MONO_STDERR_STDOUT which is is used in several places. It should
-   also be renamed CONFIG_HCOM_MONO_STDXXX.
+   with hcom_stdxxx_redirect. This change needs to be implemented, possibly before mono
+   is in place. Look for CONFIG_HCOM_MONO_STDERR_STDOUT which has been used to disable
+   the code in Meadow.OS, temporarily. It should also be renamed CONFIG_HCOM_MONO_STDXXX.
+
+11. Consider simplifying hcom_host_enq_deq.c. It contains 3 semaphores and is too
+   complex guarentee reliably. Also, this implementation could be refactored to use a
+   single thread to received and process the received messages. Since we run on a 
+   single core the difference in performance would probably be near zero.
+

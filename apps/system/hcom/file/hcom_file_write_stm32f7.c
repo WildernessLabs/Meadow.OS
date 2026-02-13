@@ -99,7 +99,7 @@ int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
   {
     if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-F/S not mounted %s\n",
+      syslog(LOG_ERR, "%s@%d-F/S not mounted %s\n",
               thisFile, __LINE__, dnldShared->dnldFullPathName);
       return -ENOENT; // No such file or directory
     }
@@ -114,13 +114,13 @@ int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
   dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT, 0644);
   if (dnldShared->dnldFileFD == -1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n",
               thisFile, __LINE__, dnldShared->dnldFullPathName, get_errno());
     return -get_errno();
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", thisFile, __LINE__,
+  syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", thisFile, __LINE__,
     dnldShared->dnldFullPathName);
 #endif
 
@@ -160,7 +160,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
     writeDataBuff = malloc(fileWriteSize);
     if(writeDataBuff == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
 
@@ -179,7 +179,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
   nbytes = write(dnldShared->dnldFileFD, writeDataBuff, fileWriteSize);
   if (nbytes < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n",
+    syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n",
              thisFile, __LINE__, dnldShared->dnldFullPathName,
              dnldShared->dnldFileFD, errno);
 
@@ -201,13 +201,13 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
 
   if (nbytes < fileWriteSize)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n",
+    syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n",
              thisFile, __LINE__, dnldShared->dnldFullPathName,
              nbytes, fileWriteSize);
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Wrote %d bytes to %s\n", 
+  syslog(LOG_DEBUG, "%s@%d-Wrote %d bytes to %s\n", 
             thisFile, __LINE__, nbytes, dnldShared->dnldFullPathName);
 #endif
 
@@ -238,7 +238,7 @@ int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared)
   ret = close(dnldShared->dnldFileFD);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Close of %s, errno %d\n",
+    syslog(LOG_ERR, "%s@%d-Close of %s, errno %d\n",
              thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
     ret = -errno;       // Continue even with error
   }
@@ -247,7 +247,7 @@ int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared)
   dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Closed %s\n", thisFile, __LINE__, dnldShared->dnldFullPathName);
+  syslog(LOG_DEBUG, "%s@%d-Closed %s\n", thisFile, __LINE__, dnldShared->dnldFullPathName);
 #endif
 
   return ret;

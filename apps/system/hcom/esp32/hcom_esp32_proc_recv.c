@@ -85,7 +85,7 @@ int hcom_esp32_recv_setup_lazy()
   _esp_cir_buf = (host_com_cir_buffer_t *)malloc(sizeof(host_com_cir_buffer_t));
   if (_esp_cir_buf == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-circular buffer allocation failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-circular buffer allocation failed\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
@@ -95,7 +95,7 @@ int hcom_esp32_recv_setup_lazy()
             HCOM_ESP32_SLIP_FRAME_END_C0);
   if (ret == HCOM_CIR_BUF_ALLOC_FAILED)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 buffer allocation failed:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-ESP32 buffer allocation failed:%d\n", thisFile, __LINE__, ret);
     return -1;
   }
 
@@ -106,7 +106,7 @@ int hcom_esp32_recv_setup_lazy()
   if (recvMsgQueue == (mqd_t)-1)
   {
     int errcode = get_errno();
-    hcom_logging_syslog(LOG_ERR, "%s@%d-mq_open(%s) failed:%d\n",
+    syslog(LOG_ERR, "%s@%d-mq_open(%s) failed:%d\n",
               thisFile, __LINE__, HCOM_ESP_COMMS_MSG_QUEUE_NAME, errcode);
     return -errcode;
   }
@@ -182,7 +182,7 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
 
       if(_diagBufferedCount > HCOM_ESP_COMMS_RCV_ESP_BUFFER_SIZE)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-_diagBufferedCount:%d exceed buffer:%d\n",
+        syslog(LOG_ERR, "%s@%d-_diagBufferedCount:%ld exceed buffer:%d\n",
                   thisFile, __LINE__, _diagBufferedCount,
                   HCOM_ESP_COMMS_RCV_ESP_BUFFER_SIZE);
         return -EFBIG;
@@ -202,7 +202,7 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
       if (ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
       {
         // The message is too long and has been deleted
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
+        syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
                 thisFile, __LINE__, bytesToAdd);
         return -EFBIG;
       }
@@ -210,14 +210,14 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
     else if (ret == HCOM_CIR_BUF_ADD_BAD_ARG)
     {
         // Something wrong with implemenation
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Bad argument:%d\n",
+        syslog(LOG_ERR, "%s@%d-Bad argument:%d\n",
                 thisFile, __LINE__, ret);
         return -EINVAL;
     }
     else
     {
         // Undefined return value, should never happen
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Undefined ret:%d\n",
+        syslog(LOG_ERR, "%s@%d-Undefined ret:%d\n",
                 thisFile, __LINE__, ret);
         return -EINVAL;
     }
@@ -228,7 +228,7 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
   // The message was too long and has been deleted
   if(ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
+    syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
             thisFile, __LINE__, ret);
     return -EFBIG;
   }
@@ -244,7 +244,7 @@ int hcom_esp32_recv_pull_and_process()
     uint8_t *packetBuffer = malloc(HCOM_ESP_COMMS_MAX_ESP_PACKET_SIZE);
     if(packetBuffer == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
 
@@ -278,13 +278,13 @@ int hcom_esp32_recv_pull_and_process()
         ret = hcom_esp32_recv_handle_bin_packet(packetBuffer, packetLength);
         if(ret < 0)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-Bin message error:%d\n", thisFile, __LINE__, ret);
+          syslog(LOG_ERR, "%s@%d-Bin message error:%d\n", thisFile, __LINE__, ret);
         }
       }
       else if (ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
       {
           // The message was too long and has been deleted
-          hcom_logging_syslog(LOG_ERR, "%s@%d-Data packet too large, data deleted, msg %d bytes\n",
+          syslog(LOG_ERR, "%s@%d-Data packet too large, data deleted, msg %d bytes\n",
                   thisFile, __LINE__, packetLength);
           return -EFBIG;
       }
@@ -292,7 +292,7 @@ int hcom_esp32_recv_pull_and_process()
       {
         _diagBufferedCount -= packetLength;
 
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Orphan Data:0x%02x\n",
+        syslog(LOG_ERR, "%s@%d-Orphan Data:0x%02x\n",
                   thisFile, __LINE__, packetBuffer[packetLength-1]);
       }
     }
@@ -318,7 +318,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     // Only saw this not be 1 (direction) when system tick set to 100 usec
     // (it's now 1 ms) received 0x0c 0x0c with nothing in between. But leaving,
     // just in case.
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected direction of:1 not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected direction of:1 not:%d\n",
               thisFile, __LINE__, *binRecvdData);
 
     // Wait a moment before returning
@@ -334,7 +334,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
   {
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-    hcom_logging_syslog(LOG_DEBUG, "%s@%d-Recvd cmd 0x%02x-ignoring\n",
+    syslog(LOG_DEBUG, "%s@%d-Recvd cmd 0x%02x-ignoring\n",
              thisFile, __LINE__, binRecvdData[1], _currentExpectRecvCommand);
 #endif
 
@@ -349,7 +349,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
   uint8_t *decodedMsg = malloc(binRecvdLen);
   if(decodedMsg == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
@@ -358,7 +358,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
 
   if(decodedLen < HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Msg too small, expected:%d, recvd:%d\n",
+    syslog(LOG_ERR, "%s@%d-Msg too small, expected:%d, recvd:%d\n",
               __FILE__, __LINE__, HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH,
               decodedLen);
     return -EPROTO; 
@@ -369,7 +369,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
 
   if(mqRecvdData.espMqHdr.direction != 1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected direct of 1, not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected direct of 1, not:%d\n",
               thisFile, __LINE__, mqRecvdData.espMqHdr.direction);
     return -EIO;
   }
@@ -380,7 +380,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
   // Valid message?
   if(decodedLen != mqRecvdData.espMqHdr.size + HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Msg length error, expected:%d, not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Msg length error, expected:%d, not:%d\n",
               thisFile, __LINE__, decodedLen,
               mqRecvdData.espMqHdr.size + HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH);
     return -EMSGSIZE;
@@ -397,7 +397,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     mqRecvdData.espMqHdr.value = 0;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Recvd cmd:0x%02x, size:%d, value:0x%08x\n", thisFile, __LINE__,
+  syslog(LOG_DEBUG, "%s@%d-Recvd cmd:0x%02x, size:%d, value:0x%08x\n", thisFile, __LINE__,
       mqRecvdData.espMqHdr.command, mqRecvdData.espMqHdr.size, mqRecvdData.espMqHdr.value);
 #endif
 
@@ -426,7 +426,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     int errn = get_errno();
     if(errn == EAGAIN)
     {
-      hcom_logging_syslog(LOG_WARNING, "%s@%d-mq full, cmd:0x%02x not added\n",
+      syslog(LOG_WARNING, "%s@%d-mq full, cmd:0x%02x not added\n",
                 thisFile, __LINE__, mqRecvdData.espMqHdr.command);
     }
     else
@@ -437,7 +437,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
       // EPERM (1). Message queue not opened for writing.
       // EMSGSIZE (122). 'msglen' was greater than the maxmsgsize attribute of the message queue.
       // EINTR (4). The call was interrupted by a signal handler.
-      hcom_logging_syslog(LOG_ERR, "%s@%d-mq_send errno:%d\n", thisFile, __LINE__, errn);
+      syslog(LOG_ERR, "%s@%d-mq_send errno:%d\n", thisFile, __LINE__, errn);
     }
   }
 

@@ -90,7 +90,7 @@ int hcom_host_enq_deq_setup()
 
   if (_hcom_cbuf == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-One of 2 allocations failed\n",
+    syslog(LOG_ERR, "%s@%d-One of 2 allocations failed\n",
               thisFile, __LINE__);
     return -ENOMEM;
   }
@@ -99,7 +99,7 @@ int hcom_host_enq_deq_setup()
           HCOM_PROTOCOL_COBS_DELIMITER);
   if (result == HCOM_CIR_BUF_ALLOC_FAILED)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Buffer allocation failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Buffer allocation failed\n", thisFile, __LINE__);
     return -1;
   }
 
@@ -190,12 +190,12 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
       case HCOM_CIR_BUF_ADD_BAD_ARG:
         // Report error and return. The message is lost.
         sem_post(&_lockCirBufSem);      // Release lock on buffer
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Bad argument to cir buf\n", thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d-Bad argument to cir buf\n", thisFile, __LINE__);
         return OK;
 
       default:
         sem_post(&_lockCirBufSem);      // Release lock on buffer
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_add_bytes():%d\n",
+        syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_add_bytes():%d\n",
                     thisFile, __LINE__, result);
         break;
     }
@@ -249,13 +249,13 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
         // The message was too big and the bad message removed from the
         // circular buffer. So, report error and return.
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n",
+        syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n",
                   thisFile, __LINE__, *packetLength);
         break;                          // Try again to get the next message
 
       default:
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_get_next_packet():%d\n",
+        syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_get_next_packet():%d\n",
                   thisFile, __LINE__, result);
         break;
     }

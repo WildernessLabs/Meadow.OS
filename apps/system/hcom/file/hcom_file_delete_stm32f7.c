@@ -104,7 +104,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
 
     if(pathNameTemp == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
 
@@ -173,7 +173,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
   char *hostMsg = malloc(HCOM_SHORT_HOST_STRING_BUFF_LENGTH);
   if(hostMsg == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 

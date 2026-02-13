@@ -143,7 +143,7 @@ int hcom_host_recv_setup()
   ret = pthread_create(&thread, &attr, hcom_host_recv_pthread, NULL);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
               thisFile, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
     return ret;
   }
@@ -302,7 +302,7 @@ void hcom_host_recv_open_connection()
   int hostConnectionAttemptCount = HCOM_CONNECTION_STARTUP_ATTEMPTS;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-usb open read %s\n", thisFile, __LINE__,
+  syslog(LOG_DEBUG, "%s@%d-usb open read %s\n", thisFile, __LINE__,
         HCOM_COMMUNICATIONS_DEVICE_NAME);
 #endif
 
@@ -343,7 +343,7 @@ void hcom_host_recv_open_connection()
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-%s ready for host comms\n",
+  syslog(LOG_DEBUG, "%s@%d-%s ready for host comms\n",
             thisFile, __LINE__, deviceName);
 #endif
 }
@@ -353,7 +353,7 @@ void hcom_host_recv_open_connection()
 // needed. This thread is the only thread receiving via USB serial data.
 bool hcom_host_recv_received_data()
 {
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-HCOM Waiting for '%s' message\n",
+  syslog(LOG_DEBUG, "%s@%d-HCOM Waiting for '%s' message\n",
             thisFile, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
 
   while (!_shutting_down)
@@ -372,7 +372,7 @@ bool hcom_host_recv_received_data()
       int result = hcom_host_enq_deq_enqueue_rcvd_data(_recvDataBuffer, readResult);
       if (result < 0)
       {
-        hcom_logging_syslog(LOG_WARNING, "%s@%d-received result:%d \n", thisFile, __LINE__, result);
+        syslog(LOG_WARNING, "%s@%d-received result:%d \n", thisFile, __LINE__, result);
       }
       continue;
     }
@@ -380,7 +380,7 @@ bool hcom_host_recv_received_data()
     // readResult == 0 (end-of-file). Host PC probably dropped connection
     if (readResult == 0)
     {
-      hcom_logging_syslog(LOG_INFO, "%s@%d-HCOM received EOF\n", thisFile, __LINE__);
+      syslog(LOG_INFO, "%s@%d-HCOM received EOF\n", thisFile, __LINE__);
       continue;
     }
 
@@ -414,7 +414,7 @@ bool hcom_host_recv_received_data()
     }
     else
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-HCOM recv error:%d, errno:%d\n", thisFile, __LINE__, readResult, errno);
+      syslog(LOG_ERR, "%s@%d-HCOM recv error:%d, errno:%d\n", thisFile, __LINE__, readResult, errno);
       return(false);    // No retry delay
     }
 

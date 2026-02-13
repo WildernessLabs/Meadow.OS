@@ -119,7 +119,7 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
   }
   else
   {
-    hcom_logging_syslog(LOG_ERR, "NSH Serial device '%s' unknown\n",
+    syslog(LOG_ERR, "NSH Serial device '%s' unknown\n",
               HCOM_DIAG_NSH_SERIAL_DEVICE);
     return;
   }
@@ -141,7 +141,7 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
     if(_nsh_pid > 0)
     {
       _nsh_enabled = true;
-      hcom_logging_syslog(LOG_INFO, "%s@%d-NSH now enabled [pid:%d, pri:%d, stack:%d]\n",
+      syslog(LOG_INFO, "%s@%d-NSH now enabled [pid:%d, pri:%d, stack:%d]\n",
               thisFile, __LINE__, _nsh_pid, CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE);
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
@@ -149,7 +149,7 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
     }
     else
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-NSH could not be created\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-NSH could not be created\n", thisFile, __LINE__);
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
               "NSH could not be created", thisFile, __LINE__);
@@ -172,7 +172,7 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 // By design Nuttx builds NSH expecting to using stdin, stdout and stderr for
 // interactions with the serial port. This is resolved here in that the proper
 // serial port is assigned to stdout and stderr by this new task that runs NSH.
-// And the nuttx configuration assignes the alternate console for the proper port.
+// And the nuttx configuration assignee the alternate console for the proper port.
 //
 // Note: cannot use the hcom_via_nx_xxx() calls without calling
 // hcom_via_nx_upd_driver_open() to obtain a proper handle. Because this is
@@ -198,7 +198,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
 
       if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
           thisFile, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
         stdout_fd = -1;
         return 1;
@@ -212,7 +212,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
     ret = dup2(stdout_fd, STDOUT_FILENO);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
                 thisFile, __LINE__, ret, errno);
       return -errno;
     }
@@ -230,7 +230,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
 
       if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
           thisFile, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
         stderr_fd = -1;
         return 1;
@@ -244,7 +244,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
     ret = dup2(stderr_fd, STDERR_FILENO);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
                 thisFile, __LINE__, ret, errno);
       return -errno;
     }

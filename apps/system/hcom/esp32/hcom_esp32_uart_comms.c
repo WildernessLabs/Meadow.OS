@@ -193,7 +193,7 @@ int hcom_esp32_uart_lazy_initialization()
   _esp32_read_buffer = malloc(HCOM_ESP32_FLASH_UART_READ_BUF_SIZE);
   if(_esp32_read_buffer == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-mem alloc for esp read buffer. errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-mem alloc for esp read buffer. errno:%d\n",
               thisFile, __LINE__, errno);
     _init_failed = -ENOMEM;
     return -ENOMEM;
@@ -209,21 +209,21 @@ int hcom_esp32_uart_lazy_initialization()
   ret = hcom_esp32_recv_setup_lazy();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed init esp32 recv %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-Failed init esp32 recv %d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
   ret = hcom_esp32_xmit_setup_lazy();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
   ret = hcom_esp32_util_setup_lazy();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -232,7 +232,7 @@ int hcom_esp32_uart_lazy_initialization()
   ret = hcom_esp32_uart_comms_make_thread();
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-thread create, ret:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-thread create, ret:%d\n", thisFile, __LINE__, ret);
     _init_failed = ret;
     return ret;
   }
@@ -261,7 +261,7 @@ int hcom_esp32_uart_comms_make_thread()
     ret = pthread_create(&_esp32_recv_thread, &attr, hcom_esp32_uart_comms_pthread, NULL);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed to create %s thread. Error:%d\n",
+      syslog(LOG_CRIT, "%s@%d-Failed to create %s thread. Error:%d\n",
                 thisFile, __LINE__, HCOM_THREAD_NAME_ESP32_RECEIVE, ret);
     }
     return ret;
@@ -283,7 +283,7 @@ FAR void *hcom_esp32_uart_comms_pthread(FAR void *arg)
   ret = hcom_esp32_uart_open_serial_ports();
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open serial port failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-open serial port failed\n", thisFile, __LINE__);
     _init_failed = ret;
     sem_post(&_initalizeWaitSem);  // Allow hcom thread to proceed
     return NULL; //  This will terminate this thread
@@ -316,14 +316,14 @@ FAR void *hcom_esp32_uart_comms_pthread(FAR void *arg)
 }
 
 //=============================================================
-// This initialiation is done by the thread created to receive from ESP32
+// This initialization is done by the thread created to receive from ESP32
 int hcom_esp32_uart_open_serial_ports()
 {
   // Open the uart for read
   _esp32_read_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_RDONLY);
   if (_esp32_read_fd == -1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open of %s for read failed. errno:%d\n", thisFile, __LINE__,
+    syslog(LOG_ERR, "%s@%d-open of %s for read failed. errno:%d\n", thisFile, __LINE__,
         HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
     return -errno;
   }
@@ -332,7 +332,7 @@ int hcom_esp32_uart_open_serial_ports()
   _esp32_write_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_WRONLY);
   if (_esp32_write_fd == -1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open of %s for write failed. errno:%d\n", thisFile, __LINE__,
+    syslog(LOG_ERR, "%s@%d-open of %s for write failed. errno:%d\n", thisFile, __LINE__,
         HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
     return -errno;
   }
@@ -357,14 +357,14 @@ int hcom_esp32_uart_comms_read_serial_loop()
 
     if (readReturn < 0 )
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-esp read ret:%d, errno:%d\n", thisFile, __LINE__,
+      syslog(LOG_ERR, "%s@%d-esp read ret:%d, errno:%d\n", thisFile, __LINE__,
         readReturn, errno);
       return -errno;
     }
     
     if (readReturn == 0)    // EOF
     {
-      hcom_logging_syslog(LOG_WARNING, "%s@%d-UART read=0 (EOF)\n", thisFile, __LINE__);
+      syslog(LOG_WARNING, "%s@%d-UART read=0 (EOF)\n", thisFile, __LINE__);
       sleep(1);
       continue;
     }
@@ -373,7 +373,7 @@ int hcom_esp32_uart_comms_read_serial_loop()
       int ret = hcom_esp32_recv_handle_data(_esp32_read_buffer, readReturn);
       if(ret < 0)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 recvd data not processed:%d\n",
+        syslog(LOG_ERR, "%s@%d-ESP32 recvd data not processed:%d\n",
                 thisFile, __LINE__, ret);
       }
     }
@@ -403,7 +403,7 @@ int hcom_esp32_uart_comms_write_serial(uint8_t* espWriteBuf, size_t espWriteSize
       toWriteOffset += writeRet;
       
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      hcom_logging_syslog(LOG_DEBUG, "SUCCESS-Wrote to ESP ret:%d, total wrote:%d bytes, remaining:%d (uart_comms)\n",
+      syslog(LOG_DEBUG, "SUCCESS-Wrote to ESP ret:%d, total wrote:%d bytes, remaining:%d (uart_comms)\n",
                 writeRet, toWriteOffset, remainingBytes);
 #endif
 
@@ -413,7 +413,7 @@ int hcom_esp32_uart_comms_write_serial(uint8_t* espWriteBuf, size_t espWriteSize
     if(remainingBytes == 0)
       return toWriteOffset;
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 write errno:%d\n", thisFile, __LINE__, errno);
+    syslog(LOG_ERR, "%s@%d-ESP32 write errno:%d\n", thisFile, __LINE__, errno);
   }
   return writeRet;
 }

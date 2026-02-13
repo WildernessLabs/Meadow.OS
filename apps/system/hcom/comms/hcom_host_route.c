@@ -92,7 +92,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
   int ret = OK;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "-->Received Meadow command of RqstType:0x%04x\n",
+  syslog(LOG_DEBUG, "-->Received Meadow command of RqstType:0x%04x\n",
             requestType);
 #endif
 
@@ -171,7 +171,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_CHANGE_TRACE_LEVEL:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
         "", thisFile, __LINE__);
-      hcom_diag_logging_change_trace_level(userData);
+      hcom_diag_trace_priority_change_trace_level(userData);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
         "", thisFile, __LINE__);
       break;
@@ -540,7 +540,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_REJECTED, 0,
               hostMsg, thisFile, __LINE__);
 
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Received unsupported request type:0x%04x\n",
+      syslog(LOG_ERR, "%s@%d-Received unsupported request type:0x%04x\n",
              thisFile, __LINE__, requestType);
 #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
       hcom_diag_print_buffer((const uint8_t*)hdrMsg, packetSize, LOG_ERR);

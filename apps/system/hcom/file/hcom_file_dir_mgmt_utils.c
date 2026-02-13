@@ -343,7 +343,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
   dnldShared->dnldOrigPathName = malloc(fileNameLength + 1);
   if(dnldShared->dnldOrigPathName == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
@@ -363,7 +363,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
   // Check the number of elements included all levels.
   if(pathNameElements > HCOM_FILE_DNLD_MAX_NUMB_DIR_ELEMENTS)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-subdirectories limited to %lu, found %lu\n",
+    syslog(LOG_ERR, "%s@%d-subdirectories limited to %u, found %lu\n",
               thisFile, __LINE__,
               HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS,
               pathNameElements - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS);
@@ -371,7 +371,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
     if(hostMsg == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
                 thisFile, __LINE__);
       return -ENOMEM;   // No Memory
     }
@@ -402,7 +402,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     dnldShared->dnldFullPathName = malloc(dnldFileAndPathLen + 1);
     if (dnldShared->dnldFullPathName == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
   }
@@ -413,7 +413,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     dnldShared->dnldFullPathName = malloc(fileNameLength + 1);
     if (dnldShared->dnldFullPathName == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
       return -ENOMEM;
     }
   }
@@ -424,7 +424,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
     if (hostMsg == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
                           thisFile, __LINE__);
       return -ENOMEM; // No Memory
     }
@@ -473,7 +473,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     // message to the CLI.
     case pathnameSdcardNoConfig:
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-pathname '%s' but, SDCard not configured\n",
+      syslog(LOG_ERR, "%s@%d-pathname '%s' but, SDCard not configured\n",
                           thisFile, __LINE__, dnldShared->dnldOrigPathName);
 
       snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
@@ -488,7 +488,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
 
     case pathnameInvalid:
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-pathname '%s' is invalid\n",
+      syslog(LOG_ERR, "%s@%d-pathname '%s' is invalid\n",
                           thisFile, __LINE__, dnldShared->dnldOrigPathName);
 
       snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
@@ -504,7 +504,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
     case pathnameInvalidNoSlash:
     case pathnameInvalidSlash:
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-pathname '%s' invalid, %s ending '/'\n",
+      syslog(LOG_ERR, "%s@%d-pathname '%s' invalid, %s ending '/'\n",
                           thisFile, __LINE__, dnldShared->dnldOrigPathName,
                           catType == pathnameInvalidSlash ? "has" : "missing");
 
@@ -522,7 +522,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
 
     default:
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Unhandled pathname category: %d\n",
+      syslog(LOG_ERR, "%s@%d-Unhandled pathname category: %d\n",
                           thisFile, __LINE__, catType);
 
       snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
@@ -587,7 +587,7 @@ int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared,
   pathName = malloc(pathNameLength + 1);
   if (pathName == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-allocation failed\n",
+    syslog(LOG_ERR, "%s@%d-allocation failed\n",
               thisFile, __LINE__);
 
     return -ENOMEM;
@@ -654,7 +654,7 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
   char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName));
   if(fullFileNamePath == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
               thisFile, __LINE__);
     return -ENOMEM;
   }
@@ -705,13 +705,13 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
         ret = mkdir(fullFileNamePath, 0777);
         if(ret < 0)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-mkdir of '%s' failed with, ret:%d, errno:%d\n",
+          syslog(LOG_ERR, "%s@%d-mkdir of '%s' failed with, ret:%d, errno:%d\n",
                     thisFile, __LINE__, fullFileNamePath, ret, errno);
 
           char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
           if(hostMsg == NULL)
           {
-            hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
                       thisFile, __LINE__);
             free(fullFileNamePath);
             return -ENOMEM;
@@ -735,7 +735,7 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
       }
       else
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n",
                   thisFile, __LINE__, ret, errno);
       }
 
@@ -745,7 +745,7 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
         char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
         if(hostMsg == NULL)
         {
-          hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+          syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
                     thisFile, __LINE__);
           free(fullFileNamePath);
           return -ENOMEM;
