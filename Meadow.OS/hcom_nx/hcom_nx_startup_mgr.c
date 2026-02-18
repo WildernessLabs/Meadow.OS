@@ -329,7 +329,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
   else
   {
-    syslog(LOG_INFO, "%s@%d-SD Card not configured for use\n", __FILE__, __LINE__);
+    syslog(LOG_INFO, "CCM device but, SD Card not configured\n");
   }
   hcom_nx_config_unlock();
 #endif
@@ -387,7 +387,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     else
     {
       hcom_nx_config_unlock();
-      syslog(LOG_INFO, "CCM device but, Ethernet not enabled\n");
+      syslog(LOG_INFO, "CCM device but, Ethernet not configured\n");
     }
   }
   else

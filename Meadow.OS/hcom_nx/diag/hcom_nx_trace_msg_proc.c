@@ -250,7 +250,7 @@ int hcom_nx_trace_msg_lazy_initialization()
     snprintf_chk(timeBuf, 64, "%02d:%02d:%02d", tmNow.tm_hour, tmNow.tm_min,
               tmNow.tm_sec);
 
-    hcom_nx_uart_direct(0, "\nMeadow initialization has begun at %s UTC Meadow time.\n",
+    hcom_nx_uart_direct(0, "\nMeadow.OS (Rebase) initialization has begun at %s UTC Meadow time.\n",
       timeBuf);
 
     // Close uart port because the file descriptor is open by a different thread

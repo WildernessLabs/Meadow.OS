@@ -67,7 +67,7 @@ static char *thisFile = __FILE__;
 
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
-static FAR meadow_part_info_t _partInfo[MEADOW_FLASH_PART_TOTAL_PARTITIONS];
+static FAR meadow_part_info_t _partInfoArray[MEADOW_FLASH_PART_TOTAL_ELEMENTS];
 
 /****************************************************************************
  * Private Function Prototypes
@@ -82,25 +82,25 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
  ****************************************************************************/
 
 //===========================================================================
-// This function accepts a Partition number and resolves it to a specific
+// This function accepts a Partition ID 0 and resolves it to a specific
 // partition and returns a populated meadow_part_info_t.
-// Note: the partNumb of MEADOW_FLASH_PART_NUMB_PARENT_PART returns the
+// Note: the partNumb of MEADOW_FLASH_PART_OFFSET_PARENT_PART returns the
 // meadow_part_info_t for the entire flash flash chip.
-int hcom_nx_fs_get_partition_info(uint32_t partNumb,
+int hcom_nx_fs_get_partition_info(uint32_t partId,
           meadow_part_info_t *partInfo)
 {
-  if((partNumb > MEADOW_FLASH_PART_NUMB_PARENT_PART) | (partNumb < 0))
+  if((partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART) | (partId < 0))
   {
-    syslog(LOG_ERR, "%s@%d-Partition number:%lu out of range\n",
-              thisFile, __LINE__, partNumb);
+    syslog(LOG_ERR, "%s@%d-Partition:%lu out of range\n",
+              thisFile, __LINE__, partId);
     return -EINVAL;
   }
 
-  partInfo->isPartMounted   = _partInfo[partNumb].isPartMounted;
-  partInfo->mtdPart         = _partInfo[partNumb].mtdPart;
-  partInfo->byteOffset      = _partInfo[partNumb].byteOffset;
-  partInfo->blockOffset     = _partInfo[partNumb].blockOffset;
-  partInfo->partSize        = _partInfo[partNumb].partSize;
+  partInfo->isPartMounted   = _partInfoArray[partId].isPartMounted;
+  partInfo->mtdPart         = _partInfoArray[partId].mtdPart;
+  partInfo->byteOffset      = _partInfoArray[partId].byteOffset;
+  partInfo->blockOffset     = _partInfoArray[partId].blockOffset;
+  partInfo->partSize        = _partInfoArray[partId].partSize;
 
   return OK;
 }
@@ -115,14 +115,14 @@ int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 
   _pagesPerEraSector = 0;
 
-  // Initialize the partition information
-  for(int i = 0; i < MEADOW_FLASH_PART_TOTAL_PARTITIONS; i++)
+  // Initialize the partition information of all elements
+  for(int i = 0; i < MEADOW_FLASH_PART_TOTAL_ELEMENTS; i++)
   {
-    _partInfo[i].mtdPart = NULL;
-    _partInfo[i].isPartMounted = false;
-    _partInfo[i].byteOffset = 0;
-    _partInfo[i].blockOffset = 0;
-    _partInfo[i].partSize = 0;
+    _partInfoArray[i].mtdPart = NULL;
+    _partInfoArray[i].isPartMounted = false;
+    _partInfoArray[i].byteOffset = 0;
+    _partInfoArray[i].blockOffset = 0;
+    _partInfoArray[i].partSize = 0;
   }
 
 #ifdef CONFIG_FS_LITTLEFS
@@ -155,9 +155,9 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
 {
   int ret;
 
-  syslog(LOG_INFO, "F/S creating %d partition%s\n",
-            MEADOW_FLASH_PART_TOTAL_PARTITIONS,
-            MEADOW_FLASH_PART_TOTAL_PARTITIONS > 1 ? "s" : "");
+  // syslog(LOG_INFO, "F/S creating %d partition%s\n",
+  //           MEADOW_FLASH_PART_TOTAL_PARTITIONS,
+  //           MEADOW_FLASH_PART_TOTAL_PARTITIONS > 1 ? "s" : "");
 
   // Create the partitions in the external flash
   ret = hcom_fs_init_partitions(mtd);
@@ -168,30 +168,30 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   }
 
   //------------------------------------------------------------------------
-  syslog(LOG_DEBUG, "Partitioning complete. Init file system\n");
+  // syslog(LOG_DEBUG, "Partitioning complete. Init file system\n");
 
   // Initialize the file system
 #if defined CONFIG_FS_LITTLEFS
 
   // File System only takes one partition. This call will create the Meadow
-  // file system on partition MEADOW_FLASH_PART_NUMB_FILE_SYS as '/meadow0'.
-  ret = hcom_nx_create_one_littlefs_file_dev(MEADOW_FLASH_PART_NUMB_FILE_SYS,
-                    _partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].mtdPart);
+  // file system on partition MEADOW_FLASH_PART_OFFSET_FILE_SYS as '/meadow0'.
+  ret = hcom_nx_create_one_littlefs_file_dev(MEADOW_FLASH_PART_OFFSET_FILE_SYS,
+                    _partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].mtdPart);
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-LittleFS error:%d part:%d\n",
-              thisFile, __LINE__, ret, MEADOW_FLASH_PART_NUMB_FILE_SYS);
+              thisFile, __LINE__, ret, MEADOW_FLASH_PART_OFFSET_FILE_SYS);
     return ret;
   }
 #endif
 
   //------------------------------------------------------------------------
-  syslog(LOG_DEBUG, "F/S Part Init complete, mount & format if needed\n");
+  // syslog(LOG_DEBUG, "F/S Part Init complete, mount & format if needed\n");
 
 #if defined(CONFIG_FS_LITTLEFS)
   // Mount the file system from partition 6 to /meadow0
   ret = hcom_nx_create_littlefs_mount_format_file_dev(
-            MEADOW_FLASH_PART_NUMB_FILE_SYS,
+            MEADOW_FLASH_PART_OFFSET_FILE_SYS,
             MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME);
   if (ret < 0)
   {
@@ -199,33 +199,32 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
           thisFile, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE,
           MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
           HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE,
-          MEADOW_FLASH_PART_NUMB_FILE_SYS, ret);
+          MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
   }
 #endif
 
-  _partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].isPartMounted = true;
-  syslog(LOG_NOTICE, "F/S creation complete. File System partition:%d\n",
-            MEADOW_FLASH_PART_NUMB_FILE_SYS);
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].isPartMounted = true;
+  syslog(LOG_NOTICE, "F/S creation complete.\n");
 
   return OK;
 }
 
 //=====================================================================
 // (--)Ignores provided partition number, the file system's partition is always
-// MEADOW_FLASH_PART_NUMB_FILE_SYS.
+// MEADOW_FLASH_PART_OFFSET_FILE_SYS.
 bool hcom_nx_fs_is_mounted(uint32_t partitionNumber)
 {
-  return (_partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].isPartMounted);
+  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].isPartMounted);
 }
 
 //=====================================================================
 // Used to implement RenewFileSys and maybe others
 // (--) Ignore provided partition number, the file system's partition is always
-// MEADOW_FLASH_PART_NUMB_FILE_SYS.
+// MEADOW_FLASH_PART_OFFSET_FILE_SYS.
 // (--) FIX THIS NO NEED TO PASS IN PARTITION NUMBER
 int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionNumber)
 {
-  return (_partInfo[MEADOW_FLASH_PART_NUMB_FILE_SYS].byteOffset / _pagesPerEraSector);
+  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].byteOffset / _pagesPerEraSector);
 }
 
 //=====================================================================
@@ -302,8 +301,8 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
        partitionNumber < MEADOW_FLASH_PART_TOTAL_PARTITIONS;
        partitionNumber++)
   {
-    // if(partitionNumber == MEADOW_FLASH_PART_NUMB_FILE_SYS)
-    if(partitionNumber == MEADOW_FLASH_PART_NUMB_FILE_SYS)
+
+    if(partitionNumber == MEADOW_FLASH_PART_OFFSET_FILE_SYS)
       continue;   // Can't use partition of file system
 
     // Verify that each partition's size is valid
@@ -337,14 +336,14 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
     // Is this the File System partition? If so its size has been unknown.
     // Well, the size is known now.
-    if(partitionNumber == MEADOW_FLASH_PART_NUMB_FILE_SYS)
+    if(partitionNumber == MEADOW_FLASH_PART_OFFSET_FILE_SYS)
     {
       partSizeInBytes = primaryPartSize;    // The remaining space
-      _partInfo[partitionNumber].partSize = partSizeInBytes;
+      _partInfoArray[partitionNumber].partSize = partSizeInBytes;
     }
 
-    _partInfo[partitionNumber].blockOffset = firstBlockOff;
-    _partInfo[partitionNumber].byteOffset = firstBlockOff * geo.blocksize;
+    _partInfoArray[partitionNumber].blockOffset = firstBlockOff;
+    _partInfoArray[partitionNumber].byteOffset = firstBlockOff * geo.blocksize;
 
 #if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
     totalBytes += partSizeInBytes;
@@ -360,8 +359,8 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     uint32_t totBlocksInPart = partSizeInBytes / geo.blocksize;
 
     // Create the partition
-    _partInfo[partitionNumber].mtdPart = mtd_partition(mtd, firstBlockOff, totBlocksInPart);
-    if (_partInfo[partitionNumber].mtdPart == NULL)
+    _partInfoArray[partitionNumber].mtdPart = mtd_partition(mtd, firstBlockOff, totBlocksInPart);
+    if (_partInfoArray[partitionNumber].mtdPart == NULL)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, Block Offset=%lu nParts=%lu\n",
                thisFile, __LINE__, partitionNumber, firstBlockOff, totBlocksInPart);
@@ -373,11 +372,11 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
 
   // After creating all the partitions, fill in the last array element
   // with the information for the entire flash drive.
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].isPartMounted   = false;
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].mtdPart         = mtd;
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].byteOffset      = 0;
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].blockOffset     = 0;
-  _partInfo[MEADOW_FLASH_PART_NUMB_PARENT_PART].partSize        = _totalFlashSize;
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_PARENT_PART].isPartMounted   = false;
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_PARENT_PART].mtdPart         = mtd;
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_PARENT_PART].byteOffset      = 0;
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_PARENT_PART].blockOffset     = 0;
+  _partInfoArray[MEADOW_FLASH_PART_OFFSET_PARENT_PART].partSize        = _totalFlashSize;
 
 #if HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP > 0
   int actualPartCnt = partitionNumber == -1 ? MEADOW_FLASH_PART_TOTAL_PARTITIONS : partitionNumber;

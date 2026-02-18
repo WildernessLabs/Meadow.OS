@@ -56,44 +56,35 @@ CONFIG_DEBUG_FS_INFO=y
 -----------------------------------------------------------------
 This list needs to become several Meadow.OS Issues
 Things to look into (no order):
-// Issue #86
-1. hcom_logging_syslog - It seems hcom_logging_syslog() entries do nothing when 
-   called. Should this custom syslog function be removed and simply use the
-   Nuttx syslog like is done on the kernel side.
-
-// Issue #92
-2. Syslog no ramlog - Using syslog doesn't use a in memory buffer.
-
-// Issue #87
-3. A failed download - When a file download fails the file seems to be left in the file
+// Issue 87
+1. A failed download - When a file download fails the file seems to be left in the file
    System with a length of 0, not deleted.
 
 // Issue #88
-4. SD-Card mounting - Nuttx 12 has automount code for sd-cards. Should we consider using it?
+2. SD-Card mounting - Nuttx 12 has automount code for sd-cards. Should we consider using it?
 
-// 
-5. Move Code - Check for code in nuttx/arch/arm/src/board for code that should be moved
-   to a different location.
-
-6. Meadow.OS is confusing - The current implementation uses Meadow.OS for the repo name,
-   a next level directory name and for a symlink. Two of these names should be changed.
-
-7. Should something be done with /Meadow.OS/include/meadow/stm32f777zit6-meadow.h header?
+// Issue 90
+3. Investigate - Should something be done with /Meadow.OS/include/meadow/stm32f777zit6-meadow.h header?
    It's kind of a mess.
 
-8. Use Copilot or another tool to look for memory and file descriptor leaks.
+// 
+4. Move Code - Check for code in nuttx/arch/arm/src/board for code that should be moved
+   to a different location.
 
-9. There are several places were HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE is used to define
+5. The `Meadow.OS` definition is confusing - The current implementation uses Meadow.OS for the repo name,
+   a next level directory name and for a symlink. Two of these names should be changed.
+
+6. Investigate - There are several places were HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE is used to define
    a buffer. However, when the code was written the maximum size of a HCOM message was
    512 bytes, it is now 8192 bytes. There are places were this needs to be corrected.
 
-10. In legacy hcom_stdout_redirect and hcom_stderr_redirect, have been replaced a single
+7. Bug - In legacy hcom_stdout_redirect and hcom_stderr_redirect, have been replaced a single
    with hcom_stdxxx_redirect. This change needs to be implemented, possibly before mono
    is in place. Look for CONFIG_HCOM_MONO_STDERR_STDOUT which has been used to disable
    the code in Meadow.OS, temporarily. It should also be renamed CONFIG_HCOM_MONO_STDXXX.
 
-11. Consider simplifying hcom_host_enq_deq.c. It contains 3 semaphores and is too
-   complex guarentee reliably. Also, this implementation could be refactored to use a
+8. Investigate - Consider simplifying hcom_host_enq_deq.c. It contains 3 semaphores and is too
+   complex to guarentee reliably. Also, this implementation could be refactored to use a
    single thread to received and process the received messages. Since we run on a 
-   single core the difference in performance would probably be near zero.
+   single core the difference in performance diffwould probably be near zero.
 

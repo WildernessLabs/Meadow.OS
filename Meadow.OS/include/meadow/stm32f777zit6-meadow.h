@@ -29,6 +29,11 @@
 // some of the definitions that didn't have a home. It is pretty much
 // identical to the original file in legacy Meadow with the same name.
 // Someday, it would be nice to cleanup the Meadow header files.
+// MEADOW.OS REBASE - 18Feb26
+// I did remove the extraneous items. Only the GPIO for LEDs and OTGFS stuff
+// remains.
+// Probably all of the remaining should go in board.h but this group of
+// changes is enough for now.
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
@@ -48,67 +53,11 @@
 #  endif
 #endif
 
-#define GPIO_LD1        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN1)
-#define GPIO_LD2        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN0)
-#define GPIO_LD3        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN2)
 
-#define GPIO_LED_GREEN GPIO_LD1
-#define GPIO_LED_BLUE  GPIO_LD2
-#define GPIO_LED_RED   GPIO_LD3
+#define GPIO_LED_GREEN      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN1)
+#define GPIO_LED_BLUE       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN0)
+#define GPIO_LED_RED        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN2)
 
-
-#define BOARD_NGPIOIN	1
-#define BOARD_NGPIOOUT	1
-#define BOARD_NGPIOINT	1
-
-#define GPIO_IN1          0
-#define GPIO_OUT1         0 
-
-#define GPIO_INT1         0
-
-
-
-#define MGPIO_PIN_COUNT			16
-
-#define MGPIO_PIN_TYPE_INPUT	0
-#define MGPIO_PIN_TYPE_OUTPUT	1
-#define MGPIO_PIN_TYPE_INT		2
-
-#define MGPIO_SET_CONFIG        1
-#define MGPIO_WRITE             3
-#define MGPIO_READ              4
-
-#define MUPD_SET_REGISTER       1
-#define MUPD_GET_REGISTER       2
-#define MUPD_UPDATE_REGISTER    3
-#define MUPD_REGISTER_GPIO_IRQ  5
-
-#define MUPD_PWM_SETUP     10
-#define MUPD_PWM_SHUTDOWN  11
-#define MUPD_PWM_START     12
-#define MUPD_PWM_STOP      13
-
-#define MUPD_I2C_SHUTDOWN  20
-#define MUPD_I2C_DATA      21
-
-#define MUPD_SPI_DATA      31
-#define MUPD_SPI_SPEED      32
-#define MUPD_SPI_MODE      33
-#define MUPD_SPI_BITS      34
-
-#define MUPD_DIR_ENUM       41
-
-#define MUPD_GET_LAST_ERROR   51
-
-#define MUPD_ESP32_COMMAND              61
-#define MUPD_ESP32_GET_EVENT_RESULT     62
-
-#define MUPD_PWR_RESET      71
-#define MUPD_PWR_SLEEP1     72
-#define MUPD_PWR_SLEEP2     73
-
-#define MUPD_GET_DEVICE_INFO   81
-#define MUPD_GET_SET_CONFIGURATION_VALUE   82
 
 /* USB OTG FS */
 
@@ -127,35 +76,6 @@
 #  define GPIO_OTGFS_OVER (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|\
                            GPIO_PUSHPULL|GPIO_PORTG|GPIO_PIN7)
 #endif
-
-
-/* Pushbutton B1, labelled "User", is connected to GPIO PA0.  A high
- * value will be sensed when the button is depressed. Note that
- * the EXTI interrupt is configured.
- */
-
-#define GPIO_BTN_USER      (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI | GPIO_PORTA | GPIO_PIN0)
-
-/* Sporadic scheduler instrumentation.
- * This configuration has been used for evaluating the NuttX sporadic
- * scheduler.
- * In this evaluation, two GPIO outputs are used. One indicating the priority
- * (high or low) of the sporadic thread and one indicating where the thread
- * is running or not.
- *
- * There is nothing special about the pin selections:
- *
- *   Arduino D2 PJ1 - Indicates priority1
- *   Arduino D4 PJ0 - Indicates that the thread is running
- */
-
-#define GPIO_SCHED_HIGHPRI (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | \
-                            GPIO_PORTJ | GPIO_PIN1)
-#define GPIO_SCHED_RUNNING (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | \
-                            GPIO_PORTJ | GPIO_PIN0)
-
-#define GPIO_OTGFS_VBUS    (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|\
-                            GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
 
 /****************************************************************************
  * Public data
