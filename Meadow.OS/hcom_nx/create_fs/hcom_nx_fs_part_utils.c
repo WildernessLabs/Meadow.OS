@@ -191,7 +191,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
   }
 
   // However, the last partition, the file system is restricted
-  if(activePart == MEADOW_FLASH_PART_NUMB_FILE_SYS)
+  if(activePart == MEADOW_FLASH_PART_OFFSET_FILE_SYS)
   {
     // File System is last partition and should not be accessed
     syslog(LOG_ERR, "%s@%d-Error:File System area in flash is restricted\n",

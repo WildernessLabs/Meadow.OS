@@ -95,8 +95,8 @@ int hcom_via_nx_upd_driver_open()
     return -errno;      // ioctl puts returned int into errno
   }
 
-  syslog(LOG_INFO, "%s@%d-SUCCESS %s opened\n",
-          thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME);
+  // syslog(LOG_INFO, "%s@%d-SUCCESS %s opened\n",
+  //         thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME);
 
   return nx_access_fd;
 }

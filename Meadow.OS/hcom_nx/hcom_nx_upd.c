@@ -439,7 +439,7 @@ int hcom_nx_restore_uart_reconfig(unsigned long arg)
 
 int hcom_nx_upd_initialize(void)
 {
-  syslog(LOG_DEBUG, "+hcom_nx_upd_initialize\n");
+  // syslog(LOG_DEBUG, "hcom_nx_upd_initialize\n");
 
   // register the driver, passing in our entry points
   int ret = register_driver(HCOM_NX_UPD_DRIVER_NAME, &g_hcom_nx_operations, 0666, NULL);

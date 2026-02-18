@@ -185,8 +185,8 @@ int hcom_host_process_setup()
   }
 
   // Initialize download shared structure
-  // Currently only 1 partition allowed
-  _dnldShared->dnldFilePartId = MEADOW_FLASH_PART_NUMB_FILE_SYS;
+  // Currently only 1 partition allowed to be file system
+  _dnldShared->dnldFilePartId = MEADOW_FLASH_PART_OFFSET_FILE_SYS;
   _dnldShared->dnldRqstCat = pathnameNotUsed;
   _dnldShared->dnldFileFD = -1;
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateInvalid;

@@ -69,16 +69,17 @@
                                               MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
                                               MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
 
-// Partition assignment numbers
-#define MEADOW_FLASH_PART_NUMB_RUNTIME      (0)
-#define MEADOW_FLASH_PART_NUMB_NUTTX_UPDATE (1)
-#define MEADOW_FLASH_PART_NUMB_OTA_SPACE    (2)
-#define MEADOW_FLASH_PART_NUMB_OS_PERSIST   (3)
-#define MEADOW_FLASH_PART_NUMB_ASSERT_DATA  (4)
-#define MEADOW_FLASH_PART_NUMB_UNUSED_SPACE (5)
-#define MEADOW_FLASH_PART_NUMB_FILE_SYS     (6)
-#define MEADOW_FLASH_PART_TOTAL_PARTITIONS  (7) // Total number of partitions
-#define MEADOW_FLASH_PART_NUMB_PARENT_PART  (7) // Represents QSPI flash space
+// Partition assignments
+#define MEADOW_FLASH_PART_OFFSET_RUNTIME        (0)
+#define MEADOW_FLASH_PART_OFFSET_NUTTX_UPDATE   (1)
+#define MEADOW_FLASH_PART_OFFSET_OTA_SPACE      (2)
+#define MEADOW_FLASH_PART_OFFSET_OS_PERSIST     (3)
+#define MEADOW_FLASH_PART_OFFSET_ASSERT_DATA    (4)
+#define MEADOW_FLASH_PART_OFFSET_UNUSED_SPACE   (5)
+#define MEADOW_FLASH_PART_OFFSET_FILE_SYS       (6)
+#define MEADOW_FLASH_PART_OFFSET_PARENT_PART    (7) // Offset to QSPI parent
+#define MEADOW_FLASH_PART_TOTAL_PARTITIONS      (7) // Total partitions (0-6)
+#define MEADOW_FLASH_PART_TOTAL_ELEMENTS        (8) // Total number of elements
 
 // Memory address offsets to each partition
 #define MEADOW_PART_ADDR_OFFSET_RUNTIME      (0)
@@ -123,7 +124,7 @@ struct meadow_part_info_s
 typedef struct meadow_part_info_s meadow_part_info_t;
 
 // Obtains the flash partition information for a single partition
-int hcom_nx_fs_get_partition_info(uint32_t partNumb,
+int hcom_nx_fs_get_partition_info(uint32_t partId,
           meadow_part_info_t *partInfo);
 
 // Return pointer to the partition information array
