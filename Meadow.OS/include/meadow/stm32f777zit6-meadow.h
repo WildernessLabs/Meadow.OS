@@ -24,17 +24,6 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
-// MEADOW.OS REBASE
-// This header file looks like a combination of board.h and a catch-all for
-// some of the definitions that didn't have a home. It is pretty much
-// identical to the original file in legacy Meadow with the same name.
-// Someday, it would be nice to cleanup the Meadow header files.
-// MEADOW.OS REBASE - 18Feb26
-// I did remove the extraneous items. Only the GPIO for LEDs and OTGFS stuff
-// remains.
-// Probably all of the remaining should go in board.h but this group of
-// changes is enough for now.
-
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
 #include <stdint.h>
@@ -53,11 +42,22 @@
 #  endif
 #endif
 
+/* LED
+ *
+ * The Meadow board has a single tri-color LED, LD1 is Green LED, LD2 a Blue
+ * LED and LD3 a Red LED, that can be controlled by software.
+ */
 
-#define GPIO_LED_GREEN      (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN1)
-#define GPIO_LED_BLUE       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN0)
-#define GPIO_LED_RED        (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | GPIO_PORTA | GPIO_PIN2)
+#define GPIO_LD1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
+    GPIO_PORTA | GPIO_PIN1)
+#define GPIO_LD2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
+    GPIO_PORTA | GPIO_PIN0)
+#define GPIO_LD3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
+    GPIO_PORTA | GPIO_PIN2)
 
+#define GPIO_LED_GREEN GPIO_LD1
+#define GPIO_LED_BLUE  GPIO_LD2
+#define GPIO_LED_RED   GPIO_LD3
 
 /* USB OTG FS */
 
