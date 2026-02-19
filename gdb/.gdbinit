@@ -12,8 +12,8 @@ set remote hardware-watchpoint-limit 4
 set confirm off
 
 define load-nuttx-symbols
-  file ../nuttx/nuttx.elf
-  add-symbol-file -readnow ../nuttx/nuttx.elf
+  file ../nuttx/nuttx
+  add-symbol-file -readnow ../nuttx/nuttx
   #
   # The following loads the bootloader symbols for debugging but is commented out for general use
   # as it adds over 45 seconds to the debugger startup.
