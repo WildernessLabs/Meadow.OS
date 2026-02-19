@@ -112,7 +112,7 @@ void hcom_host_watchdog_cleanup_wdog_timeout()
   ret = hcom_host_watchdog_dnld_timer_delete();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Stop/delete timer failed, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Stop/delete timer failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, get_errno());
   }
 
@@ -120,7 +120,7 @@ void hcom_host_watchdog_cleanup_wdog_timeout()
   ret = hcom_file_write_close_active_file(_dnldShared);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
              thisFile, __LINE__, _dnldShared->dnldOrigPathName, ret, get_errno());
   }
 
@@ -128,14 +128,14 @@ void hcom_host_watchdog_cleanup_wdog_timeout()
   ret = hcom_file_delete_stm32f7_file_by_name_internal(_dnldShared);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
              thisFile, __LINE__, _dnldShared->dnldOrigPathName, ret, get_errno());
   }
 
   // Clear the receive data buffer queue
   if(! hcom_host_enq_deq_clear_buffer())
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n",
+    syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n",
              thisFile, __LINE__, _dnldShared->dnldOrigPathName);
   }
 
@@ -182,7 +182,7 @@ int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
   if (ret < 0)
   {
     int errorcode = errno;
-    hcom_logging_syslog(LOG_ERR, "%s@%d-setting timer, errno:%d\n", thisFile, __LINE__, errorcode);
+    syslog(LOG_ERR, "%s@%d-setting timer, errno:%d\n", thisFile, __LINE__, errorcode);
     return -errorcode;
   }
   return OK;
@@ -206,7 +206,7 @@ int hcom_host_watchdog_dnld_timer_initialize()
   ret = timer_create(CLOCK_REALTIME, &toevent, &_processWdogTimerId);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-create timer errno:%d\n", thisFile, __LINE__, errno);
+    syslog(LOG_ERR, "%s@%d-create timer errno:%d\n", thisFile, __LINE__, errno);
     return -errno;
   }
 
@@ -218,7 +218,7 @@ int hcom_host_watchdog_dnld_timer_initialize()
   ret = sigaction(SIGALRM, &act, NULL);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-attach signal errno:%d\n", thisFile, __LINE__, errno);
+    syslog(LOG_ERR, "%s@%d-attach signal errno:%d\n", thisFile, __LINE__, errno);
     return -errno;
   }
   return OK;
@@ -233,14 +233,14 @@ int hcom_host_watchdog_dnld_timer_delete()
   ret = hcom_host_watchdog_dnld_timer_set_delay(0);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Timer set delay = 0, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Timer set delay = 0, ret:%d, errno:%d\n",
               thisFile, __LINE__, ret, errno);
   }
 
   ret = timer_delete(_processWdogTimerId);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
               thisFile, __LINE__, ret, errno);
   }
 

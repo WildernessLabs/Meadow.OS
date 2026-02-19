@@ -110,7 +110,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   fileNameBuffer = malloc(fileNameLen + 1);
   if(fileNameBuffer == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
               thisFile, __LINE__);
     return;
   }
@@ -128,7 +128,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             thisFile, __LINE__);
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
                 thisFile, __LINE__, fileNameBuffer, errno);
 
     free(fileNameBuffer);
@@ -145,7 +145,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             thisFile, __LINE__);
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
               thisFile, __LINE__, fileNameBuffer, errno);
     
     close(fd);
@@ -157,7 +157,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   uint8_t *returnBinData = malloc(HCOM_FILE_INITIAL_BYTES_LENGTH);
   if(returnBinData == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
 
     close(fd);
     free(fileNameBuffer);
@@ -171,7 +171,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
     nbytes = read(fd, returnBinData + bufOff, HCOM_FILE_INITIAL_BYTES_LENGTH - bufOff);
     if (nbytes < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
                 thisFile, __LINE__, fileNameBuffer, errno); usleep(20 * 1000);
 
       close(fd);
@@ -186,7 +186,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   ret = close(fd);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-close %s, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-close %s, errno:%d\n",
              thisFile, __LINE__, fileNameBuffer, errno);
 
     close(fd);
@@ -269,7 +269,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
             dnldShared->dnldFullPathName, errno);
     }
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Failed to open '%s', errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Failed to open '%s', errno:%d\n",
                 thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
 
     // This message will notify the user
@@ -294,7 +294,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
           "%s@%d-Read CRC calculation error:%d\n", thisFile, __LINE__, detectError);
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-CRC calculation error:%d\n",
+    syslog(LOG_ERR, "%s@%d-CRC calculation error:%d\n",
               thisFile, __LINE__, detectError);
 
     // This message will notify the user
@@ -336,7 +336,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    hcom_logging_syslog(LOG_ERR, hostMsg);
+    syslog(LOG_ERR, hostMsg);
 
     // This message will notify the user
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
@@ -395,7 +395,7 @@ int hcom_file_upld_proc_begin_file_uploading(hcom_dnld_shared_t *dnldShared)
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%s@%d-Must initialize upload before each upload.\n",
               thisFile, __LINE__);
-    hcom_logging_syslog(LOG_ERR, hostMsg, thisFile, __LINE__);
+    syslog(LOG_ERR, hostMsg, thisFile, __LINE__);
 
     // This message will notify the user
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
@@ -450,7 +450,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
           "The file '%s' encountered a lseek error", fileName);
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
               thisFile, __LINE__, fileName, errno);
 
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
@@ -462,7 +462,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   binMsg = (HcomProtoBinMsg_t *)malloc(HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE);
   if(binMsg == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
               thisFile, __LINE__);
     return -ENOMEM;
   }
@@ -482,7 +482,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
     nbytes = read(fd, binMsg->binData, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
     if (nbytes < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
                 thisFile, __LINE__, fileName, errno);
       free(binMsg);
       return -errno;

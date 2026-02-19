@@ -90,5 +90,37 @@ typedef struct upd_get_set_configuration_value_s upd_get_set_configuration_value
 int upd_handle_esp32_command(struct upd_esp32_command *);
 int upd_handle_esp32_get_event_result(espcp_event_data_payload_t *);
 
+// Meadow UPD definitions
+#define MUPD_SET_REGISTER       1
+#define MUPD_GET_REGISTER       2
+#define MUPD_UPDATE_REGISTER    3
+#define MUPD_REGISTER_GPIO_IRQ  5
+
+#define MUPD_PWM_SETUP     10
+#define MUPD_PWM_SHUTDOWN  11
+#define MUPD_PWM_START     12
+#define MUPD_PWM_STOP      13
+
+#define MUPD_I2C_SHUTDOWN  20
+#define MUPD_I2C_DATA      21
+
+#define MUPD_SPI_DATA      31
+#define MUPD_SPI_SPEED      32
+#define MUPD_SPI_MODE      33
+#define MUPD_SPI_BITS      34
+
+#define MUPD_DIR_ENUM       41
+
+#define MUPD_GET_LAST_ERROR   51
+
+#define MUPD_ESP32_COMMAND              61
+#define MUPD_ESP32_GET_EVENT_RESULT     62
+
+#define MUPD_PWR_RESET      71
+#define MUPD_PWR_SLEEP1     72
+#define MUPD_PWR_SLEEP2     73
+
+#define MUPD_GET_DEVICE_INFO   81
+#define MUPD_GET_SET_CONFIGURATION_VALUE   82
 
 #endif  // __CONFIGS_MEADOW_SRC_MEADOW_UPD__H

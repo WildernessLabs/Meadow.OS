@@ -103,7 +103,6 @@
 //---------------------------------------------------------------------
 // Several of the meadow device names are defined here
 #define HCOM_COMMUNICATIONS_DEVICE_NAME "/dev/ttyACM0"
-#define HCOM_TRACE_RAMLOG_DEVICE_NAME "/dev/ramlog"
 #define HCOM_MONO_STDOUT_REDIRECT_FIFO "/dev/monostdout"
 #define HCOM_MONO_STDERR_REDIRECT_FIFO "/dev/monostderr"
 #define HCOM_MONO_REMOTE_DBG_SOCKET_NAME "/dev/monodbg"
@@ -372,22 +371,15 @@ int meadow_copy_mono_runtime_to_ram(void);
 
 // -----------------------------------------------
 // These all deal with syslog message, related to syslog tracing
-// priority and building the final syslog message
-int hcom_diag_logging_setup(void);
-void hcom_diag_logging_shutdown(void);
-int hcom_diag_logging_get_syslog_mask(void);
-void hcom_diag_logging_change_trace_level(uint32_t userData);
+// priority
+int hcom_diag_trace_priority_get_trace_level(void);
+void hcom_diag_trace_priority_change_trace_level(uint32_t userData);
+int hcom_diag_trace_priority_level_init(void);
 
 int hcom_trace_to_cli_setup(void);
 void hcom_trace_to_cli_enable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_cleanup(uint32_t userData);
-
-// These are syslog message helpers used throughout HCOM
-void hcom_logging_syslog(int priority, FAR const IPTR char *fmt, ...);
-void hcom_logging_syslog_x(int priority, FAR const IPTR char *fmt, ...);
-void hcom_logging_safe_ramlog(int priority, FAR const IPTR char *fmt, va_list args);
-int hcom_logging_syslog_mask_init(void);
 
 //-------------------------------------------------------
 // Ramlog to host

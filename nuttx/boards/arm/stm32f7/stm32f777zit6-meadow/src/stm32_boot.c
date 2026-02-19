@@ -152,8 +152,7 @@ void stm32_boardinitialize(void)
 // 'BCDE'
   syslog(1, "\n%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
 #else
-  syslog(1, "-------------------------\n");
-  syslog(1, "%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
+  // syslog(1, "%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
 #endif
 
 #if defined(CONFIG_STM32F7_SPI1) || defined(CONFIG_STM32F7_SPI2) || \

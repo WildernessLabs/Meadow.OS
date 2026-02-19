@@ -155,7 +155,7 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
             "Mono must be disabled for ESP32 file download");
-    hcom_logging_syslog(LOG_ERR, "%s@%d-%s\n", _thisFile, __LINE__, hostMsg);
+    syslog(LOG_ERR, "%s@%d-%s\n", _thisFile, __LINE__, hostMsg);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
             hostMsg, _thisFile, __LINE__);
 
@@ -180,13 +180,13 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   _md5FileHash[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
 
   // Log some diagnostic information 
-  hcom_logging_syslog(LOG_INFO, "%s@%d-Start ESP32 download (Size:%d, MCUAddr:0x%08x, MD5Hash:%s)\n",
+  syslog(LOG_INFO, "%s@%d-Start ESP32 download (Size:%ld, MCUAddr:0x%08lx, MD5Hash:%s)\n",
           _thisFile, __LINE__, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
 
   ret = hcom_host_watchdog_dnld_timer_initialize();
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
               _thisFile, __LINE__, ret, errno);
     return;
   }
@@ -196,7 +196,7 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
               _thisFile, __LINE__, ret, errno);
     return;
   }
@@ -215,7 +215,7 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   if (_esp32FileBuffer == NULL)
   {
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, _thisFile, __LINE__);
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Failed to allocate storage\n", _thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Failed to allocate storage\n", _thisFile, __LINE__);
     return;
   }
   _nextStorageAddress = _esp32FileBuffer;
@@ -270,12 +270,12 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
   bool lastFile = userData == 1 ? true : false;
 
-  hcom_logging_syslog(LOG_NOTICE, "File received\n");
+  syslog(LOG_NOTICE, "File received\n");
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "File received, flashing ESP32", _thisFile, __LINE__);
 
   if(_currentESP32DnldState != HcomESP32DnldStateEsp32FileXfer)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 dnld end, unexpected state\n",
+    syslog(LOG_ERR, "%s@%d-ESP32 dnld end, unexpected state\n",
               _thisFile, __LINE__);
     return;
   }
@@ -283,7 +283,7 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   ret = hcom_host_watchdog_dnld_timer_delete();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 error %d stopping the download timer.\n",
+    syslog(LOG_ERR, "%s@%d-ESP32 error %d stopping the download timer.\n",
               _thisFile, __LINE__, ret);
     return;
   }
@@ -296,7 +296,7 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
     ret = hcom_esp32_exec_add_flash_end();
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 File end error:%d\n",
+      syslog(LOG_ERR, "%s@%d-ESP32 File end error:%d\n",
                 _thisFile, __LINE__, ret);
     }
   }
@@ -316,12 +316,12 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
 
 #if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING > 0
   _dbgReceptionEndedAt = hcom_utils_get_current_time64_ns();
-  hcom_logging_syslog(LOG_INFO, "%s@%d-File transfer %d packets, took %llu mSec\n",
+  syslog(LOG_INFO, "%s@%d-File transfer %d packets, took %llu mSec\n",
            _thisFile, __LINE__, _dbgNumbPacketsRecvd,
            ((_dbgReceptionEndedAt - _dbgReceptionBeganAt) / 1000000));
 #else
  #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Host has sent %d packets\n",
+  syslog(LOG_DEBUG, "%s@%d-Host has sent %d packets\n",
             _thisFile, __LINE__, _dbgNumbPacketsRecvd);
  #endif
 #endif

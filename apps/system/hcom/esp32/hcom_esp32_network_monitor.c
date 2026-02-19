@@ -178,7 +178,7 @@ static void hcom_esp32_network_monitor_process_line(char *line)
         {
             if (_send_log_to_uart)
             {
-                hcom_logging_syslog(LOG_INFO, "ESP Log: %s\n", line);
+                syslog(LOG_INFO, "ESP Log: %s\n", line);
             }
         }
     }
@@ -221,7 +221,7 @@ static void *hcom_esp32_network_monitor_thread(void *parameters)
         result = pipe(_pipe_handles);
         if (result < 0)
         {
-            hcom_logging_syslog(LOG_CRIT, "Failed to create pipe. Error: %d\n", errno);
+            syslog(LOG_CRIT, "Failed to create pipe. Error: %d\n", errno);
             shutting_down = true;
         }
         else
@@ -234,7 +234,7 @@ static void *hcom_esp32_network_monitor_thread(void *parameters)
     }
     else
     {
-        hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed to open UART " ESPCP_NETWORK_MONITOR_UART_NAME ". Error: %d\n", __FILE__, __LINE__, errno);
+        syslog(LOG_CRIT, "%s@%d-Failed to open UART " ESPCP_NETWORK_MONITOR_UART_NAME ". Error: %d\n", __FILE__, __LINE__, errno);
         shutting_down = true;
     }
 
@@ -252,7 +252,7 @@ static void *hcom_esp32_network_monitor_thread(void *parameters)
         result = poll(fds, 2, -1);
         if (result < 0)
         {
-            hcom_logging_syslog(LOG_CRIT, "%s@%d-Failed to poll. Error: %d\n", __FILE__, __LINE__, errno);
+            syslog(LOG_CRIT, "%s@%d-Failed to poll. Error: %d\n", __FILE__, __LINE__, errno);
             shutting_down = true;
         }
         else
@@ -339,7 +339,7 @@ int hcom_esp32_network_monitor_start(void)
     meadow_configuration_t *config = meadow_os_deep_copy_config();
     if (config == NULL)
     {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", __FILE__, __LINE__);
+        syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", __FILE__, __LINE__);
         return -ENOMEM;
     }
     if ((config->esp_log_destination == esp_log_destination_uart) && config->use_uart1_for_trace)
@@ -412,14 +412,14 @@ int hcom_esp32_network_monitor_stop(void)
         int result = pthread_join(_uart_thread_handle, NULL);
         if(result != 0)
         {
-            hcom_logging_syslog(LOG_ERR, "%s@%d-pthread join failed:%d, errno:%d\n", __FILE__, __LINE__, result, errno);
+            syslog(LOG_ERR, "%s@%d-pthread join failed:%d, errno:%d\n", __FILE__, __LINE__, result, errno);
             return(ERROR);
         }
-        hcom_logging_syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread stopped.\n", __FILE__, __LINE__);
+        syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread stopped.\n", __FILE__, __LINE__);
     }
     else
     {
-        hcom_logging_syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread is not running.\n", __FILE__, __LINE__);
+        syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread is not running.\n", __FILE__, __LINE__);
     }
 
     return(OK);

@@ -110,8 +110,6 @@ extern "C"
 #define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
 #endif
 
-#define HCOM_TRACE_RAMLOG_DEVICE_NAME "/dev/ramlog"
-
 // Which timing method should be built in Meadow, Wakeup Timer or RTC Alarm.
 // RTC Alarm can sleep for up to 28 days - 1 second, where as the Wakeup Timer
 // can sleep for 65535 seconds (18.2 hours).

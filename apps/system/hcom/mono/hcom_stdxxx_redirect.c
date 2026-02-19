@@ -125,7 +125,7 @@ int hcom_mono_stdxxx_read_setup()
   int ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_mono_stdxxx_low_power_notification);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt, ret:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt, ret:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -133,7 +133,7 @@ int hcom_mono_stdxxx_read_setup()
   _fifo_read_buffer = (uint8_t *) malloc(HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE + 1);
   if (_fifo_read_buffer == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
       thisFile, __LINE__, errno);
     return -ENOMEM;
   }
@@ -144,7 +144,7 @@ int hcom_mono_stdxxx_read_setup()
     _stdxxx_syslog_buffer = (char *) malloc(HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE + 1);
     if (_stdxxx_syslog_buffer == NULL)
     {
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
         thisFile, __LINE__, errno);
       free(_fifo_read_buffer);
       return -ENOMEM;
@@ -165,7 +165,7 @@ void hcom_mono_stdxxx_read_shutdown()
   ret = close(_stdout_read_fd);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d stdout close, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d stdout close, errno:%d\n",
       thisFile, __LINE__, errno);
   }
 
@@ -174,7 +174,7 @@ void hcom_mono_stdxxx_read_shutdown()
   ret = close(_stderr_read_fd);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d stderr close, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d stderr close, errno:%d\n",
       thisFile, __LINE__, errno);
   }
 
@@ -219,7 +219,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   ret = mkfifo(HCOM_MONO_STDOUT_REDIRECT_FIFO, 0666);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
       thisFile, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
@@ -229,7 +229,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   ret = mkfifo(HCOM_MONO_STDERR_REDIRECT_FIFO, 0666);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
       thisFile, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
@@ -240,7 +240,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   ret = hcom_mono_stdxxx_make_thread();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-thread create, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-thread create, errno:%d\n",
       thisFile, __LINE__, errno);
     
     hcom_startup_mgr_release_sem_err(ret);
@@ -268,7 +268,7 @@ int hcom_mono_stdxxx_make_thread()
   ret = pthread_create(&thread, &attr, hcom_mono_stdxxx_pthread, NULL);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_CRIT, "%s@%d-Thread create %s error:%d\n",
+    syslog(LOG_CRIT, "%s@%d-Thread create %s error:%d\n",
             thisFile, __LINE__, HCOM_THREAD_NAME_STDXXX_REDIRECT, ret);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
@@ -357,7 +357,7 @@ int hcom_mono_stdout_open_read_fifo()
   _stdout_read_fd = open(HCOM_MONO_STDOUT_REDIRECT_FIFO, O_RDONLY | O_NONBLOCK);
   if (_stdout_read_fd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
       thisFile, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
     return -errno;
   }
@@ -379,7 +379,7 @@ int hcom_mono_stderr_open_read_fifo()
   _stderr_read_fd = open(HCOM_MONO_STDERR_REDIRECT_FIFO, O_RDONLY | O_NONBLOCK);
   if (_stderr_read_fd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
       thisFile, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
     return -errno;
   }
@@ -421,7 +421,7 @@ int hcom_mono_stdxxx_read_fifo_loop()
       }
 
       // Report error and continue
-      hcom_logging_syslog(LOG_ERR, "poll() call ret:%d errno:%d", ret, errno);
+      syslog(LOG_ERR, "poll() call ret:%d errno:%d", ret, errno);
       usleep(100 * 1000);
       continue;
     }
@@ -517,7 +517,7 @@ void hcom_mono_stdxxx_read_mono_fifo(uint32_t pollOffset, int fd_active,
   if(readReturn < 0)
   {
     // Read error
-    hcom_logging_syslog(LOG_ERR, "fifo read error:%d, errno:%d",
+    syslog(LOG_ERR, "fifo read error:%d, errno:%d",
       readReturn, errno);
   }
 }
@@ -558,7 +558,7 @@ void hcom_mono_stdxxx_publish_message(uint32_t pollOffset,
   ret = hcom_host_send_stdxxx_to_cli(pollOffset, useableBufSize, fifo_read_buffer);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "Send to CLI failed, ret:%d", ret);
+    syslog(LOG_ERR, "Send to CLI failed, ret:%d", ret);
     return;
   }
   
@@ -605,7 +605,7 @@ int hcom_host_send_stdxxx_to_cli(uint32_t pollOffset, int useableBufSize,
       return OK;
     }
 
-    hcom_logging_syslog(LOG_ERR, "%s@%d-stdxxx to host, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-stdxxx to host, ret:%d, errno:%d\n",
       thisFile, __LINE__, ret, errno);
     return ret;
   }
@@ -636,7 +636,7 @@ void hcom_mono_stdxxx_to_syslog(int useableBufSize, uint8_t fifo_read_buffer[])
       _stdxxx_syslog_buffer[syslog_buffer_index + 1] = '\0';
       syslog_buffer_index = 0;
 
-      hcom_logging_syslog(LOG_INFO, "%s", (char *) _stdxxx_syslog_buffer);
+      syslog(LOG_INFO, "%s", (char *) _stdxxx_syslog_buffer);
     }
     else
     {
@@ -665,7 +665,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
       }
 
       // All errors exit
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
+      syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
                           thisFile, __LINE__, fifoRedirect, errno);
       return -errno;
     }
@@ -675,7 +675,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
   ret = dup2(std_temp_write_fd, STDOUT_FILENO);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-redirect_writer (%s): dup2 failed ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-redirect_writer (%s): dup2 failed ret:%d errno:%d\n",
                         thisFile, __LINE__, fifoRedirect, ret, errno);
     usleep(50 * 1000);
     close(std_temp_write_fd);

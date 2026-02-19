@@ -104,7 +104,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
   ret = hcom_esp32_util_init_comms_enter_boot_mode();
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Init Comms for download:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Init Comms for download:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -121,7 +121,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
   spiAttach.legacyFlag = 0;   // Not used
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Send SPI attach\n", thisFile, __LINE__);
+  syslog(LOG_DEBUG, "%s@%d-Send SPI attach\n", thisFile, __LINE__);
 #endif
 
   ret = hcom_esp32_xmit_build_and_send_msg((uint8_t *)&spiAttach,
@@ -129,7 +129,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
         Esp32CommandSpiAttach, HCOM_ESP_XMIT_TYPICAL_DELAY_MS, &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-send SPI attach:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-send SPI attach:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -143,7 +143,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
   spiParms.statusMask = HCOM_ESP32_PICO_D4_FLASH_STATUS_MASK;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Send SPI params\n", thisFile, __LINE__);
+  syslog(LOG_DEBUG, "%s@%d-Send SPI params\n", thisFile, __LINE__);
 #endif
 
   ret = hcom_esp32_xmit_build_and_send_msg((uint8_t *)&spiParms,
@@ -151,7 +151,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
             HCOM_ESP_XMIT_TYPICAL_DELAY_MS, &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-send SPI params:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-send SPI params:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -166,7 +166,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
   flashBegin.downloadOffset = _targetAddr;   // Where data is flashed to
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-File:eraseSize:%d, numbBlocks:%u, WriteSize:%d, Offset:0x%08x\n",
+  syslog(LOG_DEBUG, "%s@%d-File:eraseSize:%d, numbBlocks:%u, WriteSize:%d, Offset:0x%08x\n",
           thisFile, __LINE__, flashBegin.eraseSize, flashBegin.numbBlocks,
           flashBegin.downloadWriteSize, flashBegin.downloadOffset);
 #endif
@@ -177,7 +177,7 @@ int hcom_esp32_exec_download_flash_start(const size_t entireFileSize,
           hcom_esp32_exec_era_time_for_file_size(entireFileSize), &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Begin flash ret:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Begin flash ret:%d\n", thisFile, __LINE__, ret);
     return -1;
   }
 
@@ -208,7 +208,7 @@ int hcom_esp32_exec_buffer_to_esp32(uint8_t *downloadData, size_t dnldDataSize, 
   memcpy(downloadData, &flashData, HCOM_ESP32_PROTOCOL_DATA_HDR_LENGTH);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-SENDING DATA PACKET, seq:%d\n",
+  syslog(LOG_DEBUG, "%s@%d-SENDING DATA PACKET, seq:%d\n",
             thisFile, __LINE__, sequenceNumber);
 #endif
 
@@ -216,14 +216,14 @@ int hcom_esp32_exec_buffer_to_esp32(uint8_t *downloadData, size_t dnldDataSize, 
         Esp32CommandFlashData, HCOM_ESP_XMIT_FLASH_DELAY_MS, &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-FLASH_DATA send:%d\n",
+    syslog(LOG_ERR, "%s@%d-FLASH_DATA send:%d\n",
               thisFile, __LINE__, ret);
     return ret;
   }
 
   if(recvdData.esp32Status)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-ESP32 err:0x%02x, ESP32 err value:0x%02x\n",
+    syslog(LOG_ERR, "%s@%d-ESP32 err:0x%02x, ESP32 err value:0x%02x\n",
               thisFile, __LINE__,
               recvdData.esp32Status, recvdData.esp32Error);
     return -1;
@@ -231,14 +231,14 @@ int hcom_esp32_exec_buffer_to_esp32(uint8_t *downloadData, size_t dnldDataSize, 
 
   if(recvdData.espHdr.direction != 1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected direction of:1 not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected direction of:1 not:%d\n",
               thisFile, __LINE__, recvdData.espHdr.direction);
     return -EIO;
   }
   
   if(recvdData.espHdr.command != Esp32CommandFlashData)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected command of:%d 1 not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected command of:%d 1 not:%d\n",
               thisFile, __LINE__, Esp32CommandFlashData, recvdData.espHdr.command);
     return -EBADRQC;
   }
@@ -267,7 +267,7 @@ int hcom_esp32_exec_add_flash_end()
         Esp32CommandFlashBegin, HCOM_ESP_XMIT_TYPICAL_DELAY_MS, &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-FLASH_BEGIN:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-FLASH_BEGIN:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -283,23 +283,23 @@ int hcom_esp32_exec_add_flash_end()
         Esp32CommandFlashEnd, HCOM_ESP_XMIT_TYPICAL_DELAY_MS, &recvdData);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-esp32 xmit 2:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-esp32 xmit 2:%d\n", thisFile, __LINE__, ret);
   }
   else if(recvdData.esp32Status)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-FLASH_END:%d\n", thisFile, __LINE__, recvdData.esp32Error);
+    syslog(LOG_ERR, "%s@%d-FLASH_END:%d\n", thisFile, __LINE__, recvdData.esp32Error);
   }
 
   if(recvdData.espHdr.direction != 1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected direct to be 1 not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected direct to be 1 not:%d\n",
               thisFile, __LINE__, recvdData.espHdr.direction);
     return -EIO;
   }
 
   if(recvdData.espHdr.command != Esp32CommandFlashEnd)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Expected command to be:%d not:%d\n",
+    syslog(LOG_ERR, "%s@%d-Expected command to be:%d not:%d\n",
               thisFile, __LINE__,
               Esp32CommandFlashEnd, recvdData.espHdr.command);
     return -EBADRQC;
@@ -342,12 +342,12 @@ static int hcom_esp32_exec_check_hash(uint32_t address, uint32_t amount, char *m
         Esp32CommandSpiFlashMd5, HCOM_ESP_XMIT_CALC_MD5_DELAY_MS, &recvdData);
   if (result < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Request ESP32 to calc MD5:%d\n", thisFile, __LINE__, result);
+    syslog(LOG_ERR, "%s@%d-Request ESP32 to calc MD5:%d\n", thisFile, __LINE__, result);
     return result;
   }
   recvdData.recvdData[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
   int md5CmpResult = strcmp((char *) recvdData.recvdData, md5Hash);
-  hcom_logging_syslog(LOG_INFO,
+  syslog(LOG_INFO,
           "%s@%d-File end-Esp32 calculated MD5:'%s', received from CLI MD5:'%s', %s\n",
           thisFile, __LINE__, recvdData.recvdData, md5Hash,
           md5CmpResult == 0 ? "Success" : "Error");
@@ -416,7 +416,7 @@ int hcom_esp32_exec_copy_file_to_esp_flash(uint8_t *file, uint32_t amount, uint3
       nextBlock += payloadSize;
       if (result < 0)
       {
-        hcom_logging_syslog(LOG_ERR, "%s@%d-FLASH DATA, block number %u, result: %d\n", thisFile, __LINE__, sequenceNumber, result);
+        syslog(LOG_ERR, "%s@%d-FLASH DATA, block number %lu, result: %d\n", thisFile, __LINE__, sequenceNumber, result);
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Error copying file to ESP32 flash.", thisFile, __LINE__);
         free(buffer);
         return(result);
@@ -426,7 +426,7 @@ int hcom_esp32_exec_copy_file_to_esp_flash(uint8_t *file, uint32_t amount, uint3
   else
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "%s@%d-Allocation failure", thisFile, __LINE__);
-    hcom_logging_syslog(LOG_ERR, hostMsg);
+    syslog(LOG_ERR, hostMsg);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, thisFile, __LINE__);
     result = -ENOMEM;
   }
@@ -479,7 +479,7 @@ int hcom_esp32_exec_flash_file(uint8_t *file, uint32_t amount, uint32_t address,
     hcom_file_dnld_esp32_set_to_inactive();
 
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, thisFile, __LINE__);
-    hcom_logging_syslog(LOG_ERR, "%s@%d-download ESP32 start transfer:%d\n", thisFile, __LINE__, result);
+    syslog(LOG_ERR, "%s@%d-download ESP32 start transfer:%d\n", thisFile, __LINE__, result);
     return(-EFAULT);
   }
   result = hcom_esp32_exec_copy_file_to_esp_flash(file, amount, address);

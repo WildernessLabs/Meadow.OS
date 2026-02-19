@@ -138,7 +138,7 @@ int hcom_mono_remote_dbg_startup(void)
   ret = hcom_mono_remote_dbg_create_thread();
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-%s thread create, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-%s thread create, errno:%d\n",
       thisFile, __LINE__, HCOM_MONO_REMOTE_DBG_SOCKET_NAME, errno);
     return ret;
   }
@@ -178,7 +178,7 @@ int hcom_mono_remote_dbg_create_thread()
     ret = pthread_create(&thread, &attr, hcom_mono_remote_dbg_pthread, NULL);
     if (ret < 0)
     {
-      hcom_logging_syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+      syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
                 thisFile, __LINE__, HCOM_THREAD_NAME_REMOTE_DBG, ret, errno);
       return ret;
     }
@@ -201,7 +201,7 @@ FAR void *hcom_mono_remote_dbg_pthread(FAR void *arg)
   dbgSock = (struct remote_dbg_session *)malloc(sizeof(struct remote_dbg_session));
   if(!dbgSock)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-dbgSock allocation, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-dbgSock allocation, errno:%d\n",
               thisFile, __LINE__, errno);
     return NULL;
   }
@@ -209,7 +209,7 @@ FAR void *hcom_mono_remote_dbg_pthread(FAR void *arg)
   uint8_t *recvBuffer = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(recvBuffer == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-recvBuf alloc, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-recvBuf alloc, errno:%d\n",
               thisFile, __LINE__, errno);
     goto exit_remote_dbg_rcvbuff;
   }
@@ -217,7 +217,7 @@ FAR void *hcom_mono_remote_dbg_pthread(FAR void *arg)
   ret = hcom_mono_remote_dbg_create_server_socket(dbgSock);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg server create, ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg server create, ret:%d errno:%d\n",
               thisFile, __LINE__, ret, errno);
     goto exit_remote_dbg_thread;     // Kills thread
   }
@@ -225,7 +225,7 @@ FAR void *hcom_mono_remote_dbg_pthread(FAR void *arg)
   ret = hcom_mono_remote_dbg_connect_and_receive(dbgSock, recvBuffer);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg server connect, ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg server connect, ret:%d errno:%d\n",
               thisFile, __LINE__, ret, errno);
   }
 
@@ -249,7 +249,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
   dbgSock->listen_sd = socket(PF_LOCAL, SOCK_STREAM, 0);
   if (dbgSock->listen_sd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg socket create, ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg socket create, ret:%d errno:%d\n",
               thisFile, __LINE__, dbgSock->listen_sd, errno);
     return dbgSock->listen_sd;
   }
@@ -263,7 +263,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
                           (const void *)&tv, sizeof(tv));
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg sock opt, ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg sock opt, ret:%d errno:%d\n",
               thisFile, __LINE__, ret, errno);
     return ret;
   }
@@ -288,7 +288,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
             dbgSock->addrlen);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg bind, ret:%d, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg bind, ret:%d, errno:%d\n",
               thisFile, __LINE__, ret, errno);
     return ret;
   }
@@ -297,7 +297,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
   ret = listen(dbgSock->listen_sd, 2);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg listen, ret:%d errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg listen, ret:%d errno:%d\n",
               thisFile, __LINE__, ret, errno);
     return ret;
   }
@@ -322,7 +322,7 @@ int hcom_mono_remote_dbg_connect_and_receive(struct remote_dbg_session *dbgSock,
     
     if(ret < 0)
     {
-      hcom_logging_syslog(LOG_WARNING, "%s@%d-Accept connection failed. ret:%d, errno:%d\n",
+      syslog(LOG_WARNING, "%s@%d-Accept connection failed. ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
       hcom_mono_remote_dbg_close_and_delay();
       continue;
@@ -348,7 +348,7 @@ int hcom_mono_remote_dbg_accept_connection(struct remote_dbg_session *dbgSock)
           &dbgSock->addrlen);
   if (dbgSock->connected_sd < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Remote dbg accept, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Remote dbg accept, errno:%d\n",
               thisFile, __LINE__, errno);
     return dbgSock->connected_sd;
   }
@@ -375,7 +375,7 @@ void hcom_mono_remote_dbg_read_mono_send_to_host_loop(struct remote_dbg_session 
   while(!_shutting_down)
   {
     // Read from mono
-    hcom_logging_syslog(LOG_INFO, "%s@%d-Waiting data from mono debug\n",
+    syslog(LOG_INFO, "%s@%d-Waiting data from mono debug\n",
               thisFile, __LINE__);
 
     nBytesRead = recv(dbgSock->connected_sd, recvBuffer,
@@ -384,23 +384,23 @@ void hcom_mono_remote_dbg_read_mono_send_to_host_loop(struct remote_dbg_session 
     {
       if(errno == ECONNRESET)
         // Note: ECONNRESET indicates that mono has dropped the connection
-        hcom_logging_syslog(LOG_WARNING, "%s@%d-Mono dropped connection\n",
+        syslog(LOG_WARNING, "%s@%d-Mono dropped connection\n",
                   thisFile, __LINE__);
       else
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Recv, nBytesRead:%d, errno:%d\n",
+        syslog(LOG_ERR, "%s@%d-Recv, nBytesRead:%d, errno:%d\n",
                   thisFile, __LINE__, nBytesRead, errno);
       return;
     }
     else if (nBytesRead == 0)
     {
-      hcom_logging_syslog(LOG_INFO, "%s@%d-mono broke the connection\n",
+      syslog(LOG_INFO, "%s@%d-mono broke the connection\n",
                 thisFile, __LINE__);
       return;
     }
 
     // Received some bytes from mono.
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-    hcom_logging_syslog(LOG_DEBUG, "%s@%d-Forwarding %d bytes to host PC for VS\n",
+    syslog(LOG_DEBUG, "%s@%d-Forwarding %d bytes to host PC for VS\n",
               thisFile, __LINE__, nBytesRead);
 #endif
 
@@ -432,7 +432,7 @@ void hcom_mono_remote_dbg_recv_host_sending_to_mono(const HcomProtoHdrMsg_t *hdr
 
   if(_transmit_sd < 1)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-message from host but no transmit_sd\n",
+    syslog(LOG_ERR, "%s@%d-message from host but no transmit_sd\n",
             thisFile, __LINE__);
   }
 
@@ -442,12 +442,12 @@ void hcom_mono_remote_dbg_recv_host_sending_to_mono(const HcomProtoHdrMsg_t *hdr
   int nbytessent = send(_transmit_sd, binMsg->binData, dbgDataLen, 0);
   if(nbytessent < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-message from host, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-message from host, errno:%d\n",
             thisFile, __LINE__, errno);
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Received %d bytes from VS. forwarded to Mono.\n",
+  syslog(LOG_DEBUG, "%s@%d-Received %d bytes from VS. forwarded to Mono.\n",
           thisFile, __LINE__, packetSize);
 #endif
 

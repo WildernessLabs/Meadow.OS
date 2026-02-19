@@ -82,7 +82,7 @@ int hcom_esp32_xmit_setup_lazy()
   if (xmitMsgQueue == (mqd_t)-1)
   {
     int errcode = get_errno();
-    hcom_logging_syslog(LOG_ERR, "%s@%d-mq_open(%s) errno:%d\n", thisFile, __LINE__,
+    syslog(LOG_ERR, "%s@%d-mq_open(%s) errno:%d\n", thisFile, __LINE__,
           HCOM_ESP_COMMS_MSG_QUEUE_NAME, errcode);
     return -errcode;
   }
@@ -132,7 +132,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   uint8_t *encodedMsg = malloc(bufferSize);
   if(encodedMsg == NULL)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     return -ENOMEM;
   }
 
@@ -176,7 +176,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  hcom_logging_syslog(LOG_DEBUG, "%s@%d-Transmitting '%s' (0x%02x) cmd to ESP32\n",
+  syslog(LOG_DEBUG, "%s@%d-Transmitting '%s' (0x%02x) cmd to ESP32\n",
             thisFile, __LINE__,
             hcom_esp32_util_convert_esp32_cmd_to_string(espCommand), espCommand);
 #endif
@@ -189,7 +189,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
     // Timeout is assumed to mean nothing received from ESP32
     // not really an error
     if(ret != -ETIMEDOUT)   // ETIMEDOUT = 116
-      hcom_logging_syslog(LOG_ERR, "%s@%d-Sending to ESP failed:%d\n", thisFile, __LINE__, ret);
+      syslog(LOG_ERR, "%s@%d-Sending to ESP failed:%d\n", thisFile, __LINE__, ret);
 
     free(encodedMsg);
     return ret;
@@ -251,7 +251,7 @@ int hcom_esp32_xmit_send_complete_msg(uint8_t *completeMsg, ssize_t completeMsgL
   ret = hcom_esp32_uart_comms_write_serial(completeMsg, completeMsgLen);
   if(ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-UART write:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-UART write:%d\n", thisFile, __LINE__, ret);
     return ret;
   }
 
@@ -305,7 +305,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
         // 0x0a - "flash read length error" - SPI read request length is too long
         // 0x0b - "Deflate error" (ESP32 compressed uploads only)
 
-        hcom_logging_syslog(LOG_ERR, "%s@%d-Msg Cmd:0x%02x ESP32 err:0x%02x, status:%u\n",
+        syslog(LOG_ERR, "%s@%d-Msg Cmd:0x%02x ESP32 err:0x%02x, status:%u\n",
             thisFile, __LINE__, espCommand, mqRecvdData->esp32Status, mqRecvdData->esp32Error);
         ret = -mqRecvdData->esp32Status; // For bootloader 05 - 0b
         return ret;
@@ -333,7 +333,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
       // EPERM (1): Message queue opened not opened for reading.
       // EMSGSIZE (122): msglen was less than the maxmsgsize attribute of the message queue.
       // EINVAL (22): Invalid msg or mqdes or abstime
-      hcom_logging_syslog(LOG_ERR, "%s@%d-mq_timedreceive errno:%d\n", thisFile, __LINE__, errn);
+      syslog(LOG_ERR, "%s@%d-mq_timedreceive errno:%d\n", thisFile, __LINE__, errn);
       ret = -errn;
       break;
     }

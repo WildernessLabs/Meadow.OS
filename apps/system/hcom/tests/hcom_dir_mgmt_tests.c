@@ -365,7 +365,7 @@ int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
   ret = fstat(fd, &fileStatus);
   if (ret < 0)
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
           thisFile, __LINE__, fullPath, errno);
     return 0;
   }
@@ -398,7 +398,7 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories(const char *rootDir,
 
   if (!(dir = opendir(rootDir)))
   {
-    hcom_logging_syslog(LOG_ERR, "%s@%d-Could not open:%s as root directory, errno:%d\n",
+    syslog(LOG_ERR, "%s@%d-Could not open:%s as root directory, errno:%d\n",
               thisFile, __LINE__, rootDir, errno);
     return -errno;
   }

@@ -89,7 +89,7 @@ int hcom_cmux_start(void)
             hcom_cmux.tty_name = HCOM_CMUX_TTY_DEVNODE;
 
             ret = cmux_create(&hcom_cmux);
-            hcom_logging_syslog(LOG_INFO, "%s-%d-Cell CMUX created: %d\n", thisFile, __LINE__, ret);
+            syslog(LOG_INFO, "%s-%d-Cell CMUX created: %d\n", thisFile, __LINE__, ret);
         }
     }
     meadow_os_config_free_resources(config);

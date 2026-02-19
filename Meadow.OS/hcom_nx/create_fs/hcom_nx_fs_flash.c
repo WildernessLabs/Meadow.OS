@@ -467,7 +467,7 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
 
   // Get the MTD for the file system partition. This function does not
   // restrict the caller. Where MTD_ERASE would.
-  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_NUMB_FILE_SYS,
+  ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_OFFSET_FILE_SYS,
             &partInfo);
 
   // Erase the first few sectors of the file system partition and restart
@@ -478,7 +478,7 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
           "%s@%d-flash erase partition %d, err:%d\n",
-          thisFile, __LINE__, MEADOW_FLASH_PART_NUMB_FILE_SYS, ret);
+          thisFile, __LINE__, MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
     return ret;
   }
   return OK;
