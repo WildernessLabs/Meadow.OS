@@ -396,6 +396,7 @@ int hcom_nx_exec_ex_update_ESP32()
     strncat(firmware_fullpath_md5, ".md5", PATH_MAX - 1);
     uint8_t *file_ptr = NULL;
     uint8_t *md5_hash_buf = NULL;
+    uint8_t *file_buf = NULL;
     FILE *firmware = NULL;
     FILE *firmware_md5 = NULL;
 
@@ -414,7 +415,7 @@ int hcom_nx_exec_ex_update_ESP32()
       result = FIRMWARE_OPEN_ERROR;
       goto cleanup;
     }
-    uint8_t *file_buf = malloc(file_size);
+    file_buf = malloc(file_size);
     if (!file_buf) {
       result = ALLOC_ERROR;
       goto cleanup;
