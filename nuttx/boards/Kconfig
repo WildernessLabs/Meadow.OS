@@ -159,35 +159,11 @@ endif
 if ARCH_CHIP_ESP32S2
 source "boards/xtensa/esp32s2/common/Kconfig"
 endif
-if ARCH_CHIP_ESP32S3
-source "boards/xtensa/esp32s3/common/Kconfig"
-endif
-if ARCH_CHIP_ESP32C3
-source "boards/risc-v/esp32c3/common/Kconfig"
-endif
 if ARCH_CHIP_ESPRESSIF
 source "boards/risc-v/espressif/common/Kconfig"
 endif
-if ARCH_CHIP_SAMV7
-source "boards/arm/samv7/common/Kconfig"
-endif
 if ARCH_CHIP_STM32
 source "boards/arm/stm32/common/Kconfig"
-endif
-if ARCH_CHIP_STM32F0L0G0
-source "boards/arm/stm32f0l0g0/common/Kconfig"
-endif
-if ARCH_CHIP_RP2040
-source "boards/arm/rp2040/common/Kconfig"
-endif
-if ARCH_CHIP_NRF52
-source "boards/arm/nrf52/common/Kconfig"
-endif
-if ARCH_CHIP_NRF53
-source "boards/arm/nrf53/common/Kconfig"
-endif
-if ARCH_CHIP_NRF91
-source "boards/arm/nrf91/common/Kconfig"
 endif
 endif
 
