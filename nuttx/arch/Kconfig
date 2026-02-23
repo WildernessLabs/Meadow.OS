@@ -23,24 +23,6 @@ config ARCH_ARM
 	---help---
 		The ARM architectures
 
-config ARCH_RISCV
-	bool "RISC-V"
-	select ARCH_HAVE_BACKTRACE
-	select ARCH_HAVE_CPUINFO
-	select ARCH_HAVE_INTERRUPTSTACK
-	select ARCH_HAVE_STACKCHECK
-	select ARCH_HAVE_FORK
-	select ARCH_HAVE_CUSTOMOPT
-	select ARCH_HAVE_SETJMP
-	select ARCH_HAVE_STDARG_H
-	select ARCH_HAVE_SYSCALL_HOOKS
-	select ARCH_HAVE_RDWR_MEM_CPU_RUN
-	select ARCH_HAVE_TCBINFO
-	select ARCH_HAVE_THREAD_LOCAL
-	select ARCH_HAVE_LAZYFPU if ARCH_HAVE_FPU
-	---help---
-		RISC-V 32 and 64-bit RV32 / RV64 architectures.
-
 config ARCH_XTENSA
 	bool "Xtensa"
 	select ARCH_HAVE_BACKTRACE
@@ -54,14 +36,13 @@ config ARCH_XTENSA
 	select ARCH_HAVE_SYSCALL_HOOKS
 	select ARCH_HAVE_PERF_EVENTS
 	---help---
-		Cadence® Tensilica® Xtensa® actictures.
+		Cadence® Tensilica® Xtensa® architectures.
 
 endchoice
 
 config ARCH
 	string
 	default "arm"     if ARCH_ARM
-	default "risc-v"  if ARCH_RISCV
 	default "xtensa"  if ARCH_XTENSA
 
 source "arch/arm/Kconfig"
@@ -856,13 +837,6 @@ config ARCH_DEADLOCKDUMP
 	default "n"
 	---help---
 		This option will dump the dead lock thread when assert happen..
-
-config ENDIAN_BIG
-	bool "Big Endian Architecture"
-	default n
-	depends on !ARCH_RISCV
-	---help---
-		Select if architecture operates using big-endian byte ordering.
 
 config ARCH_IDLE_CUSTOM
 	bool "Custom IDLE loop"
