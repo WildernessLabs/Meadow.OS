@@ -159,9 +159,6 @@ endif
 if ARCH_CHIP_ESP32S2
 source "boards/xtensa/esp32s2/common/Kconfig"
 endif
-if ARCH_CHIP_ESPRESSIF
-source "boards/risc-v/espressif/common/Kconfig"
-endif
 if ARCH_CHIP_STM32
 source "boards/arm/stm32/common/Kconfig"
 endif
