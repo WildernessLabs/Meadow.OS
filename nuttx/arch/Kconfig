@@ -65,7 +65,6 @@ config ARCH
 	default "xtensa"  if ARCH_XTENSA
 
 source "arch/arm/Kconfig"
-source "arch/risc-v/Kconfig"
 source "arch/xtensa/Kconfig"
 
 
