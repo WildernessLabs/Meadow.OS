@@ -17,13 +17,20 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Prepare NuttX mainline directory for comparison.')
     parser.add_argument('--mainline', required=True, help='Path to the NuttX mainline directory')
     parser.add_argument('--dryrun', action='store_true', help='Print files to be deleted without deleting')
+    #
     # Show help if no arguments are provided
+    #
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
         sys.exit(1)
     return parser.parse_args()
 
-# Combined list of files/dirs to delete from both arch and boards
+#
+# Combined list of files/dirs to delete from both arch and boards directories.
+#
+# Add new files and directories to this list as needed. This is a curated list based on 
+# the differences between the mainline and Wilderness Labs copies of NuttX.
+#
 FILES_TO_DELETE = [
     # Architecture files/dirs
     'arch/rm64',
@@ -170,13 +177,15 @@ def main():
     wl_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'nuttx'))
     print(f'    Mainline directory: {mainline_dir}')
     print(f'    Wilderness Labs directory: {wl_dir}')
-
-    # Delete files from both arch and boards
+    #
+    # Delete files and directories that are in the mainline but not in Wilderness Labs
+    #
     delete_files(mainline_dir, FILES_TO_DELETE, args.dryrun)
-
-    # List extra directories
+    #
+    # List directories in mainline that are not in Wilderness Labs as these may need adding to the delete list.
+    #
     if not args.dryrun:
-        print(f'    Checking for extra directories in mainline that are not in Wilderness Labs...')
+        print(f'    Checking for extra directories in mainline that are not in Wilderness Labs')
         list_extra_dirs(mainline_dir, wl_dir, 'arch')
         list_extra_dirs(mainline_dir, wl_dir, 'boards')
         list_extra_dirs(mainline_dir, wl_dir, 'boards/arm')
