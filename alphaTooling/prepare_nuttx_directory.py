@@ -281,7 +281,12 @@ def main():
         list_extra_dirs(mainline_dir, wl_dir, 'arch')
         list_extra_dirs(mainline_dir, wl_dir, 'boards')
         list_extra_dirs(mainline_dir, wl_dir, 'boards/arm')
+        list_extra_dirs(mainline_dir, wl_dir, 'boards/arm/STM32')
+        list_extra_dirs(mainline_dir, wl_dir, 'boards/arm/STM32/f7')
         list_extra_dirs(mainline_dir, wl_dir, 'boards/xtensa')
+        list_extra_dirs(mainline_dir, wl_dir, 'boards/xtensa/esp32')
+        list_extra_dirs(mainline_dir, wl_dir, 'boards/xtensa/esp32s2')
+        list_extra_dirs(mainline_dir, wl_dir, 'boards/xtensa/esp32s3')
 
 if __name__ == '__main__':
     main()
