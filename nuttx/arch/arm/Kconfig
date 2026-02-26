@@ -513,9 +513,6 @@ endif
 if ARCH_ARM7TDMI || ARCH_ARM920T || ARCH_ARM926EJS || ARCH_ARM1136J || ARCH_ARM1156T2 || ARCH_ARM1176JZ
 source "arch/arm/src/arm/Kconfig"
 endif
-if ARCH_CHIP_FVP_ARMV8R_AARCH32
-source "arch/arm/src/fvp-v8r-aarch32/Kconfig"
-endif
 if ARCH_CHIP_STM32
 source "arch/arm/src/stm32/Kconfig"
 endif
