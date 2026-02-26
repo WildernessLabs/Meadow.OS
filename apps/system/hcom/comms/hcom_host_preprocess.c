@@ -443,7 +443,8 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
 
     // Start the timer to ensure we start and continue to receiving data
     // from CLI
-    ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
+    ret = hcom_host_watchdog_dnld_timer_set_delay(
+      HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
@@ -574,7 +575,8 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     if(hcom_host_process_is_stm32f7_dnld_active(dnldShared))
     {
       // Keep resetting the watchdog here on every data packet
-      ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
+      ret = hcom_host_watchdog_dnld_timer_set_delay(
+        HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",

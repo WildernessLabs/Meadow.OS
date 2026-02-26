@@ -193,7 +193,8 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
 
   // Start the timer to ensure we start and continue to receiving data
   // from CLI
-  ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
+  ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",

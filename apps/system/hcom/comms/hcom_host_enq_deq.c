@@ -1,7 +1,7 @@
 /****************************************************************************
  * \apps\examples\hcom\comms\hcom_host_enq_deq.c
  * 
- *   Copyright (C) 2019 - 2022 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -44,10 +44,13 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_cirbuf.h>
+#include "semaphore.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+ #define MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK (1)
 
 /****************************************************************************
  * Private Data
@@ -55,10 +58,12 @@
 static char *thisFile = __FILE__;
 
 static bool _shutting_down;
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
+static bool _FBFlag;      // State protected by _lockCirBufSem
 static sem_t _lockCirBufSem;
+#endif
 static sem_t _runProcSem;
 static sem_t _runRecvSem;
-static bool _FBFlag;      // State protected by _lockCirBufSem
 static host_com_cir_buffer_t *_hcom_cbuf;
 
 /****************************************************************************
@@ -75,9 +80,10 @@ int hcom_host_enq_deq_setup()
   _shutting_down = false;
 
   // Protects circular buffer
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
   sem_init(&_lockCirBufSem, 0, 1);
   sem_setprotocol(&_lockCirBufSem, SEM_PRIO_NONE);
-  
+#endif
   // Notifies proc thread a message has been queued
   sem_init(&_runProcSem, 0, 0);
   sem_setprotocol(&_runProcSem, SEM_PRIO_NONE);
@@ -115,7 +121,9 @@ void hcom_host_enq_deq_shutdown()
   hcom_cirbuf_release_memory(_hcom_cbuf);
   free(_hcom_cbuf);
 
- sem_destroy(&_lockCirBufSem);
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
+  sem_destroy(&_lockCirBufSem);
+#endif
  sem_destroy(&_runProcSem);
  sem_destroy(&_runRecvSem);
 }
@@ -126,9 +134,13 @@ bool hcom_host_enq_deq_clear_buffer()
 {
   bool returnVal;
 
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
   sem_wait(&_lockCirBufSem);
+#endif
   returnVal = (hcom_cirbuf_clear_buffer(_hcom_cbuf) == HCOM_CIR_BUF_INIT_OK);
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
   sem_post(&_lockCirBufSem);
+#endif
 
   return returnVal;
 }
@@ -165,9 +177,10 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
 
   do
   {
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
     // Gain exclusive access to circular buffer
     sem_wait(&_lockCirBufSem);
-
+#endif
     // Only possible return values: HCOM_CIR_BUF_ADD_SUCCESS,
     // HCOM_CIR_BUF_ADD_WONT_FIT and HCOM_CIR_BUF_ADD_BAD_ARG
     result = hcom_cirbuf_add_bytes(_hcom_cbuf, recvBuff, recvByteCnt);
@@ -175,13 +188,19 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
     {
       case HCOM_CIR_BUF_ADD_SUCCESS:
         sem_post(&_runProcSem);         // Notify proc of message
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on buffer
+#endif
         return OK;                      // Return to read more data
 
       case HCOM_CIR_BUF_ADD_WONT_FIT:
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         _FBFlag = true;                 // Set Full Buffer Flag then free cir buff
+#endif
         sem_post(&_runProcSem);         // Notify proc to read messages
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on buffer
+#endif
 
         // Read thread waits here for space in buffer
         sem_wait(&_runRecvSem);         // Wait for a message to be removed
@@ -189,12 +208,16 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
 
       case HCOM_CIR_BUF_ADD_BAD_ARG:
         // Report error and return. The message is lost.
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on buffer
+#endif
         syslog(LOG_ERR, "%s@%d-Bad argument to cir buf\n", thisFile, __LINE__);
         return OK;
 
       default:
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on buffer
+#endif
         syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_add_bytes():%d\n",
                     thisFile, __LINE__, result);
         break;
@@ -216,7 +239,9 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
   do
   {
     // Gain exclusive access to circular buffer
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
     sem_wait(&_lockCirBufSem);
+#endif
 
     // Only HCOM_CIR_BUF_GET_FOUND_MSG, HCOM_CIR_BUF_GET_NONE_FOUND and
     // HCOM_CIR_BUF_GET_DELETED_TOO_BIG can be returned
@@ -225,16 +250,22 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
     switch(result)
     {
       case HCOM_CIR_BUF_GET_FOUND_MSG:
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         if(_FBFlag)
         {
           _FBFlag = false;              // Full buffer flag did it's work
+#endif
           sem_post(&_runRecvSem);       // Allow recv to retry to add
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         }
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
+#endif
         return OK;                      // Return to process message
 
       case HCOM_CIR_BUF_GET_NONE_FOUND:
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
+#endif
       
         // Thread waits to be notified that a message may be available. This
         // is also where the watchdog notification is detected.
@@ -248,13 +279,17 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
       case HCOM_CIR_BUF_GET_DELETED_TOO_BIG:
         // The message was too big and the bad message removed from the
         // circular buffer. So, report error and return.
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
+#endif
         syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n",
                   thisFile, __LINE__, *packetLength);
         break;                          // Try again to get the next message
 
       default:
+#if MEADOW_HOST_ENQ_DEQ_DONT_USE_CIRBUF_LOCK == 0
         sem_post(&_lockCirBufSem);      // Release lock on circular buffer
+#endif
         syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_get_next_packet():%d\n",
                   thisFile, __LINE__, result);
         break;
