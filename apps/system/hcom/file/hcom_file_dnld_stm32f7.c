@@ -531,7 +531,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
 #if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
   if(dnldShared->dnldRecvdFileSize == dnldShared->dnldTotalFileSize)
   {
-    syslog(LOG_MDIAG, "File 100%% downloaded");
+    syslog(LOG_MDIAG, "File 100%% downloaded\n");
   }
 #endif
 
@@ -653,7 +653,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 #if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
-    syslog(LOG_CRIT, downloadFailure);
+    syslog(LOG_MDIAG, downloadFailure);
 #endif
     return -ENOMEM;
   }

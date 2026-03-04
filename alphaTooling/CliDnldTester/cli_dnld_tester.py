@@ -16,7 +16,12 @@ SYSLOG_SERIAL_PORT_DEFINITION set to the syslog serial port, which is usually
 the ST-Link virtual port
 
 Start from command prompt
-For Windows> python C:\WlApps\CliDnldTester\cli_dnld_tester.py
+For Windows> python C:/WlApps/CliDnldTester/cli_dnld_tester.py
+
+Don't forget to execute these commands to insure syslog output on UART
+'meadow uart trace enable'  - Sent trace messages to UART
+'meadow trace level 3'      - Trace level 3 will send the messages
+'meadow trace disable'      - Don't send trace to CLI
 """
 
 import subprocess
@@ -31,15 +36,17 @@ import re
 from datetime import datetime
 from enum import Enum
 
-TARGET_ITERATION_COUNT = 10
+# ---> Set relevant values <---
+TARGET_ITERATION_COUNT = 10000
+
 SYSLOG_SERIAL_PORT_DEFINITION = "COM5"
 # SYSLOG_SERIAL_PORT_DEFINITION = "/dev/ttyACM0"
 
-ABS_PATH_TO_FILE_TO_DOWNLOAD = "c:/HcomFiles/Write/Text/TestFileGen.txt"    # 200kb file
+ABS_PATH_TO_FILE_TO_DOWNLOAD = "c:/HcomFiles/Write/Text/TestFileGen.txt"  # 200kb file
 # ABS_PATH_TO_FILE_TO_DOWNLOAD = "c:/HcomFiles/Write/Text/TestFileOne.txt"    # 1 byte file
 # ABS_PATH_TO_FILE_TO_DOWNLOAD = "c:/HcomFiles/Write/Text/TestFileKJV.txt"    # 4.4Mb file
 
-POLL_SECONDS_BEFORE_FAILURE = 3.0 # Extra time wait after CLI stops
+POLL_SECONDS_BEFORE_FAILURE = 3.0 # Extra time to wait after CLI stops
 MINIMUM_EXECUTION_TIME = 1.5    # It must take at least this long to execute
 
 class exeRetCode(Enum):
@@ -72,15 +79,15 @@ class MeadowFileDownloader:
         self.prev_percent = 0
         self.iterationExecTime = 0.0
         self.totDownloadTime = 0.0
-        self.totExecutionTime = 0.01    # This 0.01 prevented divide by 0 exceptions
         self.isThreadRunning = False
         self.isAppRunning = False
 
-    # syslog_reader is were a second thread runs monitoring syslog output.
-    # Three syslog message need to be generated for testing, the start, the
-    # end and progress. This was necessary because the current CLI generates
-    # it's own percentage messages and reports 100% even if the download
-    # fails.
+    # 'syslog_reader' is were a second thread runs monitoring syslog output.
+    # Three syslog message are used, 'start', 'end result' and 'percent
+    # progress'.
+    # Since CLI generates it's own percentage messages and reports 100% even
+    # if the download fails. It became a requirement to use syslog to insure
+    # no false positives were generated.
     def syslog_reader(self, serialPort, dnldFinishedEvent, syslogPauseEvent):
         """Read the syslog serial output and monitor output"""
         
@@ -147,7 +154,7 @@ class MeadowFileDownloader:
         self.isThreadRunning = False
 
 
-    # This function will Launch, Monitor and Wait for the CLI to exit
+    # This function will launch CLI and wait for the CLI to exit
     def run_cli_command(self):
         """Execute the meadow CLI command and monitor output"""
 
@@ -204,13 +211,14 @@ class MeadowFileDownloader:
         # 'set' releases thread from wait()
         # This event is set when HCOM indicates it has finished the download
         dnldFinishedEvent = threading.Event()
-        # This event allows commanding syslog reader to pause till needed
+
+        # This event allows commanding syslog reader to keep in sync with CLI
         syslogPauseEvent = threading.Event()
 
         dnldFinishedEvent.clear()
 
         try:
-            # One time syslog serial read initialization done here
+            # One time syslog serial initialization
             syslog_serial_port = serial.Serial(SYSLOG_SERIAL_PORT_DEFINITION,
                                                115200, timeout=1000)
             if not syslog_serial_port.is_open:
@@ -250,14 +258,11 @@ class MeadowFileDownloader:
                 dnldFinishedEvent.clear()       # Will be 'set' when download ends
 
                 startDateTime = time.time()
-                # Launch CLI to do download
-                cliDnldReturn = self.run_cli_command()  # Set initial cliDnldReturn value
-
+                cliDnldReturn = self.run_cli_command()  # Launch CLI to do download
                 endDateTime = time.time()
-                
+
                 self.iterationExecTime = endDateTime - startDateTime
                 self.totDownloadTime = self.totDownloadTime + self.iterationExecTime
-                self.totExecutionTime = self.totExecutionTime + self.iterationExecTime
 
                 # If the syslog messages indicate that the download is
                 # finished this wait() may block. But, if it does it will
@@ -292,38 +297,36 @@ class MeadowFileDownloader:
                 # Display updated statistics
                 self.display_stats()
 
-        # Won't work while debugging
-        except KeyboardInterrupt:
+        except KeyboardInterrupt:        # Won't work while debugging
             print("\nStopping tool (Ctrl+C Detected)")
-            self.totDownloadTime = 0.0
-            self.iteration_count = self.iteration_count - 1
-            self.isAppRunning = False
 
         except Exception as e:
             print(f"\nStopping unexpected exception: {e}")
-            self.totDownloadTime = 0.0
+
+        finally:
             self.iteration_count = self.iteration_count - 1
             self.isAppRunning = False
-                
-        print("\nFinal Statistics:")
-        self.display_final_stats()
+            print("\nFinal Statistics:")
+            self.display_final_stats()
+            print(f"\nExecution has ended")
+            self.totDownloadTime = 0.0
 
 
     def display_stats(self):
         """Display current statistics"""
         total = self.success_count + self.failure_count
         success_rate = (self.success_count / total * 100) if total > 0 else 0
-        downloadRate = (self.fileSize / self.totDownloadTime) / 1024
+        downloadRate = (self.fileSize / self.iterationExecTime) / 1024
 
         print(f"DOWNLOAD STATISTICS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"File: {self.file_path}, size: {self.fileSize/1024:.1f} KB")
         print(f"Total Iteration: {self.iteration_count}")
         print(f"Total Successes: {self.success_count}")
         print(f"Total Failures : {self.failure_count}")
-        print(f"Success Percent: {success_rate:.1f}%")
+        print(f"Success Percent: {success_rate:.2f}%")
         print(f"Download time  : {self.iterationExecTime:.2f} seconds")
         print(f"Aver KB/Second : {downloadRate:.1f} KB/Sec")
-        print(f"Total Download Time: {self.totDownloadTime:.2f} seconds")
+        print(f"Total Dnld Time: {self.totDownloadTime:.2f} seconds")
 
         retCodeMaxOffset = len(exeRetCodeValue)
         for offset in range(0, retCodeMaxOffset):
@@ -338,19 +341,28 @@ class MeadowFileDownloader:
 
         total = self.success_count + self.failure_count
         success_rate = (self.success_count / total * 100) if total > 0 else 0
-        averageDownloadRate = ((self.fileSize * self.iteration_count) / self.totExecutionTime) / 1024
-        exeTimeMin, exeTimeSec = divmod(self.totExecutionTime, 60)
+        averageDownloadRate = ((self.fileSize * self.iteration_count) / self.totDownloadTime) / 1024
+
+        exeTimeMin, exeTimeSec = divmod(self.totDownloadTime, 60)
         exeTimeHour, exeTimeMin = divmod(exeTimeMin, 60)
 
         print("="*60)
         print(f"FINAL STATISTICS - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"File: {self.file_path}, size: {self.fileSize/1024:.1f} KB")
-        print(f"Iterations: {self.iteration_count}")
-        print(f"Successes: {self.success_count}")
-        print(f"Failures:  {self.failure_count}")
-        print(f"Success Rate: {success_rate:.1f}%")
-        print(f"Average KB/Second: {averageDownloadRate:.1f} KB/Sec")
-        print(f"Total Download Time: {exeTimeHour:1.0f}:{exeTimeMin:02.0f}:{exeTimeSec:02.2f}")
+        print(f"Iterations    : {self.iteration_count}")
+        print(f"Successes     : {self.success_count}")
+        print(f"Failures      : {self.failure_count}")
+        print(f"Success Rate  : {success_rate:.1f}%")
+        print(f"Aver KB/Second: {averageDownloadRate:.1f} KB/Sec")
+        print(f"Execution Time: {exeTimeHour:1.0f}:{exeTimeMin:02.0f}:{exeTimeSec:02.2f}")
+
+        retCodeMaxOffset = len(exeRetCodeValue)
+        for offset in range(0, retCodeMaxOffset):
+            retVal = exeRetCodeValue[offset]
+            if offset < retCodeMaxOffset - 1:
+                print (f"{exeRetCodeString[offset]}:{retVal},", end=" ")
+            else:
+                print (f"{exeRetCodeString[offset]}:{retVal}")
 
         print("="*60, flush=True)
 
