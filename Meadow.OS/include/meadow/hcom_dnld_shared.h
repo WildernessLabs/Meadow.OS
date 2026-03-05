@@ -40,7 +40,8 @@
 
 //--------------------------------------------------------------------
 
-#define HCOM_FILE_DNLD_STM32F7_WDOG_TIME (3)
+// #define HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC (3000) // DISABLE FOR TESTING
+#define HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC (3)
 
 // 8 elements in path will allow up to 6 subdirectories
 // '/meadow0/filename' considered 2 mandatory elements
