@@ -1,7 +1,7 @@
 /****************************************************************************
  * \apps\examples\hcom\misc\meadow_cirbuf.c
  * 
- *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
