@@ -352,7 +352,7 @@ class MeadowFileDownloader:
         print(f"Iterations    : {self.iteration_count}")
         print(f"Successes     : {self.success_count}")
         print(f"Failures      : {self.failure_count}")
-        print(f"Success Rate  : {success_rate:.1f}%")
+        print(f"Success Rate  : {success_rate:.2f}%")
         print(f"Aver KB/Second: {averageDownloadRate:.1f} KB/Sec")
         print(f"Execution Time: {exeTimeHour:1.0f}:{exeTimeMin:02.0f}:{exeTimeSec:02.2f}")
 
