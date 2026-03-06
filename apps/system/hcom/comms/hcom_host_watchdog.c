@@ -69,10 +69,15 @@ static void hcom_host_watchdog_cleanup_wdog_timeout(void);
  * Public Functions
  ****************************************************************************/
 // Called from hcom_host_preprocess.c
+// BAD NAME FOR FUNCTION
 int hcom_host_watchdog_initialize(hcom_dnld_shared_t *dnldShared)
 {
+  syslog(LOG_MDIAG, "-->%s@%d-Setting Watchdog 'dnldShared' structure\n", __FILE__, __LINE__);
+
   // Need this to provide file name on failure.
   _dnldShared = dnldShared;
+
+  syslog(LOG_MDIAG, "-->%s@%d-Delete Watchdog timer\n", __FILE__, __LINE__);
 
   _hcom_host_process_wdog_timedout = false;  
   return OK;
@@ -90,6 +95,8 @@ void hcom_host_watchdog_stopping()
 // for data to be written.
 int hcom_host_watchdog_check_execute_if_expired()
 {
+  syslog(LOG_MDIAG, "-->%s@%d-Check if Watchdog expired, not being called\n", __FILE__, __LINE__);
+
   if(_hcom_host_process_wdog_timedout)
   {
     _hcom_host_process_wdog_timedout = false;
@@ -107,6 +114,8 @@ int hcom_host_watchdog_check_execute_if_expired()
 void hcom_host_watchdog_cleanup_wdog_timeout()
 {
   int ret;
+
+  syslog(LOG_MDIAG, "-->%s@%d-Watchdog Timeout\n", __FILE__, __LINE__);
 
   // Delete the download wdog timer that got us here
   ret = hcom_host_watchdog_dnld_timer_delete();
@@ -161,6 +170,9 @@ void hcom_host_watchdog_timeout_expired(int signo, FAR siginfo_t *info,
   // this the next time it waits for a semaphore.
   // Note: If the cleanup is executed from here on return the processing thread
   // terminates.
+
+  syslog(LOG_MDIAG, "-->%s@%d-Watchdog expired, setting flag\n", __FILE__, __LINE__);
+
   _hcom_host_process_wdog_timedout = true;  
 }
 
@@ -171,6 +183,8 @@ int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
   struct itimerspec todelay;
   int ret;
+
+  syslog(LOG_MDIAG, "-->%s@%d-Resetting Watchdog timer\n", __FILE__, __LINE__);
 
   // Start, restart, or stop the timer
   todelay.it_interval.tv_sec = 0; // Nonrepeating
@@ -195,6 +209,8 @@ int hcom_host_watchdog_dnld_timer_initialize()
   struct sigevent toevent;
   struct sigaction act;
   int ret;
+
+  syslog(LOG_MDIAG, "-->%s@%d-Initializing Watchdog\n", __FILE__, __LINE__);
 
   _processWdogTimerId = NULL;
 
@@ -229,6 +245,8 @@ int hcom_host_watchdog_dnld_timer_initialize()
 int hcom_host_watchdog_dnld_timer_delete()
 {
   int ret;
+
+  syslog(LOG_MDIAG, "-->%s@%d-Delete Watchdog timer\n", __FILE__, __LINE__);
   
   ret = hcom_host_watchdog_dnld_timer_set_delay(0);
   if(ret < 0)
