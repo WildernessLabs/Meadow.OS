@@ -22,10 +22,6 @@ jobs:
         run: |
           docker build -f DockerFiles/Build/Dockerfile -t meadow-os-build .
 
-      - name: Mark /workspace as safe directory
+      - name: Run build.sh in Docker (with safe directory)
         run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace meadow-os-build git config --global --add safe.directory /workspace
-
-      - name: Run build.sh in Docker
-        run: |
-          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace meadow-os-build ./build.sh
+          docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace meadow-os-build bash -c "git config --global --add safe.directory /workspace && ./build.sh"
