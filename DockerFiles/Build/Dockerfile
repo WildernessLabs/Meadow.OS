@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y gcc-arm-none-eabi binutils-arm-none-eab
 RUN apt-get update && apt-get install -y python3.10 python3-distutils python3-pip python3-apt || true
 RUN apt-get update && apt-get install -y clang-15 || true
 RUN apt-get update && apt-get install -y git || true
+RUN apt-get update && apt-get install -y curl || true
+RUN apt-get update && apt-get install -y srecord || true
 
 RUN groupadd -g 1000 dev \
         && useradd -u 1000 -g dev -d /home/dev dev \
