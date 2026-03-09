@@ -5,14 +5,47 @@ FROM ubuntu:22.04
 ENV TZ=Europe/Brussels
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
-RUN apt-get update && apt-get install -y bison flex gettext texinfo libncurses5-dev locales libncursesw5-dev gperf automake libtool pkg-config build-essential genromfs libgmp-dev libmpc-dev libmpfr-dev libisl-dev binutils-dev libelf-dev git libexpat-dev gcc-multilib g++-multilib picocom u-boot-tools util-linux sudo xxd srecord sed zip || true
-RUN apt-get update && apt-get install -y kconfig-frontends || true
-RUN apt-get update && apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi || true
-RUN apt-get update && apt-get install -y python3.10 python3-distutils python3-pip python3-apt || true
-RUN apt-get update && apt-get install -y clang-15 || true
-RUN apt-get update && apt-get install -y git || true
-RUN apt-get update && apt-get install -y curl || true
-RUN apt-get update && apt-get install -y srecord || true
+RUN apt-get update && apt-get install -y \
+        bison \
+        flex \
+        gettext \
+        texinfo \
+        libncurses5-dev \
+        locales \
+        libncursesw5-dev \
+        gperf \
+        automake \
+        libtool \
+        pkg-config \
+        build-essential \
+        genromfs \
+        libgmp-dev \
+        libmpc-dev \
+        libmpfr-dev \
+        libisl-dev \
+        binutils-dev \
+        libelf-dev \
+        libexpat-dev \
+        gcc-multilib \
+        g++-multilib \
+        picocom \
+        u-boot-tools \
+        util-linux \
+        sudo \
+        xxd \
+        sed \
+        zip \
+        kconfig-frontends \
+        gcc-arm-none-eabi \
+        binutils-arm-none-eabi \
+        python3.10 \
+        python3-distutils \
+        python3-pip \
+        python3-apt \
+        clang-15 \
+        git \
+        curl \
+        srecord || true
 
 RUN groupadd -g 1000 dev \
         && useradd -u 1000 -g dev -d /home/dev dev \
