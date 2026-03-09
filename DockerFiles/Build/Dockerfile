@@ -47,6 +47,8 @@ RUN apt-get update && apt-get install -y \
         curl \
         srecord || true
 
+RUN pip3 install jinja2
+
 RUN groupadd -g 1000 dev \
         && useradd -u 1000 -g dev -d /home/dev dev \
         && mkdir /home/dev \
