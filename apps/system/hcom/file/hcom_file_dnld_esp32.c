@@ -193,7 +193,8 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
 
   // Start the timer to ensure we start and continue to receiving data
   // from CLI
-  ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_STM32F7_WDOG_TIME);
+  ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
@@ -396,6 +397,7 @@ int hcom_nx_exec_ex_update_ESP32()
     strncat(firmware_fullpath_md5, ".md5", PATH_MAX - 1);
     uint8_t *file_ptr = NULL;
     uint8_t *md5_hash_buf = NULL;
+    uint8_t *file_buf = NULL;
     FILE *firmware = NULL;
     FILE *firmware_md5 = NULL;
 
@@ -414,7 +416,7 @@ int hcom_nx_exec_ex_update_ESP32()
       result = FIRMWARE_OPEN_ERROR;
       goto cleanup;
     }
-    uint8_t *file_buf = malloc(file_size);
+    file_buf = malloc(file_size);
     if (!file_buf) {
       result = ALLOC_ERROR;
       goto cleanup;
