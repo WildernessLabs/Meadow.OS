@@ -264,7 +264,6 @@ int hcom_dir_mgmt_free_file_info(hcom_dnld_shared_t *dnldShared)
   }
   else
   {
-=======
     syslog(LOG_MTEST, "===> %s@%d-About to remove any existing dnldShared resources, cat:%s\n",
               thisFile, __LINE__,
               hcom_file_dir_mgmt_find_category(dnldShared->dnldRqstCat));
