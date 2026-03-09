@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
         kconfig-frontends \
         gcc-arm-none-eabi \
         binutils-arm-none-eabi \
-        python3.10 \
+        python3 \
         python3-distutils \
         python3-pip \
         python3-apt \
