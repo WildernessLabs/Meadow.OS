@@ -24,5 +24,4 @@ jobs:
 
       - name: Run build.sh in Docker (with safe directory)
         run: |
-          docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" meadow-os-build ./build.sh
-        #   docker run --rm -v ${{ github.workspace }}:/workspace -w /workspace meadow-os-build bash -c "git config --global --add safe.directory /workspace && ./build.sh"
+          docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" meadow-os-build ./build.sh --clean --force
