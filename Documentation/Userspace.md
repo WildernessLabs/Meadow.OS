@@ -4,7 +4,7 @@
 
 The single user-space application is **hcom** (Host Communication). It is the primary application running on Meadow.OS and provides all communication between the Meadow board and a host computer. It runs entirely in unprivileged ARM mode and calls into the kernel only via the NuttX syscall interface.
 
-- **Source**: `apps/system/hcom/`
+- **Source**: `apps/system/hcom`
 - **Entry point**: `hcom_main()` in `hcom_startup_manager.c`
 - **NuttX config key**: `CONFIG_INIT_ENTRYPOINT="hcom_main"` (previously `CONFIG_USER_ENTRYPOINT`)
 - **Kconfig**: `CONFIG_MEADOW_HCOM=y`
@@ -43,7 +43,7 @@ apps/system/hcom/
 └── tests/                   User-space test suite
 ```
 
-## `comms/` — Host Communication Protocol
+## `comms` — Host Communication Protocol
 
 Handles the binary protocol used to communicate with the host computer over USB. The host connects as a USB CDC device.
 
@@ -59,7 +59,7 @@ Handles the binary protocol used to communicate with the host computer over USB.
 
 The protocol is defined in `Meadow.OS/include/meadow/hcom_protocol.h`.
 
-## `file/` — File Transfer
+## `file` — File Transfer
 
 Handles binary file downloads from the host to the board and uploads from the board to the host. Supports transfers to both STM32 internal filesystem and ESP32 flash.
 
@@ -75,7 +75,7 @@ Handles binary file downloads from the host to the board and uploads from the bo
 | `hcom_file_dir_mgmt_utils.c` | Directory create/delete utilities |
 | `hcom_file_misc.c` | Miscellaneous file utilities |
 
-## `nx_rqsts/` — NuttX Kernel Requests
+## `nx_rqsts` — NuttX Kernel Requests
 
 Provides user-space wrappers for operations that require kernel privileges. These call through the Meadow UPD syscall interface into `hcom_nx_upd.c` in the kernel.
 
@@ -85,7 +85,7 @@ Provides user-space wrappers for operations that require kernel privileges. Thes
 | `hcom_via_nx_access.c` | Generic NuttX resource access (GPIO, ADC, etc.) |
 | `hcom_bbreg_access.c` | User-space access to battery-backed registers |
 
-## `diag/` — Diagnostics and Tracing
+## `diag` — Diagnostics and Tracing
 
 | File | Responsibility |
 |------|---------------|
@@ -98,20 +98,20 @@ Provides user-space wrappers for operations that require kernel privileges. Thes
 | `hcom_diag_nsh_support.c` | NSH (NuttX Shell) integration for diagnostics |
 | `hcom_diag_misc.c` | Miscellaneous diagnostic utilities |
 
-## `esp32/` — ESP32 Management (User Side)
+## `esp32` — ESP32 Management (User Side)
 
-Complements the kernel-side `espcp/` module. Handles high-level ESP32 management operations accessible from user space:
+Complements the kernel-side `espcp` module. Handles high-level ESP32 management operations accessible from user space:
 
 | File | Responsibility |
 |------|---------------|
 | `hcom_esp32_comms.c` | User-side ESP32 communication threads |
 | `hcom_esp32_network_monitor.c` | Monitors WiFi link state and reports to host |
 
-## `mono/` — .NET Mono Runtime
+## `mono` — .NET Mono Runtime
 
 Manages the lifecycle of the .NET Mono runtime. Handles enable/disable requests from the host and communicates Mono state through battery-backed registers (`HCOM_BBREG_USER_RQST_MONO_ENABLE_BIT`, `HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT`).
 
-## `ota/` — OTA Update Initiation
+## `ota` — OTA Update Initiation
 
 Handles OTA update requests received from the host computer. The user-space OTA module:
 
@@ -120,11 +120,11 @@ Handles OTA update requests received from the host computer. The user-space OTA 
 3. Sets the `update_nuttx_pending` flag in the battery-backed registers via `nx_rqsts`
 4. Triggers a board reset so the bootloader can apply the update
 
-## `cell/` — Cellular (PPP)
+## `cell` — Cellular (PPP)
 
 Optional cellular connectivity via PPP daemon (`hcom_pppd`). Enabled when a supported cellular module is connected.
 
-## `misc/` — Shared Utilities
+## `misc` — Shared Utilities
 
 | File | Responsibility |
 |------|---------------|
@@ -135,7 +135,7 @@ Optional cellular connectivity via PPP daemon (`hcom_pppd`). Enabled when a supp
 
 ## Shared Headers
 
-User-space and kernel-space share protocol and data structure definitions via headers in `Meadow.OS/include/meadow/`:
+User-space and kernel-space share protocol and data structure definitions via headers in `Meadow.OS/include/meadow`:
 
 | Header | Contents |
 |--------|---------|

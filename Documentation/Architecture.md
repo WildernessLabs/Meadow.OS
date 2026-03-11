@@ -45,7 +45,7 @@ The combined `Meadow.OS.bin` image is assembled by the build script using `srec_
 
 ## Bootloader
 
-The bootloader (`bootloader/`) is an STM32 HAL application built with a makefile. It is the first code to run after reset and is responsible for bringing the hardware to a known state before handing off to the OS.
+The bootloader (`bootloader`) is an STM32 HAL application built with a makefile. It is the first code to run after reset and is responsible for bringing the hardware to a known state before handing off to the OS.
 
 ### Boot Sequence
 
@@ -119,9 +119,9 @@ The NuttX kernel is configured with the `meadow_os` defconfig for the `stm32f777
 
 ## Wilderness Labs Kernel Extensions (Meadow.OS/)
 
-All custom kernel-mode code lives in the `Meadow.OS/` directory and is compiled as part of the kernel pass. It is structured as follows:
+All custom kernel-mode code lives in the `Meadow.OS` directory and is compiled as part of the kernel pass. It is structured as follows:
 
-### `hcom_nx/` — Kernel-Side Host Communication
+### `hcom_nx` — Kernel-Side Host Communication
 
 The kernel half of the host communication system. Key modules:
 
@@ -133,7 +133,7 @@ The kernel half of the host communication system. Key modules:
 | `hcom_nx_bbreg_access.c` | Read/write RTC battery-backed registers |
 | `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and bootloader |
 
-### `meadow_os/` — Core OS Services
+### `meadow_os` — Core OS Services
 
 | File | Responsibility |
 |------|---------------|
@@ -146,15 +146,15 @@ The kernel half of the host communication system. Key modules:
 | `meadow_hw_version.c` | Runtime hardware version detection |
 | `meadow-gpio.c` | GPIO multiplexing and interrupt management |
 
-### `espcp/` — ESP32 Coprocessor
+### `espcp` — ESP32 Coprocessor
 
 Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART. Exposes network connectivity to NuttX via the `usrsock` interface. See `espcp/readme.md` for detail.
 
-### `ethernet/` — Ethernet
+### `ethernet` — Ethernet
 
 Manages DHCP, link monitoring, connection, ping, and start-up for the wired Ethernet interface.
 
-### `pwrmgmt/` — Power Management
+### `pwrmgmt` — Power Management
 
 Custom stop-mode power management for low-power operation. Uses STM32 RTC alarms and wake-up timers. Intentionally does not use the NuttX PM framework.
 

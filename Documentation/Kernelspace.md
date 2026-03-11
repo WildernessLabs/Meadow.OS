@@ -2,11 +2,11 @@
 
 ## Overview
 
-The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-space code. All Wilderness Labs kernel extensions are compiled into the kernel ELF (`nuttx.bin`) and reside in `Meadow.OS/` alongside the NuttX board support package at `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/`.
+The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-space code. All Wilderness Labs kernel extensions are compiled into the kernel ELF (`nuttx.bin`) and reside in `Meadow.OS` alongside the NuttX board support package at `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow`.
 
 ## Board Support Package
 
-`nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/`
+`nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src`
 
 | File | Purpose |
 |------|---------|
@@ -42,9 +42,9 @@ Reset
 4. Registers the Universal Platform Driver (`hcom_nx_upd`) syscall endpoint
 5. Starts the ESP32 coprocessor threads (`espcp`)
 
-## `hcom_nx/` — Kernel-Side Host Communication
+## `hcom_nx` — Kernel-Side Host Communication
 
-Source: `Meadow.OS/hcom_nx/`
+Source: `Meadow.OS/hcom_nx`
 
 ### Config Manager (`hcom_nx_config_manager.c`)
 
@@ -78,9 +78,9 @@ Handles the kernel-side of OS update requests received from user space. Writes O
 
 Provides safe read/write access to the STM32 RTC `BKxxR` registers for inter-boot persistent state. See [Memory.md](Memory.md) for the register map.
 
-## `meadow_os/` — Core OS Services
+## `meadow_os` — Core OS Services
 
-Source: `Meadow.OS/meadow_os/`
+Source: `Meadow.OS/meadow_os`
 
 | File | Key Functionality |
 |------|-----------------|
@@ -96,9 +96,9 @@ Source: `Meadow.OS/meadow_os/`
 | `meadow-gpio.c` | GPIO configuration, Meadow-specific pin multiplexing |
 | `meadow_interrupt.c` | External interrupt routing and management |
 
-## `espcp/` — ESP32 Coprocessor
+## `espcp` — ESP32 Coprocessor
 
-Source: `Meadow.OS/espcp/`
+Source: `Meadow.OS/espcp`
 
 The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it over a dedicated UART using a custom binary protocol called ESPCP (ESP32 Coprocessor Protocol).
 
@@ -137,9 +137,9 @@ Key modules:
 | `espcp_uart_monitor.c` | Monitors UART health and reconnects on error |
 | `espcp_event_handlers.c` | Handles asynchronous events from ESP32 |
 
-## `ethernet/` — Wired Ethernet
+## `ethernet` — Wired Ethernet
 
-Source: `Meadow.OS/ethernet/`
+Source: `Meadow.OS/ethernet`
 
 Ethernet is supported on hardware versions that include the LAN8742A PHY (`CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD=y`, `CONFIG_ETH0_PHY_LAN8742A=y`). The hardware version is detected at runtime by `meadow_hw_version.c`.
 
@@ -151,9 +151,9 @@ Ethernet is supported on hardware versions that include the LAN8742A PHY (`CONFI
 | `meadow_ethnet_monitor.c` | Polls link state and reconnects on drop |
 | `meadow_ethnet_ping.c` | Connectivity verification via ICMP echo |
 
-## `pwrmgmt/` — Power Management
+## `pwrmgmt` — Power Management
 
-Source: `Meadow.OS/pwrmgmt/`
+Source: `Meadow.OS/pwrmgmt`
 
 A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use the NuttX PM framework. The idle thread hook (`stm32_idle.c`) calls into this subsystem when the scheduler determines the system can sleep.
 
@@ -168,21 +168,21 @@ A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use t
 | `pwrmgmt_time_support.c` | Time conversion utilities for wake-up calculations |
 | `pwrmgmt_misc.c` | Miscellaneous helpers |
 
-## `kerneltests/` — In-Kernel Tests
+## `kerneltests` — In-Kernel Tests
 
-Source: `Meadow.OS/kerneltests/`
+Source: `Meadow.OS/kerneltests`
 
 Optional in-kernel test suite compiled into the kernel build when specific kconfig options are enabled (e.g., `CONFIG_MEADOW_OS_TESTS`, `CONFIG_GPIO_TESTS`). Tests are triggered by unit test flags set in `build.sh` via `kconfig-tweak`.
 
-## `misc/` — Shared Kernel Utilities
+## `misc` — Shared Kernel Utilities
 
-Source: `Meadow.OS/misc/`
+Source: `Meadow.OS/misc`
 
 Shared utilities used across kernel modules including structured logging (`meadow_logging`), timer helpers, and specialised hardware access routines.
 
 ## Linker Scripts
 
-All linker scripts are in `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/`:
+All linker scripts are in `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts`:
 
 | Script | Purpose |
 |--------|---------|

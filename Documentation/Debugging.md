@@ -69,7 +69,7 @@ flash write_image erase nuttx/nuttx_user.bin 0x08100000
 
 ## GDB Initialisation (`gdb/.gdbinit`)
 
-The `.gdbinit` file in the `gdb/` directory is loaded automatically when GDB is started from that directory. It:
+The `.gdbinit` file in the `gdb` directory is loaded automatically when GDB is started from that directory. It:
 
 1. Configures history, output radix (hex), and remote hardware limits:
    - 8 hardware breakpoints
@@ -99,7 +99,7 @@ The `.gdbinit` file in the `gdb/` directory is loaded automatically when GDB is 
 | `reset-qemu` | Load image and reset QEMU target |
 | `enable_hardfault` | Enable hard fault on divide-by-zero and unaligned access (sets DEMCR bit) |
 
-## Python GDB Extensions (`gdb/`)
+## Python GDB Extensions (`gdb`)
 
 Custom Python scripts extend GDB with Meadow-specific commands:
 
