@@ -26,7 +26,7 @@ The system is divided into three major firmware components that run together on 
 
 ### Bootloader (Meadow.BL)
 
-Located in the `bootloader/` directory and built with a standard STM32 makefile. Resides in the first 256 KB of internal flash (`0x08000000`). Responsible for:
+Located in the `bootloader` directory and built with a standard STM32 makefile. Resides in the first 256 KB of internal flash (`0x08000000`). Responsible for:
 
 - Hardware initialisation (SDRAM via FMC, QSPI flash)
 - Board hardware version detection (v1: Spansion QSPI, v2: Winbond QSPI)
@@ -36,26 +36,26 @@ Located in the `bootloader/` directory and built with a standard STM32 makefile.
 
 ### NuttX Kernel
 
-Located in the `nuttx/` directory with board-specific support in `Meadow.OS/` and `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/`. The kernel runs in **protected mode** (`CONFIG_BUILD_PROTECTED=y`) and uses the ARM MPU to isolate kernel code from user-space code. It is built in two passes:
+Located in the `nuttx` directory with board-specific support in `Meadow.OS` and `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow`. The kernel runs in **protected mode** (`CONFIG_BUILD_PROTECTED=y`) and uses the ARM MPU to isolate kernel code from user-space code. It is built in two passes:
 
 - **Pass 2 (kernel pass)**: builds the kernel ELF (`nuttx.bin`)
 - **Pass 1 (user pass)**: builds the user-space ELF (`nuttx_user.bin`)
 
-Key kernel subsystems added by Wilderness Labs live in `Meadow.OS/`:
+Key kernel subsystems added by Wilderness Labs live in `Meadow.OS`:
 
 | Directory      | Purpose                                                            |
 |----------------|--------------------------------------------------------------------|
-| `hcom_nx/`     | Kernel-side host communication, config management, OTA routing     |
-| `meadow_os/`   | Core OS services, board reset, fault handling, battery-backed registers |
-| `espcp/`       | ESP32 WiFi coprocessor driver and `usrsock` networking stack       |
-| `ethernet/`    | Ethernet support via LAN8742A PHY                                  |
-| `pwrmgmt/`     | Custom low-power stop-mode power management                        |
-| `kerneltests/` | In-kernel test suite                                               |
-| `misc/`        | Shared logging, interrupt support, utilities                       |
+| `hcom_nx`     | Kernel-side host communication, config management, OTA routing     |
+| `meadow_os`   | Core OS services, board reset, fault handling, battery-backed registers |
+| `espcp`       | ESP32 WiFi coprocessor driver and `usrsock` networking stack       |
+| `ethernet`    | Ethernet support via LAN8742A PHY                                  |
+| `pwrmgmt`     | Custom low-power stop-mode power management                        |
+| `kerneltests` | In-kernel test suite                                               |
+| `misc`        | Shared logging, interrupt support, utilities                       |
 
 ### User Space (hcom)
 
-Located in `apps/system/hcom/`. This is the primary user-space application; its entry point is `hcom_main()`. It handles all communication with the host computer over USB, manages file transfers, triggers OTA updates, and interfaces with the .NET Mono runtime.
+Located in `apps/system/hcom`. This is the primary user-space application; its entry point is `hcom_main()`. It handles all communication with the host computer over USB, manages file transfers, triggers OTA updates, and interfaces with the .NET Mono runtime.
 
 ## Repository Layout
 
@@ -117,7 +117,7 @@ The full system is built by running `build.sh`. The script:
 
 ## Documentation
 
-Detailed documentation is in the [`Documentation/`](Documentation/) directory:
+Detailed documentation is in the [`Documentation`](Documentation/) directory:
 
 | Document | Contents |
 |----------|---------|
