@@ -1,0 +1,172 @@
+# System Architecture
+
+## Protected Build Model
+
+Meadow.OS uses the NuttX **protected build** (`CONFIG_BUILD_PROTECTED=y`). The ARM Cortex-M7 MPU enforces a hard boundary between kernel-mode and user-mode code at runtime. Neither region can directly access the other's memory; user space crosses into the kernel exclusively through the syscall interface.
+
+Two separate ELF files are produced:
+
+| Binary | Region | Load Address |
+|--------|--------|-------------|
+| `nuttx.bin` (kernel) | kflash | `0x08040000` |
+| `nuttx_user.bin` (user) | uflash | `0x08100000` |
+
+The combined `Meadow.OS.bin` image is assembled by the build script using `srec_cat` and `dd`.
+
+## Component Diagram
+
+```
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │  Internal Flash (2 MB)                                              │
+ │                                                                     │
+ │  0x08000000  ┌──────────────────────┐  Bootloader (Meadow.BL)       │
+ │              │     Meadow.BL        │  256 KB                       │
+ │  0x08040000  ├──────────────────────┤  NuttX kernel image           │
+ │              │   nuttx (kernel)     │  kflash — up to 1 MB          │
+ │  0x08100000  ├──────────────────────┤  NuttX user image             │
+ │              │  nuttx_user (hcom)   │  uflash — up to 1 MB          │
+ │  0x08200000  └──────────────────────┘                               │
+ └─────────────────────────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │  SRAM                                                               │
+ │  0x20000000  DTCM (128 KB)   — stack, fast kernel data              │
+ │  0x20020000  ksram (128 KB)  — kernel .data / .bss / IDLE stack     │
+ │  0x20040000  usram (240 KB)  — user .data / .bss / user heap        │
+ │  0x2007c000  SRAM2 (16 KB)   — reserved                             │
+ └─────────────────────────────────────────────────────────────────────┘
+
+ ┌─────────────────────────────────────────────────────────────────────┐
+ │  External Memory                                                    │
+ │  0xC0000000  SDRAM (32 MB)   — heap2 (3 MB exposed to NuttX)        │
+ │  QSPI        32 MB Flash     — secondary OS image / FS / runtime    │
+ └─────────────────────────────────────────────────────────────────────┘
+```
+
+## Bootloader
+
+The bootloader (`bootloader/`) is an STM32 HAL application built with a makefile. It is the first code to run after reset and is responsible for bringing the hardware to a known state before handing off to the OS.
+
+### Boot Sequence
+
+```
+Power on / Reset
+      │
+      ▼
+  HAL_Init(), SystemClock_Config()
+      │
+      ▼
+  Init SDRAM (FMC), QSPI flash
+      │
+      ▼
+  Detect board version (JEDEC ID)
+      │
+      ▼
+  CheckPreviousOperationFailure()
+      │
+      ├── OTA update pending?  ──► PerformUpdate()
+      ├── Rollback pending?    ──► PerformRollback()
+      └── No action            ──► BootMeadowOS()
+                                        │
+                                        ▼
+                               Jump to 0x08040000
+```
+
+### OTA State Machine
+
+OTA state is communicated between the bootloader and NuttX using RTC battery-backed registers and OTA flag bytes stored in QSPI. The state machine uses the enums defined in `bootloader/Core/Inc/ota_data.h`:
+
+| State | Owner | Description |
+|-------|-------|-------------|
+| `update_nuttx_pending` | Set by NuttX | OS requests update on next boot |
+| `update_nuttx_in_progress` | Set/cleared by BL | BL is writing new image to kflash |
+| `update_nuttx_complete` | Set by BL | BL finished; NuttX clears on next boot |
+| `update_nuttx_failed` | Set by BL | CRC or write failed; rollback occurs |
+
+Rollback and backup states follow the same pattern.
+
+## NuttX Kernel
+
+The NuttX kernel is configured with the `meadow_os` defconfig for the `stm32f777zit6-meadow` board target. Key architectural decisions:
+
+### Scheduler
+- Priority-based preemptive scheduler
+- High-priority (`SCHED_HPWORK`) and low-priority (`SCHED_LPWORK`, 2 threads) work queues
+- POSIX `pthread` and `waitpid` support enabled
+
+### Memory Protection
+- ARM MPU enabled (`CONFIG_ARM_MPU=y`)
+- Kernel heap: 128 KB (`CONFIG_MM_KERNEL_HEAPSIZE=131072`)
+- Three memory regions (`CONFIG_MM_REGIONS=3`): ksram, usram, SDRAM heap2
+
+### Caches
+- I-cache enabled (`CONFIG_ARMV7M_ICACHE=y`)
+- D-cache enabled in write-through mode (`CONFIG_ARMV7M_DCACHE=y`, `CONFIG_ARMV7M_DCACHE_WRITETHROUGH=y`)
+- DTCM enabled (`CONFIG_ARMV7M_DTCM=y`)
+
+### File Systems
+- FAT (`CONFIG_FS_FAT=y`) with long filename support
+- LittleFS (`CONFIG_FS_LITTLEFS=y`) for wear-levelled QSPI partitions
+- procfs mounted at `/proc`
+
+### Networking
+- Full TCP/IP stack enabled (`CONFIG_NET=y`)
+- DNS client with resolv.conf at `/meadow0/dns.conf`
+- IGMP, ICMP, TCP, UDP, local sockets, loopback
+- Routing table support
+- WiFi via ESP32 usrsock driver
+- Ethernet via LAN8742A PHY (`CONFIG_ETH0_PHY_LAN8742A=y`)
+
+## Wilderness Labs Kernel Extensions (Meadow.OS/)
+
+All custom kernel-mode code lives in the `Meadow.OS/` directory and is compiled as part of the kernel pass. It is structured as follows:
+
+### `hcom_nx/` — Kernel-Side Host Communication
+
+The kernel half of the host communication system. Key modules:
+
+| File | Responsibility |
+|------|---------------|
+| `hcom_nx_startup_mgr.c` | Called during NuttX startup; initialises hardware, config, networking |
+| `hcom_nx_config_manager.c` | Parses YAML config from QSPI; manages board network interface selection |
+| `hcom_nx_upd.c` | Universal Platform Driver — provides the kernel-side syscall endpoint for OTA requests from user space |
+| `hcom_nx_bbreg_access.c` | Read/write RTC battery-backed registers |
+| `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and bootloader |
+
+### `meadow_os/` — Core OS Services
+
+| File | Responsibility |
+|------|---------------|
+| `meadow_os.c` | Board reset, core OS lifecycle |
+| `meadow_os_fault_handling.c` | Hard fault and exception handlers |
+| `meadow_os_battery_backed_domain.c` | RTC domain management (reset reason, syslog config) |
+| `meadow_os_config.c` | OS-level configuration persistence |
+| `meadow_os_info.c` | Board/version information |
+| `meadow_sdmmc.c` | SD/MMC card driver integration |
+| `meadow_hw_version.c` | Runtime hardware version detection |
+| `meadow-gpio.c` | GPIO multiplexing and interrupt management |
+
+### `espcp/` — ESP32 Coprocessor
+
+Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART. Exposes network connectivity to NuttX via the `usrsock` interface. See `espcp/readme.md` for detail.
+
+### `ethernet/` — Ethernet
+
+Manages DHCP, link monitoring, connection, ping, and start-up for the wired Ethernet interface.
+
+### `pwrmgmt/` — Power Management
+
+Custom stop-mode power management for low-power operation. Uses STM32 RTC alarms and wake-up timers. Intentionally does not use the NuttX PM framework.
+
+## User Space
+
+The single user-space application is `hcom` (entry point `hcom_main`). See [Userspace.md](Userspace.md) for a detailed breakdown.
+
+## Kernel ↔ User Space Interface
+
+User-space code calls into the kernel using the NuttX syscall mechanism. The Meadow-specific syscall definitions are in:
+
+- `Meadow.OS/include/meadow/meadow_syscall.h`
+- `Meadow.OS/include/meadow/meadow_syscall_support.h`
+
+The kernel-side endpoint is registered through `hcom_nx_upd.c` (the Universal Platform Driver), which validates and dispatches requests to the appropriate kernel subsystem.
