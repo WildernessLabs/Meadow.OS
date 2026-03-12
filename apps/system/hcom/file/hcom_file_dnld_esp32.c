@@ -183,25 +183,6 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   syslog(LOG_INFO, "%s@%d-Start ESP32 download (Size:%ld, MCUAddr:0x%08lx, MD5Hash:%s)\n",
           _thisFile, __LINE__, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
 
-  ret = hcom_host_watchdog_dnld_timer_initialize();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
-              _thisFile, __LINE__, ret, errno);
-    return;
-  }
-
-  // Start the timer to ensure we start and continue to receiving data
-  // from CLI
-  ret = hcom_host_watchdog_dnld_timer_set_delay(
-    HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-              _thisFile, __LINE__, ret, errno);
-    return;
-  }
-
   //
   //  Allocate space to store the full file contents.  We may have an old buffer
   //  left behind from a failed download.  In this case we throw away the old
@@ -212,6 +193,7 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
     free(_esp32FileBuffer);
     _esp32FileBuffer = NULL;
   }
+
   _esp32FileBuffer = (uint8_t *) zalloc(_xferRecvFullFileSize);
   if (_esp32FileBuffer == NULL)
   {
@@ -223,6 +205,16 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   _endAddress = _esp32FileBuffer + _xferRecvFullFileSize;
 
   _currentESP32DnldState = HcomESP32DnldStateEsp32FileXfer;
+
+  // Start watchdog timing
+  ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+              _thisFile, __LINE__, ret, errno);
+    return;
+  }
 
   // Notify CLI that it's okay to send data
   hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY, 0, _thisFile, __LINE__);
@@ -239,6 +231,16 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
   _dbgNumbPacketsRecvd++;
 #endif
 
+  // Keep watchdog from timing out
+  int ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+              _thisFile, __LINE__, ret, errno);
+    return;
+  }
+
   size_t binDataLen = packetSize - (HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF);
 
   if ((_nextStorageAddress + binDataLen) <= _endAddress)
@@ -252,8 +254,10 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
             _endAddress, _nextStorageAddress + binDataLen);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             _thisFile, __LINE__);
+
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer",
             _thisFile, __LINE__);
+
     free(_esp32FileBuffer);
     _esp32FileBuffer = NULL;
     _nextStorageAddress = NULL;
@@ -271,6 +275,10 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
   bool lastFile = userData == 1 ? true : false;
 
+  // Since we're about to finish the data download, stop and cleanup
+  // watchdog as it's no longer needed.
+  hcom_host_watchdog_dnld_timer_cancel();
+
   syslog(LOG_NOTICE, "File received\n");
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "File received, flashing ESP32", _thisFile, __LINE__);
 
@@ -278,14 +286,6 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   {
     syslog(LOG_ERR, "%s@%d-ESP32 dnld end, unexpected state\n",
               _thisFile, __LINE__);
-    return;
-  }
-
-  ret = hcom_host_watchdog_dnld_timer_delete();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-ESP32 error %d stopping the download timer.\n",
-              _thisFile, __LINE__, ret);
     return;
   }
 

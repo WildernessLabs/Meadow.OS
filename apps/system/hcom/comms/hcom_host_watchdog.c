@@ -1,7 +1,7 @@
 /****************************************************************************
  * \apps\examples\hcom\comms\hcom_host_watchdog.c
  * 
- *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2022-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
  * Included Files
  ****************************************************************************/
 #include "../hcom_common.h"
+#include <nuttx/wqueue.h>
 #include <meadow/hcom_dnld_shared.h>
 #include <meadow/meadow_cirbuf.h>
 #include <meadow/hcom_protocol.h>
@@ -52,34 +53,29 @@
  * Private Data
  ****************************************************************************/
 static char *thisFile = __FILE__;
+static struct work_s wdog_work_queue;
 
 static bool _shutting_down;
 static hcom_dnld_shared_t *_dnldShared;
-static timer_t _processWdogTimerId;
-static bool _hcom_host_process_wdog_timedout;
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static void hcom_host_watchdog_timeout_expired(int signo, FAR siginfo_t *info, FAR void *context);
-static void hcom_host_watchdog_cleanup_wdog_timeout(void);
+static void hcom_host_watchdog_worker(void *arg);
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Called from hcom_host_preprocess.c
-// BAD NAME FOR FUNCTION
-int hcom_host_watchdog_initialize(hcom_dnld_shared_t *dnldShared)
+// Called once from hcom_host_preprocess.c during startup via the
+// hcom_host_process_setup() function.
+int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared)
 {
-  syslog(LOG_MDIAG, "-->%s@%d-Setting Watchdog 'dnldShared' structure\n", __FILE__, __LINE__);
-
   // Need this to provide file name on failure.
   _dnldShared = dnldShared;
 
-  syslog(LOG_MDIAG, "-->%s@%d-Delete Watchdog timer\n", __FILE__, __LINE__);
-
-  _hcom_host_process_wdog_timedout = false;  
+  // One time setup
+  memset(&wdog_work_queue, 0, sizeof(struct work_s));
   return OK;
 }
 
@@ -90,47 +86,42 @@ void hcom_host_watchdog_stopping()
 }
 
 //=================================================================
-// Check if watchdog is indicating that we must cleanup. This is called by
-// the process thread from hcom_host_enq_deq.c as the process thread is waiting
-// for data to be written.
-int hcom_host_watchdog_check_execute_if_expired()
+// Callback via the USRWORK worker queue
+static void hcom_host_watchdog_worker(void *arg)
 {
-  syslog(LOG_MDIAG, "-->%s@%d-Check if Watchdog expired, not being called\n", __FILE__, __LINE__);
+  if (_shutting_down)
+    return;
 
-  if(_hcom_host_process_wdog_timedout)
-  {
-    _hcom_host_process_wdog_timedout = false;
+  syslog(LOG_INFO, "%s@%d-Watchdog timed out.\n", __FILE__, __LINE__);
 
-    // Cleanup download state information
-    hcom_host_watchdog_cleanup_wdog_timeout();
-    return -ETIME;   // Watchdog timed out
-  }
-  return OK;
+  // This thread can't delete the partially download file directly. We need
+  // to use the thread that was downloading to do it.
+
+  // Making this call will wakeup the processing thread that's doing the
+  // download and cause it to call hcom_host_watchdog_dnld_cleanup_wdog()
+  // (below) to cleanup the partial download state information.
+  hcom_host_enq_deq_dnld_watchdog_wakeup();
 }
 
 //=================================================================
 // Encountered a watchdog timeout. This function gets called from our
 // pthread main loop while waiting for the semaphore.
-void hcom_host_watchdog_cleanup_wdog_timeout()
+void hcom_host_watchdog_dnld_cleanup_wdog()
 {
   int ret;
 
-  syslog(LOG_MDIAG, "-->%s@%d-Watchdog Timeout\n", __FILE__, __LINE__);
+  syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
 
   // Delete the download wdog timer that got us here
-  ret = hcom_host_watchdog_dnld_timer_delete();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Stop/delete timer failed, ret:%d, errno:%d\n",
-             thisFile, __LINE__, ret, get_errno());
-  }
+  hcom_host_watchdog_dnld_timer_cancel();
 
   // Close the partially downloaded file
   ret = hcom_file_write_close_active_file(_dnldShared);
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, _dnldShared->dnldOrigPathName, ret, get_errno());
+             thisFile, __LINE__, _dnldShared->dnldOrigPathName,
+             ret, get_errno());
   }
 
   // Delete the partially downloaded file
@@ -138,7 +129,8 @@ void hcom_host_watchdog_cleanup_wdog_timeout()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, _dnldShared->dnldOrigPathName, ret, get_errno());
+             thisFile, __LINE__, _dnldShared->dnldOrigPathName,
+             ret, get_errno());
   }
 
   // Clear the receive data buffer queue
@@ -160,107 +152,28 @@ void hcom_host_watchdog_cleanup_wdog_timeout()
 }
 
 //=================================================================
-// Callback on watchdog timer expiration. Set a flag so we know that when
-// EINTR is detected, it was this timeout that caused it. This will trigger
-// the download state cleanup.
-void hcom_host_watchdog_timeout_expired(int signo, FAR siginfo_t *info,
-          FAR void *context)
-{
-  // Only set a flag. The signal sent to the processing thread will detect
-  // this the next time it waits for a semaphore.
-  // Note: If the cleanup is executed from here on return the processing thread
-  // terminates.
-
-  syslog(LOG_MDIAG, "-->%s@%d-Watchdog expired, setting flag\n", __FILE__, __LINE__);
-
-  _hcom_host_process_wdog_timedout = true;  
-}
-
-//=================================================================
 // Start, restart, or stop the timer
-// This gets called a lot when downloading
+// This gets called a lot when downloading, once per packet
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
-  struct itimerspec todelay;
-  int ret;
-
-  syslog(LOG_MDIAG, "-->%s@%d-Resetting Watchdog timer\n", __FILE__, __LINE__);
-
-  // Start, restart, or stop the timer
-  todelay.it_interval.tv_sec = 0; // Nonrepeating
-  todelay.it_interval.tv_nsec = 0;
-  todelay.it_value.tv_sec = delayInSeconds;
-  todelay.it_value.tv_nsec = 0;
-  
-  ret = timer_settime(_processWdogTimerId, 0, &todelay, NULL);
-  if (ret < 0)
-  {
-    int errorcode = errno;
-    syslog(LOG_ERR, "%s@%d-setting timer, errno:%d\n", thisFile, __LINE__, errorcode);
-    return -errorcode;
-  }
-  return OK;
+  // Reset the work_queue to keep watchdog from timing out
+  return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
+     NULL, SEC2TICK(delayInSeconds));
 }
 
 //=================================================================
-// Create the POSIX timer for detecting download failures
-int hcom_host_watchdog_dnld_timer_initialize()
+// Delete the work queue timer for detecting download failures
+// Called from: hcom_host_preprocess.c and hcom_file_dnld_esp32.c as soon
+// as the file download is finished.
+void hcom_host_watchdog_dnld_timer_cancel()
 {
-  struct sigevent toevent;
-  struct sigaction act;
-  int ret;
+  syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
+    __FILE__, __LINE__, wdog_work_queue.worker);
 
-  syslog(LOG_MDIAG, "-->%s@%d-Initializing Watchdog\n", __FILE__, __LINE__);
+  // If worker is not active return. Otherwise cancel the work
+  if (work_available(&wdog_work_queue))
+    return;
 
-  _processWdogTimerId = NULL;
-
-  // Create a POSIX timer to handle timeouts
-  toevent.sigev_notify = SIGEV_SIGNAL;
-  toevent.sigev_signo = SIGALRM;
-  toevent.sigev_value.sival_ptr = NULL;  // Carry value to 'context' in callback
-
-  ret = timer_create(CLOCK_REALTIME, &toevent, &_processWdogTimerId);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-create timer errno:%d\n", thisFile, __LINE__, errno);
-    return -errno;
-  }
-
-  // Attach a callback to catch the timeout
-  act.sa_sigaction = hcom_host_watchdog_timeout_expired;
-  act.sa_flags = SA_SIGINFO;
-  sigemptyset(&act.sa_mask);
-
-  ret = sigaction(SIGALRM, &act, NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-attach signal errno:%d\n", thisFile, __LINE__, errno);
-    return -errno;
-  }
-  return OK;
-}
-
-//=================================================================
-// Delete the POSIX timer for detecting download failures
-int hcom_host_watchdog_dnld_timer_delete()
-{
-  int ret;
-
-  syslog(LOG_MDIAG, "-->%s@%d-Delete Watchdog timer\n", __FILE__, __LINE__);
-  
-  ret = hcom_host_watchdog_dnld_timer_set_delay(0);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer set delay = 0, ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
-  }
-
-  ret = timer_delete(_processWdogTimerId);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
-  }
-
-  return ret;
+  // Only possible error is -ENOENT no such work queued, we can ignore
+  work_cancel(USRWORK, &wdog_work_queue);
 }

@@ -308,8 +308,18 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
                         thisFile, __LINE__, HCOM_FILE_DNLD_SDCARD_BLOCK_SIZE);
   }
 
-  // Set current action
+  // Set current action state
   dnldShared->dnldCurrentState = HcomStm32F7DnldStateFileXfer;
+
+  // Start the watchdog
+  ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+              thisFile, __LINE__, ret, errno);
+    return ret;
+  }
 
   // Notify CLI that it's okay to send the file's data now
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY,
@@ -535,6 +545,16 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   }
 #endif
 
+  // Keep resetting the watchdog here on every data packet
+  int ret = hcom_host_watchdog_dnld_timer_set_delay(
+    HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
+              thisFile, __LINE__, ret, errno);
+    return ret;
+  }
+
   // Ready for next download packet
   return OK;
 }
@@ -553,6 +573,9 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   char *downloadSuccess = "Download success\n";
   bool dnldSuccess = true;
 #endif
+
+  // Since we're about to finish the data download, stop the watchdog
+  hcom_host_watchdog_dnld_timer_cancel();
 
   if(dnldShared->dnldCurrentState != HcomStm32F7DnldStateFileXfer)
   {

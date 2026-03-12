@@ -192,7 +192,7 @@ int hcom_host_process_setup()
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateInvalid;
 
   // The watchdog needs access to the download shared structure
-  ret = hcom_host_watchdog_initialize(_dnldShared);
+  ret = hcom_host_watchdog_dnld_starting(_dnldShared);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Watchdog init failed:%d\n",
@@ -430,26 +430,6 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
         return ret;
       }
     }
-
-    ret = hcom_host_watchdog_dnld_timer_initialize();
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Timer init, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
-      hcom_dir_mgmt_free_file_info(dnldShared);
-      return ret;
-    }
-
-    // Start the timer to ensure we start and continue to receiving data
-    // from CLI
-    ret = hcom_host_watchdog_dnld_timer_set_delay(
-      HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
-      hcom_dir_mgmt_free_file_info(dnldShared);
-    }
   }
 
   return ret;
@@ -573,16 +553,6 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     // ESP32?
     if(hcom_host_process_is_stm32f7_dnld_active(dnldShared))
     {
-      // Keep resetting the watchdog here on every data packet
-      ret = hcom_host_watchdog_dnld_timer_set_delay(
-        HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC);
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
-        return ret;
-      }
-
       // We have data to write to F7 file system
       ret = hcom_file_dnld_stm32f7_recvd_file_data(hcomDataMsg, decodedSize,
                 dnldShared);
@@ -814,14 +784,6 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       return -EOWNERDEAD;
     }
 #endif
-    // Since we're about to finish the data download, stop and delete
-    // watchdog as it's no longer needed.
-    ret = hcom_host_watchdog_dnld_timer_delete();
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Timer delete, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
-    }
   }
 
   //-------------------------------------------------------------------

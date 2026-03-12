@@ -187,9 +187,10 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf, size_t *packetLen
 int hcom_host_process_setup(void);
 void hcom_host_process_shutdown(void);
 
-int hcom_host_watchdog_dnld_timer_initialize(void);
 int hcom_host_watchdog_dnld_timer_set_delay(time_t sec);
-int hcom_host_watchdog_dnld_timer_delete(void);
+void hcom_host_watchdog_dnld_timer_cancel(void);
+void hcom_host_watchdog_dnld_cleanup_wdog(void);
+
 int hcom_esp32_exec_flash_file(uint8_t *, uint32_t, uint32_t, char *);
 
 int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hcomMsg,
