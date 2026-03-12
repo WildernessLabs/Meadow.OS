@@ -18,14 +18,35 @@ define load-nuttx-symbols
   # The following loads the bootloader symbols for debugging but is commented out for general use
   # as it adds over 45 seconds to the debugger startup.
   #
-#  add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
+  add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
   shell if test -f ../nuttx/nuttx_user.elf; then echo add-symbol-file -readnow ../nuttx/nuttx_user.elf; fi > /tmp/meadow_gdb
   source /tmp/meadow_gdb
+end
+
+#
+# Read the bootloader symbols.
+#
+define read-bootloader-symbols
+    add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
 end
 
 define reset-qemu
   load
   monitor system_reset
+end
+
+#
+# Load the tensorflow symbols.
+#
+define load-tf-symbols
+  add-symbol-file -readnow ../Tensorflow/Tensorflow.so
+end
+
+#
+# Print the contents of the variable holding the RAMLOG (syslog).
+#
+define dmesg
+  printf "%s", g_sysbuffer
 end
 
 #
@@ -35,6 +56,23 @@ end
 #
 define enable_hardfault
   set *((uint32_t *) 0xe000edfc) |= 0x0000400
+end
+
+#
+#   Start logging to file.
+#
+define start-file-logging
+  set logging file gdblog.txt
+  set logging on
+  set trace-commands on
+end
+
+#
+#   Stop logging to file.
+#
+define stop-file-logging
+  set logging off
+  set trace-commands off
 end
 
 load-nuttx-symbols

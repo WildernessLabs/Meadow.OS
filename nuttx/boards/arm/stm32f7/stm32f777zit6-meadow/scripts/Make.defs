@@ -22,8 +22,17 @@ include $(TOPDIR)/.config
 include $(TOPDIR)/tools/Config.mk
 include $(TOPDIR)/arch/arm/src/armv7-m/Toolchain.defs
 
-LDSCRIPT = flash.ld
-ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)
+ifeq ($(CONFIG_BUILD_PROTECTED),y)
+  # Protected build: vectors in uflash (0x08040000), kernel text in kflash (0x08140000).
+  # Using kernel-space.ld keeps kernel code out of the uflash region that is
+  # overlaid by the user-space blob at 0x08040200, preventing __start and all
+  # other kernel functions from being silently overwritten at link time.
+  ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)memory.ld
+  ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)kernel-space.ld
+else
+  LDSCRIPT = flash.ld
+  ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)
+endif
 
 ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r10
 
