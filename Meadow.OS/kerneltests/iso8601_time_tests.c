@@ -232,7 +232,7 @@ static int TestParsingISO8601UtcOffset(void)
         break;
       default:
         syslog(LOG_MTEST, "'%s' ERROR at default with offset %d\n",
-          iso8601TestCases[formatOff], formatOff);
+          iso8601TestCases[formatOff] ? iso8601TestCases[formatOff] : "(null)", formatOff);
         break;
     }
 
