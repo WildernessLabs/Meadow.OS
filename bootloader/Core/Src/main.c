@@ -601,12 +601,16 @@ void BootMeadowOS(void)
 	__DSB();
 	__ISB();
 
-	// Re-enable all interrupts
-	__enable_irq();
-
 	// Set up the jump to Nuttx address + 4 (entry point).
 	JumpOS = (void (*)(void)) (*((uint32_t *) ((NUTTX_PRI_LOC + 4))));
+
+	// Set VTOR before re-enabling interrupts so any NMI or fault that fires
+	// immediately after __enable_irq() uses the NuttX vector table, not the
+	// bootloader's stale table.
 	SCB->VTOR = NUTTX_PRI_LOC;
+
+	// Re-enable all interrupts
+	__enable_irq();
 
 	// Set the main stack pointer to the Nuttx stack
 	__set_MSP(*(uint32_t *)NUTTX_PRI_LOC);

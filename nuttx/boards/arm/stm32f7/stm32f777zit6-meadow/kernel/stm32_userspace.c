@@ -43,8 +43,8 @@
 #  error "CONFIG_NUTTX_USERSPACE not defined"
 #endif
 
-#if CONFIG_NUTTX_USERSPACE != 0x08100000
-#  error "CONFIG_NUTTX_USERSPACE must be 0x08100000 to match memory.ld"
+#if CONFIG_NUTTX_USERSPACE != 0x08040200
+#  error "CONFIG_NUTTX_USERSPACE must be 0x08040200 to match memory.ld"
 #endif
 
 /****************************************************************************
@@ -83,6 +83,13 @@ const struct userspace_s userspace locate_data(".userspace") =
   .us_dataend       = (uintptr_t)_edata,
   .us_bssstart      = (uintptr_t)_sbss,
   .us_bssend        = (uintptr_t)_ebss,
+
+  /* End of the user heap region (end of user SRAM).  The kernel's
+   * stm32_allocateheap() derives the heap extent from us_bssend and
+   * CONFIG_MM_KERNEL_HEAPSIZE, but us_heapend must not be left as zero
+   * because other NuttX subsystems may check it as a sanity bound. */
+
+  .us_heapend       = (uintptr_t)_ebss,
 
   /* Memory manager heap structure */
 

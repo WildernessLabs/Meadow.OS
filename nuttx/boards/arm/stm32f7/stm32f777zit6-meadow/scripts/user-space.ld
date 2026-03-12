@@ -23,11 +23,28 @@
  */
 
 OUTPUT_ARCH(arm)
+ENTRY(_stext)
+
+PHDRS
+{
+  text PT_LOAD;
+  data PT_LOAD;
+  comment PT_LOAD;
+  /* mono_text PT_LOAD;
+  mono_data PT_LOAD;
+  mono_comment PT_LOAD; */
+}
+
 SECTIONS
 {
     .userspace : {
-        *(.userspace)
-    } > uflash
+        _stext = ABSOLUTE(.);
+        . += 512;
+        _suserspace = ABSOLUTE(.);
+        /* KEEP is needed in case --gc-sections is being used */
+        KEEP(*(.userspace))
+        _euserspace = ABSOLUTE(.);
+    } > uflash :text
 
     .text : {
         _stext = ABSOLUTE(.);
@@ -41,6 +58,7 @@ SECTIONS
         *(.got)
         *(.gcc_except_table)
         *(.gnu.linkonce.r.*)
+        . = ALIGN(4);
         _etext = ABSOLUTE(.);
     } > uflash
 
