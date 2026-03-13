@@ -128,10 +128,10 @@ The kernel half of the host communication system. Key modules:
 | File | Responsibility |
 |------|---------------|
 | `hcom_nx_startup_mgr.c` | Called during NuttX startup; initialises hardware, config, networking |
-| `hcom_nx_config_manager.c` | Parses YAML config from QSPI; manages board network interface selection |
-| `hcom_nx_upd.c` | Universal Platform Driver — provides the kernel-side syscall endpoint for OTA requests from user space |
+| `hcom_nx_config_manager.c` | Parses YAML config for system configuration |
+| `hcom_nx_upd.c` | Universal Platform Driver — provides the kernel-side syscall endpoint for user space code (HCOM / .NET applications) |
 | `hcom_nx_bbreg_access.c` | Read/write RTC battery-backed registers |
-| `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and bootloader |
+| `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and the kernel |
 
 ### `meadow_os` — Core OS Services
 
@@ -142,31 +142,11 @@ The kernel half of the host communication system. Key modules:
 | `meadow_os_battery_backed_domain.c` | RTC domain management (reset reason, syslog config) |
 | `meadow_os_config.c` | OS-level configuration persistence |
 | `meadow_os_info.c` | Board/version information |
-| `meadow_sdmmc.c` | SD/MMC card driver integration |
-| `meadow_hw_version.c` | Runtime hardware version detection |
-| `meadow-gpio.c` | GPIO multiplexing and interrupt management |
 
 ### `espcp` — ESP32 Coprocessor
 
-Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART. Exposes network connectivity to NuttX via the `usrsock` interface. See `espcp/readme.md` for detail.
-
-### `ethernet` — Ethernet
-
-Manages DHCP, link monitoring, connection, ping, and start-up for the wired Ethernet interface.
-
-### `pwrmgmt` — Power Management
-
-Custom stop-mode power management for low-power operation. Uses STM32 RTC alarms and wake-up timers. Intentionally does not use the NuttX PM framework.
+Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART and SPI. Exposes network connectivity to NuttX via the `usrsock` interface.
 
 ## User Space
 
 The single user-space application is `hcom` (entry point `hcom_main`). See [Userspace.md](Userspace.md) for a detailed breakdown.
-
-## Kernel ↔ User Space Interface
-
-User-space code calls into the kernel using the NuttX syscall mechanism. The Meadow-specific syscall definitions are in:
-
-- `Meadow.OS/include/meadow/meadow_syscall.h`
-- `Meadow.OS/include/meadow/meadow_syscall_support.h`
-
-The kernel-side endpoint is registered through `hcom_nx_upd.c` (the Universal Platform Driver), which validates and dispatches requests to the appropriate kernel subsystem.

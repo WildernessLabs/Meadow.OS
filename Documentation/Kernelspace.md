@@ -55,6 +55,7 @@ Parses a YAML configuration file stored on the QSPI file system using the embedd
 - Static IP / DHCP settings
 - Cloud endpoint URLs
 - Syslog verbosity
+- System debug features
 
 The default network interface falls back to `MEADOW_IFT_ESP32` if no config is found.
 
@@ -90,7 +91,7 @@ Source: `Meadow.OS/meadow_os`
 | `meadow_os_config.c` | Persistent OS configuration (stored to QSPI) |
 | `meadow_os_info.c` | Board hardware version string, OS version string |
 | `meadow_os_espcp.c` | Glue between meadow_os and the ESP32 coprocessor |
-| `meadow_os_exceptions.c` | C++ exception handling support |
+| `meadow_os_exceptions.c` | Pass erroro conditions through to .NET applications |
 | `meadow_sdmmc.c` | SD/MMC card initialisation and mount |
 | `meadow_hw_version.c` | Runtime detection of board hardware revision |
 | `meadow-gpio.c` | GPIO configuration, Meadow-specific pin multiplexing |
@@ -100,7 +101,7 @@ Source: `Meadow.OS/meadow_os`
 
 Source: `Meadow.OS/espcp`
 
-The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it over a dedicated UART using a custom binary protocol called ESPCP (ESP32 Coprocessor Protocol).
+The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it over a dedicated UART and SPI interface using a custom binary protocol.
 
 ### Architecture
 
@@ -120,7 +121,7 @@ NuttX usrsock socket API
   espcp_thread.c           — UART reader/writer threads
         │
         ▼
-  [ESP32 UART]
+  [ESP32 SPI]
 ```
 
 Key modules:
@@ -128,13 +129,12 @@ Key modules:
 | File | Purpose |
 |------|---------|
 | `espcp_coprocessor.c` | Initialisation, start/stop of the coprocessor subsystem |
-| `espcp_message.c` | ESPCP message encode/decode |
+| `espcp_message.c` | ESPCP message structures |
 | `espcp_encoders.c` | Protocol field encoders |
-| `espcp_wifi.c` | WiFi connect/disconnect/scan handling |
 | `espcp_system.c` | ESP32 system-level commands (reset, version) |
 | `espcp_file_system.c` | File operations forwarded to ESP32 flash |
 | `espcp_core_dump.c` | Captures ESP32 core dumps on crash |
-| `espcp_uart_monitor.c` | Monitors UART health and reconnects on error |
+| `espcp_uart_monitor.c` | Monitors UART for control messages from the EP32 to the STM32 |
 | `espcp_event_handlers.c` | Handles asynchronous events from ESP32 |
 
 ## `ethernet` — Wired Ethernet

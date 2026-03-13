@@ -2,7 +2,7 @@
 
 ## Overview
 
-Meadow.OS is debugged using **OpenOCD** as the GDB server and **arm-none-eabi-gdb** (with Python scripting) as the client. The ST-Link SWD interface connects to the target. QEMU is also supported for software-only testing.
+Meadow.OS is debugged using **OpenOCD** as the GDB server and **gdb** (with Python scripting) as the client. The ST-Link SWD interface connects to the target. QEMU is also supported for software-only testing.
 
 ## Prerequisites
 
@@ -34,10 +34,7 @@ GDB will automatically connect to `localhost:4242`, load symbol files, and apply
 | `--server` | Start OpenOCD GDB server (blocks) |
 | `--stlink` | Use `st-util` instead of OpenOCD |
 | `--ocd` / `--openocd` | Use OpenOCD (default) |
-| `--mi` | Launch GDB in machine interface mode (for IDE integration) |
 | `--qemu` | Use QEMU instead of hardware |
-| `--esp` | QEMU targets the ESP32/Xtensa CPU |
-| `--lldb` | Prefix GDB launch with `lldb --` |
 
 ## OpenOCD Configuration
 
@@ -172,8 +169,6 @@ Bootloader symbols can be loaded in GDB by uncommenting this line in `.gdbinit`:
 ```gdb
 add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
 ```
-
-> Note: this adds over 45 seconds to debugger startup.
 
 ## Stack Dumps via UART
 
