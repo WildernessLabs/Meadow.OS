@@ -73,6 +73,7 @@ int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared)
 {
   // Need this to provide file name on failure.
   _dnldShared = dnldShared;
+  _shutting_down = false;
 
   // One time setup
   memset(&wdog_work_queue, 0, sizeof(struct work_s));
@@ -156,9 +157,15 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 // This gets called a lot when downloading, once per packet
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
-  // Reset the work_queue to keep watchdog from timing out
-  return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
+  int ret;
+  
+  ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
      NULL, SEC2TICK(delayInSeconds));
+  return ret;
+
+  // // Reset the work_queue to keep watchdog from timing out
+  // return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
+  //    NULL, SEC2TICK(delayInSeconds));
 }
 
 //=================================================================
