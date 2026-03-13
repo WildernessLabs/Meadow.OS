@@ -1,0 +1,157 @@
+# Memory Layout
+
+## Overview
+
+The STM32F777ZIT6 provides 2 MB of internal flash, 512 KB of internal SRAM (split across three blocks), an ITCM interface, and external SDRAM and QSPI flash. The protected build partitions memory strictly between the kernel and user space.
+
+The authoritative memory map is defined in:
+
+```
+nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld
+```
+
+## Internal Flash (2 MB, `0x08000000`)
+
+| Region | Name | Origin | Length | Contents |
+|--------|------|--------|--------|----------|
+| Boot | — | `0x08000000` | 256 KB | Bootloader (`Meadow.BL`) |
+| Kernel flash | `kflash` | `0x08040000` | 1024 KB | NuttX kernel (`nuttx.bin`) |
+| User flash | `uflash` | `0x08100000` | 1024 KB | NuttX user space (`nuttx_user.bin`) |
+
+> The ITCM bus alias maps internal flash at `0x00200000`. NuttX boots through the `0x08xxxxxx` AXIM interface.
+
+### Flash Sections (kernel)
+
+Defined in `kernel-space.ld`:
+
+| Section | Placed in | Description |
+|---------|-----------|-------------|
+| `.vectors` | `uflash` | Vector table |
+| `.text` | `kflash` | Kernel code and read-only data |
+| `.init_section` | `kflash` | C++ constructors |
+| `.ARM.extab/.exidx` | `kflash` | Exception unwind tables |
+| `.data` | `ksram` (LMA: `kflash`) | Kernel initialised data |
+| `.bss` | `ksram` | Kernel zero-initialised data |
+
+### Flash Sections (user)
+
+Defined in `user-space.ld`:
+
+| Section | Placed in | Description |
+|---------|-----------|-------------|
+| `.userspace` | `uflash` | User-space header |
+| `.text` | `uflash` | User code and read-only data |
+| `.data` | `usram` (LMA: `uflash`) | User initialised data |
+| `.bss` | `usram` | User zero-initialised data |
+
+## Internal SRAM (512 KB)
+
+### DTCM SRAM — `0x20000000`, 128 KB
+
+Tightly coupled to the Cortex-M7 core. Used for fast kernel data and stacks.
+
+```
+dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
+```
+
+### SRAM1 — Kernel + User Split
+
+SRAM1 is 368 KB total but the layout was extended to accommodate the Ethernet DMA buffers:
+
+```
+ksram (rwx) : ORIGIN = 0x20020000, LENGTH = 128K   (kernel)
+usram (rwx) : ORIGIN = 0x20040000, LENGTH = 240K   (user, 368K - 128K)
+```
+
+Approximate kernel SRAM layout:
+
+| Address | Contents |
+|---------|----------|
+| `0x20020000` | Kernel `.data` region (~0.1 KB typical) |
+| — | Kernel `.bss` region (~1.8 KB typical) |
+| — | Kernel IDLE thread stack (8 KB, sized by `CONFIG_IDLETHREAD_STACKSIZE`) |
+| `0x20022000` | Start of kernel heap (128 KB, `CONFIG_MM_KERNEL_HEAPSIZE`) |
+
+User SRAM layout:
+
+| Address | Contents |
+|---------|----------|
+| `0x20040000` | User `.data` and `.bss` regions |
+| — | User heap (remainder of usram) |
+
+### SRAM2 — `0x2007c000`, 16 KB
+
+```
+sram2 (rwx) : ORIGIN = 0x2007c000, LENGTH = 16K
+```
+
+Reserved / miscellaneous kernel use.
+
+## External SDRAM — `0xC0000000`, 32 MB
+
+Managed through the FMC (Flexible Memory Controller). Initialised by both the bootloader and the NuttX board bring-up.
+
+NuttX exposes **3 MB** (3,072 KB) of SDRAM as heap region 2:
+
+```
+sdram  (rwx) : ORIGIN = 0xC0000000, LENGTH = 3072K
+CONFIG_HEAP2_BASE=0xC0000000
+CONFIG_HEAP2_SIZE=33554432   (32 MB physical, 3 MB visible to NuttX heap)
+```
+
+The `MM_REGIONS=3` setting accounts for: ksram heap, usram heap, and SDRAM heap2.
+
+## External QSPI Flash — 32 MB
+
+Not directly memory-mapped by NuttX at runtime but accessed through the QSPI driver. Partition layout (from `bootloader/Core/Inc/partitions.h`):
+
+| Partition | Offset | Size | Contents |
+|-----------|--------|------|----------|
+| Secondary OS image | `0x00300000` (`NUTTX_SEC_QSPI_LOC`) | 1792 KB (`NUTTX_SIZE`) | OTA staging image |
+| OTA data | `NUTTX_SEC_QSPI_LOC + NUTTX_SIZE` | 256 B | OTA flags and state |
+| File system | Remaining | ~29 MB | User files, Mono runtime, configuration |
+
+The Mono runtime slice is also extracted separately as `Meadow.OS.Runtime.bin` (3072 KB) at build time.
+
+## Combined `Meadow.OS.bin` Layout
+
+The production flash image assembled by `build.sh` using `srec_cat` and `dd`:
+
+| Offset | Contents |
+|--------|----------|
+| `0x00000000` | `Meadow.BL.bin` (bootloader) |
+| `0x00040000` | `Meadow.OS.Update.bin` (kernel + user, with CRC at `0x001BFFFC`) |
+
+Total image: up to ~2 MB of internal flash consumption.
+
+## MPU Configuration
+
+The ARM MPU enforces the kernel/user boundary at runtime. Key rules enforced:
+
+- Kernel flash (`kflash`) is readable and executable only in privileged (kernel) mode
+- User flash (`uflash`) is readable and executable from unprivileged (user) mode
+- Kernel SRAM (`ksram`) is inaccessible from user mode
+- User SRAM (`usram`) is accessible from both modes (kernel reads user data via syscalls)
+- SDRAM heap2 is accessible from both modes
+
+## Battery-Backed Registers
+
+The STM32 RTC provides 32 battery-backed registers (BKxxR) that retain their values across resets as long as VBAT is present. Meadow uses three for inter-boot communication:
+
+| Register | Define | Purpose |
+|----------|--------|---------|
+| `BK31R` | `HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER` | Main Meadow control flags (syslog level, Mono state, restart flags) |
+| `BK30R` | `HCOM_NX_MEADOW_RESET_REASON_BBR` | Reset reason code |
+| `BK29R` | `HCOM_NX_MEADOW_RESET_SOURCE_INFO_BBR` | Reset source additional info |
+
+Notable flag bits in `BK31R`:
+
+| Bit Mask | Flag |
+|----------|------|
+| `0x000000FF` | Syslog level configuration |
+| `0x00000100` | Restart initiated by host command |
+| `0x00000200` | Route trace messages to host |
+| `0x00000400` | Route trace messages to UART |
+| `0x00000800` | User requested Mono enable |
+| `0x00001000` | Mono last run lockup detected |
+| `0x00002000` | Mono debugging start flag |

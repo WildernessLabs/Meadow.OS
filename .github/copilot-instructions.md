@@ -12,7 +12,7 @@ The project is based on the open source NuttX RTOS. It is a real-time operating 
 
 The OS is configured as a protected / kernel build.  The OS runs on a custom STM32F7 microcontroller.  The system uses the MPU to protect the OS from the user applications.
 
-There is also a custom bootloader that starts the OS. The bootloader is written in C and is responsible for checking for any Ota updates and then starting the OS.
+There is also a custom bootloader that starts the OS. The bootloader is written in C and is responsible for checking for any OtA updates and then starting the OS.
 
 The `hcom` application is a custom application that deals with communication to a host computer.  It allows for control of the board as well as file transfers.
 
