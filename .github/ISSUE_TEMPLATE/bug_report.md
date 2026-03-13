@@ -1,6 +1,6 @@
 ---
 name: Bug Report
-about: Report a defect in the bootloader, kernel, or hcom application
+about: Report a defect or unexpected behaviour
 labels: bug
 ---
 
@@ -46,9 +46,12 @@ Provide the exact steps needed to trigger the bug, e.g.:
 
 ### Build information
 
-- OS version (`version.txt`):
+- OS version
+  - OS: 
+  - Runtime: 
+  - Coprocessor: 
 - Build flags used (e.g. `--debug`, `-u=`):
-- Hardware version (v1 / v2 / unknown):
+- Hardware version (v1 / v2 / CCM / Ethernet):
 
 ### Crash / fault details
 
@@ -57,7 +60,6 @@ Provide the exact steps needed to trigger the bug, e.g.:
 - Fault address:
 - Backtrace (from GDB `bt` command):
 - RAMLOG / syslog output (if available):
-- Battery-backed register values (BK29–BK31, if relevant):
 
 ```
 <!-- Paste output here -->

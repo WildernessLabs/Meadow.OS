@@ -30,11 +30,12 @@ See [README.md](README.md) for a full description of the project structure. In b
 
 Meadow.OS follows the [NuttX coding standard](https://nuttx.apache.org/docs/latest/contributing/coding_style.html). Key rules are summarised below.
 
+Some board specific files use classic C style coding style with some also using Allman style.  The key recommendation is to keep to the style of the file being worked on.  When creating new files use the style consistent with the files in the subsystem being modified.
+
 ### Naming
 
 - `snake_case` for all identifiers: functions, variables, types, and file names
 - `UPPER_SNAKE_CASE` for macros and `#define` constants
-- `CONFIG_` prefix for all kconfig symbols
 - `MEADOW_` prefix for Wilderness Labs-specific kconfig symbols and global identifiers
 - Module-level prefix on all public symbols, e.g. `hcom_nx_`, `meadow_os_`, `espcp_`, `pwrmgmt_`
 
@@ -83,7 +84,7 @@ Every source file must open with the standard section banner and copyright heade
 
 ### Function Headers
 
-All non-trivial functions require a NuttX-style header block:
+All functions require a NuttX-style header block:
 
 ```c
 /****************************************************************************
@@ -98,6 +99,9 @@ All non-trivial functions require a NuttX-style header block:
  *
  * Returned Value:
  *   Description of return value, or None.
+ * 
+ * Assumptions:
+ *   Any assumptions / side effects or None.
  *
  ****************************************************************************/
 ```
@@ -106,7 +110,6 @@ All non-trivial functions require a NuttX-style header block:
 
 - 2-space indentation; no tabs
 - Lines no longer than 78 characters where practical
-- Opening brace on the same line for control flow; on a new line for function definitions
 - No trailing whitespace
 - One blank line between function definitions
 
@@ -116,9 +119,8 @@ The build enforces a hard MPU boundary between kernel and user code. A violation
 
 **Kernel code** (`Meadow.OS`, `nuttx/boards`) runs in ARM privileged mode:
 
-- Use `kmalloc` / `kzalloc` — never `malloc`
+- Use `kmalloc` / `kzalloc` (preferred) — never `malloc`
 - Do not call POSIX-only or user-space-only APIs
-- Shared data with user space must go through the syscall interface (`meadow_syscall.h`)
 
 **User code** (`apps/system/hcom`) runs in ARM unprivileged mode:
 
@@ -127,38 +129,35 @@ The build enforces a hard MPU boundary between kernel and user code. A violation
 
 ## Memory & MPU
 
-Any change that affects memory layout must be reviewed carefully:
-
-- Flash partitions are defined in `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld`
-- QSPI partition layout is shared between the bootloader and NuttX — changes must be consistent in both
-- MPU region sizes must be powers of 2 and naturally aligned
-- Document any change to section sizes or addresses in the PR description
-
 See [Documentation/Memory.md](Documentation/Memory.md) for the full memory map.
 
 ## OTA and Bootloader Interface
 
 The bootloader and NuttX communicate via:
 
-- RTC battery-backed registers (`BK29R`–`BK31R`) — see `Meadow.OS/include/meadow/hcom_bbreg_defn.h`
+- Battery-backed registers (`BK29R`–`BK31R`) — see `Meadow.OS/include/meadow/hcom_bbreg_defn.h`
 - OTA flag bytes in QSPI — see `bootloader/Core/Inc/ota_data.h`
 
 Changes to these interfaces must maintain backwards compatibility with the deployed bootloader, or a bootloader update must be included in the same PR.
 
 ## Configuration Changes
 
-Use `kconfig-tweak` to modify the defconfig rather than editing `.config` directly:
+NuttX and the Meadow OS are configured through the `defconfig` file.  Permanent configuration changes are normally made to this file.  For instance enabling the CAN driver would be performed through changes to the `defconfig` file.  Changes to the config are made using the following command sequence:
 
 ```bash
-kconfig-tweak --file nuttx/.config --enable CONFIG_MY_NEW_OPTION
+make -C nuttx menuconfig
 make -C nuttx savedefconfig
 ```
 
-Copy the result back to the board config directory:
+Finally, copy the result back to the board config directory:
 
 ```
-nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/configs/meadow_os/defconfig
+cp defconfig nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/configs/meadow_os
 ```
+
+Temporary changes are normally made using the `kconfig-tweak` application.  For instance, the WiFi unit tests would be enabled using this mechanism as they would ne needed for builds on a developer machine but they would not be needed in production.
+
+Use `kconfig-tweak` to modify the defconfig rather than editing `.config` directly:
 
 ## Testing
 
@@ -170,19 +169,15 @@ All non-trivial changes must be tested. The build system includes named test sui
 
 Available suites: `esp`, `gpio`, `ethernet`, `os`, `misc`, `sdcard`, `adc`, `dac`, `bbr`, `power`, `spidma`, `rotenc`, `snprintf`, `sqllite`, `tensorflow`, `dirmgmt`, `chat`, `bg77`, `iso8601` — see `build.sh` for the complete list.
 
-Hardware testing on a physical Meadow F7 board is required for any change touching:
+Pull requests should detail:
 
-- Drivers or peripheral configuration
-- Memory layout or MPU regions
-- OTA / bootloader interaction
-- Power management
-- Network interfaces (ESP32 WiFi or Ethernet)
-
-Document your test steps in the PR.
+- The tests that have been performed
+- Steps to reproduce the tests
+- Results of the tests
 
 ## Commit Messages
 
-Use the imperative mood in the subject line, 72 characters maximum:
+Use the imperative mood in the subject line:
 
 ```
 Add Ethernet link-down recovery to meadow_ethnet_monitor
@@ -199,7 +194,7 @@ Reference issues where applicable: `Fixes #123`, `Relates to #456`.
 ## Security
 
 - **Never** commit secrets, credentials, WiFi passwords, or device certificates
-- The build automatically removes `secrets.h` at the end of `build.sh`; do not circumvent this
+- The build automatically removes `secrets.h` at the end of `build.sh`
 - Client certificates must not be committed to the repository
 
 ## Pull Request Process
@@ -209,6 +204,15 @@ Reference issues where applicable: `Fixes #123`, `Relates to #456`.
 3. Run `./build.sh --clean --force` and confirm it completes without errors
 4. Run relevant test suites with `-u=` and test on hardware where required
 5. Fill in the pull request template completely
-6. A maintainer will review the PR; address all feedback before merge
+6. A maintainer will review the PR
 
-PRs that fail CI, are missing test evidence, or do not follow the code style will not be merged.
+PRs that fail CI, are missing test evidence, or do not follow the code style will be rejected.
+
+
+## Use of AI and LLMs
+
+The use of AI / LLMs (hereafter referred to as AI) is permitted on the following basis:
+
+- The AI does not inject copyright material into the changes
+- A Software Engineer performs a quality check prior to submission of any changes.  This Software Engineer assumes responsibility for the change.
+- The use of AI is acknowledged in the PR

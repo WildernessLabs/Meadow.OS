@@ -35,13 +35,6 @@ labels: enhancement
 
 <!-- Describe any alternative approaches you considered and why you favour this one -->
 
-## Memory & MPU Impact
-
-- [ ] No impact on memory layout or MPU regions
-- [ ] Affects memory layout or MPU regions — described below:
-
-<!-- Reference memory.ld sections where applicable -->
-
 ## OTA / Bootloader Compatibility
 
 - [ ] No impact on bootloader interface or QSPI partition layout

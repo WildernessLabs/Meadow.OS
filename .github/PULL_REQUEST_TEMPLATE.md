@@ -25,6 +25,7 @@
 ### Hardware tested
 
 - [ ] Tested on physical Meadow F7 hardware
+- [ ] Tested through emulation
 - [ ] Not applicable (docs / build only)
 
 ### Unit test suites run
@@ -33,6 +34,8 @@
 
 - [ ] None required
 - [ ] `./build.sh -u=`
+
+<!-- Paste any test output here -->
 
 ### Manual test steps
 
@@ -44,14 +47,7 @@ Describe the steps taken to verify the change works correctly, e.g.:
 4. Observed ...
 -->
 
-## Memory & MPU Considerations
-
-<!-- Any changes that affect memory layout, SRAM/flash usage, or MPU region boundaries must be noted here -->
-
-- [ ] No impact on memory layout or MPU regions
-- [ ] Memory layout or MPU regions affected — described below:
-
-<!-- Describe impact, referencing memory.ld sections where applicable -->
+<!-- Paste any test output here -->
 
 ## OTA / Bootloader Compatibility
 
@@ -62,10 +58,9 @@ Describe the steps taken to verify the change works correctly, e.g.:
 
 ## Checklist
 
-- [ ] Code follows the NuttX coding style (snake_case, `/*****` section banners, function header blocks)
+- [ ] Code follows the repository coding style (snake_case, `/*****` section banners, function header blocks)
 - [ ] New Wilderness Labs source files include the standard copyright header
 - [ ] `CONFIG_` / `MEADOW_` prefixes used correctly for kconfig options
 - [ ] No `malloc` used in kernel-space code (`kmalloc` / `kzalloc` used instead)
 - [ ] No secrets, credentials, or device-specific keys committed
-- [ ] CI build passes (`./build.sh --clean --force`)
 - [ ] Documentation updated if behaviour or public interfaces changed
