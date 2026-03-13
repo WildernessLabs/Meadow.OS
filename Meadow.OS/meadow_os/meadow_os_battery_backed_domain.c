@@ -203,7 +203,10 @@ void meadow_os_bbd_strdup_to_sram(const char *message)
     meadow_os_bbd_clear_sram();
     if (message != NULL)
     {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
         strncpy((char *) BATTERY_BACKED_DOMAIN_SRAM_ADDRESS, message, MEADOW_OS_BBD_SRAM_SIZE - 1);
+#pragma GCC diagnostic pop
     }
 }
 
@@ -248,7 +251,10 @@ void meadow_os_bbd_strdup_from_sram(char *destination, int length)
  ****************************************************************************/
 void meadow_os_bbd_clear_sram(void)
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
     memset((void *) BATTERY_BACKED_DOMAIN_SRAM_ADDRESS, 0, MEADOW_OS_BBD_SRAM_SIZE);
+#pragma GCC diagnostic pop
 }
 
 /****************************************************************************
