@@ -50,7 +50,7 @@
  ****************************************************************************/
 
 // Temporary until reason for chash can be found
-#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (0)
+#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (1)
 
 /****************************************************************************
  * Private Data
