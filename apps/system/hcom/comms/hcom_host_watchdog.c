@@ -49,6 +49,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+// Temporary until reason for chash can be found
+#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (1)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -75,9 +78,13 @@ int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared)
   _dnldShared = dnldShared;
   _shutting_down = false;
 
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
+  return OK;
+#else
   // One time setup
   memset(&wdog_work_queue, 0, sizeof(struct work_s));
   return OK;
+#endif
 }
 
 //=================================================================
@@ -95,6 +102,10 @@ static void hcom_host_watchdog_worker(void *arg)
 
   syslog(LOG_INFO, "%s@%d-Watchdog timed out.\n", __FILE__, __LINE__);
 
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
+  return;
+#else
+
   // This thread can't delete the partially download file directly. We need
   // to use the thread that was downloading to do it.
 
@@ -102,6 +113,7 @@ static void hcom_host_watchdog_worker(void *arg)
   // download and cause it to call hcom_host_watchdog_dnld_cleanup_wdog()
   // (below) to cleanup the partial download state information.
   hcom_host_enq_deq_dnld_watchdog_wakeup();
+#endif
 }
 
 //=================================================================
@@ -111,6 +123,9 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 {
   int ret;
 
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
+  return;
+#else
   syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
 
   // Delete the download wdog timer that got us here
@@ -150,6 +165,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 
   // Setting the download state to none allows future downloads.
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
+#endif
 }
 
 //=================================================================
@@ -158,14 +174,19 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
   int ret;
-  
-  ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
-     NULL, SEC2TICK(delayInSeconds));
-  return ret;
 
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
+  return OK;
+#else
+  // (--) REWROTE TO DEBUG
   // // Reset the work_queue to keep watchdog from timing out
   // return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
   //    NULL, SEC2TICK(delayInSeconds));
+
+  ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
+     NULL, SEC2TICK(delayInSeconds));
+  return ret;
+#endif
 }
 
 //=================================================================
@@ -174,6 +195,9 @@ int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 // as the file download is finished.
 void hcom_host_watchdog_dnld_timer_cancel()
 {
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
+  return;
+#else
   syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
     __FILE__, __LINE__, wdog_work_queue.worker);
 
@@ -183,4 +207,5 @@ void hcom_host_watchdog_dnld_timer_cancel()
 
   // Only possible error is -ENOENT no such work queued, we can ignore
   work_cancel(USRWORK, &wdog_work_queue);
+#endif
 }
