@@ -50,13 +50,15 @@
  ****************************************************************************/
 
 // Temporary until reason for chash can be found
-#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (1)
+#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (0)
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static char *thisFile = __FILE__;
 static struct work_s wdog_work_queue;
+#endif
 
 static bool _shutting_down;
 static hcom_dnld_shared_t *_dnldShared;
@@ -65,7 +67,9 @@ static hcom_dnld_shared_t *_dnldShared;
  * Private Function Prototypes
  ****************************************************************************/
 
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static void hcom_host_watchdog_worker(void *arg);
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -95,16 +99,13 @@ void hcom_host_watchdog_stopping()
 
 //=================================================================
 // Callback via the USRWORK worker queue
+#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static void hcom_host_watchdog_worker(void *arg)
 {
   if (_shutting_down)
     return;
 
   syslog(LOG_INFO, "%s@%d-Watchdog timed out.\n", __FILE__, __LINE__);
-
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
-  return;
-#else
 
   // This thread can't delete the partially download file directly. We need
   // to use the thread that was downloading to do it.
@@ -113,19 +114,19 @@ static void hcom_host_watchdog_worker(void *arg)
   // download and cause it to call hcom_host_watchdog_dnld_cleanup_wdog()
   // (below) to cleanup the partial download state information.
   hcom_host_enq_deq_dnld_watchdog_wakeup();
-#endif
 }
+#endif
 
 //=================================================================
 // Encountered a watchdog timeout. This function gets called from our
 // pthread main loop while waiting for the semaphore.
 void hcom_host_watchdog_dnld_cleanup_wdog()
 {
-  int ret;
-
 #if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
   return;
 #else
+  int ret;
+
   syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
 
   // Delete the download wdog timer that got us here
@@ -173,11 +174,11 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 // This gets called a lot when downloading, once per packet
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
-  int ret;
-
 #if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
   return OK;
 #else
+  int ret;
+
   // (--) REWROTE TO DEBUG
   // // Reset the work_queue to keep watchdog from timing out
   // return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
