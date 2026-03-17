@@ -42,6 +42,7 @@
 
 // #define HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC (3000) // DISABLE FOR TESTING
 #define HCOM_FILE_DNLD_STM32F7_WDOG_TIME_SEC (3)
+#define HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC (3)
 
 // 8 elements in path will allow up to 6 subdirectories
 // '/meadow0/filename' considered 2 mandatory elements
@@ -128,8 +129,8 @@ char *hcom_file_dir_mgmt_find_category(enum hcom_file_msg_cat_e cat);
 #endif
 
 // The watchdog has a close relationship with hcom CLI message process
-int hcom_host_watchdog_initialize(hcom_dnld_shared_t *dnldShared);
+int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared);
 void hcom_host_watchdog_stopping(void);
-int hcom_host_watchdog_check_execute_if_expired(void);
+void hcom_host_enq_deq_dnld_watchdog_wakeup(void);
 
 #endif  // __INCLUDE_HCOM_DOWNLOAD_SHARED__H

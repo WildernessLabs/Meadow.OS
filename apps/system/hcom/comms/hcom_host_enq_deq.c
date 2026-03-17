@@ -59,6 +59,7 @@ static bool _shutting_down;
 static sem_t _runProcSem;
 static sem_t _runRecvSem;
 static host_com_cir_buffer_t *_hcom_cbuf;
+static bool _hcom_host_enq_deq_wdog_wakeup;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -72,6 +73,7 @@ static int hcom_host_enq_deq_wait_for_work(void);
 int hcom_host_enq_deq_setup()
 {
   _shutting_down = false;
+  _hcom_host_enq_deq_wdog_wakeup = false;
 
   // Notifies process thread a message has been queued
   sem_init(&_runProcSem, 0, 0);
@@ -84,7 +86,7 @@ int hcom_host_enq_deq_setup()
   _hcom_cbuf = (host_com_cir_buffer_t *)malloc(sizeof(host_com_cir_buffer_t));
   if (_hcom_cbuf == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-One of 2 allocations failed\n",
+    syslog(LOG_ERR, "%s@%d-_hcom_cbuf allocation failed\n",
               thisFile, __LINE__);
     return -ENOMEM;
   }
@@ -161,7 +163,7 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
         return OK;                      // Return to read more data
 
       case HCOM_CIR_BUF_ADD_WONT_FIT:
-        sem_post(&_runProcSem);         // Notify proc to read messages
+        sem_post(&_runProcSem);         // Notify proc of message
 
         // Read thread waits here for space in buffer
         sem_wait(&_runRecvSem);         // Wait for a message to be removed
@@ -203,7 +205,7 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
           sem_post(&_runRecvSem);       // Allow recv to retry to add
         return OK;                      // Return to process message
 
-      case HCOM_CIR_BUF_GET_NONE_FOUND:      
+      case HCOM_CIR_BUF_GET_NONE_FOUND:
         // Thread waits to be notified that a message may be available. This
         // is also where the watchdog notification is detected.
         ret = hcom_host_enq_deq_wait_for_work();
@@ -230,30 +232,51 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
   return OK;
 }
 
-//==========================================================
-// Wait to be told that there is more data to be processed in the cir buf
-// or that the watchdog timer has timedout and we must take action.
-int hcom_host_enq_deq_wait_for_work()
+//=======================================================================
+// This is called from hcom_host_watchdog.c when the download watchdog timer
+// has detected that the download has stopped.
+// We need to use this indirect scheme because we need the thread doing the
+// download to also do the cleanup. Otherwise, there are problems due to the
+// way Nuttx threads and tasks handle open files etc.
+void hcom_host_enq_deq_dnld_watchdog_wakeup()
 {
-  int ret;
+  _hcom_host_enq_deq_wdog_wakeup = true;
 
-  while (sem_wait(&_runProcSem) < 0)
+  int ret = sem_post(&_runProcSem);         // Notify proc of message
+  if(ret < 0)
   {
-    int errcode = errno;
-    if (errcode != EINTR)
-    {
-      continue;   // Ignore error
-    }
-    else
-    {
-      // Check if watchdog expired and if it did, update HCOM's state
-      ret = hcom_host_watchdog_check_execute_if_expired();
-      if(ret < 0)
-      {
-        return ret;     // Maybe watchdog timed out
-      }
-    }
+    syslog(LOG_ERR, "%s@%d-Error: calling sem_post(&_runProcSem) ret:%d , errno:%d\n",
+      __FILE__, __LINE__, ret, errno);
   }
+}
 
-  return OK;
+//=======================================================================
+// Wait to be told that there is more data to be processed in the cir buf
+// (or that the watchdog timer has timedout).
+int hcom_host_enq_deq_wait_for_work(void)
+{
+    for (;;)
+    {
+        if (sem_wait(&_runProcSem) < 0)
+        {
+            if (errno == EINTR)
+                continue;
+
+            syslog(LOG_ERR, "sem_wait failed errno:%d\n", errno);
+            return -errno;
+        }
+
+        if (_hcom_host_enq_deq_wdog_wakeup)
+        {
+          _hcom_host_enq_deq_wdog_wakeup = false;
+          syslog(LOG_INFO, "%s@%d-HCOM Processing thread calling Watchdog Cleanup\n",
+                  __FILE__, __LINE__);
+
+          hcom_host_watchdog_dnld_cleanup_wdog();
+          return -ETIME;
+        }
+        break;
+    }
+
+    return OK;
 }
