@@ -177,7 +177,7 @@ int hcom_host_send_low_power_notification(bool lpStart)
 }
 
 //=====================================================================
-// FUNCTION TO USE WHEN SENDING ALL STANDARD MESSAGE WITH OR WITHOUT DATA
+// FUNCTION TO USE WHEN SENDING ALL STANDARD MESSAGE WITH ONLY HEADER
 // Note: This function is a step towards standardizing the protocol.
 //
 // This function can be used after the caller has properly populated the
@@ -191,22 +191,49 @@ int hcom_host_send_low_power_notification(bool lpStart)
 // HcomProtoBinMsg_t, etc.) can be used. The caller populates the proper struct
 // fields and downcasts the type to a HcomProtoStdHdr_t and passes this as
 // 'hdrMsg' to this function.
-int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
+int hcom_host_send_std_msg_header_only(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber)
 {
   int ret = OK;
 
-  // Caller must sets
+  // Caller must sets for non-data packet
   // stdHeader.rqstType = HCOM_HOST_REQUEST_XXXXX_XXXX_XXXX;
-  // stdHeader.extraData = 0;
   // stdHeader.userData = 0;
+  // stdHeader.extraData = 0;
 
-  // These are always the same values
+  // These are always the same values for non-data
   hdrMsg->stdHeader.seqNumber = HCOM_PROTOCOL_COMMAND_TYPE_SEQUENCE_NUMBER;
   hdrMsg->stdHeader.version = g_current_hcom_protocol_version;
 
+  // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
-  if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
+  if (ret < 0 && ret != -EAGAIN)
+      hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+        sourceFileName, sourceLineNumber, ret);
+
+  return ret;
+}
+
+//-------------------------------------------------------------------
+// FUNCTION TO USE WHEN SENDING A STANDARD MESSAGE WITH MORE THEN JUST A HEADER
+// Data messages need a non-zero sequence number
+int hcom_host_send_std_msg_header_plus(HcomProtoHdrMsg_t *hdrMsg,
+          size_t totalMsgLen, char *sourceFileName, int sourceLineNumber)
+{
+  int ret = OK;
+
+  // Caller must set these for data packet
+  // stdHeader.rqstType = HCOM_HOST_REQUEST_XXXXX_XXXX_XXXX;
+  // This is always the same value
+  // hdrMsg->stdHeader.seqNumber = n;
+  // stdHeader.userData = 0;
+  // stdHeader.extraData = 0;
+
+  hdrMsg->stdHeader.version = g_current_hcom_protocol_version;
+ 
+  // EAGAIN is not an error it means the message was blocked
+  ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
+  if (ret < 0 && ret != -EAGAIN)
       hcom_report_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
 
@@ -246,11 +273,11 @@ int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
 //=====================================================================
 // The following are first generation functions for sending data.
 //=====================================================================
-// They have been superseded by the above hcom_host_send_std_msg_data()
+// They have been superseded by the above hcom_host_send_std_msg_header_plus()
 // function. However, the time to refactor the code they support has never
 // been made available.
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_data
+// Deprecated, best to use hcom_host_send_std_msg_header_only
 // THIS IS THE FUNCTION THAT SHOULD BE USED WHEN JUST SENDING A HEADER
 // Just sends a header message and report the error here
 void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
@@ -263,7 +290,7 @@ void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_data
+// Deprecated, best to use hcom_host_send_std_msg_header_plus
 // FUNCTION TO USE WHEN SENDING BINARY DATA WITH HEADER
 // Prepare a bytes for transmission
 void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
@@ -276,7 +303,7 @@ void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_data
+// Deprecated, best to use hcom_host_send_std_msg_header_plus
 // THIS IS THE FUNCTION THAT SHOULD BE USED FOR ALL SIMPLE TEXT MESSAGE
 // Prepare a simple line of text for transmission and output the error message here
 void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
@@ -292,7 +319,7 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_data
+// Deprecated, best to use hcom_host_send_std_msg_header_plus
 // THIS IS THE FUNCTION THAT SHOULD BE USED WHEN SPECIAL CIRCUMSTANCES EXIST
 // Prepare a string for transmission, allowing any character
 // This is called for various internal needs (e.g. mono redirect, diagnostic).
@@ -311,7 +338,7 @@ int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_data
+// Deprecated, best to use hcom_host_send_std_msg_header_plus
 //
 // This function is intended to be the sole and final entry point for
 // messages that needed to be sent to Meadow.CLI. Use one of the above
@@ -489,7 +516,10 @@ bool hcom_host_send_is_host_xmit_blocked()
 int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
 {
   #define HCOM_XMIT_MAX_BLOCKED_TIME_DELAY  (50 * 1000)
-  #define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 30 // .05 * 30 = 1.5 seconds
+  // #define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 30   // .05 * 30 = 1.5 seconds
+  // #define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 120  // .05 * 120 = 6.0 seconds
+  #define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 240     // .05 * 240 = 12.0 seconds
+// (--) FIX ABOVE
 
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0
   hcom_diag_decode_sending_message_type((const uint8_t *)xmitBuffer,

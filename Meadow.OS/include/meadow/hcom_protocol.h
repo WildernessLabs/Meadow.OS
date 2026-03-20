@@ -87,12 +87,12 @@ extern uint16_t g_current_hcom_maximum_packet_size;
 //--------------------------------------------------------------------
 // The following structs define the HCOM Protocol Data Messages
 //--------------------------------------------------------------------
-// Deprecated - This structure should be removed. But, this will take a
+// Deprecated - This structure should be removed. But, this will be a
 // significant breaking change to the Protocol and to CLI. All messages
-// should use the standard header defined as HcomProtoFileInfoHdr_t, and this
-// structure should never be used.
-// FYI: This message type wasn't used to send file data to the host PC only
-// to send download data (binary file data) to Meadow.
+// should use the standard header (e.g. HcomProtoFileInfoHdr_t), and the
+// following structure should never be used.
+// FYI: This message type wasn't used to send file data to the host PC (file
+// read) only to send download data (binary file data) to Meadow.
 struct HcomProtoDataMsg_s
 {
   // This is the only header
@@ -411,7 +411,8 @@ enum HcomMeadowRequestType
   HCOM_MDOW_REQUEST_DEVELOPER               = 0xf8 | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
 };
 
-// Messages sent from meadow to host
+//----------------------------------------------------------------------------
+// Messages sent from Meadow to CLI
 enum HcomHostRequestType
 {
   HCOM_HOST_REQUEST_UNDEFINED_REQUEST       = 0x00 | HCOM_PROTOCOL_HEADER_UNDEFINED_TYPE,
@@ -438,9 +439,9 @@ enum HcomHostRequestType
   HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL      = 0x0F | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
 
   // >>> Breaking protocol change.
-  // ToDo: HCOM_HOST_REQUEST_INIT_UPLOAD_OKAY is mis-categorized should be or'd with
-  // HCOM_PROTOCOL_HEADER_FILE_START_TYPE because it  contains file information in a
-  // struct HcomProtoFileMsg_s.
+  // ToDo: HCOM_HOST_REQUEST_INIT_UPLOAD_OKAY is mis-categorized should be a 
+  // HCOM_PROTOCOL_HEADER_FILE_START_TYPE type because it contains file
+  // information in a struct HcomProtoFileMsg_s.
   HCOM_HOST_REQUEST_INIT_UPLOAD_OKAY        = 0x10 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL        = 0x11 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   

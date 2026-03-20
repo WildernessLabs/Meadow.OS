@@ -65,7 +65,7 @@ char *hcom_diag_find_host_request_type(uint16_t hostRqstType);
  ****************************************************************************/
 // This is called when a data packet is received from CLI. Only the size is
 // shown because of the impact of output putting all of the data in hex.
-void hcom_diag_decode_data_packet_type(decodedSize)
+void hcom_diag_decode_data_packet_type(size_t decodedSize)
 {
   syslog(LOG_MDIAG, "---------- Meadow Data (%d bytes) ----------\n",
     decodedSize);
@@ -83,6 +83,8 @@ void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,
   char *requestStr = hcom_diag_find_meadow_request_type(rqstType);
   syslog(LOG_MDIAG, "Received '%s' (0x%04x) %u bytes\n", requestStr,
             rqstType, packetSize);
+
+ // Null if not defined
   hcom_diag_print_buffer((const uint8_t *)hdrMsg, packetSize, 1);
 }
 
@@ -162,30 +164,38 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
 
   char *requestStr = hcom_diag_find_host_request_type(hostRqstType);
 
-  // Separate the messages that have text and show text
-  if(((hostRqstType & HCOM_PROTOCOL_REQUEST_TYPE_MASK) == \
-      HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE) &&
-      (packetSize > HCOM_PROTOCOL_STD_HDR_SIZE))
+  // Separate header only from those with header + data
+  if (packetSize > HCOM_PROTOCOL_STD_HDR_SIZE)
   {
-    // This looks to be a text message. It's length indicates it does contain
-    // text.
-    int textLen = 40;    // Arbitrary. Defines how many chars will be displayed
-    if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
-      textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
+    if(hostRqstType == HCOM_HOST_REQUEST_INIT_UPLOAD_OKAY)
+    {
+      // This message uses the HcomProtoFileMsg_t type with  a std header 
+      // + HcomProtoStdHdr_t + file name
+      HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *)hostRawMsg;
 
-    syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
-          requestStr, hostRqstType, packetSize, textLen, 
-          hostRawMsg + HCOM_PROTOCOL_STD_HDR_SIZE);
+      syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes, file name:'%s')\n",
+        requestStr, hostRqstType, packetSize, fileMsg->fileInfo.fileName);
+    }
+    else
+    {
+      // Assume header followed by text. It's length indicates it's not just
+      // a header.
+      int textLen = 40;    // Arbitrary maximum. How many chars to display
+      if(textLen > (packetSize - HCOM_PROTOCOL_STD_HDR_SIZE))
+        textLen = packetSize - HCOM_PROTOCOL_STD_HDR_SIZE;
+      syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes, msg text:'%.*s')\n",
+            requestStr, hostRqstType, packetSize, textLen, 
+            hostRawMsg + HCOM_PROTOCOL_STD_HDR_SIZE);
+    }
   }
   else
   {
-    // No text
+    // Just a header
     syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes\n",
           requestStr, hostRqstType, packetSize);
   }
 
-
-  hcom_diag_print_buffer(hostRawMsg, packetSize, 1);
+  // hcom_diag_print_buffer(hostRawMsg, packetSize, 1);
 }
 
 //======================================================================

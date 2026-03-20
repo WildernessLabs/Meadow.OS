@@ -180,11 +180,9 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   // syslog some diagnostic information
 
   // Always show this if LOG_INFO
-// #if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
   syslog(LOG_INFO, "%s@%d-Meadow download begin (FileLen:%ld, Crc:0x%08lx, Name:%s)\n",
           thisFile, __LINE__, dnldShared->dnldTotalFileSize,
           dnldShared->dnldInitFileCrc, dnldShared->dnldOrigPathName);
-// #endif
 
 #if (HCOM_FILE_DNLD_CACHE_NO_FILE_ACCESS == 0)
   // We need a file to store the downloaded data
@@ -536,7 +534,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   dnldShared->dnldRecvdFileSize += binDataLen;
 
 // Note: To reduce CLI interaction the following test could be used to call
-// hcom_file_dnld_stm32f7_file_end() directly and the
+// hcom_file_dnld_stm32f7_file_end() directly and
 // HCOM_MDOW_REQUEST_END_FILE_TRANSFER from CLI could be deprecated.
 #if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
   if(dnldShared->dnldRecvdFileSize == dnldShared->dnldTotalFileSize)
@@ -567,12 +565,9 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   char* hostMsg = NULL;
   char *msgToSend;
   uint16_t requestType;
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
-  // These strings are used in testing
   char *downloadFailure = "Download failure\n";
   char *downloadSuccess = "Download success\n";
   bool dnldSuccess = true;
-#endif
 
   // Since we're about to finish the data download, stop the watchdog
   hcom_host_watchdog_dnld_timer_cancel();
@@ -586,9 +581,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
 #endif
     hcom_file_dnld_cleanup_sdcard_buffer();
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     syslog(LOG_MDIAG, downloadFailure);
-#endif
     return -ENOTRECOVERABLE; // State not recoverable
   }
 
@@ -604,9 +597,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
               thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
     hcom_file_dnld_cleanup_cache_memory();
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     syslog(LOG_MDIAG, downloadFailure);
-#endif
     return ret;
   }
 #endif
@@ -622,9 +613,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
                 thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
       hcom_file_dnld_cleanup_sdcard_buffer();
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     syslog(LOG_MDIAG, downloadFailure);
-#endif
       return ret;
     }
 
@@ -646,9 +635,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   {
     syslog(LOG_ERR, "%s@%d-File %s close failed:%d\n",
               thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     dnldSuccess = false;
-#endif
     // Finish cleaning up even if error
   }
   
@@ -675,9 +662,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     syslog(LOG_MDIAG, downloadFailure);
-#endif
     return -ENOMEM;
   }
 
@@ -734,10 +719,8 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
     // Create an appropriate syslog error message to host
     syslog(LOG_ERR, "%s@%d-%s\n", thisFile, __LINE__, msgToSend);
 
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     // Indicate remaining errors
     dnldSuccess = false;
-#endif
   }
 
   // Send an appropriate message to CLI
@@ -751,12 +734,10 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
            dnldShared->dnldCalcFileCrc);
 #endif
 
-#if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
   if(dnldSuccess)
     syslog(LOG_MDIAG, downloadSuccess);
   else
     syslog(LOG_MDIAG, downloadFailure);
-#endif
 
   dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 
