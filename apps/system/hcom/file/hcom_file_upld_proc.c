@@ -54,7 +54,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG (1)
+#define HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG (0)
 #define HCOM_FILE_INITIAL_BYTES_LENGTH (256)
 
 /* Configuration ************************************************************/

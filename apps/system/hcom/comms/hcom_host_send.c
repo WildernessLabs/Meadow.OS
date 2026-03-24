@@ -47,9 +47,15 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+// Build code to add diagnostic syslog messages in this module.
+#define HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD (0)
 
-#define HCOM_XMIT_MAX_BLOCKED_TIME_DELAY  (50 * 1000)
-#define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 480     // .05 * 480 = 24.0 seconds
+#define HCOM_XMIT_MAX_BLOCKED_TIME_DELAY  (50 * 1000) // 50 millisec
+
+// Have seen blocked count as high as 390 (19.5 seconds)
+#define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE 600         // .05 * 600 = 30.0 seconds
+
+#define HCOM_COMMS_MAX_XMIT_OPEN_ATTEMPTS 4
 
 /* Configuration ************************************************************/
 
@@ -93,7 +99,7 @@ static bool hcom_host_send_is_host_xmit_blocked(void);
 static int hcom_host_send_low_power_notification(bool lpStart);
 static int hcom_host_send_open_transmit_connection(void);
 static void hcom_host_send_transmit_takesem(sem_t *semaphore);
-static void syslog_if_possible(int priority, FAR const IPTR char *fmt, ...);
+static void syslog_if_safe(int priority, FAR const IPTR char *fmt, ...);
 
 /****************************************************************************
  * Public Functions
@@ -209,7 +215,7 @@ int hcom_host_send_std_msg_header_only(HcomProtoHdrMsg_t *hdrMsg,
   // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
   if (ret < 0 && ret != -EAGAIN)
-      syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
 
   return ret;
@@ -236,7 +242,7 @@ int hcom_host_send_std_msg_header_plus(HcomProtoHdrMsg_t *hdrMsg,
   // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen);
   if (ret < 0 && ret != -EAGAIN)
-      syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
 
   return ret;
@@ -287,7 +293,7 @@ void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
 {
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, NULL, 0);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-    syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+    syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
       sourceFileName, sourceLineNumber, ret);
 }
 
@@ -300,7 +306,7 @@ void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
 {
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, bytes, msgLength);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-      syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
                 sourceFileName, sourceLineNumber, ret);
 }
 
@@ -317,7 +323,7 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, (uint8_t*) shortText, trueStrLen);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
-    syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n", sourceFileName, sourceLineNumber, ret);
+    syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n", sourceFileName, sourceLineNumber, ret);
 }
 
 //=====================================================================
@@ -332,7 +338,7 @@ int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
   int ret = hcom_host_send_buffered_msg(requestType, 0, userData, (uint8_t*) shortText, msgLength);
   if (ret < 0 && ret != -EAGAIN) // EAGAIN is not an error it means the message was blocked
   {
-      syslog_if_possible(LOG_ERR, "%s@%d-Host xmit err:%d\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
                 sourceFileName, sourceLineNumber, ret);
   }
 
@@ -434,7 +440,6 @@ void hcom_host_send_build_msg_header(uint16_t requestType,
 //=====================================================================
 
 // Attempt to open the connection to the host PC
-#define HCOM_COMMS_MAX_XMIT_OPEN_ATTEMPTS 4
 int hcom_host_send_open_transmit_connection()
 {
   if(_comms_write_fd > 1)
@@ -575,31 +580,30 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
       toWriteOffset += writeRet;
       blockedCount = 0;             // Reset retry budget after making progress
 
-#if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      syslog_if_possible(LOG_DEBUG, "-->%s@%d-Write success:%d, wrote:%d\n",
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+      syslog_if_safe(LOG_MDIAG, "-->%s@%d-Write success:%d, wrote:%d\n",
           thisFile, __LINE__, remainingBytes, writeRet);
 #endif
       continue;   // Loop and check if remainingBytes > 0, else done
     }
-
-#if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-        syslog_if_possible(LOG_DEBUG, "%s@%d-writeRet is:%d\n",
-          thisFile, __LINE__, writeRet);
-#endif
 
     // A zero-byte write on a non-blocking fd is treated as a transient stall.
     // writeRet must be 0 or negative, if negative errno holds error. If error
     // is EAGAIN, we'll wait and try again.
     if(writeRet == 0 || errno == EAGAIN)
     {
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+      if(blockedCount > 1)
+      {
+        // This is seen frequently with current CLI
+        syslog_if_safe(LOG_MDIAG, "%s@%d-Blocked count:%d, writeRet:%d, errno:%d\n",
+          thisFile, __LINE__, blockedCount, writeRet, errno);
+      }
+#endif
+
       if(blockedCount < HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE)
       {
         usleep(HCOM_XMIT_MAX_BLOCKED_TIME_DELAY);
-
-// #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-        syslog_if_possible(LOG_DEBUG, "--->>%s@%d-Blocked count:%d, writeRet:%d, errno:%d\n",
-          thisFile, __LINE__, blockedCount, writeRet, errno);
-// #endif
 
         blockedCount++;   // Tally retry counts
         continue;
@@ -608,10 +612,8 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
       // Exhausted retry count
       _lastXmitBlocked = true; // Seems host isn't connected or CLI not running
 
-// #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      syslog_if_possible(LOG_DEBUG, "--->>%s@%d-FATAL Error- write returned 0 but, Exceeded blockedCount (wrote %d of %d bytes)\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Error:Exceeded blockedCount (wrote %d of %d bytes)\n",
                 thisFile, __LINE__, blockedCount, remainingBytes, encodedLength);
-// #endif
 
       // EAGAIN exit. No reason to close fd. The caller can sort out what to do
       // with partial data sent.
@@ -623,15 +625,15 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
     // Perhaps the write was interrupted by a signal?
     if(errno == EINTR)
     {
-// #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      syslog_if_possible(LOG_DEBUG, "==>EINTR, continuing\n");
-// #endif
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+      syslog_if_safe(LOG_MDIAG, "EINTR, continuing\n");
+#endif
       continue;
     }
 
-// #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-    syslog_if_possible(LOG_DEBUG, "==>ERROR: Unexpected errno:%d, exiting\n", errno);
-// #endif
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+    syslog_if_safe(LOG_MDIAG, "ERROR: Unexpected errno:%d, exiting\n", errno);
+#endif
 
     // Some unexpected error
     close(_comms_write_fd);
@@ -669,13 +671,14 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
 
 //===================================================================
 // This function is for those places where hcom is processing text to
-// send to the host PC and something needs to be reported. The problem
-// is if we are using syslog and Meadow.OS was built with the configuration
-// 'CONFIG_RAMLOG_SYSLOG' calling to syslog would cause unending cycle.
-// of logs.
-void syslog_if_possible(int priority, FAR const IPTR char *fmt, ...)
+// send to the host PC via syslog. The problem is if we are using syslog
+// and Meadow.OS was built with the configuration 'CONFIG_RAMLOG_SYSLOG'
+// calling to syslog could cause unending cycle of logs if the logs are
+// sent to the CLI.
+void syslog_if_safe(int priority, FAR const IPTR char *fmt, ...)
 {
 #if defined CONFIG_RAMLOG_SYSLOG
+  // If not sending to CLI we can just send as usual
   if(!hcom_trace_is_sending_to_cli())
   {
     va_list args;
@@ -689,8 +692,8 @@ void syslog_if_possible(int priority, FAR const IPTR char *fmt, ...)
   // directly to the host because this would be recursive too.
   return;
 #else
-  // If Nuttx is configured for outputting syslogs to the console
-  // then this works. But, these cannot be routed to the host PC.
+  // If Nuttx is configured for outputting syslogs to the console via UART
+  // then this works. But, obviously, these cannot be routed to the host PC.
   va_list args;
   va_start(args, fmt);
   vsyslog(priority, fmt, args);
