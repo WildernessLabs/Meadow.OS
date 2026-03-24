@@ -250,10 +250,10 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   HcomProtoFileMsg_t *fileMsg;
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
 
-// #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "%s@%d-CLI request to read '%s'.\n",
+#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
+  syslog(LOG_MDIAG, "%s@%d-CLI request to read '%s'.\n",
     __FILE__, __LINE__, dnldShared->dnldFullPathName);
-// #endif
+#endif
 
   _uploadAction = HcomUpldActionNone;
 
@@ -309,7 +309,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
               0, hostMsg, thisFile, __LINE__);
     
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-    syslog(2, "Up---> %s()%s@%d-Calc of crc error. Stopping CLI.\n",
+    syslog(LOG_MDIAG, "Up--> %s()%s@%d-Calc of crc error. Stopping CLI.\n",
       __func__, __FILE__, __LINE__);
 #endif
 
@@ -323,7 +323,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   }
 
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "Up-->%s@%d-start_file_upload, Checksum calc ok\n",
+  syslog(LOG_MDIAG, "Up-->%s@%d-start_file_upload, Checksum calc ok\n",
         thisFile, __LINE__); usleep(20 * 1000);
 #endif
 
@@ -387,10 +387,10 @@ int hcom_file_upld_proc_begin_file_uploading(hcom_dnld_shared_t *dnldShared)
   int ret;
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
 
-// #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "%s@%d-CLI is Ready to start file read. Filename:'%s'\n",
+#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
+  syslog(LOG_MDIAG, "%s@%d-CLI is Ready to start file read. Filename:'%s'\n",
     thisFile, __LINE__, dnldShared->dnldFullPathName);
-// #endif
+#endif
 
   if(_uploadAction != HcomUpldActionInitialized)
   {
@@ -443,7 +443,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
 
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-  syslog(2, "Up-->%s@%d-Start building and uploading packets\n", thisFile, __LINE__);
+  syslog(LOG_MDIAG, "Up-->%s@%d-Start building and uploading packets\n", thisFile, __LINE__);
 #endif
 
   // Seek to beginning
@@ -482,7 +482,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   do
   {
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
-    syslog(2, "Up---> %s@%d-uploading packet:%d\n",
+    syslog(LOG_MDIAG, "Up-->%s@%d-uploading packet:%d\n",
       thisFile, __LINE__, sentCount);
 #endif
 
@@ -538,9 +538,9 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
             0, hostMsg, thisFile, __LINE__);
 
-// #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
+#if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
   syslog(LOG_MDIAG, "%s@%d-'%s'\n", thisFile, __LINE__, hostMsg);
-// #endif
+#endif
 
   return OK;
 }

@@ -612,7 +612,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[], size_t xmitLength)
       // Exhausted retry count
       _lastXmitBlocked = true; // Seems host isn't connected or CLI not running
 
-      syslog_if_safe(LOG_ERR, "%s@%d-Error:Exceeded blockedCount (wrote %d of %d bytes)\n",
+      syslog_if_safe(LOG_ERR, "%s@%d-Error:Exceeded blockedCount:%d (wrote %d of %d bytes)\n",
                 thisFile, __LINE__, blockedCount, remainingBytes, encodedLength);
 
       // EAGAIN exit. No reason to close fd. The caller can sort out what to do

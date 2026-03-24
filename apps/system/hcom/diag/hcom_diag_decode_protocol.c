@@ -67,7 +67,7 @@ char *hcom_diag_find_host_request_type(uint16_t hostRqstType);
 // shown because of the impact of output putting all of the data in hex.
 void hcom_diag_decode_data_packet_type(size_t decodedSize)
 {
-  syslog(LOG_MDIAG, "---------- Meadow Data (%d bytes) ----------\n",
+  syslog(LOG_MDIAG, "---------- Meadow Data (%zu bytes) ----------\n",
     decodedSize);
 }
 
@@ -81,7 +81,7 @@ void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,
 
   uint16_t rqstType = hdrMsg->stdHeader.rqstType;
   char *requestStr = hcom_diag_find_meadow_request_type(rqstType);
-  syslog(LOG_MDIAG, "Received '%s' (0x%04x) %u bytes\n", requestStr,
+  syslog(LOG_MDIAG, "Received '%s' (0x%04x) %zu bytes\n", requestStr,
             rqstType, packetSize);
 
  // Null if not defined
@@ -173,7 +173,7 @@ void hcom_diag_decode_sending_message_type(const uint8_t *hostRawMsg,
       // + HcomProtoStdHdr_t + file name
       HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *)hostRawMsg;
 
-      syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03u bytes, file name:'%s')\n",
+      syslog(LOG_MDIAG, "->Sending %s (0x%04x) %03zu bytes, file name:'%s')\n",
         requestStr, hostRqstType, packetSize, fileMsg->fileInfo.fileName);
     }
     else
