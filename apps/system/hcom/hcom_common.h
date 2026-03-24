@@ -169,10 +169,14 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
           char *shortText,size_t msgLength, char *sourceFileName,
           int sourceLineNumber);
+          
 // Matches typedef in /nuttx/include/meadow/hcom_shared_common.h
 // typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 //   size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
-int hcom_host_send_std_msg_data(HcomProtoHdrMsg_t *hdrMsg,
+int hcom_host_send_std_msg_header_plus(HcomProtoHdrMsg_t *hdrMsg,
+        size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
+
+int hcom_host_send_std_msg_header_only(HcomProtoHdrMsg_t *hdrMsg,
         size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 int hcom_host_enq_deq_setup(void);
@@ -381,6 +385,7 @@ int hcom_trace_to_cli_setup(void);
 void hcom_trace_to_cli_enable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_cleanup(uint32_t userData);
+bool hcom_trace_is_sending_to_cli(void);
 
 //-------------------------------------------------------
 // Ramlog to host

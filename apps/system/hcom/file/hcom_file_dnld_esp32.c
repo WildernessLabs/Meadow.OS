@@ -48,6 +48,7 @@
 #include "../esp32/hcom_esp32_comms.h"
 #endif
 
+#include <limits.h>
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
 #include <sys/stat.h>
