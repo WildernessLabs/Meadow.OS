@@ -385,6 +385,7 @@ int hcom_trace_to_cli_setup(void);
 void hcom_trace_to_cli_enable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_cleanup(uint32_t userData);
+bool hcom_trace_is_sending_to_cli(void);
 
 //-------------------------------------------------------
 // Ramlog to host

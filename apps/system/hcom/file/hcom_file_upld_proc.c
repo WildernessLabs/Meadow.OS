@@ -477,7 +477,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   int sentCount = 1;        // diag
 #endif
 
-  // Loop through entire file. Too simple, it reads the file until the read
+  // Loop through entire file. Too simple? It reads the file until the read
   // indicates no more file data by returning '0'.
   do
   {
