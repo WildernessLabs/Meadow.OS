@@ -198,7 +198,7 @@ int hcom_host_send_low_power_notification(bool lpStart)
 // HcomProtoBinMsg_t, etc.) can be used. The caller populates the proper struct
 // fields and downcasts the type to a HcomProtoStdHdr_t and passes this as
 // 'hdrMsg' to this function.
-int hcom_host_send_std_msg_header_only(HcomProtoHdrMsg_t *hdrMsg,
+int hcom_host_send_std_header_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber)
 {
   int ret = OK;
@@ -224,7 +224,7 @@ int hcom_host_send_std_msg_header_only(HcomProtoHdrMsg_t *hdrMsg,
 //-------------------------------------------------------------------
 // FUNCTION TO USE WHEN SENDING A STANDARD MESSAGE WITH MORE THEN JUST A HEADER
 // Data messages need a non-zero sequence number
-int hcom_host_send_std_msg_header_plus(HcomProtoHdrMsg_t *hdrMsg,
+int hcom_host_send_std_data_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalMsgLen, char *sourceFileName, int sourceLineNumber)
 {
   int ret = OK;
@@ -281,7 +281,7 @@ int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
 //=====================================================================
 // The following are first generation functions for sending data.
 //=====================================================================
-// They have been superseded by the above hcom_host_send_std_msg_header_plus()
+// They have been superseded by the above hcom_host_send_std_data_msg()
 // function. However, the time to refactor the code they support has never
 // been made available.
 //=====================================================================
@@ -298,7 +298,7 @@ void hcom_host_send_header_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_header_plus
+// Deprecated, best to use hcom_host_send_std_data_msg
 // FUNCTION TO USE WHEN SENDING BINARY DATA WITH HEADER
 // Prepare a bytes for transmission
 void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
@@ -311,7 +311,7 @@ void hcom_host_send_binary_data_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_header_plus
+// Deprecated, best to use hcom_host_send_std_data_msg
 // THIS IS THE FUNCTION THAT SHOULD BE USED FOR ALL SIMPLE TEXT MESSAGE
 // Prepare a simple line of text for transmission and output the error message here
 void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
@@ -327,7 +327,7 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_header_plus
+// Deprecated, best to use hcom_host_send_std_data_msg
 // THIS IS THE FUNCTION THAT SHOULD BE USED WHEN SPECIAL CIRCUMSTANCES EXIST
 // Prepare a string for transmission, allowing any character
 // This is called for various internal needs (e.g. mono redirect, diagnostic).
@@ -346,7 +346,7 @@ int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
 }
 
 //=====================================================================
-// Deprecated, best to use hcom_host_send_std_msg_header_plus
+// Deprecated, best to use hcom_host_send_std_data_msg
 //
 // This function is intended to be the sole and final entry point for
 // messages that needed to be sent to Meadow.CLI. Use one of the above

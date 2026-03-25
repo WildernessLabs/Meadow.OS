@@ -368,7 +368,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 #endif
 
   // This message contains what the host needs to start receiving a file
-  hcom_host_send_std_msg_header_only((HcomProtoHdrMsg_t *)fileMsg,
+  hcom_host_send_std_header_msg((HcomProtoHdrMsg_t *)fileMsg,
             totalMsgLength, thisFile, __LINE__);
 
   free(fileMsg);
@@ -509,7 +509,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 
       // This call will build the message and send it to the host.
       // Length must include header + data and be <= to max payload size.
-      hcom_host_send_std_msg_header_plus((HcomProtoHdrMsg_t *)binMsg,
+      hcom_host_send_std_data_msg((HcomProtoHdrMsg_t *)binMsg,
                 HCOM_PROTOCOL_HEADER_MSG_LENGTH + nbytes,
                 thisFile, __LINE__);
 
@@ -530,7 +530,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   endHdrMsg->stdHeader.extraData = 0;
 
   // Report to hosts that the entire file has been sent
-  hcom_host_send_std_msg_header_only(endHdrMsg,
+  hcom_host_send_std_header_msg(endHdrMsg,
     HCOM_PROTOCOL_HEADER_MSG_LENGTH, thisFile, __LINE__);
 
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
