@@ -23,7 +23,6 @@ set(SRCS
     group_join.c
     group_leave.c
     group_find.c
-    group_setupstreams.c
     group_setupidlefiles.c
     group_setuptaskfiles.c
     group_foreachchild.c
@@ -40,7 +39,17 @@ elseif(CONFIG_SCHED_WAITPID)
 endif()
 
 if(CONFIG_SCHED_USER_IDENTITY)
-  list(APPEND SRCS group_setuid.c group_setgid.c group_getuid.c group_getgid.c)
+  list(
+    APPEND
+    SRCS
+    group_setuid.c
+    group_setgid.c
+    group_getuid.c
+    group_getgid.c
+    group_seteuid.c
+    group_setegid.c
+    group_geteuid.c
+    group_getegid.c)
 endif()
 
 if(CONFIG_SIG_SIGSTOP_ACTION)

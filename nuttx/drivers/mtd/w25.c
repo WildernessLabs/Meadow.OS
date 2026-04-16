@@ -107,12 +107,14 @@
 #define W25Q_JEDEC_MEMORY_TYPE_C   0x50  /* W25Q memory type */
 #define W25Q_JEDEC_MEMORY_TYPE_D   0x70  /* W25QJV memory type (backward compatible) */
 
+#define W25_JEDEC_CAPACITY_2MBIT   0x12  /* 256x1024  = 2Mbit memory capacity */
 #define W25_JEDEC_CAPACITY_8MBIT   0x14  /* 256x4096  = 8Mbit memory capacity */
 #define W25_JEDEC_CAPACITY_16MBIT  0x15  /* 512x4096  = 16Mbit memory capacity */
 #define W25_JEDEC_CAPACITY_32MBIT  0x16  /* 1024x4096 = 32Mbit memory capacity */
 #define W25_JEDEC_CAPACITY_64MBIT  0x17  /* 2048x4096 = 64Mbit memory capacity */
 #define W25_JEDEC_CAPACITY_128MBIT 0x18  /* 4096x4096 = 128Mbit memory capacity */
 
+#define NSECTORS_2MBIT             64    /* 64 sectors x 4096 bytes/sector = 256Kb */
 #define NSECTORS_8MBIT             256   /* 256 sectors x 4096 bytes/sector = 1Mb */
 #define NSECTORS_16MBIT            512   /* 512 sectors x 4096 bytes/sector = 2Mb */
 #define NSECTORS_32MBIT            1024  /* 1024 sectors x 4096 bytes/sector = 4Mb */
@@ -402,12 +404,22 @@ static inline int w25_readid(struct w25_dev_s *priv)
        * the FLASH capacity.
        */
 
+      /* 2M-bit / 256K-byte
+       *
+       * W25Q20CL
+       */
+
+      if (capacity == W25_JEDEC_CAPACITY_2MBIT)
+        {
+           priv->nsectors = NSECTORS_2MBIT;
+        }
+
       /* 8M-bit / 1M-byte
        *
        * W25Q80BV
        */
 
-      if (capacity == W25_JEDEC_CAPACITY_8MBIT)
+      else if (capacity == W25_JEDEC_CAPACITY_8MBIT)
         {
            priv->nsectors = NSECTORS_8MBIT;
         }
@@ -1405,7 +1417,7 @@ FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *spi)
    * have to be extended to handle multiple FLASH parts on the same SPI bus.
    */
 
-  priv = (FAR struct w25_dev_s *)kmm_zalloc(sizeof(struct w25_dev_s));
+  priv = kmm_zalloc(sizeof(struct w25_dev_s));
   if (priv)
     {
       /* Initialize the allocated structure (unsupported methods were
@@ -1453,7 +1465,7 @@ FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *spi)
 #ifdef CONFIG_W25_SECTOR512        /* Simulate a 512 byte sector */
           /* Allocate a buffer for the erase block cache */
 
-          priv->sector = (FAR uint8_t *)kmm_malloc(W25_SECTOR_SIZE);
+          priv->sector = kmm_malloc(W25_SECTOR_SIZE);
           if (!priv->sector)
             {
               /* Discard all of that work we just did and return NULL */

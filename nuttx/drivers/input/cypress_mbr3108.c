@@ -736,10 +736,9 @@ static ssize_t mbr3108_read(FAR struct file *filep, FAR char *buffer,
   irqstate_t flags;
   int ret;
 
-  DEBUGASSERT(filep);
   inode = filep->f_inode;
 
-  DEBUGASSERT(inode && inode->i_private);
+  DEBUGASSERT(inode->i_private);
   priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->devlock);
@@ -783,10 +782,9 @@ static ssize_t mbr3108_write(FAR struct file *filep, FAR const char *buffer,
   enum mbr3108_cmd_e type;
   int ret;
 
-  DEBUGASSERT(filep);
   inode = filep->f_inode;
 
-  DEBUGASSERT(inode && inode->i_private);
+  DEBUGASSERT(inode->i_private);
   priv = inode->i_private;
 
   if (buflen < sizeof(enum mbr3108_cmd_e))
@@ -864,10 +862,9 @@ static int mbr3108_open(FAR struct file *filep)
   unsigned int use_count;
   int ret;
 
-  DEBUGASSERT(filep);
   inode = filep->f_inode;
 
-  DEBUGASSERT(inode && inode->i_private);
+  DEBUGASSERT(inode->i_private);
   priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->devlock);
@@ -938,10 +935,9 @@ static int mbr3108_close(FAR struct file *filep)
   int use_count;
   int ret;
 
-  DEBUGASSERT(filep);
   inode = filep->f_inode;
 
-  DEBUGASSERT(inode && inode->i_private);
+  DEBUGASSERT(inode->i_private);
   priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->devlock);
@@ -988,11 +984,11 @@ static int mbr3108_poll(FAR struct file *filep, FAR struct pollfd *fds,
   int ret = 0;
   int i;
 
-  DEBUGASSERT(filep && fds);
+  DEBUGASSERT(fds);
   inode = filep->f_inode;
 
-  DEBUGASSERT(inode && inode->i_private);
-  priv = (FAR struct mbr3108_dev_s *)inode->i_private;
+  DEBUGASSERT(inode->i_private);
+  priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->devlock);
   if (ret < 0)
@@ -1038,9 +1034,7 @@ static int mbr3108_poll(FAR struct file *filep, FAR struct pollfd *fds,
           pending = priv->int_pending;
           if (pending)
             {
-              poll_notify(priv->fds,
-                          CONFIG_INPUT_CYPRESS_MBR3108_NPOLLWAITERS,
-                          POLLIN);
+              poll_notify(&fds, 1, POLLIN);
             }
         }
     }

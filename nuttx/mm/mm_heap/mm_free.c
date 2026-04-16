@@ -45,12 +45,16 @@ static void add_delaylist(FAR struct mm_heap_s *heap, FAR void *mem)
 
   /* Delay the deallocation until a more appropriate time. */
 
-  flags = enter_critical_section();
+  flags = up_irq_save();
 
   tmp->flink = heap->mm_delaylist[up_cpu_index()];
   heap->mm_delaylist[up_cpu_index()] = tmp;
 
-  leave_critical_section(flags);
+#if CONFIG_MM_FREE_DELAYCOUNT_MAX > 0
+  heap->mm_delaycount[up_cpu_index()]++;
+#endif
+
+  up_irq_restore(flags);
 #endif
 }
 
@@ -59,39 +63,20 @@ static void add_delaylist(FAR struct mm_heap_s *heap, FAR void *mem)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: mm_free
+ * Name: mm_delayfree
  *
  * Description:
- *   Returns a chunk of memory to the list of free nodes,  merging with
- *   adjacent free chunks if possible.
+ *   Delay free memory if `delay` is true, otherwise free it immediately.
  *
  ****************************************************************************/
 
-void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
+void mm_delayfree(FAR struct mm_heap_s *heap, FAR void *mem, bool delay)
 {
   FAR struct mm_freenode_s *node;
   FAR struct mm_freenode_s *prev;
   FAR struct mm_freenode_s *next;
   size_t nodesize;
   size_t prevsize;
-
-  minfo("Freeing %p\n", mem);
-
-  /* Protect against attempts to free a NULL reference */
-
-  if (!mem)
-    {
-      return;
-    }
-
-  DEBUGASSERT(mm_heapmember(heap, mem));
-
-#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD != 0
-  if (mempool_multiple_free(heap->mm_mpool, mem) >= 0)
-    {
-      return;
-    }
-#endif
 
   if (mm_lock(heap) < 0)
     {
@@ -104,27 +89,42 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
       return;
     }
 
+#ifdef CONFIG_MM_FILL_ALLOCATIONS
+  memset(mem, 0x55, mm_malloc_size(heap, mem));
+#endif
+
   kasan_poison(mem, mm_malloc_size(heap, mem));
+
+  if (delay)
+    {
+      mm_unlock(heap);
+      add_delaylist(heap, mem);
+      return;
+    }
 
   /* Map the memory chunk into a free node */
 
-  node = (FAR struct mm_freenode_s *)((FAR char *)mem - SIZEOF_MM_ALLOCNODE);
-  nodesize = SIZEOF_MM_NODE(node);
+  node = (FAR struct mm_freenode_s *)((FAR char *)mem - MM_SIZEOF_ALLOCNODE);
+  nodesize = MM_SIZEOF_NODE(node);
 
   /* Sanity check against double-frees */
 
-  DEBUGASSERT(node->size & MM_ALLOC_BIT);
+  DEBUGASSERT(MM_NODE_IS_ALLOC(node));
 
   node->size &= ~MM_ALLOC_BIT;
+
+  /* Update heap statistics */
+
+  heap->mm_curused -= nodesize;
 
   /* Check if the following node is free and, if so, merge it */
 
   next = (FAR struct mm_freenode_s *)((FAR char *)node + nodesize);
-  DEBUGASSERT((next->size & MM_PREVFREE_BIT) == 0);
-  if ((next->size & MM_ALLOC_BIT) == 0)
+  DEBUGASSERT(MM_PREVNODE_IS_ALLOC(next));
+  if (MM_NODE_IS_FREE(next))
     {
       FAR struct mm_allocnode_s *andbeyond;
-      size_t nextsize = SIZEOF_MM_NODE(next);
+      size_t nextsize = MM_SIZEOF_NODE(next);
 
       /* Get the node following the next node (which will
        * become the new next node). We know that we can never
@@ -132,8 +132,8 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
        */
 
       andbeyond = (FAR struct mm_allocnode_s *)((FAR char *)next + nextsize);
-      DEBUGASSERT((andbeyond->size & MM_PREVFREE_BIT) != 0 &&
-                   andbeyond->preceding == nextsize);
+      DEBUGASSERT(MM_PREVNODE_IS_FREE(andbeyond) &&
+                  andbeyond->preceding == nextsize);
 
       /* Remove the next node.  There must be a predecessor,
        * but there may not be a successor node.
@@ -163,13 +163,12 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
    * it with this node
    */
 
-  if ((node->size & MM_PREVFREE_BIT) != 0)
+  if (MM_PREVNODE_IS_FREE(node))
     {
       prev = (FAR struct mm_freenode_s *)
         ((FAR char *)node - node->preceding);
-      prevsize = SIZEOF_MM_NODE(prev);
-      DEBUGASSERT((prev->size & MM_ALLOC_BIT) == 0 &&
-                  node->preceding == prevsize);
+      prevsize = MM_SIZEOF_NODE(prev);
+      DEBUGASSERT(MM_NODE_IS_FREE(prev) && node->preceding == prevsize);
 
       /* Remove the node.  There must be a predecessor, but there may
        * not be a successor node.
@@ -194,4 +193,36 @@ void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
 
   mm_addfreechunk(heap, node);
   mm_unlock(heap);
+}
+
+/****************************************************************************
+ * Name: mm_free
+ *
+ * Description:
+ *   Returns a chunk of memory to the list of free nodes,  merging with
+ *   adjacent free chunks if possible.
+ *
+ ****************************************************************************/
+
+void mm_free(FAR struct mm_heap_s *heap, FAR void *mem)
+{
+  minfo("Freeing %p\n", mem);
+
+  /* Protect against attempts to free a NULL reference */
+
+  if (mem == NULL)
+    {
+      return;
+    }
+
+  DEBUGASSERT(mm_heapmember(heap, mem));
+
+#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD != 0
+  if (mempool_multiple_free(heap->mm_mpool, mem) >= 0)
+    {
+      return;
+    }
+#endif
+
+  mm_delayfree(heap, mem, CONFIG_MM_FREE_DELAYCOUNT_MAX > 0);
 }

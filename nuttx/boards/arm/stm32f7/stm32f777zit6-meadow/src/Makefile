@@ -170,7 +170,7 @@ CSRCS += $(MEADOW_OS_DIR)/misc/meadow_logging.c
 #	The libyaml library is required by cyaml.
 #
 CSRCS += $(MEADOW_OS_DIR)/libyaml/api.c $(MEADOW_OS_DIR)/libyaml/dumper.c $(MEADOW_OS_DIR)/libyaml/emitter.c $(MEADOW_OS_DIR)/libyaml/loader.c \
-		 $(MEADOW_OS_DIR)/libyaml/parser.c $(MEADOW_OS_DIR)/libyaml/reader.c $(MEADOW_OS_DIR)/libyaml/scanner.c $(MEADOW_OS_DIR)/libyaml//writer.c
+		 $(MEADOW_OS_DIR)/libyaml/parser.c $(MEADOW_OS_DIR)/libyaml/reader.c $(MEADOW_OS_DIR)/libyaml/scanner.c $(MEADOW_OS_DIR)/libyaml/writer.c
 #
 #	The cyaml library maps the items from the libyaml output to the structures used by the application.
 #

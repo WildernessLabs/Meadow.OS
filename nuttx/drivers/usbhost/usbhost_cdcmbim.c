@@ -537,7 +537,7 @@ static int cdcwdm_poll(FAR struct file *filep, FAR struct pollfd *fds,
   int                           ret = OK;
   int                           i;
 
-  DEBUGASSERT(filep && filep->f_inode && fds);
+  DEBUGASSERT(fds);
   inode = filep->f_inode;
   priv  = inode->i_private;
 
@@ -572,8 +572,8 @@ static int cdcwdm_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       if (i >= CONFIG_USBHOST_CDCMBIM_NPOLLWAITERS)
         {
-          fds->priv    = NULL;
-          ret          = -EBUSY;
+          fds->priv = NULL;
+          ret       = -EBUSY;
           goto errout;
         }
 
@@ -583,8 +583,7 @@ static int cdcwdm_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       if (priv->comm_rxlen > 0)
         {
-          poll_notify(priv->fds, CONFIG_USBHOST_CDCMBIM_NPOLLWAITERS,
-                      POLLIN);
+          poll_notify(&fds, 1, POLLIN);
         }
     }
   else
@@ -629,8 +628,7 @@ static inline FAR struct usbhost_cdcmbim_s *usbhost_allocclass(void)
   FAR struct usbhost_cdcmbim_s *priv;
 
   DEBUGASSERT(!up_interrupt_context());
-  priv = (FAR struct usbhost_cdcmbim_s *)kmm_malloc(
-                                         sizeof(struct usbhost_cdcmbim_s));
+  priv = kmm_malloc(sizeof(struct usbhost_cdcmbim_s));
   uinfo("Allocated: %p\n", priv);
   return priv;
 }

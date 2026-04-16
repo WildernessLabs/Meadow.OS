@@ -129,13 +129,13 @@ static inline void group_inherit_identity(FAR struct task_group_s *group)
 int group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype)
 {
   FAR struct task_group_s *group;
-  int ret = -ENOMEM;
+  int ret;
 
   DEBUGASSERT(tcb && !tcb->cmn.group);
 
   /* Allocate the group structure and assign it to the TCB */
 
-  group = (FAR struct task_group_s *)kmm_zalloc(sizeof(struct task_group_s));
+  group = kmm_zalloc(sizeof(struct task_group_s));
   if (!group)
     {
       return -ENOMEM;
@@ -158,6 +158,7 @@ int group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype)
   group->tg_members = kmm_malloc(GROUP_INITIAL_MEMBERS * sizeof(pid_t));
   if (!group->tg_members)
     {
+      ret = -ENOMEM;
       goto errout_with_group;
     }
 

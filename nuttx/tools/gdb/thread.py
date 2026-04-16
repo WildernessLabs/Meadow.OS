@@ -36,7 +36,7 @@ def save_regs():
     saved_regs = []
     i = 0
     for reg in arch.registers():
-        if i >= tcbinfo["basic_num"]:
+        if i >= tcbinfo["regs_num"]:
             break
 
         saved_regs.append(gdb.parse_and_eval("$%s" % reg.name))
@@ -53,7 +53,7 @@ def restore_regs():
     arch = gdb.selected_frame().architecture()
     i = 0
     for reg in arch.registers():
-        if i >= tcbinfo["basic_num"]:
+        if i >= tcbinfo["regs_num"]:
             break
 
         gdb.execute("set $%s=%d" % (reg.name, int(saved_regs[i])))
@@ -108,7 +108,7 @@ class Nxsetregs(gdb.Command):
         arch = gdb.selected_frame().architecture()
         i = 0
         for reg in arch.registers():
-            if i >= tcbinfo["basic_num"]:
+            if i >= tcbinfo["regs_num"]:
                 return
 
             if tcbinfo["reg_off"]["p"][i] != UINT16_MAX:
@@ -287,7 +287,7 @@ class Nxcontinue(gdb.Command):
 
 # We can't use a user command to rename continue it will recursion
 gdb.execute("define c\n nxcontinue \n end\n")
-gdb.write("\nif use thread command, plase don't use 'continue', use 'c' inside !!!\n")
+gdb.write("\nif use thread command, please don't use 'continue', use 'c' instead !!!\n")
 
 Nxsetregs()
 Nxinfothreads()

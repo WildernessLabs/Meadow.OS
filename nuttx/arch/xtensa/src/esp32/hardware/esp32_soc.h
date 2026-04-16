@@ -29,6 +29,7 @@
 #include <stdbool.h>
 
 #include "xtensa_attr.h"
+#include <nuttx/bits.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -76,8 +77,6 @@
 
 #define ETS_UNCACHED_ADDR(addr) (addr)
 #define ETS_CACHED_ADDR(addr) (addr)
-
-#define BIT(nr)                 (1UL << (nr))
 
 /* Write value to register */
 
@@ -839,6 +838,25 @@ static inline bool IRAM_ATTR esp32_ptr_extram(const void *p)
 {
   return ((intptr_t)p >= SOC_EXTRAM_DATA_LOW &&
           (intptr_t)p < SOC_EXTRAM_DATA_HIGH);
+}
+
+/****************************************************************************
+ * Name: esp32_ptr_iram
+ *
+ * Description:
+ *   Check if the pointer is in IRAM
+ *
+ * Parameters:
+ *   p - Pointer to the address being checked.
+ *
+ * Return Value:
+ *   True if the address is a member of the internal memory. False if not.
+ *
+ ****************************************************************************/
+
+static inline bool IRAM_ATTR esp32_ptr_iram(const void *p)
+{
+  return ((intptr_t)p >= SOC_IRAM_LOW && (intptr_t)p < SOC_IRAM_HIGH);
 }
 
 /****************************************************************************

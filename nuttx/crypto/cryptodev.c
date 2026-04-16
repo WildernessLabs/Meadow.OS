@@ -379,11 +379,6 @@ int cryptodev_op(FAR struct csession *cse,
   int error = OK;
   uint32_t hid;
 
-  if (cop->len > 64 * 1024 - 4)
-    {
-      return -E2BIG;
-    }
-
   if (cse->txform)
     {
       if (cop->len == 0)
@@ -591,6 +586,10 @@ int cryptodev_key(FAR struct crypt_kop *kop)
         return -EINVAL;
       case CRK_DH_COMPUTE_KEY:
         if (in == 3 && out == 1)
+          break;
+        return -EINVAL;
+      case CRK_RSA_PCKS15_VERIFY:
+        if (in == 5 && out == 0)
           break;
         return -EINVAL;
       default:

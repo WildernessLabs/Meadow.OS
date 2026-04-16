@@ -448,6 +448,7 @@ static const char *g_white_content_list[] =
   "XColor",
   "AsyncBoth",
   "CurrentTime",
+  "XUnmapWindow",
 
   /* Ref:
    * sim/posix/sim_deviceimage.c
@@ -548,6 +549,20 @@ static const char *g_white_content_list[] =
 
   "IRQn_Type",
 
+  /* Ref:
+   * fs/zipfs/zip_vfs.c
+   */
+
+  "unzFile",
+  "uLong",
+  "unzOpen2_64",
+  "unzLocateFile",
+  "unzOpenCurrentFile",
+  "unzClose",
+  "unzReadCurrentFile",
+  "unzGetCurrentFileInfo64",
+  "unzGoToNextFile",
+  "unzGoToFirstFile",
   NULL
 };
 
@@ -1909,7 +1924,7 @@ int main(int argc, char **argv, char **envp)
                    strncmp(&line[indent], "goto ", 5) == 0 ||
                    strncmp(&line[indent], "if ", 3) == 0 ||
                    strncmp(&line[indent], "return ", 7) == 0 ||
-    #if 0 /*  Doesn't follow pattern */
+    #if 0 /* Doesn't follow pattern */
                    strncmp(&line[indent], "switch ", 7) == 0 ||
     #endif
                    strncmp(&line[indent], "while ", 6) == 0)
@@ -2652,7 +2667,7 @@ int main(int argc, char **argv, char **envp)
                     {
                       /* "--" should be next to its operand. If there are
                        * whitespaces or non-operand characters on both left
-                       * and right (e.g. "a -- "， “a[i --]”, "(-- i)"),
+                       * and right (e.g. "a -- ", "a[i --]", "(-- i)"),
                        * there's an error.
                        */
 
@@ -2699,7 +2714,7 @@ int main(int argc, char **argv, char **envp)
                     {
                       /* "++" should be next to its operand. If there are
                        * whitespaces or non-operand characters on both left
-                       * and right (e.g. "a ++ "， “a[i ++]”, "(++ i)"),
+                       * and right (e.g. "a ++ ", "a[i ++]", "(++ i)"),
                        * there's an error.
                        */
 

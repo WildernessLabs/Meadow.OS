@@ -47,6 +47,21 @@ Board LEDs
 There are several on-board LEDs for that indicate the presence of power
 and USB activity.  None of these are available for use by software.
 
+I2S
+===
+
+ESP32-S3 has two I2S peripherals accessible using either the generic I2S audio
+driver or a specific audio codec driver
+(`CS4344 <https://www.cirrus.com/products/cs4344-45-48/>`__ bindings are
+available at the moment). The generic I2S audio driver enables the use of both
+the receiver module (RX) and the transmitter module (TX) without using any
+specific codec. Also, it's possible to use the I2S character device driver
+to bypass the audio subsystem and write directly to the I2S peripheral.
+
+The following configurations use the I2S peripheral::
+  * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:audio`
+  * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:nxlooper`
+
 Configurations
 ==============
 
@@ -57,6 +72,56 @@ All of the configurations presented below can be tested by running the following
 
 Where <config_name> is the name of board configuration you want to use, i.e.: nsh, buttons, wifi...
 Then use a serial console terminal like ``picocom`` configured to 115200 8N1.
+
+audio
+-----
+
+This configuration uses the I2S0 peripheral and an externally connected audio
+codec to play an audio file streamed over an HTTP connection while connected
+to a Wi-Fi network.
+
+**Audio Codec Setup**
+
+The CS4344 audio codec is connected to the following pins:
+
+============ ========== ============================================
+ESP32-S3 Pin CS4344 Pin Description
+============ ========== ============================================
+5            MCLK       Master Clock
+16           SCLK       Serial Clock
+7            LRCK       Left Right Clock (Word Select)
+6            SDIN       Serial Data In on CS4344. (DOUT on ESP32-S3)
+============ ========== ============================================
+
+**Simple HTTP server**
+
+Prepare a PCM-encoded (`.wav`) audio file with 16 or 24 bits/sample (sampled at
+16~48kHz). This file must be placed into a folder in a computer that could
+be accessed on the same Wi-Fi network the ESP32 will be connecting to.
+
+Python provides a simple HTTP server. ``cd`` to the audio file folder on the
+PC and run::
+
+    $ python3 -m http.server
+    Serving HTTP on 0.0.0.0 port 8000 (http://0.0.0.0:8000/)
+
+Look for your PC IP address and test playing the prepared audio on your
+browser:
+
+.. figure:: esp32-audio-config-file.png
+          :align: center
+
+After successfully built and flashed, connect the board to the Wi-Fi network::
+
+    nsh> wapi psk wlan0 mypasswd 3
+    nsh> wapi essid wlan0 myssid 1
+    nsh> renew wlan0
+
+Once connected, open NuttX's player and play the file according to the filename
+and the IP address of the HTTP server::
+
+    nsh> nxplayer
+    nxplayer> play http://192.168.1.239:8000/tones.wav
 
 buttons
 -------
@@ -86,8 +151,8 @@ disables the NuttShell to get the best possible score.
 cxx
 ---
 
-Development enviroment ready for C++ applications. You can check if the setup
-was successfull by running ``cxxtest``::
+Development environment ready for C++ applications. You can check if the setup
+was successful by running ``cxxtest``::
 
     nsh> cxxtest
     Test ofstream ================================
@@ -107,6 +172,38 @@ was successfull by running ``cxxtest``::
     File /proc/meminfo exists!
     Invalid file! /invalid
     File /proc/version exists!
+
+gpio
+----
+
+This is a test for the GPIO driver. Three GPIOS are defined: 1) GPIO15 is
+set as an output, 2) GPIO18 as input and, 3) GPIO21 as an input triggered
+by a rising edge.
+
+This example also builds the ``EXAMPLES_GPIO`` application from the
+``nuttx-apps``.
+
+To write to the GPIO (GPIO 15, as defined by the board implementation)::
+
+    nsh> gpio -o 1 /dev/gpio0
+    nsh> gpio -o 0 /dev/gpio0
+
+To read from the GPIO (GPIO 18, as defined by the board implementation)::
+
+    nsh> gpio /dev/gpio1
+    Driver: /dev/gpio1
+      Input pin:     Value=1
+
+Finally, we can use the interrupt pin (GPIO21) to send a signal when the
+interrupt fires::
+
+    nsh> gpio -w 14 /dev/gpio2
+    Driver: /dev/gpio2
+      Interrupt pin: Value=0
+      Verify:        Value=1
+
+The pin is configured to trigger an interrupt on the rising edge, so after
+issuing the above command, connect it to 3.3V.
 
 i2c
 ---
@@ -148,6 +245,64 @@ nsh
 
 Basic NuttShell configuration (console enabled in UART0, exposed via
 USB connection by means of CP2102 converter, at 115200 bps).
+
+nxlooper
+--------
+
+This configuration uses the I2S1 peripheral as an I2S receiver and the I2S0
+peripheral as an I2S transmitter. The idea is to capture an I2S data frame
+using an I2S peripheral and reproduce the captured data on the other.
+
+**Receiving data on I2S1**
+
+The I2S1 will act as a receiver (in slave mode, i.e., waiting for the BCLK
+and WS signals from the transmitter), capturing data from DIN, which
+needs to be connected to an external source as follows:
+
+============ ========== =========================================
+ESP32-S3 Pin Signal Pin Description
+============ ========== =========================================
+18           BCLK       Bit Clock (SCLK)
+17           WS         Word Select (LRCLK)
+15           DIN        Data IN
+============ ========== =========================================
+
+**Transmitting data on I2S0**
+
+The I2S0 will act as a transmitter (in master mode, i.e., providing the
+BCLK and WS signals), replicating the data captured on I2S1.
+The pinout for the transmitter is as follows:
+
+========== ========== =========================================
+ESP32 Pin  Signal Pin Description
+========== ========== =========================================
+5          MCLK       Master Clock
+16         BCLK       Bit Clock (SCLK)
+7          WS         Word Select (LRCLK)
+6          DOUT       Data Out
+========== ========== =========================================
+
+.. note:: The audio codec CS4344 can be connected to the transmitter pins
+  to reproduce the captured data if the receiver's source is a PCM-encoded
+  audio data.
+
+**nxlooper**
+
+The ``nxlooper`` application captures data from the audio device with input
+capabilities (the I2S1 in this example) and forwards the audio data frame to
+the audio device with output capabilities (the I2S0 in this example).
+
+After successfully built and flashed, run on the boards' terminal::
+
+  nsh> nxlooper
+  nxlooper> loopback
+
+.. note:: ``loopback`` command default arguments for the channel configuration,
+  data width and sample rate are, respectively, 2 channels,
+  16 bits/sample and 48KHz. These arguments can be supplied to select
+  different audio formats, for instance::
+
+    nxlooper> loopback 2 16 44100
 
 oneshot
 -------
@@ -216,6 +371,22 @@ To test it, just run ``rand`` to get 32 randomly generated bytes::
     Random values (0x3ffe0b00):
     0000  98 b9 66 a2 a2 c0 a2 ae 09 70 93 d1 b5 91 86 c8  ..f......p......
     0010  8f 0e 0b 04 29 64 21 72 01 92 7c a2 27 60 6f 90  ....)d!r..|.'`o.
+
+rtc
+---
+
+This configuration demonstrates the use of the RTC driver through alarms.
+You can set an alarm, check its progress and receive a notification after it expires::
+
+    nsh> alarm 10
+    alarm_daemon started
+    alarm_daemon: Running
+    Opening /dev/rtc0
+    Alarm 0 set in 10 seconds
+    nsh> alarm -r
+    Opening /dev/rtc0
+    Alarm 0 is active with 10 seconds to expiration
+    nsh> alarm_daemon: alarm 0 received
 
 smp
 ---
@@ -289,6 +460,72 @@ To test it, just run the following::
 
 Where x in the timer instance.
 
+toywasm
+-------
+
+This config is an example to use toywasm.
+
+This example uses littlefs on the SPI flash to store wasm modules.
+
+Note: This example assumes a board with 32MB flash. To use a smaller one,
+tweak the --img-size option and CONFIG_ESP32S3_STORAGE_MTD_SIZE.
+
+Note: To use flash larger than 4MB, you need to install a custom bootloader.
+https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/bootloader.html#spi-flash-configuration
+
+1. Create a littlefs image which contains wasm modules.
+
+   https://github.com/jrast/littlefs-python/blob/master/examples/mkfsimg.py
+   is used in the following example::
+
+      % python3 mkfsimg.py \
+        --img-filename ..../littlefs.bin \
+        --img-size 31981568 \
+        --block-size 4096 \
+        --prog-size 256 \
+        --read-size 256 \
+        --name-max 32 \
+        --disk-version 2.0 \
+        ..../wasm_module_dir
+
+2. Build a NuttX binary as usual with this config.
+
+3. Write the NuttX binary and the filesystem image to the board::
+
+      % esptool.py \
+        -c esp32s3 \
+        -p /dev/tty.SLAB_USBtoUART \
+        -b 921600 \
+        write_flash \
+        -fs detect \
+        -fm dio \
+        -ff 40m \
+        0x10000 nuttx.bin \
+        0x180000 ..../littlefs.bin
+
+4. Mount the filesystem and run a wasm module on it::
+
+      nsh> mount -t littlefs /dev/esp32s3flash /mnt
+      nsh> toywasm --print-stats --wasi /mnt/....
+
+twai
+----
+
+This configuration enables the support for the TWAI (Two-Wire Automotive Interface) driver.
+You can test it by connecting TWAI RX and TWAI TX pins which are GPIO0 and GPIO2 by default
+to a external transceiver or connecting TWAI RX to TWAI TX pin by enabling
+the ``Device Drivers -> CAN Driver Support -> CAN loopback mode`` option and running the ``can`` example::
+
+    nsh> can
+    nmsgs: 0
+    min ID: 1 max ID: 2047
+    Bit timing:
+      Baud: 1000000
+      TSEG1: 15
+      TSEG2: 4
+        SJW: 3
+      ID:    1 DLC: 1
+
 usbnsh
 ------
 
@@ -361,3 +598,8 @@ To test it, just run the following::
   nsh> wdog -i /dev/watchdogx
 
 Where x is the watchdog instance.
+
+To test the XTWDT(/dev/watchdog3) an interrupt handler needs to be
+implemented because XTWDT does not have system reset feature. To implement
+an interrupt handler `WDIOC_CAPTURE` command can be used. When interrupt
+rises, XTAL32K clock can be restored with `WDIOC_RSTCLK` command.

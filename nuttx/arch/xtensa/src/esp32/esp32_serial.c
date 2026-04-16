@@ -643,8 +643,7 @@ static void esp32_dmasend(struct uart_dev_s *dev)
       uint8_t *alloctp = NULL;
 #endif
 
-      /**
-       * If the buffer comes from PSRAM, allocate a new one from
+      /* If the buffer comes from PSRAM, allocate a new one from
        * Internal SRAM.
        */
 
@@ -1393,7 +1392,7 @@ static int esp32_interrupt(int cpuint, void *context, void *arg)
       if ((enabled & UART_TX_BRK_IDLE_DONE_INT_ENA) != 0 &&
           (status & UART_TX_DONE_INT_ST) != 0)
         {
-          /* If al bytes were transmited, then we can disable the RS485
+          /* If all bytes were transmitted, then we can disable the RS485
            * transmit (TX/nTX) pin.
            */
 
@@ -1412,7 +1411,7 @@ static int esp32_interrupt(int cpuint, void *context, void *arg)
        */
 
       if ((enabled & (UART_RXFIFO_FULL_INT_ENA |
-                     UART_RXFIFO_TOUT_INT_ENA)) != 0)
+                      UART_RXFIFO_TOUT_INT_ENA)) != 0)
         {
           /* Is there any data waiting in the Rx FIFO? */
 

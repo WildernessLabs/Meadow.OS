@@ -168,10 +168,43 @@
 
 /* USB Controller Structures ************************************************/
 
+struct usbdev_strdesc_s
+{
+  uint8_t         id;
+  FAR const char *string;
+};
+
+struct usbdev_strdescs_s
+{
+  uint16_t                            language;
+  FAR const struct usbdev_strdesc_s  *strdesc;
+};
+
+struct usbdev_devdescs_s
+{
+  FAR const struct usb_cfgdesc_s     *cfgdesc;
+  FAR const struct usbdev_strdescs_s *strdescs;
+  FAR const struct usb_devdesc_s     *devdesc;
+#ifdef CONFIG_USBDEV_DUALSPEED
+  FAR const struct usb_qualdesc_s    *qualdesc;
+#endif
+};
+
+struct usbdev_epinfo_s
+{
+  struct usb_epdesc_s desc;
+  uint16_t            fssize;
+#ifdef CONFIG_USBDEV_DUALSPEED
+  uint16_t            hssize;
+#endif
+  uint16_t            reqnum;
+};
+
 /* usbdev_devinfo_s - describes the low level bindings of an usb device */
 
 struct usbdev_devinfo_s
 {
+  FAR const char *name;
   int ninterfaces; /* Number of interfaces in the configuration */
   int ifnobase;    /* Offset to Interface-IDs */
 
@@ -180,6 +213,7 @@ struct usbdev_devinfo_s
 
   int nendpoints;  /* Number of Endpoints referenced in the following allay */
   int epno[5];     /* Array holding the endpoint configuration for this device */
+  FAR const struct usbdev_epinfo_s **epinfos;
 };
 
 struct usbdevclass_driver_s;
@@ -275,6 +309,7 @@ struct usbdev_ep_s
   uint8_t  eplog;                       /* Logical endpoint address */
   uint16_t maxpacket;                   /* Maximum packet size for this endpoint */
   FAR void *priv;                       /* For use by class driver */
+  FAR void *fs;                         /* USB fs device this ep belongs */
 };
 
 /* struct usbdev_s represents a usb device */
@@ -377,6 +412,20 @@ void usbdev_freereq(FAR struct usbdev_ep_s *ep,
                     FAR struct usbdev_req_s *req);
 
 /****************************************************************************
+ * Name: usbdev_copy_epdesc
+ *
+ * Description:
+ *   Copies the requested Endpoint Description into the buffer given.
+ *   Returns the number of Bytes filled in ( sizeof(struct usb_epdesc_s) ).
+ *   This function is provided by various classes.
+ *
+ ****************************************************************************/
+
+void usbdev_copy_epdesc(FAR struct usb_epdesc_s *epdesc,
+                        uint8_t epno, bool hispeed,
+                        FAR const struct usbdev_epinfo_s *epinfo);
+
+/****************************************************************************
  * Name: usbdevclass_register
  *
  * Description:
@@ -429,6 +478,19 @@ int usbdev_unregister(FAR struct usbdevclass_driver_s *driver);
 #if defined(CONFIG_USBDEV_DMA) && defined(CONFIG_USBDEV_DMAMEMORY)
 FAR void *usbdev_dma_alloc(size_t size);
 void usbdev_dma_free(FAR void *memory);
+#endif
+
+/****************************************************************************
+ * Name: up_usbdev_sof_irq
+ *
+ * Description:
+ *   If CONFIG_USBDEV_SOFINTERRUPT is enabled, board logic must provide
+ *   this function. It gets called in interrupt mode by USB device code
+ *   every time start-of-frame USB packet is received from host.
+ *
+ ****************************************************************************/
+#ifdef CONFIG_USBDEV_SOFINTERRUPT
+void usbdev_sof_irq(FAR struct usbdev_s *dev, uint16_t frameno);
 #endif
 
 #undef EXTERN

@@ -74,6 +74,7 @@
 #include <limits.h>
 #include <nuttx/mutex.h>
 
+#include <nuttx/bits.h>
 #include <nuttx/compiler.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/spi/spi.h>
@@ -87,10 +88,6 @@
 /* Enables debug-related interfaces. Leave undefined otherwise. */
 
 #define DEBUG 1
-
-/* Sets bit @n */
-
-#define BIT(n) (1 << (n))
 
 /* Creates a mask of @m bits, i.e. MASK(2) -> 00000011 */
 
@@ -1086,7 +1083,7 @@ static ssize_t __read_cm(FAR struct mx7_dev_s *dev,
 
   while (len != 0)
     {
-      /* "2) Write CMAH[7:0] = xxH to select the character (0–255) to be
+      /* "2) Write CMAH[7:0] = xxH to select the character (0-255) to be
        *     read (Figures 10 and 13)."
        *
        * Put another way: CMAH is the row number in the EEPROM.
@@ -1103,7 +1100,7 @@ static ssize_t __read_cm(FAR struct mx7_dev_s *dev,
 
       __mx7_read_nvm(dev);
 
-      /* "4) Write CMAL[7:0] = xxH to select the 4-pixel byte (0–63) in
+      /* "4) Write CMAL[7:0] = xxH to select the 4-pixel byte (0-63) in
        *     the character to be read (Figures 10 and 13)."
        *
        * That means CMAL is the column number.
@@ -1603,7 +1600,7 @@ int max7456_register(FAR const char *path, FAR struct mx7_config_s *config)
 
   /* Initialize the device structure. */
 
-  dev = (FAR struct mx7_dev_s *)kmm_malloc(sizeof(struct mx7_dev_s));
+  dev = kmm_malloc(sizeof(struct mx7_dev_s));
   if (dev == NULL)
     {
       return -ENOMEM;

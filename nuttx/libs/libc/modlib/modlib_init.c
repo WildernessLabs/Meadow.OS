@@ -38,24 +38,6 @@
 #include "modlib/modlib.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/* CONFIG_DEBUG_FEATURES, CONFIG_DEBUG_INFO, and CONFIG_MODLIB_DUMPBUFFER
- * have to be defined or CONFIG_MODLIB_DUMPBUFFER does nothing.
- */
-
-#if !defined(CONFIG_DEBUG_INFO) || !defined (CONFIG_MODLIB_DUMPBUFFER)
-#  undef CONFIG_MODLIB_DUMPBUFFER
-#endif
-
-#ifdef CONFIG_MODLIB_DUMPBUFFER
-#  define modlib_dumpbuffer(m,b,n) binfodumpbuffer(m,b,n)
-#else
-#  define modlib_dumpbuffer(m,b,n)
-#endif
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -127,7 +109,6 @@ int modlib_initialize(FAR const char *filename,
   /* Clear the load info structure */
 
   memset(loadinfo, 0, sizeof(struct mod_loadinfo_s));
-  loadinfo->filfd = -1;
 
   /* Open the binary file for reading (only) */
 
@@ -174,8 +155,7 @@ int modlib_initialize(FAR const char *filename,
        */
 
       berr("ERROR: Bad ELF header: %d\n", ret);
-      return ret;
     }
 
-  return OK;
+  return ret;
 }

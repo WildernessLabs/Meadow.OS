@@ -98,6 +98,7 @@ const struct procfs_operations g_iobinfo_operations =
   iobinfo_close,  /* close */
   iobinfo_read,   /* read */
   NULL,           /* write */
+  NULL,           /* poll */
   iobinfo_dup,    /* dup */
   NULL,           /* opendir */
   NULL,           /* closedir */
@@ -185,7 +186,7 @@ static ssize_t iobinfo_read(FAR struct file *filep, FAR char *buffer,
 
   finfo("buffer=%p buflen=%d\n", buffer, (int)buflen);
 
-  DEBUGASSERT(filep != NULL && buffer != NULL && buflen > 0);
+  DEBUGASSERT(buffer != NULL && buflen > 0);
   offset = filep->f_pos;
 
   /* Recover our private data from the struct file instance */

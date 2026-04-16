@@ -54,10 +54,10 @@ if(NOT "${CONFIG_PSEUDOFS_SOFTLINKS}" STREQUAL "0")
   list(APPEND SRCS fs_link.c fs_symlink.c fs_readlink.c)
 endif()
 
-# Stream support
+# Pseudofile support
 
-if(CONFIG_FILE_STREAM)
-  list(APPEND SRCS fs_fdopen.c)
+if(CONFIG_PSEUDOFS_FILE)
+  list(APPEND SRCS fs_pseudofile.c)
 endif()
 
 # Support for eventfd
@@ -69,6 +69,9 @@ endif()
 # Support for timerfd
 
 if(CONFIG_TIMER_FD)
+  set_source_files_properties(
+    fs_timerfd.c DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/..
+    PROPERTIES INCLUDE_DIRECTORIES ${NUTTX_DIR}/sched)
   list(APPEND SRCS fs_timerfd.c)
 endif()
 
