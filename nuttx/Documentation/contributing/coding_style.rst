@@ -28,10 +28,6 @@ block comment, the following must appear:
   -  The relative path to the file from the top-level directory.
   -  An optional, one-line description of the file contents.
   -  A blank line
-  -  A copyright notice indented two additional spaces
-  -  A line identifying the author and contact information with the
-     same indentation as the copyright notice.
-  -  A blank line
   -  NuttX standard Apache 2.0 licensing information as provided in
      the `appendix <#appndxa>`__.
 
@@ -164,9 +160,9 @@ may be used in the file provided that it is used consistently.
       int short_name2;   /* This is a very long comment describing subtle aspects of the short_name2 field */
     };
 
-    struct some_medium_name_s *ptr = (struct some_medium_name_s *)malloc(sizeof(some_medium_name_s);
+    struct some_medium_name_s *ptr = malloc(sizeof(some_medium_name_s);
 
-    struct some_long_struct_name_s *ptr = (struct some_long_struct_name_s *)malloc(sizeof(some_long_struct_name_s);
+    struct some_long_struct_name_s *ptr = malloc(sizeof(some_long_struct_name_s);
 
     ret = some_function_with_many parameters(long_parameter_name_1, long_parameter_name_2, long_parameter_name_3, long_parameter_name_4, long_parameter_name_5, long_parameter_name_6, long_parameter_name_7, long_parameter_name_8);
 
@@ -195,15 +191,11 @@ may be used in the file provided that it is used consistently.
                           * aspects of the short_name2 field. */
     };
 
-    FAR struct some_medium_name_s *ptr = (FAR struct some_medium_name_s *)
-      malloc(sizeof(some_medium_name_s);
+    FAR struct some_medium_name_s *ptr = malloc(sizeof(some_medium_name_s);
 
-    FAR struct some_medium_name_s *ptr =
-      (FAR struct some_medium_name_s *)malloc(sizeof(some_medium_name_s);
+    FAR struct some_medium_name_s *ptr = malloc(sizeof(some_medium_name_s);
 
-    FAR struct some_long_struct_name_s *ptr =
-      (FAR struct some_long_struct_name_s *)
-        malloc(sizeof(some_long_struct_name_s);
+    FAR struct some_long_struct_name_s *ptr = malloc(sizeof(some_long_struct_name_s);
 
     ret = some_function_with_many parameters(long_parameter_name_1,
                                              long_parameter_name_2,
@@ -2279,7 +2271,7 @@ Use of ``goto``
            goto errout;
          }
        ...
-       ptr = (FAR struct some_struct_s *)malloc(sizeof(struct some_struct_s));
+       ptr = malloc(sizeof(struct some_struct_s));
        if (!ptr)
          {
            ret = -ENOMEM;

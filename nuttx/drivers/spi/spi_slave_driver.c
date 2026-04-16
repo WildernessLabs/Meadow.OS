@@ -175,8 +175,6 @@ static int spi_slave_open(FAR struct file *filep)
   FAR struct spi_slave_driver_s *priv;
   int ret;
 
-  DEBUGASSERT(filep != NULL);
-  DEBUGASSERT(filep->f_inode != NULL);
   DEBUGASSERT(filep->f_inode->i_private != NULL);
 
   spiinfo("filep: %p\n", filep);
@@ -184,7 +182,7 @@ static int spi_slave_open(FAR struct file *filep)
   /* Get our private data structure */
 
   inode = filep->f_inode;
-  priv = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv = inode->i_private;
 
   /* Get exclusive access to the SPI Slave driver state structure */
 
@@ -196,6 +194,13 @@ static int spi_slave_open(FAR struct file *filep)
     }
 
   /* Increment the count of open references on the driver */
+
+  if (priv->crefs == 0)
+    {
+      SPIS_CTRLR_BIND(priv->ctrlr, (FAR struct spi_slave_dev_s *)priv,
+                      CONFIG_SPI_SLAVE_DRIVER_MODE,
+                      CONFIG_SPI_SLAVE_DRIVER_WIDTH);
+    }
 
   priv->crefs++;
   DEBUGASSERT(priv->crefs > 0);
@@ -225,8 +230,6 @@ static int spi_slave_close(FAR struct file *filep)
   FAR struct spi_slave_driver_s *priv;
   int ret;
 
-  DEBUGASSERT(filep != NULL);
-  DEBUGASSERT(filep->f_inode != NULL);
   DEBUGASSERT(filep->f_inode->i_private != NULL);
 
   spiinfo("filep: %p\n", filep);
@@ -234,7 +237,7 @@ static int spi_slave_close(FAR struct file *filep)
   /* Get our private data structure */
 
   inode = filep->f_inode;
-  priv = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv = inode->i_private;
 
   /* Get exclusive access to the SPI Slave driver state structure */
 
@@ -249,6 +252,11 @@ static int spi_slave_close(FAR struct file *filep)
 
   DEBUGASSERT(priv->crefs > 0);
   priv->crefs--;
+
+  if (priv->crefs == 0)
+    {
+      SPIS_CTRLR_UNBIND(priv->ctrlr);
+    }
 
   /* If the count has decremented to zero and the driver has been already
    * unlinked, then dispose of the driver resources.
@@ -302,7 +310,7 @@ static ssize_t spi_slave_read(FAR struct file *filep, FAR char *buffer,
   /* Get our private data structure */
 
   inode = filep->f_inode;
-  priv  = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv  = inode->i_private;
 
   if (buffer == NULL)
     {
@@ -318,7 +326,7 @@ static ssize_t spi_slave_read(FAR struct file *filep, FAR char *buffer,
       return ret;
     }
 
-  do
+  while (priv->rx_length == 0)
     {
       remaining_words = SPIS_CTRLR_QPOLL(priv->ctrlr);
       if (remaining_words == 0)
@@ -352,11 +360,11 @@ static ssize_t spi_slave_read(FAR struct file *filep, FAR char *buffer,
             }
         }
     }
-  while (priv->rx_length == 0);
 
   read_bytes = MIN(buflen, priv->rx_length);
 
   memcpy(buffer, priv->rx_buffer, read_bytes);
+  priv->rx_length -= read_bytes;
 
   nxmutex_unlock(&priv->lock);
   return (ssize_t)read_bytes;
@@ -393,7 +401,7 @@ static ssize_t spi_slave_write(FAR struct file *filep,
   /* Get our private data structure */
 
   inode = filep->f_inode;
-  priv = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
@@ -448,7 +456,7 @@ static int spi_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
   /* Get our private data structure */
 
   inode = filep->f_inode;
-  priv = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv = inode->i_private;
 
   ret = nxmutex_lock(&priv->lock);
   if (ret < 0)
@@ -482,7 +490,7 @@ static int spi_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
           eventset |= POLLOUT;
         }
 
-      poll_notify(&priv->fds, 1, eventset);
+      poll_notify(&fds, 1, eventset);
     }
   else if (fds->priv != NULL)
     {
@@ -514,12 +522,11 @@ static int spi_slave_unlink(FAR struct inode *inode)
   FAR struct spi_slave_driver_s *priv;
   int ret;
 
-  DEBUGASSERT(inode != NULL);
   DEBUGASSERT(inode->i_private != NULL);
 
   /* Get our private data structure */
 
-  priv = (FAR struct spi_slave_driver_s *)inode->i_private;
+  priv = inode->i_private;
 
   /* Get exclusive access to the SPI Slave driver state structure */
 
@@ -534,6 +541,7 @@ static int spi_slave_unlink(FAR struct inode *inode)
 
   if (priv->crefs <= 0)
     {
+      SPIS_CTRLR_UNBIND(priv->ctrlr);
       nxmutex_destroy(&priv->lock);
       kmm_free(priv);
       inode->i_private = NULL;
@@ -636,9 +644,8 @@ static void spi_slave_cmddata(FAR struct spi_slave_dev_s *dev, bool data)
 static size_t spi_slave_getdata(FAR struct spi_slave_dev_s *dev,
                                 FAR const void **data)
 {
-  FAR struct spi_slave_driver_s *priv = (FAR struct spi_slave_driver_s *)dev;
-
 #ifdef CONFIG_SPI_SLAVE_DRIVER_COLORIZE_TX_BUFFER
+  FAR struct spi_slave_driver_s *priv = (FAR struct spi_slave_driver_s *)dev;
   *data = priv->tx_buffer;
   return BYTES2WORDS(CONFIG_SPI_SLAVE_DRIVER_COLORIZE_NUM_BYTES);
 #else
@@ -802,10 +809,6 @@ int spi_slave_register(FAR struct spi_slave_ctrlr_s *ctrlr, int bus)
       nxmutex_destroy(&priv->lock);
       kmm_free(priv);
     }
-
-  SPIS_CTRLR_BIND(priv->ctrlr, (FAR struct spi_slave_dev_s *)priv,
-                  CONFIG_SPI_SLAVE_DRIVER_MODE,
-                  CONFIG_SPI_SLAVE_DRIVER_WIDTH);
 
   spiinfo("SPI Slave driver loaded successfully!\n");
 

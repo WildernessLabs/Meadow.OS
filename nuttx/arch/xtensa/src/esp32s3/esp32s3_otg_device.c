@@ -3724,6 +3724,7 @@ static int esp32s3_usbinterrupt(int irq, void *context, void *arg)
         {
           usbtrace(TRACE_INTDECODE(ESP32S3_TRACEINTID_SOF),
                    (uint16_t)regval);
+          usbdev_sof_irq(&priv->usbdev, esp32s3_getframe(&priv->usbdev));
         }
 #endif
 
@@ -4381,7 +4382,7 @@ static struct usbdev_req_s *esp32s3_ep_allocreq(struct usbdev_ep_s *ep)
 
   usbtrace(TRACE_EPALLOCREQ, ((struct esp32s3_ep_s *)ep)->epphy);
 
-  privreq = (struct esp32s3_req_s *)kmm_zalloc(sizeof(struct esp32s3_req_s));
+  privreq = kmm_zalloc(sizeof(struct esp32s3_req_s));
   if (!privreq)
     {
       usbtrace(TRACE_DEVERROR(ESP32S3_TRACEERR_ALLOCFAIL), 0);
@@ -5593,8 +5594,7 @@ void xtensa_usbinitialize(void)
   esp32s3_configgpio(USB_IOMUX_DM, DRIVE_3);
   esp32s3_configgpio(USB_IOMUX_DP, DRIVE_3);
 
-  /**
-   * USB_OTG_IDDIG_IN_IDX:     connected connector is mini-B side
+  /* USB_OTG_IDDIG_IN_IDX:     connected connector is mini-B side
    * USB_SRP_BVALID_IN_IDX:    HIGH to force USB device mode
    * USB_OTG_VBUSVALID_IN_IDX: receiving a valid Vbus from device
    * USB_OTG_AVALID_IN_IDX:    HIGH to force USB host mode

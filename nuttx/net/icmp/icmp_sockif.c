@@ -50,13 +50,15 @@ static int        icmp_setup(FAR struct socket *psock);
 static sockcaps_t icmp_sockcaps(FAR struct socket *psock);
 static void       icmp_addref(FAR struct socket *psock);
 static int        icmp_netpoll(FAR struct socket *psock,
-                    FAR struct pollfd *fds, bool setup);
+                               FAR struct pollfd *fds, bool setup);
 static int        icmp_close(FAR struct socket *psock);
 #ifdef CONFIG_NET_SOCKOPTS
 static int        icmp_getsockopt(FAR struct socket *psock, int level,
-                    int option, FAR void *value, FAR socklen_t *value_len);
+                                  int option, FAR void *value,
+                                  FAR socklen_t *value_len);
 static int        icmp_setsockopt(FAR struct socket *psock, int level,
-                    int option, FAR const void *value, socklen_t value_len);
+                                  int option, FAR const void *value,
+                                  socklen_t value_len);
 #endif
 
 /****************************************************************************
@@ -190,8 +192,6 @@ static void icmp_addref(FAR struct socket *psock)
 {
   FAR struct icmp_conn_s *conn;
 
-  DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
-
   conn = psock->s_conn;
   DEBUGASSERT(conn->crefs > 0 && conn->crefs < 255);
   conn->crefs++;
@@ -254,7 +254,6 @@ static int icmp_close(FAR struct socket *psock)
 {
   FAR struct icmp_conn_s *conn;
 
-  DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
   conn = psock->s_conn;
 
   /* Is this the last reference to the connection structure (there could be\

@@ -50,7 +50,7 @@ source "arch/xtensa/Kconfig"
 
 
 config ARCH_CHIP_CUSTOM
-	bool
+	bool "Custom Chip Support"
 	default n
 
 if ARCH_CHIP_CUSTOM
@@ -172,6 +172,13 @@ config ARCH_COVERAGE_ALL
 		will get image size increased and performance decreased
 		significantly.
 
+config ARCH_INSTRUMENT_ALL
+	bool "Instrument All"
+	default n
+	---help---
+		Add instrument to all source files. we can use instrument_register
+		to register the instrument function.
+
 comment "Architecture Options"
 
 config ARCH_NOINTC
@@ -188,6 +195,10 @@ config ARCH_HAVE_IRQTRIGGER
 	depends on !ARCH_NOINTC
 
 config ARCH_DMA
+	bool
+	default n
+
+config ARCH_DMA_NO_FLASH_TRANSFER
 	bool
 	default n
 
@@ -236,6 +247,18 @@ config ARCH_HAVE_TEXT_HEAP
 	default n
 	---help---
 		Special memory region for dynamic code loading
+
+config ARCH_HAVE_DATA_HEAP
+	bool
+	default n
+	---help---
+		Special memory region for dynamic data loading
+
+config ARCH_HAVE_COPY_SECTION
+	bool
+	default n
+	---help---
+		Section copying for dynamic code loading
 
 config ARCH_HAVE_MULTICPU
 	bool
@@ -320,6 +343,10 @@ config ARCH_HAVE_BACKTRACE
 	bool
 	default n
 
+config ARCH_HAVE_DEBUG
+	bool "Architecture have debug support"
+	default n
+
 config ARCH_HAVE_PERF_EVENTS
 	bool
 	default n
@@ -328,7 +355,8 @@ config ARCH_HAVE_PERF_EVENTS
 
 config ARCH_PERF_EVENTS
 	bool "Configure hardware performance counting"
-	default y
+	default y if SCHED_CRITMONITOR || SCHED_IRQMONITOR || RPTUN_PING || SEGGER_SYSVIEW
+	default n
 	depends on ARCH_HAVE_PERF_EVENTS
 	---help---
 		Enable hardware performance counter support for perf events. If
@@ -451,6 +479,14 @@ config ARCH_USE_TEXT_HEAP
 		regions for instruction and data and the memory region used for
 		usual malloc doesn't work for instruction.
 
+config ARCH_USE_DATA_HEAP
+	bool "Enable separate data allocation for dynamic data loading"
+	default n
+	depends on ARCH_HAVE_DATA_HEAP
+	---help---
+		This option enables architecture-specific memory allocator
+		for dynamic data loading.
+
 menuconfig ARCH_ADDRENV
 	bool "Address environments"
 	default n
@@ -458,6 +494,15 @@ menuconfig ARCH_ADDRENV
 	---help---
 		Support per-task address environments using the MMU... i.e., support
 		"processes"
+
+config ARCH_USE_COPY_SECTION
+	bool "Enable arch copy section by self for dynamic code loading"
+	default n
+	depends on ARCH_HAVE_COPY_SECTION
+	---help---
+		This option enables architecture-specific memory copy for
+		dynamic code loading. For example, Ambiq has MRAM regions
+		for instruction which can't load by the memcpy directly.
 
 if ARCH_ADDRENV && ARCH_NEED_ADDRENV_MAPPING
 
@@ -488,7 +533,6 @@ config ARCH_SHM_VBASE
 
 config ARCH_KMAP_VBASE
 	hex "Kernel dynamic virtual mappings base"
-	depends on ARCH_VMA_MAPPING
 	---help---
 		The virtual address of the beginning of the kernel dynamic mapping
 		region.
@@ -545,6 +589,8 @@ config ARCH_SHM_NPAGES
 		maximum number of pages per region, and the configured size of
 		each page.
 
+endif # ARCH_VMA_MAPPING
+
 config ARCH_KMAP_NPAGES
 	int "Max kernel dynamic mapping pages"
 	default 1
@@ -556,8 +602,6 @@ config ARCH_KMAP_NPAGES
 		determined by the product of the maximum number of regions, the
 		maximum number of pages per region, and the configured size of
 		each page.
-
-endif # ARCH_VMA_MAPPING
 
 config ARCH_STACK_DYNAMIC
 	bool "Dynamic user stack"

@@ -146,6 +146,7 @@ static FAR struct timerfd_priv_s *timerfd_allocdev(void)
 
       nxmutex_init(&dev->lock);
       nxmutex_lock(&dev->lock);
+      dev->crefs++;
     }
 
   return dev;
@@ -369,7 +370,7 @@ static int timerfd_poll(FAR struct file *filep, FAR struct pollfd *fds,
   if (dev->counter > 0)
     {
 #ifdef CONFIG_TIMER_FD_POLL
-      poll_notify(dev->fds, CONFIG_TIMER_FD_NPOLLWAITERS, POLLIN);
+      poll_notify(&fds, 1, POLLIN);
 #endif
     }
 

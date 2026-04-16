@@ -119,6 +119,8 @@ goldfish_camera_data_start_capture(FAR struct imgdata_s *data,
                                    FAR void *arg);
 static int goldfish_camera_data_stop_capture(FAR struct imgdata_s *data);
 static int goldfish_camera_data_set_buf(FAR struct imgdata_s *data,
+                                        uint8_t nr_datafmts,
+                                        FAR imgdata_format_t *datafmts,
                                         FAR uint8_t *addr,
                                         uint32_t size);
 
@@ -301,7 +303,7 @@ static ssize_t goldfish_camera_get_list(FAR goldfish_camera_priv_t **priv,
 
   ret = file_open(&file,
                   CONFIG_GOLDFISH_CAMERA_PIPE_PATH,
-                  O_RDWR);
+                  O_RDWR | O_CLOEXEC);
   if (ret < 0)
     {
       verr("Failed to open: %s: %d\n",
@@ -464,6 +466,11 @@ reload:
 
           DEBUGASSERT(ret == priv->buf_size);
 
+          if (priv->capture_cb == NULL)
+            {
+              return 0;
+            }
+
           clock_systime_timespec(&ts);
           TIMESPEC_TO_TIMEVAL(&tv, &ts);
           priv->capture_cb(0, priv->buf_size, &tv, priv->capture_arg);
@@ -565,7 +572,7 @@ static int goldfish_camera_data_init(FAR struct imgdata_s *data)
 
   ret = file_open(&priv->file,
                   CONFIG_GOLDFISH_CAMERA_PIPE_PATH,
-                  O_RDWR);
+                  O_RDWR | O_CLOEXEC);
   if (ret < 0)
     {
       verr("Failed to open: %s: %d\n",
@@ -597,8 +604,8 @@ static int goldfish_camera_data_init(FAR struct imgdata_s *data)
   argv[1] = NULL;
 
   ret = kthread_create("goldfish_camera_thread",
-                        CONFIG_GOLDFISH_CAMERA_PRIORITY,
-                        CONFIG_GOLDFISH_CAMERA_STACKSIZE,
+                        SCHED_PRIORITY_DEFAULT,
+                        CONFIG_DEFAULT_TASK_STACKSIZE,
                         goldfish_camera_thread, argv);
   if (ret < 0)
     {
@@ -628,7 +635,7 @@ static int goldfish_camera_data_uninit(FAR struct imgdata_s *data)
 
   priv->streaming = false;
   nxsem_post(&priv->run);
-  nxsched_waitpid(priv->pid, NULL, 0, 0);
+  nxsched_waitpid(priv->pid, NULL, 0);
 
   nxsem_destroy(&priv->run);
   file_close(&priv->file);
@@ -648,6 +655,8 @@ static int goldfish_camera_data_validate_buf(FAR uint8_t *addr,
 }
 
 static int goldfish_camera_data_set_buf(FAR struct imgdata_s *data,
+                                        uint8_t nr_datafmts,
+                                        FAR imgdata_format_t *datafmts,
                                         FAR uint8_t *addr,
                                         uint32_t size)
 {

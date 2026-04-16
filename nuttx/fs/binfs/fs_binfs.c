@@ -45,7 +45,7 @@
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_BINFS)
 
 /****************************************************************************
- * Private Type
+ * Private Types
  ****************************************************************************/
 
 struct binfs_dir_s
@@ -110,6 +110,7 @@ const struct mountpt_operations g_binfs_operations =
   binfs_ioctl,       /* ioctl */
   NULL,              /* mmap */
   NULL,              /* truncate */
+  NULL,              /* poll */
 
   NULL,              /* sync */
   binfs_dup,         /* dup */
@@ -271,7 +272,7 @@ static int binfs_dup(FAR const struct file *oldp, FAR struct file *newp)
 
 static int binfs_fstat(FAR const struct file *filep, FAR struct stat *buf)
 {
-  DEBUGASSERT(filep != NULL && buf != NULL);
+  DEBUGASSERT(buf != NULL);
 
   /* It's a execute-only file system */
 

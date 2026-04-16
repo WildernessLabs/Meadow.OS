@@ -40,6 +40,7 @@ config ARM_TOOLCHAIN_GNU_OABI
 
 config ARM_TOOLCHAIN_CLANG
 	bool "LLVM Clang toolchain"
+	depends on !LIBM_TOOLCHAIN
 	select ARCH_TOOLCHAIN_CLANG
 
 config ARM_TOOLCHAIN_ARMCLANG
@@ -74,6 +75,7 @@ config ARCH_CHIP_STM32
 	select ARCH_HAVE_TIMEKEEPING
 	select ARM_HAVE_MPU_UNIFIED
 	select ARMV7M_HAVE_STACKCHECK
+	select ARCH_HAVE_ADJTIME
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M3/4).
 
@@ -190,6 +192,7 @@ config ARCH_ARMV7M
 	bool
 	default n
 	select ARCH_HAVE_CPUINFO
+	select ARCH_HAVE_DEBUG
 	select ARCH_HAVE_PERF_EVENTS
 
 config ARCH_CORTEXM7
@@ -223,6 +226,16 @@ config ARCH_CHIP
 config ARM_THUMB
 	bool "Thumb Mode"
 	default n
+
+config ARCH_HAVE_PSCI
+	bool "ARM PCSI (Power State Coordination Interface) Support"
+	default n
+	---help---
+		This Power State Coordination Interface (PSCI) defines
+		a standard interface for power management. the PCSI need
+		to implement handling firmware at EL2 or EL3. The option
+		maybe not applicable for arm core without PCSI firmware
+		interface implement
 
 config ARM_HAVE_WFE_SEV
 	bool
@@ -469,7 +482,7 @@ config ARM_SEMIHOSTING_HOSTFS_CACHE_COHERENCE
 	---help---
 		Flush & Invalidte cache before & after bkpt instruction.
 
-endif
+endif # ARM_SEMIHOSTING_HOSTFS
 
 if SCHED_BACKTRACE
 

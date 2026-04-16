@@ -390,8 +390,7 @@ static int axp202_current(FAR struct battery_charger_dev_s *dev, int value)
       return ret;
     }
 
-  /**
-   * Charge current setting
+  /* Charge current setting
    * Icharge= [300+(Bit3-0)*100] mA
    */
 
@@ -675,7 +674,7 @@ axp202_initialize(FAR struct i2c_master_s *i2c, uint8_t addr,
 
   /* Initialize the axp202 device structure */
 
-  priv = (FAR struct axp202_dev_s *)kmm_zalloc(sizeof(struct axp202_dev_s));
+  priv = kmm_zalloc(sizeof(struct axp202_dev_s));
 
   if (priv)
     {

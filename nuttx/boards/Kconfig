@@ -150,7 +150,7 @@ config ARCH_BOARD_COMMON
 	bool "Board common logic"
 	default n
 	---help---
-		 Board common logic located in each board/common folder.
+		Board common logic located in each board/common folder.
 
 if ARCH_BOARD_COMMON
 if ARCH_CHIP_ESP32
@@ -181,18 +181,30 @@ config BOARD_CRASHDUMP
 		"machine state" in a place where on the next reset can write it
 		to more sophisticated storage in a sane operating environment.
 
-config BOARD_COREDUMP
-	bool "Enable Core Dump after assert"
+config BOARD_COREDUMP_SYSLOG
+	bool "Enable Core dump to syslog"
 	default n
 	depends on ELF_COREDUMP
 	---help---
-		Enable to support for the dump core information after assert.
+		Enable put coredump to syslog when crash.
 
-if BOARD_COREDUMP
+config BOARD_COREDUMP_BLKDEV
+	bool "Enable Core Dump to block device"
+	default n
+	depends on ELF_COREDUMP
+	---help---
+		Enable save coredump at block device when crash.
+
+config BOARD_COREDUMP_BLKDEV_PATH
+	string "Save Core Dump block device PATH"
+	depends on BOARD_COREDUMP_BLKDEV
+	---help---
+		Save coredump file block device path.
 
 config BOARD_COREDUMP_FULL
 	bool "Core Dump all thread registers and stacks"
 	default y
+	depends on BOARD_COREDUMP_SYSLOG || BOARD_COREDUMP_BLKDEV
 	---help---
 		Enable to support for the dump all task registers and stacks.
 
@@ -200,10 +212,9 @@ config BOARD_COREDUMP_COMPRESSION
 	bool "Enable Core Dump compression"
 	default y
 	select LIBC_LZF
+	depends on BOARD_COREDUMP_SYSLOG || BOARD_COREDUMP_BLKDEV
 	---help---
 		Enable LZF compression algorithm for core dump content
-
-endif # BOARD_COREDUMP
 
 config BOARD_ENTROPY_POOL
 	bool "Enable Board level storing of entropy pool structure"
@@ -395,5 +406,18 @@ config BOARDCTL_IOCTL
 endif # BOARDCTL
 
 config BOARD_USBDEV_SERIALSTR
-	bool
+	bool "Board-specific usbdev serial string"
 	default n
+	---help---
+		Use board unique serial number to iSerialNumber in the device descriptor.
+
+config BOARD_MEMORY_RANGE
+	string "Board memory range"
+	default ""
+	---help---
+		Memory range of board. format: <start>,<end>,<flags>,....
+		start: start address of memory range
+		end: end address of memory range
+		flags: Readable 0x1, writable 0x2, executable 0x4
+		example:0x1000,0x2000,0x1,0x2000,0x3000,0x3,0x3000,0x4000,0x7
+

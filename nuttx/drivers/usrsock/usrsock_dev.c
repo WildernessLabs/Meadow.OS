@@ -77,17 +77,12 @@ struct usrsockdev_s
 
 static ssize_t usrsockdev_read(FAR struct file *filep, FAR char *buffer,
                                size_t len);
-
 static ssize_t usrsockdev_write(FAR struct file *filep,
                                 FAR const char *buffer, size_t len);
-
 static off_t usrsockdev_seek(FAR struct file *filep, off_t offset,
                              int whence);
-
 static int usrsockdev_open(FAR struct file *filep);
-
 static int usrsockdev_close(FAR struct file *filep);
-
 static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup);
 
@@ -154,8 +149,6 @@ static ssize_t usrsockdev_read(FAR struct file *filep, FAR char *buffer,
       return -EINVAL;
     }
 
-  DEBUGASSERT(inode);
-
   dev = inode->i_private;
 
   DEBUGASSERT(dev);
@@ -213,8 +206,6 @@ static off_t usrsockdev_seek(FAR struct file *filep, off_t offset,
     {
       return -EINVAL;
     }
-
-  DEBUGASSERT(inode);
 
   dev = inode->i_private;
 
@@ -287,8 +278,6 @@ static ssize_t usrsockdev_write(FAR struct file *filep,
       return -EINVAL;
     }
 
-  DEBUGASSERT(inode);
-
   dev = inode->i_private;
 
   DEBUGASSERT(dev);
@@ -321,8 +310,6 @@ static int usrsockdev_open(FAR struct file *filep)
   FAR struct usrsockdev_s *dev;
   int ret;
   int tmp;
-
-  DEBUGASSERT(inode);
 
   dev = inode->i_private;
 
@@ -367,8 +354,6 @@ static int usrsockdev_close(FAR struct file *filep)
   FAR struct usrsockdev_s *dev;
   int ret;
 
-  DEBUGASSERT(inode);
-
   dev = inode->i_private;
 
   DEBUGASSERT(dev);
@@ -405,11 +390,8 @@ static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct usrsockdev_s *dev;
-  pollevent_t eventset;
   int ret;
   int i;
-
-  DEBUGASSERT(inode);
 
   dev = inode->i_private;
 
@@ -459,18 +441,14 @@ static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
       /* Should immediately notify on any of the requested events? */
 
-      eventset = 0;
-
       /* Notify the POLLIN event if pending request. */
 
       if (dev->req.iov != NULL &&
           !(usrsock_iovec_get(NULL, 0, dev->req.iov,
                               dev->req.iovcnt, dev->req.pos, NULL) < 0))
         {
-          eventset |= POLLIN;
+          poll_notify(&fds, 1, POLLIN);
         }
-
-      poll_notify(dev->pollfds, nitems(dev->pollfds), eventset);
     }
   else
     {

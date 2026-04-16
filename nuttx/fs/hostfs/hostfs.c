@@ -144,6 +144,7 @@ const struct mountpt_operations g_hostfs_operations =
   hostfs_ioctl,         /* ioctl */
   NULL,                 /* mmap */
   hostfs_ftruncate,     /* ftruncate */
+  NULL,                 /* poll */
 
   hostfs_sync,          /* sync */
   hostfs_dup,           /* dup */
@@ -268,7 +269,7 @@ static int hostfs_open(FAR struct file *filep, FAR const char *relpath,
 
   /* Allocate memory for the open file */
 
-  hf = (struct hostfs_ofile_s *) kmm_malloc(sizeof *hf);
+  hf = kmm_malloc(sizeof *hf);
   if (hf == NULL)
     {
       ret = -ENOMEM;
@@ -353,7 +354,7 @@ static int hostfs_close(FAR struct file *filep)
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -441,7 +442,7 @@ static ssize_t hostfs_read(FAR struct file *filep, FAR char *buffer,
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -483,7 +484,7 @@ static ssize_t hostfs_write(FAR struct file *filep, const char *buffer,
   FAR struct hostfs_ofile_s *hf;
   ssize_t ret;
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -537,7 +538,7 @@ static off_t hostfs_seek(FAR struct file *filep, off_t offset, int whence)
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -580,7 +581,7 @@ static int hostfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -623,7 +624,7 @@ static int hostfs_sync(FAR struct file *filep)
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
 
   /* Recover our private data from the struct file instance */
 
@@ -696,11 +697,11 @@ static int hostfs_fstat(FAR const struct file *filep, FAR struct stat *buf)
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep != NULL && buf != NULL);
+  DEBUGASSERT(buf != NULL);
 
   /* Recover our private data from the struct file instance */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
   hf    = filep->f_priv;
   inode = filep->f_inode;
 
@@ -742,11 +743,11 @@ static int hostfs_fchstat(FAR const struct file *filep,
 
   /* Sanity checks */
 
-  DEBUGASSERT(filep != NULL && buf != NULL);
+  DEBUGASSERT(buf != NULL);
 
   /* Recover our private data from the struct file instance */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
   hf    = filep->f_priv;
   inode = filep->f_inode;
 
@@ -785,13 +786,9 @@ static int hostfs_ftruncate(FAR struct file *filep, off_t length)
   FAR struct hostfs_ofile_s *hf;
   int ret = OK;
 
-  /* Sanity checks */
-
-  DEBUGASSERT(filep != NULL);
-
   /* Recover our private data from the struct file instance */
 
-  DEBUGASSERT(filep->f_priv != NULL && filep->f_inode != NULL);
+  DEBUGASSERT(filep->f_priv != NULL);
   hf    = filep->f_priv;
   inode = filep->f_inode;
 

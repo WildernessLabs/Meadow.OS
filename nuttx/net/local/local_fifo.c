@@ -49,8 +49,8 @@
 #define LOCAL_HD_SUFFIX    "HD"  /* Name of the half duplex datagram FIFO */
 #define LOCAL_SUFFIX_LEN   2
 
-#define LOCAL_FULLPATH_LEN (strlen(CONFIG_NET_LOCAL_VFS_PATH) + \
-                            UNIX_PATH_MAX + LOCAL_SUFFIX_LEN + 2)
+#define LOCAL_FULLPATH_LEN (sizeof(CONFIG_NET_LOCAL_VFS_PATH) + \
+                            UNIX_PATH_MAX + LOCAL_SUFFIX_LEN + 2 + 8)
 
 /****************************************************************************
  * Private Functions
@@ -68,9 +68,9 @@ static void local_format_name(FAR const char *inpath, FAR char *outpath,
                               FAR const char *suffix, int32_t id)
 {
   if (strncmp(inpath, CONFIG_NET_LOCAL_VFS_PATH,
-              strlen(CONFIG_NET_LOCAL_VFS_PATH)) == 0)
+              sizeof(CONFIG_NET_LOCAL_VFS_PATH) - 1) == 0)
     {
-      inpath += strlen(CONFIG_NET_LOCAL_VFS_PATH);
+      inpath += sizeof(CONFIG_NET_LOCAL_VFS_PATH) - 1;
     }
 
   if (id < 0)
@@ -239,7 +239,7 @@ static int local_rx_open(FAR struct local_conn_s *conn, FAR const char *path,
   int oflags = nonblock ? O_RDONLY | O_NONBLOCK : O_RDONLY;
   int ret;
 
-  ret = file_open(&conn->lc_infile, path, oflags);
+  ret = file_open(&conn->lc_infile, path, oflags | O_CLOEXEC);
   if (ret < 0)
     {
       nerr("ERROR: Failed on open %s for reading: %d\n",
@@ -272,7 +272,8 @@ static int local_tx_open(FAR struct local_conn_s *conn, FAR const char *path,
 {
   int ret;
 
-  ret = file_open(&conn->lc_outfile, path, O_WRONLY | O_NONBLOCK);
+  ret = file_open(&conn->lc_outfile, path, O_WRONLY | O_NONBLOCK |
+                  O_CLOEXEC);
   if (ret < 0)
     {
       nerr("ERROR: Failed on open %s for writing: %d\n",
@@ -736,5 +737,31 @@ int local_open_sender(FAR struct local_conn_s *conn, FAR const char *path,
   return ret;
 }
 #endif /* CONFIG_NET_LOCAL_DGRAM */
+
+/****************************************************************************
+ * Name: local_set_nonblocking
+ *
+ * Description:
+ *   Set the local conntion to nonblocking mode
+ *
+ ****************************************************************************/
+
+int local_set_nonblocking(FAR struct local_conn_s *conn)
+{
+  int nonblock = 1;
+  int ret;
+
+  /* Set the conn to nonblocking mode */
+
+  ret  = file_ioctl(&conn->lc_infile, FIONBIO, &nonblock);
+  ret |= file_ioctl(&conn->lc_outfile, FIONBIO, &nonblock);
+
+  if (ret < 0)
+    {
+      nerr("ERROR: Failed to set the conn to nonblocking mode: %d\n", ret);
+    }
+
+  return ret;
+}
 
 #endif /* CONFIG_NET && CONFIG_NET_LOCAL */

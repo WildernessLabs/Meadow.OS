@@ -66,6 +66,7 @@
 #define _POSIX_THREAD_CPUTIME _POSIX_VERSION
 #define _POSIX_REALTIME_SIGNALS _POSIX_VERSION
 #define _POSIX_THREAD_PRIORITY_SCHEDULING _POSIX_VERSION
+#define _POSIX_SEMAPHORES _POSIX_VERSION
 
 #ifdef CONFIG_FS_AIO
 #  define _POSIX_ASYNCHRONOUS_IO _POSIX_VERSION
@@ -257,7 +258,6 @@
 
 /* Helpers and legacy compatibility definitions */
 
-#define syncfs(f)                        fsync(f)
 #define fdatasync(f)                     fsync(f)
 #define getdtablesize(f)                 ((int)sysconf(_SC_OPEN_MAX))
 #define getpagesize(f)                   ((int)sysconf(_SC_PAGESIZE))
@@ -328,6 +328,7 @@ int     daemon(int nochdir, int noclose);
 int     close(int fd);
 int     dup(int fd);
 int     dup2(int fd1, int fd2);
+int     dup3(int fd1, int fd2, int flags);
 int     fsync(int fd);
 off_t   lseek(int fd, off_t offset, int whence);
 ssize_t read(int fd, FAR void *buf, size_t nbytes);
@@ -440,6 +441,7 @@ int     setregid(gid_t rgid, gid_t egid);
 int     getentropy(FAR void *buffer, size_t length);
 
 void    sync(void);
+int     syncfs(int fd);
 
 #if CONFIG_FORTIFY_SOURCE > 0
 fortify_function(getcwd) FAR char *getcwd(FAR char *buf,

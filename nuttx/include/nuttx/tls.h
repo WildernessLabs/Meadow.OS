@@ -120,7 +120,7 @@ struct task_info_s
 #if CONFIG_TLS_TASK_NELEM > 0
   uintptr_t       ta_telem[CONFIG_TLS_TASK_NELEM]; /* Task local storage elements */
 #endif
-#if CONFIG_TLS_NELEM > 0
+#if defined(CONFIG_TLS_NELEM) && CONFIG_TLS_NELEM > 0
   tls_dtor_t      ta_tlsdtor[CONFIG_TLS_NELEM]; /* List of TLS destructors      */
 #endif
 #ifndef CONFIG_BUILD_KERNEL
@@ -192,17 +192,24 @@ struct tls_info_s
 {
   FAR struct task_info_s * tl_task;
 
-#if CONFIG_TLS_NELEM > 0
+#if defined(CONFIG_TLS_NELEM) && CONFIG_TLS_NELEM > 0
   uintptr_t tl_elem[CONFIG_TLS_NELEM]; /* TLS elements */
 #endif
 
 #if defined(CONFIG_PTHREAD_CLEANUP_STACKSIZE) && CONFIG_PTHREAD_CLEANUP_STACKSIZE > 0
-  /* tos   - The index to the next available entry at the top of the stack.
-   * stack - The pre-allocated clean-up stack memory.
+  /* tl_tos   - The index to the next available entry at the top of the
+   *            stack.
+   * tl_stack - The pre-allocated clean-up stack memory.
    */
 
-  uint8_t tos;
-  struct pthread_cleanup_s stack[CONFIG_PTHREAD_CLEANUP_STACKSIZE];
+  uint8_t tl_tos;
+  struct pthread_cleanup_s tl_stack[CONFIG_PTHREAD_CLEANUP_STACKSIZE];
+#endif
+
+  uint8_t tl_cpstate;                  /* Cancellation state */
+
+#ifdef CONFIG_CANCELLATION_POINTS
+  int16_t tl_cpcount;                  /* Nested cancellation point count */
 #endif
 
   int tl_errno;                        /* Per-thread error number */
@@ -326,7 +333,7 @@ FAR struct tls_info_s *tls_get_info(void);
  *
  ****************************************************************************/
 
-#if CONFIG_TLS_NELEM > 0
+#if defined(CONFIG_TLS_NELEM) && CONFIG_TLS_NELEM > 0
 void tls_destruct(void);
 #endif
 

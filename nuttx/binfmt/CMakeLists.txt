@@ -36,6 +36,7 @@ list(
   binfmt_execmodule.c
   binfmt_exec.c
   binfmt_copyargv.c
+  binfmt_copyactions.c
   binfmt_dumpmodule.c
   binfmt_coredump.c)
 
@@ -63,3 +64,4 @@ endif()
 
 target_sources(binfmt PRIVATE ${SRCS})
 target_include_directories(binfmt PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(binfmt PRIVATE ${CMAKE_SOURCE_DIR}/sched)

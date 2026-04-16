@@ -60,6 +60,7 @@ const struct mountpt_operations g_nxffs_operations =
 #else
   NULL,              /* truncate */
 #endif
+  NULL,              /* poll */
 
   NULL,              /* sync -- No buffered data */
   nxffs_dup,         /* dup */
@@ -190,7 +191,7 @@ int nxffs_initialize(FAR struct mtd_dev_s *mtd)
 
   /* Allocate one I/O block buffer to general files system access */
 
-  volume->cache = (FAR uint8_t *)kmm_malloc(volume->geo.blocksize);
+  volume->cache = kmm_malloc(volume->geo.blocksize);
   if (!volume->cache)
     {
       ferr("ERROR: Failed to allocate an erase block buffer\n");
@@ -203,7 +204,7 @@ int nxffs_initialize(FAR struct mtd_dev_s *mtd)
    * is not needed often, but is best to have pre-allocated and in-place.
    */
 
-  volume->pack = (FAR uint8_t *)kmm_malloc(volume->geo.erasesize);
+  volume->pack = kmm_malloc(volume->geo.erasesize);
   if (!volume->pack)
     {
       ferr("ERROR: Failed to allocate an I/O block buffer\n");

@@ -32,6 +32,7 @@
 #include <debug.h>
 #include <string.h>
 #include <limits.h>
+#include <nuttx/bits.h>
 #include <nuttx/mutex.h>
 #include <nuttx/signal.h>
 
@@ -49,10 +50,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Sets bit @n */
-
-#define BIT(n) (1 << (n))
 
 /* Creates a mask of @m bits, i.e. MASK(2) -> 00000011 */
 
@@ -1145,7 +1142,7 @@ int mpu60x0_register(FAR const char *path, FAR struct mpu_config_s *config)
 
   /* Initialize the device structure. */
 
-  priv = (FAR struct mpu_dev_s *)kmm_malloc(sizeof(struct mpu_dev_s));
+  priv = kmm_malloc(sizeof(struct mpu_dev_s));
   if (priv == NULL)
     {
       snerr("ERROR: Failed to allocate mpu60x0 device instance\n");

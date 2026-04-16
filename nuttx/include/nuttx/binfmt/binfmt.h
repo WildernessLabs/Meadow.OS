@@ -28,18 +28,19 @@
 #include <nuttx/config.h>
 
 #include <spawn.h>
-
 #include <sys/types.h>
+#include <sys/utsname.h>
 
-#include <nuttx/arch.h>
 #include <nuttx/sched.h>
 #include <nuttx/streams.h>
+#include <nuttx/memoryregion.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define BINFMT_NALLOC 4
+#define BINFMT_NALLOC     4
+#define COREDUMP_MAGIC    0x434f5245
 
 /****************************************************************************
  * Public Types
@@ -47,8 +48,8 @@
 
 /* The type of one C++ constructor or destructor */
 
-typedef FAR void (*binfmt_ctor_t)(void);
-typedef FAR void (*binfmt_dtor_t)(void);
+typedef CODE void (*binfmt_ctor_t)(void);
+typedef CODE void (*binfmt_dtor_t)(void);
 
 /* This describes the file to be loaded.
  *
@@ -113,15 +114,6 @@ struct binary_s
   CODE int (*unload)(FAR struct binary_s *bin);
 };
 
-/* This describes binfmt coredump filed */
-
-struct memory_region_s
-{
-  uintptr_t start;   /* Start address of this region */
-  uintptr_t end;     /* End address of this region */
-  uint32_t  flags;   /* Figure 5-3: Segment Flag Bits: PF_[X|W|R] */
-};
-
 /* This describes one binary format handler */
 
 struct binfmt_s
@@ -141,11 +133,21 @@ struct binfmt_s
 
   CODE int (*unload)(FAR struct binary_s *bin);
 
-  /* Unload module callback */
+  /* Coredump callback */
 
   CODE int (*coredump)(FAR struct memory_region_s *regions,
                        FAR struct lib_outstream_s *stream,
                        pid_t pid);
+};
+
+/* Coredump information for block header */
+
+struct coredump_info_s
+{
+  uint32_t       magic;
+  struct utsname name;
+  time_t         time;
+  size_t         size;
 };
 
 /****************************************************************************
@@ -272,7 +274,9 @@ int unload_module(FAR struct binary_s *bin);
 int exec_module(FAR struct binary_s *binp,
                 FAR const char *filename, FAR char * const *argv,
                 FAR char * const *envp,
-                FAR const posix_spawn_file_actions_t *actions);
+                FAR const posix_spawn_file_actions_t *actions,
+                FAR const posix_spawnattr_t *attr,
+                bool spawn);
 
 /****************************************************************************
  * Name: exec

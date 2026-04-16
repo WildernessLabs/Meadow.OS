@@ -52,6 +52,7 @@
  * External Definitions
  ****************************************************************************/
 
+extern const struct procfs_operations g_clk_operations;
 extern const struct procfs_operations g_cpuinfo_operations;
 extern const struct procfs_operations g_cpuload_operations;
 extern const struct procfs_operations g_critmon_operations;
@@ -97,11 +98,16 @@ static const struct procfs_entry_s g_procfs_entries[] =
   { "[0-9]*",       &g_proc_operations,     PROCFS_DIR_TYPE    },
 #endif
 
+#if defined(CONFIG_CLK) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CLK)
+  { "clk",          &g_clk_operations,      PROCFS_FILE_TYPE   },
+#endif
+
 #if defined(CONFIG_ARCH_HAVE_CPUINFO) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CPUINFO)
   { "cpuinfo",      &g_cpuinfo_operations,  PROCFS_FILE_TYPE   },
 #endif
 
-#if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CPULOAD)
+#if !defined(CONFIG_SCHED_CPULOAD_NONE) && \
+    !defined(CONFIG_FS_PROCFS_EXCLUDE_CPULOAD)
   { "cpuload",      &g_cpuload_operations,  PROCFS_FILE_TYPE   },
 #endif
 
@@ -212,6 +218,8 @@ static ssize_t procfs_read(FAR struct file *filep, FAR char *buffer,
                  size_t buflen);
 static ssize_t procfs_write(FAR struct file *filep, FAR const char *buffer,
                  size_t buflen);
+static int     procfs_poll(FAR struct file *filep, FAR struct pollfd *fds,
+                 bool setup);
 static int     procfs_ioctl(FAR struct file *filep, int cmd,
                  unsigned long arg);
 
@@ -264,6 +272,7 @@ const struct mountpt_operations g_procfs_operations =
   procfs_ioctl,      /* ioctl */
   NULL,              /* mmap */
   NULL,              /* truncate */
+  procfs_poll,       /* poll */
 
   NULL,              /* sync */
   procfs_dup,        /* dup */
@@ -485,7 +494,7 @@ static ssize_t procfs_write(FAR struct file *filep, FAR const char *buffer,
   handler = (FAR struct procfs_file_s *)filep->f_priv;
   DEBUGASSERT(handler);
 
-  /* Call the handler's read routine */
+  /* Call the handler's write routine */
 
   if (handler->procfsentry->ops->write)
     {
@@ -493,6 +502,28 @@ static ssize_t procfs_write(FAR struct file *filep, FAR const char *buffer,
     }
 
   return 0;
+}
+
+static int procfs_poll(FAR struct file *filep, FAR struct pollfd *fds,
+                       bool setup)
+{
+  FAR struct procfs_file_s *handler;
+
+  finfo("fds=%p setup=%d\n", fds, setup);
+
+  /* Recover our private data from the struct file instance */
+
+  handler = (FAR struct procfs_file_s *)filep->f_priv;
+  DEBUGASSERT(handler);
+
+  /* Call the handler's poll routine */
+
+  if (handler->procfsentry->ops->poll)
+    {
+      return handler->procfsentry->ops->poll(filep, fds, setup);
+    }
+
+  return -ENOSYS;
 }
 
 /****************************************************************************

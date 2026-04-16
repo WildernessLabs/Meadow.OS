@@ -62,7 +62,7 @@
  ****************************************************************************/
 
 int ipcc_poll(FAR struct file *filep, FAR struct pollfd *fds,
-                     bool setup)
+              bool setup)
 {
   FAR struct ipcc_driver_s *priv;
   FAR struct pollfd **slot;
@@ -72,7 +72,6 @@ int ipcc_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   /* Get our private data structure */
 
-  DEBUGASSERT(filep != NULL && filep->f_inode != NULL);
   priv = filep->f_inode->i_private;
 
   /* Get exclusive access to driver */
@@ -145,7 +144,7 @@ int ipcc_poll(FAR struct file *filep, FAR struct pollfd *fds,
     }
 #endif
 
-  poll_notify(priv->fds, CONFIG_IPCC_NPOLLWAITERS, eventset);
+  poll_notify(&fds, 1, eventset);
 
   nxmutex_unlock(&priv->lock);
   return OK;

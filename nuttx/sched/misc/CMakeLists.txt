@@ -17,4 +17,19 @@
 # the License.
 #
 # ##############################################################################
-target_sources(sched PRIVATE assert.c panic_notifier.c reboot_notifier.c)
+
+set(SRCS assert.c panic_notifier.c reboot_notifier.c)
+
+if(CONFIG_ARCH_DEADLOCKDUMP)
+  list(APPEND SRCS deadlock.c)
+endif()
+
+if(CONFIG_DUMP_ON_EXIT)
+  list(APPEND SRCS dump.c)
+endif()
+
+if(CONFIG_BOARD_COREDUMP_SYSLOG OR CONFIG_BOARD_COREDUMP_BLKDEV)
+  list(APPEND SRCS coredump.c)
+endif()
+
+target_sources(sched PRIVATE ${SRCS})

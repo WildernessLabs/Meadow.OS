@@ -411,8 +411,7 @@ static int rt_timer_isr(int irq, void *context, void *arg)
 
   if (!list_is_empty(&priv->runlist))
     {
-      /**
-       * When stop/delete timer, in the same time the hardware timer
+      /* When stop/delete timer, in the same time the hardware timer
        * interrupt triggers, function "stop/delete" remove the timer
        * from running list, so the 1st timer is not which triggers.
        */
@@ -477,7 +476,7 @@ int rt_timer_create(const struct rt_timer_args_s *args,
 {
   struct rt_timer_s *timer;
 
-  timer = (struct rt_timer_s *)kmm_malloc(sizeof(*timer));
+  timer = kmm_malloc(sizeof(*timer));
   if (!timer)
     {
       tmrerr("ERROR: Failed to allocate %d bytes\n", sizeof(*timer));

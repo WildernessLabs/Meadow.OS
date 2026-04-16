@@ -84,7 +84,6 @@ static uint16_t icmpv6_poll_eventhandler(FAR struct net_driver_s *dev,
        */
 
       psock = info->psock;
-      DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
       conn  = psock->s_conn;
       if (dev != conn->dev)
         {
@@ -190,7 +189,7 @@ int icmpv6_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    */
 
   cb->flags = NETDEV_DOWN;
-  cb->priv  = (FAR void *)info;
+  cb->priv  = info;
   cb->event = icmpv6_poll_eventhandler;
 
   if ((fds->events & POLLIN) != 0)
@@ -202,7 +201,7 @@ int icmpv6_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    * for use during poll teardown as well.
    */
 
-  fds->priv = (FAR void *)info;
+  fds->priv = info;
 
   /* Check for read data availability now */
 

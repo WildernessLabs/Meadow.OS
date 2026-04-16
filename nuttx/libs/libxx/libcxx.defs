@@ -18,7 +18,7 @@
 #
 ###########################################################################
 
-LIBCXX_VERSION=12.0.0
+LIBCXX_VERSION=$(patsubst "%",%,$(CONFIG_LIBCXX_VERSION))
 
 # Download and unpack tarball if no git repo found
 ifeq ($(wildcard libcxx/.git),)
@@ -29,17 +29,13 @@ libcxx: libcxx-$(LIBCXX_VERSION).src.tar.xz
 	$(Q) tar -xf libcxx-$(LIBCXX_VERSION).src.tar.xz \
 	         --exclude libcxx-$(LIBCXX_VERSION).src/test/std/pstl
 	$(Q) mv libcxx-$(LIBCXX_VERSION).src libcxx
-	$(Q) patch -p0 < 0001-Remove-the-locale-fallback-for-NuttX.patch
-	$(Q) patch -p0 < 0001-libc-avoid-the-waring-__EXCEPTIONS-is-not-defined-ev.patch
-	$(Q) patch -p1 < 0001-libcxx-Rename-PS-macro-to-avoid-clashing-with-Xtensa.patch
-ifeq ($(CONFIG_LIBC_ARCH_ATOMIC),y)
-	$(Q) patch -p1 < 0002-Omit-atomic_-un-signed_lock_free-if-unsupported.patch
-endif
+	$(Q) patch -p2 < mbstate_t.patch
 	$(Q) touch $@
 endif
 
 $(TOPDIR)/include/libcxx: libcxx
 	$(Q) $(DIRLINK) $(CURDIR)/libcxx/include $(TOPDIR)/include/libcxx
+	$(Q) cp $(CURDIR)/__config_site $(TOPDIR)/include/libcxx/__config_site
 
 context:: $(TOPDIR)/include/libcxx
 
@@ -51,6 +47,7 @@ ifeq ($(wildcard libcxx/.git),)
 endif
 
 CXXFLAGS += ${DEFINE_PREFIX}_LIBCPP_BUILDING_LIBRARY
+CXXFLAGS += ${INCDIR_PREFIX}$(CURDIR)/libcxx/src
 
 ifeq ($(CONFIG_LIBSUPCXX), y)
 CXXFLAGS += ${DEFINE_PREFIX}__GLIBCXX__
@@ -67,8 +64,6 @@ endif
 #       |                        ^~~~~~~~~~
 libcxx/src/barrier.cpp_CXXFLAGS += -Wno-shadow
 libcxx/src/locale.cpp_CXXFLAGS += -Wno-shadow
-
-libcxx/src/filesystem/directory_iterator.cpp_CXXFLAGS += -Wno-shadow
 libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-shadow
 
 # Workaround the following warning with "GCC 12"
@@ -85,11 +80,23 @@ libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-shadow
 #       |                                ^~~~~~
 
 ifeq ($(GCCVER),)
-  export GCCVER = $(shell $(CXX) --version | grep g++ | sed -r 's/.* ([0-9]+\.[0-9]+).*/\1/' | cut -d'.' -f1)
+  export GCCVER = $(shell $(CXX) --version | grep ++ | sed -E 's/.* ([0-9]+\.[0-9]+).*/\1/' | cut -d'.' -f1)
 endif
 
 ifeq ($(GCCVER),12)
   libcxx/src/filesystem/operations.cpp_CXXFLAGS += -Wno-maybe-uninitialized
+  libcxx/src/locale.cpp_CXXFLAGS += -Wno-maybe-uninitialized
+endif
+
+# Workaround the following warning with "GCC 12"
+#
+# ...
+# include/libcxx/new:237:24: warning: argument 1 value '18446744073709551599' exceeds maximum object size 9223372036854775807 [-Walloc-size-larger-than=]
+#  237 |   return ::operator new(__args...);
+#      |          ~~~~~~~~~~~~~~^~~~~~~~~~~
+
+ifeq ($(GCCVER),12)
+  libcxx/src/string.cpp_CXXFLAGS += -Wno-alloc-size-larger-than
 endif
 
 # The following warning was observed with icicle:knsh config.
@@ -109,14 +116,70 @@ endif
 #          ~~~~~~~~~~^~~~~~~~~~~~
 libcxx/src/condition_variable.cpp_CXXFLAGS += -Wno-sign-compare
 
-CPPSRCS += $(notdir $(wildcard libcxx/src/*.cpp))
-CPPSRCS += $(notdir $(wildcard libcxx/src/experimental/*.cpp))
-CPPSRCS += $(notdir $(wildcard libcxx/src/filesystem/*.cpp))
+# When building with GCC 12.2.0
+# libcxx has a fallback to use __always_inline__ when the (clang) exclude_from_explicit_instantiation isn't available.
+# This causes: `always_inline` function might not be inlinable [-Wattributes] warnings in some modules.
+# For example:
+# libcxx/src/include/to_chars_floating_point.h:988:17: warning: ‘always_inline’ function might not be inlinable [-Wattributes]
+# Should be OK to ignore these
+ifeq ($(GCCVER),12)
+	libcxx/src/charconv.cpp_CXXFLAGS += -Wno-attributes
+endif
 
-DEPPATH += --dep-path libcxx/src
-DEPPATH += --dep-path libcxx/src/experimental
-DEPPATH += --dep-path libcxx/src/filesystem
+# Another warning on gcc 12.2.0
+# libcxx/src/locale.cpp:6604:85: warning: type attributes ignored after type is already defined [-Wattributes]
+# 6604 | template class _LIBCPP_DEPRECATED_IN_CXX20 _LIBCPP_CLASS_TEMPLATE_INSTANTIATION_VIS codecvt_byname<char16_t, char, mbstate_t>;
+#      |                                                                                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# libcxx/src/locale.cpp:6605:85: warning: type attributes ignored after type is already defined [-Wattributes]
+# 6605 | template class _LIBCPP_DEPRECATED_IN_CXX20 _LIBCPP_CLASS_TEMPLATE_INSTANTIATION_VIS codecvt_byname<char32_t, char, mbstate_t>;
+ifeq ($(GCCVER),12)
+	libcxx/src/locale.cpp_CXXFLAGS += -Wno-attributes
+endif
 
-VPATH += libcxx/src
-VPATH += libcxx/src/experimental
-VPATH += libcxx/src/filesystem
+# warning on gcc >= 12.3.Rel1
+# libcxx/src/string.cpp:58:33: warning: 'template<class _CharT> struct std::__1::char_traits' is deprecated: char_traits<T> for T not equal to char, wchar_t, char8_t, char16_t or char32_t is non-standard and is provided for a temporary period. It will be removed in LLVM 18, so please migrate off of it. [-Wdeprecated-declarations]
+#    58 | template string operator+<char, char_traits<char>, allocator<char>>(char const*, string const&);
+ifeq ($(shell expr $(GCCVER) \>= 12), 1)
+	libcxx/src/string.cpp_CXXFLAGS += -Wno-deprecated-declarations
+endif
+
+# warning on gcc >= 12.3.Rel1
+# libcxx/src/filesystem/path.cpp:14:
+# libcxx/src/filesystem/path_parser.h: In constructor 'std::__1::__fs::filesystem::parser::PathParser::PathParser(std::__1::__fs::filesystem::parser::string_view_t, ParserState)':
+# libcxx/src/filesystem/path_parser.h:58:43: warning: declaration of 'State' shadows a member of 'std::__1::__fs::filesystem::parser::PathParser' [-Wshadow]
+#    58 |   PathParser(string_view_t P, ParserState State) noexcept : Path(P),
+#       |                               ~~~~~~~~~~~~^~~~~
+# libcxx/src/filesystem/path_parser.h:55:15: note: shadowed declaration is here
+#    55 |   ParserState State;
+#       |               ^~~~~
+# libcxx/src/filesystem/path_parser.h: In constructor 'std::__1::__fs::filesystem::parser::PathParser::PathParser(std::__1::__fs::filesystem::parser::string_view_t, ParserState)':
+# libcxx/src/filesystem/path_parser.h:58:43: warning: declaration of 'State' shadows a member of 'std::__1::__fs::filesystem::parser::PathParser' [-Wshadow]
+#    58 |   PathParser(string_view_t P, ParserState State) noexcept : Path(P),
+#       |                               ~~~~~~~~~~~~^~~~~
+# libcxx/src/filesystem/path_parser.h:55:15: note: shadowed declaration is here
+#    55 |   ParserState State;
+#       |               ^~~~~
+# libcxx/src/filesystem/path_parser.h: In constructor 'std::__1::__fs::filesystem::parser::PathParser::PathParser(std::__1::__fs::filesystem::parser::string_view_t, ParserState)':
+# libcxx/src/filesystem/path_parser.h:58:43: warning: declaration of 'State' shadows a member of 'std::__1::__fs::filesystem::parser::PathParser' [-Wshadow]
+#    58 |   PathParser(string_view_t P, ParserState State) noexcept : Path(P),
+#       |                               ~~~~~~~~~~~~^~~~~
+# libcxx/src/filesystem/path_parser.h:55:15: note: shadowed declaration is here
+#    55 |   ParserState State;
+#       |               ^~~~~
+ifeq ($(shell expr $(GCCVER) \>= 12), 1)
+	libcxx/src/filesystem/path.cpp_CXXFLAGS += -Wno-shadow
+endif
+
+# warning on gcc >= 12.3.Rel1
+# libcxx/src/ryu/d2s.cpp:490:31: warning: '_Trailing_zero_bits' may be used uninitialized [-Wmaybe-uninitialized]
+#   490 |           _Trailing_zero_bits += 32;
+#       |           ~~~~~~~~~~~~~~~~~~~~^~~~~
+ifeq ($(shell expr $(GCCVER) \>= 12), 1)
+	libcxx/src/ryu/d2s.cpp_CXXFLAGS += -Wno-maybe-uninitialized
+endif
+
+
+CPPSRCS += $(wildcard libcxx/src/*.cpp)
+CPPSRCS += $(wildcard libcxx/src/experimental/*.cpp)
+CPPSRCS += $(wildcard libcxx/src/filesystem/*.cpp)
+CPPSRCS += $(wildcard libcxx/src/ryu/*.cpp)

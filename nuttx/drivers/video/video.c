@@ -36,6 +36,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
 
+#include <nuttx/video/video.h>
 #include <nuttx/video/imgsensor.h>
 #include <nuttx/video/imgdata.h>
 
@@ -631,13 +632,14 @@ static int start_capture(FAR video_mng_t *vmng,
   convert_to_imgsensorfmt(&fmt[VIDEO_FMT_SUB], &sf[IMGSENSOR_FMT_SUB]);
   convert_to_imgsensorinterval(interval, &si);
 
+  IMGDATA_SET_BUF(vmng->imgdata,
+     nr_fmt, df, (FAR uint8_t *)bufaddr, bufsize);
+  IMGDATA_START_CAPTURE(vmng->imgdata,
+     nr_fmt, df, &di, video_complete_capture, vmng);
   IMGSENSOR_START_CAPTURE(vmng->imgsensor,
      type == V4L2_BUF_TYPE_VIDEO_CAPTURE ?
      IMGSENSOR_STREAM_TYPE_VIDEO : IMGSENSOR_STREAM_TYPE_STILL,
      nr_fmt, sf, &si);
-  IMGDATA_START_CAPTURE(vmng->imgdata,
-     nr_fmt, df, &di, video_complete_capture, vmng);
-  IMGDATA_SET_BUF(vmng->imgdata, (FAR uint8_t *)bufaddr, bufsize);
   return OK;
 }
 
@@ -833,8 +835,7 @@ static int initialize_scene_parameter(FAR video_mng_t *vmng,
                                       enum v4l2_scene_mode mode,
                                       video_scene_params_t **vsp)
 {
-  video_scene_params_t *sp =
-    (FAR video_scene_params_t *)kmm_malloc(sizeof(video_scene_params_t));
+  FAR video_scene_params_t *sp = kmm_malloc(sizeof(video_scene_params_t));
   if (!sp)
     {
       return -ENOMEM;
@@ -1046,7 +1047,7 @@ get_connected_imgsensor(FAR struct imgsensor_s **sensors,
 static int video_open(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR video_mng_t  *priv  = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t  *priv  = inode->i_private;
   int ret = OK;
 
   nxmutex_lock(&priv->lock_open_num);
@@ -1083,7 +1084,7 @@ static int video_open(FAR struct file *filep)
 static int video_close(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR video_mng_t  *priv  = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t  *priv  = inode->i_private;
 
   nxmutex_lock(&priv->lock_open_num);
 
@@ -1125,7 +1126,7 @@ static ssize_t video_write(FAR struct file *filep,
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 static int video_unlink(FAR struct inode *inode)
 {
-  FAR video_mng_t *priv = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t *priv = inode->i_private;
   nxmutex_lock(&priv->lock_open_num);
   if (priv->open_num == 0)
     {
@@ -2277,6 +2278,9 @@ static int video_g_ctrl(FAR struct video_mng_s *priv,
   struct v4l2_ext_control  control;
   int                      ret;
 
+  memset(&ext_controls, 0, sizeof(struct v4l2_ext_controls));
+  memset(&control, 0, sizeof(struct v4l2_ext_control));
+
   if (ctrl == NULL)
     {
       return -EINVAL;
@@ -3080,7 +3084,7 @@ static int video_s_ext_ctrls_scene(FAR struct video_mng_s *vmng,
 static int video_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR video_mng_t  *priv  = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t  *priv  = inode->i_private;
   int ret = OK;
 
   switch (cmd)
@@ -3236,7 +3240,7 @@ static int video_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 static int video_mmap(FAR struct file *filep, FAR struct mm_map_entry_s *map)
 {
   FAR struct inode     *inode    = filep->f_inode;
-  FAR video_mng_t      *priv     = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t      *priv     = inode->i_private;
   FAR video_type_inf_t *type_inf = &priv->video_inf;
   size_t                heapsize = get_heapsize(type_inf);
   int                   ret      = -EINVAL;
@@ -3254,7 +3258,7 @@ static int video_mmap(FAR struct file *filep, FAR struct mm_map_entry_s *map)
 static int video_poll(FAR struct file *filep, struct pollfd *fds, bool setup)
 {
   FAR struct inode     *inode = filep->f_inode;
-  FAR video_mng_t      *priv  = (FAR video_mng_t *)inode->i_private;
+  FAR video_mng_t      *priv  = inode->i_private;
   FAR video_type_inf_t *type_inf;
   enum v4l2_buf_type   buf_type;
   irqstate_t           flags;
@@ -3278,7 +3282,7 @@ static int video_poll(FAR struct file *filep, struct pollfd *fds, bool setup)
           fds->priv     = &type_inf->fds;
           if (!video_framebuff_is_empty(&type_inf->bufinf))
             {
-              poll_notify(&type_inf->fds, 1, POLLIN);
+              poll_notify(&fds, 1, POLLIN);
             }
         }
       else
@@ -3309,6 +3313,8 @@ static int video_complete_capture(uint8_t err_code, uint32_t datasize,
   FAR vbuf_container_t *container = NULL;
   enum v4l2_buf_type buf_type;
   irqstate_t           flags;
+  imgdata_format_t df[MAX_VIDEO_FMT];
+  video_format_t c_fmt[MAX_VIDEO_FMT];
 
   flags = enter_critical_section();
 
@@ -3383,7 +3389,18 @@ static int video_complete_capture(uint8_t err_code, uint32_t datasize,
         }
       else
         {
+          get_clipped_format(type_inf->nr_fmt,
+                             type_inf->fmt,
+                             &type_inf->clip,
+                             c_fmt);
+
+          convert_to_imgdatafmt(&c_fmt[VIDEO_FMT_MAIN],
+                                &df[IMGDATA_FMT_MAIN]);
+          convert_to_imgdatafmt(&c_fmt[VIDEO_FMT_SUB], &df[IMGDATA_FMT_SUB]);
+
           IMGDATA_SET_BUF(vmng->imgdata,
+            type_inf->nr_fmt,
+            df,
             (FAR uint8_t *)container->buf.m.userptr,
             container->buf.length);
           container->buf.sequence = type_inf->seqnum++;
@@ -3438,7 +3455,7 @@ int video_register(FAR const char *devpath,
 
   /* Initialize video device structure */
 
-  priv = (FAR video_mng_t *)kmm_zalloc(sizeof(video_mng_t));
+  priv = kmm_zalloc(sizeof(video_mng_t));
   if (priv == NULL)
     {
       verr("Failed to allocate instance\n");
@@ -3454,7 +3471,7 @@ int video_register(FAR const char *devpath,
 
   /* Save device path */
 
-  priv->devpath = (FAR char *)kmm_malloc(allocsize + 1);
+  priv->devpath = kmm_malloc(allocsize + 1);
   if (priv->devpath == NULL)
     {
       kmm_free(priv);

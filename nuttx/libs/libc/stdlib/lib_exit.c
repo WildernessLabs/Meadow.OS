@@ -45,7 +45,10 @@
  ****************************************************************************/
 
 extern FAR void *__dso_handle weak_data;
+
+#ifndef CONFIG_HOST_WINDOWS
 FAR void *__dso_handle = &__dso_handle;
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -100,13 +103,17 @@ void exit(int status)
   pthread_cleanup_popall(tls_get_info());
 #endif
 
-#if CONFIG_TLS_NELEM > 0
+#if defined(CONFIG_TLS_NELEM) && CONFIG_TLS_NELEM > 0
   tls_destruct();
 #endif
 
   /* Run the registered exit functions */
 
   atexit_call_exitfuncs(status, false);
+
+#if defined(CONFIG_TLS_TASK_NELEM) && CONFIG_TLS_TASK_NELEM > 0
+  task_tls_destruct();
+#endif
 
 #ifdef CONFIG_FILE_STREAM
   /* Flush all streams */
@@ -149,7 +156,7 @@ void quick_exit(int status)
   pthread_cleanup_popall(tls_get_info());
 #endif
 
-#if CONFIG_TLS_NELEM > 0
+#if defined(CONFIG_TLS_NELEM) && CONFIG_TLS_NELEM > 0
   tls_destruct();
 #endif
 

@@ -125,7 +125,7 @@
 
 /* Network socket control ***************************************************/
 
-#define SIOCDENYINETSOCK _SIOC(0x0033) /* Deny network socket. */
+#define SIOCDENYINETSOCK _SIOC(0x003C) /* Deny network socket. */
 
 /* Bridge calls *************************************************************/
 
@@ -135,6 +135,10 @@
 #define SIOCBRDELIF        _SIOC(0x0039)  /* Remove interface from bridge */
 #define SIOCGIFBR          _SIOC(0x003A)  /* Bridging support */
 #define SIOCSIFBR          _SIOC(0x003B)  /* Set bridging options */
+
+/* ETH Tool calls ***********************************************************/
+
+#define SIOCETHTOOL        _SIOC(0x003D)  /* Ethtool interface */
 
 /****************************************************************************
  * Public Type Definitions

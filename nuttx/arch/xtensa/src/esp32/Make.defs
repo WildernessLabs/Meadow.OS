@@ -236,7 +236,7 @@ CHIP_CSRCS += esp32_wlan.c esp32_wifi_utils.c esp32_wifi_adapter.c
 EXTRA_LIBS += -lcore -lnet80211 -lpp -lsmartconfig -lespnow -lwpa_supplicant
 
 ifeq ($(GCCVER),)
-  export GCCVER := $(shell $(CC) --version | grep gcc | sed -r 's/.* ([0-9]+\.[0-9]+).*/\1/' | cut -d'.' -f1)
+  export GCCVER := $(shell $(CC) --version | grep gcc | sed -E 's/.* ([0-9]+\.[0-9]+).*/\1/' | cut -d'.' -f1)
 endif
 ifeq ($(GCCVER),12)
   chip/esp32_wifi_adapter.c_CFLAGS += -Wno-maybe-uninitialized
@@ -259,7 +259,7 @@ endif
 
 ESP_HAL_3RDPARTY_REPO   = esp-hal-3rdparty
 ifndef ESP_HAL_3RDPARTY_VERSION
-	ESP_HAL_3RDPARTY_VERSION = 45c33111b441363e1267158186a60f42525228ca
+	ESP_HAL_3RDPARTY_VERSION = 2fbc8a025275d68833cdfef490377048538de57a
 endif
 
 ifndef ESP_HAL_3RDPARTY_URL
