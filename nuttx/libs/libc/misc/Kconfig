@@ -144,8 +144,6 @@ config LIBC_TEMPBUFFER_MALLOC
 
 endif # LIBC_TEMPBUFFER
 
-endif # LIBC_PATHBUFFER
-
 config LIBC_BACKTRACE_BUFFSIZE
 	int "The size of backtrace record buffer"
 	depends on SCHED_BACKTRACE
