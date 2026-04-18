@@ -102,40 +102,6 @@ struct netdev_upperhalf_s
 static bool quota_is_valid(FAR struct netdev_lowerhalf_s *lower)
 {
   int total = 0;
-  enum netpkt_type_e type;
-
-  for (type = NETPKT_TX; type < NETPKT_TYPENUM; type++)
-    {
-      total += netdev_lower_quota_load(lower, type);
-    }
-
-  if (total > NETPKT_BUFNUM)
-    {
-      nerr("ERROR: Too big quota when registering device: %d\n", total);
-      return false;
-    }
-
-  if (total > NETPKT_BUFNUM / 2)
-    {
-      nwarn("WARNING: The quota of the registering device may consume more "
-            "than half of the network buffers, which may hurt performance. "
-            "Please consider decreasing driver quota or increasing nIOB.\n");
-    }
-
-  return true;
-}
-
-/****************************************************************************
- * Name: quota_is_valid
- *
- * Description:
- *   Check if the quota of the lower half is not too big.
- *
- ****************************************************************************/
-
-static bool quota_is_valid(FAR struct netdev_lowerhalf_s *lower)
-{
-  int total = 0;
   int type;
 
   for (type = 0; type < NETPKT_TYPENUM; type++)

@@ -23,20 +23,17 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include <debug.h>
-#include <stdint.h>
+#include <inttypes.h>
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void sbi_mexception(uintreg_t mcause, uintreg_t *mepc, uintreg_t tval)
+imaxdiv_t imaxdiv(intmax_t numer, intmax_t denom)
 {
-  sinfo("cauz=%"PRIxREG" epc=%p tval=0x%"PRIxREG"\n", mcause, mepc, tval);
+  imaxdiv_t f;
 
-  while (1)
-    {
-      __asm__ __volatile__("wfi");
-    }
+  f.quot = numer / denom;
+  f.rem  = numer % denom;
+  return f;
 }

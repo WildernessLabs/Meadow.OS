@@ -1,5 +1,5 @@
 /****************************************************************************
- * libs/libc/string//lib_strdup.c
+ * mm/kmm_string/kmm_strdup.c
  *
  *   Copyright (C) 2007, 2009, 2011, 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -39,60 +39,14 @@
 
 #include <nuttx/config.h>
 
-#include "chip.h"
-#include "arm_internal.h"
-#include "ram_vectors.h"
-#include "nvic.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define IDLE_STACK      (_ebss + CONFIG_IDLETHREAD_STACKSIZE)
-
-#ifndef ARMV8M_PERIPHERAL_INTERRUPTS
-#  error ARMV8M_PERIPHERAL_INTERRUPTS must be defined to the number of I/O interrupts to be supported
-#endif
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/* Chip-specific entrypoint */
-
-extern void __start(void);
-
-static void start(void)
-{
-  /* Zero lr to mark the end of backtrace */
-
-  asm volatile ("mov lr, #0\n\t"
-                "b  __start\n\t");
-}
+#include <string.h>
+#include <nuttx/kmalloc.h>
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/* Common exception entrypoint */
-
-extern void exception_common(void);
-extern void exception_direct(void);
-
-/****************************************************************************
- * Public data
- ****************************************************************************/
-
-/* The v8m vector table consists of an array of function pointers, with the
- * first slot (vector zero) used to hold the initial stack pointer.
- *
- * As all exceptions (interrupts) are routed via exception_common, we just
- * need to fill this array with pointers to it.
- *
- * Note that the [ ... ] designated initializer is a GCC extension.
- */
-
-const void * const _vectors[] locate_data(".vectors") =
+FAR char *kmm_strdup(FAR const char *s)
 {
   FAR char *news = NULL;
   if (s)
@@ -104,15 +58,5 @@ const void * const _vectors[] locate_data(".vectors") =
         }
     }
 
-  IDLE_STACK,
-
-  /* Reset exception handler */
-
-  start,
-
-  /* Vectors 2 - n point directly at the generic handler */
-
-  [2 ... NVIC_IRQ_PENDSV] = &exception_common,
-  [(NVIC_IRQ_PENDSV + 1) ... (15 + ARMV8M_PERIPHERAL_INTERRUPTS)]
-                          = &exception_direct
-};
+  return news;
+}
