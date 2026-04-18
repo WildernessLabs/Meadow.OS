@@ -453,14 +453,16 @@ int meadow_eth_utils_set_router(const char *interfaceName,
 
         (void)delroute(sockfd,
                       (FAR struct sockaddr_storage *)&target,
-                      (FAR struct sockaddr_storage *)&netmask);
+                      (FAR struct sockaddr_storage *)&netmask,
+                      sizeof(struct sockaddr_in));
 
         /* Then add the new default route */
 
         ret = addroute(sockfd,
                       (FAR struct sockaddr_storage *)&target,
                       (FAR struct sockaddr_storage *)&netmask,
-                      (FAR struct sockaddr_storage *)&router);
+                      (FAR struct sockaddr_storage *)&router,
+                      sizeof(struct sockaddr_in));
       }
 #endif
 

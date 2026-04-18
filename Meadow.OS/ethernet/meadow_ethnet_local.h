@@ -55,6 +55,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* IFF_DOWN was removed from NuttX net/if.h; in NuttX, the absence of
+ * IFF_UP (value 0) represents the interface-down state.
+ */
+
+#ifndef IFF_DOWN
+#  define IFF_DOWN 0
+#endif
+
 #define MEADOW_THREAD_NAME_ETHNET_CONNECTION "EthConn"
 #define MEADOW_THREAD_PRIORITY_ETHNET_CONNECTION 120
 #define MEADOW_THREAD_STACKSIZE_ETHNET_CONNECTION 4096
