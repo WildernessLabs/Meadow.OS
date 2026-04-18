@@ -3,6 +3,18 @@
 # Accept our deletions for DU conflicts in arch and boards
 git status --short | grep "^DU" | grep -E "nuttx/(arch|boards)/" | awk '{print $2}' | xargs git rm
 
+# cd arch/arm/src/
+# git rm -rf -- armv7-a armv7-r armv8-m cxd56xx goldfish imx9 lc823450 max326xx mcx-nxxx mps qemu ra4 rp2040 rp23xx sam34 stm32f0l0g0 stm32h5 stm32l4 tiva xmc4
+# cd ../include
+# git rm -rf -- cxd32xx imxrt max326xx rp23xx stm32h5 mcx-nxxx samv7 armv7-m goldfish mps stm32f0l0g0 at32 csk6 imx9 ra4
+# cd ../..
+# cd boards/arm/
+# git rm -rf -- cxd56xx mcx-nxxx nrf52 qemu rp2040 sama5 samv7 stm32f0l0g0 stm32h5 stm32l4 imx9 mps nrf53 ra4 rp23xx  samd2l2 stm32h7 tiva
+# cd ../
+# git rm -rf -- arm64 avr risc-v sim x86_64 xtensa
+# cd ..cd
+
+
 # Resolve UU conflicts in stm32f777zit6-meadow by keeping ours
 git status --short | grep "^UU" | grep "nuttx/boards/arm/stm32f7/stm32f777zit" | awk '{print $2}' | xargs git checkout --ours
 git status --short | grep "^UU" | grep "nuttx/boards/arm/stm32f7/stm32f777zit" | awk '{print $2}' | xargs git add
