@@ -1629,17 +1629,6 @@ def test_ltp_interfaces_sigaction_28_16(p):
     assert retID >= 0
 
 
-def test_ltp_interfaces_timer_settime_5_3(p):
-    ret = p.sendCommand(
-        "ltp_interfaces_timer_settime_5_3",
-        ["PASSED", "passed", "Passed", "PASS"],
-        timeout=200,
-    )
-    retID = p.sendCommand("echo $?", "0", timeout=2)
-    assert ret >= 0
-    assert retID >= 0
-
-
 def test_ltp_interfaces_sigaction_8_16(p):
     ret = p.sendCommand(
         "ltp_interfaces_sigaction_8_16",
@@ -8923,7 +8912,7 @@ def test_ltp_interfaces_sem_wait_1_1(p):
 
 
 def test_ltp_interfaces_pthread_once_2_1(p):
-    ret = p.sendCommand("ltp_interfaces_pthread_once_2_1", [""], timeout=10)
+    ret = p.sendCommand("ltp_interfaces_pthread_once_2_1", [""], timeout=20)
     retID = p.sendCommand("echo $?", "0", timeout=2)
     assert ret >= 0
     assert retID >= 0
@@ -11178,6 +11167,17 @@ def test_ltp_interfaces_sigaction_4_57(p):
         "ltp_interfaces_sigaction_4_57",
         ["PASSED", "passed", "Passed", "PASS"],
         timeout=10,
+    )
+    retID = p.sendCommand("echo $?", "0", timeout=2)
+    assert ret >= 0
+    assert retID >= 0
+
+
+def test_ltp_interfaces_timer_settime_5_3(p):
+    ret = p.sendCommand(
+        "ltp_interfaces_timer_settime_5_3",
+        ["PASSED", "passed", "Passed", "PASS"],
+        timeout=200,
     )
     retID = p.sendCommand("echo $?", "0", timeout=2)
     assert ret >= 0

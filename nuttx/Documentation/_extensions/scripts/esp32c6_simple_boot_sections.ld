@@ -102,6 +102,11 @@ SECTIONS
     esp_head.*(.literal .text .literal.* .text.*)
     esp_start.*(.literal .text .literal.* .text.*)
 
+    *(.wifi0iram.*)
+    *(.wifirxiram.*)
+    *(.wifislpiram.*)
+    *(.wifiorslpiram.*)
+    *(.wifislprxiram.*)
   } >iram0_0_seg AT > ROM
 
   /* Marks the end of IRAM code segment */
@@ -135,33 +140,6 @@ SECTIONS
   .dram0.dummy (NOLOAD):
   {
     . = ORIGIN(dram0_0_seg) + _iram_end - _iram_start;
-  } >dram0_0_seg
-
-  /* Shared RAM */
-
-  .dram0.bss (NOLOAD) :
-  {
-    . = ALIGN (8);
-    _bss_start = ABSOLUTE(.);
-    _sbss = ABSOLUTE(.);
-    *(.dynsbss)
-    *(.sbss)
-    *(.sbss.*)
-    *(.gnu.linkonce.sb.*)
-    *(.scommon)
-    *(.sbss2)
-    *(.sbss2.*)
-    *(.gnu.linkonce.sb2.*)
-    *(.dynbss)
-    *(.bss)
-    *(.bss.*)
-    *(.share.mem)
-    *(.gnu.linkonce.b.*)
-    *(COMMON)
-
-    . = ALIGN (8);
-    _ebss = ABSOLUTE(.);
-    _bss_end = ABSOLUTE(.);
   } >dram0_0_seg
 
   .noinit (NOLOAD):
@@ -263,11 +241,34 @@ SECTIONS
     . = ALIGN(4);
     _edata = ABSOLUTE(.);
     _data_end = ABSOLUTE(.);
-
-    /* Heap starts at the end of .data */
-
-    _sheap = ABSOLUTE(.);
   } >dram0_0_seg AT > ROM
+
+  /* Shared RAM */
+
+  .dram0.bss (NOLOAD) :
+  {
+    . = ALIGN (8);
+    _bss_start = ABSOLUTE(.);
+    _sbss = ABSOLUTE(.);
+    *(.dynsbss)
+    *(.sbss)
+    *(.sbss.*)
+    *(.gnu.linkonce.sb.*)
+    *(.scommon)
+    *(.sbss2)
+    *(.sbss2.*)
+    *(.gnu.linkonce.sb2.*)
+    *(.dynbss)
+    *(.bss)
+    *(.bss.*)
+    *(.share.mem)
+    *(.gnu.linkonce.b.*)
+    *(COMMON)
+
+    . = ALIGN (32);
+    _ebss = ABSOLUTE(.);
+    _bss_end = ABSOLUTE(.);
+  } >dram0_0_seg
 
   _image_irom_vma = ADDR(.flash.text);
   _image_irom_lma = LOADADDR(.flash.text);
@@ -281,12 +282,17 @@ SECTIONS
   .flash.text :
   {
     _stext = .;
+    _instruction_reserved_start = ABSOLUTE(.);  /* This is a symbol marking the flash.text start, this can be used for mmu driver to maintain virtual address */
+    _text_start = ABSOLUTE(.);
 
     *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)
     *(.irom0.text) /* catch stray ICACHE_RODATA_ATTR */
     *(.fini.literal)
     *(.fini)
     *(.gnu.version)
+
+    _text_end = ABSOLUTE(.);
+    _instruction_reserved_end = ABSOLUTE(.);  /* This is a symbol marking the flash.text end, this can be used for mmu driver to maintain virtual address */
     _etext = .;
 
     /* Similar to _iram_start, this symbol goes here so it is
@@ -307,12 +313,28 @@ SECTIONS
   _image_drom_lma = LOADADDR(.flash.rodata);
   _image_drom_size = SIZEOF(.flash.rodata);
 
+  .flash.appdesc : ALIGN(0x10)
+  {
+    _rodata_reserved_start = ABSOLUTE(.);  /* This is a symbol marking the flash.rodata start, this can be used for mmu driver to maintain virtual address */
+    _rodata_start = ABSOLUTE(.);
+
+    /* Create an empty gap within this section. Thanks to this, the end of this
+     * section will match .flash.rodata's begin address. Thus, both sections
+     * will be merged when creating the final bin image. */
+    . = ALIGN(ALIGNOF(.flash.rodata));
+  } >default_rodata_seg
+
   .flash.rodata :
   {
     _srodata = ABSOLUTE(.);
 
     *(.rodata)
     *(.rodata.*)
+    *(.rodata_wlog_verbose.*)
+    *(.rodata_wlog_debug.*)
+    *(.rodata_wlog_info.*)
+    *(.rodata_wlog_warning.*)
+    *(.rodata_wlog_error.*)
 
     *(.srodata.*)
 
@@ -364,6 +386,16 @@ SECTIONS
     . = ALIGN(4);
   } >default_rodata_seg AT > ROM
 
+  .flash.rodata_noload (NOLOAD) :
+  {
+    /*
+      This is a symbol marking the flash.rodata end, this can be used for mmu driver to maintain virtual address
+      We don't need to include the noload rodata in this section
+    */
+    _rodata_reserved_end = ABSOLUTE(.);
+    . = ALIGN (4);
+  } > default_rodata_seg AT > ROM
+
   /* RTC fast memory holds RTC wake stub code !*/
 
   .rtc.text :
@@ -384,7 +416,9 @@ SECTIONS
   .rtc.data :
   {
     *(.rtc.data)
+    *(.rtc.data.*)
     *(.rtc.rodata)
+    *(.rtc.rodata.*)
   } >rtc_iram_seg
 
   /* This section holds RTC data that should have fixed addresses.

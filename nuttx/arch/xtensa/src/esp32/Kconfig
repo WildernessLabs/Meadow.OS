@@ -99,6 +99,10 @@ config ARCH_CHIP_ESP32PICOD4
 
 endchoice # ESP32 Chip Selection
 
+config ESPRESSIF_CHIP_SERIES
+	string
+	default "esp32"
+
 config ESP32_SINGLE_CPU
 	bool
 	default n
@@ -209,6 +213,8 @@ config ESP32_EXCEPTION_ENABLE_CACHE
 
 menu "ESP32 Peripheral Selection"
 
+source "arch/xtensa/src/common/espressif/Kconfig"
+
 config ESP32_UART
 	bool
 	default n
@@ -291,14 +297,6 @@ config ESP32_PCNT
 	---help---
 		Pulse Counter is currently used to implement Quadracture
 		Encoder.
-
-config ESP32_RMT
-	bool "Remote Control Module (RMT)"
-	default n
-	depends on EXPERIMENTAL
-	---help---
-		Remote Control Module is currently used to control WS2812
-		RGB LED normally used on LED strips.
 
 config ESP32_RNG
 	bool "Random Number Generator (RNG)"
@@ -791,8 +789,10 @@ endmenu # ESP32 Peripheral Selection
 
 config ESP32_WIFI_BT_COEXIST
 	bool "Wi-Fi and BT coexist"
+	default y if ESP32_WIFI && ESP32_BLE
 	default n
 	depends on ESP32_WIFI && ESP32_BLE
+	select ESP32_WIFI_STA_DISCONNECT_PM
 
 menu "Interrupt Configuration"
 
@@ -2503,7 +2503,7 @@ config ESP32_HAVE_OTA_PARTITION
 menu "Bootloader and Image Configuration"
 
 config ESP32_APP_FORMAT_LEGACY
-	bool
+	bool "Enable legacy IDF bootloader format"
 	default y if !ESP32_APP_FORMAT_MCUBOOT
 	depends on !ESP32_APP_FORMAT_MCUBOOT
 	---help---

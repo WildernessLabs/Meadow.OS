@@ -14,7 +14,7 @@ choice
 
 config ARCH_BOARD_ESP32S3_MEADOW
 	bool "WildernessLabs ESP32S3-Meadow Board"
-	depends on ARCH_CHIP_ESP32S3WROOM1
+	depends on ARCH_CHIP_ESP32S3WROOM1N4 || ARCH_CHIP_ESP32S3CUSTOM
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS if ESP32S3_GPIO_IRQ
@@ -396,6 +396,13 @@ config BOARDCTL_TESTSET
 		Enables support for the BOARDIOC_SPINLOCK boardctl() command.
 		Architecture specific logic must provide up_testset() interface.
 
+config BOARDCTL_IRQ_AFFINITY
+	bool "Set an IRQ affinity to CPUs by software"
+	default n
+	depends on SMP
+	---help---
+		Enables support for Set an IRQ affinity to CPUs by software.
+
 config BOARDCTL_IOCTL
 	bool "Board-specific boardctl() commands"
 	default n
@@ -410,6 +417,12 @@ config BOARD_USBDEV_SERIALSTR
 	default n
 	---help---
 		Use board unique serial number to iSerialNumber in the device descriptor.
+
+config BOARD_USBDEV_PIDVID
+	bool "Board-specific usbdev pid/vid"
+	default n
+	---help---
+		Use board unique pid/vid.
 
 config BOARD_MEMORY_RANGE
 	string "Board memory range"

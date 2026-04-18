@@ -494,3 +494,107 @@ NSH commands::
          qe_main:   4. 2
          qe_main:   5. 2
          Terminating!
+
+rndis
+-----
+
+Configures the NuttShell (nsh), enables a serial console on USART6 and enables RNDIS over USB.
+NSH commands::
+
+       nsh> ping -h
+
+       Usage: ping [-c <count>] [-i <interval>] [-W <timeout>] [-s <size>] <hostname>
+       ping -h
+
+       Where:
+       <hostname> is either an IPv4 address or the name of the remote host
+       that is requested the ICMPv4 ECHO reply.
+       -c <count> determines the number of pings.  Default 10.
+       -i <interval> is the default delay between pings (milliseconds).
+       Default 1000.
+       -W <timeout> is the timeout for wait response (milliseconds).
+       Default 1000.
+       -s <size> specifies the number of data bytes to be sent.  Default 56.
+       -h shows this text and exits.
+       
+       nsh> ping 10.42.0.1
+       PING 10.42.0.1 56 bytes of data
+       56 bytes from 10.42.0.1: icmp_seq=0 time=0.0 ms
+       56 bytes from 10.42.0.1: icmp_seq=1 time=0.0 ms
+       ...
+       10 packets transmitted, 10 received, 0% packet loss, time 10100 ms
+       rtt min/avg/max/mdev = 0.000/0.000/0.000/0.000 ms
+
+usbmsc
+------
+
+Configures the NuttShell (nsh), enables a serial console on USART6 and enables USB Mass Storage.
+NSH commands::
+
+       nsh> msconn
+       mcsonn_main: Creating block drivers
+       mcsonn_main: Configuring with NLUNS=1
+       mcsonn_main: handle=0x20004c10
+       mcsonn_main: Bind LUN=0 to /dev/mmcsd0
+       mcsonn_main: Connected
+
+       nsh> msdis
+
+hcs04
+-----
+
+Configures the NuttShell (nsh) over USB Serial (check usbserial configuration) and enables ultrasonic sensor HC-SR04::
+
+       nsh> cat /dev/dist0
+       6241 --> value 
+       6227
+       6241
+       6255
+
+You can convert the value using following::
+
+       Convert to cm: value/58
+       Convert to inches: value/148
+
+ssd1309
+-------
+
+This config is used to enable support to the transparent OLED display powered by SSD1309.
+The resolution of this display is 128x64 (although the effective view is 128x56).
+
+You can wire the display to your board this way:
+
+======= =====
+OLED    PINS
+======= =====
+CS      PB7
+DC      PB8
+RESET   PB6
+SDA     PA7
+SCK     PA5
+======= =====
+
+The board profile configures the NSH over USB and you can use the fb command to test::
+
+        NuttShell (NSH) NuttX-12.5.1
+        nsh> fb
+        VideoInfo:
+              fmt: 0
+             xres: 128
+             yres: 64
+          nplanes: 1
+        PlaneInfo (plane 0):
+            fbmem: 0x200034f8
+            fblen: 1024
+           stride: 16
+          display: 0
+              bpp: 1
+        Mapped FB: 0x200034f8
+         0: (  0,  0) (128, 64)
+         1: ( 11,  5) (106, 54)
+         2: ( 22, 10) ( 84, 44)
+         3: ( 33, 15) ( 62, 34)
+         4: ( 44, 20) ( 40, 24)
+         5: ( 55, 25) ( 18, 14)
+        Test finished
+        nsh>
