@@ -25,7 +25,11 @@ include $(TOPDIR)/Make.defs
 CFLAGS += -I board/Meadow.OS
 $(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)
 
-CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c stm32_reset.c
+CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
+
+ifneq ($(CONFIG_ARCH_BOARD_COMMON),y)
+CSRCS += stm32_reset.c
+endif
 
 ifeq ($(CONFIG_ARCH_LEDS),y)
 CSRCS += stm32_autoleds.c
