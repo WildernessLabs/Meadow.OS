@@ -122,7 +122,7 @@ SECTIONS
         BYTE(0xBB)
         BYTE(0xCC)
         BYTE(0xDD)
-        // meadow OS version
+        /* Meadow OS version */
         LONG(###VERSION_BUILD###)
         LONG(###VERSION_REVISION###)
         LONG(###VERSION_MINOR###)
