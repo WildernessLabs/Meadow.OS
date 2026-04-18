@@ -45,6 +45,7 @@
 #include <nuttx/net/ioctl.h>
 #include <nuttx/drivers/rpmsgdev.h>
 #include <nuttx/power/battery_ioctl.h>
+#include <nuttx/input/mouse.h>
 
 #include "rpmsgdev.h"
 
@@ -72,7 +73,7 @@ struct rpmsgdev_s
   FAR const char       *remotecpu;   /* The server cpu name */
   FAR const char       *remotepath;  /* The device path in the server cpu */
   sem_t                 wait;        /* Wait sem, used for preventing any
-                                      * opreation until the connection
+                                      * operation until the connection
                                       * between two cpu established.
                                       */
   uint32_t              flags;       /* Read and write special handle flags */
@@ -82,7 +83,7 @@ struct rpmsgdev_s
 
 struct rpmsgdev_cookie_s
 {
-  sem_t     sem;     /* Semaphore used fo rpmsg */
+  sem_t     sem;     /* Semaphore used for rpmsg */
   int       result;  /* The return value of the remote call */
   FAR void *data;    /* The return data buffer of the remote call */
 };
@@ -103,7 +104,7 @@ static ssize_t rpmsgdev_write(FAR struct file *filep, FAR const char *buffer,
                               size_t buflen);
 static off_t   rpmsgdev_seek(FAR struct file *filep, off_t offset,
                              int whence);
-static ssize_t rpmsgdev_ioctl_arglen(int cmd);
+static ssize_t rpmsgdev_ioctl_arglen(int cmd, unsigned long arg);
 static int     rpmsgdev_ioctl(FAR struct file *filep, int cmd,
                               unsigned long arg);
 static int     rpmsgdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
@@ -320,7 +321,7 @@ static void rpmsgdev_wait_cb(FAR struct pollfd *fds)
  *   not NONBLOCKED to avoid the server rptun thread blocked in file_read()
  *   or file_write(). By calling this function before sending the READ or
  *   WRITE command to server, a simulated blocked read/write operation is
- *   achived.
+ *   achieved.
  *
  * Parameters:
  *   filep  - the file instance
@@ -591,6 +592,7 @@ static off_t rpmsgdev_seek(FAR struct file *filep, off_t offset, int whence)
  *
  * Parameters:
  *   cmd - the ioctl command
+ *   arg - the ioctl arguments
  *
  * Returned Values:
  *   0        - ioctl command not support
@@ -598,7 +600,7 @@ static off_t rpmsgdev_seek(FAR struct file *filep, off_t offset, int whence)
  *
  ****************************************************************************/
 
-static ssize_t rpmsgdev_ioctl_arglen(int cmd)
+static ssize_t rpmsgdev_ioctl_arglen(int cmd, unsigned long arg)
 {
   switch (cmd)
     {
@@ -622,6 +624,9 @@ static ssize_t rpmsgdev_ioctl_arglen(int cmd)
       case BATIOC_GET_PROTOCOL:
       case BATIOC_OPERATE:
         return sizeof(struct batio_operate_msg_s);
+      case MSIOC_VENDOR:
+        return sizeof(struct mouse_vendor_cmd_s) +
+               ((FAR struct mouse_vendor_cmd_s *)(uintptr_t)arg)->len;
       default:
         return -ENOTTY;
     }
@@ -661,7 +666,7 @@ static int rpmsgdev_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Call our internal routine to perform the ioctl */
 
-  arglen = rpmsgdev_ioctl_arglen(cmd);
+  arglen = rpmsgdev_ioctl_arglen(cmd, arg);
   if (arglen < 0)
     {
       return arglen;
@@ -745,7 +750,7 @@ static int rpmsgdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
  *
  * Parameters:
  *   priv  - The rpmsg-device handle
- *   len   - The got memroy size
+ *   len   - The got memory size
  *
  * Returned Values:
  *   NULL     - failure
@@ -858,8 +863,8 @@ fail:
  *   ept  - The rpmsg endpoint
  *   data - The return message
  *   len  - The return message length
- *   src  - unknow
- *   priv - unknow
+ *   src  - unknown
+ *   priv - unknown
  *
  * Returned Values:
  *   Always OK
@@ -895,8 +900,8 @@ static int rpmsgdev_default_handler(FAR struct rpmsg_endpoint *ept,
  *   ept  - The rpmsg endpoint
  *   data - The return message
  *   len  - The return message length
- *   src  - unknow
- *   priv - unknow
+ *   src  - unknown
+ *   priv - unknown
  *
  * Returned Values:
  *   Always OK
@@ -940,8 +945,8 @@ static int rpmsgdev_read_handler(FAR struct rpmsg_endpoint *ept,
  *   ept  - The rpmsg endpoint
  *   data - The return message
  *   len  - The return message length
- *   src  - unknow
- *   priv - unknow
+ *   src  - unknown
+ *   priv - unknown
  *
  * Returned Values:
  *   Always OK
@@ -977,8 +982,8 @@ static int rpmsgdev_ioctl_handler(FAR struct rpmsg_endpoint *ept,
  *   ept  - The rpmsg endpoint
  *   data - The return message
  *   len  - The return message length
- *   src  - unknow
- *   priv - unknow
+ *   src  - unknown
+ *   priv - unknown
  *
  * Returned Values:
  *   Always OK
@@ -1092,8 +1097,8 @@ static void rpmsgdev_device_destroy(FAR struct rpmsg_device *rdev,
  *   ept  - The rpmsg-device end point
  *   data - The received data
  *   len  - The received data length
- *   src  - unknow
- *   priv - unknow
+ *   src  - unknown
+ *   priv - unknown
  *
  * Returned Values:
  *   OK on success; A negated errno value is returned on any failure.
@@ -1130,7 +1135,7 @@ static int rpmsgdev_ept_cb(FAR struct rpmsg_endpoint *ept,
  *   remotecpu  - the server cpu name
  *   remotepath - the device you want to access in the remote cpu
  *   localpath  - the device path in local cpu, if NULL, the localpath is
- *                same as the remotepath, provide this argument to supoort
+ *                same as the remotepath, provide this argument to support
  *                custom device path
  *   flags      - RPMSGDEV_NOFRAG_READ and RPMSGDEV_NOFRAG_WRITE can be set
  *                to indicates that the read and write data of the device

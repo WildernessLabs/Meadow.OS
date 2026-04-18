@@ -126,6 +126,10 @@ int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
   nxtask_joininit(&tcb->cmn);
 #endif
 
+#ifndef CONFIG_PTHREAD_MUTEX_UNSAFE
+  spin_lock_init(&tcb->cmn.mutex_lock);
+#endif
+
   /* Duplicate the parent tasks environment */
 
   ret = env_dup(tcb->cmn.group, envp);
@@ -164,18 +168,18 @@ int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
       goto errout_with_group;
     }
 
-  /* Initialize thread local storage */
+  /* Initialize the task control block */
 
-  ret = tls_init_info(&tcb->cmn);
+  ret = nxtask_setup_scheduler(tcb, priority, nxtask_start,
+                               entry, ttype);
   if (ret < OK)
     {
       goto errout_with_group;
     }
 
-  /* Initialize the task control block */
+  /* Initialize thread local storage */
 
-  ret = nxtask_setup_scheduler(tcb, priority, nxtask_start,
-                               entry, ttype);
+  ret = tls_init_info(&tcb->cmn);
   if (ret < OK)
     {
       goto errout_with_group;

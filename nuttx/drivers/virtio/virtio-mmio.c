@@ -178,7 +178,7 @@
 
 struct virtio_mmio_device_s
 {
-  struct virtio_device   vdev;       /* Virtio deivce */
+  struct virtio_device   vdev;       /* Virtio device */
   struct metal_io_region shm_io;     /* Share memory io region, virtqueue
                                       * use this io.
                                       */
@@ -331,7 +331,7 @@ static int virtio_mmio_config_virtqueue(FAR struct metal_io_region *io,
 
       if (pfn >> 32)
         {
-          vrterr("Legacy virtio-mmio used RAM shoud not above 0x%llxGB\n",
+          vrterr("Legacy virtio-mmio used RAM should not above 0x%llxGB\n",
                  0x1ull << (2 + VIRITO_PAGE_SHIFT));
         }
 
@@ -901,7 +901,7 @@ static int virtio_register_mmio_device_(FAR void *regs, int irq, bool secure)
   UNUSED(secure);
 #endif
 
-  /* Attach the intterupt before register the device driver */
+  /* Attach the interrupt before register the device driver */
 
   ret = irq_attach(irq, virtio_mmio_interrupt, vmdev);
   if (ret < 0)

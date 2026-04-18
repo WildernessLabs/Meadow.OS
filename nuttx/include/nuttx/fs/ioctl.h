@@ -108,6 +108,7 @@
 #define _PINCTRLBASE    (0x4000) /* Pinctrl driver ioctl commands */
 #define _PCIBASE        (0x4100) /* Pci ioctl commands */
 #define _I3CBASE        (0x4200) /* I3C driver ioctl commands */
+#define _MSIOCBASE      (0x4300) /* Mouse ioctl commands */
 #define _WLIOCBASE      (0x8b00) /* Wireless modules ioctl network commands */
 
 /* boardctl() commands share the same number space */
@@ -347,6 +348,10 @@
                                            *      to return sector numbers.
                                            * OUT: Data return in user-provided
                                            *      buffer. */
+#define BIOC_DISCARD    _BIOC(0x0011)     /* Discards the block device read buffer
+                                           * IN:  None
+                                           * OUT: None (ioctl return value provides
+                                           *      success/failure indication). */
 
 /* NuttX MTD driver ioctl definitions ***************************************/
 
@@ -369,6 +374,11 @@
 
 #define _TSIOCVALID(c)    (_IOC_TYPE(c)==_TSIOCBASE)
 #define _TSIOC(nr)        _IOC(_TSIOCBASE,nr)
+
+/* NuttX mouse ioctl definitions (see nuttx/input/mouse.h) ******************/
+
+#define _MSIOCVALID(c)    (_IOC_TYPE(c)==_MSIOCBASE)
+#define _MSIOC(nr)        _IOC(_MSIOCBASE,nr)
 
 /* NuttX sensor ioctl definitions (see nuttx/sensor/ioctl.h) ****************/
 

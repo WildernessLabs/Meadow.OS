@@ -54,7 +54,7 @@
 /* Debug ********************************************************************/
 
 /****************************************************************************
- * Private Type Definitions
+ * Private Types
  ****************************************************************************/
 
 /* This structure describes the state of the upper half driver */
@@ -311,8 +311,8 @@ static int cap_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-      /* CAPIOC_FREQUENCE - Get the pulse frequence from the capture.
-       * Argument: int32_t pointer to the location to return the frequence.
+      /* CAPIOC_FREQUENCE - Get the pulse frequency from the capture.
+       * Argument: int32_t pointer to the location to return the frequency.
        */
 
       case CAPIOC_FREQUENCE:
@@ -351,7 +351,7 @@ static int cap_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-      /* CAPIOC_ALL - Get the pwm duty, pulse frequence, pwm edges, from
+      /* CAPIOC_ALL - Get the pwm duty, pulse frequency, pwm edges, from
        * the capture.
        * Argument: A reference to struct cap_all_s.
        */
@@ -391,6 +391,22 @@ static int cap_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       default:
         {
           cperr("Forwarding unrecognized cmd: %d arg: %ld\n", cmd, arg);
+
+          /* Unrecognized cmd will be forwarded to lower half driver for
+           * specific use cases (e.g Pulse Counter (PCNT))
+           */
+
+          FAR unsigned long int *ptr =
+                     (FAR unsigned long int *)arg;
+          for (i = 0; i < upper->nchan; i++)
+            {
+              ret = lower[i]->ops->ioctl(lower[i], cmd,
+                                         (unsigned long)&ptr[i]);
+              if (ret < 0)
+                {
+                  break;
+                }
+            }
         }
         break;
     }

@@ -173,7 +173,7 @@ begin_packed_struct struct v9fs_attach_s
 {
   struct v9fs_header_s header;
   uint32_t fid;
-  uint16_t afid;
+  uint32_t afid;
   uint8_t buffer[2 * (V9FS_BIT16SZ + NAME_MAX) + V9FS_BIT32SZ];
 } end_packed_struct;
 
@@ -323,7 +323,7 @@ begin_packed_struct struct v9fs_stat_s
 begin_packed_struct struct v9fs_rstat_s
 {
   struct v9fs_header_s header;
-  uint64_t vaild;
+  uint64_t valid;
   struct v9fs_qid_s qid;
   uint32_t mode;
   uint32_t uid;
@@ -1098,13 +1098,13 @@ ssize_t v9fs_client_write(FAR struct v9fs_client_s *client, uint32_t fid,
 
   while (buflen > 0)
     {
+      request.count = buflen > fidp->iounit ? fidp->iounit : buflen;
       request.header.size = V9FS_HDRSZ + V9FS_BIT32SZ + V9FS_BIT64SZ +
                             V9FS_BIT32SZ + request.count;
       request.header.type = V9FS_TWRITE;
       request.header.tag = v9fs_get_tagid(client);
       request.fid = fid;
       request.offset = offset;
-      request.count = buflen > fidp->iounit ? fidp->iounit : buflen;
 
       wiov[0].iov_base = &request;
       wiov[0].iov_len = V9FS_HDRSZ + V9FS_BIT32SZ + V9FS_BIT64SZ +
@@ -1465,7 +1465,7 @@ int v9fs_client_walk(FAR struct v9fs_client_s *client, FAR const char *path,
   struct iovec wiov[2];
   struct iovec riov[2];
   uint16_t nwname = 0;
-  uint32_t newfid;
+  uint32_t newfid = V9FS_NOFID;
   size_t total_len = 0;
   size_t offset = 0;
   size_t name_len;
@@ -1526,12 +1526,13 @@ int v9fs_client_walk(FAR struct v9fs_client_s *client, FAR const char *path,
       return -ENOMEM;
     }
 
-  newfid = v9fs_fid_create(client, path);
-  if (newfid < 0)
+  ret = v9fs_fid_create(client, path);
+  if (ret < 0)
     {
       goto err;
     }
 
+  newfid = ret;
   request.header.size = V9FS_HDRSZ + V9FS_BIT32SZ * 2 + V9FS_BIT16SZ +
                         total_len;
   request.header.type = V9FS_TWALK;
@@ -1586,13 +1587,23 @@ int v9fs_client_walk(FAR struct v9fs_client_s *client, FAR const char *path,
   if (ret < 0)
     {
       v9fs_fid_destroy(client, newfid);
-      newfid = ret;
+      goto err;
+    }
+
+  /* There are differences in different server implementations, so it is
+   * necessary to check whether the returned nwqid satisfies the requested
+   * number.
+   */
+
+  if (response.nwqid != nwname)
+    {
+      ret = -ENOENT;
     }
 
 err:
   lib_put_pathbuffer(request_payload);
   lib_put_pathbuffer(response_payload);
-  return newfid;
+  return ret == 0 ? newfid : ret;
 }
 
 /****************************************************************************
@@ -1732,7 +1743,7 @@ void v9fs_transport_done(FAR struct v9fs_payload_s *cookie, int ret)
 {
   FAR struct v9fs_lerror_s *error = cookie->riov[0].iov_base;
 
-  /* Recive message = riov[0] (Header) + iov[1] (Payload) + ...
+  /* Receive message = riov[0] (Header) + iov[1] (Payload) + ...
    * So we first check if the type on the rheader is RLERROR. If it is,
    * it means that payload[1] is ecode.
    */
@@ -1799,4 +1810,14 @@ int v9fs_fid_get(FAR struct v9fs_client_s *client, uint32_t fid)
   fidp->refcount++;
   nxmutex_unlock(&client->lock);
   return 0;
+}
+
+/****************************************************************************
+ * v9fs_parse_size
+ ****************************************************************************/
+
+ssize_t v9fs_parse_size(FAR const void *buffer)
+{
+  FAR const struct v9fs_header_s *ptr = buffer;
+  return ptr->size;
 }

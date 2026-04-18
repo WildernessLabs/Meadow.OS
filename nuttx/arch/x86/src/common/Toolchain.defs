@@ -32,6 +32,11 @@ ARCHCPUFLAGS = -march=i486 -mtune=i486 -fno-stack-protector
 ARCHPICFLAGS = -fpic
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 
+# LLVM target definitions
+LLVM_ARCHTYPE := x86
+LLVM_CPUTYPE := i486
+LLVM_ABITYPE := sysv
+
 # Check if building a 32-bit target with a 64-bit toolchain
 
 ifeq ($(CONFIG_ARCH_X86_M32),y)
@@ -55,7 +60,7 @@ NM = $(CROSSDEV)nm
 OBJCOPY = $(CROSSDEV)objcopy
 OBJDUMP = $(CROSSDEV)objdump
 
-ifeq ($(CONFIG_MM_KASAN_ALL),y)
+ifeq ($(CONFIG_MM_KASAN_INSTRUMENT_ALL),y)
   ARCHOPTIMIZATION += -fsanitize=kernel-address
 endif
 
@@ -78,12 +83,12 @@ AFLAGS := $(CFLAGS) -D__ASSEMBLY__
 # Loadable module definitions
 
 CMODULEFLAGS = $(CFLAGS) -fvisibility=hidden
-LDMODULEFLAGS = -r -T $(call CONVERT_PATH,$(TOPDIR)/libs/libc/modlib/gnu-elf.ld)
+LDMODULEFLAGS = -r -T $(call CONVERT_PATH,$(TOPDIR)/libs/libc/elf/gnu-elf.ld)
 
 # ELF module definitions
 
 CELFFLAGS = $(CFLAGS) -fvisibility=hidden
 CXXELFFLAGS = $(CXXFLAGS) -fvisibility=hidden
 
-LDELFFLAGS = -r -e main
-LDELFFLAGS += -T $(call CONVERT_PATH,$(TOPDIR)$(DELIM)libs$(DELIM)libc$(DELIM)modlib$(DELIM)gnu-elf.ld)
+LDELFFLAGS = -r -e __start
+LDELFFLAGS += -T $(call CONVERT_PATH,$(TOPDIR)$(DELIM)libs$(DELIM)libc$(DELIM)elf$(DELIM)gnu-elf.ld)

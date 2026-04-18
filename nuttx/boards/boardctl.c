@@ -26,16 +26,17 @@
 
 #include <nuttx/config.h>
 
-#include <sys/types.h>
 #include <sys/boardctl.h>
+#include <sys/types.h>
+#include <assert.h>
 #include <stdint.h>
 #include <errno.h>
-#include <assert.h>
+#include <gcov.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/cache.h>
-#include <nuttx/lib/modlib.h>
+#include <nuttx/lib/elf.h>
 #include <nuttx/binfmt/symtab.h>
 #include <nuttx/drivers/ramdisk.h>
 #include <nuttx/reboot_notifier.h>
@@ -607,7 +608,7 @@ int boardctl(unsigned int cmd, uintptr_t arg)
             (FAR const struct boardioc_symtab_s *)arg;
 
          DEBUGASSERT(symdesc != NULL);
-         modlib_setsymtab(symdesc->symtab, symdesc->nsymbols);
+         libelf_setsymtab(symdesc->symtab, symdesc->nsymbols);
         }
         break;
 #endif

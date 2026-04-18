@@ -2,6 +2,8 @@
 weact-stm32h743
 ===============
 
+.. tags:: chip:stm32, chip:stm32h7, chip:stm32h743
+
 This page discusses issues unique to NuttX configurations for the
 WeAct STM32H743 board.
 
@@ -59,9 +61,9 @@ USART1
 Each weact-stm32h743 configuration is maintained in a sub-directory and
 can be selected as follow::
 
-    tools/configure.sh weact-stm32h743:<subdir>
+  ./tools/configure.sh weact-stm32h743:<subdir>
 
-  Where <subdir> is one of the following:
+Where <subdir> is one of the following:
 
 
 Configuration Directories
@@ -72,4 +74,24 @@ nsh
 
 Configures the NuttShell (nsh) located at apps/examples/nsh. This
 configuration enables a serial console on UART1.
+
+usbnsh
+------
+
+Configures the NuttShell (nsh) located at apps/examples/nsh. This
+configuration enables a serial console over USB.
+
+After flashing and reboot your board you should see in your dmesg logs::
+
+       [ 2638.948089] usb 1-1.4: new full-speed USB device number 16 using xhci_hcd
+       [ 2639.054432] usb 1-1.4: New USB device found, idVendor=0525, idProduct=a4a7, bcdDevice= 1.01
+       [ 2639.054437] usb 1-1.4: New USB device strings: Mfr=1, Product=2, SerialNumber=3
+       [ 2639.054438] usb 1-1.4: Product: CDC/ACM Serial
+       [ 2639.054440] usb 1-1.4: Manufacturer: NuttX
+       [ 2639.054441] usb 1-1.4: SerialNumber: 0
+       [ 2639.074861] cdc_acm 1-1.4:1.0: ttyACM0: USB ACM device
+       [ 2639.074886] usbcore: registered new interface driver cdc_acm
+       [ 2639.074887] cdc_acm: USB Abstract Control Model driver for USB modems and ISDN adapters
+
+You may need to press **ENTER** 3 times before the NSH show up.
 

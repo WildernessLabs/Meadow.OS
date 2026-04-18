@@ -34,7 +34,6 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/irq.h>
 #include <nuttx/init.h>
-#include <nuttx/fs/fs.h>
 #include <nuttx/tls.h>
 #include <nuttx/signal.h>
 #include <nuttx/sched.h>
@@ -841,6 +840,7 @@ void _assert(FAR const char *filename, int linenum,
   if (os_ready)
     {
       flags = spin_lock_irqsave(&g_assert_lock);
+      sched_lock();
     }
 
 #if CONFIG_BOARD_RESET_ON_ASSERT < 2
@@ -914,5 +914,6 @@ void _assert(FAR const char *filename, int linenum,
   if (os_ready)
     {
       spin_unlock_irqrestore(&g_assert_lock, flags);
+      sched_unlock();
     }
 }

@@ -243,8 +243,7 @@ static void arp_get_arpreq(FAR struct arpreq *output,
   outaddr->sin_addr.s_addr = input->at_ipaddr;
   memcpy(output->arp_ha.sa_data, input->at_ethaddr.ether_addr_octet,
          sizeof(struct ether_addr));
-  strlcpy((FAR char *)output->arp_dev, input->at_dev->d_ifname,
-          sizeof(output->arp_dev));
+  strlcpy(output->arp_dev, input->at_dev->d_ifname, sizeof(output->arp_dev));
 }
 #endif
 
@@ -320,7 +319,7 @@ int arp_update(FAR struct net_driver_s *dev, in_addr_t ipaddr,
       ethaddr = g_zero_ethaddr.ether_addr_octet;
     }
 
-  /* When overwite old entry, notify old entry RTM_DELNEIGH */
+  /* When overwrite old entry, notify old entry RTM_DELNEIGH */
 
 #ifdef CONFIG_NETLINK_ROUTE
   if (!found && tabptr->at_ipaddr != 0)

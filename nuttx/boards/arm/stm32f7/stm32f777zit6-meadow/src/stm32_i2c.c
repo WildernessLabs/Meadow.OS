@@ -2673,7 +2673,7 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
 
 out:
 
-  /* Release the port for re-use by other clients */
+  /* Release the port for reuse by other clients */
 
   stm32_i2c_sem_post(dev);
   return ret;

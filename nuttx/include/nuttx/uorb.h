@@ -42,6 +42,14 @@
 
 /* sensor type definition */
 
+/* Note: Some of the types of these sensors are aligned with Android, and
+ * the refs link is https://cs.android.com/android/_/android/platform/\
+ * hardware/libhardware/+/0e67aa0caee9500b61b9c1c8b6e5cab18301364c:\
+ * include_all/hardware/sensors-base.h.
+ *
+ * If you need to make modifications, please align with Android standards
+ */
+
 /* Custom Sensor
  * Some special sensor whose event size is not fixed or dynamically change,
  * are called sensor of custom type. You should treat its events as byte
@@ -99,11 +107,12 @@
 
 #define SENSOR_TYPE_BAROMETER                       6
 
-/* Noise Loudness
- * A sensor of this type returns the loudness of noise in SI units (db)
+/* Temperature
+ * A sensor of this type returns the measurement temperature in degree
+ * Celsius.
  */
 
-#define SENSOR_TYPE_NOISE                           7
+#define SENSOR_TYPE_TEMPERATURE                     7
 
 /* Proximity
  * The values correspond to the distance to the nearest
@@ -153,12 +162,12 @@
 
 #define SENSOR_TYPE_AMBIENT_TEMPERATURE             13
 
-/* PM25
- * A sensor of this type returns the content of pm2.5 in the air
- * This value is in SI units (ug/m^3)
+/* Magnetic Field Uncalibrated
+ * Similar to MAGNETIC_FIELD, all values are in micro-Tesla (uT)
+ * and measure the geomagnetic field in X, Y and Z axis.
  */
 
-#define SENSOR_TYPE_PM25                            14
+#define SENSOR_TYPE_MAGNETIC_FIELD_UNCALIBRATED     14
 
 /* PM1P0
  * A sensor of this type returns the content of pm1.0 in the air
@@ -167,12 +176,12 @@
 
 #define SENSOR_TYPE_PM1P0                           15
 
-/* PM10
- * A sensor of this type returns the content of pm10 in the air
- * This value is in SI units (ug/m^3)
+/* Gyroscope Uncalibrated
+ * All values are in radians/second and measure the rate of rotation around
+ * the X, Y and Z axis.
  */
 
-#define SENSOR_TYPE_PM10                            16
+#define SENSOR_TYPE_GYROSCOPE_UNCALIBRATED          16
 
 /* Significant motion
  * A significant motion detector triggers when detecting a significant
@@ -295,7 +304,7 @@
  * Motion detection sensor is used to detect the motion status of the device.
  * motion detect event is produced if the device has been in motion
  * for at least 5 seconds with a maximal latency of 5 additional seconds.
- * ie: it may take up anywhere from 5 to 10 seconds afte the device has been
+ * ie: it may take up anywhere from 5 to 10 seconds after the device has been
  * at rest to trigger this event. The only allowed value is 1.0.
  */
 
@@ -335,12 +344,12 @@
 
 #define SENSOR_TYPE_LOW_LATENCY_OFFBODY_DETECT      34
 
-/* Ultraviolet light sensor
- * This sensor can identify the UV index in ambient light help people
- * to effectively protect themselves from sunburns, cancer or eye damage.
- * This value range is 0 - 15.
+/* Accelerometer Uncalibrate
+ * All values are in SI units (m/s^2), and measure the acceleration of the
+ * device minus the acceleration dut to gravity.
  */
-#define SENSOR_TYPE_ULTRAVIOLET                     35
+
+#define SENSOR_TYPE_ACCELEROMETER_UNCALIBRATED      35
 
 /* Hinge angle
  * A hinge angle sensor measures the angle, in degrees, between two integral
@@ -393,7 +402,7 @@
  * measurements come from photodiodes and following current amplifiers and
  * ADCs, where a photodiode switches reflected light intensity to current.
  * The LED current decides the lightness of LED, which is the input of PPG
- * measurements. The ADC gains are multipled on the output and affect SNR.
+ * measurements. The ADC gains are multiplied on the output and affect SNR.
  */
 
 #define SENSOR_TYPE_PPGD                            42
@@ -404,7 +413,7 @@
  * measurements come from photodiodes and following current amplifiers and
  * ADCs, where a photodiode switches reflected light intensity to current.
  * The LED current decides the lightness of LED, which is the input of PPG
- * measurements. The ADC gains are multipled on the output and affect SNR.
+ * measurements. The ADC gains are multiplied on the output and affect SNR.
  */
 
 #define SENSOR_TYPE_PPGQ                            43
@@ -420,7 +429,7 @@
 /* OTS (Optical tracking sensor)
  * A sensor of this type returns the OTS measurements in counts. It
  * integrates an optical chip and a LASER light source in a single miniature
- * package. It provies wide depth of field range on glossy surface, and
+ * package. It provides wide depth of field range on glossy surface, and
  * design flexibility into a compact device.
  */
 
@@ -467,9 +476,46 @@
 
 #define SENSOR_TYPE_GNSS_GEOFENCE                   52
 
-/* The total number of sensor */
+/* Velocity Sensor
+ * A sensor of this type measures the velocity as it is moving.
+ * The default unit velocity is meter by seconds m/s (SI).
+ */
 
-#define SENSOR_TYPE_COUNT                           53
+#define SENSOR_TYPE_VELOCITY                        53
+
+/* Noise Loudness
+ * A sensor of this type returns the loudness of noise in SI units (db)
+ */
+
+#define SENSOR_TYPE_NOISE                           54
+
+/* PM25
+ * A sensor of this type returns the content of pm2.5 in the air
+ * This value is in SI units (ug/m^3)
+ */
+
+#define SENSOR_TYPE_PM25                            55
+
+/* PM10
+ * A sensor of this type returns the content of pm10 in the air
+ * This value is in SI units (ug/m^3)
+ */
+
+#define SENSOR_TYPE_PM10                            56
+
+/* Ultraviolet light sensor
+ * This sensor can identify the UV index in ambient light help people
+ * to effectively protect themselves from sunburns, cancer or eye damage.
+ * This value range is 0 - 15.
+ */
+
+#define SENSOR_TYPE_ULTRAVIOLET                     57
+
+/* The total number of sensor
+ * please increase it if you added a new sensor type!
+ */
+
+#define SENSOR_TYPE_COUNT                           58
 
 /* The additional sensor open flags */
 
@@ -747,6 +793,12 @@ struct sensor_force         /* Type: Force */
   int32_t event;            /* Force event */
 };
 
+struct sensor_velocity      /* Type: Velocity */
+{
+  uint64_t timestamp;       /* Unit is microseconds */
+  float velocity;           /* Velocity value, units is m/s (SI) */
+};
+
 struct sensor_hall          /* Type: HALL */
 {
   uint64_t timestamp;       /* Units is microseconds */
@@ -899,6 +951,8 @@ struct sensor_gnss_satellite
 
   uint32_t constellation;
 
+  float cf;                 /* Carrier Frequency(Hz), GSV.signal_id */
+
   struct satellite
   {
     uint32_t svid;          /* Space vehicle ID */
@@ -924,6 +978,8 @@ struct sensor_gnss_satellite
 
 struct sensor_gnss_measurement
 {
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+
   /* Indicating what fields are valid.
    * See SENSOR_GNSS_MEASUREMENT_HAS_*.
    */
@@ -994,6 +1050,8 @@ struct sensor_gnss_measurement
 
 struct sensor_gnss_clock
 {
+  uint64_t timestamp;       /* Time since system start, Units is microseconds */
+
   /* Indicating what fields are valid.
    * See SENSOR_GNSS_CLOCK_HAS_*.
    */
@@ -1112,7 +1170,7 @@ struct sensor_state_s
   uint32_t nbuffer;            /* The number of events that the circular buffer can hold */
   uint32_t min_latency;        /* The minimum batch latency for sensor, in us */
   uint32_t min_interval;       /* The minimum subscription interval for sensor, in us */
-  uint32_t nsubscribers;       /* The number of subcribers */
+  uint32_t nsubscribers;       /* The number of subscribers */
   uint32_t nadvertisers;       /* The number of advertisers */
   uint32_t generation;         /* The recent generation of circular buffer */
   uint64_t priv;               /* The pointer to private data of userspace user */

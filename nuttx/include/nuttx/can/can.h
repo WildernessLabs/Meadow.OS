@@ -40,6 +40,8 @@
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/mutex.h>
 
+#include <nuttx/can/can_common.h>
+
 #ifdef CONFIG_CAN_TXREADY
 #  include <nuttx/wqueue.h>
 #endif
@@ -265,7 +267,7 @@
  *   Dependencies:   None
  *
  * CANIOC_SET_STATE
- *   Description:    Set specfic can controller state
+ *   Description:    Set specific can controller state
  *
  *   Argument:       A pointer to an int type that describes the CAN
  *                   controller state.
@@ -275,7 +277,7 @@
  *   Dependencies:   None
  *
  * CANIOC_GET_STATE
- *   Description:    Get specfic can controller state
+ *   Description:    Get specific can controller state
  *
  *   Argument:       A pointer to an int type that describes the CAN
  *                   controller state.
@@ -285,7 +287,7 @@
  *   Dependencies:   None
  *
  * CANIOC_SET_TRANSV_STATE
- *   Description:    Set specfic can transceiver state
+ *   Description:    Set specific can transceiver state
  *
  *   Argument:       A pointer to an int type that describes the CAN
  *                   transceiver state.
@@ -295,7 +297,7 @@
  *   Dependencies:   None
  *
  * CANIOC_GET_TRANSV_STATE
- *   Description:    Get specfic can transceiver state
+ *   Description:    Get specific can transceiver state
  *
  *   Argument:       A pointer to an int type that describes the CAN
  *                   transceiver state.
@@ -801,6 +803,7 @@ struct can_reader_s
 {
   struct list_node     list;
   struct can_rxfifo_s  fifo;             /* Describes receive FIFO */
+  FAR struct pollfd   *cd_fds;
 };
 
 struct can_transv_s
@@ -825,7 +828,6 @@ struct can_dev_s
   FAR const struct can_ops_s *cd_ops;    /* Arch-specific operations */
   FAR void            *cd_priv;          /* Used by the arch-specific logic */
   FAR struct can_transv_s *cd_transv;    /* Describes CAN transceiver */
-  FAR struct pollfd   *cd_fds[CONFIG_CAN_NPOLLWAITERS];
 };
 
 /* Structures used with ioctl calls */
@@ -1089,46 +1091,6 @@ int can_txdone(FAR struct can_dev_s *dev);
 #ifdef CONFIG_CAN_TXREADY
 int can_txready(FAR struct can_dev_s *dev);
 #endif
-
-/****************************************************************************
- * Name: can_bytes2dlc
- *
- * Description:
- *   In the CAN FD format, the coding of the DLC differs from the standard
- *   CAN format. The DLC codes 0 to 8 have the same coding as in standard
- *   CAN.  But the codes 9 to 15 all imply a data field of 8 bytes with
- *   standard CAN.  In CAN FD mode, the values 9 to 15 are encoded to values
- *   in the range 12 to 64.
- *
- * Input Parameters:
- *   nbytes - the byte count to convert to a DLC value
- *
- * Returned Value:
- *   The encoded DLC value corresponding to at least that number of bytes.
- *
- ****************************************************************************/
-
-uint8_t can_bytes2dlc(uint8_t nbytes);
-
-/****************************************************************************
- * Name: can_dlc2bytes
- *
- * Description:
- *   In the CAN FD format, the coding of the DLC differs from the standard
- *   CAN format. The DLC codes 0 to 8 have the same coding as in standard
- *   CAN.  But the codes 9 to 15 all imply a data field of 8 bytes with
- *   standard CAN.  In CAN FD mode, the values 9 to 15 are encoded to values
- *   in the range 12 to 64.
- *
- * Input Parameters:
- *   dlc    - the DLC value to convert to a byte count
- *
- * Returned Value:
- *   The number of bytes corresponding to the DLC value.
- *
- ****************************************************************************/
-
-uint8_t can_dlc2bytes(uint8_t dlc);
 
 #undef EXTERN
 #if defined(__cplusplus)

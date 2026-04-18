@@ -36,6 +36,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <arch/barriers.h>
 #include <arpa/inet.h>
 
 #include <nuttx/arch.h>
@@ -54,7 +55,6 @@
 #endif
 
 #include "arm_internal.h"
-#include "barriers.h"
 
 #include "hardware/stm32_syscfg.h"
 #include "hardware/stm32_pinmap.h"
@@ -75,10 +75,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Memory synchronization */
-
-#define MEMORY_SYNC() do { ARM_DSB(); ARM_ISB(); } while (0)
 
 /* Configuration ************************************************************/
 
@@ -1225,7 +1221,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
   /* Check if the TX Buffer unavailable flag is set */
 
-  MEMORY_SYNC();
+  UP_MB();
 
   if ((stm32_getreg(STM32_ETH_DMASR) & ETH_DMAINT_TBUI) != 0)
     {
@@ -1576,7 +1572,7 @@ static int stm32_recvframe(struct stm32_ethmac_s *priv)
    *   3) All of the TX descriptors are in flight.
    *
    * This last case is obscure.  It is due to that fact that each packet
-   * that we receive can generate an unstoppable transmisson.  So we have
+   * that we receive can generate an unstoppable transmission.  So we have
    * to stop receiving when we can not longer transmit.  In this case, the
    * transmit logic should also have disabled further RX interrupts.
    */
@@ -1862,7 +1858,7 @@ static void stm32_receive(struct stm32_ethmac_s *priv)
         }
 
       /* We are finished with the RX buffer.  NOTE:  If the buffer is
-       * re-used for transmission, the dev->d_buf field will have been
+       * reused for transmission, the dev->d_buf field will have been
        * nullified.
        */
 
@@ -3948,7 +3944,7 @@ int stm32_ethinitialize(int intf)
   stm32_get_uniqueid(uid);
   crc = crc64(uid, 12);
 
-  /* Specify as localy administrated address */
+  /* Specify as locally administrated address */
 
   priv->dev.d_mac.ether.ether_addr_octet[0]  = (crc >> 0) | 0x02;
   priv->dev.d_mac.ether.ether_addr_octet[0] &= ~0x1;

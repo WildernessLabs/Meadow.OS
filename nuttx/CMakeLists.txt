@@ -73,7 +73,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(NUTTX_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 
-# unceaned previous make build can cause various types of cmake error
+# uncleaned previous make build can cause various types of cmake error
 if(EXISTS "${NUTTX_DIR}/.config")
   message(
     FATAL_ERROR "Please distclean previous make build with `make distclean`")
@@ -85,9 +85,16 @@ endif()
 
 find_program(KCONFIGLIB olddefconfig)
 if(NOT KCONFIGLIB)
+  # cmake-format: off
   message(
     FATAL_ERROR "Kconfig environment depends on kconfiglib, Please install:
-  $ sudo apt install python3-kconfiglib")
+  (APT source)
+    $ sudo apt install python3-kconfiglib
+  or (pip source)
+    $ pip install kconfiglib
+  or (After Ubuntu 24.04)
+    $ pip install kconfiglib --break-system-packages")
+  # cmake-format: on
 endif()
 
 # BOARD CONFIG can be set to directory path, or <board-name>[/:]<config-name>
@@ -151,7 +158,7 @@ if(NOT EXISTS "${NUTTX_DEFCONFIG}")
   message(FATAL_ERROR "No config file found at ${NUTTX_DEFCONFIG}")
 endif()
 
-# Generate inital .config ###################################################
+# Generate initial .config ###################################################
 # This is needed right before any other configure step so that we can source
 # Kconfig variables into CMake variables
 
@@ -243,8 +250,16 @@ else()
   file(TOUCH ${CMAKE_BINARY_DIR}/boards/dummy/Kconfig)
 endif()
 
+# check if board custom dir points to NuttX upstream board. This is useful when
+# an out-of-tree configuration uses an upstream board directory
+string(FIND "${CONFIG_ARCH_BOARD_CUSTOM_DIR}" "boards/" IS_NUTTX_BOARD)
+
 if(NOT EXISTS ${CMAKE_BINARY_DIR}/boards/dummy/Kconfig)
-  if(CONFIG_ARCH_BOARD_CUSTOM AND EXISTS ${NUTTX_BOARD_ABS_DIR}/Kconfig)
+  # link dummy/Kconfig only if this is not upstream board otherwise the same
+  # Kconfig file is included twice which cause CMake warnings
+  if(CONFIG_ARCH_BOARD_CUSTOM
+     AND EXISTS ${NUTTX_BOARD_ABS_DIR}/Kconfig
+     AND NOT (IS_NUTTX_BOARD EQUAL 0))
     nuttx_create_symlink(${NUTTX_BOARD_ABS_DIR}/Kconfig
                          ${CMAKE_BINARY_DIR}/boards/dummy/Kconfig)
   else()
@@ -252,7 +267,7 @@ if(NOT EXISTS ${CMAKE_BINARY_DIR}/boards/dummy/Kconfig)
   endif()
 endif()
 
-# board platfrom driver
+# board platform driver
 
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/drivers)
 
@@ -299,7 +314,7 @@ if(NOT EXISTS ${CMAKE_BINARY_DIR}/arch/${CONFIG_ARCH}/src/chip)
                        ${CMAKE_BINARY_DIR}/arch/${CONFIG_ARCH}/src/chip)
 endif()
 
-# Unsupport custom board/chips yet, workaround
+# Unsupported custom board/chips yet, workaround
 
 if(NOT EXISTS ${NUTTX_APPS_BINDIR}/platform/board/Kconfig)
   file(MAKE_DIRECTORY ${NUTTX_APPS_BINDIR}/platform/board)
@@ -366,7 +381,7 @@ include(nuttx_generate_headers)
 include(nuttx_generate_outputs)
 include(nuttx_add_library)
 
-# add NuttX CMake extenstion after nuttx_add_library
+# add NuttX CMake extension after nuttx_add_library
 include(nuttx_extensions)
 
 include(nuttx_add_application)
@@ -727,6 +742,7 @@ else()
       OUTPUT nuttx.rel
       COMMAND
         ${CMAKE_C_COMPILER} ARGS -r $<$<BOOL:${CONFIG_SIM_M32}>:-m32>
+        $<$<BOOL:${CONFIG_HOST_LINUX}>:-Wl,-z,noexecstack>
         $<TARGET_OBJECTS:sim_head> $<$<NOT:$<BOOL:${APPLE}>>:-Wl,--start-group>
         ${nuttx_libs_paths} $<$<NOT:$<BOOL:${APPLE}>>:-Wl,--end-group> -o
         nuttx.rel

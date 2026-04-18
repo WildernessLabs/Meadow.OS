@@ -57,7 +57,7 @@
 
 #ifdef CONFIG_RPMSG_PORT_UART_CRC
 #  define rpmsg_port_uart_crc16(hdr)       \
-  crc16((FAR uint8_t *)&(hdr)->cmd, (hdr)->len - sizeof((hdr)->crc))
+  crc16ibm((FAR uint8_t *)&(hdr)->cmd, (hdr)->len - sizeof((hdr)->crc))
 #else
 #  define rpmsg_port_uart_crc16(hdr)       0
 #endif
@@ -129,8 +129,6 @@ static void rpmsg_port_uart_send_packet(FAR struct rpmsg_port_uart_s *rpuart,
       data = (FAR uint8_t *)data + ret;
       datalen -= ret;
     }
-
-  rpmsgdbg("Sent %zu Data\n", datalen);
 }
 
 /****************************************************************************
@@ -216,7 +214,7 @@ rpmsg_port_uart_send_connect_req(FAR struct rpmsg_port_uart_s *rpuart)
   ssize_t ret = file_write(&rpuart->file, &ch, 1);
   if (ret != 1)
     {
-      rpmsgerr("Send connect request failed, ret=%d\n", ret);
+      rpmsgerr("Send connect request failed, ret=%zd\n", ret);
       PANIC();
     }
 }
@@ -232,7 +230,7 @@ rpmsg_port_uart_send_connect_ack(FAR struct rpmsg_port_uart_s *rpuart)
   ssize_t ret = file_write(&rpuart->file, &ch, 1);
   if (ret != 1)
     {
-      rpmsgerr("Send connect ack failed, ret=%d\n", ret);
+      rpmsgerr("Send connect ack failed, ret=%zd\n", ret);
       PANIC();
     }
 }
@@ -432,7 +430,7 @@ static int rpmsg_port_uart_tx_thread(int argc, FAR char *argv[])
  * Name: rpmsg_port_uart_initialize
  *
  * Description:
- *   Initialze a rpmsg_port_uart device to communicate between two chips.
+ *   Initialize a rpmsg_port_uart device to communicate between two chips.
  *
  * Input Parameters:
  *   cfg      - Configuration of buffers needed for communication.

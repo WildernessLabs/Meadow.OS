@@ -29,7 +29,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
@@ -45,12 +44,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-/* Configuration ************************************************************/
-
-#ifndef CONFIG_KXTJ9_I2C_BUS_SPEED
-#  define CONFIG_KXTJ9_I2C_BUS_SPEED 400000
-#endif
 
 /* Register Definitions *****************************************************/
 

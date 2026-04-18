@@ -35,7 +35,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <time.h>
 #include <string.h>
 #include <assert.h>
@@ -239,7 +238,7 @@ struct enc_driver_s
   struct enc_descr_s    txdescralloc[ENC_NTXDESCR];
   struct enc_descr_s    rxdescralloc[CONFIG_ENCX24J600_NRXDESCR];
 
-  sq_queue_t            txfreedescr;   /* Free inititialized TX descriptors */
+  sq_queue_t            txfreedescr;   /* Free initialized TX descriptors */
   sq_queue_t            rxfreedescr;   /* Free RX descriptors */
   sq_queue_t            txqueue;       /* Enqueued descriptors waiting for transmission */
   sq_queue_t            rxqueue;       /* Unhandled incoming packets waiting for reception */

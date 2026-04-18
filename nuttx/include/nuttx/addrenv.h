@@ -29,6 +29,8 @@
 
 #include <nuttx/config.h>
 
+#ifndef __ASSEMBLY__
+
 #ifdef CONFIG_BUILD_KERNEL
 #  include <signal.h>
 #endif
@@ -39,6 +41,8 @@
 #include <nuttx/wqueue.h>
 
 #include <arch/arch.h>
+
+#endif /* __ASSEMBLY__ */
 
 #ifdef CONFIG_ARCH_ADDRENV
 
@@ -109,7 +113,9 @@
  */
 
 #ifdef CONFIG_BUILD_KERNEL
-#  define ARCH_DATA_RESERVE_SIZE 512
+/* use MM_PGSIZE to unify among all archs for now */
+
+#  define ARCH_DATA_RESERVE_SIZE CONFIG_MM_PGSIZE
 #else
 #  define ARCH_DATA_RESERVE_SIZE 0
 #endif
@@ -241,6 +247,9 @@
      (CONFIG_ARCH_PGPOOL_VBASE + CONFIG_ARCH_PGPOOL_SIZE)
 
 #endif
+
+#ifndef __ASSEMBLY__
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -250,8 +259,6 @@ struct tcb_s;                  /* Forward reference to TCB */
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
-#ifndef __ASSEMBLY__
 
 struct addrenv_s
 {
@@ -415,6 +422,9 @@ int addrenv_leave(FAR struct tcb_s *tcb);
  *   This is a NuttX internal function so it follows the convention that
  *   0 (OK) is returned on success and a negated errno is returned on
  *   failure.
+ *
+ * Note:
+ *   This API is not safe to use from interrupt.
  *
  ****************************************************************************/
 

@@ -42,7 +42,6 @@ Command                Depends on Configuration                    Can Be Disabl
 :ref:`cmdcmp`          ``CONFIG_NSH_DISABLE_CMP``                  .
 :ref:`cmdcp`           ``CONFIG_NSH_DISABLE_CP``                   .
 :ref:`cmddate`         ``CONFIG_NSH_DISABLE_DATE``                 .
-:ref:`cmddd`           ``CONFIG_NSH_DISABLE_DD``                   .
 :ref:`cmddelroute`     ``CONFIG_NET`` && ``CONFIG_NET_ROUTE``      ``CONFIG_NSH_DISABLE_DELROUTE``
 :ref:`cmddf`           ! ``CONFIG_DISABLE_MOUNTPOINT``             ``CONFIG_NSH_DISABLE_DF``
 :ref:`cmddirname`      ``CONFIG_NSH_DISABLE_DIRNAME``              .
@@ -201,9 +200,6 @@ Configuration                        Description
                                      ``strerror()`` is very large and will not be used unless this
                                      setting is *y*. This setting depends upon the ``strerror()``
                                      having been enabled with ``CONFIG_LIBC_STRERROR``.
-
- ``CONFIG_NSH_LINELEN``              The maximum length of one command line and of one output line.
-                                     Default: 80
 
  ``CONFIG_NSH_DISABLE_SEMICOLON``    By default, you can enter multiple NSH commands on a line
                                      with each command separated by a semicolon. You can disable this

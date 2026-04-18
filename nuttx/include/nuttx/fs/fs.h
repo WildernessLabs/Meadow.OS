@@ -241,8 +241,8 @@ struct file_operations
 
   CODE int     (*poll)(FAR struct file *filep, FAR struct pollfd *fds,
                        bool setup);
-  CODE ssize_t (*readv)(FAR struct file *filep, FAR const struct uio *uio);
-  CODE ssize_t (*writev)(FAR struct file *filep, FAR const struct uio *uio);
+  CODE ssize_t (*readv)(FAR struct file *filep, FAR struct uio *uio);
+  CODE ssize_t (*writev)(FAR struct file *filep, FAR struct uio *uio);
 
   /* The two structures need not be common after this point */
 
@@ -312,8 +312,8 @@ struct mountpt_operations
   CODE int     (*truncate)(FAR struct file *filep, off_t length);
   CODE int     (*poll)(FAR struct file *filep, FAR struct pollfd *fds,
                        bool setup);
-  CODE ssize_t (*readv)(FAR struct file *filep, FAR const struct uio *uio);
-  CODE ssize_t (*writev)(FAR struct file *filep, FAR const struct uio *uio);
+  CODE ssize_t (*readv)(FAR struct file *filep, FAR struct uio *uio);
+  CODE ssize_t (*writev)(FAR struct file *filep, FAR struct uio *uio);
 
   /* The two structures need not be common after this point. The following
    * are extended methods needed to deal with the unique needs of mounted
@@ -495,7 +495,6 @@ struct filelist
 {
   spinlock_t        fl_lock;    /* Manage access to the file list */
   uint8_t           fl_rows;    /* The number of rows of fl_files array */
-  uint8_t           fl_crefs;   /* The references to filelist */
   FAR struct file **fl_files;   /* The pointer of two layer file descriptors array */
 
   /* Pre-allocated files to avoid allocator access during thread creation
@@ -906,16 +905,6 @@ void files_dumplist(FAR struct filelist *list);
 #else
 #  define files_dumplist(l)
 #endif
-
-/****************************************************************************
- * Name: files_getlist
- *
- * Description:
- *   Get the list of files by tcb.
- *
- ****************************************************************************/
-
-FAR struct filelist *files_getlist(FAR struct tcb_s *tcb);
 
 /****************************************************************************
  * Name: files_putlist
@@ -1431,7 +1420,8 @@ int close_mtddriver(FAR struct inode *pinode);
  ****************************************************************************/
 
 ssize_t file_read(FAR struct file *filep, FAR void *buf, size_t nbytes);
-ssize_t file_readv(FAR struct file *filep, FAR const struct uio *uio);
+ssize_t file_readv(FAR struct file *filep,
+                   FAR const struct iovec *iov, int iovcnt);
 
 /****************************************************************************
  * Name: nx_read
@@ -1485,7 +1475,8 @@ ssize_t nx_readv(int fd, FAR const struct iovec *iov, int iovcnt);
 
 ssize_t file_write(FAR struct file *filep, FAR const void *buf,
                    size_t nbytes);
-ssize_t file_writev(FAR struct file *filep, FAR const struct uio *uio);
+ssize_t file_writev(FAR struct file *filep,
+                    FAR const struct iovec *iov, int iovcnt);
 
 /****************************************************************************
  * Name: nx_write
@@ -1686,9 +1677,8 @@ int file_fcntl(FAR struct file *filep, int cmd, ...);
  * Name: file_poll
  *
  * Description:
- *   Low-level poll operation based on struct file.  This is used both to (1)
- *   support detached file, and also (2) by poll_fdsetup() to perform all
- *   normal operations on file descriptors.
+ *   Low-level poll operation based on struct file.  This is used to
+ *   support detached file.
  *
  * Input Parameters:
  *   file     File structure instance

@@ -50,8 +50,7 @@
 /* Device naming ************************************************************/
 
 #define ROUND_DOWN(x, y)    (((x) / (y)) * (y))
-#define DEVNAME_FMT         "/dev/uorb/sensor_%s%s%d"
-#define DEVNAME_UNCAL       "_uncal"
+#define DEVNAME_FMT         "/dev/uorb/sensor_%s%d"
 #define TIMING_BUF_ESIZE    (sizeof(uint32_t))
 
 /****************************************************************************
@@ -168,16 +167,16 @@ static const struct sensor_meta_s g_sensor_meta[] =
   {sizeof(struct sensor_gyro),                "gyro"},
   {sizeof(struct sensor_light),               "light"},
   {sizeof(struct sensor_baro),                "baro"},
-  {sizeof(struct sensor_noise),               "noise"},
+  {sizeof(struct sensor_temp),                "temp"},
   {sizeof(struct sensor_prox),                "prox"},
   {sizeof(struct sensor_rgb),                 "rgb"},
   {sizeof(struct sensor_accel),               "linear_accel"},
   {sizeof(struct sensor_rotation),            "rotation"},
   {sizeof(struct sensor_humi),                "humi"},
-  {sizeof(struct sensor_temp),                "temp"},
-  {sizeof(struct sensor_pm25),                "pm25"},
+  {sizeof(struct sensor_temp),                "ambient_temp"},
+  {sizeof(struct sensor_mag),                 "mag_uncal"},
   {sizeof(struct sensor_pm1p0),               "pm1p0"},
-  {sizeof(struct sensor_pm10),                "pm10"},
+  {sizeof(struct sensor_gyro),                "gyro_uncal"},
   {sizeof(struct sensor_event),               "motion_detect"},
   {sizeof(struct sensor_event),               "step_detector"},
   {sizeof(struct sensor_step_counter),        "step_counter"},
@@ -196,7 +195,7 @@ static const struct sensor_meta_s g_sensor_meta[] =
   {sizeof(struct sensor_force),               "force"},
   {sizeof(struct sensor_hall),                "hall"},
   {sizeof(struct sensor_event),               "offbody_detector"},
-  {sizeof(struct sensor_uv),                  "uv"},
+  {sizeof(struct sensor_accel),               "accel_uncal"},
   {sizeof(struct sensor_angle),               "hinge_angle"},
   {sizeof(struct sensor_ir),                  "ir"},
   {sizeof(struct sensor_hcho),                "hcho"},
@@ -214,6 +213,11 @@ static const struct sensor_meta_s g_sensor_meta[] =
   {sizeof(struct sensor_gnss_measurement),    "gnss_measurement"},
   {sizeof(struct sensor_gnss_clock),          "gnss_clock"},
   {sizeof(struct sensor_gnss_geofence_event), "gnss_geofence_event"},
+  {sizeof(struct sensor_velocity),            "velocity"},
+  {sizeof(struct sensor_noise),               "noise"},
+  {sizeof(struct sensor_pm25),                "pm25"},
+  {sizeof(struct sensor_pm10),                "pm10"},
+  {sizeof(struct sensor_uv),                  "uv"},
 };
 
 static const struct file_operations g_sensor_fops =
@@ -1231,7 +1235,7 @@ void sensor_remap_vector_raw16(FAR const int16_t *in, FAR int16_t *out,
  *           instance is bound to the sensor driver and must persists as long
  *           as the driver persists.
  *   devno - The user specifies which device of this type, from 0. If the
- *           devno alerady exists, -EEXIST will be returned.
+ *           devno already exists, -EEXIST will be returned.
  *
  * Returned Value:
  *   OK if the driver was successfully register; A negated errno value is
@@ -1254,7 +1258,6 @@ int sensor_register(FAR struct sensor_lowerhalf_s *lower, int devno)
 
   snprintf(path, PATH_MAX, DEVNAME_FMT,
            g_sensor_meta[lower->type].name,
-           lower->uncalibrated ? DEVNAME_UNCAL : "",
            devno);
   ret = sensor_custom_register(lower, path,
                                g_sensor_meta[lower->type].esize);
@@ -1402,7 +1405,6 @@ void sensor_unregister(FAR struct sensor_lowerhalf_s *lower, int devno)
 
   snprintf(path, PATH_MAX, DEVNAME_FMT,
            g_sensor_meta[lower->type].name,
-           lower->uncalibrated ? DEVNAME_UNCAL : "",
            devno);
   sensor_custom_unregister(lower, path);
   lib_put_pathbuffer(path);

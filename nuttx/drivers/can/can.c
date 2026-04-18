@@ -308,6 +308,21 @@ static int can_close(FAR struct file *filep)
       if (((FAR struct can_reader_s *)node) ==
           ((FAR struct can_reader_s *)filep->f_priv))
         {
+          FAR struct can_reader_s *reader = (FAR struct can_reader_s *)node;
+          FAR struct can_rxfifo_s *fifo   = &reader->fifo;
+
+          /* Unlock the binary semaphore, waking up can_read if it
+           * is blocked.
+           */
+
+          nxsem_post(&fifo->rx_sem);
+
+          /* Notify specific poll/select waiter that they can read from the
+           * cd_recv buffer
+           */
+
+          poll_notify(&reader->cd_fds, 1, POLLHUP);
+          reader->cd_fds = NULL;
           list_delete(node);
           kmm_free(node);
           break;
@@ -884,12 +899,12 @@ static int can_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-      /* Set specfic can transceiver state */
+      /* Set specific can transceiver state */
 
       case CANIOC_SET_TRANSVSTATE:
         {
           /* if we don't use dev->cd_transv->cts_ops, please initlize
-           * this poniter to NULL in lower board code when Board reset.
+           * this pointer to NULL in lower board code when Board reset.
            */
 
           if (dev->cd_transv && dev->cd_transv->ct_ops
@@ -907,12 +922,12 @@ static int can_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-      /* Get specfic can transceiver state */
+      /* Get specific can transceiver state */
 
       case CANIOC_GET_TRANSVSTATE:
         {
           /* if we don't use dev->cd_transv->cts_ops, please initlize
-           * this poniter to NULL in lower board code when Board reset.
+           * this pointer to NULL in lower board code when Board reset.
            */
 
           if (dev->cd_transv && dev->cd_transv->ct_ops
@@ -953,13 +968,12 @@ static int can_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 static int can_poll(FAR struct file *filep, FAR struct pollfd *fds,
                     bool setup)
 {
-  FAR struct inode *inode = filep->f_inode;
-  FAR struct can_dev_s *dev = inode->i_private;
-  FAR struct can_reader_s *reader = NULL;
-  pollevent_t eventset = 0;
-  irqstate_t flags;
-  int ret;
-  int i;
+  FAR struct inode        *inode    = filep->f_inode;
+  FAR struct can_dev_s    *dev      = inode->i_private;
+  FAR struct can_reader_s *reader   = NULL;
+  pollevent_t              eventset = 0;
+  int                      ret      = OK;
+  irqstate_t               flags;
 
   /* Some sanity checking */
 
@@ -999,26 +1013,19 @@ static int can_poll(FAR struct file *filep, FAR struct pollfd *fds,
        * slot for the poll structure reference.
        */
 
-      for (i = 0; i < CONFIG_CAN_NPOLLWAITERS; i++)
-        {
-          /* Find an available slot */
-
-          if (dev->cd_fds[i] == NULL)
-            {
-              /* Bind the poll structure and this slot */
-
-              dev->cd_fds[i] = fds;
-              fds->priv       = &dev->cd_fds[i];
-              break;
-            }
-        }
-
-      if (i >= CONFIG_CAN_NPOLLWAITERS)
+      if (reader->cd_fds != NULL)
         {
           fds->priv = NULL;
           ret       = -EBUSY;
           goto errout;
         }
+
+      /* Have found an available slot,
+       * bind the poll structure and this slot
+       */
+
+      reader->cd_fds = fds;
+      fds->priv      = &reader->cd_fds;
 
       /* Should we immediately notify on any of the requested events?
        * First, check if the sender is full.
@@ -1268,6 +1275,11 @@ int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr,
               nxsem_post(&fifo->rx_sem);
             }
 
+          /* Notify specific poll/select waiter that they can read from the
+           * cd_recv buffer
+           */
+
+          poll_notify(&reader->cd_fds, 1, POLLIN);
           ret = OK;
         }
 #ifdef CONFIG_CAN_ERRORS
@@ -1278,15 +1290,6 @@ int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr,
           fifo->rx_error |= CAN_ERROR5_RXOVERFLOW;
         }
 #endif
-    }
-
-  /* Notify all poll/select waiters that they can read from the
-   * cd_recv buffer
-   */
-
-  if (ret == OK)
-    {
-      poll_notify(dev->cd_fds, CONFIG_CAN_NPOLLWAITERS, POLLIN);
     }
 
   leave_critical_section(flags);
@@ -1365,6 +1368,7 @@ int can_receive(FAR struct can_dev_s *dev, FAR struct can_hdr_s *hdr,
 
 int can_txdone(FAR struct can_dev_s *dev)
 {
+  FAR struct list_node *node;
   int ret = -ENOENT;
   irqstate_t flags;
 
@@ -1398,7 +1402,11 @@ int can_txdone(FAR struct can_dev_s *dev)
        * buffer
        */
 
-      poll_notify(dev->cd_fds, CONFIG_CAN_NPOLLWAITERS, POLLOUT);
+      list_for_every(&dev->cd_readers, node)
+        {
+          FAR struct can_reader_s *reader = (FAR struct can_reader_s *)node;
+          poll_notify(&reader->cd_fds, 1, POLLOUT);
+        }
 
       /* Are there any threads waiting for space in the sender? */
 
@@ -1539,119 +1547,3 @@ int can_txready(FAR struct can_dev_s *dev)
   return ret;
 }
 #endif /* CONFIG_CAN_TXREADY */
-
-/****************************************************************************
- * Name: can_bytes2dlc
- *
- * Description:
- *   In the CAN FD format, the coding of the DLC differs from the standard
- *   CAN format. The DLC codes 0 to 8 have the same coding as in standard
- *   CAN.  But the codes 9 to 15 all imply a data field of 8 bytes with
- *   standard CAN.  In CAN FD mode, the values 9 to 15 are encoded to values
- *   in the range 12 to 64.
- *
- * Input Parameters:
- *   nbytes - the byte count to convert to a DLC value
- *
- * Returned Value:
- *   The encoded DLC value corresponding to at least that number of bytes.
- *
- ****************************************************************************/
-
-uint8_t can_bytes2dlc(uint8_t nbytes)
-{
-  if (nbytes <= 8)
-    {
-      return nbytes;
-    }
-#ifdef CONFIG_CAN_FD
-  else if (nbytes <= 12)
-    {
-      return 9;
-    }
-  else if (nbytes <= 16)
-    {
-      return 10;
-    }
-  else if (nbytes <= 20)
-    {
-      return 11;
-    }
-  else if (nbytes <= 24)
-    {
-      return 12;
-    }
-  else if (nbytes <= 32)
-    {
-      return 13;
-    }
-  else if (nbytes <= 48)
-    {
-      return 14;
-    }
-  else /* if (nbytes <= 64) */
-    {
-      return 15;
-    }
-#else
-  else
-    {
-      return 8;
-    }
-#endif
-}
-
-/****************************************************************************
- * Name: can_dlc2bytes
- *
- * Description:
- *   In the CAN FD format, the coding of the DLC differs from the standard
- *   CAN format. The DLC codes 0 to 8 have the same coding as in standard
- *   CAN.  But the codes 9 to 15 all imply a data field of 8 bytes with
- *   standard CAN.  In CAN FD mode, the values 9 to 15 are encoded to values
- *   in the range 12 to 64.
- *
- * Input Parameters:
- *   dlc    - the DLC value to convert to a byte count
- *
- * Returned Value:
- *   The number of bytes corresponding to the DLC value.
- *
- ****************************************************************************/
-
-uint8_t can_dlc2bytes(uint8_t dlc)
-{
-  if (dlc > 8)
-    {
-#ifdef CONFIG_CAN_FD
-      switch (dlc)
-        {
-          case 9:
-            return 12;
-
-          case 10:
-            return 16;
-
-          case 11:
-            return 20;
-
-          case 12:
-            return 24;
-
-          case 13:
-            return 32;
-
-          case 14:
-            return 48;
-
-          default:
-          case 15:
-            return 64;
-        }
-#else
-      return 8;
-#endif
-    }
-
-  return dlc;
-}

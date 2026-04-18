@@ -40,6 +40,8 @@
 #include <nuttx/pci/pci.h>
 #include <nuttx/net/e1000.h>
 
+#include <arch/barriers.h>
+
 #include "e1000.h"
 
 /*****************************************************************************
@@ -67,7 +69,7 @@
 /* After RX packet is done, we provide free netpkt to the RX descriptor ring.
  * The upper-half network logic is responsible for freeing the RX packets
  * so we need some additional spare netpkt buffers to assure that it's
- * allways possible to allocate the new RX packet in the recevier logic.
+ * always possible to allocate the new RX packet in the receiver logic.
  * It's hard to tell how many spare buffers is needed, for now it's set to 8.
  */
 
@@ -478,7 +480,7 @@ static void e1000_dump_mem(FAR struct e1000_driver_s *priv,
  * Name: e1000_txclean
  *
  * Description:
- *   Clean transmition ring
+ *   Clean transmission ring
  *
  * Input Parameters:
  *   priv - Reference to the driver state structure
@@ -596,7 +598,7 @@ static int e1000_transmit(FAR struct netdev_lowerhalf_s *dev,
   priv->tx[desc].cso    = 0;
   priv->tx[desc].status = 0;
 
-  SP_DSB();
+  UP_DSB();
 
   /* Update TX tail */
 
@@ -671,7 +673,7 @@ static FAR netpkt_t *e1000_receive(FAR struct netdev_lowerhalf_s *dev)
 
   e1000_putreg_mem(priv, E1000_RDT, desc);
 
-  /* Handle errros */
+  /* Handle errors */
 
   if (rx->errors)
     {
@@ -1179,7 +1181,7 @@ static void e1000_disable(FAR struct e1000_driver_s *priv)
   e1000_putreg_mem(priv, E1000_IMC, priv->irqs);
   up_disable_irq(priv->irq);
 
-  /* Disable Transmiter */
+  /* Disable Transmitter */
 
   e1000_putreg_mem(priv, E1000_TCTL, 0);
 
@@ -1287,7 +1289,7 @@ static void e1000_enable(FAR struct e1000_driver_s *priv)
 
   e1000_rxclean(priv);
 
-  /* All RX descriptors availalbe */
+  /* All RX descriptors available */
 
   e1000_putreg_mem(priv, E1000_RDT, E1000_RX_DESC);
 
@@ -1301,7 +1303,7 @@ static void e1000_enable(FAR struct e1000_driver_s *priv)
   regval = E1000_CTRL_SLU | E1000_CTRL_ASDE;
   e1000_putreg_mem(priv, E1000_CTRL, regval);
 
-  /* Setup and enable Transmiter */
+  /* Setup and enable Transmitter */
 
   regval = e1000_getreg_mem(priv, E1000_TCTL);
   regval |= E1000_TCTL_EN | E1000_TCTL_PSP;
@@ -1317,7 +1319,7 @@ static void e1000_enable(FAR struct e1000_driver_s *priv)
 #endif
   e1000_putreg_mem(priv, E1000_RCTL, regval);
 
-  /* REVISIT: Set granuality to Descriptors */
+  /* REVISIT: Set granularity to Descriptors */
 
   regval = e1000_getreg_mem(priv, E1000_RXDCTL);
   regval |= E1000_RXDCTL_GRAN;
@@ -1370,7 +1372,7 @@ static int e1000_initialize(FAR struct e1000_driver_s *priv)
       priv->irq = pci_get_irq(priv->pcidev);
     }
 
-  /* Attach interupts */
+  /* Attach interrupts */
 
   irq_attach(priv->irq, e1000_interrupt, priv);
 
@@ -1399,7 +1401,7 @@ static int e1000_initialize(FAR struct e1000_driver_s *priv)
     }
   else
     {
-      nwarn("Receive Address not vaild!\n");
+      nwarn("Receive Address not valid!\n");
     }
 
   return OK;

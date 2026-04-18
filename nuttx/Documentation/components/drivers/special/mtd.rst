@@ -66,6 +66,26 @@ massive data storage. For these reasons, it may not be convenient to use
 the more complex MTD interface but instead use the simple character
 interface provided by the EEPROM drivers.  See drivers/eeprom.
 
+CFI FLASH
+=========
+
+CFI, the full name of which is Common Flash Interface, is a standard proposed
+by JEDEC (Joint Electron Device Engineering Council) in 2003. The role of CFI
+(Common Flash Interface) is to read the information of NOR Flash through a
+unified method.
+
+This standard defines a query interface for Flash that complies with CFI,
+allowing parameterization and platformization of read, write, erase, and other
+interfaces for Flash. It allows programmers to read electrical characteristics
+of Flash-related devices, including memory size, erase speed, special features,
+and more. In other words, it is equivalent to loading the data manual of Flash
+into the physical device of Flash, It can be read and used by relevant personnel
+when needed.
+
+CFI's instruction link:
+https://netwinder.osuosl.org/pub/netwinder/docs/nw/flash/29220403.pdf
+CFI supports intel and amd instruction sets, and currently device drivers are
+already supported
 
 NAND MEMORY
 ===========
@@ -176,7 +196,7 @@ I am currently using nand with a 128KB erase block size and 2K page size
 so each write can cause a 256KB data transfer!
 
 NOTE that there is some caching logic within FAT and FTL so that this
-cached erase block can be re-used if possible and writes will be
+cached erase block can be reused if possible and writes will be
 deferred as long as possible.
 
 SMART FS
@@ -196,5 +216,5 @@ perform bad block detection and sparing so that FAT works transparently
 on top of the NAND.
 
 Another, less general, option would be support bad blocks within FAT.
-Such a solution migh be possible for SLC NAND, but would not be
+Such a solution might be possible for SLC NAND, but would not be
 sufficiently general for all NAND types.

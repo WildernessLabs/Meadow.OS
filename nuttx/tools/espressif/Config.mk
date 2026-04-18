@@ -48,17 +48,7 @@ else ifeq ($(CONFIG_ESPRESSIF_FLASH_MODE_QOUT),y)
 	FLASH_MODE := qout
 endif
 
-ifeq ($(CONFIG_ESPRESSIF_FLASH_FREQ_80M),y)
-	FLASH_FREQ := 80m
-else ifeq ($(CONFIG_ESPRESSIF_FLASH_FREQ_48M),y)
-	FLASH_FREQ := 48m
-else ifeq ($(CONFIG_ESPRESSIF_FLASH_FREQ_40M),y)
-	FLASH_FREQ := 40m
-else ifeq ($(CONFIG_ESPRESSIF_FLASH_FREQ_26M),y)
-	FLASH_FREQ := 26m
-else ifeq ($(CONFIG_ESPRESSIF_FLASH_FREQ_20M),y)
-	FLASH_FREQ := 20m
-endif
+FLASH_FREQ := $(CONFIG_ESPRESSIF_FLASH_FREQ)
 
 ifeq ($(CONFIG_ESPRESSIF_FLASH_DETECT),y)
 	ESPTOOL_WRITEFLASH_OPTS := -fs detect -fm dio -ff $(FLASH_FREQ)
@@ -116,7 +106,7 @@ define MERGEBIN
 		echo "Missing Flash memory size configuration."; \
 		exit 1; \
 	fi
-	esptool.py -c $(CHIP_SERIES) merge_bin --output nuttx.merged.bin $(ESPTOOL_BINS)
+	esptool.py -c $(CHIP_SERIES) merge_bin --fill-flash-size $(FLASH_SIZE) --output nuttx.merged.bin $(ESPTOOL_BINS)
 	$(Q) echo nuttx.merged.bin >> nuttx.manifest
 	$(Q) echo "Generated: nuttx.merged.bin"
 endef

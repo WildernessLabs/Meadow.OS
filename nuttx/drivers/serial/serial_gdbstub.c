@@ -80,7 +80,7 @@ static void uart_gdbstub_attach(FAR struct uart_gdbstub_s *uart_gdbstub,
 
   uart_setup(dev);
   uart_attach(dev);
-  uart_disablerxint(dev);
+  uart_enablerxint(dev);
 }
 
 /****************************************************************************
@@ -181,7 +181,7 @@ static int uart_gdbstub_panic_callback(FAR struct notifier_block *nb,
   uart_gdbstub_attach(uart_gdbstub, true);
 #endif
 
-  _alert("Enter panic gdbstub mode, plase use gdb connect to debug\n");
+  _alert("Enter panic gdbstub mode, please use gdb connect to debug\n");
   _alert("Please use gdb of the corresponding architecture to "
          "connect to nuttx");
   _alert("such as: arm-none-eabi-gdb nuttx -ex \"set "
@@ -253,7 +253,8 @@ static ssize_t uart_gdbstub_receive(FAR void *priv, FAR void *buf,
  *
  ****************************************************************************/
 
-static ssize_t uart_gdbstub_send(FAR void *priv, FAR void *buf, size_t len)
+static ssize_t uart_gdbstub_send(FAR void *priv, FAR const char *buf,
+                                 size_t len)
 {
   FAR struct uart_gdbstub_s *uart_gdbstub = priv;
   FAR uart_dev_t *dev = uart_gdbstub->dev;
@@ -269,7 +270,7 @@ static ssize_t uart_gdbstub_send(FAR void *priv, FAR void *buf, size_t len)
             }
           else
             {
-              uart_gdbstub->org_ops->send(dev, ((FAR char *)buf)[i++]);
+              uart_gdbstub->org_ops->send(dev, buf[i++]);
             }
         }
     }

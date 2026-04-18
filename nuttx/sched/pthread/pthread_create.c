@@ -222,6 +222,10 @@ int nx_pthread_create(pthread_trampoline_t trampoline, FAR pthread_t *thread,
 
   nxtask_joininit(&ptcb->cmn);
 
+#ifndef CONFIG_PTHREAD_MUTEX_UNSAFE
+  spin_lock_init(&ptcb->cmn.mutex_lock);
+#endif
+
   /* Bind the parent's group to the new TCB (we have not yet joined the
    * group).
    */
@@ -276,15 +280,6 @@ int nx_pthread_create(pthread_trampoline_t trampoline, FAR pthread_t *thread,
       goto errout_with_tcb;
     }
 #endif
-
-  /* Initialize thread local storage */
-
-  ret = tls_init_info(&ptcb->cmn);
-  if (ret != OK)
-    {
-      errcode = -ret;
-      goto errout_with_tcb;
-    }
 
   /* Should we use the priority and scheduler specified in the pthread
    * attributes?  Or should we use the current thread's priority and
@@ -390,6 +385,15 @@ int nx_pthread_create(pthread_trampoline_t trampoline, FAR pthread_t *thread,
   if (ret != OK)
     {
       errcode = EBUSY;
+      goto errout_with_tcb;
+    }
+
+  /* Initialize thread local storage */
+
+  ret = tls_init_info(&ptcb->cmn);
+  if (ret != OK)
+    {
+      errcode = -ret;
       goto errout_with_tcb;
     }
 

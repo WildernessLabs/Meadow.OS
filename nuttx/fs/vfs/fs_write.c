@@ -48,21 +48,17 @@
  * Description:
  *   Emulate writev using file_operation::write.
  *
+ *   Please read the comment on file_readv_compat as well.
+ *
  ****************************************************************************/
 
 static ssize_t file_writev_compat(FAR struct file *filep,
-                                  FAR const struct uio *uio)
+                                  FAR const struct iovec *iov, int iovcnt)
 {
-  FAR const struct iovec *iov = uio->uio_iov;
-  int iovcnt = uio->uio_iovcnt;
   FAR struct inode *inode = filep->f_inode;
-  ssize_t ntotal;
   ssize_t nwritten;
-  size_t remaining;
-  FAR uint8_t *buffer;
+  ssize_t ntotal;
   int i;
-
-  DEBUGASSERT(inode->u.i_ops->write != NULL);
 
   /* Process each entry in the struct iovec array */
 
@@ -75,31 +71,41 @@ static ssize_t file_writev_compat(FAR struct file *filep,
           continue;
         }
 
-      buffer    = iov[i].iov_base;
-      remaining = iov[i].iov_len;
+      /* Sanity check to avoid total length overflow */
 
-      nwritten = inode->u.i_ops->write(filep, (void *)buffer, remaining);
+      if (SSIZE_MAX - ntotal < iov[i].iov_len)
+        {
+          if (ntotal > 0)
+            {
+              break;
+            }
+
+          return -EINVAL;
+        }
+
+      nwritten = inode->u.i_ops->write(filep, iov[i].iov_base,
+                                       iov[i].iov_len);
 
       /* Check for a write error */
 
       if (nwritten < 0)
         {
-          return ntotal ? ntotal : nwritten;
+          if (ntotal > 0)
+            {
+              break;
+            }
+
+          return nwritten;
         }
 
       ntotal += nwritten;
 
-      /* Check for a parital success condition */
+      /* Check for a partial success condition */
 
-      if (nwritten < remaining)
+      if (nwritten < iov[i].iov_len)
         {
-          return ntotal;
+          break;
         }
-
-      /* Update the pointer */
-
-      buffer    += nwritten;
-      remaining -= nwritten;
     }
 
   return ntotal;
@@ -123,7 +129,8 @@ static ssize_t file_writev_compat(FAR struct file *filep,
  *
  * Input Parameters:
  *   filep  - Instance of struct file to use with the write
- *   uio    - User buffer information
+ *   iov    - Data to write
+ *   iovcnt - The number of vectors
  *
  * Returned Value:
  *  On success, the number of bytes written are returned (zero indicates
@@ -133,10 +140,11 @@ static ssize_t file_writev_compat(FAR struct file *filep,
  *
  ****************************************************************************/
 
-ssize_t file_writev(FAR struct file *filep, FAR const struct uio *uio)
+ssize_t file_writev(FAR struct file *filep,
+                    FAR const struct iovec *iov, int iovcnt)
 {
   FAR struct inode *inode;
-  ssize_t ret = -EBADF;
+  ssize_t ret;
 
   /* Was this file opened for write access? */
 
@@ -145,20 +153,49 @@ ssize_t file_writev(FAR struct file *filep, FAR const struct uio *uio)
       return -EACCES;
     }
 
+  /* Check buffer count and pointer for iovec */
+
+  if (iovcnt == 0)
+    {
+      return 0;
+    }
+
+  if (iov == NULL)
+    {
+      return -EFAULT;
+    }
+
+  /* Are all iov_base accessible? */
+
+  for (ret = 0; ret < iovcnt; ret++)
+    {
+      if (iov[ret].iov_base == NULL && iov[ret].iov_len != 0)
+        {
+          return -EFAULT;
+        }
+    }
+
   /* Is a driver registered? Does it support the write method?
    * If yes, then let the driver perform the write.
    */
 
+  ret = -EBADF;
   inode = filep->f_inode;
   if (inode != NULL && inode->u.i_ops)
     {
       if (inode->u.i_ops->writev)
         {
-          ret = inode->u.i_ops->writev(filep, uio);
+          struct uio uio;
+
+          ret = uio_init(&uio, iov, iovcnt);
+          if (ret == 0)
+            {
+              ret = inode->u.i_ops->writev(filep, &uio);
+            }
         }
       else if (inode->u.i_ops->write)
         {
-          ret = file_writev_compat(filep, uio);
+          ret = file_writev_compat(filep, iov, iovcnt);
         }
     }
 
@@ -201,13 +238,11 @@ ssize_t file_write(FAR struct file *filep, FAR const void *buf,
                    size_t nbytes)
 {
   struct iovec iov;
-  struct uio uio;
 
   iov.iov_base = (FAR void *)buf;
   iov.iov_len = nbytes;
-  uio.uio_iov = &iov;
-  uio.uio_iovcnt = 1;
-  return file_writev(filep, &uio);
+
+  return file_writev(filep, &iov, 1);
 }
 
 /****************************************************************************
@@ -237,7 +272,6 @@ ssize_t file_write(FAR struct file *filep, FAR const void *buf,
 
 ssize_t nx_writev(int fd, FAR const struct iovec *iov, int iovcnt)
 {
-  struct uio uio;
   FAR struct file *filep;
   ssize_t ret;
 
@@ -252,9 +286,8 @@ ssize_t nx_writev(int fd, FAR const struct iovec *iov, int iovcnt)
        * index.  Note that file_writev() will return the errno on failure.
        */
 
-      uio.uio_iov = iov;
-      uio.uio_iovcnt = iovcnt;
-      ret = file_writev(filep, &uio);
+      ret = file_writev(filep, iov, iovcnt);
+
       fs_putfilep(filep);
     }
 

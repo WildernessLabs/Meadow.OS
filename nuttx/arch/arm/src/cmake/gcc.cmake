@@ -149,7 +149,7 @@ if(CONFIG_MM_UBSAN_TRAP_ON_ERROR)
   add_compile_options(-fsanitize-undefined-trap-on-error)
 endif()
 
-if(CONFIG_MM_KASAN_ALL)
+if(CONFIG_MM_KASAN_INSTRUMENT_ALL)
   add_compile_options(-fsanitize=kernel-address)
 endif()
 
@@ -238,6 +238,13 @@ endif()
 
 if(CONFIG_DEBUG_SYMBOLS)
   add_compile_options(${CONFIG_DEBUG_SYMBOLS_LEVEL})
+endif()
+
+set(PICFLAGS -fpic -fPIE -mno-pic-data-is-text-relative -msingle-pic-base)
+
+if(CONFIG_BUILD_PIC)
+  add_compile_options(${PICFLAGS} -mpic-register=r9)
+  add_link_options(-Wl,--emit-relocs)
 endif()
 
 add_compile_options(

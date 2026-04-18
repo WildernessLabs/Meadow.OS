@@ -35,6 +35,7 @@ foreach(NameAndValue ${ConfigContents})
      OR "${NameAndValue}" MATCHES "^CONFIG_ARCH_CHIP_"
      OR "${NameAndValue}" MATCHES "CONFIG_ARCH_CHIP="
      OR "${NameAndValue}" MATCHES "CONFIG_ARCH_BOARD="
+     OR "${NameAndValue}" MATCHES "CONFIG_ARCH_BOARD_COMMON="
      OR "${NameAndValue}" MATCHES "^CONFIG_ARCH_CUSTOM"
      OR "${NameAndValue}" MATCHES "^CONFIG_ARCH_BOARD_CUSTOM")
     decode_semicolon(Value)
@@ -70,5 +71,8 @@ foreach(LINE IN LISTS LINES)
   decode_semicolon(LINE)
   file(APPEND ${OUTPUT_FILE} "${LINE}\n")
 endforeach()
+
+# Converts the newline style for the output file.
+configure_file(${OUTPUT_FILE} ${OUTPUT_FILE} @ONLY NEWLINE_STYLE LF)
 
 execute_process(COMMAND ${CMAKE_COMMAND} -E remove ${TARGET_FILE})

@@ -73,13 +73,18 @@ extern "C++"
 #  define __ATOMIC_ACQ_REL 4
 #  define __ATOMIC_SEQ_CST 5
 
+#  define USE_ARCH_ATOMIC  1
+
 #  define ATOMIC_FUNC(f, n) nx_atomic_##f##_##n
 
-#  define atomic_fetch_add(obj, val)  ATOMIC_FUNC(fetch_add, 4)(obj, val, __ATOMIC_ACQ_REL)
-#  define atomic_fetch_sub(obj, val)  ATOMIC_FUNC(fetch_sub, 4)(obj, val, __ATOMIC_ACQ_REL)
-#  define atomic_fetch_and(obj, val)  ATOMIC_FUNC(fetch_and, 4)(obj, val, __ATOMIC_ACQ_REL)
-#  define atomic_fetch_or(obj, val)   ATOMIC_FUNC(fetch_or, 4)(obj, val, __ATOMIC_ACQ_REL)
-#  define atomic_fetch_xor(obj, val)  ATOMIC_FUNC(fetch_xor, 4)(obj, val, __ATOMIC_ACQ_REL)
+#  define nx_atomic_compare_exchange_weak_4(obj, expect, desired, success, failure) \
+     nx_atomic_compare_exchange_4(obj, expect, desired, true, success, failure)
+#  define nx_atomic_compare_exchange_weak_8(obj, expect, desired, success, failure) \
+     nx_atomic_compare_exchange_8(obj, expect, desired, true, success, failure)
+#  define nx_atomic_compare_exchange_strong_4(obj, expect, desired, success, failure) \
+     nx_atomic_compare_exchange_4(obj, expect, desired, false, success, failure)
+#  define nx_atomic_compare_exchange_strong_8(obj, expect, desired, success, failure) \
+     nx_atomic_compare_exchange_8(obj, expect, desired, false, success, failure)
 
 #  define nx_atomic_compare_exchange_weak_4(obj, expect, desired, success, failure) \
      nx_atomic_compare_exchange_4(obj, expect, desired, true, success, failure)
@@ -158,37 +163,37 @@ typedef volatile int64_t atomic64_t;
 #define atomic64_xchg_relaxed(obj, val)       ATOMIC_FUNC(exchange, 8)(obj, val, __ATOMIC_RELAXED)
 
 #define atomic_cmpxchg(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
 #define atomic_cmpxchg_acquire(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
 #define atomic_cmpxchg_release(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 #define atomic_cmpxchg_relaxed(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
 #define atomic_try_cmpxchg(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
-#define atomic_try_cmpxchg_acquire(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
+#define atomic_try_cmpxchg_acquire(obj, expected, desired)   \
+  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
 #define atomic_try_cmpxchg_release(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 #define atomic_try_cmpxchg_relaxed(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 4)(obj, (FAR int32_t *)expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
 #define atomic64_cmpxchg(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
 #define atomic64_cmpxchg_acquire(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
 #define atomic64_cmpxchg_release(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 #define atomic64_cmpxchg_relaxed(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_strong, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
 #define atomic64_try_cmpxchg(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_ACQ_REL, __ATOMIC_RELAXED)
 #define atomic64_try_cmpxchg_acquire(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)
 #define atomic64_try_cmpxchg_release(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_RELEASE, __ATOMIC_RELAXED)
 #define atomic64_try_cmpxchg_relaxed(obj, expected, desired) \
-  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
+  ATOMIC_FUNC(compare_exchange_weak, 8)(obj, (FAR int64_t *)expected, desired, __ATOMIC_RELAXED, __ATOMIC_RELAXED)
 
 /****************************************************************************
  * Public Function Prototypes
@@ -237,6 +242,33 @@ int32_t nx_atomic_fetch_xor_4(FAR volatile void *ptr, int32_t value,
                               int memorder);
 int64_t nx_atomic_fetch_xor_8(FAR volatile void *ptr, int64_t value,
                               int memorder);
+
+#ifdef USE_ARCH_ATOMIC
+static inline int32_t atomic_fetch_add(FAR volatile void *obj, int32_t val)
+{
+  return nx_atomic_fetch_add_4(obj, val, __ATOMIC_ACQ_REL);
+}
+
+static inline int32_t atomic_fetch_sub(FAR volatile void *obj, int32_t val)
+{
+  return nx_atomic_fetch_sub_4(obj, val, __ATOMIC_ACQ_REL);
+}
+
+static inline int32_t atomic_fetch_and(FAR volatile void *obj, int32_t val)
+{
+  return nx_atomic_fetch_and_4(obj, val, __ATOMIC_ACQ_REL);
+}
+
+static inline int32_t atomic_fetch_or(FAR volatile void *obj, int32_t val)
+{
+  return nx_atomic_fetch_or_4(obj, val, __ATOMIC_ACQ_REL);
+}
+
+static inline int32_t atomic_fetch_xor(FAR volatile void *obj, int32_t val)
+{
+  return nx_atomic_fetch_xor_4(obj, val, __ATOMIC_ACQ_REL);
+}
+#endif
 
 #undef EXTERN
 #if defined(__cplusplus)

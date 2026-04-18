@@ -83,7 +83,7 @@
 #define STATUS_LINELEN PATH_MAX
 
 /****************************************************************************
- * Private Type Definitions
+ * Private Types
  ****************************************************************************/
 
 /* This enumeration identifies all of the task/thread nodes that can be
@@ -904,7 +904,7 @@ static ssize_t proc_heap(FAR struct proc_file_s *procfile,
 #ifdef CONFIG_MM_KERNEL_HEAP
   if ((tcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_KERNEL)
     {
-      info = fs_heap_mallinfo_task(&task);
+      info = kmm_mallinfo_task(&task);
     }
   else
 #endif

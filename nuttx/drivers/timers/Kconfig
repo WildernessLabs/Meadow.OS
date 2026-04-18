@@ -57,7 +57,7 @@ config PWM_DEADTIME
 	---help---
 		Some hardware will support deadtime generators that automatically
 		insert output activation delay for complementary PWM outputs. This
-		is usefull for H-bridge motor control for example. The deadtime
+		is useful for H-bridge motor control for example. The deadtime
 		values are set from application level via the same IOCTL that sets
 		up duty cycle and frequency.
 
@@ -424,7 +424,7 @@ config WATCHDOG_PANIC_NOTIFIER
 	bool "Enable watchdog panic notifier"
 	default n
 	---help---
-		When system PANIC, wdog_notifier() will be callled to disable the watchdog,
+		When system PANIC, wdog_notifier() will be called to disable the watchdog,
 		this is an useful option for debug if you want to keep crash scene.
 
 menuconfig WATCHDOG_AUTOMONITOR
@@ -438,6 +438,14 @@ menuconfig WATCHDOG_AUTOMONITOR
 		now on.
 
 if WATCHDOG_AUTOMONITOR
+
+config WATCHDOG_TIMEOUT_NOTIFIER
+	bool "Enable watchdog timeout notifier"
+	default n
+	---help---
+		The watchdog timeout notifier chain mechanism supports users registering
+		custom callback functions, which will be called when the watchdog timer
+		managed by Auto-monitor times out.
 
 choice
 	prompt "Auto-monitor keepalive by"
@@ -480,8 +488,8 @@ config WATCHDOG_AUTOMONITOR_BY_IDLE
 endchoice
 
 config WATCHDOG_AUTOMONITOR_TIMEOUT
-	int "Auto-monitor reset timeout(second)"
-	default 60
+	int "Auto-monitor reset timeout(millisecond)"
+	default 60000
 
 if !WATCHDOG_AUTOMONITOR_BY_CAPTURE && !WATCHDOG_AUTOMONITOR_BY_IDLE
 

@@ -30,7 +30,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
@@ -50,7 +49,7 @@
 #ifdef CONFIG_RGBLED
 
 /****************************************************************************
- * Private Type Definitions
+ * Private Types
  ****************************************************************************/
 
 /* This structure describes the state of the upper half driver */

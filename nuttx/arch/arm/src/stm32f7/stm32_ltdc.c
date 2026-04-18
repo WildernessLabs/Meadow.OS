@@ -206,7 +206,7 @@
 #  error Undefined or unrecognized base resolution
 #endif
 
-/* LTDC only supports 8 bit per pixel overal */
+/* LTDC only supports 8 bit per pixel overall */
 
 #define STM32_LTDC_LX_BYPP(n)       ((n) / 8)
 
@@ -665,7 +665,7 @@ struct stm32_interrupt_s
  * Private Function Prototypes
  ****************************************************************************/
 
-/* Overal LTDC helper */
+/* Overall LTDC helper */
 
 static void stm32_ltdc_enable(bool enable);
 static void stm32_ltdc_gpioconfig(void);
@@ -2623,7 +2623,7 @@ static int stm32_setchromakey(struct fb_vtable_s *vtable,
   struct stm32_ltdcdev_s *priv = (struct stm32_ltdcdev_s *)vtable;
 
   DEBUGASSERT(vtable != NULL && priv == &g_vtable && oinfo != NULL);
-  lcdinfo("vtable=%p, overlay=%d, chromakey=%08x\n", vtable,
+  lcdinfo("vtable=%p, overlay=%d, chromakey=%08" PRIx32 "\n", vtable,
           oinfo->overlay, oinfo->chromakey);
 
   if (oinfo->overlay < LTDC_NLAYERS)
@@ -2689,7 +2689,8 @@ static int stm32_setcolor(struct fb_vtable_s *vtable,
                           const struct fb_overlayinfo_s *oinfo)
 {
   DEBUGASSERT(vtable != NULL && vtable == &g_vtable.vtable && oinfo != NULL);
-  lcdinfo("vtable=%p, overlay=%d, color=%08x\n", vtable, oinfo->color);
+  lcdinfo("vtable=%p, overlay=%d, color=%08" PRIx32 "\n",
+          vtable, oinfo->overlay, oinfo->color);
 
   if (oinfo->overlay < LTDC_NOVERLAYS)
     {
@@ -2737,7 +2738,8 @@ static int stm32_setblank(struct fb_vtable_s *vtable,
   struct stm32_ltdcdev_s *priv = (struct stm32_ltdcdev_s *)vtable;
 
   DEBUGASSERT(vtable != NULL && priv == &g_vtable && oinfo != NULL);
-  lcdinfo("vtable=%p, overlay=%d, blank=%02x\n", vtable, oinfo->blank);
+  lcdinfo("vtable=%p, overlay=%d, blank=%02x\n",
+          vtable, oinfo->overlay, oinfo->blank);
 
   if (oinfo->overlay < LTDC_NLAYERS)
     {

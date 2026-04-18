@@ -33,6 +33,7 @@
 #include <assert.h>
 
 #include <nuttx/elf.h>
+#include <arch/barriers.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -129,7 +130,7 @@ static void _set_val(uint16_t *addr, uint32_t val)
 
   /* NOTE: Ensure relocation before execution */
 
-  asm volatile ("fence.i");
+  UP_ISB();
 }
 
 static void _add_val(uint16_t *addr, uint32_t val)
@@ -580,7 +581,7 @@ int up_relocateadd(const Elf_Rela *rel, const Elf_Sym *sym,
                 addr, _get_val((uint16_t *)addr),
                 sym, (uintptr_t)sym->st_value);
 
-          /* P.21 Unconditinal Jumps : UJ type (imm=20bit) */
+          /* P.21 Unconditional Jumps : UJ type (imm=20bit) */
 
           offset = (long)sym->st_value + (long)rel->r_addend - (long)addr;
           uint32_t val = _get_val((uint16_t *)addr) & 0xfffff000;

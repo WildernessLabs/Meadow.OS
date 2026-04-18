@@ -76,7 +76,7 @@ uint32_t *arm_syscall(uint32_t *regs)
   cmd = regs[REG_R0];
 
   /* if cmd == SYS_restore_context (*running_task)->xcp.regs is valid
-   * should not be overwriten
+   * should not be overwritten
    */
 
   if (cmd != SYS_restore_context)
@@ -124,5 +124,12 @@ uint32_t *arm_syscall(uint32_t *regs)
    * SYS_context_switch system call.
    */
 
-  return tcb->xcp.regs;
+  regs = tcb->xcp.regs;
+
+  /* (*running_task)->xcp.regs is about to become invalid
+   * and will be marked as NULL to avoid misusage.
+   */
+
+  (*running_task)->xcp.regs = NULL;
+  return regs;
 }

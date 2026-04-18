@@ -109,6 +109,43 @@ disables the NuttShell to get the best possible score.
 .. note:: As the NSH is disabled, the application will start as soon as the
   system is turned on.
 
+efuse
+-----
+
+This configuration demonstrates the use of the eFuse driver. It can be accessed
+through the ``/dev/efuse`` device file.
+Virtual eFuse mode can be used by enabling `CONFIG_ESPRESSIF_EFUSE_VIRTUAL`
+option to prevent possible damages on chip.
+
+The following snippet demonstrates how to read MAC address:
+
+.. code-block:: C
+
+   int fd;
+   int ret;
+   uint8_t mac[6];
+   struct efuse_param_s param;
+   struct efuse_desc_s mac_addr =
+   {
+     .bit_offset = 1,
+     .bit_count = 48
+   };
+
+   const efuse_desc_t* desc[] =
+   {
+       &mac_addr,
+       NULL
+   };
+   param.field = desc;
+   param.size = 48;
+   param.data = mac;
+
+   fd = open("/dev/efuse", O_RDONLY);
+   ret = ioctl(fd, EFUSEIOC_READ_FIELD, &param);
+
+To find offset and count variables for related eFuse,
+please refer to Espressif's Technical Reference Manuals.
+
 gpio
 ----
 
@@ -130,6 +167,41 @@ We can use the interrupt pin to send a signal when the interrupt fires::
 The pin is configured as a rising edge interrupt, so after issuing the
 above command, connect it to 3.3V.
 
+To use dedicated gpio for controlling multiple gpio pin at the same time
+or having better response time, you need to enable
+`CONFIG_ESPRESSIF_DEDICATED_GPIO` option. Dedicated GPIO is suitable
+for faster response times required applications like simulate serial/parallel
+interfaces in a bit-banging way.
+After this option enabled GPIO4 and GPIO5 pins are ready to used as dedicated GPIO pins
+as input/output mode. These pins are for example, you can use any pin up to 8 pins for
+input and 8 pins for output for dedicated gpio.
+To write and read data from dedicated gpio, you need to use
+`write` and `read` calls.
+
+The following snippet demonstrates how to read/write to dedicated GPIO pins:
+
+.. code-block:: C
+
+    int fd; = open("/dev/dedic_gpio0", O_RDWR);
+    int rd_val = 0;
+    int wr_mask = 0xffff;
+    int wr_val = 3;
+
+    while(1)
+      {
+        write(fd, &wr_val, wr_mask);
+        if (wr_val == 0)
+          {
+            wr_val = 3;
+          }
+        else
+          {
+            wr_val = 0;
+          }
+        read(fd, &rd_val, sizeof(uint32_t));
+        printf("rd_val: %d", rd_val);
+      }
+
 i2c
 ---
 
@@ -137,6 +209,46 @@ This configuration can be used to scan and manipulate I2C devices.
 You can scan for all I2C devices using the following command::
 
     nsh> i2c dev 0x00 0x7f
+
+To use slave mode, you can enable `ESPRESSIF_I2C0_SLAVE_MODE` option.
+To use slave mode driver following snippet demonstrates how write to i2c bus
+using slave driver:
+
+.. code-block:: C
+
+   #define ESP_I2C_SLAVE_PATH  "/dev/i2cslv0"
+   int main(int argc, char *argv[])
+     {
+       int i2c_slave_fd;
+       int ret;
+       uint8_t buffer[5] = {0xAA};
+       i2c_slave_fd = open(ESP_I2C_SLAVE_PATH, O_RDWR);
+       ret = write(i2c_slave_fd, buffer, 5);
+       close(i2c_slave_fd);
+    }
+
+i2schar
+-------
+
+This configuration enables the I2S character device and the i2schar example
+app, which provides an easy-to-use way of testing the I2S peripheral,
+enabling both the TX and the RX for those peripherals.
+
+**I2S pinout**
+
+============ ========== =========================================
+ESP32-C3 Pin Signal Pin Description
+============ ========== =========================================
+0            MCLK       Master Clock
+4            SCLK       Bit Clock (SCLK)
+5            LRCK       Word Select (LRCLK)
+18           DOUT       Data Out
+19           DIN        Data In
+============ ========== =========================================
+
+After successfully built and flashed, run on the boards's terminal::
+
+    nsh> i2schar
 
 mcuboot_nsh
 --------------------

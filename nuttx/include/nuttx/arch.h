@@ -2112,7 +2112,9 @@ int up_timer_tick_start(clock_t ticks);
  *
  ****************************************************************************/
 
-uintptr_t up_getusrsp(FAR void *regs);
+/* static inline_function uintptr_t up_getusrsp(void *regs);
+ * The actual implementation should be provided in irq.h per arch.
+ */
 
 /****************************************************************************
  * TLS support
@@ -2817,6 +2819,18 @@ int arch_phy_irq(FAR const char *intf, xcpt_t handler, void *arg,
  ****************************************************************************/
 
 void up_putc(int ch);
+
+/****************************************************************************
+ * Name: up_lowputc
+ *
+ * Description:
+ *   Output one character in early boot-stages.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_LOWPUTC
+void up_lowputc(int ch);
+#endif
 
 /****************************************************************************
  * Name: up_puts

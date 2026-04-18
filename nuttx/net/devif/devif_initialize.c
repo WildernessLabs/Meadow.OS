@@ -58,7 +58,7 @@
  * Public Data
  ****************************************************************************/
 
-/* IP/TCP/UDP/ICMP statistics for all network interfaces */
+/* IP/TCP/UDP/ICMP/CAN statistics for all network interfaces */
 
 #ifdef CONFIG_NET_STATISTICS
 struct net_stats_s g_netstats;
@@ -88,8 +88,5 @@ struct net_stats_s g_netstats;
 
 void devif_initialize(void)
 {
-  /* Initialize callback support */
-
-  devif_callback_init();
 }
 #endif /* CONFIG_NET */

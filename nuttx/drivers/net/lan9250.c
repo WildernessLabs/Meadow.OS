@@ -28,7 +28,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <time.h>
 #include <string.h>
 #include <assert.h>
@@ -618,7 +617,9 @@ static void lan9250_wait_ready(FAR struct lan9250_driver_s *priv,
 
   if (timeout)
     {
-      nerr("ERROR: wait register:0x%02x, mask:0x%08x, expected:0x%08x\n",
+      nerr("ERROR: wait register:0x%04" PRIx16 \
+           ", mask:0x%08" PRIx32 \
+           ", expected:0x%08" PRIx32 "\n",
             address, mask, expected);
     }
 }
@@ -735,7 +736,8 @@ static void lan9250_wait_mac_ready(FAR struct lan9250_driver_s *priv,
 
   if (timeout)
     {
-      nerr("ERROR: wait MAC register:0x%02x, mask:0x%08x, expected:0x%08x\n",
+      nerr("ERROR: wait MAC register:0x%02" PRIx8 \
+           ", mask:0x%08" PRIx32 ", expect:0x%08" PRIx32 "\n",
             address, mask, expected);
     }
 }
@@ -1179,11 +1181,11 @@ static int lan9250_reset(FAR struct lan9250_driver_s *priv)
   regval = lan9250_get_reg(priv, LAN9250_CIARR);
   if ((regval & CIARR_CID_M) != CIARR_CID_V)
     {
-      nerr("ERROR: Bad Rev ID: %08x\n", regval);
+      nerr("ERROR: Bad Rev ID: %08" PRIx32 "\n", regval);
       return -ENODEV;
     }
 
-  ninfo("Rev ID: %08x\n", regval & CIARR_CREV_M);
+  ninfo("Rev ID: %08" PRIx32 "\n", regval & CIARR_CREV_M);
 
   /* Configure TX FIFO size mode to be 8:
    *
@@ -1335,7 +1337,7 @@ static int lan9250_reset(FAR struct lan9250_driver_s *priv)
 
   /* Configure HMAC control:
    *
-   *   - Automaticaly strip the pad field on incoming packets
+   *   - Automatically strip the pad field on incoming packets
    *   - TX enable
    *   - RX enable
    *   - Full duplex mode if !CONFIG_LAN9250_HALFDUPPLEX
@@ -1415,7 +1417,7 @@ static int lan9250_transmit(FAR struct lan9250_driver_s *priv)
   status_size = (regval & TXFIR_TXSFUS_M) >> TXFIR_TXSFUS_S;
   free_size = regval & TXFIR_TXDFFS_M;
 
-  ninfo("availabe status size:%d, free space size:%d\n",
+  ninfo("available status size:%d, free space size:%d\n",
         status_size, free_size);
 
   /* Clear TX status FIFO if it is no empty by reading data */
@@ -1810,7 +1812,7 @@ static void lan9250_int_worker(FAR void *arg)
        * settings.
        */
 
-      ninfo("Interrupt status: %08x\n", regval);
+      ninfo("Interrupt status: %08" PRIx32 "\n", regval);
 
 #if LAN9250_INT_SOURCE & IER_SW
       if ((regval & ISR_SW) != 0)
