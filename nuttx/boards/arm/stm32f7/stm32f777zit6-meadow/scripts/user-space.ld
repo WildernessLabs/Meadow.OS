@@ -30,7 +30,8 @@ PHDRS
   text PT_LOAD;
   data PT_LOAD;
   comment PT_LOAD;
-  /* mono_text PT_LOAD;
+  mono_text PT_LOAD;
+  /*
   mono_data PT_LOAD;
   mono_comment PT_LOAD; */
 }
