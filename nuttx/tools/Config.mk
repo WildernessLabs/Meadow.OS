@@ -381,8 +381,6 @@ define COMPILED
 	$(ECHO_END)
 endef
 
-<<<<<<< HEAD
-=======
 # COMPILESWIFT - Default macro to compile one Swift file
 # Example: $(call COMPILESWIFT, in-file, out-file)
 #
@@ -402,7 +400,6 @@ define COMPILESWIFT
 	$(ECHO_END)
 endef
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 # ASSEMBLE - Default macro to assemble one assembly language file
 # Example: $(call ASSEMBLE, in-file, out-file)
 #
