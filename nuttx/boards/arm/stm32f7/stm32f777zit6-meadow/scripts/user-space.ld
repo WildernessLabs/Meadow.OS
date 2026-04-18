@@ -138,7 +138,7 @@ SECTIONS
         _e_mono_signature = ABSOLUTE(.);
     } > sdram :mono_text
 
-    .mono : {
+    /* .mono : {
         _s_mono = ABSOLUTE(.);
         *libmonosgen.a:* (.text .text.*)
         *libmini.a:* (.text .text.*)
@@ -213,5 +213,5 @@ SECTIONS
         *libmono-mbedtls.a:* (.bss .bss.* .gnu.linkonce.b.* )
         . = ALIGN(1048576);
         _e_mono_bss = ABSOLUTE(.);
-    } > sdram
+    } > sdram */
 }
