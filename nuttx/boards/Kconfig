@@ -150,12 +150,6 @@ config ARCH_BOARD_COMMON
 		Board common logic located in each board/common folder.
 
 if ARCH_BOARD_COMMON
-if ARCH_CHIP_ESP32
-source "boards/xtensa/esp32/common/Kconfig"
-endif
-if ARCH_CHIP_ESP32S2
-source "boards/xtensa/esp32s2/common/Kconfig"
-endif
 if ARCH_CHIP_STM32
 source "boards/arm/stm32/common/Kconfig"
 endif
