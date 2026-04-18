@@ -209,11 +209,7 @@ volatile uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
  * bringing up the rest of the system.
  */
 
-<<<<<<< HEAD
-static struct tcb_s g_idletcb[CONFIG_SMP_NCPUS];
-=======
 struct tcb_s g_idletcb[CONFIG_SMP_NCPUS];
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 /* This is the name of the idle task */
 
@@ -365,10 +361,7 @@ static void idle_task_initialize(void)
 
       tcb->pid        = i;
       tcb->task_state = TSTATE_TASK_RUNNING;
-<<<<<<< HEAD
-=======
       tcb->lockcount  = 1;
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
       /* Set the entry point.  This is only for debug purposes.  NOTE: that
        * the start_t entry point is not saved.  That is acceptable, however,
@@ -528,13 +521,6 @@ void nx_start(void)
   /* Boot up is complete */
 
   g_nx_initstate = OSINIT_BOOT;
-<<<<<<< HEAD
-
-  /* Initialize RTOS Data ***************************************************/
-
-  sched_trace_begin();
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   /* Initialize task list table *********************************************/
 
@@ -547,15 +533,12 @@ void nx_start(void)
   /* Task lists are initialized */
 
   g_nx_initstate = OSINIT_TASKLISTS;
-<<<<<<< HEAD
-=======
 
   /* Initialize RTOS Data ***************************************************/
 
   drivers_early_initialize();
 
   sched_trace_begin();
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   /* Initialize RTOS facilities *********************************************/
 

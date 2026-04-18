@@ -95,15 +95,6 @@ static int nxtask_assign_pid(FAR struct tcb_s *tcb)
    * We cannot allow another task to be started.
    */
 
-<<<<<<< HEAD
-  /* Protect the following operation with a critical section
-   * because g_pidhash is accessed from an interrupt context
-   */
-
-  irqstate_t flags = enter_critical_section();
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   /* We'll try every allowable pid */
 
 retry:
@@ -152,8 +143,6 @@ retry:
    * expand space.
    */
 
-<<<<<<< HEAD
-=======
   temp = g_pidhash;
 
   /* Calling malloc in a critical section may cause thread switching.
@@ -162,15 +151,12 @@ retry:
    */
 
   leave_critical_section(flags);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   pidhash = kmm_zalloc(g_npidhash * 2 * sizeof(*pidhash));
   if (pidhash == NULL)
     {
       return -ENOMEM;
     }
 
-<<<<<<< HEAD
-=======
   /* Handle conner case: context siwtch happened when kmm_malloc */
 
   flags = enter_critical_section();
@@ -181,7 +167,6 @@ retry:
       goto retry;
     }
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   g_npidhash *= 2;
 
   /* All original pid and hash_ndx are mismatch,
@@ -190,8 +175,6 @@ retry:
 
   for (i = 0; i < g_npidhash / 2; i++)
     {
-<<<<<<< HEAD
-=======
       if (g_pidhash[i] == NULL)
         {
           /* If the pid is not used, skip it.
@@ -202,7 +185,6 @@ retry:
           continue;
         }
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
       hash_ndx = PIDHASH(g_pidhash[i]->pid);
       DEBUGASSERT(pidhash[hash_ndx] == NULL);
       pidhash[hash_ndx] = g_pidhash[i];
@@ -210,13 +192,8 @@ retry:
 
   /* Release resource for original g_pidhash, using new g_pidhash */
 
-<<<<<<< HEAD
-  temp = g_pidhash;
-  g_pidhash = pidhash;
-=======
   g_pidhash = pidhash;
   leave_critical_section(flags);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   kmm_free(temp);
 
   /* Let's try every allowable pid again */

@@ -133,15 +133,6 @@ int nxtask_exit(void)
 
   rtcb->lockcount++;
 
-<<<<<<< HEAD
-#ifdef CONFIG_SMP
-  /* Make sure that the system knows about the locked state */
-
-  g_cpu_lockset |= (1 << cpu);
-#endif
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   rtcb->task_state = TSTATE_TASK_READYTORUN;
 
 #ifdef CONFIG_SMP
@@ -168,17 +159,5 @@ int nxtask_exit(void)
 
   rtcb->lockcount--;
 
-<<<<<<< HEAD
-#ifdef CONFIG_SMP
-  if (rtcb->lockcount == 0)
-    {
-      /* Make sure that the system knows about the unlocked state */
-
-      g_cpu_lockset &= ~(1 << cpu);
-    }
-#endif
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   return ret;
 }

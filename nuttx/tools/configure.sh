@@ -27,11 +27,7 @@ WSDIR=`cd "${TOPDIR}/.." && pwd -P`
 MAKECMD="make"
 USAGE="
 
-<<<<<<< HEAD
-USAGE: ${0} [-E] [-e] [-l|m|c|g|n|B] [-L [boardname]] [-a <app-dir>] <board-selection> [make-opts]
-=======
 USAGE: ${0} [-E] [-e] [-S] [-l|m|c|g|n|B] [-L [boardname]] [-a <app-dir>] <board-selection> [make-opts]
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 Where:
   -E enforces distclean if already configured.

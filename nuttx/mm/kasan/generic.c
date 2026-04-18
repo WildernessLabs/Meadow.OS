@@ -51,31 +51,12 @@
 #define KASAN_REGION_SIZE(size) \
   (sizeof(struct kasan_region_s) + KASAN_SHADOW_SIZE(size))
 
-<<<<<<< HEAD:nuttx/mm/kasan/kasan.c
-#ifdef CONFIG_MM_KASAN_GLOBAL
-
-#  define KASAN_GLOBAL_SHADOW_SCALE (32)
-
-#  define KASAN_GLOBAL_NEXT_REGION(region) \
-  (FAR struct kasan_region_s *) \
-  ((FAR char *)region->shadow + (size_t)region->next)
-
-#endif
-
-#define KASAN_INIT_VALUE            0xDEADCAFE
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/mm/kasan/generic.c
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
 struct kasan_region_s
 {
-<<<<<<< HEAD:nuttx/mm/kasan/kasan.c
-  FAR struct kasan_region_s *next;
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/mm/kasan/generic.c
   uintptr_t begin;
   uintptr_t end;
   uintptr_t shadow[1];
@@ -305,95 +286,3 @@ void kasan_unregister(FAR void *addr)
 
   spin_unlock_irqrestore(&g_lock, flags);
 }
-<<<<<<< HEAD:nuttx/mm/kasan/kasan.c
-
-void __asan_before_dynamic_init(FAR const void *module_name)
-{
-  /* Shut up compiler complaints */
-}
-
-void __asan_after_dynamic_init(void)
-{
-  /* Shut up compiler complaints */
-}
-
-void __asan_handle_no_return(void)
-{
-  /* Shut up compiler complaints */
-}
-
-void __asan_report_load_n_noabort(FAR void *addr, size_t size)
-{
-  kasan_report(addr, size, false, return_address(0));
-}
-
-void __asan_report_store_n_noabort(FAR void *addr, size_t size)
-{
-  kasan_report(addr, size, true, return_address(0));
-}
-
-void __asan_loadN_noabort(FAR void *addr, size_t size)
-{
-  kasan_check_report(addr, size, false, return_address(0));
-}
-
-void __asan_storeN_noabort(FAR void * addr, size_t size)
-{
-  kasan_check_report(addr, size, true, return_address(0));
-}
-
-void __asan_loadN(FAR void *addr, size_t size)
-{
-  kasan_check_report(addr, size, false, return_address(0));
-}
-
-void __asan_storeN(FAR void *addr, size_t size)
-{
-  kasan_check_report(addr, size, true, return_address(0));
-}
-
-#define DEFINE_ASAN_LOAD_STORE(size) \
-  void __asan_report_load##size##_noabort(FAR void *addr) \
-  { \
-    kasan_report(addr, size, false, return_address(0)); \
-  } \
-  void __asan_report_store##size##_noabort(FAR void *addr) \
-  { \
-    kasan_report(addr, size, true, return_address(0)); \
-  } \
-  void __asan_load##size##_noabort(FAR void *addr) \
-  { \
-    kasan_check_report(addr, size, false, return_address(0)); \
-  } \
-  void __asan_store##size##_noabort(FAR void *addr) \
-  { \
-    kasan_check_report(addr, size, true, return_address(0)); \
-  } \
-  void __asan_load##size(FAR void *addr) \
-  { \
-    kasan_check_report(addr, size, false, return_address(0)); \
-  } \
-  void __asan_store##size(FAR void *addr) \
-  { \
-    kasan_check_report(addr, size, true, return_address(0)); \
-  }
-
-DEFINE_ASAN_LOAD_STORE(1)
-DEFINE_ASAN_LOAD_STORE(2)
-DEFINE_ASAN_LOAD_STORE(4)
-DEFINE_ASAN_LOAD_STORE(8)
-DEFINE_ASAN_LOAD_STORE(16)
-
-#ifdef CONFIG_MM_KASAN_GLOBAL
-void __asan_register_globals(void *ptr, ssize_t size)
-{
-  /* Shut up compiler complaints */
-}
-
-void __asan_unregister_globals(void *ptr, ssize_t size)
-{
-  /* Shut up compiler complaints */
-}
-#endif
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/mm/kasan/generic.c

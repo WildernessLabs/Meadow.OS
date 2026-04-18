@@ -297,11 +297,6 @@ extern volatile clock_t g_cpuload_total;
  */
 
 #ifdef CONFIG_SMP
-<<<<<<< HEAD
-/* Used to keep track of which CPU(s) hold the IRQ lock. */
-
-extern volatile cpu_set_t g_cpu_lockset;
-=======
 
 /* This is the spinlock that enforces critical sections when interrupts are
  * disabled.
@@ -312,7 +307,6 @@ extern volatile spinlock_t g_cpu_irqlock;
 /* Used to keep track of which CPU(s) hold the IRQ lock. */
 
 extern volatile cpu_set_t g_cpu_irqset;
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 /* Used to lock tasklist to prevent from concurrent access */
 
@@ -407,15 +401,7 @@ static inline_function FAR struct tcb_s *this_task(void)
 }
 
 int  nxsched_select_cpu(cpu_set_t affinity);
-<<<<<<< HEAD
-int  nxsched_pause_cpu(FAR struct tcb_s *tcb);
-
-#  define nxsched_islocked_global() (g_cpu_lockset != 0)
-#  define nxsched_islocked_tcb(tcb) nxsched_islocked_global()
-
-=======
 void nxsched_process_delivered(int cpu);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #else
 #  define nxsched_select_cpu(a)     (0)
 #endif

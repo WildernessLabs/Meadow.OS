@@ -369,25 +369,7 @@ int work_queue_free(FAR struct kwork_wqueue_s *wqueue)
 
   if (wqueue == NULL)
     {
-<<<<<<< HEAD
-      wqueue  = (FAR struct kwork_wqueue_s *)&g_hpwork;
-      nthread = CONFIG_SCHED_HPNTHREADS;
-    }
-  else
-#endif
-#ifdef CONFIG_SCHED_LPWORK
-  if (qid == LPWORK)
-    {
-      wqueue  = (FAR struct kwork_wqueue_s *)&g_lpwork;
-      nthread = CONFIG_SCHED_LPNTHREADS;
-    }
-  else
-#endif
-    {
-      return;
-=======
       return -EINVAL;
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
     }
 
   /* Mark the work queue as exiting */
@@ -477,10 +459,6 @@ int work_start_highpri(void)
 
   return work_thread_create(HPWORKNAME, CONFIG_SCHED_HPWORKPRIORITY,
                             CONFIG_SCHED_HPWORKSTACKSIZE,
-<<<<<<< HEAD
-                            CONFIG_SCHED_HPNTHREADS,
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
                             (FAR struct kwork_wqueue_s *)&g_hpwork);
 }
 #endif /* CONFIG_SCHED_HPWORK */
@@ -509,10 +487,6 @@ int work_start_lowpri(void)
 
   return work_thread_create(LPWORKNAME, CONFIG_SCHED_LPWORKPRIORITY,
                             CONFIG_SCHED_LPWORKSTACKSIZE,
-<<<<<<< HEAD
-                            CONFIG_SCHED_LPNTHREADS,
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
                             (FAR struct kwork_wqueue_s *)&g_lpwork);
 }
 #endif /* CONFIG_SCHED_LPWORK */

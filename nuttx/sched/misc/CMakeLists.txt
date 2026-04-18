@@ -1,10 +1,7 @@
 # ##############################################################################
 # sched/misc/CMakeLists.txt
-<<<<<<< HEAD
-=======
 #
 # SPDX-License-Identifier: Apache-2.0
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #
 # Licensed to the Apache Software Foundation (ASF) under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for

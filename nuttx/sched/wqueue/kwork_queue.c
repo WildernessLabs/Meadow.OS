@@ -69,23 +69,14 @@ static void work_timer_expiry(wdparm_t arg)
 {
   FAR struct work_s *work = (FAR struct work_s *)arg;
   irqstate_t flags = enter_critical_section();
-<<<<<<< HEAD
-  queue_work(g_hpwork, arg);
-=======
 
   queue_work(work->wq, work);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   leave_critical_section(flags);
 }
 
 static bool work_is_canceling(FAR struct kworker_s *kworkers, int nthreads,
                               FAR struct work_s *work)
 {
-<<<<<<< HEAD
-  irqstate_t flags = enter_critical_section();
-  queue_work(g_lpwork, arg);
-  leave_critical_section(flags);
-=======
   int semcount;
   int wndx;
 
@@ -102,7 +93,6 @@ static bool work_is_canceling(FAR struct kworker_s *kworkers, int nthreads,
     }
 
   return false;
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 }
 
 /****************************************************************************
@@ -179,44 +169,11 @@ int work_queue_wq(FAR struct kwork_wqueue_s *wqueue,
 
   if (!delay)
     {
-<<<<<<< HEAD
-      /* Queue high priority work */
-
-      if (!delay)
-        {
-          queue_work(g_hpwork, work);
-        }
-      else
-        {
-          wd_start(&work->u.timer, delay, hp_work_timer_expiry,
-                   (wdparm_t)work);
-        }
-=======
       queue_work(wqueue, work);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
     }
   else
     {
-<<<<<<< HEAD
-      /* Queue low priority work */
-
-      if (!delay)
-        {
-          queue_work(g_lpwork, work);
-        }
-      else
-        {
-          wd_start(&work->u.timer, delay, lp_work_timer_expiry,
-                   (wdparm_t)work);
-        }
-    }
-  else
-#endif
-    {
-      ret = -EINVAL;
-=======
       wd_start(&work->u.timer, delay, work_timer_expiry, (wdparm_t)work);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
     }
 
 out:

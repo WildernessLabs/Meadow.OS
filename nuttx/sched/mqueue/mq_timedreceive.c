@@ -179,11 +179,7 @@ file_mq_timedreceive_internal(FAR struct file *mq, FAR char *msg,
                * this time stays valid until the wait begins.
                */
 
-<<<<<<< HEAD
-              ret = clock_abstime2ticks(CLOCK_REALTIME, abstime, &ticks);
-=======
               clock_abstime2ticks(CLOCK_REALTIME, abstime, &ticks);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
             }
 
           /* Handle any time-related errors */
@@ -369,13 +365,9 @@ ssize_t nxmq_timedreceive(mqd_t mqdes, FAR char *msg, size_t msglen,
       return ret;
     }
 
-<<<<<<< HEAD
-  return file_mq_timedreceive_internal(filep, msg, msglen, prio, abstime, 0);
-=======
   ret = file_mq_timedreceive_internal(filep, msg, msglen, prio, abstime, 0);
   fs_putfilep(filep);
   return ret;
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 }
 
 /****************************************************************************

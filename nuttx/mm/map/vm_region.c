@@ -127,13 +127,6 @@ FAR void *vm_map_region(uintptr_t paddr, size_t size)
         }
     }
 
-<<<<<<< HEAD
-  return vaddr + (MM_PGMASK & paddr);
-
-error:
-  if (i)   /* undo alway mapped pages */
-    {
-=======
   return (FAR void *)((uintptr_t)vaddr + (MM_PGMASK & paddr));
 
 error:
@@ -141,7 +134,6 @@ error:
     {
       /* Undo alway mapped pages */
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
       up_shmdt((uintptr_t)vaddr, i);
     }
 
@@ -157,11 +149,7 @@ int vm_unmap_region(FAR void *vaddr, size_t size)
 
   DEBUGASSERT(size && vaddr);
   size += ((uintptr_t)vaddr & MM_PGMASK);
-<<<<<<< HEAD
-  vaddr = (void *)MM_PGALIGNDOWN(vaddr);
-=======
   vaddr = (FAR void *)MM_PGALIGNDOWN(vaddr);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   ret = up_shmdt((uintptr_t)vaddr, MM_NPAGES(size));
   vm_release_region(get_current_mm(), vaddr, size);
   return ret;

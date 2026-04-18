@@ -310,8 +310,6 @@ class DumpELFFile:
             if segment.header.p_flags & 1 and not self.__text:
                 self.__text = segment.header.p_vaddr
 
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-=======
         symtab = elf.get_section_by_name(".symtab")
         self.symbol = {}
         for symbol in symtab.iter_symbols():
@@ -330,7 +328,6 @@ class DumpELFFile:
                     f"name:{symbol.name} size:{symbol['st_size']} value:{hex(symbol['st_value'])}"
                 )
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
         elf.close()
 
         return True
@@ -522,13 +519,7 @@ class GDBStub:
         self.elffile = elffile
         self.socket = None
         self.gdb_signal = GDB_SIGNAL_DEFAULT
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-        self.mem_regions = self.elffile.get_memories() + self.logfile.get_memories()
-        self.reg_digits = elffile.xlen() // 4
-        self.reg_fmt = "<I" if elffile.xlen() <= 32 else "<Q"
-=======
         self.arch = arch
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
 
         # new list oreder is coredump, rawfile, logfile, elffile
 
@@ -631,22 +622,9 @@ class GDBStub:
         self.put_gdb_packet(pkt)
 
     def handle_register_group_read_packet(self):
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-        pkt = b""
-
-        for reg in self.logfile.registers:
-            if reg != b"x":
-                bval = struct.pack(self.reg_fmt, reg)
-                pkt += binascii.hexlify(bval)
-            else:
-                # Register not in coredump -> unknown value
-                # Send in "xxxxxxxx"
-                pkt += b"x" * self.reg_digits
-=======
 
         def put_register_packet(regs):
             pkt = b""
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
 
             for reg in regs:
                 if reg != b"x":
@@ -673,12 +651,6 @@ class GDBStub:
     def handle_register_single_read_packet(self, pkt):
         logger.debug(f"pkt: {pkt}")
 
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-        reg = int("0x" + pkt[1:].decode("utf8"), 16)
-        if reg < len(self.logfile.registers) and self.logfile.registers[reg] != b"x":
-            bval = struct.pack(self.reg_fmt, self.logfile.registers[reg])
-            self.put_gdb_packet(binascii.hexlify(bval))
-=======
         def put_one_register_packet(regs):
 
             regval = None
@@ -707,7 +679,6 @@ class GDBStub:
 
         if not self.threadinfo:
             put_one_register_packet(self.registers)
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
         else:
             for thread in self.threadinfo:
                 if thread["tcb"]["pid"] == self.current_thread:
@@ -1005,11 +976,7 @@ def arg_parser():
     parser.add_argument(
         "-e", "--elffile", required=True, action="append", help="elffile"
     )
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-    parser.add_argument("-l", "--logfile", required=True, help="logfile")
-=======
     parser.add_argument("-l", "--logfile", help="logfile")
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
     parser.add_argument(
         "-a",
         "--arch",
@@ -1129,13 +1096,6 @@ def main(args):
         sys.exit(1)
 
     config_log(args.debug)
-<<<<<<< HEAD:nuttx/tools/minidumpserver.py
-
-    selected_log = auto_parse_log_file(args.logfile)
-
-    # parse ELF fisrt to get arch
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/tools/gdbserver.py
     elf = DumpELFFile(args.elffile[0])
     elf.parse()
     elf_texts = [elf.text()]

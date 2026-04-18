@@ -50,15 +50,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-<<<<<<< HEAD
-#if UINTPTR_MAX <= UINT32_MAX
-#  define MM_PTR_FMT_WIDTH 11
-#elif UINTPTR_MAX <= UINT64_MAX
-#  define MM_PTR_FMT_WIDTH 19
-#endif
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
 #  define MEMPOOL_NPOOLS (CONFIG_MM_HEAP_MEMPOOL_THRESHOLD / tlsf_align_size())
 #endif
@@ -868,13 +859,6 @@ FAR struct mm_heap_s *mm_initialize(FAR const char *name,
                                     FAR void *heapstart, size_t heapsize)
 {
   FAR struct mm_heap_s *heap;
-<<<<<<< HEAD
-#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
-  size_t poolsize[MEMPOOL_NPOOLS];
-  int i;
-#endif
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   minfo("Heap: name=%s start=%p size=%zu\n", name, heapstart, heapsize);
 
@@ -914,22 +898,6 @@ FAR struct mm_heap_s *mm_initialize(FAR const char *name,
 #endif
 #endif
 
-<<<<<<< HEAD
-#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
-  for (i = 0; i < MEMPOOL_NPOOLS; i++)
-    {
-      poolsize[i] = (i + 1) * tlsf_align_size();
-    }
-
-  heap->mm_threshold = CONFIG_MM_HEAP_MEMPOOL_THRESHOLD;
-  heap->mm_mpool     = mempool_multiple_init(name, poolsize, MEMPOOL_NPOOLS,
-                              (mempool_multiple_alloc_t)mempool_memalign,
-                              (mempool_multiple_alloc_size_t)mm_malloc_size,
-                              (mempool_multiple_free_t)mm_free, heap,
-                              CONFIG_MM_HEAP_MEMPOOL_CHUNK_SIZE,
-                              CONFIG_MM_HEAP_MEMPOOL_EXPAND_SIZE,
-                              CONFIG_MM_HEAP_MEMPOOL_DICTIONARY_EXPAND_SIZE);
-=======
   return heap;
 }
 
@@ -965,7 +933,6 @@ mm_initialize_pool(FAR const char *name,
 
       init = &def;
     }
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #endif
 
   heap = mm_initialize(name, heap_start, heap_size);
@@ -1470,11 +1437,8 @@ FAR void *mm_realloc(FAR struct mm_heap_s *heap, FAR void *oldmem,
 
 void mm_uninitialize(FAR struct mm_heap_s *heap)
 {
-<<<<<<< HEAD
-=======
   int i;
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #ifdef CONFIG_MM_HEAP_MEMPOOL
   mempool_multiple_deinit(heap->mm_mpool);
 #endif

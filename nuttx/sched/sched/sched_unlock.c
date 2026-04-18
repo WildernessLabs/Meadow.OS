@@ -102,17 +102,6 @@ int sched_unlock(void)
 
           rtcb->lockcount = 0;
 
-<<<<<<< HEAD
-          /* The lockcount has decremented to zero and we need to perform
-           * release our hold on the lock.
-           */
-
-          DEBUGASSERT((g_cpu_lockset & (1 << cpu)) != 0);
-
-          g_cpu_lockset &= ~(1 << cpu);
-
-=======
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
           /* Release any ready-to-run tasks that have collected in
            * g_pendingtasks.
            *
@@ -139,11 +128,7 @@ int sched_unlock(void)
            * BEFORE it clears IRQ lock.
            */
 
-<<<<<<< HEAD
-          if (!nxsched_islocked_global() &&
-=======
           if (!nxsched_islocked_tcb(rtcb) &&
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
               list_pendingtasks()->head != NULL)
             {
               if (nxsched_merge_pending())

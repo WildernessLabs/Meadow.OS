@@ -1994,8 +1994,6 @@ config PID_INITIAL_COUNT
 		can still expand when needed. It is rounded up to power of
 		two by current implementation. If the number of threads in
 		your system is known at design time, setting this to it.
-<<<<<<< HEAD
-=======
 
 config SCHED_EVENTS
 	bool "Schedule Event objects"
@@ -2012,4 +2010,3 @@ config ASSERT_PAUSE_CPU_TIMEOUT
 	---help---
 		Timeout in milisecond to pause another CPU when assert. Only available
 		when SMP is enabled.
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca

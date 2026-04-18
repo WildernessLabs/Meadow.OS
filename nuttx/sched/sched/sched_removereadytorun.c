@@ -258,16 +258,6 @@ void nxsched_remove_running(FAR struct tcb_s *tcb)
       dq_rem((FAR dq_entry_t *)rtrtcb, &g_readytorun);
       dq_addfirst_nonempty((FAR dq_entry_t *)rtrtcb, tasklist);
 
-<<<<<<< HEAD
-          g_cpu_lockset |= (1 << cpu);
-        }
-      else
-        {
-          /* No.. we may need to perform release our hold on the lock. */
-
-          g_cpu_lockset &= ~(1 << cpu);
-        }
-=======
       rtrtcb->cpu = cpu;
       nxttcb = rtrtcb;
     }
@@ -277,7 +267,6 @@ void nxsched_remove_running(FAR struct tcb_s *tcb)
    * If the task is scheduled on this CPU(me), do nothing because
    * this CPU already has a critical section
    */
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   nxttcb->task_state = TSTATE_TASK_RUNNING;
 

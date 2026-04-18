@@ -199,11 +199,7 @@ bool nxsched_merge_pending(void)
    * some CPU other than this one is in a critical section.
    */
 
-<<<<<<< HEAD
-  if (!nxsched_islocked_global())
-=======
   if (!nxsched_islocked_tcb(this_task()))
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
     {
       /* Find the CPU that is executing the lowest priority task */
 
@@ -241,11 +237,7 @@ bool nxsched_merge_pending(void)
            * Check if that happened.
            */
 
-<<<<<<< HEAD
-          if (nxsched_islocked_global())
-=======
           if (nxsched_islocked_tcb(this_task()))
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
             {
               /* Yes.. then we may have incorrectly placed some TCBs in the
                * g_readytorun list (unlikely, but possible).  We will have to

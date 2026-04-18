@@ -88,15 +88,12 @@
 #elif UINTPTR_MAX <= UINT64_MAX
 #  define DUMP_FORMAT " %016" PRIxPTR ""
 #endif
-<<<<<<< HEAD
-=======
 
 /* Architecture can overwrite the default XCPTCONTEXT alignment */
 
 #ifndef XCPTCONTEXT_ALIGN
 #  define XCPTCONTEXT_ALIGN 16
 #endif
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 /****************************************************************************
  * Private Data
@@ -231,11 +228,7 @@ static void dump_stacks(FAR struct tcb_s *rtcb, uintptr_t sp)
   UNUSED(cpu);
 #endif
 #if CONFIG_ARCH_INTERRUPTSTACK > 0
-<<<<<<< HEAD
-  uintptr_t intstack_base = up_get_intstackbase(up_cpu_index());
-=======
   uintptr_t intstack_base = up_get_intstackbase(cpu);
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   size_t intstack_size = CONFIG_ARCH_INTERRUPTSTACK;
   uintptr_t intstack_top = intstack_base + intstack_size;
   uintptr_t intstack_sp = 0;
@@ -284,11 +277,7 @@ static void dump_stacks(FAR struct tcb_s *rtcb, uintptr_t sp)
                  intstack_base,
                  intstack_size,
 #ifdef CONFIG_STACK_COLORATION
-<<<<<<< HEAD
-                 up_check_intstack(up_cpu_index())
-=======
                  up_check_intstack(cpu)
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #else
                  0
 #endif
@@ -611,81 +600,8 @@ static void pause_all_cpu(void)
 }
 #endif
 
-<<<<<<< HEAD
-#if CONFIG_TASK_NAME_SIZE > 0
-  if (rtcb->group && !(rtcb->flags & TCB_FLAG_TTYPE_KERNEL))
-    {
-      ptcb = nxsched_get_tcb(rtcb->group->tg_pid);
-    }
-#endif
-
-  flags = enter_critical_section();
-
-  /* try to save current context if regs is null */
-
-  if (regs == NULL)
-    {
-      up_saveusercontext(g_last_regs);
-      regs = g_last_regs;
-    }
-  else
-    {
-      memcpy(g_last_regs, regs, sizeof(g_last_regs));
-    }
-
-#if CONFIG_BOARD_RESET_ON_ASSERT < 2
-  if (!up_interrupt_context() &&
-      (rtcb->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_KERNEL)
-    {
-      fatal = false;
-    }
-#endif
-
-  notifier_data.rtcb = rtcb;
-  notifier_data.regs = regs;
-  notifier_data.filename = filename;
-  notifier_data.linenum = linenum;
-  notifier_data.msg = msg;
-  panic_notifier_call_chain(fatal ? PANIC_KERNEL : PANIC_TASK,
-                            &notifier_data);
-#ifdef CONFIG_ARCH_LEDS
-  board_autoled_on(LED_ASSERTION);
-#endif
-
-  /* Flush any buffered SYSLOG data (from prior to the assertion) */
-
-  syslog_flush();
-
-  uname(&name);
-  _alert("Current Version: %s %s %s %s %s\n",
-         name.sysname, name.nodename,
-         name.release, name.version, name.machine);
-
-  _alert("Assertion failed %s: at file: %s:%d task"
-#ifdef CONFIG_SMP
-         "(CPU%d)"
-#endif
-         ": "
-#if CONFIG_TASK_NAME_SIZE > 0
-         "%s "
-         "process: %s "
-#endif
-         "%p\n",
-         msg ? msg : "",
-         filename ? filename : "", linenum,
-#ifdef CONFIG_SMP
-         this_cpu(),
-#endif
-#if CONFIG_TASK_NAME_SIZE > 0
-         rtcb->name,
-         ptcb ? ptcb->name : "Kernel",
-#endif
-         rtcb->entry.main);
-
-=======
 static void dump_running_task(FAR struct tcb_s *rtcb, FAR void *regs)
 {
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   /* Register dump */
 
   up_dump_register(regs);
@@ -895,9 +811,6 @@ void _assert(FAR const char *filename, int linenum,
 #endif
     }
 
-<<<<<<< HEAD
-  leave_critical_section(flags);
-=======
   /* try to save current context if regs is null */
 
   if (regs == NULL)
@@ -947,5 +860,4 @@ void _assert(FAR const char *filename, int linenum,
     {
       leave_critical_section(flags);
     }
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 }

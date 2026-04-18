@@ -39,10 +39,6 @@
 
 #include <nuttx/config.h>
 
-<<<<<<< HEAD:nuttx/mm/kmm_string/kmm_strdup.c
-#include <string.h>
-#include <nuttx/kmalloc.h>
-=======
 #include "chip.h"
 #include "arm_internal.h"
 #include "ram_vectors.h"
@@ -57,15 +53,11 @@
 #ifndef ARMV8M_PERIPHERAL_INTERRUPTS
 #  error ARMV8M_PERIPHERAL_INTERRUPTS must be defined to the number of I/O interrupts to be supported
 #endif
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm/src/armv8-m/arm_vectors.c
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-<<<<<<< HEAD:nuttx/mm/kmm_string/kmm_strdup.c
-FAR char *kmm_strdup(FAR const char *s)
-=======
 /* Chip-specific entrypoint */
 
 extern void __start(void);
@@ -101,7 +93,6 @@ extern void exception_direct(void);
  */
 
 const void * const _vectors[] locate_data(".vectors") =
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm/src/armv8-m/arm_vectors.c
 {
   FAR char *news = NULL;
   if (s)
@@ -113,10 +104,6 @@ const void * const _vectors[] locate_data(".vectors") =
         }
     }
 
-<<<<<<< HEAD:nuttx/mm/kmm_string/kmm_strdup.c
-  return news;
-}
-=======
   IDLE_STACK,
 
   /* Reset exception handler */
@@ -129,4 +116,3 @@ const void * const _vectors[] locate_data(".vectors") =
   [(NVIC_IRQ_PENDSV + 1) ... (15 + ARMV8M_PERIPHERAL_INTERRUPTS)]
                           = &exception_direct
 };
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm/src/armv8-m/arm_vectors.c

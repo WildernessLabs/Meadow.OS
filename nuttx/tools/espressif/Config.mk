@@ -140,17 +140,7 @@ endef
 else
 define MKIMAGE
 	$(Q) echo "MKIMAGE: NuttX binary"
-<<<<<<< HEAD
-	$(Q) if ! esptool.py version 1>/dev/null 2>&1; then \
-		echo ""; \
-		echo "esptool.py not found.  Please run: \"pip install esptool==4.8.dev4\""; \
-		echo ""; \
-		echo "Run make again to create the nuttx.bin image."; \
-		exit 1; \
-	fi
-=======
 	@python3 tools/espressif/check_esptool.py -v $(ESPTOOL_MIN_VERSION)
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 	$(Q) if [ -z $(FLASH_SIZE) ]; then \
 		echo "Missing Flash memory size configuration."; \
 		exit 1; \

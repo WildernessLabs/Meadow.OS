@@ -1,6 +1,4 @@
 #!/usr/bin/python3
-<<<<<<< HEAD
-=======
 ############################################################################
 # tools/ci/testrun/script/test_libuv/test_libuv.py
 #
@@ -22,7 +20,6 @@
 # under the License.
 #
 ############################################################################
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 # encoding: utf-8
 
 import pytest

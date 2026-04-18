@@ -1,11 +1,8 @@
 ############################################################################
 # tools/imx9/Config.mk
 #
-<<<<<<< HEAD
-=======
 # SPDX-License-Identifier: Apache-2.0
 #
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -27,12 +24,6 @@
 # and assembly source files and to insert the resulting object files into an
 # archive.  These replace the default definitions at tools/Config.mk
 
-<<<<<<< HEAD
-<<<<<<<< HEAD:nuttx/tools/imx9/Config.mk
-# POSTBUILD -- Perform post build operations
-
-ifeq ($(CONFIG_IMX9_BOOTLOADER),y)
-=======
 # POSTBUILD -- Perform post build operations
 
 ifeq ($(CONFIG_IMX9_BOOTLOADER),y)
@@ -63,33 +54,10 @@ ifeq ("$(wildcard $(FILE_EXE))","")
 	MKIMAGE_NOT_PRESENT = 1
 endif
 
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 define POSTBUILD
 	$(Q) echo "Removing sections"
 	$(Q) $(OBJCOPY) -O binary -R .bss -R .initstack $(BIN) nuttx.bin
 	$(Q) ([ $$? -eq 0 ] && echo "Done.")
-<<<<<<< HEAD
-endef
-========
-ifeq ($(CONFIG_ARCH_FPU),y)
-  LLVM_ABITYPE := eabihf
-
-  ifeq ($(CONFIG_ARCH_CORTEXR52)$(CONFIG_ARM_NEON),yy)
-    ARCHCPUFLAGS += -mfpu=neon-fp-armv8
-  else
-    ARCHCPUFLAGS += -mfpu=fpv5-sp-d16
-  endif
-  ifeq ($(CONFIG_ARM_FPU_ABI_SOFT),y)
-    ARCHCPUFLAGS += -mfloat-abi=softfp
-  else
-    ARCHCPUFLAGS += -mfloat-abi=hard
-  endif
-
-else
-  LLVM_ABITYPE := eabi
-  ARCHCPUFLAGS += -mfloat-abi=soft
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm/src/armv8-r/Toolchain.defs
-=======
 
 	$(Q) echo "Constructing sd image"
 	$(Q) echo "#define MKIMAGE_COMMIT 0xcbb99377" > $(BASE_PATH)build_info.h
@@ -105,5 +73,4 @@ else
 	$(Q) echo "Created imx9-sdimage.img"
 	$(Q) $(MAKE) -C $(TOPDIR)$(DELIM)tools$(DELIM)imx9 -f Makefile.host clean
 endef
->>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 endif
