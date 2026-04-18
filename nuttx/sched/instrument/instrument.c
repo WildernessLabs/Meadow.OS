@@ -37,11 +37,7 @@ extern struct instrument_s g_stack_record;
  ****************************************************************************/
 
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/sched/instrument/instrument.c
  * Name: instrument_initialize
-========
- * Name: x86_64_netinitialize
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/x86_64/intel64/qemu-intel64/src/qemu_net.c
  *
  * Description:
  *   This function is called to initialize all the instrument functions
@@ -54,12 +50,7 @@ extern struct instrument_s g_stack_record;
  *
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/sched/instrument/instrument.c
 void instrument_initialize(void)
-========
-#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
-void x86_64_netinitialize(void)
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/x86_64/intel64/qemu-intel64/src/qemu_net.c
 {
 #if CONFIG_SCHED_STACK_RECORD > 0
   instrument_register(&g_stack_record);

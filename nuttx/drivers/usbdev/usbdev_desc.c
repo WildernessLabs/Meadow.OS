@@ -1,9 +1,5 @@
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/drivers/usbdev/usbdev_desc.c
  * drivers/usbdev/usbdev_desc.c
-========
- * boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_wlan.c
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_wlan.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

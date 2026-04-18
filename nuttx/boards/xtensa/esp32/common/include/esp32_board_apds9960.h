@@ -1,9 +1,5 @@
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/common/include/esp32_board_apds9960.h
  * boards/xtensa/esp32/common/include/esp32_board_apds9960.h
-========
- * boards/risc-v/esp32c3-legacy/common/include/esp32c3_board_apds9960.h
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/common/include/esp32c3_board_apds9960.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

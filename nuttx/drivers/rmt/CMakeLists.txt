@@ -25,22 +25,5 @@ if(CONFIG_RMT)
     list(APPEND SRCS rmtchar.c)
   endif()
 
-<<<<<<<< HEAD:nuttx/drivers/rmt/CMakeLists.txt
   target_sources(drivers PRIVATE ${SRCS})
-========
-  if(CONFIG_BOARDCTL_BOOT_IMAGE)
-    list(APPEND SRCS nrf53_boot_image.c)
-  endif()
-
-  if(CONFIG_NRF53_PROGMEM)
-    list(APPEND SRCS nrf53_progmem.c)
-  endif()
-
-  if(CONFIG_BOARDCTL_RESET)
-    list(APPEND SRCS nrf53_reset.c)
-  endif()
-
-  target_sources(board PRIVATE ${SRCS})
-
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/nrf53/common/src/CMakeLists.txt
 endif()

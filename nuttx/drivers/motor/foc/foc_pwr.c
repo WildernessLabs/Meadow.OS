@@ -27,13 +27,7 @@
 
 #include <assert.h>
 
-<<<<<<<< HEAD:nuttx/drivers/motor/foc/foc_pwr.c
 #include <nuttx/motor/foc/foc_pwr.h>
-========
-#include "arm_internal.h"
-#include "barriers.h"
-#include "imxrt_periphclks.h"
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/imxrt/imxrt_periphclks.c
 
 /****************************************************************************
  * Public Functions
@@ -106,7 +100,6 @@ int focpwr_initialize(FAR struct focpwr_dev_s *pwr,
                       FAR struct foc_dev_s *dev,
                       FAR struct focpwr_ops_s *ops)
 {
-<<<<<<<< HEAD:nuttx/drivers/motor/foc/foc_pwr.c
   DEBUGASSERT(ops->setup);
   DEBUGASSERT(ops->shutdown);
   DEBUGASSERT(ops->calibration);
@@ -121,11 +114,6 @@ int focpwr_initialize(FAR struct focpwr_dev_s *pwr,
   dev->pwr = pwr;
 
   return OK;
-========
-  modifyreg32(regaddr, CCM_CCGRX_CG_MASK(index), CCM_CCGRX_CG(index, value));
-  ARM_DSB();
-  ARM_ISB();
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/imxrt/imxrt_periphclks.c
 }
 
 #endif

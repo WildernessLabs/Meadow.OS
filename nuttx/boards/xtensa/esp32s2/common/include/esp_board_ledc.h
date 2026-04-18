@@ -1,9 +1,5 @@
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/arch/arm/src/goldfish/goldfish_memorymap.h
  * arch/arm/src/goldfish/goldfish_memorymap.h
-========
- * boards/risc-v/esp32c3/common/include/esp_board_ledc.h
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/include/esp_board_ledc.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,13 +18,8 @@
  *
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/arch/arm/src/goldfish/goldfish_memorymap.h
 #ifndef __ARCH_ARM_SRC_GOLDFISH_GOLDFISH_MEMORYMAP_H
 #define __ARCH_ARM_SRC_GOLDFISH_GOLDFISH_MEMORYMAP_H
-========
-#ifndef __BOARDS_RISCV_ESP32C3_COMMON_INCLUDE_ESP_BOARD_LEDC_H
-#define __BOARDS_RISCV_ESP32C3_COMMON_INCLUDE_ESP_BOARD_LEDC_H
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/include/esp_board_ledc.h
 
 /****************************************************************************
  * Included Files
@@ -86,8 +77,4 @@ int goldfish_setupmappings(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-<<<<<<<< HEAD:nuttx/arch/arm/src/goldfish/goldfish_memorymap.h
 #endif /* __ARCH_ARM_SRC_GOLDFISH_GOLDFISH_MEMORYMAP_H */
-========
-#endif /* __BOARDS_RISCV_ESP32C3_COMMON_INCLUDE_ESP_BOARD_LEDC_H */
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/include/esp_board_ledc.h

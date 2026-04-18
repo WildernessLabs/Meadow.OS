@@ -18,21 +18,8 @@
  *
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/include/nuttx/ioexpander/iso1i813t.h
 #ifndef __INCLUDE_NUTTX_IOEXPANDER_ISO1I813T_H
 #define __INCLUDE_NUTTX_IOEXPANDER_ISO1I813T_H
-========
-#ifndef __ARCH_ARM64_SRC_COMMON_ARM64_FATAL_H
-#define __ARCH_ARM64_SRC_COMMON_ARM64_FATAL_H
-
-/* Fatal error APIs */
-
-#define K_ERR_CPU_EXCEPTION     (0)
-#define K_ERR_CPU_MODE32        (1)
-#define K_ERR_SPURIOUS_IRQ      (2)
-
-#ifndef __ASSEMBLY__
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm64/src/common/arm64_fatal.h
 
 /****************************************************************************
  * Included Files

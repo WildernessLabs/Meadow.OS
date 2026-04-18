@@ -24,15 +24,7 @@ ifneq ($(CONFIG_SCHED_STACK_RECORD),0)
 CSRCS += stack_record.c
 endif
 
-<<<<<<<< HEAD:nuttx/sched/instrument/Make.defs
 # Include instrument build support
 
 DEPPATH += --dep-path instrument
 VPATH += :instrument
-========
-ifeq ($(CONFIG_LIBC_FDT),y)
-CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libc$(DELIM)fdt$(DELIM)dtc$(DELIM)libfdt
-endif
-
-include $(TOPDIR)/boards/Board.mk
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/qemu/qemu-armv7a/src/Makefile

@@ -1,9 +1,5 @@
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/drivers/usbdev/usbdev_fs.h
  * drivers/usbdev/usbdev_fs.h
-========
- * boards/risc-v/esp32c6/esp32c6-devkitc/src/esp32c6-devkitc.h
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitc/src/esp32c6-devkitc.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -22,13 +18,8 @@
  *
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/drivers/usbdev/usbdev_fs.h
 #ifndef __DRIVERS_USBDEV_FS_H
 #define __DRIVERS_USBDEV_FS_H
-========
-#ifndef __BOARDS_RISCV_ESP32C6_ESP32C6_DEVKITC_SRC_ESP32C6_DEVKITC_H
-#define __BOARDS_RISCV_ESP32C6_ESP32C6_DEVKITC_SRC_ESP32C6_DEVKITC_H
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitc/src/esp32c6-devkitc.h
 
 /****************************************************************************
  * Included Files
@@ -36,36 +27,7 @@
 
 #include <nuttx/config.h>
 
-<<<<<<<< HEAD:nuttx/drivers/usbdev/usbdev_fs.h
 #include <nuttx/usb/usbdev.h>
-========
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/* RMT gpio */
-
-#define RMT_RXCHANNEL       2
-#define RMT_TXCHANNEL       0
-
-#ifdef CONFIG_RMT_LOOP_TEST_MODE
-#  define RMT_INPUT_PIN     0
-#  define RMT_OUTPUT_PIN    0
-#else
-#  define RMT_INPUT_PIN     2
-#  define RMT_OUTPUT_PIN    8
-#endif
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitc/src/esp32c6-devkitc.h
 
 /****************************************************************************
  * Public Function Prototypes
@@ -98,7 +60,6 @@ FAR void *usbdev_fs_initialize(FAR const struct usbdev_devdescs_s *devdescs,
 
 void usbdev_fs_uninitialize(FAR void *handle);
 
-<<<<<<<< HEAD:nuttx/drivers/usbdev/usbdev_fs.h
 /****************************************************************************
  * Name: usbclass_classobject
  *
@@ -125,7 +86,3 @@ int usbdev_fs_classobject(int minor,
 void usbdev_fs_classuninitialize(FAR struct usbdevclass_driver_s *classdev);
 
 #endif /* __DRIVERS_USBDEV_FS_H */
-========
-#endif /* __ASSEMBLY__ */
-#endif /* __BOARDS_RISCV_ESP32C6_ESP32C6_DEVKITC_SRC_ESP32C6_DEVKITC_H */
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitc/src/esp32c6-devkitc.h

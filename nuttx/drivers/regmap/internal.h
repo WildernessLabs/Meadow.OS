@@ -25,12 +25,8 @@
  * Included Files
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/drivers/regmap/internal.h
 #include <nuttx/regmap/regmap.h>
 #include <nuttx/mutex.h>
-========
-#include <nuttx/config.h>
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/a1x/a1x_serial.h
 
 /****************************************************************************
  * Pre-processor Definitions

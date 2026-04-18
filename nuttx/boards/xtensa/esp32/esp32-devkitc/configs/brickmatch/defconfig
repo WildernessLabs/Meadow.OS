@@ -31,12 +31,7 @@ CONFIG_GAMES_BRICKMATCH=y
 CONFIG_HAVE_CXX=y
 CONFIG_HAVE_CXXINITIALIZE=y
 CONFIG_IDLETHREAD_STACKSIZE=3072
-<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/esp32-devkitc/configs/brickmatch/defconfig
 CONFIG_INIT_ENTRYPOINT="brick_main"
-========
-CONFIG_INIT_ENTRYPOINT="nsh_main"
-CONFIG_INIT_STACKSIZE=3072
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32/esp32-devkitc/configs/max6675/defconfig
 CONFIG_INTELHEX_BINARY=y
 CONFIG_LCD=y
 CONFIG_LCD_APA102=y

@@ -27,13 +27,6 @@
 
 #include <nuttx/config.h>
 
-<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s2/common/include/esp32s2_board_rmt.h
-========
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif
-
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/k210/maix-bit/include/board.h
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

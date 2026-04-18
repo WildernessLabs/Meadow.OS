@@ -1,9 +1,5 @@
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-lcd-ev/src/esp32s3_ioexpander.c
  * boards/xtensa/esp32s3/esp32s3-lcd-ev/src/esp32s3_ioexpander.c
-========
- * arch/risc-v/src/common/espressif/esp_systemreset.c
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/risc-v/src/common/espressif/esp_systemreset.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
