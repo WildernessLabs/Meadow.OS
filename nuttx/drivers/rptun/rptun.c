@@ -66,12 +66,6 @@ struct rptun_priv_s
   struct remoteproc            rproc;
   struct rpmsg_virtio_shm_pool pool[2];
   sem_t                        semtx;
-<<<<<<< HEAD
-#ifdef CONFIG_RPTUN_WORKQUEUE
-  struct work_s                work;
-#else
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   sem_t                        semrx;
   pid_t                        tid;
 #ifdef CONFIG_RPTUN_PM
@@ -108,11 +102,6 @@ static int rptun_notify_wait(FAR struct remoteproc *rproc, uint32_t id);
 
 static int rptun_dev_start(FAR struct remoteproc *rproc);
 static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns);
-<<<<<<< HEAD
-static int rptun_dev_ioctl(FAR struct file *filep, int cmd,
-                           unsigned long arg);
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 #ifdef CONFIG_RPTUN_LOADER
 static int rptun_store_open(FAR void *store_, FAR const char *path,
@@ -442,18 +431,11 @@ static int rptun_notify_wait(FAR struct remoteproc *rproc, uint32_t id)
 static void rptun_dump_buffer(FAR struct rpmsg_virtio_device *rvdev,
                               bool rx)
 {
-<<<<<<< HEAD
-  FAR struct rpmsg_virtio_device *rvdev;
-  FAR struct virtio_device *vdev;
-  FAR struct remoteproc_virtio *rpvdev;
-  FAR struct remoteproc *rproc;
-=======
   FAR struct virtqueue *vq = rx ? rvdev->rvq : rvdev->svq;
   FAR void *addr;
   int desc_idx;
   int num;
   int i;
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
   num = rptun_buffer_nused(rvdev, rx);
   metal_log(METAL_LOG_EMERGENCY,
@@ -837,12 +819,6 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns)
 {
   FAR struct rptun_priv_s *priv = rproc->priv;
   FAR struct rpmsg_device *rdev = &priv->rvdev.rdev;
-<<<<<<< HEAD
-  FAR struct metal_list *node;
-  FAR struct metal_list *tmp;
-  FAR struct rptun_cb_s *cb;
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
   if (priv->rproc.state == RPROC_OFFLINE)
     {
@@ -855,13 +831,6 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns)
     }
 
   rdev->support_ns = stop_ns;
-<<<<<<< HEAD
-
-#ifdef CONFIG_RPTUN_PING
-  rptun_ping_deinit(&priv->ping);
-#endif
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
   nxrmutex_lock(&priv->lock);
 
@@ -880,26 +849,7 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns)
 
   RPTUN_UNREGISTER_CALLBACK(priv->dev);
 
-<<<<<<< HEAD
-  /* Remove priv from list */
-
-  nxrmutex_lock(&g_rptun_lockcb);
-
-  /* Broadcast device_destroy to all registers */
-
-  metal_list_for_each(&g_rptun_cb, node)
-    {
-      cb = metal_container_of(node, struct rptun_cb_s, node);
-      if (cb->device_destroy)
-        {
-          cb->device_destroy(&priv->rvdev.rdev, cb->priv);
-        }
-    }
-
-  nxrmutex_unlock(&g_rptun_lockcb);
-=======
   rpmsg_device_destory(&priv->rpmsg);
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
   /* Remote proc remove */
 
@@ -907,67 +857,10 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns)
   remoteproc_remove_virtio(rproc, priv->rvdev.vdev);
 
   /* Remote proc stop and shutdown */
-<<<<<<< HEAD
 
   remoteproc_shutdown(rproc);
 
   return OK;
-}
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
-
-  remoteproc_shutdown(rproc);
-
-<<<<<<< HEAD
-  switch (cmd)
-    {
-      case RPTUNIOC_START:
-        if (priv->rproc.state == RPROC_OFFLINE)
-          {
-            ret = rptun_dev_start(&priv->rproc);
-          }
-        else
-          {
-            ret = rptun_dev_stop(&priv->rproc, false);
-            if (ret == OK)
-              {
-                ret = rptun_dev_start(&priv->rproc);
-              }
-          }
-        break;
-      case RPTUNIOC_STOP:
-        ret = rptun_dev_stop(&priv->rproc, true);
-        break;
-      case RPTUNIOC_RESET:
-        RPTUN_RESET(priv->dev, arg);
-        break;
-      case RPTUNIOC_PANIC:
-        RPTUN_PANIC(priv->dev);
-        break;
-      case RPTUNIOC_DUMP:
-        rptun_dump(&priv->rvdev);
-        break;
-#ifdef CONFIG_RPTUN_PING
-      case RPTUNIOC_PING:
-        rptun_ping(&priv->ping, (FAR const struct rptun_ping_s *)arg);
-        break;
-#endif
-      default:
-        ret = -ENOTTY;
-        break;
-    }
-
-  return ret;
-}
-
-static int rptun_dev_ioctl(FAR struct file *filep, int cmd,
-                           unsigned long arg)
-{
-  FAR struct inode *inode = filep->f_inode;
-  return rptun_do_ioctl(inode->i_private, cmd, arg);
-=======
-  return OK;
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 }
 
 #ifdef CONFIG_RPTUN_LOADER
@@ -1129,16 +1022,6 @@ int rptun_initialize(FAR struct rptun_dev_s *dev)
     }
 
   nxsem_init(&priv->semtx, 0, 0);
-<<<<<<< HEAD
-
-#ifdef CONFIG_RPTUN_WORKQUEUE
-  if (RPTUN_IS_AUTOSTART(dev))
-    {
-      work_queue(HPWORK, &priv->work, rptun_start_worker, priv, 0);
-    }
-#else
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   nxsem_init(&priv->semrx, 0, 0);
   snprintf(arg1, sizeof(arg1), "0x%" PRIxPTR, (uintptr_t)priv);
   argv[0] = (void *)RPTUN_GET_CPUNAME(dev);

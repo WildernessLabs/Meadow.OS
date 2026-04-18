@@ -162,13 +162,8 @@ static void note_driver_instrument_leave(FAR void *this_fn,
             FAR void *call_site, FAR void *arg) noinstrument_function;
 static struct instrument_s g_note_instrument =
 {
-<<<<<<< HEAD
-  .entry = note_driver_instrument_enter,
-  .exit = note_driver_instrument_leave,
-=======
   .enter = note_driver_instrument_enter,
   .leave = note_driver_instrument_leave,
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 };
 #endif
 
@@ -1974,11 +1969,7 @@ int note_driver_register(FAR struct note_driver_s *driver)
 
   if (!initialized)
     {
-<<<<<<< HEAD
-      instrument_register(g_note_instrument)
-=======
       instrument_register(&g_note_instrument);
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
       initialized = true;
     }
 #endif

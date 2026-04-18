@@ -49,11 +49,8 @@ Expansion connector 2 features.
   - 6 PWM Channels
   - 10 ADCs
 
-<<<<<<< HEAD
-=======
 Board documentation: https://wittetech.com/
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 LEDs
 ====
 
@@ -120,25 +117,12 @@ The LINUM-STM32H753BI board has two on-board RS-485 transceiver connected to USA
   DE     PG12  
   ====== =====
   
-<<<<<<< HEAD
-SDCARD
-=======
 SDMMC
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ======
 
 The LINUM-STM32H753BI has one SDCard slot connected as below:
 
   ========== =====
-<<<<<<< HEAD
-  SDMMC1       PINS
-  ========== =====
-  SDMMC_D0    PC8
-  SDMMC_D1    PC9
-  SDMMC_D2    PC10
-  SDMMC_D3    PC11
-  SDMMC_DK    PC12
-=======
   SDMMC1     PINS
   ========== =====
   SDMMC_D0   PC8
@@ -146,17 +130,13 @@ The LINUM-STM32H753BI has one SDCard slot connected as below:
   SDMMC_D2   PC10
   SDMMC_D3   PC11
   SDMMC_DK   PC12
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   ========== =====
 
   =============== =====
   GPIO            PINS
   =============== =====
   SDCARD_DETECTED PG7
-<<<<<<< HEAD
-=======
   SDCARD_PWR_EN   PD7
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   =============== =====      
 
 ETHERNET
@@ -206,16 +186,6 @@ USB
 
 The LINUM-STM32H753BI has one usb port.
 
-<<<<<<< HEAD
-  ======= =====
-  USB     PINS
-  ======= =====
-  USB_N   PA11
-  USB_P   PA12
-  USB_EN  PI12
-  USB_FLT PI13
-  ======= =====
-=======
   ========= =====
   USB       PINS
   ========= =====
@@ -225,7 +195,6 @@ The LINUM-STM32H753BI has one usb port.
   USB_EN    PI12
   USB_FLT   PI13
   ========= =====
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 QUADSPI
 ==============
@@ -258,11 +227,7 @@ The LINUM-STM32H753BI connects the EEPROM memory and the touchscreen sensor to I
 EEPROM MEMORY
 --------------
 
-<<<<<<< HEAD
-EEPROM memory used is the 24LC256 with 256Kb.
-=======
 EEPROM memory used is the 24LC256 with 256Kb with the control bytes value 0x54.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 TOUCHSCREEN SENSOR
 ------------------
@@ -338,44 +303,6 @@ LCD
 =======
 The LINUM-STM32H753BI use the LTDC to support one LCD with RGB connection.
 
-<<<<<<< HEAD
-  =========== =====
-  LTDC        PINS
-  =========== =====
-  LTDC_B0     PF0
-  LTDC_B1     PJ13
-  LTDC_B2     PJ14
-  LTDC_B3     PJ15
-  LTDC_B4     PK3
-  LTDC_B5     PK4
-  LTDC_B6     PK5
-  LTDC_B7     PK6
-  LTDC_CLK    PI14
-  LTDC_DE     PK7
-  LTDC_G0     PJ7
-  LTDC_G1     PJ8
-  LTDC_G2     PJ9
-  LTDC_G3     PJ10
-  LTDC_G4     PJ11
-  LTDC_G5     PK0
-  LTDC_G6     PK1
-  LTDC_G7     PK2
-  LTDC_HSYNC  PI10
-  LTDC_R0     PI15
-  LTDC_R1     PJ0
-  LTDC_R2     PJ1
-  LTDC_R3     PJ2
-  LTDC_R4     PJ3
-  LTDC_R5     PJ4
-  LTDC_R6     PJ5
-  LTDC_R7     PJ6
-  LTDC_VSYNC  PI9
-  =========== =====
-
-  ============= =====
-  PWM           PINS
-  ============= =====
-=======
   ============= =====
   LTDC          PINS
   ============= =====
@@ -407,7 +334,6 @@ The LINUM-STM32H753BI use the LTDC to support one LCD with RGB connection.
   LTDC_R6       PJ5
   LTDC_R7       PJ6
   LTDC_VSYNC    PI9
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   PWM_BACKLIGHT PH6
   ============= =====
 
@@ -423,9 +349,6 @@ The LINUM-STM32H753BI has one I2S output.
   I2S2_SDO PI3
   ======== =====
 
-<<<<<<< HEAD
-BUZZER
-=======
 The LINUM-STM32H753BI has a buzzer without internal oscillator
 
   ======= =====
@@ -443,7 +366,6 @@ The LINUM-STM32H753BI has a buzzer without internal oscillator connected to PB7
   ========= =====
   BUZZER    PB7  
   ========= =====
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 ==============
 
@@ -464,8 +386,6 @@ nsh
 Configures the NuttShell (nsh) located at apps/examples/nsh. This
 configuration enables a serial console on UART1.
 
-<<<<<<< HEAD
-=======
 usbnsh
 ------
 
@@ -487,7 +407,6 @@ After flasing and reboot your board you should see in your dmesg logs::
 
 You may need to press ENTER 3 times before the NSH show up.
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 modbus_slave
 ------------
 
@@ -502,8 +421,6 @@ can enable the ModBus to respond to queries::
 In your pc you will be able to read the ModBus registers using an application like ``mbpoll``::
 
     $ mbpoll -a 10 -b 38400 -t 3 -r 1000 -c 4 /dev/ttyUSB1 -R
-<<<<<<< HEAD
-=======
 
 modbus_master
 -------------
@@ -565,4 +482,3 @@ This example use the timer 4 with channel 2 to generate a PWM output signal on b
     nsh> pwm -f 300 -t 3
     pwm_main: starting output with frequency: 300 duty: 0000bfff
     pwm_main: stopping output
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

@@ -16,11 +16,7 @@ if IOEXPANDER
 
 config IOEXPANDER_RPMSG
 	bool "IO expander RPMSG server and client"
-<<<<<<< HEAD
-	depends on RPTUN
-=======
 	depends on RPMSG
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 	default n
 	select IOEXPANDER_INT_ENABLE
 	---help---
@@ -60,8 +56,6 @@ config IOEXPANDER_DUMMY_INT_POLLDELAY
 
 endif # IOEXPANDER_DUMMY
 
-<<<<<<< HEAD
-=======
 config IOEXPANDER_ICJX
 	bool "iC-JX SPI IO expander"
 	default n
@@ -80,7 +74,6 @@ config iC-JX_MULTIPLE
 
 endif # IOEXPANDER_ICJX
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 config IOEXPANDER_ISO1H812G
 	bool "ISO1H812G SPI IO expander"
 	default n

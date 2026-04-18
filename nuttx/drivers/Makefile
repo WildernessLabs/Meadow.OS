@@ -56,10 +56,7 @@ include pipes/Make.defs
 include power/Make.defs
 include regmap/Make.defs
 include rmt/Make.defs
-<<<<<<< HEAD
-=======
 include rpmsg/Make.defs
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 include rptun/Make.defs
 include sensors/Make.defs
 include serial/Make.defs

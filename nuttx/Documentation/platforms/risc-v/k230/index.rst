@@ -2,8 +2,6 @@
 Kendryte K230
 =============
 
-<<<<<<< HEAD
-=======
 The `Kendryte K230 <https://www.canaan.io/product/k230>`_ SoC contains two 64 bit RV64GC CPUs based on T-Head C908 IP core for embedded IoT applications.
 
 - **CPU1:** RISC-V Core, 1.6GHz, 32KB I-cache, 32KB D-cache, 256KB L2 Cache, 128bit RVV 1.0 support
@@ -21,7 +19,6 @@ The `Kendryte K230 <https://www.canaan.io/product/k230>`_ SoC contains two 64 bi
 See more details from above vendor's website.
 
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 Supported Boards
 ================
 

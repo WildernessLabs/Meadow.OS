@@ -30,11 +30,7 @@
 #include <string.h>
 #include <sys/param.h>
 #include <time.h>
-<<<<<<< HEAD:nuttx/drivers/rptun/rptun_ping.c
-#include <nuttx/signal.h>
-=======
 #include <syslog.h>
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/drivers/rpmsg/rpmsg_ping.c
 
 #include "rpmsg_ping.h"
 
@@ -156,11 +152,7 @@ static int rpmsg_ping_once(FAR struct rpmsg_endpoint *ept,
   return ret;
 }
 
-<<<<<<< HEAD:nuttx/drivers/rptun/rptun_ping.c
-static void rptun_ping_logout(FAR const char *s, clock_t value)
-=======
 static void rpmsg_ping_logout(FAR const char *s, clock_t value)
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/drivers/rpmsg/rpmsg_ping.c
 {
   struct timespec ts;
 
@@ -196,11 +188,7 @@ static void rpmsg_ping_logout_rate(uint64_t len, clock_t avg)
 int rpmsg_ping(FAR struct rpmsg_endpoint *ept,
                FAR const struct rpmsg_ping_s *ping)
 {
-<<<<<<< HEAD:nuttx/drivers/rptun/rptun_ping.c
-  clock_t min = ULONG_MAX;
-=======
   clock_t min = CLOCK_MAX;
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/drivers/rpmsg/rpmsg_ping.c
   clock_t max = 0;
   uint64_t total = 0;
   uint32_t buf_len = 0;

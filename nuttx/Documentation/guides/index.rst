@@ -30,7 +30,4 @@ Guides
   stm32nullpointer.rst
   stm32ccm.rst
   stackrecord.rst
-<<<<<<< HEAD
-=======
   etcromfs.rst
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

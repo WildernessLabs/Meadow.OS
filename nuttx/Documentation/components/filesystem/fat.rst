@@ -2,9 +2,6 @@
 FAT
 ===
 
-<<<<<<< HEAD
-Support for FAT filesystem.
-=======
 File Allocation Table (FAT) is a very simple file system designed by Microsoft
 and, as the name suggests, it uses a table to track clusters on a storage
 volume. There have been multiple versions of FAT, like ``FAT12``, ``FAT16``,
@@ -188,4 +185,3 @@ The Apache NuttX implementation of VFAT can be found in:
 
 * ``fs/fat`` directory.
 * ``include/nuttx/fs/fat.h`` header file.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

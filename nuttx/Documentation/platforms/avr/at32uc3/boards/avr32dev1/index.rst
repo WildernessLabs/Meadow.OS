@@ -2,14 +2,6 @@
 avr32dev1
 =========
 
-<<<<<<< HEAD
-This is a port of NuttX to the Atmel AVR32DEV1 board.  That board is
-based on the Atmel AT32UC3B0256 MCU and uses a specially patched
-version of the GNU toolchain:  The patches provide support for the
-AVR32 family.  That patched GNU toolchain is available only from the
-Atmel website.  STATUS: This port is functional but very basic.  There
-are configurations for NSH and the OS test.
-=======
 This is a port of NuttX to the Atmel AVR32DEV1 board and compatible
 with MCUZone UC3B-CPU board depicted here:
 
@@ -47,4 +39,3 @@ USB/Serial to the TXD of the board.
 
 There is another detail about the baudrate, you need to
 use 57600 8n1.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

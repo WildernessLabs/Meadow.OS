@@ -18,14 +18,10 @@
 #
 ############################################################################
 
-<<<<<<< HEAD
-VPATH += :board
-CFLAGS += -I board/Meadow.OS
-$(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)
-=======
 include $(TOPDIR)/Make.defs
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
+CFLAGS += -I board/Meadow.OS
+$(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)
 
 CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c stm32_reset.c
 
@@ -73,15 +69,7 @@ CSRCS += stm32_idle.c
 endif
 
 ifeq ($(CONFIG_STM32F7_SDMMC2),y)
-<<<<<<< HEAD
 CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_sdmmc.c
-=======
-<<<<<<<< HEAD:nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Makefile
-CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_sdmmc.c
-========
-CSRCS += stm32_sdmmc.c
->>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Make.defs
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 endif
 
 ifdef MEADOW_OS
@@ -209,8 +197,6 @@ $(MEADOW_OS_DIR)/meadow_os/meadow_os_battery_backed_domain.c
 
 endif
 endif # MEADOW_OS
-<<<<<<< HEAD
-=======
 
 ifeq ($(CONFIG_BOARD_MEADOW_F7_CORE_COMPUTE),y)
 CSRCS += board_corecomp.c
@@ -223,4 +209,3 @@ endif
 DEPPATH += --dep-path board
 VPATH += :board
 CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board$(DELIM)board
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

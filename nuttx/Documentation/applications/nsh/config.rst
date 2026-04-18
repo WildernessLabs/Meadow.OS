@@ -464,15 +464,6 @@ Common Problems
 
 Problem::
 
-<<<<<<< HEAD
-
-Common Problems
-===============
-
-Problem::
-
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   The function 'readline' is undefined.
 
 Usual Cause:

@@ -32,13 +32,10 @@ ifeq ($(CONFIG_IOEXPANDER_DUMMY),y)
   CSRCS += ioe_dummy.c
 endif
 
-<<<<<<< HEAD
-=======
 ifeq ($(CONFIG_IOEXPANDER_ICJX),y)
   CSRCS += icjx.c
 endif
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ifeq ($(CONFIG_IOEXPANDER_ISO1H812G),y)
   CSRCS += iso1h812g.c
 endif

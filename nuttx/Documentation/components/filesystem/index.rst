@@ -2,16 +2,10 @@
 NuttX File System
 =================
 
-<<<<<<< HEAD
-**Overview**. NuttX includes an optional, scalable file system.
-This file-system may be omitted altogether; NuttX does not depend
-on the presence of any file system.
-=======
 NuttX includes an optional, scalable file system. This file-system may be
 omitted altogether; NuttX does not depend on the presence of any file system.
 
 .. _root_fs:
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 **Pseudo Root File System**. A simple *in-memory*, *pseudo* file
 system can be enabled by default. This is an *in-memory* file
@@ -25,12 +19,7 @@ system).
 
 Any user supplied data or logic can be accessed via the
 pseudo-file system. Built in support is provided for character and
-<<<<<<< HEAD
-block `drivers <#DeviceDrivers>`__ in the ``/dev`` pseudo file
-system directory.
-=======
 block drivers in the ``/dev`` pseudo file system directory.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 **Mounted File Systems** The simple in-memory file system can be
 extended my mounting block devices that provide access to true
@@ -52,8 +41,6 @@ pseudo file systems may be mounted in the true, root file system.
 The approach selected by NuttX is intended to support greater
 scalability from the very tiny platform to the moderate platform.
 
-<<<<<<< HEAD
-=======
 Virtual File System (VFS)
 =========================
 
@@ -540,7 +527,6 @@ File systems
 ============
 
 NuttX provides support for a variety of file systems out of the box.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 .. toctree::
   :maxdepth: 1
@@ -565,8 +551,6 @@ NuttX provides support for a variety of file systems out of the box.
   unionfs.rst
   userfs.rst
   zipfs.rst
-<<<<<<< HEAD
-=======
 
 FS Categories
 -------------
@@ -582,4 +566,3 @@ they require:
 
 The requirements are specified by declaring the filesystem in the proper
 array in ``fs/mount/fs_mount.c``.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

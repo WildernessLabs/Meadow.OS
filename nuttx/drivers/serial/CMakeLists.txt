@@ -24,13 +24,6 @@ set(SRCS serial.c serial_io.c)
 
 if(CONFIG_SERIAL_GDBSTUB)
   list(APPEND SRCS serial_gdbstub.c)
-<<<<<<< HEAD
-endif()
-
-if(CONFIG_UART_PL011)
-  list(APPEND SRCS serial_pl011.c)
-=======
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 endif()
 
 if(CONFIG_SERIAL_RXDMA)

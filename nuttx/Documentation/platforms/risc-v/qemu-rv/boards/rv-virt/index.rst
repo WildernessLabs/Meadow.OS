@@ -2,10 +2,6 @@
 rv-virt
 =======
 
-<<<<<<< HEAD
-.. include:: README.txt
-   :literal:
-=======
 RISC-V Toolchain
 ================
 
@@ -370,4 +366,3 @@ For instance, if you want to load the ``hello`` application, you can use the fol
     $ add-symbol-file ../apps/bin/hello 0xc0000000
 
 Then, you can set breakpoints, step through the code, and inspect the memory and registers of the applications too.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

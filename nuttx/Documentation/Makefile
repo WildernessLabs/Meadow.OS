@@ -23,19 +23,12 @@
 
 # You can set these variables from the command line, and also
 # from the environment for the first two.
-<<<<<<< HEAD
-SPHINXOPTS    ?= -j 1 -W -A nuttx_versions="latest,${NUTTX_VERSIONS}"
-SPHINXBUILD   ?= sphinx-build
-SOURCEDIR     = .
-BUILDDIR      = _build
-=======
 SPHINXOPTS      ?= -j 1 -W -A nuttx_versions="latest,${NUTTX_VERSIONS}"
 SPHINXAUTOOPTS  ?= -j 8 -W
 SPHINXBUILD     ?= sphinx-build
 SPHINXAUTOBUILD ?= sphinx-autobuild
 SOURCEDIR       = .
 BUILDDIR        = _build
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 # Put it first so that "make" without argument is like "make help".
 help:

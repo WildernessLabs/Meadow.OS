@@ -69,16 +69,6 @@ User Buttons
 
 The STM32F4-RS485 has 4 user switches.
 
-<<<<<<< HEAD
-======= =====
-SWITCH  PINS
-======= =====
-SWIO_1  PB13
-SWIO_2  PB14
-SWIO_3  PB15
-SWIO_4  PC6
-======= =====
-=======
 ======= ===== ======
 SWITCH  PINS  LABEL
 ======= ===== ======
@@ -90,34 +80,21 @@ SWIO_4  PC6   SW6[1]
 
 [1] The switch SWIO_4 (SW6) is disabled due a conflict with PIN
 PC6 when using USART6. 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 UARTs
 =====
 
 The STM32F4-RS485 has 1 USART available for user.
 
-<<<<<<< HEAD
-USART2
-=======
 USART6
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ------
 
 ========== =======
 UART/USART PINS
 ========== =======
-<<<<<<< HEAD
-CTS        PA0
-RTS        PA1
-TX         PA2 [1]
-RX         PA3
-CK         PA4
-=======
 TX         PC6 [1]
 RX         PC7
 CK         PA8
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ========== =======
 
 [1] Warning you make need to reverse RX/TX on some RS-232 converters
@@ -178,11 +155,7 @@ Users can enable EERPOM support on STM32F4-RS485 by following below configuratio
 Temperature Sensor
 ==================
 
-<<<<<<< HEAD
-The STM32F4-RS485 development board has a temperature sensor TMP75 (TMP75AIDR) connected through I2C as below:
-=======
 The STM32F4-RS485 development board has a temperature sensor TMP75 (compatible with LM75) connected through I2C as below:
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 ====== =====
 I2C    PINS
@@ -202,11 +175,7 @@ USART2       PINS
 ==========   =====
 USART2_RX    RO
 USART2_RTS   DE, /RE
-<<<<<<< HEAD
-SART2_RX     DI
-=======
 USART2_RX    DI
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ==========   =====
 
 A/D Converter
@@ -253,9 +222,6 @@ nsh
 ---
 
 Configures the NuttShell (nsh) located at apps/examples/nsh. This
-<<<<<<< HEAD
-configuration enables a serial console on UART2.
-=======
 configuration enables a serial console on USART6.
 
 
@@ -278,7 +244,6 @@ After flasing and reboot your board you should see in your dmesg logs::
        [ 2639.074887] cdc_acm: USB Abstract Control Model driver for USB modems and ISDN adapters
 
 You may need to press **ENTER** 3 times before the NSH show up.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 sdcard
 ------
@@ -292,8 +257,6 @@ NSH commands::
        nsh> mount -t procfs /proc
        nsh> mount -t vfat /dev/mmcsd0 /mnt
 
-<<<<<<< HEAD
-=======
 modbus_slave
 ------------
 
@@ -531,4 +494,3 @@ NSH commands::
          qe_main:   4. 2
          qe_main:   5. 2
          Terminating!
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

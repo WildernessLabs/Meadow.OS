@@ -2,11 +2,6 @@
 qemu-intel64
 ============
 
-<<<<<<< HEAD
-.. include:: README.txt
-   :literal:
-
-=======
 This page file describes the contents of the build configurations available
 for the NuttX QEMU x86_64 port.
 
@@ -196,4 +191,3 @@ ostest
 ------
 
 The "standard" NuttX examples/ostest configuration.
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

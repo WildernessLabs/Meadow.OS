@@ -2,9 +2,6 @@
 RPMSG File System
 =================
 
-<<<<<<< HEAD
-Use rpmsg file system to mount remote directories to local.
-=======
 Once RPMsg link is available, we can use rpmsg file system to mount remote directories with the help of RPMsg file system drivers.
 
 Here we show an example of mounting and using a master file system path from remote side, it is as easy as using a local file system.
@@ -33,4 +30,3 @@ Using the following command to mount the master's ``/proc`` file system to ``/pr
 
 Note the ``-o cpu=master,fs=/proc`` specifies the ``master`` node's ``/proc`` path as the source, the ``/proc.master`` is the mount point at remote side. All files under that mount point is actually hosted at the master side. The ``-t rpmsgfs`` selects the RPMsg file system driver to serve the operation.
 
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
