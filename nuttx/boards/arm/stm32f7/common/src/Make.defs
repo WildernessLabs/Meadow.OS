@@ -28,12 +28,8 @@ ifeq ($(CONFIG_SENSORS_BMI270_I2C),y)
   CSRCS += stm32_bmi270.c
 endif
 
-ifeq ($(CONFIG_ESP_RMT),y)
-  CSRCS += esp_board_rmt.c
-endif
-
-ifeq ($(CONFIG_ESPRESSIF_SPIFLASH),y)
-  CSRCS += esp_board_spiflash.c
+ifeq ($(CONFIG_AUDIO_CS4344),y)
+  CSRCS += stm32_cs4344.c
 endif
 
 DEPPATH += --dep-path src

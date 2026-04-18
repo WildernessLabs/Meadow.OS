@@ -41,7 +41,7 @@
 #include "hardware/esp32s3_soc.h"
 #include "hardware/esp32s3_cache_memory.h"
 
-#include "xtensa_attr.h"
+#include "esp_attr.h"
 #include "esp32s3_spiflash.h"
 #include "esp32s3_spiram.h"
 
@@ -60,6 +60,9 @@
 #define MTD_SIZE(_priv)             ((*(_priv)->data)->chip.chip_size)
 #define MTD_BLK2SIZE(_priv, _b)     (MTD_BLK_SIZE * (_b))
 #define MTD_SIZE2BLK(_priv, _s)     ((_s) / MTD_BLK_SIZE)
+
+#define SPI_FLASH_ENCRYPT_UNIT_SIZE (64)
+#define SPI_FLASH_ENCRYPT_MIN_SIZE  (16)
 
 /****************************************************************************
  * Private Types
@@ -87,7 +90,7 @@ struct esp32s3_mtd_dev_s
 
   /* SPI Flash data */
 
-  const struct spiflash_legacy_data_s **data;
+  esp_rom_spiflash_legacy_data_t **data;
 };
 
 #ifdef CONFIG_ESP32S3_SPI_FLASH_SUPPORT_PSRAM_STACK
@@ -135,6 +138,10 @@ static ssize_t esp32s3_write(struct mtd_dev_s *dev, off_t offset,
                              size_t nbytes, const uint8_t *buffer);
 static ssize_t esp32s3_bwrite(struct mtd_dev_s *dev, off_t startblock,
                               size_t nblocks, const uint8_t *buffer);
+static int esp32s3_writedata_encrypt(struct mtd_dev_s *dev, off_t offset,
+                                     uint32_t size, const uint8_t *buffer);
+static ssize_t esp32s3_write_encrypt(struct mtd_dev_s *dev, off_t offset,
+                                     size_t nbytes, const uint8_t *buffer);
 static ssize_t esp32s3_bwrite_encrypt(struct mtd_dev_s *dev,
                                       off_t startblock,
                                       size_t nblocks,
@@ -170,7 +177,7 @@ static const struct esp32s3_mtd_dev_s g_esp32s3_spiflash =
 #endif
             .name   = "esp32s3_spiflash"
           },
-  .data = (const struct spiflash_legacy_data_s **)
+  .data = (esp_rom_spiflash_legacy_data_t **)
           (&rom_spiflash_legacy_data),
 };
 
@@ -184,11 +191,11 @@ static const struct esp32s3_mtd_dev_s g_esp32s3_spiflash_encrypt =
             .read   = esp32s3_read_decrypt,
             .ioctl  = esp32s3_ioctl,
 #ifdef CONFIG_MTD_BYTE_WRITE
-            .write  = NULL,
+            .write  = esp32s3_write_encrypt,
 #endif
             .name   = "esp32s3_spiflash_encrypt"
           },
-  .data = (const struct spiflash_legacy_data_s **)
+  .data = (esp_rom_spiflash_legacy_data_t **)
           (&rom_spiflash_legacy_data),
 };
 
@@ -626,6 +633,144 @@ static ssize_t esp32s3_bread_decrypt(struct mtd_dev_s *dev,
 }
 
 /****************************************************************************
+ * Name: esp32s3_writedata_encrypt
+ *
+ * Description:
+ *   Write plaintext data to SPI Flash at designated address by SPI Flash
+ *   hardware encryption, and written data in SPI Flash is ciphertext.
+ *
+ * Input Parameters:
+ *   dev    - MTD device data
+ *   offset - target address offset, must be 32Bytes-aligned
+ *   size   - data number, must be 32Bytes-aligned
+ *   buffer - data buffer pointer
+ *
+ * Returned Value:
+ *   0 if success or a negative value if fail.
+ *
+ ****************************************************************************/
+
+static int esp32s3_writedata_encrypt(struct mtd_dev_s *dev, off_t offset,
+                                     uint32_t size, const uint8_t *buffer)
+{
+  ssize_t ret;
+
+#ifdef CONFIG_ESP32S3_STORAGE_MTD_DEBUG
+  finfo("%s(%p, 0x%" PRIxOFF ", %zu, %p)\n", __func__, dev, offset,
+        size, buffer);
+#endif
+
+  DEBUGASSERT((offset % SPI_FLASH_ENCRYPT_MIN_SIZE) == 0);
+  DEBUGASSERT((size % SPI_FLASH_ENCRYPT_MIN_SIZE) == 0);
+  ret = nxmutex_lock(&g_lock);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+#ifdef CONFIG_ESP32S3_SPI_FLASH_SUPPORT_PSRAM_STACK
+  if (stack_is_psram())
+    {
+      ret = esp32s3_async_op(SPIFLASH_OP_CODE_ENCRYPT_WRITE, offset,
+                             buffer, size, 0);
+    }
+  else
+#endif
+    {
+      ret = spi_flash_write_encrypted(offset, buffer, size);
+    }
+
+  nxmutex_unlock(&g_lock);
+#ifdef CONFIG_ESP32S3_STORAGE_MTD_DEBUG
+  finfo("%s()=%d\n", __func__, ret);
+#endif
+  return ret;
+}
+
+/****************************************************************************
+ * Name: esp32s3_write_encrypt
+ *
+ * Description:
+ *   Write data to SPI Flash at designated address by SPI Flash hardware
+ *   encryption.
+ *
+ * Input Parameters:
+ *   dev    - MTD device data
+ *   offset - target address offset, must be 16Bytes-aligned
+ *   nbytes - data number, must be 16Bytes-aligned
+ *   buffer - data buffer pointer
+ *
+ * Returned Value:
+ *   Writen bytes if success or a negative value if fail.
+ *
+ ****************************************************************************/
+
+static ssize_t esp32s3_write_encrypt(struct mtd_dev_s *dev, off_t offset,
+                                     size_t nbytes, const uint8_t *buffer)
+{
+  ssize_t ret;
+  size_t n;
+  off_t addr;
+  size_t wbytes;
+  uint32_t step;
+  uint8_t enc_buf[SPI_FLASH_ENCRYPT_UNIT_SIZE];
+
+  if ((offset % SPI_FLASH_ENCRYPT_MIN_SIZE) ||
+      (nbytes % SPI_FLASH_ENCRYPT_MIN_SIZE))
+    {
+      return -EINVAL;
+    }
+  else if (nbytes == 0)
+    {
+      return 0;
+    }
+
+#ifdef CONFIG_ESP32S3_STORAGE_MTD_DEBUG
+  finfo("%s(%p, 0x%x, %d, %p)\n", __func__, dev, offset, nbytes, buffer);
+#endif
+
+  for (n = 0; n < nbytes; n += step)
+    {
+      /* The temporary buffer need to be seperated into
+       * 16-bytes, 32-bytes, 64-bytes(if supported).
+       */
+
+      addr = offset + n;
+      if ((addr % 64) == 0 && (nbytes - n) >= 64)
+        {
+          wbytes = 64;
+        }
+      else if ((addr % 32) == 0 && (nbytes - n) >= 32)
+        {
+          wbytes = 32;
+        }
+      else
+        {
+          wbytes = 16;
+        }
+
+      memcpy(enc_buf, buffer + n, wbytes);
+      step = wbytes;
+      ret = esp32s3_writedata_encrypt(dev, addr, wbytes, enc_buf);
+      if (ret < 0)
+        {
+          break;
+        }
+    }
+
+  if (ret >= 0)
+    {
+      ret = nbytes;
+    }
+
+#ifdef CONFIG_ESP32S3_STORAGE_MTD_DEBUG
+  finfo("esp32s3_write_encrypt()=%d\n", ret);
+#endif
+
+  return ret;
+}
+
+/****************************************************************************
  * Name: esp32s3_write
  *
  * Description:
@@ -942,7 +1087,7 @@ struct mtd_dev_s *esp32s3_spiflash_alloc_mtdpart(uint32_t mtd_offset,
                                                  bool encrypted)
 {
   const struct esp32s3_mtd_dev_s *priv;
-  const esp32s3_spiflash_chip_t *chip;
+  const esp_rom_spiflash_chip_t *chip;
   struct mtd_dev_s *mtd_part;
   uint32_t blocks;
   uint32_t startblock;

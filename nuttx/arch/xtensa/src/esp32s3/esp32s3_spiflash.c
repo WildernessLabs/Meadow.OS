@@ -41,15 +41,16 @@
 #include "sched/sched.h"
 
 #include "xtensa.h"
-#include "xtensa_attr.h"
+#include "esp_attr.h"
 #include "hardware/esp32s3_efuse.h"
-#include "hardware/esp32s3_extmem.h"
-#include "hardware/esp32s3_spi_mem_reg.h"
 #include "hardware/esp32s3_cache_memory.h"
 #include "rom/esp32s3_spiflash.h"
-#include "rom/esp32s3_opi_flash.h"
 #include "esp32s3_irq.h"
 #include "esp32s3_spiflash.h"
+
+#include "soc/extmem_reg.h"
+#include "soc/spi_mem_reg.h"
+#include "rom/opi_flash.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -208,14 +209,10 @@ extern void cache_invalidate_icache_all(void);
  * Private Data
  ****************************************************************************/
 
-static struct spiflash_guard_funcs g_spi_flash_guard_funcs =
+static spi_flash_guard_funcs_t g_spi_flash_guard_funcs =
 {
   .start           = spiflash_start,
   .end             = spiflash_end,
-  .op_lock         = NULL,
-  .op_unlock       = NULL,
-  .address_is_safe = NULL,
-  .yield           = NULL,
 };
 
 static uint32_t s_flash_op_cache_state[CONFIG_SMP_NCPUS];
@@ -285,22 +282,26 @@ static void spiflash_resume_cache(void)
 static void spiflash_start(void)
 {
   struct tcb_s *tcb = this_task();
-  int cpu = up_cpu_index();
   int saved_priority = tcb->sched_priority;
+  int cpu;
 #ifdef CONFIG_SMP
-  int other_cpu = cpu ? 0 : 1;
+  int other_cpu;
 #endif
 
   nxrmutex_lock(&g_flash_op_mutex);
-
-  DEBUGASSERT(cpu == 0 || cpu == 1);
 
   /* Temporary raise schedule priority */
 
   nxsched_set_priority(tcb, SCHED_PRIORITY_MAX);
 
+  cpu = up_cpu_index();
 #ifdef CONFIG_SMP
+  other_cpu = cpu == 1 ? 0 : 1;
+#endif
 
+  DEBUGASSERT(cpu == 0 || cpu == 1);
+
+#ifdef CONFIG_SMP
   DEBUGASSERT(other_cpu == 0 || other_cpu == 1);
   DEBUGASSERT(other_cpu != cpu);
   if (OSINIT_OS_READY())

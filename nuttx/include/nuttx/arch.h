@@ -214,6 +214,18 @@ pid_t up_fork(void);
 void up_initialize(void);
 
 /****************************************************************************
+ * Name: up_systempoweroff
+ *
+ * Description:
+ *   The function up_systempoweroff() will power down the MCU.  Optional!
+ *   Availability of this function is dependent upon the architecture
+ *   support.
+ *
+ ****************************************************************************/
+
+void up_systempoweroff(void) noreturn_function;
+
+/****************************************************************************
  * Name: up_systemreset
  *
  * Description:
@@ -779,6 +791,50 @@ void up_textheap_free(FAR void *p);
 
 #if defined(CONFIG_ARCH_USE_TEXT_HEAP)
 bool up_textheap_heapmember(FAR void *p);
+#endif
+
+/****************************************************************************
+ * Name: up_textheap_data_address
+ *
+ * Description:
+ *   If an instruction bus address is specified, return the corresponding
+ *   data bus address. Otherwise, return the given address as it is.
+ *
+ *   For some platforms, up_textheap_memalign() might return memory regions
+ *   with separate instruction/data bus mappings. In that case,
+ *   up_textheap_memalign() returns the address of the instruction bus
+ *   mapping.
+ *   The instruction bus mapping might provide only limited data access.
+ *   (For example, only read-only, word-aligned access.)
+ *   You can use up_textheap_data_address() to query the corresponding data
+ *   bus mapping.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_ARCH_USE_TEXT_HEAP)
+#if defined(CONFIG_ARCH_HAVE_TEXT_HEAP_SEPARATE_DATA_ADDRESS)
+FAR void *up_textheap_data_address(FAR void *p);
+#else
+#define up_textheap_data_address(p) ((FAR void *)p)
+#endif
+#endif
+
+/****************************************************************************
+ * Name: up_textheap_data_sync
+ *
+ * Description:
+ *   Ensure modifications made on the data bus addresses (the addresses
+ *   returned by up_textheap_data_address) fully visible on the corresponding
+ *   instruction bus addresses.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_ARCH_USE_TEXT_HEAP)
+#if defined(CONFIG_ARCH_HAVE_TEXT_HEAP_SEPARATE_DATA_ADDRESS)
+void up_textheap_data_sync(void);
+#else
+#define up_textheap_data_sync() do {} while (0)
+#endif
 #endif
 
 /****************************************************************************
@@ -2500,7 +2556,7 @@ void nxsched_alarm_tick_expiration(clock_t ticks);
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_CPULOAD_EXTCLK
-void nxsched_process_cpuload_ticks(uint32_t ticks);
+void nxsched_process_cpuload_ticks(clock_t ticks);
 #  define nxsched_process_cpuload() nxsched_process_cpuload_ticks(1)
 #endif
 
@@ -2536,12 +2592,12 @@ void irq_dispatch(int irq, FAR void *context);
 struct tcb_s;
 size_t up_check_tcbstack(FAR struct tcb_s *tcb);
 #if defined(CONFIG_ARCH_INTERRUPTSTACK) && CONFIG_ARCH_INTERRUPTSTACK > 3
-size_t up_check_intstack(void);
+size_t up_check_intstack(int cpu);
 #endif
 #endif
 
 #if defined(CONFIG_ARCH_INTERRUPTSTACK) && CONFIG_ARCH_INTERRUPTSTACK > 3
-uintptr_t up_get_intstackbase(void);
+uintptr_t up_get_intstackbase(int cpu);
 #endif
 
 /****************************************************************************

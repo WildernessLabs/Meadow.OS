@@ -39,6 +39,10 @@
 
 /* Configuration ************************************************************/
 
+#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD >= 0
+#  define CONFIG_MM_HEAP_MEMPOOL
+#endif
+
 /* If the MCU has a small (16-bit) address capability, then we will use
  * a smaller chunk header that contains 16-bit size/offset information.
  * We will also use the smaller header on MCUs with wider addresses if
@@ -375,6 +379,10 @@ struct mallinfo_task kmm_mallinfo_task(FAR const struct malltask *task);
 void mm_memdump(FAR struct mm_heap_s *heap,
                 FAR const struct mm_memdump_s *dump);
 
+/* Functions contained in umm_memdump.c *************************************/
+
+void umm_memdump(FAR const struct mm_memdump_s *dump);
+
 #ifdef CONFIG_DEBUG_MM
 /* Functions contained in mm_checkcorruption.c ******************************/
 
@@ -383,10 +391,6 @@ void mm_checkcorruption(FAR struct mm_heap_s *heap);
 /* Functions contained in umm_checkcorruption.c *****************************/
 
 FAR void umm_checkcorruption(void);
-
-/* Functions contained in umm_memdump.c *************************************/
-
-void umm_memdump(FAR const struct mm_memdump_s *dump);
 
 /* Functions contained in kmm_checkcorruption.c *****************************/
 
