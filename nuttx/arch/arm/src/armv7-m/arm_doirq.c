@@ -116,10 +116,6 @@ uint32_t *arm_doirq(int irq, uint32_t *regs)
   regs = tcb->xcp.regs;
 #endif
 
-  /* Clear current regs */
-
-  up_set_current_regs(NULL);
-
   board_autoled_off(LED_INIRQ);
 
   return regs;

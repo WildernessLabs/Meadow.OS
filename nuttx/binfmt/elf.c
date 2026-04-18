@@ -82,144 +82,6 @@ static struct binfmt_s g_elfbinfmt =
  ****************************************************************************/
 
 /****************************************************************************
-<<<<<<< HEAD
- * Name: elf_dumploadinfo
- ****************************************************************************/
-
-#if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_DEBUG_BINFMT)
-static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo)
-{
-  int i;
-
-  binfo("LOAD_INFO:\n");
-  binfo("  textalloc:    %08lx\n", (long)loadinfo->textalloc);
-  binfo("  dataalloc:    %08lx\n", (long)loadinfo->dataalloc);
-  binfo("  textsize:     %ld\n",   (long)loadinfo->textsize);
-  binfo("  datasize:     %ld\n",   (long)loadinfo->datasize);
-  binfo("  textalign:    %zu\n",   loadinfo->textalign);
-  binfo("  dataalign:    %zu\n",   loadinfo->dataalign);
-  binfo("  filelen:      %ld\n",   (long)loadinfo->filelen);
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-  binfo("  ctoralloc:    %08lx\n", (long)loadinfo->ctoralloc);
-  binfo("  ctors:        %08lx\n", (long)loadinfo->ctors);
-  binfo("  nctors:       %d\n",    loadinfo->nctors);
-  binfo("  dtoralloc:    %08lx\n", (long)loadinfo->dtoralloc);
-  binfo("  dtors:        %08lx\n", (long)loadinfo->dtors);
-  binfo("  ndtors:       %d\n",    loadinfo->ndtors);
-#endif
-  binfo("  symtabidx:    %d\n",    loadinfo->symtabidx);
-  binfo("  strtabidx:    %d\n",    loadinfo->strtabidx);
-
-  binfo("ELF Header:\n");
-  binfo("  e_ident:      %02x %02x %02x %02x\n",
-    loadinfo->ehdr.e_ident[0], loadinfo->ehdr.e_ident[1],
-    loadinfo->ehdr.e_ident[2], loadinfo->ehdr.e_ident[3]);
-  binfo("  e_type:       %04x\n",  loadinfo->ehdr.e_type);
-  binfo("  e_machine:    %04x\n",  loadinfo->ehdr.e_machine);
-  binfo("  e_version:    %08x\n",  loadinfo->ehdr.e_version);
-  binfo("  e_entry:      %08lx\n", (long)loadinfo->ehdr.e_entry);
-  binfo("  e_phoff:      %ju\n",   (uintmax_t)loadinfo->ehdr.e_phoff);
-  binfo("  e_shoff:      %ju\n",   (uintmax_t)loadinfo->ehdr.e_shoff);
-  binfo("  e_flags:      %08x\n" , loadinfo->ehdr.e_flags);
-  binfo("  e_ehsize:     %d\n",    loadinfo->ehdr.e_ehsize);
-  binfo("  e_phentsize:  %d\n",    loadinfo->ehdr.e_phentsize);
-  binfo("  e_phnum:      %d\n",    loadinfo->ehdr.e_phnum);
-  binfo("  e_shentsize:  %d\n",    loadinfo->ehdr.e_shentsize);
-  binfo("  e_shnum:      %d\n",    loadinfo->ehdr.e_shnum);
-  binfo("  e_shstrndx:   %d\n",    loadinfo->ehdr.e_shstrndx);
-
-  if (loadinfo->phdr && loadinfo->ehdr.e_phnum > 0)
-    {
-      for (i = 0; i < loadinfo->ehdr.e_phnum; i++)
-        {
-          FAR Elf_Phdr *phdr = &loadinfo->phdr[i];
-          binfo("Programs %d:\n", i);
-          binfo("  p_type:       %08jx\n", (uintmax_t)phdr->p_type);
-          binfo("  p_offset:     %08jx\n", (uintmax_t)phdr->p_offset);
-          binfo("  p_vaddr:      %08jx\n", (uintmax_t)phdr->p_vaddr);
-          binfo("  p_paddr:      %08jx\n", (uintmax_t)phdr->p_paddr);
-          binfo("  p_filesz:     %08jx\n", (uintmax_t)phdr->p_filesz);
-          binfo("  p_memsz:      %08jx\n", (uintmax_t)phdr->p_memsz);
-          binfo("  p_flags:      %08jx\n", (uintmax_t)phdr->p_flags);
-          binfo("  p_align:      %08x\n",  phdr->p_align);
-        }
-    }
-
-  if (loadinfo->shdr && loadinfo->ehdr.e_shnum > 0)
-    {
-      for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
-        {
-          FAR Elf_Shdr *shdr = &loadinfo->shdr[i];
-#  ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
-          if (loadinfo->ehdr.e_type == ET_REL)
-            {
-              binfo("  sh_alloc:     %08jx\n",
-                    (uintmax_t)loadinfo->sectalloc[i]);
-            }
-#  endif
-
-          binfo("Sections %d:\n", i);
-          binfo("  sh_name:      %08x\n",  shdr->sh_name);
-          binfo("  sh_type:      %08x\n",  shdr->sh_type);
-          binfo("  sh_flags:     %08jx\n", (uintmax_t)shdr->sh_flags);
-          binfo("  sh_addr:      %08jx\n", (uintmax_t)shdr->sh_addr);
-          binfo("  sh_offset:    %ju\n",   (uintmax_t)shdr->sh_offset);
-          binfo("  sh_size:      %ju\n",   (uintmax_t)shdr->sh_size);
-          binfo("  sh_link:      %d\n",    shdr->sh_link);
-          binfo("  sh_info:      %d\n",    shdr->sh_info);
-          binfo("  sh_addralign: %ju\n",   (uintmax_t)shdr->sh_addralign);
-          binfo("  sh_entsize:   %ju\n",   (uintmax_t)shdr->sh_entsize);
-        }
-    }
-}
-#else
-#  define elf_dumploadinfo(i)
-#endif
-
-/****************************************************************************
- * Name: elf_dumpentrypt
- ****************************************************************************/
-
-#ifdef CONFIG_ELF_DUMPBUFFER
-static void elf_dumpentrypt(FAR struct binary_s *binp,
-                            FAR struct elf_loadinfo_s *loadinfo)
-{
-#ifdef CONFIG_ARCH_ADDRENV
-  int ret;
-
-  /* If CONFIG_ARCH_ADDRENV=y, then the loaded ELF lies in a virtual address
-   * space that may not be in place now.  elf_addrenv_select() will
-   * temporarily instantiate that address space.
-   */
-
-  ret = elf_addrenv_select(loadinfo);
-  if (ret < 0)
-    {
-      berr("ERROR: elf_addrenv_select() failed: %d\n", ret);
-      return;
-    }
-#endif
-
-  elf_dumpbuffer("Entry code", (FAR const uint8_t *)binp->entrypt,
-                 MIN(loadinfo->textsize - loadinfo->ehdr.e_entry, 512));
-
-#ifdef CONFIG_ARCH_ADDRENV
-  /* Restore the original address environment */
-
-  ret = elf_addrenv_restore(loadinfo);
-  if (ret < 0)
-    {
-      berr("ERROR: elf_addrenv_restore() failed: %d\n", ret);
-    }
-#endif
-}
-#else
-#  define elf_dumpentrypt(b,l)
-#endif
-
-/****************************************************************************
-=======
->>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
  * Name: elf_loadbinary
  *
  * Description:
@@ -316,15 +178,6 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 #  ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
   if (loadinfo.ehdr.e_type == ET_REL)
     {
-<<<<<<< HEAD
-      binp->sectalloc = (FAR void *)loadinfo.sectalloc;
-      binp->nsect     = loadinfo.ehdr.e_shnum;
-    }
-#  endif
-
-  binp->alloc[0] = (FAR void *)loadinfo.textalloc;
-  binp->alloc[1] = (FAR void *)loadinfo.dataalloc;
-=======
       binp->mod.sectalloc = (FAR void *)loadinfo.sectalloc;
       binp->mod.nsect     = loadinfo.ehdr.e_shnum;
     }
@@ -332,7 +185,6 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 
   binp->mod.textalloc = (FAR void *)loadinfo.textalloc;
   binp->mod.dataalloc = (FAR void *)loadinfo.datastart;
->>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
 #  ifdef CONFIG_BINFMT_CONSTRUCTORS
   binp->mod.initarr = loadinfo.initarr;
   binp->mod.finiarr = loadinfo.finiarr;

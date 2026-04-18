@@ -129,7 +129,6 @@ int arm_svcall(int irq, void *context, void *arg)
 {
   struct tcb_s *tcb = this_task();
   uint32_t *regs = (uint32_t *)context;
-  struct tcb_s *tcb;
   uint32_t cmd;
 
   cmd = regs[REG_R0];

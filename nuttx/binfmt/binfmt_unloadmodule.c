@@ -95,63 +95,6 @@ int unload_module(FAR struct binary_s *binp)
           file_munmap(binp->mapped, binp->mapsize);
         }
 
-<<<<<<< HEAD
-#ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
-      for (i = 0; binp->sectalloc[i] != NULL && i < binp->nsect; i++)
-        {
-#  ifdef CONFIG_ARCH_USE_TEXT_HEAP
-          if (up_textheap_heapmember(binp->sectalloc[i]))
-            {
-              up_textheap_free(binp->sectalloc[i]);
-            }
-          else
-#  endif
-
-#  ifdef CONFIG_ARCH_USE_DATA_HEAP
-          if (up_dataheap_heapmember(binp->sectalloc[i]))
-            {
-              up_dataheap_free(binp->sectalloc[i]);
-            }
-          else
-#  endif
-            {
-              kumm_free(binp->sectalloc[i]);
-            }
-        }
-
-      binp->alloc[0] = NULL;
-      binp->alloc[1] = NULL;
-#endif
-
-      /* Free allocated address spaces */
-
-      for (i = 0; i < BINFMT_NALLOC; i++)
-        {
-          if (binp->alloc[i])
-            {
-              binfo("Freeing alloc[%d]: %p\n", i, binp->alloc[i]);
-#if defined(CONFIG_ARCH_USE_TEXT_HEAP)
-              if (i == 0)
-                {
-                  up_textheap_free(binp->alloc[i]);
-                }
-              else
-#endif
-#if defined(CONFIG_ARCH_USE_DATA_HEAP)
-              if (i == 1)
-                {
-                  up_dataheap_free(binp->alloc[i]);
-                }
-              else
-#endif
-                {
-                  kumm_free(binp->alloc[i]);
-                }
-            }
-        }
-
-=======
->>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
       /* Notice that the address environment is not destroyed.  This should
        * happen automatically when the task exits.
        */

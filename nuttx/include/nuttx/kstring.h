@@ -1,10 +1,9 @@
 /****************************************************************************
- * arch/arm/src/stm32h7/stm32_uid.c
+ * include/nuttx/kstring.h
  *
- * SPDX-License-Identifier: BSD-3-Clause
- * SPDX-FileCopyrightText: 2015 Marawan Ragab. All rights reserved.
- * SPDX-FileContributor: Marawan Ragab <marawan31@gmail.com>
- * SPDX-FileContributor: David Sidrane <david.sirane@nscdg.com>
+ *   Copyright (C) 2022 Wilderness Labs. All
+ *     rights reserved.
+ *   Author: Mark Stevens (mark.stevens@wildernesslabs.co)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -35,30 +34,36 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_KSTRING_H
+#define __INCLUDE_NUTTX_KSTRING_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include "hardware/stm32_memorymap.h"
+#include <sys/types.h>
+#include <stdbool.h>
+#include <stdlib.h>
 
-#include "stm32_uid.h"
-
-#ifdef STM32_SYSMEM_UID
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
-void stm32_get_uniqueid(uint8_t uniqueid[12])
-{
-  int i;
+EXTERN FAR char  *kmm_strdup(FAR const char *s);
 
-  for (i = 0; i < 12; i++)
-    {
-      uniqueid[i] = *((uint8_t *)(STM32_SYSMEM_UID) + i);
-    }
+#undef EXTERN
+#if defined(__cplusplus)
 }
+#endif
 
-#endif /* STM32_SYSMEM_UID */
+#endif /* __INCLUDE_NUTTX_KSTRING_H */
