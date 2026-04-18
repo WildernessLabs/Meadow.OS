@@ -17,11 +17,11 @@ def resolve_conflicts_theirs(content):
 
     for line in lines:
         stripped = line.rstrip('\r\n')
-        if re.match(r'^<{7,8}( |$)', stripped):
+        if re.match(r'^<{7,8}[ \t]', stripped):
             state = 'ours'
-        elif stripped == '=======' and state == 'ours':
+        elif re.match(r'^={7,8}$', stripped) and state == 'ours':
             state = 'theirs'
-        elif re.match(r'^>{7,8}( |$)', stripped) and state == 'theirs':
+        elif re.match(r'^>{7,8}[ \t]', stripped) and state == 'theirs':
             state = 'normal'
         else:
             if state != 'ours':
@@ -31,7 +31,7 @@ def resolve_conflicts_theirs(content):
 
 
 def has_conflict_markers(content):
-    return bool(re.search(r'^<{7,8}( |$)', content, re.MULTILINE))
+    return bool(re.search(r'^<{7,8}[ \t]', content, re.MULTILINE))
 
 
 def process_directory(directory):

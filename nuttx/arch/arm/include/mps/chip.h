@@ -31,12 +31,8 @@
  * Pre-processor Prototypes
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/arch/arm/include/mps/chip.h
-#define NVIC_SYSH_PRIORITY_MIN     0xe0 /* Bits [7:5] set in minimum priority */
-========
 #define PINMUX_USART1_RXD_0        (GPIO_PERIPH | GPIO_FUNCA | GPIO_PORTA | 5)
 #define PINMUX_USART1_TXD_0        (GPIO_PERIPH | GPIO_FUNCA | GPIO_PORTA | 6)
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/avr/src/at32uc3/at32uc3a_pinmux.h
 
 /****************************************************************************
  * Public Types
@@ -50,8 +46,4 @@
  * Public Functions Prototypes
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/arch/arm/include/mps/chip.h
-#endif /* __ARCH_ARM_INCLUDE_MPS_CHIP_H */
-========
 #endif /* __ARCH_AVR_SRC_AT32UC3_AT32UC3A_PINMUX_H */
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/avr/src/at32uc3/at32uc3a_pinmux.h

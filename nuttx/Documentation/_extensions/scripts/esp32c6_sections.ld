@@ -323,8 +323,6 @@ SECTIONS
     _stext = .;
     _instruction_reserved_start = ABSOLUTE(.);  /* This is a symbol marking the flash.text start, this can be used for mmu driver to maintain virtual address */
     _text_start = ABSOLUTE(.);
-<<<<<<<< HEAD:nuttx/Documentation/_extensions/scripts/esp32c6_simple_boot_sections.ld
-========
 
     *(.wifi0iram .wifi0iram.*)
     *(.wifiextrairam .wifiextrairam.*)
@@ -332,7 +330,6 @@ SECTIONS
     *(.wifirxiram .wifirxiram.*)
     *(.wifislpiram .wifislpiram.*)
     *(.wifislprxiram .wifislprxiram.*)
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/Documentation/_extensions/scripts/esp32c6_sections.ld
 
     *(.literal .text .literal.* .text.* .stub .gnu.warning .gnu.linkonce.literal.* .gnu.linkonce.t.*.literal .gnu.linkonce.t.*)
     *(.irom0.text) /* catch stray ICACHE_RODATA_ATTR */
@@ -373,11 +370,7 @@ SECTIONS
     . = ALIGN(ALIGNOF(.flash.rodata));
   } >default_rodata_seg
 
-<<<<<<<< HEAD:nuttx/Documentation/_extensions/scripts/esp32c6_simple_boot_sections.ld
-  .flash.rodata :
-========
   .flash.rodata : ALIGN(0xFFFF)
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/Documentation/_extensions/scripts/esp32c6_sections.ld
   {
     _srodata = ABSOLUTE(.);
 

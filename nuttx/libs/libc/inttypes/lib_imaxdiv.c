@@ -23,27 +23,14 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-<<<<<<<< HEAD:nuttx/libs/libc/inttypes/lib_imaxdiv.c
-#include <inttypes.h>
-========
 
 #include <debug.h>
 #include <stdint.h>
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/risc-v/src/nuttsbi/sbi_mexception.c
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/libs/libc/inttypes/lib_imaxdiv.c
-imaxdiv_t imaxdiv(intmax_t numer, intmax_t denom)
-{
-  imaxdiv_t f;
-
-  f.quot = numer / denom;
-  f.rem  = numer % denom;
-  return f;
-========
 void sbi_mexception(uintreg_t mcause, uintreg_t *mepc, uintreg_t tval)
 {
   sinfo("cauz=%"PRIxREG" epc=%p tval=0x%"PRIxREG"\n", mcause, mepc, tval);
@@ -52,5 +39,4 @@ void sbi_mexception(uintreg_t mcause, uintreg_t *mepc, uintreg_t tval)
     {
       __asm__ __volatile__("wfi");
     }
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/risc-v/src/nuttsbi/sbi_mexception.c
 }

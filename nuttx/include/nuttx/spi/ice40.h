@@ -18,15 +18,10 @@
  *
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/include/nuttx/spi/ice40.h
-#ifndef __INCLUDE_NUTTX_SPI_ICE40_H
-#define __INCLUDE_NUTTX_SPI_ICE40_H
-========
 #ifndef __ARCH_ARM64_SRC_COMMON_ARM64_FATAL_H
 #define __ARCH_ARM64_SRC_COMMON_ARM64_FATAL_H
 
 #ifndef __ASSEMBLY__
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm64/src/common/arm64_fatal.h
 
 /****************************************************************************
  * Included Files
@@ -48,26 +43,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/include/nuttx/spi/ice40.h
-#if(defined(CONFIG_SPI) && defined(CONFIG_SPI_ICE40))
-
-#ifndef CONFIG_ICE40_SPI_FREQUENCY
-#  define CONFIG_ICE40_SPI_FREQUENCY 10000000
-#endif
-
-#define ICE40_SPI_MODE (SPIDEV_MODE0) /* SPI Mode 0: CPOL=0,CPHA=0 */
-
-#define ICE40_SPI_FINAL_CLK_CYCLES 160
-
-#define ICE_SPI_MAX_XFER 4096
-
-#define FPGAIOC_WRITE_INIT _FPGACFGIOC(0x0001)
-#define FPGAIOC_WRITE _FPGACFGIOC(0x0002)
-#define FPGAIOC_WRITE_COMPLETE _FPGACFGIOC(0x0003)
-
-/****************************************************************************
- * Public Function Definitions
-========
 #define ESR_ELX_EC_UNKNOWN      (0x00)
 #define ESR_ELX_EC_WFX          (0x01)
 
@@ -194,23 +169,12 @@
 
 /****************************************************************************
  * Public Type Declarations
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm64/src/common/arm64_fatal.h
  ****************************************************************************/
 
 typedef int (*fatal_handle_func_t)(struct regs_context *regs,
                                    uint64_t far, uint64_t esr);
 
 /****************************************************************************
-<<<<<<<< HEAD:nuttx/include/nuttx/spi/ice40.h
- * Name: ice40_register
- *
- * Description:
- *   Register the ice_v character device as 'devpath'.
- *
- ****************************************************************************/
-
-struct ice40_dev_s;
-========
  * Public Function Prototypes
  ****************************************************************************/
 
@@ -247,7 +211,6 @@ void arm64_fatal_handler(struct regs_context *reg);
  ****************************************************************************/
 
 void arm64_register_debug_hook(int nr, fatal_handle_func_t fn);
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm64/src/common/arm64_fatal.h
 
 struct ice40_ops_s
 {

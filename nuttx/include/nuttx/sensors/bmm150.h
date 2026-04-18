@@ -27,9 +27,6 @@
 
 #include <nuttx/config.h>
 
-<<<<<<<< HEAD:nuttx/include/nuttx/sensors/bmm150.h
-#include <nuttx/i2c/i2c_master.h>
-========
 #include <sys/types.h>
 
 /* Include chip-specific definitions */
@@ -41,7 +38,6 @@
 #ifdef CONFIG_ARCH_INTEL64
 #  include <arch/intel64/arch.h>
 #endif
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/x86_64/include/arch.h
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -62,13 +58,6 @@
  * Public Types
  ****************************************************************************/
 
-<<<<<<<< HEAD:nuttx/include/nuttx/sensors/bmm150.h
-struct bmm150_config_s
-{
-  FAR struct i2c_master_s *i2c;
-  uint8_t addr;
-};
-========
 #ifdef CONFIG_ARCH_ADDRENV
 #ifndef __ASSEMBLY__
 
@@ -110,7 +99,6 @@ typedef struct arch_addrenv_s arch_addrenv_t;
 /****************************************************************************
  * Public Data
  ****************************************************************************/
->>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/x86_64/include/arch.h
 
 /****************************************************************************
  * Public Function Prototypes
