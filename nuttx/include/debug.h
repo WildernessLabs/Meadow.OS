@@ -120,7 +120,7 @@
 #  define _alert      _none
 #elif defined(CONFIG_CPP_HAVE_VARARGS)
 #  define _alert(format, ...) \
-   __arch_syslog(LOG_EMERG, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
+   __arch_syslog(LOG_ALERT, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
 #endif
 
 #if !defined(CONFIG_DEBUG_ERROR)
@@ -758,6 +758,24 @@
 #  define spiinfo     _none
 #endif
 
+#ifdef CONFIG_DEBUG_THERMAL_ERROR
+#  define therr         _err
+#else
+#  define therr        _none
+#endif
+
+#ifdef CONFIG_DEBUG_THERMAL_WARN
+#  define thwarn       _warn
+#else
+#  define thwarn       _none
+#endif
+
+#ifdef CONFIG_DEBUG_THERMAL_INFO
+#  define thinfo       _info
+#else
+#  define thinfo       _none
+#endif
+
 #ifdef CONFIG_DEBUG_TIMER_ERROR
 #  define tmrerr       _err
 #else
@@ -954,6 +972,24 @@
 #  define rpmsginfo     _info
 #else
 #  define rpmsginfo     _none
+#endif
+
+#ifdef CONFIG_DEBUG_CORESIGHT_ERROR
+#  define cserr       _err
+#else
+#  define cserr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_CORESIGHT_WARN
+#  define cswarn     _warn
+#else
+#  define cswarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_CORESIGHT_INFO
+#  define csinfo     _info
+#else
+#  define csinfo     _none
 #endif
 
 /* Buffer dumping macros do not depend on varargs */

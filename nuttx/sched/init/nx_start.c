@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/init/nx_start.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -124,6 +126,7 @@ dq_queue_t g_readytorun;
 
 #ifdef CONFIG_SMP
 dq_queue_t g_assignedtasks[CONFIG_SMP_NCPUS];
+FAR struct tcb_s *g_delivertasks[CONFIG_SMP_NCPUS];
 #endif
 
 /* g_running_tasks[] holds a references to the running task for each cpu.
@@ -192,7 +195,7 @@ struct tasklist_s g_tasklisttable[NUM_TASK_STATES];
  * hardware resources may not yet be available to the kernel logic.
  */
 
-uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
+volatile uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
 
 /****************************************************************************
  * Private Data
@@ -206,7 +209,11 @@ uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
  * bringing up the rest of the system.
  */
 
+<<<<<<< HEAD
 static struct tcb_s g_idletcb[CONFIG_SMP_NCPUS];
+=======
+struct tcb_s g_idletcb[CONFIG_SMP_NCPUS];
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 /* This is the name of the idle task */
 
@@ -358,6 +365,10 @@ static void idle_task_initialize(void)
 
       tcb->pid        = i;
       tcb->task_state = TSTATE_TASK_RUNNING;
+<<<<<<< HEAD
+=======
+      tcb->lockcount  = 1;
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
       /* Set the entry point.  This is only for debug purposes.  NOTE: that
        * the start_t entry point is not saved.  That is acceptable, however,
@@ -517,10 +528,13 @@ void nx_start(void)
   /* Boot up is complete */
 
   g_nx_initstate = OSINIT_BOOT;
+<<<<<<< HEAD
 
   /* Initialize RTOS Data ***************************************************/
 
   sched_trace_begin();
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   /* Initialize task list table *********************************************/
 
@@ -533,6 +547,15 @@ void nx_start(void)
   /* Task lists are initialized */
 
   g_nx_initstate = OSINIT_TASKLISTS;
+<<<<<<< HEAD
+=======
+
+  /* Initialize RTOS Data ***************************************************/
+
+  drivers_early_initialize();
+
+  sched_trace_begin();
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   /* Initialize RTOS facilities *********************************************/
 
@@ -622,13 +645,6 @@ void nx_start(void)
   /* Initialize tasking data structures */
 
   task_initialize();
-
-  /* Disables context switching because we need take the memory manager
-   * semaphore on this CPU so that it will not be available on the other
-   * CPUs until we have finished initialization.
-   */
-
-  sched_lock();
 
   /* Initialize the instrument function */
 

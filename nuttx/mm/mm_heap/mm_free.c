@@ -1,6 +1,8 @@
 /****************************************************************************
  * mm/mm_heap/mm_free.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -30,9 +32,10 @@
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 #include <nuttx/mm/mm.h>
+#include <nuttx/mm/kasan.h>
+#include <nuttx/sched_note.h>
 
 #include "mm_heap/mm.h"
-#include "kasan/kasan.h"
 
 /****************************************************************************
  * Private Functions
@@ -97,11 +100,12 @@ void mm_delayfree(FAR struct mm_heap_s *heap, FAR void *mem, bool delay)
       return;
     }
 
+  nodesize = mm_malloc_size(heap, mem);
 #ifdef CONFIG_MM_FILL_ALLOCATIONS
-  memset(mem, MM_FREE_MAGIC, mm_malloc_size(heap, mem));
+  memset(mem, MM_FREE_MAGIC, nodesize);
 #endif
 
-  kasan_poison(mem, mm_malloc_size(heap, mem));
+  kasan_poison(mem, nodesize);
 
   if (delay)
     {
@@ -124,6 +128,7 @@ void mm_delayfree(FAR struct mm_heap_s *heap, FAR void *mem, bool delay)
   /* Update heap statistics */
 
   heap->mm_curused -= nodesize;
+  sched_note_heap(NOTE_HEAP_FREE, heap, mem, nodesize, heap->mm_curused);
 
   /* Check if the following node is free and, if so, merge it */
 

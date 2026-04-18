@@ -131,7 +131,9 @@ struct arg_s
 #ifdef CONFIG_HAVE_LONG_LONG
     unsigned long long ull;
 #endif
+#ifdef CONFIG_HAVE_DOUBLE
     double d;
+#endif
     FAR char *cp;
   } value;
 };
@@ -389,7 +391,23 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
 
           if (c == 'z' || c == 't')
             {
-              switch (sizeof(size_t))
+              if (sizeof(size_t) == sizeof(unsigned short))
+                {
+                  c = 'h';
+                }
+              else if (sizeof(size_t) == sizeof(unsigned long))
+                {
+                  c = 'l';
+                }
+#if defined(CONFIG_HAVE_LONG_LONG) && ULLONG_MAX != ULONG_MAX
+              else if (sizeof(size_t) == sizeof(unsigned long long))
+                {
+                  c = 'l';
+                  flags |= FL_LONG;
+                  flags &= ~FL_SHORT;
+                }
+#endif
+              else
                 {
                   /* The only known cases that the default will be hit are
                    * (1) the eZ80 which has sizeof(size_t) = 3 which is the
@@ -398,26 +416,10 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
                    * is not enabled and sizeof(size_t) is equal to
                    * sizeof(unsigned long long).  This latter case is an
                    * error.
+                   * Treat as integer with no size qualifier.
                    */
 
-                  default:
-                    continue;  /* Treat as integer with no size qualifier. */
-
-                  case sizeof(unsigned short):
-                    c = 'h';
-                    break;
-
-#if defined(CONFIG_HAVE_LONG_LONG) && ULLONG_MAX != ULONG_MAX
-                  case sizeof(unsigned long long):
-                    c = 'l';
-                    flags |= FL_LONG;
-                    flags &= ~FL_SHORT;
-                    break;
-#else
-                  case sizeof(unsigned long):
-                    c = 'l';
-                    break;
-#endif
+                  continue;
                 }
             }
 
@@ -480,13 +482,13 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
           flags &= ~(FL_LONG | FL_REPD_TYPE);
 
 #ifdef CONFIG_HAVE_LONG_LONG
-          if (sizeof(void *) == sizeof(unsigned long long))
+          if (sizeof(FAR void *) == sizeof(unsigned long long))
             {
               flags |= (FL_LONG | FL_REPD_TYPE);
             }
           else
 #endif
-          if (sizeof(void *) == sizeof(unsigned long))
+          if (sizeof(FAR void *) == sizeof(unsigned long))
             {
               flags |= FL_LONG;
             }
@@ -1350,9 +1352,11 @@ int lib_vsprintf(FAR struct lib_outstream_s *stream,
           arglist[i].value.u = va_arg(ap, unsigned int);
           break;
 
+#ifdef CONFIG_HAVE_DOUBLE
         case TYPE_DOUBLE:
           arglist[i].value.d = va_arg(ap, double);
           break;
+#endif
 
         case TYPE_CHAR_POINTER:
           arglist[i].value.cp = va_arg(ap, FAR char *);

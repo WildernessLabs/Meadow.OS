@@ -35,4 +35,16 @@
 #define NVIC_SYSH_PRIORITY_MAX        CXD32M4_SYSH_PRIORITY_MAX
 #define NVIC_SYSH_PRIORITY_STEP       CXD32M4_SYSH_PRIORITY_STEP
 
+<<<<<<<< HEAD:nuttx/arch/arm/include/cxd32xx/chip.h
 #endif /* __ARCH_ARM_INCLUDE_CXD32XX_CHIP_H */
+========
+#define arm_dsb()  __asm__ __volatile__ ("dsb " : : : "memory")
+#define arm_isb()  __asm__ __volatile__ ("isb " : : : "memory")
+#define arm_dmb()  __asm__ __volatile__ ("dmb " : : : "memory")
+
+#define ARM_DSB()  arm_dsb()
+#define ARM_ISB()  arm_isb()
+#define ARM_DMB()  arm_dmb()
+
+#endif /* __ARCH_ARM_SRC_ARMV6_M_BARRIERS_H */
+>>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca:nuttx/arch/arm/src/armv6-m/barriers.h

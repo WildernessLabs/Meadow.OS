@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # tools/checkpatch.sh
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -81,9 +83,9 @@ check_file() {
   fi
 
   if [ ${@##*.} == 'py' ]; then
-    black --check $@
-    flake8 --config ${TOOLDIR}/../.github/linters/setup.cfg $@
-    isort $@
+    black --check $@ || fail=1
+    flake8 --config ${TOOLDIR}/../.github/linters/setup.cfg $@ || fail=1
+    isort --settings-path ${TOOLDIR}/../.github/linters/setup.cfg $@ || fail=1
   elif [ "$(is_rust_file $@)" == "1" ]; then
     if ! command -v rustfmt &> /dev/null; then
       fail=1

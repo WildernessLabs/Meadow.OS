@@ -31,6 +31,7 @@
 #include <nuttx/pgalloc.h>
 
 #include "shm/shmfs.h"
+#include "fs_heap.h"
 
 /****************************************************************************
  * Public Functions
@@ -46,7 +47,15 @@ FAR struct shmfs_object_s *shmfs_alloc_object(size_t length)
    * chunk in kernel heap
    */
 
-  object = kmm_zalloc(sizeof(struct shmfs_object_s) + length);
+  size_t alloc_size = sizeof(struct shmfs_object_s) + length;
+  if (alloc_size < length)
+    {
+      /* There must have been an integer overflow */
+
+      return NULL;
+    }
+
+  object = fs_heap_zalloc(alloc_size);
   if (object)
     {
       object->paddr = (FAR char *)(object + 1);
@@ -58,7 +67,7 @@ FAR struct shmfs_object_s *shmfs_alloc_object(size_t length)
    * memory in user heap
    */
 
-  object = kmm_zalloc(sizeof(struct shmfs_object_s));
+  object = fs_heap_zalloc(sizeof(struct shmfs_object_s));
   if (object)
     {
       object->paddr = kumm_zalloc(length);
@@ -78,7 +87,7 @@ FAR struct shmfs_object_s *shmfs_alloc_object(size_t length)
   FAR void **pages;
   size_t n_pages = MM_NPAGES(length);
 
-  object = kmm_zalloc(sizeof(struct shmfs_object_s) +
+  object = fs_heap_zalloc(sizeof(struct shmfs_object_s) +
                       (n_pages - 1) * sizeof(object->paddr));
 
   if (object)
@@ -148,6 +157,6 @@ void shmfs_free_object(FAR struct shmfs_object_s *object)
        * (and the shared memory in case of FLAT build)
        */
 
-      kmm_free(object);
+      fs_heap_free(object);
     }
 }

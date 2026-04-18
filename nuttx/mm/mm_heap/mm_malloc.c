@@ -1,6 +1,8 @@
 /****************************************************************************
  * mm/mm_heap/mm_malloc.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -30,10 +32,11 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/mm/mm.h>
+#include <nuttx/mm/kasan.h>
 #include <nuttx/sched.h>
+#include <nuttx/sched_note.h>
 
 #include "mm_heap/mm.h"
-#include "kasan/kasan.h"
 
 /****************************************************************************
  * Private Functions
@@ -136,6 +139,22 @@ void mm_mempool_dump_handle(FAR struct mempool_s *pool, FAR void *arg)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: mm_free_delaylist
+ *
+ * Description:
+ *   force freeing the delaylist of this heap.
+ *
+ ****************************************************************************/
+
+void mm_free_delaylist(FAR struct mm_heap_s *heap)
+{
+  if (heap)
+    {
+       free_delaylist(heap, true);
+    }
+}
 
 /****************************************************************************
  * Name: mm_malloc
@@ -288,7 +307,8 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 
       /* Update heap statistics */
 
-      heap->mm_curused += MM_SIZEOF_NODE(node);
+      nodesize = MM_SIZEOF_NODE(node);
+      heap->mm_curused += nodesize;
       if (heap->mm_curused > heap->mm_maxused)
         {
           heap->mm_maxused = heap->mm_curused;
@@ -306,7 +326,9 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
   if (ret)
     {
       MM_ADD_BACKTRACE(heap, node);
-      kasan_unpoison(ret, mm_malloc_size(heap, ret));
+      ret = kasan_unpoison(ret, nodesize - MM_ALLOCNODE_OVERHEAD);
+      sched_note_heap(NOTE_HEAP_ALLOC, heap, ret, nodesize,
+                      heap->mm_curused);
 #ifdef CONFIG_MM_FILL_ALLOCATIONS
       memset(ret, MM_ALLOC_MAGIC, alignsize - MM_ALLOCNODE_OVERHEAD);
 #endif

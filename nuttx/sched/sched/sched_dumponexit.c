@@ -1,5 +1,10 @@
 /****************************************************************************
  * sched/sched/sched_dumponexit.c
+<<<<<<< HEAD
+=======
+ *
+ * SPDX-License-Identifier: Apache-2.0
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -33,7 +38,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_DUMP_ON_EXIT
+#ifdef CONFIG_SCHED_DUMP_ON_EXIT
 
 /****************************************************************************
  * Private Functions
@@ -52,26 +57,14 @@
 static void dumphandler(FAR struct tcb_s *tcb, FAR void *arg)
 {
   FAR struct filelist *filelist;
-  int i;
-  int j;
 
-  sinfo("  TCB=%p name=%s\n", tcb, tcb->name);
-  sinfo("    priority=%d state=%d\n", tcb->sched_priority, tcb->task_state);
+  syslog(LOG_INFO, "tcb=%p name=%s, pid:%d, priority=%d state=%d "
+         "stack_alloc_ptr: %p, adj_stack_size: %zu\n",
+         tcb, get_task_name(tcb), tcb->pid, tcb->sched_priority,
+         tcb->task_state, tcb->stack_alloc_ptr, tcb->adj_stack_size);
 
   filelist = &tcb->group->tg_filelist;
-  for (i = 0; i < filelist->fl_rows; i++)
-    {
-      for (j = 0; j < CONFIG_NFILE_DESCRIPTORS_PER_BLOCK; j++)
-        {
-          struct inode *inode = filelist->fl_files[i][j].f_inode;
-          if (inode)
-            {
-              sinfo("      fd=%d refcount=%d\n",
-                    i * CONFIG_NFILE_DESCRIPTORS_PER_BLOCK + j,
-                    inode->i_crefs);
-            }
-        }
-    }
+  files_dumplist(filelist);
 }
 
 /****************************************************************************
@@ -94,4 +87,4 @@ void nxsched_dumponexit(void)
   nxsched_foreach(dumphandler, NULL);
 }
 
-#endif /* CONFIG_DUMP_ON_EXIT */
+#endif /* CONFIG_SCHED_DUMP_ON_EXIT */

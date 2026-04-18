@@ -153,6 +153,16 @@
 
 struct mm_heap_s; /* Forward reference */
 
+struct mempool_init_s
+{
+  FAR const size_t *poolsize;
+  size_t            npools;
+  size_t            threshold;
+  size_t            chunksize;
+  size_t            expandsize;
+  size_t            dict_expendsize;
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -213,6 +223,18 @@ EXTERN FAR struct mm_heap_s *g_kmmheap;
 
 FAR struct mm_heap_s *mm_initialize(FAR const char *name,
                                     FAR void *heap_start, size_t heap_size);
+
+#ifdef CONFIG_MM_HEAP_MEMPOOL
+FAR struct mm_heap_s *
+mm_initialize_pool(FAR const char *name,
+                   FAR void *heap_start, size_t heap_size,
+                   FAR const struct mempool_init_s *init);
+
+#else
+#  define mm_initialize_pool(name, heap_start, heap_size, init) \
+          mm_initialize(name, heap_start, heap_size)
+#endif
+
 void mm_addregion(FAR struct mm_heap_s *heap, FAR void *heapstart,
                   size_t heapsize);
 void mm_uninitialize(FAR struct mm_heap_s *heap);
@@ -240,6 +262,8 @@ void kmm_addregion(FAR void *heapstart, size_t heapsize);
 /* Functions contained in mm_malloc.c ***************************************/
 
 FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size) malloc_like1(2);
+
+void mm_free_delaylist(FAR struct mm_heap_s *heap);
 
 /* Functions contained in kmm_malloc.c **************************************/
 
@@ -365,6 +389,9 @@ struct mallinfo mm_mallinfo(FAR struct mm_heap_s *heap);
 struct mallinfo_task mm_mallinfo_task(FAR struct mm_heap_s *heap,
                                       FAR const struct malltask *task);
 
+size_t mm_heapfree(FAR struct mm_heap_s *heap);
+size_t mm_heapfree_largest(FAR struct mm_heap_s *heap);
+
 /* Functions contained in kmm_mallinfo.c ************************************/
 
 #ifdef CONFIG_MM_KERNEL_HEAP
@@ -407,6 +434,14 @@ FAR void kmm_checkcorruption(void);
 #define kmm_checkcorruption()
 
 #endif /* CONFIG_DEBUG_MM */
+
+/* Functions contained in fs_procfspressure.c *******************************/
+
+#ifdef CONFIG_FS_PROCFS_INCLUDE_PRESSURE
+void mm_notify_pressure(size_t remaining, size_t largest);
+#else
+#  define mm_notify_pressure(remaining, largest)
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

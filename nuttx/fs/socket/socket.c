@@ -36,6 +36,7 @@
 #include <debug.h>
 
 #include "inode/inode.h"
+#include "fs_heap.h"
 
 /****************************************************************************
  * Private Functions Prototypes
@@ -91,7 +92,7 @@ static int sock_file_open(FAR struct file *filep)
   FAR struct socket *psock;
   int ret;
 
-  psock = kmm_zalloc(sizeof(*psock));
+  psock = fs_heap_zalloc(sizeof(*psock));
   if (psock == NULL)
     {
       return -ENOMEM;
@@ -104,7 +105,7 @@ static int sock_file_open(FAR struct file *filep)
     }
   else
     {
-      kmm_free(psock);
+      fs_heap_free(psock);
     }
 
   return ret;
@@ -113,7 +114,7 @@ static int sock_file_open(FAR struct file *filep)
 static int sock_file_close(FAR struct file *filep)
 {
   psock_close(filep->f_priv);
-  kmm_free(filep->f_priv);
+  fs_heap_free(filep->f_priv);
   return 0;
 }
 
@@ -192,8 +193,7 @@ int sockfd_allocate(FAR struct socket *psock, int oflags)
 
 FAR struct socket *file_socket(FAR struct file *filep)
 {
-  if (filep != NULL && filep->f_inode != NULL &&
-      INODE_IS_SOCKET(filep->f_inode))
+  if (filep != NULL && INODE_IS_SOCKET(filep->f_inode))
     {
       return filep->f_priv;
     }
@@ -201,17 +201,20 @@ FAR struct socket *file_socket(FAR struct file *filep)
   return NULL;
 }
 
-int sockfd_socket(int sockfd, FAR struct socket **socketp)
+int sockfd_socket(int sockfd, FAR struct file **filep,
+                  FAR struct socket **socketp)
 {
-  FAR struct file *filep;
-
-  if (fs_getfilep(sockfd, &filep) < 0)
+  if (fs_getfilep(sockfd, filep) < 0)
     {
       *socketp = NULL;
       return -EBADF;
     }
 
-  *socketp = file_socket(filep);
+  *socketp = file_socket(*filep);
+  if (*socketp == NULL)
+    {
+      fs_putfilep(*filep);
+    }
 
   return *socketp != NULL ? OK : -ENOTSOCK;
 }
@@ -270,7 +273,7 @@ int socket(int domain, int type, int protocol)
       oflags |= O_NONBLOCK;
     }
 
-  psock = kmm_zalloc(sizeof(*psock));
+  psock = fs_heap_zalloc(sizeof(*psock));
   if (psock == NULL)
     {
       ret = -ENOMEM;
@@ -302,7 +305,7 @@ errout_with_psock:
   psock_close(psock);
 
 errout_with_alloc:
-  kmm_free(psock);
+  fs_heap_free(psock);
 
 errout:
   set_errno(-ret);

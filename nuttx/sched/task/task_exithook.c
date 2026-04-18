@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/task/task_exithook.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -427,10 +429,9 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status)
    * called.  If that bit is set, then just exit doing nothing more..
    */
 
-  if ((tcb->flags & TCB_FLAG_EXIT_PROCESSING) != 0)
-    {
-      return;
-    }
+  DEBUGASSERT((tcb->flags & TCB_FLAG_EXIT_PROCESSING) != 0);
+
+  nxsched_dumponexit();
 
   /* If the task was terminated by another task, it may be in an unknown
    * state.  Make some feeble effort to recover the state.
@@ -438,11 +439,11 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status)
 
   nxtask_recover(tcb);
 
-  /* NOTE: signal handling needs to be done in a criticl section */
+  /* Disable the scheduling function to prevent other tasks from
+   * being deleted after they are awakened
+   */
 
-#ifdef CONFIG_SMP
-  irqstate_t flags = enter_critical_section();
-#endif
+  sched_lock();
 
   /* Send the SIGCHLD signal to the parent task group */
 
@@ -451,6 +452,8 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status)
   /* Wakeup any tasks waiting for this task to exit */
 
   nxtask_exitwakeup(tcb, status);
+
+  sched_unlock();
 
   /* Leave the task group.  Perhaps discarding any un-reaped child
    * status (no zombies here!)
@@ -471,16 +474,5 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status)
     {
       umm_memdump(&dump);
     }
-#endif
-
-  /* This function can be re-entered in certain cases.  Set a flag
-   * bit in the TCB to not that we have already completed this exit
-   * processing.
-   */
-
-  tcb->flags |= TCB_FLAG_EXIT_PROCESSING;
-
-#ifdef CONFIG_SMP
-  leave_critical_section(flags);
 #endif
 }

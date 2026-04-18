@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_lock.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -40,6 +42,7 @@
  * Public Data
  ****************************************************************************/
 
+<<<<<<< HEAD
 /* Pre-emption is disabled via the interface sched_lock(). sched_lock()
  * works by preventing context switches from the currently executing tasks.
  * This prevents other tasks from running (without disabling interrupts) and
@@ -64,6 +67,8 @@ volatile cpu_set_t g_cpu_lockset;
 
 #endif /* CONFIG_SMP */
 
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -118,6 +123,7 @@ int sched_lock(void)
       flags = enter_critical_section();
       cpu = this_cpu();
 
+<<<<<<< HEAD
       /* We must hold the lock on this CPU before we increment the lockcount
        * for the first time. Holding the lock is sufficient to lockout
        * context switching.
@@ -144,28 +150,27 @@ int sched_lock(void)
           DEBUGASSERT((g_cpu_lockset & (1 << cpu)) != 0);
         }
 
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
       /* A counter is used to support locking.  This allows nested lock
-       * operations on this thread (on any CPU)
+       * operations on this thread
        */
 
       rtcb->lockcount++;
 
-#if defined(CONFIG_SCHED_INSTRUMENTATION_PREEMPTION) || \
-    defined(CONFIG_SCHED_CRITMONITOR)
       /* Check if we just acquired the lock */
 
       if (rtcb->lockcount == 1)
         {
           /* Note that we have pre-emption locked */
 
-#ifdef CONFIG_SCHED_CRITMONITOR
-          nxsched_critmon_preemption(rtcb, true);
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_PREEMPTION >= 0
+          nxsched_critmon_preemption(rtcb, true, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
           sched_note_premption(rtcb, true);
 #endif
         }
-#endif
 
       /* Move any tasks in the ready-to-run list to the pending task list
        * where they will not be available to run until the scheduler is
@@ -207,22 +212,19 @@ int sched_lock(void)
 
       rtcb->lockcount++;
 
-#if defined(CONFIG_SCHED_INSTRUMENTATION_PREEMPTION) || \
-    defined(CONFIG_SCHED_CRITMONITOR)
       /* Check if we just acquired the lock */
 
       if (rtcb->lockcount == 1)
         {
           /* Note that we have pre-emption locked */
 
-#ifdef CONFIG_SCHED_CRITMONITOR
-          nxsched_critmon_preemption(rtcb, true);
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_PREEMPTION >= 0
+          nxsched_critmon_preemption(rtcb, true, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
           sched_note_premption(rtcb, true);
 #endif
         }
-#endif
     }
 
   return OK;

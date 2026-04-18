@@ -69,16 +69,6 @@
 #  define CONFIG_DESIGNATED_INITIALIZERS 1
 #endif
 
-/* ISO C/C++11 atomic types support */
-
-#undef CONFIG_HAVE_ATOMICS
-
-#if ((defined(__cplusplus) && __cplusplus >= 201103L) || \
-     (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L)) && \
-    !defined(__STDC_NO_ATOMICS__)
-#  define CONFIG_HAVE_ATOMICS
-#endif
-
 /* C++ support */
 
 #undef CONFIG_HAVE_CXX14
@@ -87,12 +77,21 @@
 #  define CONFIG_HAVE_CXX14 1
 #endif
 
+/* Green Hills Software definitions *****************************************/
+
+#if defined(__ghs__)
+
+#  define __extension__
+#  define register
+
+#endif
+
 /* GCC-specific definitions *************************************************/
 
 #ifdef __GNUC__
 
 /* Built-ins */
-#  if __GNUC__ >= 4
+#  if __GNUC__ >= 4 && !defined(__ghs__)
 #    define CONFIG_HAVE_BUILTIN_BSWAP16 1
 #    define CONFIG_HAVE_BUILTIN_BSWAP32 1
 #    define CONFIG_HAVE_BUILTIN_BSWAP64 1
@@ -173,7 +172,7 @@
  * unnecessary "weak" functions can be excluded from the link.
  */
 
-#undef CONFIG_HAVE_WEAKFUNCTIONS
+#  undef CONFIG_HAVE_WEAKFUNCTIONS
 
 #  if !defined(__CYGWIN__) && !defined(CONFIG_ARCH_GNU_NO_WEAKFUNCTIONS)
 #    define CONFIG_HAVE_WEAKFUNCTIONS 1
@@ -252,6 +251,13 @@
 
 #  define noinstrument_function __attribute__((no_instrument_function))
 
+/* The no_profile_instrument_function attribute on functions is used to
+ * inform the compiler that it should not process any profile feedback
+ * based optimization code instrumentation.
+ */
+
+#  define noprofile_function __attribute__((no_profile_instrument_function))
+
 /* The nooptimiziation_function attribute no optimize */
 
 #  define nooptimiziation_function __attribute__((optimize(0)))
@@ -259,6 +265,16 @@
 /* The nosanitize_address attribute informs GCC don't sanitize it */
 
 #  define nosanitize_address __attribute__((no_sanitize_address))
+
+/* the Greenhills compiler do not support the following atttributes */
+
+#  if defined(__ghs__)
+#    undef nooptimiziation_function
+#    define nooptimiziation_function
+
+#    undef nosanitize_address
+#    define nosanitize_address
+#  endif
 
 /* The nosanitize_undefined attribute informs GCC don't sanitize it */
 
@@ -328,6 +344,7 @@
 #  define syslog_like(a, b) __attribute__((__format__(__syslog__, a, b)))
 #  define scanf_like(a, b) __attribute__((__format__(__scanf__, a, b)))
 #  define strftime_like(a) __attribute__((__format__(__strftime__, a, 0)))
+#  define object_size(o, t) __builtin_object_size(o, t)
 
 /* GCC does not use storage classes to qualify addressing */
 
@@ -366,6 +383,15 @@
 #    undef  CONFIG_PTR_IS_NOT_INT
 
 #  elif defined(__AVR__)
+
+#    if defined(__AVR_2_BYTE_PC__) || defined(__AVR_3_BYTE_PC__)
+/* 2-byte 3-byte PC does not support returnaddress */
+
+#      undef return_address
+#      define return_address(x) 0
+
+#    endif
+
 #    if defined(CONFIG_AVR_HAS_MEMX_PTR)
 /* I-space access qualifiers needed by Harvard architecture */
 
@@ -491,8 +517,8 @@
 /* CMSE extention */
 
 #  ifdef CONFIG_ARCH_HAVE_TRUSTZONE
-#    define cmse_nonsecure_entry __attribute__((cmse_nonsecure_entry))
-#    define cmse_nonsecure_call __attribute__((cmse_nonsecure_call))
+#    define tz_nonsecure_entry __attribute__((cmse_nonsecure_entry))
+#    define tz_nonsecure_call  __attribute__((cmse_nonsecure_call))
 #  endif
 
 /* SDCC-specific definitions ************************************************/
@@ -563,6 +589,7 @@
 #  define inline_function inline
 #  define noinline_function
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -586,6 +613,7 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
 
 /* The reentrant attribute informs SDCC that the function
  * must be reentrant.  In this case, SDCC will store input
@@ -709,6 +737,7 @@
 #  define inline_function inline
 #  define noinline_function
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -729,6 +758,7 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
 
 /* REVISIT: */
 
@@ -823,6 +853,7 @@
 #  define inline_function inline
 #  define noinline_function
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -843,6 +874,7 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
 
 #  define FAR
 #  define NEAR
@@ -887,7 +919,7 @@
 
 /* Pre-processor */
 
-#  define CONFIG_CPP_HAVE_VARARGS 1 /* Supports variable argument macros */
+#  undef CONFIG_CPP_HAVE_VARARGS /* No variable argument macros */
 
 /* Intriniscs */
 
@@ -916,6 +948,7 @@
 #  define inline_function __forceinline
 #  define noinline_function
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -936,6 +969,8 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
+#  define typeof __typeof__
 
 #  define FAR
 #  define NEAR
@@ -993,9 +1028,11 @@
 #  define end_packed_struct             __attribute__((packed))
 #  define reentrant_function
 #  define naked_function
-#  define always_inline_function        __attribute__((always_inline))
+#  define always_inline_function        __attribute__((always_inline,no_instrument_function))
+#  define inline_function               __attribute__((always_inline)) inline
 #  define noinline_function             __attribute__((noinline))
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function      __attribute__((optimize(0)))
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -1016,6 +1053,7 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
 
 #  define FAR
 #  define NEAR
@@ -1064,6 +1102,7 @@
 #  define inline_function
 #  define noinline_function
 #  define noinstrument_function
+#  define noprofile_function
 #  define nooptimiziation_function
 #  define nosanitize_address
 #  define nosanitize_undefined
@@ -1084,6 +1123,7 @@
 #  define syslog_like(a, b)
 #  define scanf_like(a, b)
 #  define strftime_like(a)
+#  define object_size(o, t) ((size_t)-1)
 
 #  define FAR
 #  define NEAR

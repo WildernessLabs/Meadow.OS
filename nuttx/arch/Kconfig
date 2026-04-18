@@ -23,39 +23,13 @@ config ARCH_ARM
 	---help---
 		The ARM architectures
 
-config ARCH_XTENSA
-	bool "Xtensa"
-	select ARCH_HAVE_BACKTRACE
-	select ARCH_HAVE_CPUINFO
-	select ARCH_HAVE_INTERRUPTSTACK
-	select ARCH_HAVE_STACKCHECK
-	select ARCH_HAVE_CUSTOMOPT
-	select ARCH_HAVE_TCBINFO
-	select ARCH_HAVE_STDARG_H
-	select ARCH_HAVE_SETJMP if ARCH_TOOLCHAIN_GNU
-	select ARCH_HAVE_SYSCALL_HOOKS
-	select ARCH_HAVE_PERF_EVENTS
-	---help---
-		Cadence® Tensilica® Xtensa® architectures.
-
-config ARCH_TRICORE
-	bool "Infineon TriCore"
-	select ARCH_HAVE_INTERRUPTSTACK
-	select ARCH_HAVE_STACKCHECK
-	select ARCH_HAVE_CUSTOMOPT
-	select ARCH_HAVE_TCBINFO
-	---help---
-		Infineon 32-bit AURIX TriCore architectures
-
 endchoice
 
 config ARCH
 	string
 	default "arm"     if ARCH_ARM
-	default "xtensa"  if ARCH_XTENSA
 
 source "arch/arm/Kconfig"
-source "arch/xtensa/Kconfig"
 
 config ARCH_CHIP_CUSTOM
 	bool "Custom Chip Support"
@@ -489,6 +463,14 @@ config ARCH_USE_DATA_HEAP
 		This option enables architecture-specific memory allocator
 		for dynamic data loading.
 
+config ARCH_USE_SEPARATED_SECTION
+	bool "Enable separate section allocation for dynamic loading"
+	default n
+	depends on ARCH_USE_TEXT_HEAP || ARCH_USE_DATA_HEAP
+	---help---
+		This option enables loading different sections into different
+		memory areas, allowing for different speeds.
+
 menuconfig ARCH_ADDRENV
 	bool "Address environments"
 	default n
@@ -865,13 +847,6 @@ config ARCH_STACKDUMP_MAX_LENGTH
 	depends on ARCH_STACKDUMP
 	default 0
 
-config DUMP_ON_EXIT
-	bool "Dump all tasks state on exit"
-	default n
-	depends on DEBUG_SCHED_INFO
-	---help---
-		Dump all tasks state on exit()
-
 config ARCH_USBDUMP
 	bool "Dump USB trace data"
 	default n
@@ -971,6 +946,13 @@ config ARCH_MINIMAL_VECTORTABLE
 		interrupt vector table at index 24.  if g_irqmap[42] ==
 		IRQMAPPED_MAX, then hardware interrupt vector 42 is not used and
 		if it occurs will result in an unexpected interrupt crash.
+
+config ARCH_MINIMAL_VECTORTABLE_DYNAMIC
+	bool "Dynaminc Minimal RAM usage for vector table"
+	default n
+	depends on ARCH_MINIMAL_VECTORTABLE
+	---help---
+		Use a minimum amount of RAM for the vector table.
 
 config ARCH_NUSER_INTERRUPTS
 	int "Number of interrupts"

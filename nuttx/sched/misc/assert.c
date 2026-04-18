@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/misc/assert.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -26,9 +28,16 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/cache.h>
+#include <nuttx/coredump.h>
+#include <nuttx/compiler.h>
 #include <nuttx/irq.h>
+#include <nuttx/init.h>
+#include <nuttx/irq.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/tls.h>
 #include <nuttx/signal.h>
+#include <nuttx/sched.h>
 #ifdef CONFIG_ARCH_LEDS
 #  include <arch/board/board.h>
 #endif
@@ -36,17 +45,18 @@
 #include <nuttx/reboot_notifier.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/usb/usbdev_trace.h>
+#include <nuttx/mm/kasan.h>
 
 #include <assert.h>
 #include <debug.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <sys/utsname.h>
 
 #include "irq/irq.h"
 #include "sched/sched.h"
 #include "group/group.h"
-#include "misc/coredump.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -78,13 +88,28 @@
 #elif UINTPTR_MAX <= UINT64_MAX
 #  define DUMP_FORMAT " %016" PRIxPTR ""
 #endif
+<<<<<<< HEAD
+=======
+
+/* Architecture can overwrite the default XCPTCONTEXT alignment */
+
+#ifndef XCPTCONTEXT_ALIGN
+#  define XCPTCONTEXT_ALIGN 16
+#endif
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static uintptr_t g_last_regs[XCPTCONTEXT_REGS] aligned_data(16);
-static FAR const char *g_policy[4] =
+#ifdef CONFIG_SMP
+static bool g_cpu_paused[CONFIG_SMP_NCPUS];
+#endif
+
+static uintptr_t g_last_regs[CONFIG_SMP_NCPUS][XCPTCONTEXT_REGS]
+                 aligned_data(XCPTCONTEXT_ALIGN);
+
+static FAR const char * const g_policy[4] =
 {
   "FIFO", "RR", "SPORADIC"
 };
@@ -199,8 +224,18 @@ static void dump_stack(FAR const char *tag, uintptr_t sp,
 
 static void dump_stacks(FAR struct tcb_s *rtcb, uintptr_t sp)
 {
+#ifdef CONFIG_SMP
+  int cpu = rtcb->cpu;
+#else
+  int cpu = this_cpu();
+  UNUSED(cpu);
+#endif
 #if CONFIG_ARCH_INTERRUPTSTACK > 0
+<<<<<<< HEAD
   uintptr_t intstack_base = up_get_intstackbase(up_cpu_index());
+=======
+  uintptr_t intstack_base = up_get_intstackbase(cpu);
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   size_t intstack_size = CONFIG_ARCH_INTERRUPTSTACK;
   uintptr_t intstack_top = intstack_base + intstack_size;
   uintptr_t intstack_sp = 0;
@@ -249,13 +284,20 @@ static void dump_stacks(FAR struct tcb_s *rtcb, uintptr_t sp)
                  intstack_base,
                  intstack_size,
 #ifdef CONFIG_STACK_COLORATION
+<<<<<<< HEAD
                  up_check_intstack(up_cpu_index())
+=======
+                 up_check_intstack(cpu)
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #else
                  0
 #endif
                  );
 
-      tcbstack_sp = up_getusrsp((FAR void *)CURRENT_REGS);
+      /* Try to restore SP from current_regs if assert from interrupt. */
+
+      tcbstack_sp = up_interrupt_context() ?
+                    up_getusrsp((FAR void *)up_current_regs()) : 0;
       if (tcbstack_sp < tcbstack_base || tcbstack_sp >= tcbstack_top)
         {
           tcbstack_sp = 0;
@@ -350,7 +392,7 @@ static void dump_task(FAR struct tcb_s *tcb, FAR void *arg)
 #ifdef CONFIG_SMP
          "  %4d"
 #endif
-         " %3d %-8s %-7s %c"
+         " %3d %-8s %-7s %-3c"
          " %-18s"
          " " SIGSET_FMT
          " %p"
@@ -385,11 +427,7 @@ static void dump_task(FAR struct tcb_s *tcb, FAR void *arg)
 #ifndef CONFIG_SCHED_CPULOAD_NONE
          , intpart, fracpart
 #endif
-#if CONFIG_TASK_NAME_SIZE > 0
-         , tcb->name
-#else
-         , "<noname>"
-#endif
+         , get_task_name(tcb)
          , args
         );
 }
@@ -402,6 +440,18 @@ static void dump_task(FAR struct tcb_s *tcb, FAR void *arg)
 static void dump_backtrace(FAR struct tcb_s *tcb, FAR void *arg)
 {
   sched_dumpstack(tcb->pid);
+}
+#endif
+
+/****************************************************************************
+ * Name: dump_filelist
+ ****************************************************************************/
+
+#ifdef CONFIG_DUMP_ON_EXIT
+static void dump_filelist(FAR struct tcb_s *tcb, FAR void *arg)
+{
+  FAR struct filelist *filelist = &tcb->group->tg_filelist;
+  files_dumplist(filelist);
 }
 #endif
 
@@ -486,6 +536,10 @@ static void dump_tasks(void)
 #ifdef CONFIG_SCHED_BACKTRACE
   nxsched_foreach(dump_backtrace, NULL);
 #endif
+
+#ifdef CONFIG_DUMP_ON_EXIT
+  nxsched_foreach(dump_filelist, NULL);
+#endif
 }
 
 /****************************************************************************
@@ -513,33 +567,51 @@ static void dump_deadlock(void)
 }
 #endif
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+#ifdef CONFIG_SMP
 
 /****************************************************************************
- * Name: _assert
+ * Name: pause_cpu_handler
  ****************************************************************************/
 
-void _assert(FAR const char *filename, int linenum,
-             FAR const char *msg, FAR void *regs)
+static noreturn_function int pause_cpu_handler(FAR void *arg)
 {
-  FAR struct tcb_s *rtcb = running_task();
-#if CONFIG_TASK_NAME_SIZE > 0
-  FAR struct tcb_s *ptcb = NULL;
-#endif
-  struct panic_notifier_s notifier_data;
-  struct utsname name;
-  irqstate_t flags;
-  bool fatal = true;
+  memcpy(g_last_regs[this_cpu()], up_current_regs(), sizeof(g_last_regs[0]));
+  g_cpu_paused[this_cpu()] = true;
+  up_flush_dcache_all();
+  while (1);
+}
 
-#if CONFIG_TASK_NAME_SIZE > 0
-  if (rtcb->group && !(rtcb->flags & TCB_FLAG_TTYPE_KERNEL))
+/****************************************************************************
+ * Name: pause_all_cpu
+ ****************************************************************************/
+
+static void pause_all_cpu(void)
+{
+  cpu_set_t cpus = (1 << CONFIG_SMP_NCPUS) - 1;
+  int delay = CONFIG_ASSERT_PAUSE_CPU_TIMEOUT;
+
+  CPU_CLR(this_cpu(), &cpus);
+  nxsched_smp_call(cpus, pause_cpu_handler, NULL, false);
+  g_cpu_paused[this_cpu()] = true;
+
+  /* Check if all CPUs paused with timeout */
+
+  cpus = 0;
+  while (delay-- > 0 && cpus < CONFIG_SMP_NCPUS)
     {
-      ptcb = nxsched_get_tcb(rtcb->group->tg_pid);
+      if (g_cpu_paused[cpus])
+        {
+          cpus++;
+        }
+      else
+        {
+          up_mdelay(1);
+        }
     }
+}
 #endif
 
+<<<<<<< HEAD
 #if CONFIG_TASK_NAME_SIZE > 0
   if (rtcb->group && !(rtcb->flags & TCB_FLAG_TTYPE_KERNEL))
     {
@@ -610,6 +682,10 @@ void _assert(FAR const char *filename, int linenum,
 #endif
          rtcb->entry.main);
 
+=======
+static void dump_running_task(FAR struct tcb_s *rtcb, FAR void *regs)
+{
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   /* Register dump */
 
   up_dump_register(regs);
@@ -623,29 +699,107 @@ void _assert(FAR const char *filename, int linenum,
 #ifdef CONFIG_SCHED_BACKTRACE
   sched_dumpstack(rtcb->pid);
 #endif
+}
+
+/****************************************************************************
+ * Name: dump_assert_info
+ *
+ * Description:
+ *   Dump basic information of assertion
+ ****************************************************************************/
+
+static void dump_assert_info(FAR struct tcb_s *rtcb,
+                             FAR const char *filename, int linenum,
+                             FAR const char *msg, FAR void *regs)
+{
+  FAR struct tcb_s *ptcb = NULL;
+  struct utsname name;
+
+  if (rtcb->group &&
+      (rtcb->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_KERNEL)
+    {
+      ptcb = nxsched_get_tcb(rtcb->group->tg_pid);
+    }
+
+  uname(&name);
+  _alert("Current Version: %s %s %s %s %s\n",
+         name.sysname, name.nodename,
+         name.release, name.version, name.machine);
+
+  _alert("Assertion failed %s: at file: %s:%d task"
+#ifdef CONFIG_SMP
+         "(CPU%d)"
+#endif
+         ": "
+         "%s "
+         "process: %s "
+         "%p\n",
+         msg ? msg : "",
+         filename ? filename : "", linenum,
+#ifdef CONFIG_SMP
+         this_cpu(),
+#endif
+         get_task_name(rtcb),
+         ptcb ? get_task_name(ptcb) : "Kernel",
+         rtcb->entry.main);
+
+  /* Dump current CPU registers, running task stack and backtrace. */
+
+  dump_running_task(rtcb, regs);
 
   /* Flush any buffered SYSLOG data */
 
   syslog_flush();
+}
 
-  if (fatal)
+/****************************************************************************
+ * Name: dump_fatal_info
+ ****************************************************************************/
+
+static void dump_fatal_info(FAR struct tcb_s *rtcb,
+                            FAR const char *filename, int linenum,
+                            FAR const char *msg, FAR void *regs)
+{
+#ifdef CONFIG_SMP
+  int cpu;
+
+  /* Dump other CPUs registers, running task stack and backtrace. */
+
+  for (cpu = 0; cpu < CONFIG_SMP_NCPUS; cpu++)
     {
-      dump_tasks();
+      if (cpu == this_cpu())
+        {
+          continue;
+        }
+
+      _alert("Dump CPU%d: %s\n", cpu,
+             g_cpu_paused[cpu] ? "PAUSED" : "RUNNING");
+
+      if (g_cpu_paused[cpu])
+        {
+          dump_running_task(g_running_tasks[cpu], g_last_regs[cpu]);
+        }
+    }
+#endif
+
+  /* Dump backtrace of other tasks. */
+
+  dump_tasks();
 
 #ifdef CONFIG_ARCH_DEADLOCKDUMP
-      /* Deadlock Dump */
+  /* Deadlock Dump */
 
-      dump_deadlock();
+  dump_deadlock();
 #endif
 
 #ifdef CONFIG_ARCH_USBDUMP
-      /* Dump USB trace data */
+  /* Dump USB trace data */
 
-      usbtrace_enumerate(assert_tracecallback, NULL);
+  usbtrace_enumerate(assert_tracecallback, NULL);
 #endif
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-      board_crashdump(up_getsp(), rtcb, filename, linenum, msg, regs);
+  board_crashdump(up_getsp(), rtcb, filename, linenum, msg, regs);
 #endif
 
 #if defined(CONFIG_BOARD_COREDUMP_SYSLOG) || \
@@ -653,35 +807,145 @@ void _assert(FAR const char *filename, int linenum,
       /* Dump core information */
 
 #  ifdef CONFIG_BOARD_COREDUMP_FULL
-      coredump_dump(INVALID_PROCESS_ID);
+  coredump_dump(INVALID_PROCESS_ID);
 #  else
-      coredump_dump(rtcb->pid);
+  coredump_dump(rtcb->pid);
 #  endif
 #endif
 
-      /* Flush any buffered SYSLOG data */
+  /* Flush any buffered SYSLOG data */
 
-      syslog_flush();
-      panic_notifier_call_chain(PANIC_KERNEL_FINAL, &notifier_data);
+  syslog_flush();
+}
 
-      reboot_notifier_call_chain(SYS_HALT, NULL);
+/****************************************************************************
+ * Name: reset_board
+ *
+ * Description:
+ *   Reset board or stuck here to flash LED. It should never return.
+ ****************************************************************************/
 
+static void reset_board(void)
+{
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
-      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+  up_flush_dcache_all();
+  board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #else
-      for (; ; )
-        {
+  for (; ; )
+    {
 #ifdef CONFIG_ARCH_LEDS
-          /* FLASH LEDs a 2Hz */
+      /* FLASH LEDs a 2Hz */
 
-          board_autoled_on(LED_PANIC);
-          up_mdelay(250);
-          board_autoled_off(LED_PANIC);
+      board_autoled_on(LED_PANIC);
+      up_mdelay(250);
+      board_autoled_off(LED_PANIC);
 #endif
-          up_mdelay(250);
+      up_mdelay(250);
+    }
+#endif
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: _assert
+ ****************************************************************************/
+
+void _assert(FAR const char *filename, int linenum,
+             FAR const char *msg, FAR void *regs)
+{
+  const bool os_ready = OSINIT_OS_READY();
+  FAR struct tcb_s *rtcb = running_task();
+  struct panic_notifier_s notifier_data;
+  irqstate_t flags;
+
+  if (g_nx_initstate == OSINIT_PANIC)
+    {
+      /* Already in fatal state, reset board directly. */
+
+      reset_board(); /* Should not return. */
+    }
+
+  flags = 0; /* suppress GCC warning */
+  if (os_ready)
+    {
+      flags = enter_critical_section();
+    }
+
+#if CONFIG_BOARD_RESET_ON_ASSERT < 2
+  if (up_interrupt_context() ||
+      (rtcb->flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_KERNEL)
+#endif
+    {
+      /* Fatal error, enter panic state. */
+
+      g_nx_initstate = OSINIT_PANIC;
+
+      /* Disable KASAN to avoid false positive */
+
+      kasan_stop();
+
+#ifdef CONFIG_SMP
+      if (os_ready)
+        {
+          pause_all_cpu();
         }
 #endif
     }
 
+<<<<<<< HEAD
   leave_critical_section(flags);
+=======
+  /* try to save current context if regs is null */
+
+  if (regs == NULL)
+    {
+      up_saveusercontext(g_last_regs[this_cpu()]);
+      regs = g_last_regs[this_cpu()];
+    }
+  else
+    {
+      memcpy(g_last_regs[this_cpu()], regs, sizeof(g_last_regs[0]));
+    }
+
+  notifier_data.rtcb = rtcb;
+  notifier_data.regs = regs;
+  notifier_data.filename = filename;
+  notifier_data.linenum = linenum;
+  notifier_data.msg = msg;
+  panic_notifier_call_chain(g_nx_initstate == OSINIT_PANIC
+                            ? PANIC_KERNEL : PANIC_TASK,
+                            &notifier_data);
+#ifdef CONFIG_ARCH_LEDS
+  board_autoled_on(LED_ASSERTION);
+#endif
+
+  /* Flush any buffered SYSLOG data (from prior to the assertion) */
+
+  syslog_flush();
+
+  /* Dump basic info of assertion. */
+
+  dump_assert_info(rtcb, filename, linenum, msg, regs);
+
+  if (g_nx_initstate == OSINIT_PANIC)
+    {
+      /* Dump fatal info of assertion. */
+
+      dump_fatal_info(rtcb, filename, linenum, msg, regs);
+
+      panic_notifier_call_chain(PANIC_KERNEL_FINAL, &notifier_data);
+
+      reboot_notifier_call_chain(SYS_HALT, NULL);
+
+      reset_board(); /* Should not return. */
+    }
+
+  if (os_ready)
+    {
+      leave_critical_section(flags);
+    }
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 }

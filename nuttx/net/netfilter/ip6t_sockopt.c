@@ -1,6 +1,8 @@
 /****************************************************************************
  * net/netfilter/ip6t_sockopt.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -80,6 +82,8 @@ static struct ip6t_table_s g_tables[] =
 {
 #ifdef CONFIG_NET_IPFILTER
   {NULL, ip6t_filter_init, ip6t_filter_apply},
+#else
+  {NULL, NULL, NULL}
 #endif
 };
 

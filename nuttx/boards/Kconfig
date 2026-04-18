@@ -140,9 +140,6 @@ comment "Board-Specific Options"
 if ARCH_BOARD_MEADOW_F7MICRO
 source "boards/arm/stm32f7/stm32f777zit6-meadow/Kconfig"
 endif
-if ARCH_BOARD_ESP32S3_MEADOW
-source "boards/xtensa/esp32s3/esp32s3-meadow/Kconfig"
-endif
 
 comment "Board-Common Options"
 
@@ -389,12 +386,26 @@ config BOARDCTL_USBDEVCTRL
 	---help---
 		Enables support for the BOARDIOC_USBDEV_CONTROL boardctl() command.
 
-config BOARDCTL_TESTSET
-	bool "Architecture-specific test/set operation"
+config BOARDCTL_SPINLOCK
+	bool "spinlock specific operation"
 	default n
 	---help---
 		Enables support for the BOARDIOC_SPINLOCK boardctl() command.
-		Architecture specific logic must provide up_testset() interface.
+
+config BOARDCTL_IRQ_AFFINITY
+	bool "Set an IRQ affinity to CPUs by software"
+	default n
+	depends on SMP
+	---help---
+		Enables support for Set an IRQ affinity to CPUs by software.
+
+config BOARDCTL_START_CPU
+	bool "Start slave cpu"
+	default n
+	---help---
+		Enables support for the BOARDIOC_START_CPU boardctl() command.
+		Architecture specific logic must provide the board_start_cpu()
+		interface.
 
 config BOARDCTL_IRQ_AFFINITY
 	bool "Set an IRQ affinity to CPUs by software"

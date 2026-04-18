@@ -590,11 +590,18 @@ static int modlib_relocatedyn(FAR struct module_s *modp,
   ARCH_ELFDATA_DEF;
 
   dyn = lib_malloc(shdr->sh_size);
+  if (dyn == NULL)
+    {
+      berr("Failed to allocate memory for elf dynamic section\n");
+      return -ENOMEM;
+    }
+
   ret = modlib_read(loadinfo, (FAR uint8_t *)dyn, shdr->sh_size,
                     shdr->sh_offset);
   if (ret < 0)
     {
       berr("Failed to read dynamic section header");
+      lib_free(dyn);
       return ret;
     }
 
@@ -608,7 +615,7 @@ static int modlib_relocatedyn(FAR struct module_s *modp,
       return -ENOMEM;
     }
 
-  memset((void *)&reldata, 0, sizeof(reldata));
+  memset((FAR void *)&reldata, 0, sizeof(reldata));
   relas = (FAR Elf_Rela *)rels;
 
   for (i = 0; dyn[i].d_tag != DT_NULL; i++)
@@ -731,25 +738,13 @@ static int modlib_relocatedyn(FAR struct module_s *modp,
                 }
             }
 
-          /* Calculate the relocation address. */
-
-          if (rel->r_offset < 0)
-            {
-              berr("ERROR: Section %d reloc %d:"
-                   "Relocation address out of range, offset %u\n",
-                   relidx, i, (int)rel->r_offset);
-              ret = -EINVAL;
-              lib_free(sym);
-              lib_free(rels);
-              lib_free(dyn);
-              return ret;
-            }
-
           /* Now perform the architecture-specific relocation */
 
           if ((idx_sym = ELF_R_SYM(rel->r_info)) != 0)
             {
-              if (sym[idx_sym].st_shndx == SHN_UNDEF) /* We have an external reference */
+              /* We have an external reference */
+
+              if (sym[idx_sym].st_shndx == SHN_UNDEF)
                 {
                     FAR void *ep;
 
@@ -966,8 +961,28 @@ int modlib_bind(FAR struct module_s *modp,
    * contents to memory and invalidating the I cache).
    */
 
-  up_coherent_dcache(loadinfo->textalloc, loadinfo->textsize);
-  up_coherent_dcache(loadinfo->datastart, loadinfo->datasize);
+  if (loadinfo->textsize > 0)
+    {
+      up_coherent_dcache(loadinfo->textalloc, loadinfo->textsize);
+    }
+
+  if (loadinfo->datasize > 0)
+    {
+      up_coherent_dcache(loadinfo->datastart, loadinfo->datasize);
+    }
+
+#ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
+  for (i = 0; loadinfo->ehdr.e_type == ET_REL && i < loadinfo->ehdr.e_shnum;
+       i++)
+    {
+      if (loadinfo->sectalloc[i] == 0)
+        {
+          continue;
+        }
+
+      up_coherent_dcache(loadinfo->sectalloc[i], loadinfo->shdr[i].sh_size);
+    }
+#endif
 
   return ret;
 }

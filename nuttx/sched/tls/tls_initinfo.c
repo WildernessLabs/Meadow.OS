@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/tls/tls_initinfo.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -65,7 +67,12 @@ int tls_init_info(FAR struct tcb_s *tcb)
 
   /* Derive tl_size w/o arch knowledge */
 
+<<<<<<< HEAD
   info->tl_size = tcb->stack_base_ptr - tcb->stack_alloc_ptr;
+=======
+  info->tl_size =
+        (FAR char *)tcb->stack_base_ptr - (FAR char *)tcb->stack_alloc_ptr;
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
   /* Attach per-task info in group to TLS */
 

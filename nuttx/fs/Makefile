@@ -20,7 +20,11 @@
 
 include $(TOPDIR)/Make.defs
 
-CSRCS = fs_initialize.c
+CSRCS = fs_initialize.c fs_heap.c
+
+ifneq ($(CONFIG_FS_HEAPBUF_SECTION),"")
+  CFLAGS += ${DEFINE_PREFIX}FS_HEAPBUF_SECTION=CONFIG_FS_HEAPBUF_SECTION
+endif
 
 include inode/Make.defs
 include vfs/Make.defs
@@ -57,7 +61,9 @@ include hostfs/Make.defs
 include littlefs/Make.defs
 include rpmsgfs/Make.defs
 include zipfs/Make.defs
-
+include mnemofs/Make.defs
+include v9fs/Make.defs
+include notify/Make.defs
 endif
 
 CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)$(DELIM)fs

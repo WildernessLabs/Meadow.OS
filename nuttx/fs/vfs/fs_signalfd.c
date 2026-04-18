@@ -37,6 +37,7 @@
 #include <sys/signalfd.h>
 
 #include "inode/inode.h"
+#include "fs_heap.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -154,7 +155,7 @@ static int signalfd_file_close(FAR struct file *filep)
 
   nxmutex_unlock(&dev->mutex);
   nxmutex_destroy(&dev->mutex);
-  kmm_free(dev);
+  fs_heap_free(dev);
 
   return OK;
 }
@@ -328,6 +329,7 @@ out:
 int signalfd(int fd, FAR const sigset_t *mask, int flags)
 {
   FAR struct signalfd_priv_s *dev;
+  FAR struct file *filep = NULL;
   struct sigaction act;
   int ret = EINVAL;
   int signo;
@@ -339,7 +341,7 @@ int signalfd(int fd, FAR const sigset_t *mask, int flags)
 
   if (fd == -1)
     {
-      dev = kmm_zalloc(sizeof(*dev));
+      dev = fs_heap_zalloc(sizeof(*dev));
       if (dev == NULL)
         {
           ret = ENOMEM;
@@ -360,8 +362,6 @@ int signalfd(int fd, FAR const sigset_t *mask, int flags)
     }
   else
     {
-      FAR struct file *filep;
-
       if (fs_getfilep(fd, &filep) < 0)
         {
           ret = EBADF;
@@ -370,6 +370,7 @@ int signalfd(int fd, FAR const sigset_t *mask, int flags)
 
       if (filep->f_inode->u.i_ops != &g_signalfd_fileops)
         {
+          fs_putfilep(filep);
           goto errout;
         }
 
@@ -397,11 +398,16 @@ int signalfd(int fd, FAR const sigset_t *mask, int flags)
         }
     }
 
+  if (filep != NULL)
+    {
+      fs_putfilep(filep);
+    }
+
   return fd;
 
 errout_with_dev:
   nxmutex_destroy(&dev->mutex);
-  kmm_free(dev);
+  fs_heap_free(dev);
 
 errout:
   set_errno(ret);

@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/signal/sig_dispatch.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -45,8 +47,55 @@
 #include "mqueue/mqueue.h"
 
 /****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+struct sig_arg_s
+{
+  pid_t pid;
+  cpu_set_t saved_affinity;
+  uint16_t saved_flags;
+  bool need_restore;
+};
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+#ifdef CONFIG_SMP
+static int sig_handler(FAR void *cookie)
+{
+  FAR struct sig_arg_s *arg = cookie;
+  FAR struct tcb_s *tcb;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+  tcb = nxsched_get_tcb(arg->pid);
+
+  if (!tcb || tcb->task_state == TSTATE_TASK_INVALID ||
+      (tcb->flags & TCB_FLAG_EXIT_PROCESSING) != 0)
+    {
+      /* There is no TCB with this pid or, if there is, it is not a task. */
+
+      leave_critical_section(flags);
+      return -ESRCH;
+    }
+
+  if (arg->need_restore)
+    {
+      tcb->affinity = arg->saved_affinity;
+      tcb->flags = arg->saved_flags;
+    }
+
+  if (tcb->sigdeliver)
+    {
+      up_schedule_sigaction(tcb);
+    }
+
+  leave_critical_section(flags);
+  return OK;
+}
+#endif
 
 /****************************************************************************
  * Name: nxsig_queue_action
@@ -113,7 +162,43 @@ static int nxsig_queue_action(FAR struct tcb_s *stcb, siginfo_t *info)
            * up_schedule_sigaction()
            */
 
-          up_schedule_sigaction(stcb, nxsig_deliver);
+          if (!stcb->sigdeliver)
+            {
+#ifdef CONFIG_SMP
+              int cpu = stcb->cpu;
+              int me  = this_cpu();
+
+              stcb->sigdeliver = nxsig_deliver;
+              if (cpu != me && stcb->task_state == TSTATE_TASK_RUNNING)
+                {
+                  struct sig_arg_s arg;
+
+                  if ((stcb->flags & TCB_FLAG_CPU_LOCKED) != 0)
+                    {
+                      arg.need_restore   = false;
+                    }
+                  else
+                    {
+                      arg.saved_flags    = stcb->flags;
+                      arg.saved_affinity = stcb->affinity;
+                      arg.need_restore   = true;
+
+                      stcb->flags        |= TCB_FLAG_CPU_LOCKED;
+                      CPU_SET(stcb->cpu, &stcb->affinity);
+                    }
+
+                  arg.pid = stcb->pid;
+                  nxsched_smp_call_single(stcb->cpu, sig_handler, &arg,
+                                          true);
+                }
+              else
+#endif
+                {
+                  stcb->sigdeliver = nxsig_deliver;
+                  up_schedule_sigaction(stcb);
+                }
+            }
+
           leave_critical_section(flags);
         }
     }
@@ -523,7 +608,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
        * must be unblocked when a signal is received.
        */
 
-      if (stcb->task_state == TSTATE_WAIT_MQNOTEMPTY ||
+      else if (stcb->task_state == TSTATE_WAIT_MQNOTEMPTY ||
           stcb->task_state == TSTATE_WAIT_MQNOTFULL)
         {
           nxmq_wait_irq(stcb, EINTR);
@@ -535,7 +620,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
        * if SIGCONT is received.
        */
 
-      if (stcb->task_state == TSTATE_TASK_STOPPED &&
+      else if (stcb->task_state == TSTATE_TASK_STOPPED &&
           info->si_signo == SIGCONT)
         {
 #ifdef HAVE_GROUP_MEMBERS
@@ -598,7 +683,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
  *
  ****************************************************************************/
 
-int nxsig_dispatch(pid_t pid, FAR siginfo_t *info)
+int nxsig_dispatch(pid_t pid, FAR siginfo_t *info, bool thread)
 {
 #ifdef HAVE_GROUP_MEMBERS
   FAR struct tcb_s *stcb;
@@ -629,16 +714,29 @@ int nxsig_dispatch(pid_t pid, FAR siginfo_t *info)
 
   if (group != NULL)
     {
-      /* Yes.. call group_signal() to send the signal to the correct group
-       * member.
-       */
+      if (thread)
+        {
+          /* Before the notification, we should validate the tid and
+           * and make sure that the notified thread is in same process
+           * with the current thread.
+           */
 
-      return group_signal(group, info);
+          if (stcb != NULL && group == this_task()->group)
+            {
+              return nxsig_tcbdispatch(stcb, info);
+            }
+        }
+      else
+        {
+          /* Yes.. call group_signal() to send the signal to the correct
+           * group member.
+           */
+
+          return group_signal(group, info);
+        }
     }
-  else
-    {
-      return -ESRCH;
-    }
+
+  return -ESRCH;
 
 #else
   FAR struct tcb_s *stcb;

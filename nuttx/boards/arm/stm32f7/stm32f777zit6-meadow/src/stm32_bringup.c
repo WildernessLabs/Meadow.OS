@@ -42,6 +42,14 @@
 #include "stm32_gpio.h"
 #include "stm32_rcc.h"
 
+#ifdef CONFIG_AUDIO_CS4344
+#  include "stm32_cs4344.h"
+#endif
+
+#include "chip.h"
+#include "stm32_gpio.h"
+#include "stm32_rcc.h"
+
 #include <meadow/stm32f777zit6-meadow.h>
 
 /****************************************************************************

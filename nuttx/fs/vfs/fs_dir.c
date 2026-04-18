@@ -34,6 +34,7 @@
 #include <nuttx/fs/ioctl.h>
 
 #include "inode/inode.h"
+#include "fs_heap.h"
 
 /****************************************************************************
  * Private Types
@@ -154,7 +155,7 @@ static int open_pseudodir(FAR struct inode *inode,
 {
   FAR struct fs_pseudodir_s *pdir;
 
-  pdir = kmm_zalloc(sizeof(*pdir));
+  pdir = fs_heap_zalloc(sizeof(*pdir));
   if (pdir == NULL)
     {
       return -ENOMEM;
@@ -216,7 +217,7 @@ static off_t seek_pseudodir(FAR struct file *filep, off_t offset)
     {
       /* Increment the reference count on this next node */
 
-      curr->i_crefs++;
+      atomic_fetch_add(&curr->i_crefs, 1);
     }
 
   inode_unlock();
@@ -383,7 +384,7 @@ static int read_pseudodir(FAR struct fs_dirent_s *dir,
     {
       /* Increment the reference count on this next node */
 
-      pdir->next->i_crefs++;
+      atomic_fetch_add(&pdir->next->i_crefs, 1);
     }
 
   inode_unlock();
@@ -447,7 +448,7 @@ static int dir_close(FAR struct file *filep)
 
       /* Then release the container */
 
-      kmm_free(dir);
+      fs_heap_free(dir);
     }
 
   /* Release our references on the contained 'root' inode */

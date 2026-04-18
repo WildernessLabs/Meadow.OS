@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/mqueue/mq_timedsend.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -144,8 +146,6 @@ file_mq_timedsend_internal(FAR struct file *mq, FAR const char *msg,
   irqstate_t flags;
   int ret;
 
-  DEBUGASSERT(up_interrupt_context() == false);
-
   /* Verify the input parameters on any failures to verify. */
 
   ret = nxmq_verify_send(mq, msg, msglen, prio);
@@ -217,7 +217,11 @@ file_mq_timedsend_internal(FAR struct file *mq, FAR const char *msg,
            * begins.
            */
 
+<<<<<<< HEAD
           ret = clock_abstime2ticks(CLOCK_REALTIME, abstime, &ticks);
+=======
+          clock_abstime2ticks(CLOCK_REALTIME, abstime, &ticks);
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
         }
 
       /* Handle any time-related errors */
@@ -437,7 +441,13 @@ int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen,
       return ret;
     }
 
+<<<<<<< HEAD
   return file_mq_timedsend_internal(filep, msg, msglen, prio, abstime, 0);
+=======
+  ret = file_mq_timedsend_internal(filep, msg, msglen, prio, abstime, 0);
+  fs_putfilep(filep);
+  return ret;
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 }
 
 /****************************************************************************

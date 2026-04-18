@@ -29,6 +29,8 @@
 #include <debug.h>
 
 #include "fs_anonmap.h"
+#include "sched/sched.h"
+#include "fs_heap.h"
 
 /****************************************************************************
  * Private Functions
@@ -43,7 +45,7 @@ static int unmap_anonymous(FAR struct task_group_s *group,
                            FAR void *start,
                            size_t length)
 {
-  FAR void *newaddr;
+  FAR void *newaddr = NULL;
   off_t offset;
   bool kernel = entry->priv.i;
   int ret = OK;
@@ -76,7 +78,7 @@ static int unmap_anonymous(FAR struct task_group_s *group,
 
       if (kernel)
         {
-          kmm_free(entry->vaddr);
+          fs_heap_free(entry->vaddr);
         }
       else
         {
@@ -96,7 +98,7 @@ static int unmap_anonymous(FAR struct task_group_s *group,
     {
       if (kernel)
         {
-          newaddr = kmm_realloc(entry->vaddr, length);
+          newaddr = fs_heap_realloc(entry->vaddr, length);
         }
       else
         {
@@ -126,7 +128,7 @@ int map_anonymous(FAR struct mm_map_entry_s *entry, bool kernel)
    */
 
   entry->vaddr = kernel ?
-    kmm_zalloc(entry->length) : kumm_zalloc(entry->length);
+    fs_heap_zalloc(entry->length) : kumm_zalloc(entry->length);
   if (entry->vaddr == NULL)
     {
       ferr("ERROR: kumm_alloc() failed, enable DEBUG_MM for info!\n");
@@ -141,7 +143,7 @@ int map_anonymous(FAR struct mm_map_entry_s *entry, bool kernel)
     {
       if (kernel)
         {
-          kmm_free(entry->vaddr);
+          fs_heap_free(entry->vaddr);
         }
       else
         {

@@ -26,10 +26,19 @@ set(CMAKE_SYSTEM_VERSION 1)
 set(ARCH_SUBDIR intel64)
 
 # override the ARCHIVE command
+set(CMAKE_ARCHIVE_COMMAND "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+set(CMAKE_RANLIB_COMMAND "<CMAKE_RANLIB> <TARGET>")
+set(CMAKE_C_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_CXX_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_ASM_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
 
-set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
-set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
-set(CMAKE_ASM_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+set(CMAKE_C_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_CXX_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_ASM_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+
+set(CMAKE_C_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
+set(CMAKE_CXX_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
+set(CMAKE_ASM_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
 
 if(CONFIG_DEBUG_CUSTOMOPT)
   add_compile_options(${CONFIG_DEBUG_OPTLEVEL})
@@ -116,6 +125,10 @@ if(CONFIG_DEBUG_OPT_UNUSED_SECTIONS)
   add_compile_options(-ffunction-sections -fdata-sections)
 endif()
 
+if(CONFIG_DEBUG_LINK_WHOLE_ARCHIVE)
+  add_link_options(-Wl,--whole-archive)
+endif()
+
 if(CONFIG_ARCH_INTEL64_HAVE_RDRAND)
   add_compile_options(-mrdrnd)
 endif()
@@ -138,4 +151,44 @@ endif()
 
 if(CONFIG_ARCH_X86_64_SSE4A)
   add_compile_options(-msse4a)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX)
+  add_compile_options(-mavx)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512)
+  add_compile_options(-mavx512f)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512PF)
+  add_compile_options(-mavx512pf)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512ER)
+  add_compile_options(-mavx512er)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512CD)
+  add_compile_options(-mavx512cd)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512VL)
+  add_compile_options(-mavx512vl)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512BW)
+  add_compile_options(-mavx512bw)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512DQ)
+  add_compile_options(-mavx512dq)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512IFMA)
+  add_compile_options(-mavx512ifma)
+endif()
+
+if(CONFIG_ARCH_X86_64_AVX512VBMI)
+  add_compile_options(-mavx512vbmi)
 endif()

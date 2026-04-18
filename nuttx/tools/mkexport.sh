@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # tools/mkexport.sh
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -252,6 +254,11 @@ echo "ZIG              = ${ZIG}" >>"${EXPORTDIR}/scripts/Make.defs"
 echo "ZIGFLAGS         = ${ZIGFLAGS}" >>"${EXPORTDIR}/scripts/Make.defs"
 echo "DC               = ${DC}" >>"${EXPORTDIR}/scripts/Make.defs"
 echo "DFLAGS           = ${DFLAGS}" >>"${EXPORTDIR}/scripts/Make.defs"
+<<<<<<< HEAD
+=======
+echo "SWIFTC           = ${SWIFTC}" >>"${EXPORTDIR}/scripts/Make.defs"
+echo "SWIFTFLAGS       = ${SWIFTFLAGS}" >>"${EXPORTDIR}/scripts/Make.defs"
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 echo "NXFLATLDFLAGS1   = ${NXFLATLDFLAGS1}" >>"${EXPORTDIR}/scripts/Make.defs"
 echo "NXFLATLDFLAGS2   = ${NXFLATLDFLAGS2}" >>"${EXPORTDIR}/scripts/Make.defs"
 echo "OBJEXT           = ${OBJEXT}" >>"${EXPORTDIR}/scripts/Make.defs"
@@ -300,6 +307,7 @@ echo "set(NUTTX_ARCH_CHIP     \"${NUTTX_ARCH_CHIP}\")"  >>"${EXPORTDIR}/scripts/
 echo "set(NUTTX_BOARD         \"${NUTTX_BOARD}\")"      >>"${EXPORTDIR}/scripts/target.cmake"
 echo "set(NUTTX_BUILD         \"${NUTTX_BUILD}\")"      >>"${EXPORTDIR}/scripts/target.cmake"
 echo "set(NUTTX_CXX           \"${NUTTX_CXX}\")"        >>"${EXPORTDIR}/scripts/target.cmake"
+<<<<<<< HEAD
 
 
 echo "set(ARCHCFLAGS          \"${ARCHCFLAGS}\")"       > "${EXPORTDIR}/scripts/target.cmake"
@@ -327,6 +335,8 @@ echo "set(HOSTLDFLAGS         \"${HOSTLDFLAGS}\")"      >>"${EXPORTDIR}/scripts/
 echo "set(HOSTEXEEXT          \"${HOSTEXEEXT}\")"       >>"${EXPORTDIR}/scripts/target.cmake"
 echo "set(LDNAME              \"${LDNAME}\")"           >>"${EXPORTDIR}/scripts/target.cmake"
 echo "set(LDELFFLAGS          \"${LDELFFLAGS}\")"       >>"${EXPORTDIR}/scripts/target.cmake"
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 
 
 # Additional compilation options when the kernel is built

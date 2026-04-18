@@ -1,6 +1,8 @@
 ############################################################################
 # tools/espressif/Config.mk
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -66,6 +68,8 @@ endif
 
 # Configure the variables according to build environment
 
+ESPTOOL_MIN_VERSION := 4.8.0
+
 ifdef ESPTOOL_BINDIR
 	ifeq ($(CONFIG_ESPRESSIF_BOOTLOADER_MCUBOOT),y)
 		BL_OFFSET       := 0x0000
@@ -102,6 +106,7 @@ ESPTOOL_BINS += $(FLASH_APP)
 # MERGEBIN -- Merge raw binary files into a single file
 
 define MERGEBIN
+	@python3 tools/espressif/check_esptool.py -v $(ESPTOOL_MIN_VERSION)
 	$(Q) if [ -z $(ESPTOOL_BINDIR) ]; then \
 		echo "MERGEBIN error: Missing argument for binary files directory."; \
 		echo "USAGE: make ESPTOOL_BINDIR=<dir>"; \
@@ -135,6 +140,7 @@ endef
 else
 define MKIMAGE
 	$(Q) echo "MKIMAGE: NuttX binary"
+<<<<<<< HEAD
 	$(Q) if ! esptool.py version 1>/dev/null 2>&1; then \
 		echo ""; \
 		echo "esptool.py not found.  Please run: \"pip install esptool==4.8.dev4\""; \
@@ -142,6 +148,9 @@ define MKIMAGE
 		echo "Run make again to create the nuttx.bin image."; \
 		exit 1; \
 	fi
+=======
+	@python3 tools/espressif/check_esptool.py -v $(ESPTOOL_MIN_VERSION)
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 	$(Q) if [ -z $(FLASH_SIZE) ]; then \
 		echo "Missing Flash memory size configuration."; \
 		exit 1; \

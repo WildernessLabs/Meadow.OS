@@ -1,6 +1,8 @@
 /****************************************************************************
  * mm/mm_heap/mm_initialize.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -28,10 +30,11 @@
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/sched_note.h>
 #include <nuttx/mm/mm.h>
+#include <nuttx/mm/kasan.h>
 
 #include "mm_heap/mm.h"
-#include "kasan/kasan.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -199,6 +202,9 @@ void mm_addregion(FAR struct mm_heap_s *heap, FAR void *heapstart,
   mm_addfreechunk(heap, node);
   heap->mm_curused += 2 * MM_SIZEOF_ALLOCNODE;
   mm_unlock(heap);
+
+  sched_note_heap(NOTE_HEAP_ADD, heap, heapstart, heapsize,
+                  heap->mm_curused);
 }
 
 /****************************************************************************
@@ -210,7 +216,6 @@ void mm_addregion(FAR struct mm_heap_s *heap, FAR void *heapstart,
  *
  * Input Parameters:
  *   name      - The heap procfs name
- *   heap      - The selected heap
  *   heapstart - Start of the initial heap region
  *   heapsize  - Size of the initial heap region
  *
@@ -224,9 +229,12 @@ void mm_addregion(FAR struct mm_heap_s *heap, FAR void *heapstart,
 FAR struct mm_heap_s *mm_initialize(FAR const char *name,
                                     FAR void *heapstart, size_t heapsize)
 {
+<<<<<<< HEAD
 #if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
   size_t poolsize[MEMPOOL_NPOOLS];
 #endif
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   FAR struct mm_heap_s *heap;
   uintptr_t             heap_adj;
   int                   i;
@@ -286,14 +294,65 @@ FAR struct mm_heap_s *mm_initialize(FAR const char *name,
 #  endif
 #endif
 
-  /* Initialize the multiple mempool in heap */
+  return heap;
+}
+
+#ifdef CONFIG_MM_HEAP_MEMPOOL
+FAR struct mm_heap_s *
+mm_initialize_pool(FAR const char *name,
+                   FAR void *heap_start, size_t heap_size,
+                   FAR const struct mempool_init_s *init)
+{
+  FAR struct mm_heap_s *heap;
 
 #if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
-  for (i = 0; i < MEMPOOL_NPOOLS; i++)
+  size_t poolsize[MEMPOOL_NPOOLS];
+  struct mempool_init_s def;
+
+  if (init == NULL)
     {
-      poolsize[i] = (i + 1) * MM_MIN_CHUNK;
+      /* Initialize the multiple mempool default parameter */
+
+      int i;
+
+      for (i = 0; i < MEMPOOL_NPOOLS; i++)
+        {
+          poolsize[i] = (i + 1) * MM_MIN_CHUNK;
+        }
+
+      def.poolsize        = poolsize;
+      def.npools          = MEMPOOL_NPOOLS;
+      def.threshold       = CONFIG_MM_HEAP_MEMPOOL_THRESHOLD;
+      def.chunksize       = CONFIG_MM_HEAP_MEMPOOL_CHUNK_SIZE;
+      def.expandsize      = CONFIG_MM_HEAP_MEMPOOL_EXPAND_SIZE;
+      def.dict_expendsize = CONFIG_MM_HEAP_MEMPOOL_DICTIONARY_EXPAND_SIZE;
+
+      init = &def;
+    }
+#endif
+
+  heap = mm_initialize(name, heap_start, heap_size);
+
+  /* Initialize the multiple mempool in heap */
+
+<<<<<<< HEAD
+#if CONFIG_MM_HEAP_MEMPOOL_THRESHOLD > 0
+  for (i = 0; i < MEMPOOL_NPOOLS; i++)
+=======
+  if (init != NULL && init->poolsize != NULL && init->npools != 0)
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
+    {
+      heap->mm_threshold = init->threshold;
+      heap->mm_mpool     = mempool_multiple_init(name, init->poolsize,
+                               init->npools,
+                               (mempool_multiple_alloc_t)mempool_memalign,
+                               (mempool_multiple_alloc_size_t)mm_malloc_size,
+                               (mempool_multiple_free_t)mm_free, heap,
+                               init->chunksize, init->expandsize,
+                               init->dict_expendsize);
     }
 
+<<<<<<< HEAD
   heap->mm_threshold = CONFIG_MM_HEAP_MEMPOOL_THRESHOLD;
   heap->mm_mpool     = mempool_multiple_init(name, poolsize, MEMPOOL_NPOOLS,
                               (mempool_multiple_alloc_t)mempool_memalign,
@@ -304,8 +363,11 @@ FAR struct mm_heap_s *mm_initialize(FAR const char *name,
                               CONFIG_MM_HEAP_MEMPOOL_DICTIONARY_EXPAND_SIZE);
 #endif
 
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
   return heap;
 }
+#endif
 
 /****************************************************************************
  * Name: mm_uninitialize
@@ -323,9 +385,22 @@ FAR struct mm_heap_s *mm_initialize(FAR const char *name,
 
 void mm_uninitialize(FAR struct mm_heap_s *heap)
 {
+<<<<<<< HEAD
+=======
+  int i;
+
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
 #ifdef CONFIG_MM_HEAP_MEMPOOL
   mempool_multiple_deinit(heap->mm_mpool);
 #endif
+
+  for (i = 0; i < CONFIG_MM_REGIONS; i++)
+    {
+      kasan_unregister(heap->mm_heapstart[i]);
+      sched_note_heap(NOTE_HEAP_REMOVE, heap, heap->mm_heapstart[i],
+                      (uintptr_t)heap->mm_heapend[i] -
+                      (uintptr_t)heap->mm_heapstart[i], heap->mm_curused);
+    }
 
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MEMINFO)
 #  if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)

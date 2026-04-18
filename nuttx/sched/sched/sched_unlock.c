@@ -1,6 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_unlock.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -75,12 +77,11 @@ int sched_unlock(void)
       irqstate_t flags = enter_critical_section();
       int cpu = this_cpu();
 
+      DEBUGASSERT(rtcb->lockcount > 0);
+
       /* Decrement the preemption lock counter */
 
-      if (rtcb->lockcount > 0)
-        {
-          rtcb->lockcount--;
-        }
+      rtcb->lockcount--;
 
       /* Check if the lock counter has decremented to zero.  If so,
        * then pre-emption has been re-enabled.
@@ -90,8 +91,8 @@ int sched_unlock(void)
         {
           /* Note that we no longer have pre-emption disabled. */
 
-#ifdef CONFIG_SCHED_CRITMONITOR
-          nxsched_critmon_preemption(rtcb, false);
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_PREEMPTION >= 0
+          nxsched_critmon_preemption(rtcb, false, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
           sched_note_premption(rtcb, false);
@@ -101,6 +102,7 @@ int sched_unlock(void)
 
           rtcb->lockcount = 0;
 
+<<<<<<< HEAD
           /* The lockcount has decremented to zero and we need to perform
            * release our hold on the lock.
            */
@@ -109,6 +111,8 @@ int sched_unlock(void)
 
           g_cpu_lockset &= ~(1 << cpu);
 
+=======
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
           /* Release any ready-to-run tasks that have collected in
            * g_pendingtasks.
            *
@@ -135,7 +139,11 @@ int sched_unlock(void)
            * BEFORE it clears IRQ lock.
            */
 
+<<<<<<< HEAD
           if (!nxsched_islocked_global() &&
+=======
+          if (!nxsched_islocked_tcb(rtcb) &&
+>>>>>>> 5d8cdeaea847bcaf0b9145dd922e0a83045067ca
               list_pendingtasks()->head != NULL)
             {
               if (nxsched_merge_pending())
@@ -209,6 +217,7 @@ int sched_unlock(void)
 #endif
         }
 
+      UNUSED(cpu);
       leave_critical_section(flags);
     }
 
@@ -232,12 +241,11 @@ int sched_unlock(void)
 
       irqstate_t flags = enter_critical_section();
 
+      DEBUGASSERT(rtcb->lockcount > 0);
+
       /* Decrement the preemption lock counter */
 
-      if (rtcb->lockcount > 0)
-        {
-          rtcb->lockcount--;
-        }
+      rtcb->lockcount--;
 
       /* Check if the lock counter has decremented to zero.  If so,
        * then pre-emption has been re-enabled.
@@ -247,8 +255,8 @@ int sched_unlock(void)
         {
           /* Note that we no longer have pre-emption disabled. */
 
-#ifdef CONFIG_SCHED_CRITMONITOR
-          nxsched_critmon_preemption(rtcb, false);
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_PREEMPTION >= 0
+          nxsched_critmon_preemption(rtcb, false, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
           sched_note_premption(rtcb, false);

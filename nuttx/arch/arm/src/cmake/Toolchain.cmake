@@ -61,6 +61,8 @@ if(CONFIG_ARCH_TOOLCHAIN_CLANG)
   # https://github.com/apache/incubator-nuttx/pull/5971
 
   add_compile_options(-fno-builtin)
+  add_compile_options(-Wno-atomic-alignment)
+  add_compile_options(-Wno-atomic-alignment)
 else()
   set(TOOLCHAIN_PREFIX arm-none-eabi)
   set(CMAKE_LIBRARY_ARCHITECTURE ${TOOLCHAIN_PREFIX})
@@ -90,10 +92,19 @@ else()
 endif()
 
 # override the ARCHIVE command
+set(CMAKE_ARCHIVE_COMMAND "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+set(CMAKE_RANLIB_COMMAND "<CMAKE_RANLIB> <TARGET>")
+set(CMAKE_C_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_CXX_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_ASM_ARCHIVE_CREATE ${CMAKE_ARCHIVE_COMMAND})
 
-set(CMAKE_C_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
-set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
-set(CMAKE_ASM_ARCHIVE_CREATE "<CMAKE_AR> rcs <TARGET> <LINK_FLAGS> <OBJECTS>")
+set(CMAKE_C_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_CXX_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+set(CMAKE_ASM_ARCHIVE_APPEND ${CMAKE_ARCHIVE_COMMAND})
+
+set(CMAKE_C_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
+set(CMAKE_CXX_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
+set(CMAKE_ASM_ARCHIVE_FINISH ${CMAKE_RANLIB_COMMAND})
 
 # Architecture flags
 
@@ -155,6 +166,12 @@ endif()
 if(CONFIG_DEBUG_OPT_UNUSED_SECTIONS)
   add_link_options(-Wl,--gc-sections)
   add_compile_options(-ffunction-sections -fdata-sections)
+endif()
+
+# Debug --whole-archive
+
+if(CONFIG_DEBUG_LINK_WHOLE_ARCHIVE)
+  add_link_options(-Wl,--whole-archive)
 endif()
 
 if(CONFIG_ENDIAN_BIG)
