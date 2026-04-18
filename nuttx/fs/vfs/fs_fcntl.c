@@ -1,6 +1,8 @@
 /****************************************************************************
  * fs/vfs/fs_fcntl.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -159,7 +161,7 @@ static int file_vfcntl(FAR struct file *filep, int cmd, va_list ap)
 
               if ((filep->f_oflags & O_APPEND) != 0)
                 {
-                  file_seek(filep, 0, SEEK_END);
+                  ret = file_seek(filep, 0, SEEK_END);
                 }
             }
         }

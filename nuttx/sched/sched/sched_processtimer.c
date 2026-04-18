@@ -37,6 +37,10 @@
 #  include <nuttx/board.h>
 #endif
 
+#ifdef CONFIG_CLOCK_TIMEKEEPING
+#  include "clock/clock_timekeeping.h"
+#endif
+
 #include "sched/sched.h"
 #include "wdog/wdog.h"
 #include "clock/clock.h"
@@ -181,14 +185,6 @@ void nxsched_process_timer(void)
   /* Increment the system time (if in the link) */
 
   clock_timer();
-
-#ifdef CONFIG_SCHED_CPULOAD_SYSCLK
-  /* Perform CPU load measurements (before any timer-initiated context
-   * switches can occur)
-   */
-
-  nxsched_process_cpuload();
-#endif
 
   /* Check if the currently executing task has exceeded its
    * timeslice.

@@ -1,6 +1,8 @@
 /****************************************************************************
  * arch/arm/include/irq.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -32,6 +34,7 @@
 #include <sys/types.h>
 #ifndef __ASSEMBLY__
 #  include <stdbool.h>
+#  include <arch/syscall.h>
 #endif
 
 /****************************************************************************
@@ -74,7 +77,22 @@
  * Pre-processor Prototypes
  ****************************************************************************/
 
+#if defined(__ghs__) && defined(__ARM_DSP__)
+#  define __ARM_FEATURE_DSP 1
+#endif
+
 #ifndef __ASSEMBLY__
+
+#ifndef up_switch_context
+#define up_switch_context(tcb, rtcb)   \
+  do {                                 \
+    if (!up_interrupt_context())       \
+      {                                \
+        sys_call0(SYS_switch_context); \
+      }                                \
+      UNUSED(rtcb);                    \
+  } while (0)
+#endif
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
@@ -83,6 +101,13 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Name: up_getusrpc
+ ****************************************************************************/
+
+#define up_getusrpc(regs) \
+    (((uint32_t *)((regs) ? (regs) : running_regs()))[REG_PC])
 
 #endif /* __ASSEMBLY__ */
 

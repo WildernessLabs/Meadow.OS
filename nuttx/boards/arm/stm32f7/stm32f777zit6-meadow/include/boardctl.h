@@ -1,7 +1,9 @@
 /************************************************************************************
  * configs/stm32f777zit6-meadow/include/boardctl.h
  *
- *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause
+ * SPDX-FileCopyrightText: 2016 dev@ziggurat29.com. All rights reserved.
+ * SPDX-FileContributor: Author: dev@ziggurat29.com
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

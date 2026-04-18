@@ -32,6 +32,7 @@
 #include <debug.h>
 #include <errno.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/addrenv.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/binfmt/binfmt.h>
@@ -43,61 +44,6 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: exec_dtors
- *
- * Description:
- *   Execute C++ static destructors.
- *
- * Input Parameters:
- *   binp - Load state information
- *
- * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-static inline int exec_dtors(FAR struct binary_s *binp)
-{
-  binfmt_dtor_t *dtor = binp->dtors;
-#ifdef CONFIG_ARCH_ADDRENV
-  int ret;
-#endif
-  int i;
-
-  /* Instantiate the address environment containing the destructors */
-
-#ifdef CONFIG_ARCH_ADDRENV
-  ret = addrenv_select(binp->addrenv, &binp->oldenv);
-  if (ret < 0)
-    {
-      berr("ERROR: addrenv_select() failed: %d\n", ret);
-      return ret;
-    }
-#endif
-
-  /* Execute each destructor */
-
-  for (i = 0; i < binp->ndtors; i++)
-    {
-      binfo("Calling dtor %d at %p\n", i, dtor);
-
-      (*dtor)();
-      dtor++;
-    }
-
-  /* Restore the address environment */
-
-#ifdef CONFIG_ARCH_ADDRENV
-  return addrenv_restore(binp->oldenv);
-#else
-  return OK;
-#endif
-}
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -125,7 +71,6 @@ static inline int exec_dtors(FAR struct binary_s *binp)
 int unload_module(FAR struct binary_s *binp)
 {
   int ret;
-  int i;
 
   if (binp)
     {
@@ -141,17 +86,6 @@ int unload_module(FAR struct binary_s *binp)
             }
         }
 
-#ifdef CONFIG_BINFMT_CONSTRUCTORS
-      /* Execute C++ destructors */
-
-      ret = exec_dtors(binp);
-      if (ret < 0)
-        {
-          berr("exec_ctors() failed: %d\n", ret);
-          return ret;
-        }
-#endif
-
       /* Unmap mapped address spaces */
 
       if (binp->mapped)
@@ -161,6 +95,7 @@ int unload_module(FAR struct binary_s *binp)
           file_munmap(binp->mapped, binp->mapsize);
         }
 
+<<<<<<< HEAD
 #ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
       for (i = 0; binp->sectalloc[i] != NULL && i < binp->nsect; i++)
         {
@@ -215,6 +150,8 @@ int unload_module(FAR struct binary_s *binp)
             }
         }
 
+=======
+>>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
       /* Notice that the address environment is not destroyed.  This should
        * happen automatically when the task exits.
        */

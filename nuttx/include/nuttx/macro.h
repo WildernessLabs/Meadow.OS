@@ -136,5 +136,14 @@
 #define FOREACH_ARG(action, ...) \
         FOREACH_ARG_(action, GET_ARG_COUNT(__VA_ARGS__), ##__VA_ARGS__)
 
+/* Stringify the arguments */
+
+#define STRINGIFY_(x) #x
+#define STRINGIFY(x)  STRINGIFY_(x)
+
+/* Concatenate the arguments */
+
+#define CONCATENATE(a, b) a##b
+
 #endif /* __INCLUDE_NUTTX_MACRO_H */
 

@@ -69,7 +69,6 @@
 int sched_lock(void)
 {
   FAR struct tcb_s *rtcb;
-  int cpu;
 
   /* If the CPU supports suppression of interprocessor interrupts, then
    * simple disabling interrupts will provide sufficient protection for
@@ -94,7 +93,6 @@ int sched_lock(void)
       DEBUGASSERT(rtcb->lockcount < MAX_LOCK_COUNT);
 
       flags = enter_critical_section();
-      cpu = this_cpu();
 
       /* A counter is used to support locking.  This allows nested lock
        * operations on this thread
@@ -112,7 +110,7 @@ int sched_lock(void)
           nxsched_critmon_preemption(rtcb, true, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
-          sched_note_premption(rtcb, true);
+          sched_note_preemption(rtcb, true);
 #endif
         }
 
@@ -166,7 +164,7 @@ int sched_lock(void)
           nxsched_critmon_preemption(rtcb, true, return_address(0));
 #endif
 #ifdef CONFIG_SCHED_INSTRUMENTATION_PREEMPTION
-          sched_note_premption(rtcb, true);
+          sched_note_preemption(rtcb, true);
 #endif
         }
     }

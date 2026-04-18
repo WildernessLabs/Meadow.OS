@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/pci/pci_epc.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -131,6 +133,7 @@ struct pci_epc_ops_s
 
 /* struct pci_epc_mem_window_s - Address window of the endpoint controller
  *
+ * virt_base: Virtual base address of the PCI address window
  * phys_base: Physical base address of the PCI address window
  * size: The size of the PCI address window
  * page_size: Size of each page
@@ -138,6 +141,7 @@ struct pci_epc_ops_s
 
 struct pci_epc_mem_window_s
 {
+  FAR void *virt_base;
   uintptr_t phys_base;
   size_t size;
   size_t page_size;
@@ -145,6 +149,7 @@ struct pci_epc_mem_window_s
 
 /* struct pci_epc_mem_s - Address space of the endpoint controller
  *
+ * virt_base: Virtual base address of the PCI address window
  * phys_base: Physical base address of the PCI address window
  * size: The size of the PCI address window
  * page_size: Size of each page
@@ -155,6 +160,7 @@ struct pci_epc_mem_window_s
 
 struct pci_epc_mem_s
 {
+  FAR void *virt_base;
   uintptr_t phys_base;
   size_t size;
   size_t page_size;
@@ -177,6 +183,7 @@ struct pci_epc_mem_s
  * node: The node of epc list
  * lock: Mutex to protect pci_epc ops
  * funcno_map: Bitmap to manage physical function number
+ * priv: The private data
  * name: The current epc structure name that used to bind the epf
  */
 
@@ -193,6 +200,7 @@ struct pci_epc_ctrl_s
 
   mutex_t lock;
   unsigned long funcno_map;
+  FAR void *priv;
   char name[0];
 };
 
@@ -214,6 +222,7 @@ struct pci_epc_ctrl_s
  *
  * Returned Value:
  *   Return epc created if success, NULL if failed
+ *
  ****************************************************************************/
 
 FAR struct pci_epc_ctrl_s *pci_get_epc(FAR const char *epc_name);
@@ -236,6 +245,7 @@ FAR struct pci_epc_ctrl_s *pci_get_epc(FAR const char *epc_name);
  *
  * Returned Value:
  *    Return the member of if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_get_next_free_bar(
@@ -256,6 +266,7 @@ int pci_epc_get_next_free_bar(
  *
  * Returned Value:
  *    Return the member if success, negative if failed
+ *
  ****************************************************************************/
 
 #define pci_epc_get_first_free_bar(f) pci_epc_get_next_free_bar(f, 0)
@@ -277,6 +288,7 @@ int pci_epc_get_next_free_bar(
  *
  * Returned Value:
  *    Epc features if success, NULL if failed
+ *
  ****************************************************************************/
 
 FAR const struct pci_epc_features_s *
@@ -295,6 +307,7 @@ pci_epc_get_features(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno);
  *
  * Returned Value:
  *    None
+ *
  ****************************************************************************/
 
 void pci_epc_stop(FAR struct pci_epc_ctrl_s *epc);
@@ -312,6 +325,7 @@ void pci_epc_stop(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_start(FAR struct pci_epc_ctrl_s *epc);
@@ -332,6 +346,7 @@ int pci_epc_start(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_raise_irq(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -364,6 +379,7 @@ int pci_epc_raise_irq(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_map_msi_irq(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -385,6 +401,7 @@ int pci_epc_map_msi_irq(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return interrupt number if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_get_msi(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno);
@@ -404,6 +421,7 @@ int pci_epc_get_msi(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno);
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_set_msi(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -423,6 +441,7 @@ int pci_epc_set_msi(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_get_msix(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno);
@@ -444,6 +463,7 @@ int pci_epc_get_msix(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno);
  *
  * Returned Value:
  *    Return interrupt + 1 number if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_set_msix(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -464,6 +484,7 @@ int pci_epc_set_msix(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    None
+ *
  ****************************************************************************/
 
 void pci_epc_unmap_addr(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -486,6 +507,7 @@ void pci_epc_unmap_addr(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_map_addr(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -506,6 +528,7 @@ int pci_epc_map_addr(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    None
+ *
  ****************************************************************************/
 
 void pci_epc_clear_bar(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -526,6 +549,7 @@ void pci_epc_clear_bar(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_set_bar(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -550,6 +574,7 @@ int pci_epc_set_bar(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *    Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_write_header(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
@@ -573,6 +598,7 @@ int pci_epc_write_header(FAR struct pci_epc_ctrl_s *epc, uint8_t funcno,
  *
  * Returned Value:
  *   Return 0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_add_epf(FAR struct pci_epc_ctrl_s *epc,
@@ -593,6 +619,7 @@ int pci_epc_add_epf(FAR struct pci_epc_ctrl_s *epc,
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_remove_epf(FAR struct pci_epc_ctrl_s *epc,
@@ -613,6 +640,7 @@ void pci_epc_remove_epf(FAR struct pci_epc_ctrl_s *epc,
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_linkup(FAR struct pci_epc_ctrl_s *epc);
@@ -632,6 +660,7 @@ void pci_epc_linkup(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_linkdown(FAR struct pci_epc_ctrl_s *epc);
@@ -651,6 +680,7 @@ void pci_epc_linkdown(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_init_notify(FAR struct pci_epc_ctrl_s *epc);
@@ -670,6 +700,7 @@ void pci_epc_init_notify(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_bme_notify(FAR struct pci_epc_ctrl_s *epc);
@@ -684,14 +715,17 @@ void pci_epc_bme_notify(FAR struct pci_epc_ctrl_s *epc);
  *
  * Input Parameters:
  *   name - EPC name strings
+ *   priv - The epc priv data
  *   ops  - Function pointers for performing EPC operations
  *
  * Returned Value:
  *   Return struct pci_epc_ctrl_s * if success, NULL if failed.
+ *
  ****************************************************************************/
 
 FAR struct pci_epc_ctrl_s *
-pci_epc_create(FAR const char *name, FAR const struct pci_epc_ops_s *ops);
+pci_epc_create(FAR const char *name, FAR void *priv,
+               FAR const struct pci_epc_ops_s *ops);
 
 /****************************************************************************
  * Name: pci_epc_destroy
@@ -706,6 +740,7 @@ pci_epc_create(FAR const char *name, FAR const struct pci_epc_ops_s *ops);
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_destroy(FAR struct pci_epc_ctrl_s *epc);
@@ -726,6 +761,7 @@ void pci_epc_destroy(FAR struct pci_epc_ctrl_s *epc);
  *
  * Returned Value:
  *   0 if success, negative if failed
+ *
  ****************************************************************************/
 
 int pci_epc_mem_multi_init(FAR struct pci_epc_ctrl_s *epc,
@@ -741,16 +777,18 @@ int pci_epc_mem_multi_init(FAR struct pci_epc_ctrl_s *epc,
  *
  * Input Parameters:
  *   epc       - PCI EPC device
- *   base      - The physical base address of the PCI address window
+ *   virt      - The virtual addr
+ *   phys      - The physical base address of the PCI address window
  *   size      - The PCI window size
  *   page_size - Size of each window page
  *
  * Returned Value:
  *   0 if success, negative if failed
+ *
  ****************************************************************************/
 
-int pci_epc_mem_init(FAR struct pci_epc_ctrl_s *epc, uintptr_t base,
-                     size_t size, size_t page_size);
+int pci_epc_mem_init(FAR struct pci_epc_ctrl_s *epc, FAR void *virt,
+                     uintptr_t phys, size_t size, size_t page_size);
 
 /****************************************************************************
  * Name: pci_epc_mem_exit
@@ -766,6 +804,7 @@ int pci_epc_mem_init(FAR struct pci_epc_ctrl_s *epc, uintptr_t base,
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_mem_exit(FAR struct pci_epc_ctrl_s *epc);
@@ -780,15 +819,17 @@ void pci_epc_mem_exit(FAR struct pci_epc_ctrl_s *epc);
  * is usually done to map the remote RC address into the local system.
  *
  * Input Parameters:
- *   epc  - The EPC device on which memory has to be allocated
- *   size - The size of the address space that has to be allocated
+ *   epc   - The EPC device on which memory has to be allocated
+ *   phys  - The Physical addr
+ *   size  - The size of the address space that has to be allocated
  *
  * Returned Value:
- *   The memory address alloced if success, 0 if failed
+ *   The memory address alloced if success, NULL if failed
+ *
  ****************************************************************************/
 
-uintptr_t pci_epc_mem_alloc_addr(FAR struct pci_epc_ctrl_s *epc,
-                                 size_t size);
+FAR void *pci_epc_mem_alloc_addr(FAR struct pci_epc_ctrl_s *epc,
+                                 FAR uintptr_t *phys, size_t size);
 
 /****************************************************************************
  * Name: pci_epc_mem_free_addr
@@ -805,6 +846,7 @@ uintptr_t pci_epc_mem_alloc_addr(FAR struct pci_epc_ctrl_s *epc,
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epc_mem_free_addr(FAR struct pci_epc_ctrl_s *epc,

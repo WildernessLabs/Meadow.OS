@@ -45,7 +45,6 @@ struct suspend_arg_s
 {
   pid_t pid;
   cpu_set_t saved_affinity;
-  uint16_t saved_flags;
   bool need_restore;
 };
 
@@ -74,10 +73,10 @@ static int nxsched_suspend_handler(FAR void *cookie)
   if (arg->need_restore)
     {
       tcb->affinity = arg->saved_affinity;
-      tcb->flags = arg->saved_flags;
+      tcb->flags &= ~TCB_FLAG_CPU_LOCKED;
     }
 
-  nxsched_remove_readytorun(tcb, false);
+  nxsched_remove_readytorun(tcb);
 
   tcb->task_state = TSTATE_TASK_STOPPED;
   dq_addlast((FAR dq_entry_t *)tcb, &g_stoppedtasks);
@@ -158,7 +157,6 @@ void nxsched_suspend(FAR struct tcb_s *tcb)
           else
             {
               arg.pid = tcb->pid;
-              arg.saved_flags = tcb->flags;
               arg.saved_affinity = tcb->affinity;
               arg.need_restore = true;
 
@@ -166,13 +164,17 @@ void nxsched_suspend(FAR struct tcb_s *tcb)
               CPU_SET(tcb->cpu, &tcb->affinity);
             }
 
-          nxsched_smp_call_single(tcb->cpu, nxsched_suspend_handler,
-                                  &arg, true);
+          nxsched_smp_call_single(tcb->cpu, nxsched_suspend_handler, &arg);
         }
       else
 #endif
         {
-          switch_needed = nxsched_remove_readytorun(tcb, true);
+          switch_needed = nxsched_remove_readytorun(tcb);
+
+          if (list_pendingtasks()->head)
+            {
+              switch_needed |= nxsched_merge_pending();
+            }
 
           /* Add the task to the specified blocked task list */
 

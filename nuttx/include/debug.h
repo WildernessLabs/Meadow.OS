@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/debug.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -596,6 +598,24 @@
 #  define i2sinfo     _none
 #endif
 
+#ifdef CONFIG_DEBUG_I3C_ERROR
+#  define i3cerr       _err
+#else
+#  define i3cerr      _none
+#endif
+
+#ifdef CONFIG_DEBUG_I3C_WARN
+#  define i3cwarn     _warn
+#else
+#  define i3cwarn     _none
+#endif
+
+#ifdef CONFIG_DEBUG_I3C_INFO
+#  define i3cinfo     _info
+#else
+#  define i3cinfo     _none
+#endif
+
 #ifdef CONFIG_DEBUG_PWM_ERROR
 #  define pwmerr       _err
 #else
@@ -902,6 +922,24 @@
 #  define vrtinfo     _none
 #endif
 
+#ifdef CONFIG_DEBUG_VHOST_ERROR
+#  define vhosterr     _err
+#else
+#  define vhosterr     _none
+#endif
+
+#ifdef CONFIG_DEBUG_VHOST_WARN
+#  define vhostwarn    _warn
+#else
+#  define vhostwarn    _none
+#endif
+
+#ifdef CONFIG_DEBUG_VHOST_INFO
+#  define vhostinfo    _info
+#else
+#  define vhostinfo    _none
+#endif
+
 #ifdef CONFIG_DEBUG_RESET_ERROR
 #  define rsterr       _err
 #else
@@ -1190,6 +1228,14 @@
 #else
 #  define i2serrdumpbuffer(m,b,n)
 #  define i2sinfodumpbuffer(m,b,n)
+#endif
+
+#ifdef CONFIG_DEBUG_I3C
+#  define i3cerrdumpbuffer(m,b,n)  errdumpbuffer(m,b,n)
+#  define i3cinfodumpbuffer(m,b,n) infodumpbuffer(m,b,n)
+#else
+#  define i3cerrdumpbuffer(m,b,n)
+#  define i3cinfodumpbuffer(m,b,n)
 #endif
 
 #ifdef CONFIG_DEBUG_PWM

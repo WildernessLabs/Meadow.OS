@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/board.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -818,7 +820,7 @@ int board_button_irq(int id, xcpt_t irqhandler, FAR void *arg);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_CRASHDUMP
+#ifdef CONFIG_BOARD_CRASHDUMP_CUSTOM
 struct tcb_s;
 void board_crashdump(uintptr_t sp, FAR struct tcb_s *tcb,
                      FAR const char *filename, int lineno,

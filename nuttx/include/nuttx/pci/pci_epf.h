@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/pci/pci_epf.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -31,6 +33,7 @@
 
 #include <nuttx/compiler.h>
 #include <nuttx/list.h>
+#include <nuttx/arch.h>
 #include <nuttx/mutex.h>
 #include <nuttx/pci/pci_regs.h>
 
@@ -111,6 +114,7 @@ struct pci_epf_device_id_s
  * is_bound: Indicates if bind notification to function driver has been
  *   invoked
  * event_ops: Callbacks for capturing the EPC events
+ * priv: The private data
  */
 
 struct pci_epf_device_s
@@ -127,12 +131,14 @@ struct pci_epf_device_s
   FAR struct pci_epf_driver_s *driver;
   FAR const struct pci_epf_device_id_s *id;
   struct list_node node;
+  struct list_node epc_node;
 
   /* Mutex to protect against concurrent access of pci_epf_ops_s */
 
   mutex_t lock;
   bool is_bound;
   FAR const struct pci_epc_event_ops_s *event_ops;
+  FAR void *priv;
 };
 
 /* struct pci_epf_ops_s - Set of function pointers for performing EPF
@@ -182,7 +188,7 @@ struct pci_epf_driver_s
   CODE void (*remove)(FAR struct pci_epf_device_s *epf);
 
   struct list_node node;
-  FAR struct pci_epf_ops_s *ops;
+  FAR const struct pci_epf_ops_s *ops;
   FAR const struct pci_epf_device_id_s *id_table;
 };
 
@@ -217,6 +223,7 @@ struct pci_epf_msix_tbl_s
  *
  * Returned Value:
  *    Return >= 0 if success, < 0 if failed
+ *
  ****************************************************************************/
 
 int pci_epf_device_register(FAR struct pci_epf_device_s *epf);
@@ -234,6 +241,7 @@ int pci_epf_device_register(FAR struct pci_epf_device_s *epf);
  *
  * Returned Value:
  *    Return >= 0 if success, < 0 if failed
+ *
  ****************************************************************************/
 
 int pci_epf_device_unregister(FAR struct pci_epf_device_s *epf);
@@ -249,6 +257,7 @@ int pci_epf_device_unregister(FAR struct pci_epf_device_s *epf);
  *
  * Returned Value:
  *    Return >= 0 if success, < 0 if failed
+ *
  ****************************************************************************/
 
 int pci_epf_register_driver(FAR struct pci_epf_driver_s *drv);
@@ -266,6 +275,7 @@ int pci_epf_register_driver(FAR struct pci_epf_driver_s *drv);
  *
  * Returned Value:
  *    Return >= 0 if success, < 0 if failed
+ *
  ****************************************************************************/
 
 int pci_epf_unregister_driver(FAR struct pci_epf_driver_s *drv);
@@ -287,6 +297,7 @@ int pci_epf_unregister_driver(FAR struct pci_epf_driver_s *drv);
  *
  * Returned Value:
  *   Return space address malloced if success, otherwise NULL
+ *
  ****************************************************************************/
 
 FAR void *pci_epf_alloc_space(FAR struct pci_epf_device_s *epf, int barno,
@@ -307,6 +318,7 @@ FAR void *pci_epf_alloc_space(FAR struct pci_epf_device_s *epf, int barno,
  *
  * Returned Value:
  *   None
+ *
  ****************************************************************************/
 
 void pci_epf_free_space(FAR struct pci_epf_device_s *epf,

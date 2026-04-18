@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/sensors/gnss.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -30,6 +32,13 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+#define SENSOR_GNSS_IDX_GNSS               0
+#define SENSOR_GNSS_IDX_GNSS_SATELLITE     1
+#define SENSOR_GNSS_IDX_GNSS_MEASUREMENT   2
+#define SENSOR_GNSS_IDX_GNSS_CLOCK         3
+#define SENSOR_GNSS_IDX_GNSS_GEOFENCE      4
+#define SENSOR_GNSS_IDX_GNSS_MAX           5
 
 /****************************************************************************
  * Public Types
@@ -200,6 +209,7 @@ extern "C"
  *   devno   - The user specifies which device of this type, from 0. If the
  *             devno alerady exists, -EEXIST will be returned.
  *   nbuffer - The number of events that the circular buffer can hold.
+ *   count   - The array size of nbuffer.
  *
  * Returned Value:
  *   OK if the driver was successfully register; A negated errno value is
@@ -208,7 +218,7 @@ extern "C"
  ****************************************************************************/
 
 int gnss_register(FAR struct gnss_lowerhalf_s *dev, int devno,
-                  uint32_t nbuffer);
+                  uint32_t nbuffer[], size_t count);
 
 /****************************************************************************
  * Name: gnss_unregister
@@ -222,6 +232,7 @@ int gnss_register(FAR struct gnss_lowerhalf_s *dev, int devno,
  *           instance is bound to the GNSS driver and must persists as long
  *           as the driver persists.
  *   devno - The user specifies which device of this type, from 0.
+ *
  ****************************************************************************/
 
 void gnss_unregister(FAR struct gnss_lowerhalf_s *dev, int devno);

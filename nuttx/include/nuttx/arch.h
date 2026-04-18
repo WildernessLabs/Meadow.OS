@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/arch.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -96,6 +98,31 @@
 #define DEBUGPOINT_WATCHPOINT_RW 0x03
 #define DEBUGPOINT_BREAKPOINT    0x04
 #define DEBUGPOINT_STEPPOINT     0x05
+
+/****************************************************************************
+ * Name: up_cpu_index
+ *
+ * Description:
+ *   Return the real core number regardless CONFIG_SMP setting
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_HAVE_MULTICPU
+#  define up_cpu_index() 0
+#endif /* CONFIG_ARCH_HAVE_MULTICPU */
+
+/****************************************************************************
+ * Name: up_this_cpu
+ *
+ * Description:
+ *   Return the logical core number. Default implementation is 1:1 mapping,
+ *   i.e. physical=logical.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_HAVE_CPUID_MAPPING
+#  define up_this_cpu() up_cpu_index()
+#endif
 
 /****************************************************************************
  * Public Types
@@ -438,7 +465,9 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype);
  *
  ****************************************************************************/
 
+#ifndef up_switch_context
 void up_switch_context(FAR struct tcb_s *tcb, FAR struct tcb_s *rtcb);
+#endif
 
 /****************************************************************************
  * Name: up_exit
@@ -925,6 +954,43 @@ int up_copy_section(FAR void *dest, FAR const void *src, size_t n);
 #ifndef CONFIG_PIC
 #  define up_setpicbase(picbase)
 #  define up_getpicbase(ppicbase)
+#endif
+
+/****************************************************************************
+ * Percpu support
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_update_task
+ *
+ * Description:
+ *   We can utilize percpu storage to hold information about the
+ *   current running task. If we intend to implement this feature, we would
+ *   need to define two macros that help us manage this percpu information
+ *   effectively.
+ *
+ *   up_this_task: This macro is designed to read the contents of the percpu
+ *                 register to retrieve information about the current
+ *                 running task.This allows us to quickly access
+ *                 task-specific data without having to disable interrupts,
+ *                 access global variables and obtain the current cpu index.
+ *
+ *   up_update_task: This macro is responsible for updating the contents of
+ *                   the percpu register.It is typically called during
+ *                   initialization or when a context switch occurs to ensure
+ *                   that the percpu register reflects the information of the
+ *                   newly running task.
+ *
+ * Input Parameters:
+ *   current tcb
+ *
+ * Returned Value:
+ *   current tcb
+ *
+ ****************************************************************************/
+
+#ifndef up_update_task
+#  define up_update_task(t)
 #endif
 
 /****************************************************************************
@@ -1862,17 +1928,9 @@ void up_timer_initialize(void);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SCHED_TICKLESS) && !defined(CONFIG_SCHED_TICKLESS_TICK_ARGUMENT)
 int up_timer_gettime(FAR struct timespec *ts);
-#endif
-
-#if defined(CONFIG_SCHED_TICKLESS_TICK_ARGUMENT) || defined(CONFIG_CLOCK_TIMEKEEPING)
 int up_timer_gettick(FAR clock_t *ticks);
-#endif
-
-#ifdef CONFIG_CLOCK_TIMEKEEPING
 void up_timer_getmask(FAR clock_t *mask);
-#endif
 
 /****************************************************************************
  * Name: up_alarm_cancel
@@ -2359,6 +2417,7 @@ char up_romgetc(FAR const char *ptr);
 
 void up_mdelay(unsigned int milliseconds);
 void up_udelay(useconds_t microseconds);
+void up_ndelay(unsigned long nanoseconds);
 
 /****************************************************************************
  * These are standard interfaces that are exported by the OS for use by the
@@ -2757,7 +2816,7 @@ int arch_phy_irq(FAR const char *intf, xcpt_t handler, void *arg,
  *
  ****************************************************************************/
 
-int up_putc(int ch);
+void up_putc(int ch);
 
 /****************************************************************************
  * Name: up_puts
@@ -2814,9 +2873,9 @@ void arch_sporadic_resume(FAR struct tcb_s *tcb);
  ****************************************************************************/
 
 void up_perf_init(FAR void *arg);
-unsigned long up_perf_gettime(void);
+clock_t up_perf_gettime(void);
 unsigned long up_perf_getfreq(void);
-void up_perf_convert(unsigned long elapsed, FAR struct timespec *ts);
+void up_perf_convert(clock_t elapsed, FAR struct timespec *ts);
 
 /****************************************************************************
  * Name: up_show_cpuinfo
@@ -2922,8 +2981,6 @@ int up_debugpoint_remove(int type, FAR void *addr, size_t size);
 
 #endif
 
-#ifdef CONFIG_PCI
-
 /****************************************************************************
  * Name: up_alloc_irq_msi
  *
@@ -2931,7 +2988,8 @@ int up_debugpoint_remove(int type, FAR void *addr, size_t size);
  *  Allocate interrupts for MSI/MSI-X vector.
  *
  * Input Parameters:
- *   bus - Bus that PCI device resides
+ *   busno - Bus num that PCI device resides
+ *   devfn - Device and function number
  *   irq - allocated vectors array
  *   num - number of vectors to allocate
  *
@@ -2941,7 +2999,7 @@ int up_debugpoint_remove(int type, FAR void *addr, size_t size);
  *
  ****************************************************************************/
 
-int up_alloc_irq_msi(FAR int *num);
+int up_alloc_irq_msi(uint8_t busno, uint32_t devfn, FAR int *irq, int num);
 
 /****************************************************************************
  * Name: up_release_irq_msi
@@ -2961,6 +3019,8 @@ int up_alloc_irq_msi(FAR int *num);
 
 void up_release_irq_msi(FAR int *irq, int num);
 
+#ifdef CONFIG_PCI
+
 /****************************************************************************
  * Name: up_connect_irq
  *
@@ -2968,7 +3028,6 @@ void up_release_irq_msi(FAR int *irq, int num);
  *  Connect interrupt for MSI/MSI-X.
  *
  * Input Parameters:
- *   bus - Bus that PCI device resides
  *   irq - vectors array
  *   num - number of vectors in array
  *   mar - returned value for Message Address Register
@@ -2979,7 +3038,7 @@ void up_release_irq_msi(FAR int *irq, int num);
  *
  ****************************************************************************/
 
-int up_connect_irq(FAR int *irq, int num,
+int up_connect_irq(FAR const int *irq, int num,
                    FAR uintptr_t *mar, FAR uint32_t *mdr);
 
 /****************************************************************************

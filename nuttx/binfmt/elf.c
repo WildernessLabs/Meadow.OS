@@ -1,6 +1,8 @@
 /****************************************************************************
  * binfmt/elf.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -33,9 +35,7 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/binfmt/binfmt.h>
-#include <nuttx/binfmt/elf.h>
-
-#include "libelf/libelf.h"
+#include <nuttx/kmalloc.h>
 
 #ifdef CONFIG_ELF
 
@@ -44,21 +44,15 @@
  ****************************************************************************/
 
 /* CONFIG_DEBUG_FEATURES, CONFIG_DEBUG_INFO, and CONFIG_DEBUG_BINFMT
- * have to be defined or CONFIG_ELF_DUMPBUFFER does nothing.
+ * have to be defined or CONFIG_MODLIB_DUMPBUFFER does nothing.
  */
 
 #if !defined(CONFIG_DEBUG_INFO) || !defined(CONFIG_DEBUG_BINFMT)
-#  undef CONFIG_ELF_DUMPBUFFER
+#  undef CONFIG_MODLIB_DUMPBUFFER
 #endif
 
 #ifndef CONFIG_ELF_STACKSIZE
 #  define CONFIG_ELF_STACKSIZE 2048
-#endif
-
-#ifdef CONFIG_ELF_DUMPBUFFER
-#  define elf_dumpbuffer(m,b,n) binfodumpbuffer(m,b,n)
-#else
-#  define elf_dumpbuffer(m,b,n)
 #endif
 
 /****************************************************************************
@@ -69,14 +63,8 @@ static int elf_loadbinary(FAR struct binary_s *binp,
                           FAR const char *filename,
                           FAR const struct symtab_s *exports,
                           int nexports);
-#ifdef CONFIG_ELF_COREDUMP
-static int elf_dumpbinary(FAR struct memory_region_s *regions,
-                          FAR struct lib_outstream_s *stream,
-                          pid_t pid);
-#endif
-#if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_DEBUG_BINFMT)
-static void elf_dumploadinfo(FAR struct elf_loadinfo_s *loadinfo);
-#endif
+
+static int elf_unloadbinary(FAR struct binary_s *binp);
 
 /****************************************************************************
  * Private Data
@@ -86,10 +74,7 @@ static struct binfmt_s g_elfbinfmt =
 {
   NULL,             /* next */
   elf_loadbinary,   /* load */
-  NULL,             /* unload */
-#ifdef CONFIG_ELF_COREDUMP
-  elf_dumpbinary,   /* coredump */
-#endif
+  elf_unloadbinary, /* unload */
 };
 
 /****************************************************************************
@@ -97,6 +82,7 @@ static struct binfmt_s g_elfbinfmt =
  ****************************************************************************/
 
 /****************************************************************************
+<<<<<<< HEAD
  * Name: elf_dumploadinfo
  ****************************************************************************/
 
@@ -232,6 +218,8 @@ static void elf_dumpentrypt(FAR struct binary_s *binp,
 #endif
 
 /****************************************************************************
+=======
+>>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
  * Name: elf_loadbinary
  *
  * Description:
@@ -245,25 +233,25 @@ static int elf_loadbinary(FAR struct binary_s *binp,
                           FAR const struct symtab_s *exports,
                           int nexports)
 {
-  struct elf_loadinfo_s loadinfo;  /* Contains globals for libelf */
-  int                   ret;
+  struct mod_loadinfo_s loadinfo;
+  int ret;
 
   binfo("Loading file: %s\n", filename);
 
   /* Initialize the ELF library to load the program binary. */
 
-  ret = elf_init(filename, &loadinfo);
-  elf_dumploadinfo(&loadinfo);
+  ret = modlib_initialize(filename, &loadinfo);
+  modlib_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
-      berr("Failed to initialize for load of ELF program: %d\n", ret);
-      goto errout_with_init;
+      berr("Failed to initialize to load ELF program binary: %d\n", ret);
+      return ret;
     }
 
   /* Load the program binary */
 
-  ret = elf_load(&loadinfo);
-  elf_dumploadinfo(&loadinfo);
+  ret = modlib_load_with_addrenv(&loadinfo);
+  modlib_dumploadinfo(&loadinfo);
   if (ret != 0)
     {
       berr("Failed to load ELF program binary: %d\n", ret);
@@ -272,9 +260,9 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 
   /* Bind the program to the exported symbol table */
 
-  if (loadinfo.ehdr.e_type == ET_REL)
+  if (loadinfo.ehdr.e_type == ET_REL || loadinfo.gotindex >= 0)
     {
-      ret = elf_bind(&loadinfo, exports, nexports);
+      ret = modlib_bind(&binp->mod, &loadinfo, exports, nexports);
       if (ret != 0)
         {
           berr("Failed to bind symbols program binary: %d\n", ret);
@@ -328,6 +316,7 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 #  ifdef CONFIG_ARCH_USE_SEPARATED_SECTION
   if (loadinfo.ehdr.e_type == ET_REL)
     {
+<<<<<<< HEAD
       binp->sectalloc = (FAR void *)loadinfo.sectalloc;
       binp->nsect     = loadinfo.ehdr.e_shnum;
     }
@@ -335,20 +324,29 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 
   binp->alloc[0] = (FAR void *)loadinfo.textalloc;
   binp->alloc[1] = (FAR void *)loadinfo.dataalloc;
+=======
+      binp->mod.sectalloc = (FAR void *)loadinfo.sectalloc;
+      binp->mod.nsect     = loadinfo.ehdr.e_shnum;
+    }
+#  endif
+
+  binp->mod.textalloc = (FAR void *)loadinfo.textalloc;
+  binp->mod.dataalloc = (FAR void *)loadinfo.datastart;
+>>>>>>> 3bf704ad13285ab681e41fb6f90213c552b131de
 #  ifdef CONFIG_BINFMT_CONSTRUCTORS
-  binp->alloc[2] = loadinfo.ctoralloc;
-  binp->alloc[3] = loadinfo.dtoralloc;
+  binp->mod.initarr = loadinfo.initarr;
+  binp->mod.finiarr = loadinfo.finiarr;
 #  endif
 #endif
 
 #ifdef CONFIG_BINFMT_CONSTRUCTORS
   /* Save information about constructors and destructors. */
 
-  binp->ctors    = loadinfo.ctors;
-  binp->nctors   = loadinfo.nctors;
+  binp->mod.initarr = loadinfo.initarr;
+  binp->mod.ninit   = loadinfo.ninit;
 
-  binp->dtors    = loadinfo.dtors;
-  binp->ndtors   = loadinfo.ndtors;
+  binp->mod.finiarr = loadinfo.finiarr;
+  binp->mod.nfini   = loadinfo.nfini;
 #endif
 
 #ifdef CONFIG_SCHED_USER_IDENTITY
@@ -359,42 +357,49 @@ static int elf_loadbinary(FAR struct binary_s *binp,
   binp->mode = loadinfo.filemode;
 #endif
 
-  elf_dumpentrypt(binp, &loadinfo);
-  elf_uninit(&loadinfo);
+  modlib_dumpentrypt(&loadinfo);
+#ifdef CONFIG_PIC
+  if (loadinfo.gotindex >= 0)
+    {
+      FAR struct dspace_s *dspaces = kmm_zalloc(sizeof(struct dspace_s));
+
+      if (dspaces == NULL)
+        {
+          ret = -ENOMEM;
+          goto errout_with_load;
+        }
+
+      dspaces->region = (FAR void *)loadinfo.shdr[loadinfo.gotindex].sh_addr;
+      dspaces->crefs = 1;
+      binp->picbase = (FAR void *)dspaces;
+    }
+#endif
+
+  modlib_uninitialize(&loadinfo);
   return OK;
 
 errout_with_load:
-  elf_unload(&loadinfo);
+  modlib_unload(&loadinfo);
 errout_with_init:
-  elf_uninit(&loadinfo);
+  modlib_uninitialize(&loadinfo);
   return ret;
 }
 
 /****************************************************************************
- * Name: elf_dumpbinary
+ * Name: elf_unloadbinary
  *
  * Description:
- *   Generat the core dump stream as ELF structure.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
+ *   Unload the ELF binary that was loaded into memory by elf_loadbinary.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_ELF_COREDUMP
-static int elf_dumpbinary(FAR struct memory_region_s *regions,
-                          FAR struct lib_outstream_s *stream,
-                          pid_t pid)
+static int elf_unloadbinary(FAR struct binary_s *binp)
 {
-  struct elf_dumpinfo_s dumpinfo;
+  binfo("Unloading %p\n", binp);
+  modlib_uninit(&binp->mod);
 
-  dumpinfo.regions = regions;
-  dumpinfo.stream  = stream;
-  dumpinfo.pid     = pid;
-
-  return elf_coredump(&dumpinfo);
+  return OK;
 }
-#endif
 
 /****************************************************************************
  * Public Functions

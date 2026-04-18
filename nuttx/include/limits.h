@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/limits.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -192,7 +194,7 @@
 /* Required for POSIX semaphores */
 
 #define _POSIX_SEM_NSEMS_MAX  INT_MAX
-#define _POSIX_SEM_VALUE_MAX  0x7fff
+#define _POSIX_SEM_VALUE_MAX  INT_MAX
 
 /* Numerical limits.  These values may be increased from the POSIX minimum
  * values above or made indeterminate

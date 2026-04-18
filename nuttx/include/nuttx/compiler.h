@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/compiler.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -85,6 +87,8 @@
 #  define register
 
 #endif
+
+#undef offsetof
 
 /* GCC-specific definitions *************************************************/
 
@@ -236,7 +240,11 @@
  * the function prolog and epilog.
  */
 
-#  define naked_function __attribute__((naked,no_instrument_function))
+#  if !defined(__ghs__) || __GHS_VERSION_NUMBER >= 202354
+#    define naked_function __attribute__((naked,no_instrument_function))
+#  else
+#    define naked_function
+#  endif
 
 /* The always_inline_function attribute informs GCC that the function should
  * always be inlined, regardless of the level of optimization.  The
@@ -260,7 +268,11 @@
 
 /* The nooptimiziation_function attribute no optimize */
 
-#  define nooptimiziation_function __attribute__((optimize(0)))
+#  if defined(__clang__)
+#    define nooptimiziation_function __attribute__((optnone))
+#  else
+#    define nooptimiziation_function __attribute__((optimize("O0")))
+#  endif
 
 /* The nosanitize_address attribute informs GCC don't sanitize it */
 
@@ -271,6 +283,12 @@
 #  if defined(__ghs__)
 #    undef nooptimiziation_function
 #    define nooptimiziation_function
+
+#    undef nosanitize_address
+#    define nosanitize_address
+#  endif
+
+#  if defined(__AVR32__)
 
 #    undef nosanitize_address
 #    define nosanitize_address
@@ -302,6 +320,27 @@
 #      define nostackprotect_function __attribute__((__optimize__("-fno-stack-protector")))
 #    endif
 #  endif
+
+/* The constructor attribute causes the function to be called
+ * automatically before execution enters main ().
+ * Similarly, the destructor attribute causes the function to
+ * be called automatically after main () has completed or
+ * exit () has been called. Functions with these attributes are
+ * useful for initializing data that will be used implicitly
+ * during the execution of the program.
+ * See https://gcc.gnu.org/onlinedocs/gcc-4.1.2/gcc/Function-Attributes.html
+ */
+
+#  define constructor_fuction __attribute__((constructor))
+#  define destructor_function __attribute__((destructor))
+
+/* Use visibility_hidden to hide symbols by default
+ * Use visibility_default to make symbols visible
+ * See https://gcc.gnu.org/wiki/Visibility
+ */
+
+#  define visibility_hidden __attribute__((visibility("hidden")))
+#  define visibility_default __attribute__((visibility("default")))
 
 /* The unused code or data */
 
@@ -383,6 +422,9 @@
 #    undef  CONFIG_PTR_IS_NOT_INT
 
 #  elif defined(__AVR__)
+
+#    undef nosanitize_address
+#    define nosanitize_address
 
 #    if defined(__AVR_2_BYTE_PC__) || defined(__AVR_3_BYTE_PC__)
 /* 2-byte 3-byte PC does not support returnaddress */
@@ -594,6 +636,11 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+
+#  define visibility_hidden
+#  define visibility_default
 
 #  define unused_code
 #  define unused_data
@@ -742,6 +789,10 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+#  define visibility_hidden
+#  define visibility_default
 #  define unused_code
 #  define unused_data
 #  define used_code
@@ -858,6 +909,10 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+#  define visibility_hidden
+#  define visibility_default
 #  define unused_code
 #  define unused_data
 #  define used_code
@@ -953,6 +1008,10 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+#  define visibility_hidden
+#  define visibility_default
 #  define unused_code
 #  define unused_data
 #  define used_code
@@ -1037,6 +1096,10 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+#  define visibility_hidden
+#  define visibility_default
 #  define unused_code                   __attribute__((unused))
 #  define unused_data                   __attribute__((unused))
 #  define used_code                     __attribute__((used))
@@ -1107,6 +1170,10 @@
 #  define nosanitize_address
 #  define nosanitize_undefined
 #  define nostackprotect_function
+#  define constructor_fuction
+#  define destructor_function
+#  define visibility_hidden
+#  define visibility_default
 #  define unused_code
 #  define unused_data
 #  define used_code
@@ -1151,6 +1218,12 @@
 
 #ifndef CONFIG_HAVE_LONG_LONG
 #  undef CONFIG_FS_LARGEFILE
+#endif
+
+#ifdef CONFIG_DISABLE_FLOAT
+#  undef CONFIG_HAVE_FLOAT
+#  undef CONFIG_HAVE_DOUBLE
+#  undef CONFIG_HAVE_LONG_DOUBLE
 #endif
 
 /****************************************************************************

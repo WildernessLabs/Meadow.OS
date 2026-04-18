@@ -312,7 +312,7 @@ config TICKET_SPINLOCK
 
 config RW_SPINLOCK
 	bool "Support read-write Spinlocks"
-	default y
+	default n
 	---help---
 		Spinlocks are spilit into read and write lock.
 		Reader can take read lock simultaneously and only one writer
@@ -345,6 +345,11 @@ config IRQ_NWORKS
 	default 8
 	---help---
 		The max num of active irq wqueue.
+
+config IRQ_WORK_SECTION
+	string "The section where irq stack is located"
+	---help---
+		The section where irq stack is located.
 
 config IRQ_WORK_STACKSIZE
 	int "The default stack size for isr wqueue"
@@ -1027,7 +1032,6 @@ config SCHED_CPULOAD_NONE
 
 config SCHED_CPULOAD_SYSCLK
 	bool "Use system clock"
-	depends on !SCHED_TICKLESS
 	---help---
 		If this option is enabled, the system clock is used for cpu load
 		measurement by default.
@@ -1077,18 +1081,17 @@ config SCHED_CPULOAD_CRITMONITOR
 
 endchoice
 
-if SCHED_CPULOAD_EXTCLK
-
 config SCHED_CPULOAD_TICKSPERSEC
-	int "External clock rate"
+	int "CPU load sampling clock frequency(HZ)"
 	default 100
 	---help---
-		If an external clock is used to drive the sampling for the CPU load
-		calculations, then this value must be provided.  This value provides
-		the rate of the external clock interrupts in units of ticks per
-		second.  The default value of 100 corresponds to a 100Hz clock.  NOTE:
+		CPU load sampling clock frequency, in HZ. Use sysclk clock source,
+		use wdt, EXTCLK clock source, use an external timer.
+		The default value of 100 corresponds to a 100Hz clock.  NOTE:
 		that 100Hz is the default frequency of the system time and, hence,
 		the worst possible choice in most cases.
+
+if SCHED_CPULOAD_EXTCLK
 
 choice
 	prompt "Select CPU load timer"
@@ -1161,6 +1164,13 @@ config SCHED_CPULOAD_TIMECONSTANT
 		The accumulated CPU count is divided by two when the accumulated
 		tick count exceeds this time constant.  This time constant is in
 		units of seconds.
+
+config SCHED_PROFILE_TICKSPERSEC
+	int "Profile sampling rate"
+	default 1000
+	---help---
+		This is the frequency at which the profil functon will sample the
+		running program. The default is 1000Hz.
 
 menuconfig SCHED_INSTRUMENTATION
 	bool "System performance monitor hooks"
@@ -1242,7 +1252,7 @@ config SCHED_INSTRUMENTATION_PREEMPTION
 		Enables additional hooks for changes to pre-emption state.  Board-
 		specific logic must provide this additional logic.
 
-			void sched_note_premption(FAR struct tcb_s *tcb, bool state);
+			void sched_note_preemption(FAR struct tcb_s *tcb, bool state);
 
 config SCHED_INSTRUMENTATION_CSECTION
 	bool "Critical section monitor hooks"
@@ -1745,15 +1755,13 @@ config MODULE
 	bool "Enable loadable OS modules"
 	default n
 	select LIBC_MODLIB
-	select ARCH_USE_TEXT_HEAP if ARCH_HAVE_TEXT_HEAP
 	---help---
 		Enable support for loadable OS modules.  Default: n
 
 menu "Work queue support"
 
 config SCHED_WORKQUEUE
-#	bool "Enable worker thread"
-	bool
+	bool "Enable worker thread"
 	default n
 	---help---
 		Create dedicated "worker" threads to handle delayed or asynchronous
@@ -2010,3 +2018,15 @@ config ASSERT_PAUSE_CPU_TIMEOUT
 	---help---
 		Timeout in milisecond to pause another CPU when assert. Only available
 		when SMP is enabled.
+		Enable to support perf events.
+
+config COREDUMP
+	bool "Coredump support"
+	depends on ARCH_HAVE_TCBINFO
+	default n
+	---help---
+		Generate ELF core dump to provide information about the CPU state and the
+		memory state of program.
+		The memory state embeds a snapshot of all segments mapped in the
+		memory space of the program. The CPU state contains register values
+		when the core dump has been generated.

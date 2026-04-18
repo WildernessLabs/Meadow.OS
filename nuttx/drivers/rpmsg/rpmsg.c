@@ -1,6 +1,8 @@
 /****************************************************************************
  * drivers/rpmsg/rpmsg.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -207,18 +209,6 @@ FAR const char *rpmsg_get_cpuname(FAR struct rpmsg_device *rdev)
   return rpmsg ? rpmsg->ops->get_cpuname(rpmsg) : NULL;
 }
 
-int rpmsg_get_tx_buffer_size(FAR struct rpmsg_device *rdev)
-{
-  FAR struct rpmsg_s *rpmsg = rpmsg_get_by_rdev(rdev);
-  return rpmsg ? rpmsg->ops->get_tx_buffer_size(rpmsg) : -EINVAL;
-}
-
-int rpmsg_get_rx_buffer_size(FAR struct rpmsg_device *rdev)
-{
-  FAR struct rpmsg_s *rpmsg = rpmsg_get_by_rdev(rdev);
-  return rpmsg ? rpmsg->ops->get_rx_buffer_size(rpmsg) : -EINVAL;
-}
-
 int rpmsg_register_callback(FAR void *priv,
                             rpmsg_dev_cb_t device_created,
                             rpmsg_dev_cb_t device_destroy,
@@ -354,7 +344,7 @@ void rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
           FAR void *cb_priv = cb->priv;
 
           nxrmutex_unlock(&g_rpmsg_lock);
-          DEBUGASSERT(ns_bind != NULL);
+
           ns_bind(rdev, cb_priv, name, dest);
           return;
         }
@@ -402,9 +392,10 @@ void rpmsg_ns_unbind(FAR struct rpmsg_device *rdev,
 void rpmsg_device_created(FAR struct rpmsg_s *rpmsg)
 {
   FAR struct metal_list *node;
+  FAR struct metal_list *tmp;
 
   nxrmutex_lock(&g_rpmsg_lock);
-  metal_list_for_each(&g_rpmsg_cb, node)
+  metal_list_for_each_safe(&g_rpmsg_cb, tmp, node)
     {
       FAR struct rpmsg_cb_s *cb =
         metal_container_of(node, struct rpmsg_cb_s, node);
@@ -433,7 +424,7 @@ void rpmsg_device_destory(FAR struct rpmsg_s *rpmsg)
 #endif
 
   nxrmutex_lock(&rpmsg->lock);
-  metal_list_for_each_safe(&rpmsg->bind, node, tmp)
+  metal_list_for_each_safe(&rpmsg->bind, tmp, node)
     {
       FAR struct rpmsg_bind_s *bind =
         metal_container_of(node, struct rpmsg_bind_s, node);
@@ -447,7 +438,7 @@ void rpmsg_device_destory(FAR struct rpmsg_s *rpmsg)
   /* Broadcast device_destroy to all registers */
 
   nxrmutex_lock(&g_rpmsg_lock);
-  metal_list_for_each(&g_rpmsg_cb, node)
+  metal_list_for_each_safe(&g_rpmsg_cb, tmp, node)
     {
       FAR struct rpmsg_cb_s *cb =
         metal_container_of(node, struct rpmsg_cb_s, node);
