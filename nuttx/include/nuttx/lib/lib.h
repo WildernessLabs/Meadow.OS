@@ -1,6 +1,7 @@
 /****************************************************************************
  * include/nuttx/lib/lib.h
- * Non-standard, internal APIs available in lib/.
+ *
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -29,6 +30,9 @@
 #include <nuttx/config.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/kmalloc.h>
+
+#include <limits.h>
+#include <alloca.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -118,8 +122,13 @@ unsigned long nrand(unsigned long limit);
 
 /* Functions defined in lib_pathbuffer.c ************************************/
 
+#ifdef CONFIG_LIBC_PATHBUFFER
 FAR char *lib_get_pathbuffer(void);
 void lib_put_pathbuffer(FAR char *buffer);
+#else
+#  define lib_get_pathbuffer() alloca(PATH_MAX)
+#  define lib_put_pathbuffer(b)
+#endif
 
 /* Functions defined in lib_realpath.c **************************************/
 

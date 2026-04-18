@@ -114,7 +114,15 @@ endif
 ESPTOOL_BINS += $(FLASH_APP)
 
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
-	ESPTOOL_BINS += $(shell printf "%#x\n" $$(( $(CONFIG_ESP32S3_KERNEL_OFFSET) + $(CONFIG_ESP32S3_KERNEL_IMAGE_SIZE) ))) nuttx_user.bin
+	# Check the operating system
+
+	ifeq ($(shell uname -s), Darwin)
+		# macOS
+		ESPTOOL_BINS += $(shell printf "%\#x\n" $$(( $(CONFIG_ESP32S3_KERNEL_OFFSET) + $(CONFIG_ESP32S3_KERNEL_IMAGE_SIZE) ))) nuttx_user.bin
+	else
+		# Linux and other systems
+		ESPTOOL_BINS += $(shell printf "%#x\n" $$(( $(CONFIG_ESP32S3_KERNEL_OFFSET) + $(CONFIG_ESP32S3_KERNEL_IMAGE_SIZE) ))) nuttx_user.bin
+	endif
 endif
 
 # MERGEBIN -- Merge raw binary files into a single file
@@ -130,7 +138,13 @@ define MERGEBIN
 		echo "Missing Flash memory size configuration for the ESP32-S3 chip."; \
 		exit 1; \
 	fi
-	esptool.py -c esp32s3 merge_bin --output nuttx.merged.bin $(ESPTOOL_FLASH_OPTS) $(ESPTOOL_BINS)
+	$(eval ESPTOOL_MERGEBIN_OPTS :=                                              \
+		$(if $(CONFIG_ESP32S3_QEMU_IMAGE),                                         \
+			--fill-flash-size $(FLASH_SIZE) -fm $(FLASH_MODE) -ff $(FLASH_FREQ), \
+			$(ESPTOOL_FLASH_OPTS)                                                \
+		)                                                                        \
+	)
+	esptool.py -c esp32s3 merge_bin --output nuttx.merged.bin $(ESPTOOL_MERGEBIN_OPTS) $(ESPTOOL_BINS)
 	$(Q) echo nuttx.merged.bin >> nuttx.manifest
 	$(Q) echo "Generated: nuttx.merged.bin"
 endef

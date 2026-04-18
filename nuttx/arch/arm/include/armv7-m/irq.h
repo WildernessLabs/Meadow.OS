@@ -1,6 +1,8 @@
 /****************************************************************************
  * arch/arm/include/armv7-m/irq.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -42,6 +44,10 @@
  * Pre-processor Prototypes
  ****************************************************************************/
 
+#ifdef __ghs__
+#  define __ARM_ARCH 7
+#endif
+
 /* Configuration ************************************************************/
 
 /* If this is a kernel build, how many nested system calls should we
@@ -59,11 +65,7 @@
  */
 
 #define REG_R13             (0)  /* R13 = SP at time of interrupt */
-#ifdef CONFIG_ARMV7M_USEBASEPRI
-#  define REG_BASEPRI       (1)  /* BASEPRI */
-#else
-#  define REG_PRIMASK       (1)  /* PRIMASK */
-#endif
+#define REG_BASEPRI         (1)  /* BASEPRI */
 #define REG_R4              (2)  /* R4 */
 #define REG_R5              (3)  /* R5 */
 #define REG_R6              (4)  /* R6 */
@@ -250,18 +252,6 @@ struct xcptcontext
  * Public Data
  ****************************************************************************/
 
-/* g_current_regs[] holds a references to the current interrupt level
- * register storage structure.  If is non-NULL only during interrupt
- * processing.  Access to g_current_regs[] must be through the
- * [get/set]_current_regs for portability.
- */
-
-/* For the case of architectures with multiple CPUs, then there must be one
- * such value for each processor that can receive an interrupt.
- */
-
-extern volatile uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
-
 /****************************************************************************
  * Inline functions
  ****************************************************************************/
@@ -391,13 +381,9 @@ static inline void raisebasepri(uint32_t basepri)
 static inline void up_irq_disable(void) always_inline_function;
 static inline void up_irq_disable(void)
 {
-#ifdef CONFIG_ARMV7M_USEBASEPRI
   /* Probably raising priority */
 
   raisebasepri(NVIC_SYSH_DISABLE_PRIORITY);
-#else
-  __asm__ __volatile__ ("\tcpsid  i\n");
-#endif
 }
 
 /* Save the current primask state & disable IRQs */
@@ -406,31 +392,11 @@ static inline irqstate_t up_irq_save(void)
 always_inline_function noinstrument_function;
 static inline irqstate_t up_irq_save(void)
 {
-#ifdef CONFIG_ARMV7M_USEBASEPRI
   /* Probably raising priority */
 
   uint8_t basepri = getbasepri();
   raisebasepri(NVIC_SYSH_DISABLE_PRIORITY);
   return (irqstate_t)basepri;
-
-#else
-
-  unsigned short primask;
-
-  /* Return the current value of primask register and set
-   * bit 0 of the primask register to disable interrupts
-   */
-
-  __asm__ __volatile__
-    (
-     "\tmrs    %0, primask\n"
-     "\tcpsid  i\n"
-     : "=r" (primask)
-     :
-     : "memory");
-
-  return primask;
-#endif
 }
 
 /* Enable IRQs */
@@ -450,27 +416,9 @@ static inline void up_irq_restore(irqstate_t flags)
 always_inline_function noinstrument_function;
 static inline void up_irq_restore(irqstate_t flags)
 {
-#ifdef CONFIG_ARMV7M_USEBASEPRI
   /* In this case, we are always retaining or lowering the priority value */
 
   setbasepri((uint32_t)flags);
-
-#else
-  /* If bit 0 of the primask is 0, then we need to restore
-   * interrupts.
-   */
-
-  __asm__ __volatile__
-    (
-      "\ttst    %0, #1\n"
-      "\tbne.n  1f\n"
-      "\tcpsie  i\n"
-      "1:\n"
-      :
-      : "r" (flags)
-      : "cc", "memory");
-
-#endif
 }
 
 /* Get/set IPSR */
@@ -547,23 +495,13 @@ static inline void setcontrol(uint32_t control)
  * Name: up_cpu_index
  *
  * Description:
- *   Return an index in the range of 0 through (CONFIG_SMP_NCPUS-1) that
- *   corresponds to the currently executing CPU.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   An integer index in the range of 0 through (CONFIG_SMP_NCPUS-1) that
- *   corresponds to the currently executing CPU.
+ *   Return the real core number regardless CONFIG_SMP setting
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_ARCH_HAVE_MULTICPU
 int up_cpu_index(void) noinstrument_function;
-#else
-#  define up_cpu_index() 0
-#endif /* CONFIG_SMP */
+#endif /* CONFIG_ARCH_HAVE_MULTICPU */
 
 static inline_function uint32_t up_getsp(void)
 {
@@ -576,18 +514,6 @@ static inline_function uint32_t up_getsp(void)
   );
 
   return sp;
-}
-
-noinstrument_function
-static inline_function uint32_t *up_current_regs(void)
-{
-  return (uint32_t *)g_current_regs[up_cpu_index()];
-}
-
-noinstrument_function
-static inline_function void up_set_current_regs(uint32_t *regs)
-{
-  g_current_regs[up_cpu_index()] = regs;
 }
 
 noinstrument_function

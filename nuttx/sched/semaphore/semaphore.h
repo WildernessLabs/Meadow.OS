@@ -31,9 +31,16 @@
 #include <nuttx/compiler.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/sched.h>
+#include <nuttx/atomic.h>
 
 #include <stdint.h>
 #include <stdbool.h>
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define NXSEM_COUNT(s) ((FAR atomic_t *)&(s)->semcount)
 
 /****************************************************************************
  * Public Function Prototypes
@@ -61,7 +68,7 @@ void nxsem_wait_irq(FAR struct tcb_s *wtcb, int errcode);
 
 /* Handle semaphore timer expiration */
 
-void nxsem_timeout(wdparm_t pid);
+void nxsem_timeout(wdparm_t arg);
 
 /* Recover semaphore resources with a task or thread is destroyed */
 

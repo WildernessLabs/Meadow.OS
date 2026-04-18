@@ -204,6 +204,7 @@ static const char *g_white_prefix[] =
   "b8",      /* Ref:  include/fixedmath.h */
   "b16",     /* Ref:  include/fixedmath.h */
   "b32",     /* Ref:  include/fixedmath.h */
+  "cJSON",   /* Ref:  apps/wireless/wapi/src */
   "ub8",     /* Ref:  include/fixedmath.h */
   "ub16",    /* Ref:  include/fixedmath.h */
   "ub32",    /* Ref:  include/fixedmath.h */
@@ -227,6 +228,16 @@ static const char *g_white_suffix[] =
 
 static const char *g_white_content_list[] =
 {
+  /* Ref:
+   * nuttx-apps/examples/wamr_module/module_hello.c
+   * nuttx-apps/interpreters/wamr/wamr_custom_init.c
+   *
+   * They are from the WAMR project.
+   */
+
+  "NativeSymbol",
+  "RuntimeInitArgs",
+
   /* Ref:  gnu_unwind_find_exidx.c */
 
   "__EIT_entry",
@@ -660,6 +671,19 @@ static const char *g_white_files[] =
 
   "arm-acle-compat.h",
   "arm_asm.h",
+
+  /* Skip Mixed case
+   * Ref:
+   * libs/libbuiltin/
+   */
+
+  "InstrProfilingPlatform.c",
+
+  /* Skip Mixed case
+   * arch/arm/src/phy62xx/uart.c:1229:13: error: Mixed case identifier found
+   */
+
+  "phy62xx/uart.c",
   NULL
 };
 

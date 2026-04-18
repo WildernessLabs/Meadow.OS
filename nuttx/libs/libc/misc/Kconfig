@@ -119,7 +119,17 @@ config LIBC_MEM_FD_VFS_PATH
 	---help---
 		The relative path to where memfd will exist in the tmpfs namespace.
 
-config LIBC_MAX_PATHBUFFER
+config LIBC_PATHBUFFER
+	bool "Enable global path buffer"
+	default !DEFAULT_SMALL
+	---help---
+		Enable this option to enable the global path buffer, otherwise use stack variables via alloca().
+		If the current platform does not require a large PATH_MAX size support and toolchain supports alloca(),
+		we could turn off this option to improve performance.
+
+if LIBC_PATHBUFFER
+
+config LIBC_PATHBUFFER_MAX
 	int "Maximum size of a temporary file path buffer array"
 	range 0 32
 	default 2
@@ -132,3 +142,26 @@ config LIBC_PATHBUFFER_MALLOC
 	default y
 	---help---
 		Enable malloc path buffer from the heap when pathbuffer is insufficient.
+
+endif # LIBC_PATHBUFFER
+
+config LIBC_BACKTRACE_BUFFSIZE
+	int "The size of backtrace record buffer"
+	depends on SCHED_BACKTRACE
+	default 0
+	---help---
+		The size of the backtrace buffer.
+
+config LIBC_BACKTRACE_DEPTH
+	int "The depth of backtrace"
+	depends on LIBC_BACKTRACE_BUFFSIZE > 0
+	default 8
+	---help---
+		The depth of the backtrace buffer.
+
+config LIBC_MUTEX_BACKTRACE
+	int "The depth of mutex backtrace"
+	default 0
+	---help---
+		Config the depth of backtrace, dumping the backtrace of thread which
+		last acquired the mutex. Disable mutex backtrace by 0.

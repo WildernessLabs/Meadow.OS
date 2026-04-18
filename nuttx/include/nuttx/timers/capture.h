@@ -1,6 +1,8 @@
 /****************************************************************************
  * include/nuttx/timers/capture.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -37,10 +39,18 @@
 #define CAPIOC_DUTYCYCLE _CAPIOC(1)
 #define CAPIOC_FREQUENCE _CAPIOC(2)
 #define CAPIOC_EDGES     _CAPIOC(3)
+#define CAPIOC_ALL       _CAPIOC(4)
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
+struct cap_all_s
+{
+  uint32_t freq;
+  uint32_t edges;
+  uint8_t  duty;
+};
 
 /* This structure provides the "lower-half" driver operations available to
  * the "upper-half" driver.
@@ -125,6 +135,9 @@ extern "C"
 
 int cap_register(FAR const char *devpath,
                  FAR struct cap_lowerhalf_s *lower);
+
+int cap_register_multiple(FAR const char *devpath,
+                          FAR struct cap_lowerhalf_s **lower, int n);
 
 #undef EXTERN
 #ifdef __cplusplus

@@ -1,6 +1,8 @@
 /****************************************************************************
  * fs/vfs/fs_lock.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -237,7 +239,7 @@ static void file_lock_delete_bucket(FAR struct file_lock_bucket_s *bucket,
    * released
    */
 
-  if (list_is_empty(&bucket->list))
+  if (list_is_empty(&bucket->list) && bucket->nwaiter == 0)
     {
       /* At this point, the file has no lock information context, so we can
        * remove it from the hash table, and the return result is 0 or 1 means
@@ -300,7 +302,7 @@ file_lock_find_bucket(FAR const char *filepath)
 
 static void file_lock_free_entry(FAR ENTRY *entry)
 {
-  lib_free(entry->key);
+  fs_heap_free(entry->key);
   fs_heap_free(entry->data);
 }
 
@@ -323,7 +325,7 @@ file_lock_create_bucket(FAR const char *filepath)
 
   /* Creating an instance store */
 
-  item.key = strdup(filepath);
+  item.key = fs_heap_strdup(filepath);
   if (item.key == NULL)
     {
       fs_heap_free(bucket);
@@ -334,7 +336,7 @@ file_lock_create_bucket(FAR const char *filepath)
 
   if (hsearch_r(item, ENTER, &hretvalue, &g_file_lock_table) == 0)
     {
-      lib_free(item.key);
+      fs_heap_free(item.key);
       fs_heap_free(bucket);
       return NULL;
     }

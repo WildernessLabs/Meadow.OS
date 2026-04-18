@@ -31,6 +31,9 @@ Drivers in NuttX generally work in two distinct layers:
   * A "lower half" which is typically hardware-specific. This is
     usually implemented at the architecture or board level.
 
+Details about drivers implementation can be found in
+:doc:`../../implementation/drivers_design` and :doc:`../../implementation/device_drivers`.
+
 Subdirectories of ``nuttx/drivers``
 ===================================
 
@@ -107,6 +110,11 @@ Subdirectories of ``nuttx/drivers``
 * ``i2s/`` :doc:`character/i2s`
 
   I2S drivers and support logic.
+
+
+* ``i3c/`` :doc:`special/i3c`
+
+  I3C drivers and support logic.
 
 * ``input/`` :doc:`character/input/index`
 

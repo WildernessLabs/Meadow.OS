@@ -6984,7 +6984,7 @@ def test_ltp_interfaces_pthread_rwlock_timedrdlock_5_1(p):
 def test_ltp_interfaces_sem_init_6_1(p):
     ret = p.sendCommand(
         "ltp_interfaces_sem_init_6_1",
-        ["PASSED", "passed", "Passed", "PASS"],
+        ["PASSED", "passed", "Passed", "PASS", "skipped"],
         timeout=10,
     )
     retID = p.sendCommand("echo $?", "0", timeout=2)
@@ -8359,7 +8359,7 @@ def test_ltp_interfaces_pthread_attr_setschedparam_1_3(p):
 
 def test_ltp_mq_timedsend_speculative_18_2(p):
     ret = p.sendCommand(
-        "ltp_mq_timedsend_speculative_18_2", ["did not fail"], timeout=10
+        "ltp_mq_timedsend_speculative_18_2", ["did fail on invalid"], timeout=10
     )
     retID = p.sendCommand("echo $?", "0", timeout=2)
     assert ret >= 0

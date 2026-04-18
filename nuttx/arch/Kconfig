@@ -69,10 +69,6 @@ endif #ARCH_CHIP_CUSTOM
 
 source "$BINDIR/arch/dummy/Kconfig"
 
-config ARCH_TOOLCHAIN_IAR
-	bool
-	default n
-
 config ARCH_TOOLCHAIN_GNU
 	bool
 	default n
@@ -80,6 +76,20 @@ config ARCH_TOOLCHAIN_GNU
 config ARCH_TOOLCHAIN_CLANG
 	bool
 	select ARCH_TOOLCHAIN_GNU
+	default n
+
+config ARCH_TOOLCHAIN_GCC
+	bool
+	select ARCH_TOOLCHAIN_GNU
+	default n
+
+config ARCH_TOOLCHAIN_GHS
+	bool
+	select ARCH_TOOLCHAIN_GNU
+	default n
+
+config ARCH_TOOLCHAIN_IAR
+	bool
 	default n
 
 config ARCH_TOOLCHAIN_TASKING
@@ -100,25 +110,6 @@ config ARCH_SIZET_LONG
 		size_t may be type long or type int.  This matters for some
 		C++ library routines because the NuttX size_t might not have
 		the same underlying type as your toolchain's size_t.
-
-config ARCH_COVERAGE
-	bool "Enable code coverage analysis"
-	select HAVE_CXXINITIALIZE
-	default n
-	---help---
-		Generate code coverage
-
-config ARCH_COVERAGE_ALL
-	bool "Enable code coverage for the entire image"
-	depends on ARCH_COVERAGE
-	default n
-	---help---
-		This option activates code coverage instrumentation for the
-		entire image. If you don't enable this option, you have to
-		explicitly specify "-fprofile-generate -ftest-coverage" for
-		the files/directories you want to check. Enabling this option
-		will get image size increased and performance decreased
-		significantly.
 
 config ARCH_INSTRUMENT_ALL
 	bool "Instrument All"
@@ -224,6 +215,11 @@ config ARCH_HAVE_MULTICPU
 	bool
 	default n
 
+config ARCH_HAVE_CPUID_MAPPING
+	bool
+	default n
+	depends on ARCH_HAVE_MULTICPU
+
 config ARCH_HAVE_FORK
 	bool
 	default n
@@ -284,6 +280,11 @@ config ARCH_HAVE_TESTSET
 	bool
 	default n
 
+config ARCH_HAVE_CUSTOM_TESTSET
+	bool
+	default n
+	select ARCH_HAVE_TESTSET
+
 config ARCH_HAVE_THREAD_LOCAL
 	bool
 	default n
@@ -334,6 +335,13 @@ config ARCH_HAVE_BOOTLOADER
 config ARCH_HAVE_CPUINFO
 	bool
 	default n
+
+config ARCH_CPUINFO_FREQ_KHZ
+	int "Default CPU frequency"
+	default 0
+	depends on ARCH_HAVE_CPUINFO
+	---help---
+		Defines the CPU's default maximum frequency. Frequency unit KHZ.
 
 config ARCH_HAVE_TCBINFO
 	bool
@@ -906,6 +914,13 @@ config ARCH_RAMFUNCS
 		so that FLASH can be reconfigured while the MCU executes out of
 		SRAM.
 
+config ARCH_HAVE_CUSTOM_VECTORS
+	bool
+	default n
+	---help---
+		If ARCH_HAVE_CUSTOM_VECTORS is defined, Chip should provide vectors
+		table as an optimization.
+
 config ARCH_HAVE_RAMVECTORS
 	bool
 	default n
@@ -1047,11 +1062,6 @@ config ARCH_HIPRI_INTERRUPT
 		general feature is not conceptually unique to the Cortex-M but if it
 		is extended to any other family, then this discussion will have to
 		be generalized.
-
-		If ARMV7M_USEBASEPRI is selected, then interrupts will be disabled
-		by setting the BASEPRI register to NVIC_SYSH_DISABLE_PRIORITY so
-		that most interrupts will not have execution priority.  SVCall must
-		have execution priority in all cases.
 
 		In the normal cases, interrupts are not nest-able and all interrupts
 		run at an execution priority between NVIC_SYSH_PRIORITY_MIN and

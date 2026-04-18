@@ -1,6 +1,8 @@
 /****************************************************************************
  * drivers/net/lan9250.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -2472,7 +2474,11 @@ int lan9250_initialize(
 
   if (lower->getmac)
     {
-      lower->getmac(lower, priv->dev.d_mac.ether.ether_addr_octet);
+      if (lower->getmac(lower, priv->dev.d_mac.ether.ether_addr_octet) < 0)
+        {
+          nerr("ERROR: Failed read MAC address\n");
+          return -EAGAIN;
+        }
     }
 
   /* Register the device with the OS so that socket IOCTLs can be performed */

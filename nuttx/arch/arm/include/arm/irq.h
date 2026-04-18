@@ -1,6 +1,8 @@
 /****************************************************************************
  * arch/arm/include/arm/irq.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -156,17 +158,9 @@ struct xcptcontext
  * Public Data
  ****************************************************************************/
 
-/* g_current_regs[] holds a references to the current interrupt level
- * register storage structure.  If is non-NULL only during interrupt
- * processing.  Access to g_current_regs[] must be through the
- * [get/set]_current_regs for portability.
- */
+/* g_interrupt_context store irq status */
 
-/* For the case of architectures with multiple CPUs, then there must be one
- * such value for each processor that can receive an interrupt.
- */
-
-extern volatile uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
+extern volatile bool g_interrupt_context[CONFIG_SMP_NCPUS];
 
 /****************************************************************************
  * Inline functions
@@ -231,50 +225,35 @@ static inline irqstate_t up_irq_enable(void)
  * Name: up_cpu_index
  *
  * Description:
- *   Return an index in the range of 0 through (CONFIG_SMP_NCPUS-1) that
- *   corresponds to the currently executing CPU.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   An integer index in the range of 0 through (CONFIG_SMP_NCPUS-1) that
- *   corresponds to the currently executing CPU.
+ *   Return the real core number regardless CONFIG_SMP setting
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SMP
+#ifdef CONFIG_ARCH_HAVE_MULTICPU
 int up_cpu_index(void) noinstrument_function;
-#else
-#  define up_cpu_index() 0
-#endif /* CONFIG_SMP */
-
-noinstrument_function
-static inline_function uint32_t *up_current_regs(void)
-{
-  return (uint32_t *)g_current_regs[up_cpu_index()];
-}
-
-noinstrument_function
-static inline_function void up_set_current_regs(uint32_t *regs)
-{
-  g_current_regs[up_cpu_index()] = regs;
-}
+#endif /* CONFIG_ARCH_HAVE_MULTICPU */
 
 noinstrument_function
 static inline_function bool up_interrupt_context(void)
 {
 #ifdef CONFIG_SMP
   irqstate_t flags = up_irq_save();
-#endif
-
-  bool ret = up_current_regs() != NULL;
-
-#ifdef CONFIG_SMP
+  bool ret = g_interrupt_context[up_cpu_index()];
   up_irq_restore(flags);
-#endif
-
   return ret;
+#else
+  return g_interrupt_context[0];
+#endif
+}
+
+noinstrument_function
+static inline_function void up_set_interrupt_context(bool flag)
+{
+#ifdef CONFIG_ARCH_HAVE_MULTICPU
+  g_interrupt_context[up_cpu_index()] = flag;
+#else
+  g_interrupt_context[0] = flag;
+#endif
 }
 
 /****************************************************************************

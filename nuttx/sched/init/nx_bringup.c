@@ -34,10 +34,9 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
-#include <nuttx/coredump.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/init.h>
-#include <nuttx/nuttx.h>
+#include <nuttx/macro.h>
 #include <nuttx/symtab.h>
 #include <nuttx/trace.h>
 #include <nuttx/wqueue.h>
@@ -52,6 +51,7 @@
 #include "sched/sched.h"
 #include "wqueue/wqueue.h"
 #include "init/init.h"
+#include "misc/coredump.h"
 
 #ifdef CONFIG_ETC_ROMFS
 #  include <nuttx/drivers/ramdisk.h>
@@ -322,8 +322,7 @@ static inline void nx_start_application(void)
   board_late_initialize();
 #endif
 
-#if defined(CONFIG_BOARD_COREDUMP_SYSLOG) || \
-    defined(CONFIG_BOARD_COREDUMP_BLKDEV)
+#ifndef CONFIG_BOARD_CRASHDUMP_NONE
   coredump_initialize();
 #endif
 
