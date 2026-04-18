@@ -27,11 +27,65 @@
 
 #include <assert.h>
 
+<<<<<<<< HEAD:nuttx/drivers/motor/foc/foc_pwr.c
 #include <nuttx/motor/foc/foc_pwr.h>
+========
+#include "arm_internal.h"
+#include "barriers.h"
+#include "imxrt_periphclks.h"
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/imxrt/imxrt_periphclks.c
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+#ifdef CONFIG_ARCH_FAMILY_IMXRT117x
+
+/****************************************************************************
+ * Name: imxrt_periphclk_configure
+ *
+ * Description:
+ *   Configure a peripheral clock by modifying the appropriate field in the
+ *   appropriate LPCG register.
+ *
+ * Input Parameters:
+ *   index   - The index of the field to be modified
+ *   value   - The new value of the field
+ *
+ * Returned Value:
+ *  None
+ *
+ ****************************************************************************/
+
+void imxrt_periphclk_configure(unsigned int index, unsigned int value)
+{
+  uint32_t regval;
+  regval = getreg32(IMXRT_CCM_LPCG_DIR(index));
+
+  if ((value & CCM_LPCG_DIR_ON) != (regval & CCM_LPCG_DIR_ON))
+    {
+      if (value == CCM_CG_OFF)
+        {
+          regval &= ~CCM_LPCG_DIR_ON;
+        }
+      else
+        {
+          regval |= CCM_LPCG_DIR_ON;
+        }
+
+      putreg32(regval, IMXRT_CCM_LPCG_DIR(index));
+
+      ARM_DSB();
+      ARM_ISB();
+
+      /* Ensure the clock setting is written and active before we return */
+
+      while ((getreg32(IMXRT_CCM_LPCG_STAT0(index)) & CCM_LPCG_STAT0_ON)
+             != (value & CCM_LPCG_STAT0_ON));
+    }
+}
+
+#else
 
 /****************************************************************************
  * Name: focpwr_initialize
@@ -52,6 +106,7 @@ int focpwr_initialize(FAR struct focpwr_dev_s *pwr,
                       FAR struct foc_dev_s *dev,
                       FAR struct focpwr_ops_s *ops)
 {
+<<<<<<<< HEAD:nuttx/drivers/motor/foc/foc_pwr.c
   DEBUGASSERT(ops->setup);
   DEBUGASSERT(ops->shutdown);
   DEBUGASSERT(ops->calibration);
@@ -66,4 +121,11 @@ int focpwr_initialize(FAR struct focpwr_dev_s *pwr,
   dev->pwr = pwr;
 
   return OK;
+========
+  modifyreg32(regaddr, CCM_CCGRX_CG_MASK(index), CCM_CCGRX_CG(index, value));
+  ARM_DSB();
+  ARM_ISB();
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/imxrt/imxrt_periphclks.c
 }
+
+#endif

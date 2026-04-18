@@ -37,12 +37,25 @@ ifeq ($(CONFIG_ESP32S3_SPI),y)
 CSRCS += esp32s3_board_spi.c
 endif
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/Make.defs
 ifeq ($(CONFIG_ESP32S3_BOX_LCD),y)
     ifeq ($(CONFIG_ESP32_S3_BOX),y)
         CSRCS += esp32s3_board_lcd_st7789.c
     else
         CSRCS += esp32s3_board_lcd_ili9342c.c
     endif
+========
+ifeq ($(CONFIG_ESP32S3_TWAI),y)
+CSRCS += esp32s3_twai.c
+endif
+
+ifeq ($(CONFIG_DEV_GPIO),y)
+CSRCS += esp32s3_gpio.c
+endif
+
+ifeq ($(CONFIG_PWM),y)
+CSRCS += esp32s3_ledc.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s3/esp32s3-devkit/src/Make.defs
 endif
 
 ifeq ($(CONFIG_ESP32S3_BOARD_TOUCHSCREEN),y)

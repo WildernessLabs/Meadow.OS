@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_twai.c
  * boards/xtensa/esp32s2/common/src/esp32s2_board_twai.c
+========
+ * boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_twai.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_twai.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

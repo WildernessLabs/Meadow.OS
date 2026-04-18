@@ -367,12 +367,16 @@ endif # RTC_RX8010SJ
 config RTC_RPMSG
 	bool "RPMSG RTC Driver"
 	default n
-	depends on RPTUN
+	depends on RPMSG
 	select ARCH_HAVE_RTC_SUBSECONDS
 
 config RTC_RPMSG_SERVER
 	bool "The RTC RPMSG Role"
+<<<<<<< HEAD
 	depends on RPTUN
+=======
+	depends on RPMSG
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 config RTC_RPMSG_SERVER_NAME
 	string "The name of RTC RPMSG Server"

@@ -46,8 +46,11 @@ CONFIG_HAVE_CXXINITIALIZE=y
 CONFIG_IDLETHREAD_STACKSIZE=3072
 CONFIG_INIT_ENTRYPOINT="nsh_main"
 CONFIG_INIT_STACKSIZE=3072
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-lcd-ev/configs/lvgl/defconfig
 CONFIG_INPUT=y
 CONFIG_INPUT_FT5X06=y
+========
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32/ttgo_t_display_esp32/configs/lvgl_fb/defconfig
 CONFIG_INTELHEX_BINARY=y
 CONFIG_LV_FONT_MONTSERRAT_20=y
 CONFIG_LV_MEMCPY_MEMSET_STD=y

@@ -16,4 +16,22 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
+<<<<<<<< HEAD:nuttx/Documentation/_extensions/__init__.py
 ##############################################################################
+========
+#############################################################################
+
+include $(TOPDIR)/Make.defs
+
+include board/Make.defs
+include src/Make.defs
+
+DEPPATH += --dep-path board
+DEPPATH += --dep-path src
+
+include $(TOPDIR)/boards/Board.mk
+
+ARCHSRCDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
+BOARDDIR = $(ARCHSRCDIR)$(DELIM)board
+CFLAGS += ${INCDIR_PREFIX}$(BOARDDIR)$(DELIM)include
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/common/Makefile

@@ -18,9 +18,48 @@
 #
 ############################################################################
 
+<<<<<<<< HEAD:nuttx/arch/xtensa/src/common/espressif/Make.defs
 ifeq ($(CONFIG_ESP_RMT),y)
 CHIP_CSRCS += esp_rmt.c
 ifeq ($(CONFIG_WS2812_NON_SPI_DRIVER),y)
 CHIP_CSRCS += esp_ws2812.c
 endif
 endif
+========
+include $(TOPDIR)/Make.defs
+
+CSRCS = mx8mp_boot.c mx8mp_bringup.c
+
+ifeq ($(CONFIG_BOARDCTL),y)
+  CSRCS += mx8mp_appinit.c
+endif
+
+ifeq ($(CONFIG_SENSORS_INA219),y)
+  CSRCS += mx8mp_ina219.c
+endif
+
+ifeq ($(CONFIG_MX8MP_I2C_DRIVER),y)
+  CSRCS += mx8mp_i2cdev.c
+endif
+
+ifeq ($(CONFIG_SPI),y)
+CSRCS += mx8mp_spi.c
+endif
+
+ifeq ($(CONFIG_MX8MP_SPI_DRIVER),y)
+  CSRCS += mx8mp_spidev.c
+endif
+
+ifeq ($(CONFIG_ARCH_LEDS),y)
+  CSRCS += mx8mp_autoleds.c
+else
+  CSRCS += mx8mp_userleds.c
+endif
+
+ifeq ($(CONFIG_ARCH_BUTTONS),y)
+  CSRCS += mx8mp_buttons.c
+endif
+
+
+include $(TOPDIR)/boards/Board.mk
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/mx8mp/verdin-mx8mp/src/Makefile

@@ -22,7 +22,15 @@
  * Included Files
  ****************************************************************************/
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_rmt.c
 #include <nuttx/config.h>
+========
+#include <unistd.h>
+#include <stdbool.h>
+#include <string.h>
+#include <nuttx/signal.h>
+#include <arch/board/board.h>
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/cxd56xx/common/src/cxd56_bcm20706.c
 
 #include <errno.h>
 #include <debug.h>
@@ -149,4 +157,72 @@ int board_rmt_txinitialize(int ch, int pin)
 
   return ret;
 }
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_rmt.c
 #endif
+========
+
+/****************************************************************************
+ * Name: board_bluetooth_uart_pin_cfg
+ *
+ * Description:
+ *   Setup UART pin configuration for bcm20706.
+ *
+ ****************************************************************************/
+
+int board_bluetooth_uart_pin_cfg(void)
+{
+  int ret = 0;
+
+  /* BCM20706 evaluation board might set pull-down.
+   * Set float for UART2 CTS
+   */
+
+  ret = board_gpio_config(PIN_UART2_CTS, 1, 1, 0, 0);
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: board_bluetooth_reset
+ *
+ * Description:
+ *   Reset BCM20706.
+ *
+ ****************************************************************************/
+
+void board_bluetooth_reset(void)
+{
+  cxd56_gpio_write(BCM20707_RST_N, false);
+  nxsig_usleep(BCM20707_RST_DELAY);
+  cxd56_gpio_write(BCM20707_RST_N, true);
+  nxsig_usleep(BCM20707_RST_DELAY);
+}
+
+/****************************************************************************
+ * Name: board_bluetooth_power_control
+ *
+ * Description:
+ *   Power ON/OFF BCM20706.
+ *
+ ****************************************************************************/
+
+int board_bluetooth_power_control(bool en)
+{
+  int ret = 0;
+  ret = board_power_control(POWER_BTBLE, en);
+  return ret;
+}
+
+/****************************************************************************
+ * Name: board_bluetooth_enable_sleep
+ *
+ * Description:
+ *   Sleep mode ON/OFF BCM20706.
+ *
+ ****************************************************************************/
+
+void board_bluetooth_enable_sleep(bool en)
+{
+  cxd56_gpio_write(BCM20707_DEV_WAKE, en);
+}
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/cxd56xx/common/src/cxd56_bcm20706.c

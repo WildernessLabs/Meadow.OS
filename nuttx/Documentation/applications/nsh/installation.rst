@@ -27,6 +27,7 @@ increasing difficulty:
      create the start-up script. It is sufficiently complex that is
      deserves its own paragraph
 
+<<<<<<< HEAD
 NuttShell Start up Scripts
 --------------------------
 
@@ -201,3 +202,5 @@ installed in your system:
      image.
 
   #. The ``xxd`` tool that is used to create the C header file.
+=======
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2

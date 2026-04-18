@@ -94,6 +94,21 @@ extern "C"
 #endif
 
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/arch/arm/include/at32/irq.h
+========
+ * Public Data
+ ****************************************************************************/
+
+/* This holds a references to the current interrupt level
+ * register storage structure.  It is non-NULL only during
+ * interrupt processing.
+ */
+
+EXTERN volatile uint32_t *g_current_regs;
+#define CURRENT_REGS g_current_regs
+
+/****************************************************************************
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/renesas/include/irq.h
  * Public Function Prototypes
  ****************************************************************************/
 

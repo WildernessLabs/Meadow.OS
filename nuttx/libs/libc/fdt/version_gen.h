@@ -21,6 +21,10 @@
 #ifndef __LIBS_LIBC_FDT_VERSION_GEN_H
 #define __LIBS_LIBC_FDT_VERSION_GEN_H
 
+<<<<<<<< HEAD:nuttx/libs/libc/fdt/version_gen.h
 #define DTC_VERSION ("DTC "CONFIG_LIBC_FDT_DTC_VERSION)
+========
+#define FARAPISTUB_VERSION 20591
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/cxd56xx/cxd56_farapistub.h
 
 #endif /* __LIBS_LIBC_FDT_VERSION_GEN_H */

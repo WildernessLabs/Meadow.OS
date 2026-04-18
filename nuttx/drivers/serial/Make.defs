@@ -24,10 +24,13 @@ CSRCS += serial.c serial_io.c
 
 ifeq ($(CONFIG_SERIAL_GDBSTUB),y)
   CSRCS += serial_gdbstub.c
+<<<<<<< HEAD
 endif
 
 ifeq ($(CONFIG_UART_PL011),y)
   CSRCS += serial_pl011.c
+=======
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 endif
 
 ifeq ($(CONFIG_SERIAL_RXDMA),y)
@@ -38,6 +41,10 @@ endif
 
 ifeq ($(CONFIG_16550_UART),y)
   CSRCS += uart_16550.c
+endif
+
+ifeq ($(CONFIG_UART_PL011),y)
+  CSRCS += uart_pl011.c
 endif
 
 ifeq ($(CONFIG_RPMSG_UART),y)

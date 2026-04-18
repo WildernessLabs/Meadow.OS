@@ -92,6 +92,51 @@ int esp_ws2812_release(void * driver);
 
 #endif
 
+<<<<<<<< HEAD:nuttx/arch/xtensa/src/common/espressif/esp_ws2812.h
+========
+#ifdef CONFIG_SENSORS_AK09912_SCU
+/****************************************************************************
+ * Name: ak09912_init
+ *
+ * Description:
+ *   Initialize AK09912 magnetometer device
+ *
+ * Input Parameters:
+ *   i2c     - An instance of the I2C interface to use to communicate with
+ *             AK09912
+ *   port    - I2C port number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int ak09912_init(struct i2c_master_s *i2c, int port);
+
+/****************************************************************************
+ * Name: ak09912_scu_register
+ *
+ * Description:
+ *   Register the AK09912 character device as 'devpath'
+ *
+ * Input Parameters:
+ *   devpath - The full path to the driver to register. E.g., "/dev/mag0"
+ *   minor   - The number of sequencer
+ *   i2c     - An instance of the I2C interface to use to communicate with
+ *             AK09912
+ *   port    - I2C port number
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+int ak09912_scu_register(const char *devpath, int minor,
+                         struct i2c_master_s *i2c, int port);
+
+#endif /* CONFIG_SENSORS_AK09912_SCU */
+
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/cxd56xx/spresense/include/cxd56_ak09912.h
 #undef EXTERN
 #if defined(__cplusplus)
 }

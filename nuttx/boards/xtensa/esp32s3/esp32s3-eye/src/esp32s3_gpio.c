@@ -297,7 +297,11 @@ static int gpint_enable(struct gpio_dev_s *dev, bool enable)
 
           /* Configure the interrupt for rising edge */
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-eye/src/esp32s3_gpio.c
           esp32s3_gpioirqenable(irq, RISING);
+========
+          esp32s2_gpioirqenable(irq, RISING);
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/esp32s2-kaluga-1/src/esp32s2_gpio.c
         }
     }
   else

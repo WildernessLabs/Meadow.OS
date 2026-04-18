@@ -237,10 +237,17 @@ support.
 
 For details see :doc:`/components/wireless`.
 
+<<<<<<< HEAD
 ``nuttx/CMakeList.txt``
 =======================
 
 The top-level ``CMakeList.txt`` file.
+=======
+``nuttx/CMakeLists.txt``
+========================
+
+The top-level ``CMakeLists.txt`` file.
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 ``nuttx/Makefile``
 ==================

@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/common/src/esp32_backlight.c
  * boards/xtensa/esp32/common/src/esp32_backlight.c
+========
+ * boards/risc-v/esp32c3-legacy/common/include/esp32c3_board_bmp180.h
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/common/include/esp32c3_board_bmp180.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

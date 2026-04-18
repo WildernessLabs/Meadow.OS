@@ -37,4 +37,20 @@
 #  define BOARD_CLOCK_FREQUENCY 80000000
 #endif
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/include/board.h
 #endif /* __BOARDS_XTENSA_ESP32S3_ESP32S3_BOX_INCLUDE_BOARD_H */
+========
+/* LED definitions **********************************************************/
+
+/* Define how many LEDs this board has (needed by userleds) */
+
+#define BOARD_NLEDS             1
+
+/* GPIO pins used by the GPIO Subsystem */
+
+#define BOARD_NGPIOOUT    1 /* Amount of GPIO Output pins */
+#define BOARD_NGPIOIN     0
+#define BOARD_NGPIOINT    1
+
+#endif /* __BOARDS_XTENSA_ESP32S3_ESP32S3_EYE_INCLUDE_BOARD_H */
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s3/esp32s3-eye/include/board.h

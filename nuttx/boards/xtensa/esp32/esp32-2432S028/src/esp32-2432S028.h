@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/esp32-2432S028/src/esp32-2432S028.h
  * boards/xtensa/esp32/esp32-2432S028/src/esp32-2432S028.h
+========
+ * boards/risc-v/esp32c3-legacy/esp32c3-devkit/src/esp32c3-devkit.h
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/esp32c3-devkit/src/esp32c3-devkit.h
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

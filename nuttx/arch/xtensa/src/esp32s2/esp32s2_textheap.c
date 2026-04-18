@@ -73,7 +73,11 @@
 
 void *up_textheap_memalign(size_t align, size_t size)
 {
+<<<<<<<< HEAD:nuttx/arch/xtensa/src/esp32s2/esp32s2_textheap.c
   void *ret = NULL;
+========
+  void *ret = kmm_malloc(size);
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/cxd56xx/cxd56_textheap.c
 
   /* Prioritise allocating from RTC. If that fails, allocate from the
    * main heap.

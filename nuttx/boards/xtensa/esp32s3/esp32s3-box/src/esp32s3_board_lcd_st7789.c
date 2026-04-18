@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_lcd_st7789.c
  * boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_lcd.c
+========
+ * boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_st7789.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/common/src/esp32c3_board_st7789.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with

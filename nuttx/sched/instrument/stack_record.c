@@ -25,7 +25,45 @@
 #include <nuttx/instrument.h>
 #include <sys/param.h>
 
+<<<<<<<< HEAD:nuttx/sched/instrument/stack_record.c
 #include "sched/sched.h"
+========
+#include <sys/types.h>
+
+#include <debug.h>
+#include <assert.h>
+
+#include "chip.h"
+
+#include "nrf_modem.h"
+#include "nrf_modem_at.h"
+
+#include "nrf91_modem.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_TRUSTZONE_NONSECURE
+#  error NRF91 modem works only in non-secure environment
+#endif
+
+#ifndef CONFIG_NRF91_LFCLK_XTAL
+#  error NRF91 modem requires using LFXO as the LFCLK source
+#endif
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/nrf91/nrf91_modem.c
+
+#ifndef CONFIG_NRF91_MODEM_LTEM
+#  define CONFIG_NRF91_MODEM_LTEM 0
+#endif
+
+#ifndef CONFIG_NRF91_MODEM_NBIOT
+#  define CONFIG_NRF91_MODEM_NBIOT 0
+#endif
+
+#ifndef CONFIG_NRF91_MODEM_GNSS
+#  define CONFIG_NRF91_MODEM_GNSS 0
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -63,6 +101,7 @@ static void stack_record_enter(FAR void *this_fn, FAR void *call_site,
   FAR void *sp = &tcb;
   size_t i;
 
+<<<<<<<< HEAD:nuttx/sched/instrument/stack_record.c
   if (tcb == NULL || sp < tcb->stack_base_ptr ||
       sp >= tcb->stack_base_ptr + tcb->adj_stack_size)
     {
@@ -109,4 +148,80 @@ static void stack_record_leave(FAR void *this_fn, FAR void *call_site,
     }
 
   tcb->level--;
+========
+/****************************************************************************
+ * Name: nrf91_modem_config
+ ****************************************************************************/
+
+static int nrf91_modem_config(void)
+{
+  int ret;
+
+  /* Configure modem system mode */
+
+  ret = nrf_modem_at_printf("AT%%XSYSTEMMODE=%d,%d,%d,%d",
+                            CONFIG_NRF91_MODEM_LTEM,
+                            CONFIG_NRF91_MODEM_NBIOT,
+                            CONFIG_NRF91_MODEM_GNSS,
+                            CONFIG_NRF91_MODEM_PREFERENCE);
+  if (ret < 0)
+    {
+      goto errout;
+    }
+
+errout:
+  return ret;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: nrf91_modem_initialize
+ ****************************************************************************/
+
+int nrf91_modem_initialize(void)
+{
+  int ret = OK;
+
+  /* Initialize modem */
+
+  ret = nrf_modem_init(&g_init_params);
+  if (ret < 0)
+    {
+      nerr("nrf_modem_init failed %d\n", ret);
+      goto errout;
+    }
+
+  /* Initial modem configuration */
+
+  ret = nrf91_modem_config();
+  if (ret < 0)
+    {
+      nerr("nrf91_modem_config failed %d\n", ret);
+      goto errout;
+    }
+
+  /* Initial modem configuration */
+
+  ret = nrf91_modem_config();
+  if (ret < 0)
+    {
+      nerr("nrf91_modem_config failed %d\n", ret);
+      goto errout;
+    }
+
+  /* Board-specific modem configuration */
+
+  ret = nrf91_modem_board_init();
+  if (ret < 0)
+    {
+      nerr("nrf91_modem_board_init failed %d\n", ret);
+      goto errout;
+    }
+
+errout:
+  return ret;
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/nrf91/nrf91_modem.c
 }

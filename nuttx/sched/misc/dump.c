@@ -25,11 +25,16 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+<<<<<<<< HEAD:nuttx/sched/misc/dump.c
 #include <nuttx/fs/fs.h>
+========
+#include <nuttx/irq.h>
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/z16/src/common/z16_exit.c
 
 #include <debug.h>
 
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/sched/misc/dump.c
  * Pre-processor Definitions
  ****************************************************************************/
 
@@ -75,6 +80,8 @@ static void dumphandler(FAR struct tcb_s *tcb, FAR void *arg)
 }
 
 /****************************************************************************
+========
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/z16/src/common/z16_exit.c
  * Public Functions
  ****************************************************************************/
 
@@ -90,8 +97,39 @@ static void dumphandler(FAR struct tcb_s *tcb, FAR void *arg)
 
 void nxsched_dumponexit(void)
 {
+<<<<<<<< HEAD:nuttx/sched/misc/dump.c
   sinfo("Other tasks:\n");
   nxsched_foreach(dumphandler, NULL);
+========
+  FAR struct tcb_s *tcb = this_task();
+
+  /* Make sure that we are in a critical section with local interrupts.
+   * The IRQ state will be restored when the next task is started.
+   */
+
+  enter_critical_section();
+
+  nxsched_dumponexit();
+
+  /* Destroy the task at the head of the ready to run list. */
+
+  nxtask_exit();
+
+  /* Now, perform the context switch to the new ready-to-run task at the
+   * head of the list.
+   */
+
+  tcb = this_task();
+  sinfo("New Active Task TCB=%p\n", tcb);
+
+  /* Adjusts time slice for SCHED_RR & SCHED_SPORADIC cases */
+
+  nxsched_resume_scheduler(tcb);
+
+  /* Then switch contexts */
+
+  RESTORE_USERCONTEXT(tcb);
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/z16/src/common/z16_exit.c
 }
 
 #endif /* CONFIG_DUMP_ON_EXIT */

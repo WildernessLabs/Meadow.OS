@@ -18,7 +18,29 @@
 #
 # ##############################################################################
 
+<<<<<<<< HEAD:nuttx/boards/arm/stm32f7/common/src/CMakeLists.txt
 set(SRCS)
+========
+if(CONFIG_ARCH_BOARD_COMMON)
+
+  if(CONFIG_NRF91_TIMER)
+    list(APPEND SRCS nrf91_timer.c)
+  endif()
+
+  if(CONFIG_BOARDCTL_BOOT_IMAGE)
+    list(APPEND SRCS nrf91_boot_image.c)
+  endif()
+
+  if(CONFIG_NRF91_PROGMEM)
+    list(APPEND SRCS nrf91_progmem.c)
+  endif()
+
+  if(CONFIG_BOARDCTL_RESET)
+    list(APPEND SRCS nrf91_reset.c)
+  endif()
+
+  target_sources(board PRIVATE ${SRCS})
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/arm/nrf91/common/src/CMakeLists.txt
 
 if(CONFIG_SENSORS_BH1750FVI)
   list(APPEND SRCS stm32_bh1750.c)

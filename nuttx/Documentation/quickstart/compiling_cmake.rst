@@ -45,10 +45,17 @@ We can now build NuttX. To do so, you can simply run:
   .. code-block:: console
 
      $ cd nuttx
+<<<<<<< HEAD
      $ cmake --build build -t menuconfig 
 
 The build will complete by generating the binary outputs
 inside ``build/nuttx`` directory. Typically this includes the ``nuttx``
+=======
+     $ cmake --build build 
+
+The build will complete by generating the binary outputs
+inside ``build/`` directory. Typically this includes the ``nuttx``
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 ELF file (suitable for debugging using ``gdb``) and a ``nuttx.bin``
 file that can be flashed to the board.
 

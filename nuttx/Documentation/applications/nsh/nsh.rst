@@ -260,6 +260,7 @@ Environment Variables
 ``OLDPWD``  The previous working directory
 ==========  ================================================
 
+<<<<<<< HEAD
 
 NSH Start-Up Script
 ===================
@@ -380,4 +381,6 @@ containing the ROMFS file system image.
 **Further Information**. See the section on 
 :doc:`Customizing the NuttShell <customizing>` for additional, more detailed
 information about the NSH start-up script and how to modify it.
+=======
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 

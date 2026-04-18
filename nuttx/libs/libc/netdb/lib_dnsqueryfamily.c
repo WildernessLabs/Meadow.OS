@@ -29,7 +29,21 @@
 #include <assert.h>
 #include <debug.h>
 
+<<<<<<<< HEAD:nuttx/libs/libc/netdb/lib_dnsqueryfamily.c
 #include "netdb/lib_dns.h"
+========
+#include <arch/chip/chip.h>
+
+#include "arm_internal.h"
+
+#include "barriers.h"
+#include "cp15.h"
+#include "arm_gic.h"
+#include "chip.h"
+#include "fvp_boot.h"
+
+#include <nuttx/serial/uart_pl011.h>
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/fvp-v8r-aarch32/fvp_boot.c
 
 /****************************************************************************
  * Private Data

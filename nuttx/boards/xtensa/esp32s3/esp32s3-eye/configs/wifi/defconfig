@@ -71,6 +71,10 @@ CONFIG_SCHED_WAITPID=y
 CONFIG_SIG_DEFAULT=y
 CONFIG_SMP=y
 CONFIG_SMP_NCPUS=2
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-eye/configs/wifi/defconfig
+========
+CONFIG_SPIFFS_NAME_MAX=128
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s3/esp32s3-devkit/configs/sta_softap/defconfig
 CONFIG_START_DAY=6
 CONFIG_START_MONTH=12
 CONFIG_START_YEAR=2011

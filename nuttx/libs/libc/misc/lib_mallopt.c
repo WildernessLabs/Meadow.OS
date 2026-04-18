@@ -22,7 +22,13 @@
  * Included Files
  ****************************************************************************/
 
+<<<<<<<< HEAD:nuttx/libs/libc/misc/lib_mallopt.c
 #include <malloc.h>
+========
+#include <nuttx/timers/arch_alarm.h>
+
+#include "arm_timer.h"
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/qemu/qemu_timer.c
 
 /****************************************************************************
  * Public Functions
@@ -34,5 +40,9 @@
 
 int mallopt(int param, int value)
 {
+<<<<<<<< HEAD:nuttx/libs/libc/misc/lib_mallopt.c
   return 1;
+========
+  up_alarm_set_lowerhalf(arm_timer_initialize(0));
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/arch/arm/src/qemu/qemu_timer.c
 }

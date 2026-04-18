@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_spi.c
  * boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_spi.c
+========
+ * boards/xtensa/esp32s2/common/src/esp32s2_board_spi.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_spi.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -30,8 +34,12 @@
 
 #include <nuttx/spi/spi.h>
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_spi.c
 #include "esp32s3_gpio.h"
 #include "esp32s3-box.h"
+========
+#include "esp32s2_gpio.h"
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_spi.c
 
 /****************************************************************************
  * Private Functions
@@ -70,7 +78,11 @@ int esp32s3_spi2_cmddata(struct spi_dev_s *dev, uint32_t devid, bool cmd)
        *  data bits are data or a command.
        */
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_board_spi.c
       esp32s3_gpiowrite(DISPLAY_DC, !cmd);
+========
+      esp32s2_gpiowrite(CONFIG_ESP32S2_SPI2_MISOPIN, !cmd);
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/xtensa/esp32s2/common/src/esp32s2_board_spi.c
 
       return OK;
     }

@@ -240,6 +240,7 @@ void bmi160_getregs(FAR struct bmi160_dev_s *priv, uint8_t regaddr,
 
 int bmi160_checkid(FAR struct bmi160_dev_s *priv);
 
+<<<<<<< HEAD
 /****************************************************************************
  * Name: bmi160_configspi
  *
@@ -258,4 +259,6 @@ inline void bmi160_configspi(FAR struct spi_dev_s *spi)
   SPI_SETFREQUENCY(spi, BMI160_SPI_MAXFREQUENCY);
 }
 #endif
+=======
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 #endif /* __INCLUDE_NUTTX_SENSORS_BMI160_COMMOM_H */

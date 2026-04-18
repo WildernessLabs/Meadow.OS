@@ -7,6 +7,12 @@ Network Support
 
   sixlowpan.rst
   socketcan.rst
+<<<<<<< HEAD
+=======
+  pkt.rst
+  nat.rst
+  netdev.rst
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   netguardsize.rst
   slip.rst
   wqueuedeadlocks.rst
@@ -33,7 +39,11 @@ Network Support
        +- nat        - Network Address Translation (NAT)
        +- neighbor   - Neighbor Discovery Protocol (IPv6)
        +- netdev     - Socket network device interface
+<<<<<<< HEAD
        +- netfiletr  - Iptables Interface
+=======
+       +- netfilter  - Iptables Interface
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
        +- netlink    - Netlink IPC socket interface
        +- pkt        - "Raw" packet socket support
        +- procfs     - net devices PROCFS support

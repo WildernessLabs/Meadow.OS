@@ -1521,7 +1521,11 @@ static void lan9250_txavail_work(FAR void *arg)
 
   /* Ignore the notification if the interface is not yet up */
 
+<<<<<<< HEAD
   if (IFF_IS_UP(dev->d_flags))
+=======
+  if (IFF_IS_UP(dev->d_flags) && priv->tx_available)
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
     {
       /* Check if there is room in the hardware to hold another outgoing
        * packet.
@@ -2258,6 +2262,7 @@ static int lan9250_txavail(FAR struct net_driver_s *dev)
 {
   FAR struct lan9250_driver_s *priv =
         (FAR struct lan9250_driver_s *)dev->d_private;
+<<<<<<< HEAD
   irqstate_t flags;
 
   /* Lock the SPI bus so that we have exclusive access for but SPI and
@@ -2281,6 +2286,10 @@ static int lan9250_txavail(FAR struct net_driver_s *dev)
   if (IFF_IS_UP(dev->d_flags) &&
       priv->tx_available &&
       work_available(&priv->txpoll_work))
+=======
+
+  if (work_available(&priv->txpoll_work))
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
     {
       /* Schedule to serialize the poll on the worker thread. */
 
@@ -2288,10 +2297,13 @@ static int lan9250_txavail(FAR struct net_driver_s *dev)
                  lan9250_txavail_work, priv, 0);
     }
 
+<<<<<<< HEAD
   /* Un-lock the SPI bus */
 
   leave_critical_section(flags);
   lan9250_unlock_spi(priv);
+=======
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   return OK;
 }
 

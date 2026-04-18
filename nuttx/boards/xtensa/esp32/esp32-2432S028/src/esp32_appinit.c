@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/esp32-2432S028/src/esp32_appinit.c
  * boards/xtensa/esp32/esp32-2432S028/src/esp32_appinit.c
+========
+ * boards/risc-v/esp32c6/esp32c6-devkitm/src/esp32c6_appinit.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitm/src/esp32c6_appinit.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -25,9 +29,14 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+
 #include <nuttx/board.h>
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/esp32-2432S028/src/esp32_appinit.c
 #include "esp32-2432S028.h"
+========
+#include "esp32c6-devkitm.h"
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitm/src/esp32c6_appinit.c
 
 #ifdef CONFIG_BOARDCTL
 
@@ -73,7 +82,11 @@ int board_app_initialize(uintptr_t arg)
 #else
   /* Perform board-specific initialization */
 
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32/esp32-2432S028/src/esp32_appinit.c
   return esp32_bringup();
+========
+  return esp_bringup();
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c6/esp32c6-devkitm/src/esp32c6_appinit.c
 #endif
 }
 

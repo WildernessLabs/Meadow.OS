@@ -61,6 +61,10 @@ Character device drivers have these properties:
   contactless.rst
   crypto/index.rst
   efuse.rst
+<<<<<<< HEAD
+=======
+  hx711.rst
+>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
   i2s.rst
   input/index.rst
   ipcc.rst

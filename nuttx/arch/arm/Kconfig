@@ -55,7 +55,7 @@ choice
 
 config ARCH_CHIP_FVP_ARMV8R_AARCH32
 	bool "ARM FVP virt platform (ARMv8r AARCH32)"
-	select ARCH_ARMV8R
+	select ARCH_CORTEXR52
 	select ARCH_HAVE_LOWVECTORS
 	select ARCH_HAVE_FETCHADD
 	select ARMV8R_HAVE_DECODEFIQ

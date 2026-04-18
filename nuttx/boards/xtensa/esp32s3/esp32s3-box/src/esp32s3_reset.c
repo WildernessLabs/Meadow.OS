@@ -1,5 +1,9 @@
 /****************************************************************************
+<<<<<<<< HEAD:nuttx/boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_reset.c
  * boards/xtensa/esp32s3/esp32s3-box/src/esp32s3_reset.c
+========
+ * boards/risc-v/esp32c3-legacy/esp32c3-devkit-rust-1/src/esp32c3_reset.c
+>>>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2:nuttx/boards/risc-v/esp32c3-legacy/esp32c3-devkit-rust-1/src/esp32c3_reset.c
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
