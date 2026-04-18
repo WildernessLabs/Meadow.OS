@@ -646,11 +646,7 @@ config LSM9DS1_I2C_FREQUENCY
 	int "LSM9DS1 I2C frequency"
 	default 400000
 	range 1 400000
-<<<<<<< HEAD
-	depends on SENSORS_LSM9DS1
-=======
 	depends on SENSORS_LSM9DS1 || SENSORS_LSM9DS1_UORB
->>>>>>> 9e8753d6256619a7bfa72f4596eb1e481f1c97a2
 
 config SENSORS_LPS25H
 	bool "STMicro LPS25H pressure sensor"
