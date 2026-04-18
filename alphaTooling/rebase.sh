@@ -17,6 +17,13 @@ git add nuttx/net/socket/socket.c
 # Restore our Config.mk (upstream removed ARCHIVE_ADD macro used by apps build)
 git checkout HEAD -- nuttx/tools/Config.mk
 
+# Accept all incoming changes to the tools and documentation
+git checkout --theirs -- nuttx/tools
+git add nuttx/tools
+#
+git checkout --theirs -- nuttx/Documentation
+git add nuttx/Documentation
+
 # NOTE: Build system changes required for the new upstream board build structure:
 # - nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Make.defs
 #     Added: VPATH += :board  (so make finds board sources)

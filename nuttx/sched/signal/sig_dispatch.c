@@ -398,7 +398,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
           (masked == 0 ||
            nxsig_ismember(&stcb->sigwaitmask, info->si_signo)))
         {
-          memcpy(&stcb->sigunbinfo, info, sizeof(siginfo_t));
+          memcpy(stcb->sigunbinfo, info, sizeof(siginfo_t));
           sigemptyset(&stcb->sigwaitmask);
 
           if (WDOG_ISACTIVE(&stcb->waitdog))
@@ -408,7 +408,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 
           /* Remove the task from waitting list */
 
-          dq_rem((FAR dq_entry_t *)stcb, &g_waitingforsignal);
+          dq_rem((FAR dq_entry_t *)stcb, list_waitingforsignal());
 
           /* Add the task to ready-to-run task list and
            * perform the context switch if one is needed
@@ -461,7 +461,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 
       if (stcb->task_state == TSTATE_WAIT_SIG)
         {
-          memcpy(&stcb->sigunbinfo, info, sizeof(siginfo_t));
+          memcpy(stcb->sigunbinfo, info, sizeof(siginfo_t));
           sigemptyset(&stcb->sigwaitmask);
 
           if (WDOG_ISACTIVE(&stcb->waitdog))
@@ -471,7 +471,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 
           /* Remove the task from waitting list */
 
-          dq_rem((FAR dq_entry_t *)stcb, &g_waitingforsignal);
+          dq_rem((FAR dq_entry_t *)stcb, list_waitingforsignal());
 
           /* Add the task to ready-to-run task list and
            * perform the context switch if one is needed
@@ -535,7 +535,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 #else
           /* Remove the task from waitting list */
 
-          dq_rem((FAR dq_entry_t *)stcb, &g_stoppedtasks);
+          dq_rem((FAR dq_entry_t *)stcb, list_stoppedtasks());
 
           /* Add the task to ready-to-run task list and
            * perform the context switch if one is needed
@@ -614,7 +614,7 @@ int nxsig_dispatch(pid_t pid, FAR siginfo_t *info)
        * created the task group. Try looking it up.
        */
 
-      group = group_findbypid(pid);
+      group = task_getgroup(pid);
     }
 
   /* Did we locate the group? */

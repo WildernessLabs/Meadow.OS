@@ -7,17 +7,17 @@
  *  cannot be built.
  */
 
-#define VERSION_MAJOR               ###VERSION_MAJOR###
-#define VERSION_MINOR               ###VERSION_MINOR###
-#define VERSION_REVISION            ###VERSION_REVISION###
-#define VERSION_BUILD               ###VERSION_BUILD###
-#define VERSION_BUILD_DAY           ###BUILD_DAY###
-#define VERSION_BUILD_MONTH         ###BUILD_MONTH###
-#define VERSION_BUILD_MONTH_NAME    "###BUILD_MONTH_NAME###"
-#define VERSION_BUILD_YEAR          ###BUILD_YEAR###
-#define VERSION_BUILD_HOUR          ###BUILD_HOUR###
-#define VERSION_BUILD_MINUTE        ###BUILD_MINUTE###
-#define VERSION_BUILD_SECOND        ###BUILD_SECOND###
-#define VERSION_BUILD_HASH          "###BUILD_HASH###"
-#define VERSION_BUILD_HASH_NUMBER   ###BUILD_HASH###
-#define VERSION_GIT_REF             "###MEADOW_GIT_REF###"
+#define VERSION_MAJOR               1
+#define VERSION_MINOR               99
+#define VERSION_REVISION            0
+#define VERSION_BUILD               9394
+#define VERSION_BUILD_DAY           18
+#define VERSION_BUILD_MONTH         4
+#define VERSION_BUILD_MONTH_NAME    "Apr"
+#define VERSION_BUILD_YEAR          26
+#define VERSION_BUILD_HOUR          6
+#define VERSION_BUILD_MINUTE        18
+#define VERSION_BUILD_SECOND        57
+#define VERSION_BUILD_HASH          "0x89dade47"
+#define VERSION_BUILD_HASH_NUMBER   0x89dade47
+#define VERSION_GIT_REF             "merging12-5"

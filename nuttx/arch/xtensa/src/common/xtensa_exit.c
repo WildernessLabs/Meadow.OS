@@ -62,7 +62,7 @@ void up_exit(int status)
 
   enter_critical_section();
 
-  sinfo("TCB=%p exiting\n", tcb);
+  nxsched_dumponexit();
 
   nxsched_dumponexit();
 

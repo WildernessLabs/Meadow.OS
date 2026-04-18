@@ -18,7 +18,8 @@
 #
 ############################################################################
 
-VPATH += :board
+include $(TOPDIR)/Make.defs
+
 CFLAGS += -I board/Meadow.OS
 $(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)
 
@@ -196,3 +197,15 @@ $(MEADOW_OS_DIR)/meadow_os/meadow_os_battery_backed_domain.c
 
 endif
 endif # MEADOW_OS
+
+ifeq ($(CONFIG_BOARD_MEADOW_F7_CORE_COMPUTE),y)
+CSRCS += board_corecomp.c
+endif
+
+ifeq ($(CONFIG_BOARD_MEADOW_PROJECTLAB),y)
+CSRCS += board_projlab.c
+endif
+
+DEPPATH += --dep-path board
+VPATH += :board
+CFLAGS += ${INCDIR_PREFIX}$(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board$(DELIM)board

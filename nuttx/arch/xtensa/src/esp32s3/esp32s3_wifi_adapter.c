@@ -116,6 +116,8 @@
 #  define DEFAULT_PS_MODE WIFI_PS_NONE
 #endif
 
+#define ESP_MAX_PRIORITIES (25)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -1810,8 +1812,14 @@ static int32_t esp_task_create_pinned_to_core(void *entry,
   cpu_set_t cpuset;
 #endif
 
-  pid = kthread_create(name, prio, stack_depth, entry,
-                      (char * const *)param);
+  uint32_t target_prio = prio;
+  if (target_prio < ESP_MAX_PRIORITIES)
+    {
+      target_prio += esp_task_get_max_priority() - ESP_MAX_PRIORITIES;
+    }
+
+  pid = kthread_create(name, target_prio, stack_depth, entry,
+                       (char * const *)param);
   if (pid > 0)
     {
       if (task_handle != NULL)
@@ -5117,6 +5125,7 @@ int esp_wifi_sta_essid(struct iwreq *iwr, bool set)
     {
       memset(wifi_cfg.sta.ssid, 0x0, SSID_MAX_LEN);
       memcpy(wifi_cfg.sta.ssid, pdata, len);
+      memset(wifi_cfg.sta.sae_h2e_identifier, 0x0, SAE_H2E_IDENTIFIER_LEN);
       wifi_cfg.sta.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
 
       if (g_sta_connected)
@@ -6474,6 +6483,13 @@ int esp_wifi_softap_auth(struct iwreq *iwr, bool set)
 
                   case IW_AUTH_WPA_VERSION_WPA2:
                     wifi_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
+                    break;
+
+                  case IW_AUTH_WPA_VERSION_WPA3:
+                    wifi_cfg.ap.pmf_cfg.required = true;
+                    wifi_cfg.ap.pmf_cfg.capable = false;
+                    wifi_cfg.ap.sae_pwe_h2e = WPA3_SAE_PWE_BOTH;
+                    wifi_cfg.ap.authmode = WIFI_AUTH_WPA3_PSK;
                     break;
 
                   default:

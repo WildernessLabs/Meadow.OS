@@ -25,6 +25,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+
 #include <nuttx/board.h>
 
 #include "esp32-2432S028.h"
