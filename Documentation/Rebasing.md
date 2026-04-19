@@ -52,8 +52,8 @@ NuttxGitHub.png
 
 RebaseFiles.png
 
-ebase   merging12-11 | merge  git status --short | grep "^UA" | grep "nuttx/boards/arm/stm32f7/stm32f777zit"
- ✔  08:18:05
+git status --short | grep "^UA" | grep "nuttx/boards/arm/stm32f7/stm32f777zit"
+
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/hardware/stm32_fdcan.h
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/rp2040_ads7046.c
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/rp2040_tmp112.c
@@ -62,8 +62,8 @@ UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_fdcan_sock.c
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_hx711.c
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_uid.c
 UA nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_uid.h
- Rebase   merging12-11 | merge  git status --short | grep "^UA" | grep "nuttx/boards/arm/stm32f7/stm32f777zit" | awk '{print $2}' | xargs git rm
- ✔  08:20:39
+
+git status --short | grep "^UA" | grep "nuttx/boards/arm/stm32f7/stm32f777zit" | awk '{print $2}' | xargs git rm
  
 rm 'nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/hardware/stm32_fdcan.h'
 rm 'nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/rp2040_ads7046.c'
@@ -105,4 +105,3 @@ Hardware Information
 Firmware Versions 
     OS: 1.99.0.16254
 
-    
