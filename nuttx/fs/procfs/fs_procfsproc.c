@@ -968,12 +968,12 @@ static ssize_t proc_heapcheck_write(FAR struct proc_file_s *procfile,
                                     FAR const char *buffer,
                                     size_t buflen, off_t offset)
 {
-  switch (atoi(buffer))
+  switch (buffer[0])
     {
-      case 0:
+      case '0':
         tcb->flags &= ~TCB_FLAG_HEAP_CHECK;
         break;
-      case 1:
+      case '1':
         tcb->flags |= TCB_FLAG_HEAP_CHECK;
         break;
       default:
@@ -1056,8 +1056,10 @@ static ssize_t proc_stack(FAR struct proc_file_s *procfile,
 
   /* Show the stack size */
 
-  linesize   = procfs_snprintf(procfile->line, STATUS_LINELEN, "%-12s%ld\n",
-                               "StackUsed:", (long)up_check_tcbstack(tcb));
+  linesize = procfs_snprintf(
+      procfile->line, STATUS_LINELEN, "%-12s%zu\n",
+      "StackUsed:", up_check_tcbstack(tcb, tcb->adj_stack_size));
+
   copysize   = procfs_memcpy(procfile->line, linesize, buffer, remaining,
                              &offset);
 

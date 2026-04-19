@@ -84,20 +84,17 @@
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
-#include <nuttx/fs/fs.h>
 
+#include <nuttx/eeprom/eeprom.h>
+#include <nuttx/eeprom/i2c_xx24xx.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/i2c/i2c_master.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
-#include <nuttx/i2c/i2c_master.h>
-#include <nuttx/eeprom/i2c_xx24xx.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#ifndef CONFIG_EE24XX_FREQUENCY
-#  define CONFIG_EE24XX_FREQUENCY 100000
-#endif
 
 #define UUID_SIZE   16
 
@@ -123,23 +120,23 @@ struct ee24xx_dev_s
 {
   /* Bus management */
 
-  FAR struct i2c_master_s *i2c;      /* I2C device where the EEPROM is attached */
-  uint32_t                 freq;     /* I2C bus speed */
-  uint8_t                  addr;     /* 7-bit unshifted I2C device address */
+  FAR struct i2c_master_s *i2c;  /* I2C device where the EEPROM is attached */
+  uint32_t                 freq; /* I2C bus speed                           */
+  uint8_t                  addr; /* 7-bit unshifted I2C device address      */
 
   /* Driver management */
 
-  mutex_t                  lock;     /* file write access serialization */
-  uint8_t                  refs;     /* Nr of times the device has been opened */
-  bool                     readonly; /* Flags */
+  mutex_t lock;     /* file write access serialization                      */
+  uint8_t refs;     /* Nr of times the device has been opened               */
+  bool    readonly; /* Flags                                                */
 
   /* Expanded from geometry */
 
-  uint32_t                 size;       /* total bytes in device */
-  uint16_t                 pgsize;     /* write block size, in bytes */
-  uint16_t                 addrlen;    /* number of bytes in data addresses */
-  uint16_t                 haddrbits;  /* Number of bits in high address part */
-  uint16_t                 haddrshift; /* bit-shift of high address part */
+  uint32_t size;       /* total bytes in device                             */
+  uint16_t pgsize;     /* write block size, in bytes                        */
+  uint16_t addrlen;    /* number of bytes in data addresses                 */
+  uint16_t haddrbits;  /* Number of bits in high address part               */
+  uint16_t haddrshift; /* bit-shift of high address part                    */
 };
 
 /****************************************************************************
@@ -605,7 +602,7 @@ static ssize_t at24cs_read_uuid(FAR struct file *filep, FAR char *buffer,
 
   /* Write data address */
 
-  finfo("READ %d bytes at pos %d\n", len, filep->f_pos);
+  finfo("READ %zu bytes at pos %" PRIdOFF "\n", len, filep->f_pos);
 
   regindx           = 0x80;             /* reg index of UUID[0] */
 
@@ -779,14 +776,44 @@ static int ee24xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct ee24xx_dev_s *eedev;
   FAR struct inode        *inode = filep->f_inode;
-  int                      ret   = 0;
+  int                      ret   = -EINVAL;
 
   DEBUGASSERT(inode->i_private);
   eedev = inode->i_private;
-  UNUSED(eedev);
 
   switch (cmd)
     {
+      case EEPIOC_GEOMETRY:
+        {
+          FAR struct eeprom_geometry_s *geo =
+            (FAR struct eeprom_geometry_s *)arg;
+          if (geo != NULL)
+            {
+              geo->npages   = 0;
+              geo->pagesize = eedev->pgsize;
+              geo->sectsize = eedev->pgsize;
+
+              if (eedev->pgsize > 0)
+                {
+                  geo->npages = eedev->size / eedev->pgsize;
+                }
+
+              ret = OK;
+            }
+        }
+        break;
+
+      case EEPIOC_SETSPEED:
+        {
+          ret = nxmutex_lock(&eedev->lock);
+          if (ret == OK)
+          {
+            eedev->freq = (uint32_t)arg;
+            nxmutex_unlock(&eedev->lock);
+          }
+        }
+        break;
+
       default:
         ret = -ENOTTY;
     }
@@ -904,5 +931,6 @@ int ee24xx_initialize(FAR struct i2c_master_s *bus, uint8_t devaddr,
     }
 #endif
 
-  return register_driver(devname, &g_ee24xx_fops, 0666, eedev);
+  return register_driver_with_size(devname, &g_ee24xx_fops, 0666, eedev,
+                                   eedev->size);
 }

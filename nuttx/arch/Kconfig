@@ -29,7 +29,9 @@ config ARCH
 	string
 	default "arm"     if ARCH_ARM
 
+if ARCH_ARM
 source "arch/arm/Kconfig"
+endif
 
 config ARCH_CHIP_CUSTOM
 	bool "Custom Chip Support"
@@ -899,6 +901,13 @@ config ARCH_DEADLOCKDUMP
 	default "n"
 	---help---
 		This option will dump the dead lock thread when assert happen..
+
+config ENDIAN_BIG
+	bool "Big Endian Architecture"
+	default n
+	depends on !ARCH_RISCV
+	---help---
+		Select if architecture operates using big-endian byte ordering.
 
 config ARCH_IDLE_CUSTOM
 	bool "Custom IDLE loop"

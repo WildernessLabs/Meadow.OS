@@ -77,6 +77,10 @@
                                              *      erased state of the MTD cell */
 #define MTDIOC_ERASESECTORS _MTDIOC(0x000c) /* IN: Pointer to mtd_erase_s structure
                                              * OUT: None */
+#define MTDIOC_RESET        _MTDIOC(0x000d) /* IN: None
+                                             * OUT: None
+                                             *      Resets the device to the power-on
+                                             *      default condition */
 
 /* Macros to hide implementation */
 
@@ -414,7 +418,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev);
 #endif
 
 /****************************************************************************
- * Name: at25xx_initialize
+ * Name: at25ee_initialize
  *
  * Description:
  *   Create an initialized MTD device instance for an AT25 SPI EEPROM
@@ -424,6 +428,7 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev);
  *
  * Input Parameters:
  *   dev        - a reference to the spi device structure
+ *   spi_devid  - SPI device ID to manage CS lines in board
  *   devtype    - device type, from include/nuttx/eeprom/spi_xx25xx.h
  *   readonly   - sets block driver to be readonly
  *
@@ -433,7 +438,8 @@ FAR struct mtd_dev_s *at24c_initialize(FAR struct i2c_master_s *dev);
  ****************************************************************************/
 
 FAR struct mtd_dev_s *at25ee_initialize(FAR struct spi_dev_s *dev,
-                                        int devtype, int readonly);
+                                        uint16_t spi_devid, int devtype,
+                                        int readonly);
 
 /****************************************************************************
  * Name: at24c_uninitialize

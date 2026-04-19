@@ -27,14 +27,12 @@ function(process_config OUTPUT INPUT)
   cmake_parse_arguments(PARSE_ARGV 2 PROCESS_INCLUDES "${options}"
                         "${oneValueArgs}" "${multiValueArgs}")
 
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
-
   set(include_args "")
   foreach(path IN LISTS PROCESS_INCLUDES_INCLUDE_PATHS)
     list(APPEND include_args "${path}")
   endforeach()
 
-  message(STATUS "Processing includes: ${INPUT} → ${OUTPUT}")
+  message(STATUS "Processing includes: ${INPUT} -> ${OUTPUT}")
   execute_process(
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/process_config.py
             ${OUTPUT} ${INPUT} ${include_args}
