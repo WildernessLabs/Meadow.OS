@@ -81,3 +81,28 @@ nuttx/arch/arm
 nuttx/boards
 
 Major differences.
+
+## Manual Changes
+
+## Build
+
+
+Build of version 1.99.0.16254 (0abdfc3d:merging12-11) finished at 08:25:39
+
+Getting device info...
+Meadow by Wilderness Labs
+Board Information 
+    Model: F7Micro
+    Hardware version: F7CoreComputeV2
+    Device name: MeadowF7
+
+Hardware Information 
+    Processor type: STM32F777IIK6
+    ID: 35-00-28-00-07-51-38-34-35-31-38-33
+    Serial number: 336031743438
+    Coprocessor type: ESP32
+
+Firmware Versions 
+    OS: 1.99.0.16254
+
+    
