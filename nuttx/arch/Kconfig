@@ -26,11 +26,24 @@ config ARCH_ARM
 endchoice
 
 config ARCH
-	string
-	default "arm"     if ARCH_ARM
+	bool "ARM"
+	select ARCH_HAVE_BACKTRACE
+	select ARCH_HAVE_INTERRUPTSTACK
+	select ARCH_HAVE_FORK
+	select ARCH_HAVE_STACKCHECK
+	select ARCH_HAVE_CUSTOMOPT
+	select ARCH_HAVE_STDARG_H
+	select ARCH_HAVE_SETJMP if !ARCH_TOOLCHAIN_IAR
+	select ARCH_HAVE_SYSCALL_HOOKS
+	select ARCH_HAVE_RDWR_MEM_CPU_RUN
+	select ARCH_HAVE_TCBINFO
+	select ARCH_HAVE_THREAD_LOCAL
+	---help---
+		The ARM architectures
 
 if ARCH_ARM
 source "arch/arm/Kconfig"
+endif
 
 config ARCH_CHIP_CUSTOM
 	bool "Custom Chip Support"
