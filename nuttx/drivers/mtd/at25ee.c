@@ -115,6 +115,7 @@ struct at25ee_dev_s
 {
   struct mtd_dev_s mtd;       /* MTD interface                              */
   struct spi_dev_s *spi;      /* SPI device where the EEPROM is attached    */
+  uint16_t         devid;     /* SPI device ID to manage CS lines in board  */
   uint32_t         size;      /* in bytes, expanded from geometry           */
   uint16_t         pgsize;    /* write block size, in bytes, expanded from
                                * geometry
@@ -221,6 +222,12 @@ static const struct at25ee_geom_s g_at25ee_devices[] =
   {
     2, 0, 1, 1
   }, /* AT25040B     512    8     1+bit */
+  {
+    9, 4, 2, 0
+  }, /* AT25512    65536  128     2 */
+  {
+    10, 5, 3, 0
+  }, /* AT25M01   131072  256     3 */
 
   /* STM devices */
 
@@ -364,7 +371,7 @@ static void at25ee_waitwritecomplete(struct at25ee_dev_s *priv)
       /* Select this FLASH part */
 
       at25ee_lock(priv->spi);
-      SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), true);
+      SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), true);
 
       /* Send "Read Status Register (RDSR)" command */
 
@@ -378,7 +385,7 @@ static void at25ee_waitwritecomplete(struct at25ee_dev_s *priv)
 
       /* Deselect the FLASH */
 
-      SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), false);
+      SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), false);
       at25ee_unlock(priv->spi);
 
       /* Given that writing could take up to a few milliseconds,
@@ -388,7 +395,7 @@ static void at25ee_waitwritecomplete(struct at25ee_dev_s *priv)
 
       if ((status & AT25EE_SR_WIP) != 0)
         {
-          nxsig_usleep(1000);
+          nxsched_usleep(1000);
         }
     }
   while ((status & AT25EE_SR_WIP) != 0);
@@ -414,11 +421,11 @@ static void at25ee_waitwritecomplete(struct at25ee_dev_s *priv)
 static void at25ee_writeenable(FAR struct at25ee_dev_s *priv, int enable)
 {
   at25ee_lock(priv->spi);
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), true);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), true);
 
   SPI_SEND(priv->spi, enable ? AT25EE_CMD_WREN : AT25EE_CMD_WRDIS);
 
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), false);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), false);
   at25ee_unlock(priv->spi);
 }
 
@@ -443,12 +450,12 @@ static void at25ee_writepage(FAR struct at25ee_dev_s *priv, uint32_t devaddr,
                              FAR const uint8_t *data, size_t len)
 {
   at25ee_lock(priv->spi);
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), true);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), true);
 
   at25ee_sendcmd(priv->spi, AT25EE_CMD_WRITE, priv->addrlen, devaddr);
   SPI_SNDBLOCK(priv->spi, data, len);
 
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), false);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), false);
   at25ee_unlock(priv->spi);
 }
 
@@ -611,7 +618,7 @@ static ssize_t at25ee_read(FAR struct mtd_dev_s *dev, off_t offset,
 
   at25ee_lock(priv->spi);
 
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), true);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), true);
 
   /* STM32F4Disco: There is a 25 us delay here */
 
@@ -619,7 +626,7 @@ static ssize_t at25ee_read(FAR struct mtd_dev_s *dev, off_t offset,
 
   SPI_RECVBLOCK(priv->spi, buf, nbytes);
 
-  SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), false);
+  SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), false);
 
   at25ee_unlock(priv->spi);
 
@@ -661,7 +668,7 @@ static ssize_t at25ee_write(FAR struct mtd_dev_s *dev, off_t offset,
 
   /* Forbid writes past the end of the device */
 
-  if (nbytes + offset >= priv->size)
+  if (nbytes + offset > priv->size)
     {
       return 0;
     }
@@ -1001,16 +1008,18 @@ static int at25ee_ioctl(FAR struct mtd_dev_s *dev,
  *
  * Input Parameters:
  *   dev        - a reference to the spi device structure
+ *   spi_devid  - SPI device ID to manage CS lines in board
  *   devtype    - device type, from include/nuttx/eeprom/spi_xx25xx.h
  *   readonly   - sets block driver to be readonly
  *
  * Returned Value:
- *   Initialised device instance (success) or NULL (fail)
+ *   Initialised device structure (success) of NULL (fail)
  *
  ****************************************************************************/
 
 FAR struct mtd_dev_s *at25ee_initialize(FAR struct spi_dev_s *dev,
-                                        int devtype, int readonly)
+                                        uint16_t spi_devid, int devtype,
+                                        int readonly)
 {
   FAR struct at25ee_dev_s *priv;
 
@@ -1036,6 +1045,7 @@ FAR struct mtd_dev_s *at25ee_initialize(FAR struct spi_dev_s *dev,
   nxmutex_init(&priv->lock);
 
   priv->spi      = dev;
+  priv->devid    = spi_devid;
   priv->size     = 128 << g_at25ee_devices[devtype].bytes;
   priv->pgsize   =   8 << g_at25ee_devices[devtype].pagesize;
   priv->addrlen  =        g_at25ee_devices[devtype].addrlen << 3;

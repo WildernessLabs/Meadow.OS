@@ -46,14 +46,16 @@ enum eeprom_25xx_e
   EEPROM_25XX640,
   EEPROM_25XX128,
   EEPROM_25XX256,
-  EEPROM_25XX512,
-  EEPROM_25XX1024,
+  EEPROM_25XX512,  /* Additional erase commands */
+  EEPROM_25XX1024, /* Additional erase commands */
 
   /* Atmel geometries */
 
   EEPROM_AT25010B,
   EEPROM_AT25020B,
   EEPROM_AT25040B,
+  EEPROM_AT25512,
+  EEPROM_AT25M01,
 
   /* STM geometries */
 
@@ -67,7 +69,6 @@ enum eeprom_25xx_e
   EEPROM_AT25640B  = EEPROM_25XX640,
   EEPROM_AT25128B  = EEPROM_25XX128,
   EEPROM_AT225256B = EEPROM_25XX256,
-  EEPROM_AT25512   = EEPROM_25XX512,
   EEPROM_AT25M02   = EEPROM_25XX1024,
   EEPROM_M95010    = EEPROM_25XX010,
   EEPROM_M95020    = EEPROM_25XX020,
@@ -78,8 +79,8 @@ enum eeprom_25xx_e
   EEPROM_M95640    = EEPROM_25XX640,
   EEPROM_M95128    = EEPROM_25XX128,
   EEPROM_M95256    = EEPROM_25XX256,
-  EEPROM_M95512    = EEPROM_25XX512,
-  EEPROM_M95M01    = EEPROM_25XX1024,
+  EEPROM_M95512    = EEPROM_AT25512,
+  EEPROM_M95M01    = EEPROM_AT25M01,
 };
 
 /****************************************************************************
@@ -89,14 +90,25 @@ enum eeprom_25xx_e
 /****************************************************************************
  * Name: ee25xx_initialize
  *
- * Description: Bind a EEPROM driver to an SPI bus. The user MUST provide
- * a description of the device geometry, since it is not possible to read
- * this information from the device (contrary to the SPI flash devices).
+ * Description:
+ *   Bind an EEPROM driver to an SPI bus. The user MUST provide a description
+ *   of the device geometry, since it is not possible to read this
+ *   information from the device (contrary to the SPI flash devices).
+ *
+ * Parameters:
+ *   dev       - Pointer to the SPI device instance
+ *   spi_devid - SPI device ID to manage CS lines in board
+ *   devname   - Device name
+ *   devtype   - 25xx device type, the geometry is derived from it
+ *   readonly  - Sets driver to be readonly
+ *
+ * Returned Values:
+ *   OK on success; A negated errno value is returned on any failure.
  *
  ****************************************************************************/
 
 struct spi_dev_s;
-int ee25xx_initialize(FAR struct spi_dev_s *dev, FAR char *devname,
-                      int devtype, int readonly);
+int ee25xx_initialize(FAR struct spi_dev_s *dev, uint16_t spi_devid,
+                      FAR char *devname, int devtype, int readonly);
 
 #endif /* __INCLUDE_NUTTX_EEPROM_SPI_XX25XX_H */

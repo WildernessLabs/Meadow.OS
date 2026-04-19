@@ -29,6 +29,10 @@ if(CONFIG_NET)
     list(APPEND SRCS netdev_upperhalf.c)
   endif()
 
+  if(CONFIG_MDIO_BUS)
+    list(APPEND SRCS mdio.c)
+  endif()
+
   if(CONFIG_NET_LOOPBACK)
     list(APPEND SRCS loopback.c)
   endif()
@@ -109,4 +113,6 @@ if(CONFIG_NET)
   endif()
 
   target_sources(drivers PRIVATE ${SRCS})
+
+  nuttx_add_subdirectory()
 endif()

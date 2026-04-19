@@ -357,11 +357,100 @@ nsh
 
 Basic configuration to run the NuttShell (nsh).
 
+oa_tc6
+------
+
+This configuration features the network driver for 10BASE-T1S and 10BASE-T1L SPI MAC-PHYs
+that follow the `OPEN Alliance 10BASE-T1x MAC-PHY Serial Interface` specification (OA-TC6).
+
+Among such MAC-PHYs are e.g. Microchip LAN865x, Onsemi NCV7410 (NCN26010), Analog Devices ADIN1110.
+See the build configuration utility (e.g. ``make menuconfig``) to find out which ones are currently supported.
+
+The OA-TC6 defines a 5 signal connection between the MAC-PHY and the host MCU. These are 4 lines for the standard SPI and 1 line for the interrupt signal from the MAC-PHY to the MCU.
+
+**Default pinout**
+
+============ ========== =========================================
+ESP32-C6 Pin Signal Pin Description
+============ ========== =========================================
+0            CS         SPI Chip Select
+2            MISO       SPI Master In Slave Out
+5            INT        MAC-PHY interrupt signal
+6            CLK        SPI Clock
+7            MOSI       SPI Master Out Slave In
+============ ========== =========================================
+
+The ``oa_tc6`` configuration is additionally equipped with the ``plcatool`` utility. This allows configuration of the Physical Layer Collision Avoidance (PLCA) functionality
+in 10BASE-T1S PHYs.
+
 ostest
 ------
 
 This is the NuttX test at ``apps/testing/ostest`` that is run against all new
 architecture ports to assure a correct implementation of the OS.
+
+pm
+-------
+
+This config demonstrate the use of power management.
+You can use the ``pmconfig`` command to check current power state and time spent in other power states.
+Also you can define time will spend in standby and sleep modes::
+
+    $ make menuconfig
+    -> Board Selection
+        -> (15) PM_STANDBY delay (seconds)
+           (0)  PM_STANDBY delay (nanoseconds)
+           (20) PM_SLEEP delay (seconds)
+           (0)  PM_SLEEP delay (nanoseconds)
+
+Timer wakeup is not only way to wake up the chip. Other wakeup modes include:
+
+- EXT1 wakeup mode: Uses RTC GPIO pins to wake up the chip. Enabled with ``CONFIG_PM_EXT1_WAKEUP`` option.
+- ULP coprocessor wakeup mode: Uses ULP co-processor to wake up the chip. Enabled with ``CONFIG_PM_ULP_WAKEUP`` option.
+- GPIO wakeup mode: Uses GPIO pins to wakeup the chip. Only wakes up the chip from ``PM_STANDBY`` mode and requires ``CONFIG_PM_GPIO_WAKEUP``.
+- UART wakeup mode: Uses UART to wakeup the chip. Only wakes up the chip from ``PM_STANDBY`` mode and requires ``CONFIG_PM_GPIO_WAKEUP``.
+
+Before switching PM status, you need to query the current PM status to call correct number of relax command to correct modes::
+
+    nsh> pmconfig
+    Last state 0, Next state 0
+
+    /proc/pm/state0:
+    DOMAIN0           WAKE         SLEEP         TOTAL
+    normal          0s 00%        0s 00%        0s 00%
+    idle            0s 00%        0s 00%        0s 00%
+    standby         0s 00%        0s 00%        0s 00%
+    sleep           0s 00%        0s 00%        0s 00%
+
+    /proc/pm/wakelock0:
+    DOMAIN0      STATE     COUNT      TIME
+    system       normal        2        1s
+    system       idle          1        1s
+    system       standby       1        1s
+    system       sleep         1        1s
+
+In this case, needed commands to switch the system into PM idle mode::
+
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+In this case, needed commands to switch the system into PM standby mode::
+
+    nsh> pmconfig relax idle
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+System switch to the PM sleep mode, you need to enter::
+
+    nsh> pmconfig relax standby
+    nsh> pmconfig relax idle
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+Note: When normal mode COUNT is 0, it will switch to the next PM state where COUNT is not 0.
+
+Note: During light sleep, overall current consumption of board should drop from 22mA (without any system load) to 1.3 mA on ESP32-C6 DevkitC-1.
+During deep sleep, current consumption of module (ESP32-C6-WROOM-1) should drop from 22mA (without any system load) to 48 μA.
 
 pwm
 ---
@@ -411,6 +500,59 @@ This same configuration enables the usage of the RMT peripheral and the example
 
 Please note that this board contains an on-board WS2812 LED connected to GPIO8
 and, by default, this config configures the RMT transmitter in the same pin.
+
+romfs
+-----
+
+This configuration demonstrates the use of ROMFS (Read-Only Memory File System) to provide
+automated system initialization and startup scripts. ROMFS allows embedding a read-only
+filesystem directly into the NuttX binary, which is mounted at ``/etc`` during system startup.
+
+**What ROMFS provides:**
+
+* **System initialization script** (``/etc/init.d/rc.sysinit``): Executed after board bring-up
+* **Startup script** (``/etc/init.d/rcS``): Executed after system init, typically used to start applications
+
+**Default behavior:**
+
+When this configuration is used, NuttX will:
+
+1. Create a read-only RAM disk containing the ROMFS filesystem
+2. Mount the ROMFS at ``/etc``
+3. Execute ``/etc/init.d/rc.sysinit`` during system initialization
+4. Execute ``/etc/init.d/rcS`` for application startup
+
+**Customizing startup scripts:**
+
+The startup scripts are located in:
+``boards/risc-v/esp32c6/common/src/etc/init.d/``
+
+* ``rc.sysinit`` - System initialization script
+* ``rcS`` - Application startup script
+
+To customize these scripts:
+
+1. **Edit the script files** in ``boards/risc-v/esp32c6/common/src/etc/init.d/``
+2. **Add your initialization commands** using any NSH-compatible commands
+
+**Example customizations:**
+
+* **rc.sysinit** - Set up system services, mount additional filesystems, configure network.
+* **rcS** - Start your application, launch daemons, configure peripherals. This is executed after the rc.sysinit script.
+
+Example output::
+
+    *** Booting NuttX ***
+    [...]
+    rc.sysinit is called!
+    rcS file is called!
+    NuttShell (NSH) NuttX-12.8.0
+    nsh> ls /etc/init.d
+    /etc/init.d:
+    .
+    ..
+    rc.sysinit
+    rcS
 
 rtc
 ---
@@ -552,6 +694,44 @@ and running the ``can`` example::
       TSEG2: 4
         SJW: 3
       ID:    1 DLC: 1
+
+ulp
+---
+
+This configuration enables the support for the ULP LP core (Low-power core) coprocessor.
+To get more information about LP Core please check :ref:`ULP LP Core Coprocessor docs. <esp32c6_ulp>`
+
+Configuration uses a pre-built binary in ``Documentation/platforms/risc-v/esp32c6/boards/esp32c6-devkitc/ulp_blink.bin``
+which is a blink example for GPIO0. After flashing operation, GPIO0 pin will blink.
+
+Prebuild binary runs this code:
+
+.. code-block:: C
+
+   #include <stdint.h>
+   #include <stdbool.h>
+   #include "ulp_lp_core_gpio.h"
+
+   #define GPIO_PIN 0
+
+   #define nop() __asm__ __volatile__ ("nop")
+
+   bool gpio_level_previous = true;
+
+   int main (void)
+    {
+       while (1)
+           {
+           ulp_lp_core_gpio_set_level(GPIO_PIN, gpio_level_previous);
+           gpio_level_previous = !gpio_level_previous;
+           for (int i = 0; i < 10000; i++)
+             {
+               nop();
+             }
+           }
+
+       return 0;
+    }
 
 usbconsole
 ----------

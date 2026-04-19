@@ -43,58 +43,58 @@
  *
  * The following devices should be supported:
  *
- * Manufacturer Device     Bytes PgSize AddrLen
+ * Manufacturer Device     Bytes PgSize SecSize AddrLen
  * Microchip
- *              25xx010A     128   16     1
- *              25xx020A     256   16     1
- *              25AA02UID    256   16     1
- *              25AA02E48    256   16     1
- *              25AA02E64    256   16     1
- *              25xx040      512   16     1+bit
- *              25xx040A     512   16     1+bit
- *              25xx080     1024   16     1
- *              25xx080A    1024   16     2
- *              25xx080B    1024   32     2
- *              25xx080C    1024   16     x
- *              25xx080D    1024   32     x
- *              25xx160     2048   16     2
- *              25xx160A/C  2048   16     2    TESTED
- *              25xx160B/D  2048   32     2
- *              25xx160C    2048   16     2
- *              25xx160D    2048   32     2
- *              25xx320     4096   32     2
- *              25xx320A    4096   32     2
- *              25xx640     8192   32     2
- *              25xx640A    8192   32     2
- *              25xx128    16384   64     2
- *              25xx256    32768   64     2
- *              25xx512    65536  128     2
- *              25xx1024  131072  256     3
+ *              25xx010A     128     16      16       1
+ *              25xx020A     256     16      16       1
+ *              25AA02UID    256     16      16       1
+ *              25AA02E48    256     16      16       1
+ *              25AA02E64    256     16      16       1
+ *              25xx040      512     16      16       1+bit
+ *              25xx040A     512     16      16       1+bit
+ *              25xx080     1024     16      16       1
+ *              25xx080A    1024     16      16       2
+ *              25xx080B    1024     32      32       2
+ *              25xx080C    1024     16      16       x
+ *              25xx080D    1024     32      32       x
+ *              25xx160     2048     16      16       2
+ *              25xx160A/C  2048     16      16       2
+ *              25xx160B/D  2048     32      32       2
+ *              25xx160C    2048     16      16       2
+ *              25xx160D    2048     32      32       2
+ *              25xx320     4096     32      32       2
+ *              25xx320A    4096     32      32       2
+ *              25xx640     8192     32      32       2
+ *              25xx640A    8192     32      32       2
+ *              25xx128    16384     64      64       2
+ *              25xx256    32768     64      64       2
+ *              25xx512    65536    128   16384       2
+ *              25xx1024  131072    256   32768       3
  * Atmel
- *              AT25010B     128    8     1
- *              AT25020B     256    8     1
- *              AT25040B     512    8     1+bit
- *              AT25080B    1024   32     2
- *              AT25160B    2048   32     2
- *              AT25320B    4096   32     2
- *              AT25640B    8192   32     2
- *              AT25128B   16384   64     2
- *              AT25256B   32768   64     2
- *              AT25512    65536  128     2
- *              AT25M01   131072  256     3
+ *              AT25010B     128      8       8       1
+ *              AT25020B     256      8       8       1
+ *              AT25040B     512      8       8       1+bit
+ *              AT25080B    1024     32      32       2
+ *              AT25160B    2048     32      32       2
+ *              AT25320B    4096     32      32       2
+ *              AT25640B    8192     32      32       2
+ *              AT25128B   16384     64      64       2
+ *              AT25256B   32768     64      64       2
+ *              AT25512    65536    128     128       2
+ *              AT25M01   131072    256     256       3
  * ST Microelectronics
- *              M95010       128   16     1
- *              M95020       256   16     1
- *              M95040       512   16     1+bit
- *              M95080      1024   32     2
- *              M95160      2048   32     2
- *              M95320      4096   32     2
- *              M95640      8192   32     2
- *              M95128     16384   64     2
- *              M95256     32768   64     2
- *              M95512     65536  128     2
- *              M95M01    131072  256     3
- *              M95M02    262144  256     3
+ *              M95010       128     16      16       1
+ *              M95020       256     16      16       1
+ *              M95040       512     16      16       1+bit
+ *              M95080      1024     32      32       2
+ *              M95160      2048     32      32       2
+ *              M95320      4096     32      32       2
+ *              M95640      8192     32      32       2
+ *              M95128     16384     64      64       2
+ *              M95256     32768     64      64       2
+ *              M95512     65536    128     128       2
+ *              M95M01    131072    256     256       3
+ *              M95M02    262144    256     256       3
  */
 
 /****************************************************************************
@@ -107,8 +107,10 @@
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
-#include <nuttx/fs/fs.h>
+#include <stdio.h>
 
+#include <nuttx/eeprom/eeprom.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
 #include <nuttx/signal.h>
@@ -117,10 +119,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#ifndef CONFIG_EE25XX_SPIMODE
-#  define CONFIG_EE25XX_SPIMODE 0
-#endif
 
 /* EEPROM commands
  * High bit of low nibble used for A8 in 25xx040/at25040 products
@@ -165,6 +163,7 @@ struct ee25xx_geom_s
 {
   uint8_t bytes    : 4; /* Power of two of 128 bytes (0:128 1:256 2:512 etc) */
   uint8_t pagesize : 4; /* Power of two of   8 bytes (0:8 1:16 2:32 3:64 etc) */
+  uint8_t secsize  : 4; /* Power of two of the page size */
   uint8_t addrlen  : 4; /* Number of bytes in command address field */
   uint8_t flags    : 4; /* Special address management for 25xx040, 1=A8 in inst */
 };
@@ -173,13 +172,18 @@ struct ee25xx_geom_s
 
 struct ee25xx_dev_s
 {
-  struct spi_dev_s *spi;     /* SPI device where the EEPROM is attached */
-  uint32_t         size;     /* in bytes, expanded from geometry */
-  uint16_t         pgsize;   /* write block size, in bytes, expanded from geometry */
-  uint16_t         addrlen;  /* number of BITS in data addresses */
-  mutex_t          lock;     /* file access serialization */
-  uint8_t          refs;     /* The number of times the device has been opened */
-  uint8_t          readonly; /* Flags */
+  FAR struct spi_dev_s *spi;   /* SPI device where the EEPROM is attached   */
+  uint16_t              devid; /* SPI device ID to manage CS lines in board */
+  uint32_t              freq;  /* SPI bus frequency in Hz                   */
+
+  uint32_t size;     /* in bytes, expanded from geometry                    */
+  uint16_t pgsize;   /* write block size, in bytes, expanded from geometry  */
+  uint32_t secsize;  /* write sector size, in bytes, expanded from geometry */
+  uint16_t addrlen;  /* number of BITS in data addresses                    */
+
+  mutex_t lock;     /* file access serialization                            */
+  uint8_t refs;     /* The number of times the device has been opened       */
+  uint8_t readonly; /* Flags                                                */
 };
 
 /****************************************************************************
@@ -210,62 +214,68 @@ static const struct ee25xx_geom_s g_ee25xx_devices[] =
   /* Microchip devices */
 
   {
-    0, 1, 1, 0
-  }, /* 25xx010A     128   16     1 */
+    0, 1, 0, 1, 0
+  }, /* 25xx010A     128     16     16      1 */
   {
-    1, 1, 1, 0
-  }, /* 25xx020A     256   16     1 */
+    1, 1, 0, 1, 0
+  }, /* 25xx020A     256     16     16      1 */
   {
-    2, 1, 1, 1
-  }, /* 25xx040      512   16     1+bit */
+    2, 1, 0, 1, 1
+  }, /* 25xx040      512     16     16      1+bit */
   {
-    3, 1, 1, 0
-  }, /* 25xx080     1024   16     1 */
+    3, 1, 0, 1, 0
+  }, /* 25xx080     1024     16     16      1 */
   {
-    3, 2, 2, 0
-  }, /* 25xx080B    1024   32     2 */
+    3, 2, 0, 2, 0
+  }, /* 25xx080B    1024     32     32      2 */
   {
-    4, 1, 2, 0
-  }, /* 25xx160     2048   16     2 */
+    4, 1, 0, 2, 0
+  }, /* 25xx160     2048     16     16      2 */
   {
-    4, 2, 2, 0
-  }, /* 25xx160B/D  2048   32     2 */
+    4, 2, 0, 2, 0
+  }, /* 25xx160B/D  2048     32     32      2 */
   {
-    5, 2, 2, 0
-  }, /* 25xx320     4096   32     2 */
+    5, 2, 0, 2, 0
+  }, /* 25xx320     4096     32     32      2 */
   {
-    6, 2, 2, 0
-  }, /* 25xx640     8192   32     2 */
+    6, 2, 0, 2, 0
+  }, /* 25xx640     8192     32     32      2 */
   {
-    7, 3, 2, 0
-  }, /* 25xx128    16384   64     2 */
+    7, 3, 0, 2, 0
+  }, /* 25xx128    16384     64     64      2 */
   {
-    8, 3, 2, 0
-  }, /* 25xx256    32768   64     2 */
+    8, 3, 0, 2, 0
+  }, /* 25xx256    32768     64     64      2 */
   {
-    9, 4, 2, 0
-  }, /* 25xx512    65536  128     2 */
+    9, 4, 7, 2, 0
+  }, /* 25xx512    65536    128  16384      2 */
   {
-    10, 5, 3, 0
-  }, /* 25xx1024  131072  256     3 */
+    10, 5, 7, 3, 0
+  }, /* 25xx1024  131072    256  32768      3 */
 
   /* Atmel devices */
 
   {
-    0, 0, 1, 0
-  }, /* AT25010B     128    8     1 */
+    0, 0, 0, 1, 0
+  }, /* AT25010B     128      8      8      1 */
   {
-    1, 0, 1, 0
-  }, /* AT25020B     256    8     1 */
+    1, 0, 0, 1, 0
+  }, /* AT25020B     256      8      8      1 */
   {
-    2, 0, 1, 1
-  }, /* AT25040B     512    8     1+bit */
+    2, 0, 0, 1, 1
+  }, /* AT25040B     512      8      8      1+bit */
+  {
+    9, 4, 0, 2, 0
+  }, /* AT25512    65536    128    128      2 */
+  {
+    10, 5, 0, 3, 0
+  }, /* AT25M01   131072    256    256      3 */
 
   /* STM devices */
 
   {
-    11, 5, 3, 0
-  }, /* M95M02    262144  256     3 */
+    11, 5, 0, 3, 0
+  }, /* M95M02    262144    256    256      3 */
 };
 
 /* Driver operations */
@@ -286,9 +296,16 @@ static const struct file_operations g_ee25xx_fops =
 
 /****************************************************************************
  * Name: ee25xx_lock
+ *
+ * Description:
+ *   Lock the SPI bus associated with the driver, set its mode and frequency
+ *
+ * Input Parameters
+ *   priv - Device structure
+ *
  ****************************************************************************/
 
-static void ee25xx_lock(FAR struct spi_dev_s *dev)
+static void ee25xx_lock(FAR struct ee25xx_dev_s *priv)
 {
   /* On SPI buses where there are multiple devices, it will be necessary to
    * lock SPI to have exclusive access to the buses for a sequence of
@@ -299,7 +316,7 @@ static void ee25xx_lock(FAR struct spi_dev_s *dev)
    * bus is unlocked.
    */
 
-  SPI_LOCK(dev, true);
+  SPI_LOCK(priv->spi, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency,
    * setbits, and setmode methods to make sure that the SPI is properly
@@ -307,19 +324,31 @@ static void ee25xx_lock(FAR struct spi_dev_s *dev)
    * have been left in an incompatible state.
    */
 
-  SPI_SETMODE(dev, CONFIG_EE25XX_SPIMODE);
-  SPI_SETBITS(dev, 8);
-  SPI_HWFEATURES(dev, 0);
-  SPI_SETFREQUENCY(dev, CONFIG_EE25XX_FREQUENCY);
+  SPI_SETMODE(priv->spi, CONFIG_EE25XX_SPIMODE);
+  SPI_SETBITS(priv->spi, 8);
+  SPI_HWFEATURES(priv->spi, 0);
+  SPI_SETFREQUENCY(priv->spi, priv->freq);
+#ifdef CONFIG_SPI_DELAY_CONTROL
+  SPI_SETDELAY(priv->spi, CONFIG_EE25XX_START_DELAY,
+               CONFIG_EE25XX_STOP_DELAY, CONFIG_EE25XX_CS_DELAY,
+               CONFIG_EE25XX_IFDELAY);
+#endif
 }
 
 /****************************************************************************
  * Name: ee25xx_unlock
+ *
+ * Description:
+ *   Unlock the SPI bus associated with the driver
+ *
+ * Input Parameters:
+ *   priv - Device structure
+ *
  ****************************************************************************/
 
-static inline void ee25xx_unlock(FAR struct spi_dev_s *dev)
+static inline void ee25xx_unlock(FAR struct ee25xx_dev_s *priv)
 {
-  SPI_LOCK(dev, false);
+  SPI_LOCK(priv->spi, false);
 }
 
 /****************************************************************************
@@ -379,8 +408,8 @@ static void ee25xx_waitwritecomplete(struct ee25xx_dev_s *priv)
     {
       /* Select this FLASH part */
 
-      ee25xx_lock(priv->spi);
-      SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), true);
+      ee25xx_lock(priv);
+      SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), true);
 
       /* Send "Read Status Register (RDSR)" command */
 
@@ -394,8 +423,8 @@ static void ee25xx_waitwritecomplete(struct ee25xx_dev_s *priv)
 
       /* Deselect the FLASH */
 
-      SPI_SELECT(priv->spi, SPIDEV_EEPROM(0), false);
-      ee25xx_unlock(priv->spi);
+      SPI_SELECT(priv->spi, SPIDEV_EEPROM(priv->devid), false);
+      ee25xx_unlock(priv);
 
       /* Given that writing could take up to a few milliseconds,
        * the following short delay in the "busy" case will allow
@@ -404,7 +433,7 @@ static void ee25xx_waitwritecomplete(struct ee25xx_dev_s *priv)
 
       if ((status & EE25XX_SR_WIP) != 0)
         {
-          nxsig_usleep(1000);
+          nxsched_usleep(1000);
         }
     }
   while ((status & EE25XX_SR_WIP) != 0);
@@ -419,15 +448,15 @@ static void ee25xx_waitwritecomplete(struct ee25xx_dev_s *priv)
  *
  ****************************************************************************/
 
-static void ee25xx_writeenable(FAR struct spi_dev_s *spi, int enable)
+static void ee25xx_writeenable(FAR struct ee25xx_dev_s *eedev, int enable)
 {
-  ee25xx_lock(spi);
-  SPI_SELECT(spi, SPIDEV_EEPROM(0), true);
+  ee25xx_lock(eedev);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), true);
 
-  SPI_SEND(spi, enable ? EE25XX_CMD_WREN : EE25XX_CMD_WRDIS);
+  SPI_SEND(eedev->spi, enable ? EE25XX_CMD_WREN : EE25XX_CMD_WRDIS);
 
-  SPI_SELECT(spi, SPIDEV_EEPROM(0), false);
-  ee25xx_unlock(spi);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), false);
+  ee25xx_unlock(eedev);
 }
 
 /****************************************************************************
@@ -442,14 +471,14 @@ static void ee25xx_writepage(FAR struct ee25xx_dev_s *eedev,
                              FAR const char *data,
                              size_t len)
 {
-  ee25xx_lock(eedev->spi);
-  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(0), true);
+  ee25xx_lock(eedev);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), true);
 
   ee25xx_sendcmd(eedev->spi, EE25XX_CMD_WRITE, eedev->addrlen, devaddr);
   SPI_SNDBLOCK(eedev->spi, data, len);
 
-  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(0), false);
-  ee25xx_unlock(eedev->spi);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), false);
+  ee25xx_unlock(eedev);
 }
 
 /****************************************************************************
@@ -634,8 +663,8 @@ static ssize_t ee25xx_read(FAR struct file *filep, FAR char *buffer,
       len = eedev->size - filep->f_pos;
     }
 
-  ee25xx_lock(eedev->spi);
-  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(0), true);
+  ee25xx_lock(eedev);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), true);
 
   /* STM32F4Disco: There is a 25 us delay here */
 
@@ -647,8 +676,8 @@ static ssize_t ee25xx_read(FAR struct file *filep, FAR char *buffer,
 
   /* STM32F4Disco: There is a 20 us delay here */
 
-  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(0), false);
-  ee25xx_unlock(eedev->spi);
+  SPI_SELECT(eedev->spi, SPIDEV_EEPROM(eedev->devid), false);
+  ee25xx_unlock(eedev);
 
   /* Update the file position */
 
@@ -723,7 +752,7 @@ static ssize_t ee25xx_write(FAR struct file *filep, FAR const char *buffer,
 
   if (pageoff > 0)
     {
-      ee25xx_writeenable(eedev->spi, true);
+      ee25xx_writeenable(eedev, true);
       ee25xx_writepage(eedev, filep->f_pos, buffer, cnt);
       ee25xx_waitwritecomplete(eedev);
       len          -= cnt;
@@ -741,7 +770,7 @@ static ssize_t ee25xx_write(FAR struct file *filep, FAR const char *buffer,
           cnt = eedev->pgsize;
         }
 
-      ee25xx_writeenable(eedev->spi, true);
+      ee25xx_writeenable(eedev, true);
       ee25xx_writepage(eedev, filep->f_pos, buffer, cnt);
       ee25xx_waitwritecomplete(eedev);
       len          -= cnt;
@@ -765,14 +794,44 @@ static int ee25xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct ee25xx_dev_s *eedev;
   FAR struct inode        *inode = filep->f_inode;
-  int                     ret    = 0;
+  int                      ret   = -EINVAL;
 
   DEBUGASSERT(inode->i_private);
   eedev = inode->i_private;
-  UNUSED(eedev);
 
   switch (cmd)
     {
+      case EEPIOC_GEOMETRY:
+        {
+          FAR struct eeprom_geometry_s *geo =
+            (FAR struct eeprom_geometry_s *)arg;
+          if (geo != NULL)
+            {
+              geo->npages   = 0;
+              geo->pagesize = eedev->pgsize;
+              geo->sectsize = eedev->secsize;
+
+              if (eedev->pgsize > 0)
+                {
+                  geo->npages = eedev->size / eedev->pgsize;
+                }
+
+              ret = OK;
+            }
+        }
+        break;
+
+      case EEPIOC_SETSPEED:
+        {
+          ret = nxmutex_lock(&eedev->lock);
+          if (ret == OK)
+          {
+            eedev->freq = (uint32_t)arg;
+            nxmutex_unlock(&eedev->lock);
+          }
+        }
+        break;
+
       default:
         ret = -ENOTTY;
     }
@@ -787,14 +846,25 @@ static int ee25xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 /****************************************************************************
  * Name: ee25xx_initialize
  *
- * Description: Bind a EEPROM driver to an SPI bus. The user MUST provide
- * a description of the device geometry, since it is not possible to read
- * this information from the device (contrary to the SPI flash devices).
+ * Description:
+ *   Bind an EEPROM driver to an SPI bus. The user MUST provide a description
+ *   of the device geometry, since it is not possible to read this
+ *   information from the device (contrary to the SPI flash devices).
+ *
+ * Parameters:
+ *   dev       - Pointer to the SPI device instance
+ *   spi_devid - SPI device ID to manage CS lines in board
+ *   devname   - Device name
+ *   devtype   - 25xx device type, the geometry is derived from it
+ *   readonly  - Sets driver to be readonly
+ *
+ * Returned Values:
+ *   OK on success; A negated errno value is returned on any failure.
  *
  ****************************************************************************/
 
-int ee25xx_initialize(FAR struct spi_dev_s *dev, FAR char *devname,
-                      int devtype, int readonly)
+int ee25xx_initialize(FAR struct spi_dev_s *dev, uint16_t spi_devid,
+                      FAR char *devname, int devtype, int readonly)
 {
   FAR struct ee25xx_dev_s *eedev;
 
@@ -816,9 +886,12 @@ int ee25xx_initialize(FAR struct spi_dev_s *dev, FAR char *devname,
   nxmutex_init(&eedev->lock);
 
   eedev->spi      = dev;
-  eedev->size     = 128 << g_ee25xx_devices[devtype].bytes;
-  eedev->pgsize   =   8 << g_ee25xx_devices[devtype].pagesize;
-  eedev->addrlen  =        g_ee25xx_devices[devtype].addrlen << 3;
+  eedev->devid    = spi_devid;
+  eedev->freq     = CONFIG_EE25XX_FREQUENCY;
+  eedev->size     =           128 << g_ee25xx_devices[devtype].bytes;
+  eedev->pgsize   =             8 << g_ee25xx_devices[devtype].pagesize;
+  eedev->secsize  = eedev->pgsize << g_ee25xx_devices[devtype].secsize;
+  eedev->addrlen  =                  g_ee25xx_devices[devtype].addrlen << 3;
   if ((g_ee25xx_devices[devtype].flags & 1))
     {
       eedev->addrlen = 9;
@@ -830,5 +903,6 @@ int ee25xx_initialize(FAR struct spi_dev_s *dev, FAR char *devname,
         "%u per page, addrlen %u, readonly %d\n",
        devname, eedev->size, eedev->pgsize, eedev->addrlen, eedev->readonly);
 
-  return register_driver(devname, &g_ee25xx_fops, 0666, eedev);
+  return register_driver_with_size(devname, &g_ee25xx_fops, 0666, eedev,
+                                   eedev->size);
 }

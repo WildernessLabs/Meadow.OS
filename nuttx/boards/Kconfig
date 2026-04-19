@@ -87,7 +87,7 @@ config BOARD_CUSTOM_INTERRUPT
 	select ARCH_PHY_INTERRUPT
 
 endmenu # Custom Board Configuration
-endif #ARCH_BOARD_CUSTOM
+endif # ARCH_BOARD_CUSTOM
 
 config ARCH_BOARD
 	string

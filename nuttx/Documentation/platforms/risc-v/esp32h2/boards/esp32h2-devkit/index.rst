@@ -321,6 +321,69 @@ ostest
 This is the NuttX test at ``apps/testing/ostest`` that is run against all new
 architecture ports to assure a correct implementation of the OS.
 
+pm
+-------
+
+This config demonstrate the use of power management.
+You can use the ``pmconfig`` command to check current power state and time spent in other power states.
+Also you can define time will spend in standby and sleep modes::
+
+    $ make menuconfig
+    -> Board Selection
+        -> (15) PM_STANDBY delay (seconds)
+           (0)  PM_STANDBY delay (nanoseconds)
+           (20) PM_SLEEP delay (seconds)
+           (0)  PM_SLEEP delay (nanoseconds)
+
+Timer wakeup is not only way to wake up the chip. Other wakeup modes include:
+
+- EXT1 wakeup mode: Uses RTC GPIO pins to wake up the chip. Enabled with ``CONFIG_PM_EXT1_WAKEUP`` option.
+- ULP coprocessor wakeup mode: Uses ULP co-processor to wake up the chip. Enabled with ``CONFIG_PM_ULP_WAKEUP`` option.
+- GPIO wakeup mode: Uses GPIO pins to wakeup the chip. Only wakes up the chip from ``PM_STANDBY`` mode and requires ``CONFIG_PM_GPIO_WAKEUP``.
+- UART wakeup mode: Uses UART to wakeup the chip. Only wakes up the chip from ``PM_STANDBY`` mode and requires ``CONFIG_PM_GPIO_WAKEUP``.
+
+Before switching PM status, you need to query the current PM status to call correct number of relax command to correct modes::
+
+    nsh> pmconfig
+    Last state 0, Next state 0
+
+    /proc/pm/state0:
+    DOMAIN0           WAKE         SLEEP         TOTAL
+    normal          0s 00%        0s 00%        0s 00%
+    idle            0s 00%        0s 00%        0s 00%
+    standby         0s 00%        0s 00%        0s 00%
+    sleep           0s 00%        0s 00%        0s 00%
+
+    /proc/pm/wakelock0:
+    DOMAIN0      STATE     COUNT      TIME
+    system       normal        2        1s
+    system       idle          1        1s
+    system       standby       1        1s
+    system       sleep         1        1s
+
+In this case, needed commands to switch the system into PM idle mode::
+
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+In this case, needed commands to switch the system into PM standby mode::
+
+    nsh> pmconfig relax idle
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+System switch to the PM sleep mode, you need to enter::
+
+    nsh> pmconfig relax standby
+    nsh> pmconfig relax idle
+    nsh> pmconfig relax normal
+    nsh> pmconfig relax normal
+
+Note: When normal mode COUNT is 0, it will switch to the next PM state where COUNT is not 0.
+
+Note: During light sleep, overall current consumption of board should drop from 14mA (without any system load) to 880 μA on ESP32-H2 DevkitM-1.
+During deep sleep, current consumption of module (ESP32-H2-MINI-1) should drop from 9mA (without any system load) to 8 μA.
+
 pwm
 ---
 
@@ -369,6 +432,59 @@ This same configuration enables the usage of the RMT peripheral and the example
 
 Please note that this board contains an on-board WS2812 LED connected to GPIO8
 and, by default, this config configures the RMT transmitter in the same pin.
+
+romfs
+-----
+
+This configuration demonstrates the use of ROMFS (Read-Only Memory File System) to provide
+automated system initialization and startup scripts. ROMFS allows embedding a read-only
+filesystem directly into the NuttX binary, which is mounted at ``/etc`` during system startup.
+
+**What ROMFS provides:**
+
+* **System initialization script** (``/etc/init.d/rc.sysinit``): Executed after board bring-up
+* **Startup script** (``/etc/init.d/rcS``): Executed after system init, typically used to start applications
+
+**Default behavior:**
+
+When this configuration is used, NuttX will:
+
+1. Create a read-only RAM disk containing the ROMFS filesystem
+2. Mount the ROMFS at ``/etc``
+3. Execute ``/etc/init.d/rc.sysinit`` during system initialization
+4. Execute ``/etc/init.d/rcS`` for application startup
+
+**Customizing startup scripts:**
+
+The startup scripts are located in:
+``boards/risc-v/esp32h2/common/src/etc/init.d/``
+
+* ``rc.sysinit`` - System initialization script
+* ``rcS`` - Application startup script
+
+To customize these scripts:
+
+1. **Edit the script files** in ``boards/risc-v/esp32h2/common/src/etc/init.d/``
+2. **Add your initialization commands** using any NSH-compatible commands
+
+**Example customizations:**
+
+* **rc.sysinit** - Set up system services, mount additional filesystems, configure network.
+* **rcS** - Start your application, launch daemons, configure peripherals. This is executed after the rc.sysinit script.
+
+Example output::
+
+    *** Booting NuttX ***
+    [...]
+    rc.sysinit is called!
+    rcS file is called!
+    NuttShell (NSH) NuttX-12.8.0
+    nsh> ls /etc/init.d
+    /etc/init.d:
+    .
+    ..
+    rc.sysinit
+    rcS
 
 rtc
 ---
