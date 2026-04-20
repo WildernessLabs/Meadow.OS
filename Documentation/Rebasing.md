@@ -27,7 +27,6 @@ In the `Mainline` and `MainlineApps` perform the following:
 ```bash
 git checkout releases/12.11
 git reset --hard && git clean -dffx
-git remote add local-nuttx ../Mainline
 ```
 
 The source code should now be on the release branch `releases/12.11 nuttx-12.11.0`
@@ -35,7 +34,8 @@ The source code should now be on the release branch `releases/12.11 nuttx-12.11.
 Next move to the `Rebase` directory.
 
 ```bash
-git checkout -b merging12-11
+git remote add local-nuttx ../Mainline
+git checkout -b Merging12-11
 git reset --hard && git clean -dffx
 ```
 
@@ -52,7 +52,7 @@ git subtree pull \
     nuttx-12.11.0
 ```
 
-At the end of this command in `Mainline`, we will usually have some staged files and some files requiring manual merge due to conflicting changes.
+At the end of this command in `Rebase`, we will usually have some staged files and some files requiring manual merge due to conflicting changes.
 
 `MainlineApps` can complete the merge without intervention.
 
@@ -66,7 +66,7 @@ This shows a large number of files requiring manual intervention.  The following
 git status --short | grep "^DU" | grep -E "nuttx/(arch|boards)/" | awk '{print $2}' | xargs git rm
 ```
 
-Following this command we will something like:
+Following this command we will see something like:
 
 ![Visual Studio Code Following Board and Architecture Removal](Media/PostBoardArchitectureDeletion.png)
 
@@ -85,7 +85,7 @@ git add nuttx/tools
 
 ## Anomalies
 
-Expanding the merge conflicts shows a number of files that will be taken from `Mainline` which have on counterpart in the `Rebase` repository:
+Expanding the merge conflicts shows a number of files that will be taken from `Mainline` which have a conflict in the `Rebase` repository:
 
 ![](Media/RebaseFiles.png)
 
@@ -166,10 +166,10 @@ The firmware version number should match the build information from the build pr
 The `alphaTooling` directory contains a Python script to perform a final check on the files in the `Rebase` repository by comparing them to the files in the `Mainline` repository.
 
 ```
-./check_repository ../../Main;ine
+./check_repository ../../Mainline
 
-Source : <>/OS/Mainline
-Local  : <>/OS/Rebase/nuttx
+Source : <root directory>/OS/Mainline
+Local  : <root directory>/OS/Rebase/nuttx
 
 Files have other differences (31):
   arch/Kconfig
