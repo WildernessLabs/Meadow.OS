@@ -72,21 +72,6 @@ The following configurations use the I2S peripheral::
   * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:audio`
   * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:nxlooper`
 
-I2S
-===
-
-ESP32-S3 has two I2S peripherals accessible using either the generic I2S audio
-driver or a specific audio codec driver
-(`CS4344 <https://www.cirrus.com/products/cs4344-45-48/>`__ bindings are
-available at the moment). The generic I2S audio driver enables the use of both
-the receiver module (RX) and the transmitter module (TX) without using any
-specific codec. Also, it's possible to use the I2S character device driver
-to bypass the audio subsystem and write directly to the I2S peripheral.
-
-The following configurations use the I2S peripheral::
-  * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:audio`
-  * :ref:`platforms/xtensa/esp32s3/boards/esp32s3-devkit/index:nxlooper`
-
 Configurations
 ==============
 

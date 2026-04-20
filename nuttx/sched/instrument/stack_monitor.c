@@ -29,18 +29,6 @@
 
 #include "sched/sched.h"
 
-#ifndef CONFIG_NRF91_MODEM_LTEM
-#  define CONFIG_NRF91_MODEM_LTEM 0
-#endif
-
-#ifndef CONFIG_NRF91_MODEM_NBIOT
-#  define CONFIG_NRF91_MODEM_NBIOT 0
-#endif
-
-#ifndef CONFIG_NRF91_MODEM_GNSS
-#  define CONFIG_NRF91_MODEM_GNSS 0
-#endif
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/

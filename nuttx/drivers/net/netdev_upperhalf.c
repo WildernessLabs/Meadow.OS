@@ -104,9 +104,9 @@ struct netdev_upperhalf_s
 static bool quota_is_valid(FAR struct netdev_lowerhalf_s *lower)
 {
   int total = 0;
-  int type;
+  enum netpkt_type_e type;
 
-  for (type = 0; type < NETPKT_TYPENUM; type++)
+  for (type = NETPKT_TX; type < NETPKT_TYPENUM; type++)
     {
       total += netdev_lower_quota_load(lower, type);
     }
@@ -579,69 +579,6 @@ static void ip_input(FAR struct net_driver_s *dev)
        */
 
       netdev_upper_queue_tx(dev);
-    }
-}
-#endif
-
-/****************************************************************************
- * Name: ip_input
- *
- * Description:
- *   Handle L3 packet input.
- *
- * Input Parameters:
- *   dev - Reference to the NuttX network driver state structure
- *
- * Assumptions:
- *   Called with the network locked.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_MBIM
-static void ip_input(FAR struct net_driver_s *dev)
-{
-  /* We only accept IP packets of the configured type */
-
-#ifdef CONFIG_NET_IPv4
-  if ((IPv4BUF->vhl & IP_VERSION_MASK) == IPv4_VERSION)
-    {
-      ninfo("IPv4 frame\n");
-      NETDEV_RXIPV4(dev);
-
-      /* Receive an IPv4 packet from the network device */
-
-      ipv4_input(dev);
-    }
-  else
-#endif
-#ifdef CONFIG_NET_IPv6
-  if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION)
-    {
-      ninfo("IPv6 frame\n");
-      NETDEV_RXIPV6(dev);
-
-      /* Give the IPv6 packet to the network layer */
-
-      ipv6_input(dev);
-    }
-  else
-#endif
-    {
-      ninfo("INFO: Dropped, Unknown type\n");
-      NETDEV_RXDROPPED(dev);
-      dev->d_len = 0;
-    }
-
-  /* If the above function invocation resulted in data
-   * that should be sent out on the network,
-   * the field d_len will set to a value > 0.
-   */
-
-  if (dev->d_len > 0)
-    {
-      /* And send the packet */
-
-      netdev_upper_txpoll(dev);
     }
 }
 #endif

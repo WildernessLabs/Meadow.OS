@@ -967,19 +967,6 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc, bool stop_ns)
 
   rdev->support_ns = stop_ns;
 
-  nxrmutex_lock(&priv->lock);
-
-  metal_list_for_each_safe(&priv->bind, node, tmp)
-    {
-      FAR struct rptun_bind_s *bind;
-
-      bind = metal_container_of(node, struct rptun_bind_s, node);
-      metal_list_del(node);
-      kmm_free(bind);
-    }
-
-  nxrmutex_unlock(&priv->lock);
-
   /* Unregister callback from mbox */
 
   RPTUN_UNREGISTER_CALLBACK(priv->dev);
@@ -1195,11 +1182,6 @@ int rptun_boot(FAR const char *cpuname)
 int rptun_poweroff(FAR const char *cpuname)
 {
   return rpmsg_ioctl(cpuname, RPTUNIOC_STOP, 0);
-}
-
-int rptun_poweroff(FAR const char *cpuname)
-{
-  return rptun_ioctl_foreach(cpuname, RPTUNIOC_STOP, 0);
 }
 
 int rptun_reset(FAR const char *cpuname, int value)

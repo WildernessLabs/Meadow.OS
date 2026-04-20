@@ -209,9 +209,6 @@ void mm_addregion(FAR struct mm_heap_s *heap, FAR void *heapstart,
   sched_note_heap(NOTE_HEAP_ADD, heap, heapstart, heapsize,
                   heap->mm_curused);
   mm_unlock(heap);
-
-  sched_note_heap(NOTE_HEAP_ADD, heap, heapstart, heapsize,
-                  heap->mm_curused);
 }
 
 /****************************************************************************

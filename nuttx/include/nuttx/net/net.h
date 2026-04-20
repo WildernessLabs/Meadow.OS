@@ -253,9 +253,6 @@ struct socket
   /* Socket interface */
 
   FAR const struct sock_intf_s *s_sockif;
-#ifdef CONFIG_MEADOW_ESPCP_MANAGER
-  int32_t       s_esp32_sockfd;
-#endif
 };
 
 /****************************************************************************

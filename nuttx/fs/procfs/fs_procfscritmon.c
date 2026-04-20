@@ -48,8 +48,6 @@
 
 #include "fs_heap.h"
 
-#include "fs_heap.h"
-
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_PROCFS) && \
      defined(CONFIG_SCHED_CRITMONITOR)
 

@@ -127,8 +127,8 @@ static void dispatch_syscall(void)
 
 int arm_svcall(int irq, void *context, void *arg)
 {
-  struct tcb_s *tcb = this_task();
   uint32_t *regs = (uint32_t *)context;
+  struct tcb_s *tcb;
   uint32_t cmd;
 
   cmd = regs[REG_R0];
@@ -426,8 +426,6 @@ int arm_svcall(int irq, void *context, void *arg)
   if (cmd > SYS_switch_context)
 #  endif
     {
-      regs = (uint32_t *)tcb->xcp.regs;
-
       svcinfo("SVCall Return:\n");
       svcinfo("  R0: %08x %08x %08x %08x %08x %08x %08x %08x\n",
               regs[REG_R0],  regs[REG_R1], regs[REG_R2],  regs[REG_R3],

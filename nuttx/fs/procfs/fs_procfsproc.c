@@ -63,8 +63,6 @@
 
 #include "fs_heap.h"
 
-#include "fs_heap.h"
-
 #if !defined(CONFIG_SCHED_CPULOAD_NONE) || defined(CONFIG_SCHED_CRITMONITOR)
 #  include <nuttx/clock.h>
 #endif
