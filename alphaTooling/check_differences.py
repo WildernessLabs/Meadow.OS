@@ -38,7 +38,8 @@ def parse_args():
 def find_differences(source_dir, local_dir):
     """
     Walk source_dir and, for every file that also exists in local_dir,
-    compare the two.  Return a list of relative paths where the files differ.
+    compare the two.  Return two lists: one for files with only whitespace
+    differences and another for files with other content differences.
 
     Files that exist in only one directory are ignored — they are not conflicts.
     Comparison is byte-for-byte (shallow=False) to catch identical-size differences.
@@ -48,10 +49,11 @@ def find_differences(source_dir, local_dir):
         local_dir (str):  Absolute path to the local nuttx directory in this repository.
 
     Returns:
-        list[str]: Relative paths (from their respective roots) of files present in
-                   both directories whose contents differ.
+        tuple: (whitespace_only_differences, other_differences)
+               Each is a list of relative paths.
     """
-    differences = []
+    whitespace_only = []
+    other_diffs = []
 
     for dirpath, _dirnames, filenames in os.walk(source_dir):
         for filename in filenames:
@@ -64,9 +66,29 @@ def find_differences(source_dir, local_dir):
                 continue
 
             if not filecmp.cmp(source_file, local_file, shallow=False):
-                differences.append(rel_path)
+                if are_files_different_ignoring_whitespace(source_file, local_file):
+                    other_diffs.append(rel_path)
+                else:
+                    whitespace_only.append(rel_path)
 
-    return differences
+    return whitespace_only, other_diffs
+
+
+def are_files_different_ignoring_whitespace(file1, file2):
+    """
+    Check if two files have differences other than whitespace.
+    Returns True if there are non-whitespace differences, False otherwise.
+    """
+    try:
+        with open(file1, 'r', encoding='utf-8', errors='ignore') as f1, \
+             open(file2, 'r', encoding='utf-8', errors='ignore') as f2:
+            # Join all non-whitespace content and compare
+            content1 = "".join(f1.read().split())
+            content2 = "".join(f2.read().split())
+            return content1 != content2
+    except Exception:
+        # If we can't read them as text, treat them as having "other" differences
+        return True
 
 
 def main():
@@ -95,16 +117,23 @@ def main():
     print(f"Local  : {local_dir}")
     print()
 
-    differences = find_differences(source_dir, local_dir)
+    whitespace_only, other_diffs = find_differences(source_dir, local_dir)
 
-    if not differences:
+    if not whitespace_only and not other_diffs:
         print("No differences found.")
     else:
-        print(f"Files present in both directories but different ({len(differences)}):")
-        for rel_path in sorted(differences):
-            print(f"  {rel_path}")
+        if whitespace_only:
+            print(f"Files differ only in white spacing ({len(whitespace_only)}):")
+            for rel_path in sorted(whitespace_only):
+                print(f"  {rel_path}")
+            print()
 
-    return 0 if not differences else 1
+        if other_diffs:
+            print(f"Files have other differences ({len(other_diffs)}):")
+            for rel_path in sorted(other_diffs):
+                print(f"  {rel_path}")
+
+    return 0 if (not whitespace_only and not other_diffs) else 1
 
 
 if __name__ == '__main__':
