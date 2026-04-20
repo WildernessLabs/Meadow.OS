@@ -275,8 +275,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
   //Note: the letters 'SC0' & 'CS0' will be appended to the 2 sockets.
   // SC = server to client and CS = client to server
   dbgSock->sock_address.sun_family = AF_LOCAL;
-  strncpy(dbgSock->sock_address.sun_path, HCOM_MONO_REMOTE_DBG_SOCKET_NAME,
-            dbgSock->addrlen);
+  memcpy(dbgSock->sock_address.sun_path, HCOM_MONO_REMOTE_DBG_SOCKET_NAME, strlen(HCOM_MONO_REMOTE_DBG_SOCKET_NAME));
   dbgSock->sock_address.sun_path[dbgSock->addrlen] = '\0';
 
   dbgSock->addrlen += sizeof(sa_family_t) + 1;
