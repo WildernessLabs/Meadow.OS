@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/lte/alt1250/alt1250_select.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -50,7 +52,7 @@
 #define WRITESET_BIT            (1 << 1)
 
 /****************************************************************************
- * Private Data Type
+ * Private Types
  ****************************************************************************/
 
 struct select_params_s
@@ -119,7 +121,7 @@ static int send_select_command(FAR struct alt1250_s *dev,
   set_container_ids(&container, 0, LTE_CMDID_SELECT);
   set_container_argument(&container, in, nitems(in));
 
-  return altdevice_send_command(dev->altfd, &container, &usock_result);
+  return altdevice_send_command(dev, dev->altfd, &container, &usock_result);
 }
 
 /****************************************************************************

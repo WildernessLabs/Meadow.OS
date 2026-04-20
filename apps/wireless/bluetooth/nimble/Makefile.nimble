@@ -1,6 +1,8 @@
 ############################################################################
 # apps/wireless/bluetooth/nimble/Makefile.nimble
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -38,7 +40,7 @@ NIMBLE_IGNORE += $(NIMBLE_ROOT)/porting/nimble/src/os_cputime_pwr2.c
 
 # include NimBLE porting defs
 
-include $(NIMBLE_ROOT)/porting/nimble/Makefile.defs
+-include $(NIMBLE_ROOT)/porting/nimble/Makefile.defs
 
 CSRCS += $(NIMBLE_SRC)
 
@@ -66,4 +68,4 @@ CFLAGS += -Wno-pointer-to-int-cast -Wno-undef
 
 # disable printf format checks
 
-CFLAGS += -Wno-format
+CFLAGS += -Wno-format -Wno-unused-but-set-variable

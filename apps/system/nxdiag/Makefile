@@ -1,6 +1,8 @@
 ############################################################################
 # apps/system/nxdiag/Makefile
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.  The
@@ -20,7 +22,7 @@
 
 include $(APPDIR)/Make.defs
 
-NXTOOLSDIR = $(APPDIR)$(DELIM)tools
+NXTOOLSDIR = $(realpath $(TOPDIR))$(DELIM)tools
 NXDIAGDIR = $(APPDIR)$(DELIM)system$(DELIM)nxdiag
 
 # Sysinfo application info
@@ -57,31 +59,17 @@ ifeq ($(CONFIG_SYSTEM_NXDIAG_HOST_PATH),y)
 NXDIAG_FLAGS += --path
 endif
 
+ifeq ($(CONFIG_SYSTEM_NXDIAG_VERBOSE),y)
+NXDIAG_FLAGS += --verbose
+endif
+
 # Vendor-specific checks
 
 # Espressif
 
 ifeq ($(CONFIG_SYSTEM_NXDIAG_ESPRESSIF),y)
-
-ARCH_ESP_HALDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip$(DELIM)esp-hal-3rdparty
-
-# If the esp-hal-3rdparty directory is not in the arch directory, then it can be
-# cloned to the nxdiag directory for debugging purposes.
-HALDIR := $(shell if [ -d $(ARCH_ESP_HALDIR)$(DELIM).git ]; then echo "$(ARCH_ESP_HALDIR)"; else echo "$(NXDIAGDIR)$(DELIM)esp-hal-3rdparty"; fi)
-
-INFO_DEPS += espressif_prepare
-
-espressif_prepare:
-ifeq ($(HALDIR),$(ARCH_ESP_HALDIR))
-	(cd ${HALDIR} && git fetch -q --depth=10000 && git fetch -q --tags)
-endif
-
-ifdef ESPTOOL_BINDIR
-NXDIAG_FLAGS += --espressif "$(ESPTOOL_BINDIR)" "$(HALDIR)"
-else
-NXDIAG_FLAGS += --espressif "$(TOPDIR)" "$(HALDIR)"
-endif
-
+NXDIAG_FLAGS += "--target_info"
+PY_FLAGS += "-B"
 endif
 
 # Common build
@@ -96,13 +84,13 @@ checkpython3:
 	fi
 
 sysinfo.h : checkpython3 $(INFO_DEPS)
-	@python3 $(NXTOOLSDIR)$(DELIM)host_sysinfo.py $(NXDIAG_FLAGS) > sysinfo.h
+	@python3 $(PY_FLAGS) $(NXTOOLSDIR)$(DELIM)host_info_dump.py $(NXDIAG_FLAGS) > sysinfo.h
 	if ([ $$? -ne 0 ]); then \
 		echo "ERROR: Failed to generate sysinfo.h"; \
 		exit 1; \
 	fi
 
-context:: sysinfo.h
+depend:: sysinfo.h
 
 distclean::
 	$(call DELFILE, sysinfo.h)

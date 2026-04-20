@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/lte/alt1250/callback_handlers/alt1250_evt.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -638,9 +640,10 @@ static FAR void *g_lwm2movstopargs[] =
 
 /* event argument for LTE_CMDID_LWM2M_SERVEROP_EVT */
 
+static struct lwm2mstub_instance_s g_lwm2msrvop_inst;
 static FAR void *g_lwm2moperationargs[] =
 {
-  NULL
+  NULL, NULL, &g_lwm2msrvop_inst
 };
 
 /* event argument for LTE_CMDID_LWM2M_FWUP_EVT */
@@ -1238,6 +1241,31 @@ static uint64_t lte_set_report_netinfo_exec_cb(FAR void *cb,
         sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6);
       dns_add_nameserver((FAR const struct sockaddr *)&dnsaddr[i], addrlen);
     }
+
+  if (info->pdn_num > 0)
+    {
+      FAR lte_pdn_t *pdn = &info->pdn_stat[0];
+      FAR lte_ipaddr_t *ipaddr = &pdn->address[0];
+
+      /* ALT1250 can only connect one PDN, so check the first PDN. */
+
+      if ((pdn->ipaddr_num == 1) && (ipaddr->ip_type == LTE_IPTYPE_V4))
+        {
+          dns_set_queryfamily(AF_INET);
+        }
+      else if ((pdn->ipaddr_num == 1) && (ipaddr->ip_type == LTE_IPTYPE_V6))
+        {
+          dns_set_queryfamily(AF_INET6);
+        }
+      else
+        {
+          dns_set_queryfamily(AF_UNSPEC);
+        }
+    }
+  else
+    {
+      dns_set_queryfamily(AF_UNSPEC);
+    }
 #endif
 
   if (callback)
@@ -1420,7 +1448,8 @@ static uint64_t lwm2m_operation_evt_cb(FAR void *cb, FAR void **cbarg,
 
   if (callback)
     {
-      callback((int)cbarg[0]);
+      callback((int)cbarg[0], (int)cbarg[1],
+               (FAR struct lwm2mstub_instance_s *)cbarg[2]);
     }
 
   return 0ULL;
