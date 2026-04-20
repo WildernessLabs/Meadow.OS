@@ -159,7 +159,7 @@ define SPLITVARIABLE
 endef
 
 define ARLOCK
-	flock $1.lock $(call ARCHIVE, $1, $(2))
+	flock $1.lock -c '$(AR) $1 $(2)'
 endef
 
 # dynamic AR target
