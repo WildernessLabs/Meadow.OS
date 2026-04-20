@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/usrsock/usrsock.h
+ * eppcp/espcp_usrsock.h
  *
  *  Copyright (C) 2015, 2017 Haltian Ltd. All rights reserved.
  *  Author: Jussi Kivilinna <jussi.kivilinna@haltian.com>
@@ -76,7 +76,10 @@
 
 /* Interface flag bits */
 
-#define IFF_DOWN            (1 << 0)    /* Interface is down */
+#if !defined(IFF_DOWN)
+#  define IFF_DOWN            (1 << 0)    /* Interface is down */
+#endif
+
 #define IFF_UP              (1 << 1)    /* Interface is up */
 #define IFF_RUNNING         (1 << 2)    /* Carrier is available */
 #define IFF_IPv6            (1 << 3)    /* Configured for IPv6 packet (vs ARP or IPv4) */

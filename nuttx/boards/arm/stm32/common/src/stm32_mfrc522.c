@@ -26,9 +26,8 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
 #include <errno.h>
-#include <stdio.h>
+#include <debug.h>
 
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
@@ -43,27 +42,27 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define MFRC522_SPI_PORTNO 1   /* On SPI1 */
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: nrf53_bmm150_init
+ * Name: stm32_mfrc522initialize
  *
  * Description:
- *   Initialize and register the BMM150 as uorb sensor
+ *   Initialize and register the MFRC522 RFID driver.
  *
  * Input Parameters:
- *   devno - The user specifies device number, from 0.
- *   busno - I2C bus number
- *   addr  - The I2C address
+ *   devpath - The full path to the driver to register. E.g., "/dev/rfid0"
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
 
-int nrf53_bmm150_init(int devno, int busno, uint8_t addr)
+int stm32_mfrc522initialize(const char *devpath)
 {
   struct spi_dev_s *spi;
   int ret;
@@ -73,16 +72,15 @@ int nrf53_bmm150_init(int devno, int busno, uint8_t addr)
       return -ENODEV;
     }
 
-  /* Then register the barometer sensor */
+  /* Then register the MFRC522 */
 
-  config.i2c  = i2c;
-  config.addr = addr;
-
-  ret = bmm150_register_uorb(devno, &config);
+  ret = mfrc522_register(devpath, spi);
   if (ret < 0)
     {
-      snerr("ERROR: Error registering BMM150\n");
+      snerr("ERROR: Error registering MFRC522\n");
     }
 
   return ret;
 }
+
+#endif /* CONFIG_SPI && CONFIG_MFRC522 */

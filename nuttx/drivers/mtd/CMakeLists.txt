@@ -158,10 +158,6 @@ if(CONFIG_MTD)
     list(APPEND SRCS s25fl1.c)
   endif()
 
-  if(CONFIG_MTD_S25FL)
-  list(APPEND SRCS s25fl.c)
-  endif()
-
   if(CONFIG_MTD_N25QXXX)
     list(APPEND SRCS n25qxxx.c)
   endif()

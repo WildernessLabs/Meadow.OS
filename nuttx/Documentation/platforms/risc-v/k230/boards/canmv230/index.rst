@@ -46,9 +46,6 @@ FLAT build is straightforward:
 .. code:: console
 
    $ cd nuttx
-
-Copy the `nuttx.bin` to the TFTP service folder and work with the U-Boot console:
-=======
    $ make distclean && tools/configure.sh canmv230:nsh
    $ make -j4
 

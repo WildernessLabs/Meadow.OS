@@ -40,12 +40,14 @@ endif
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   export SHELL=cmd
-else ifeq ($(V),)
+else
   BASHCMD := $(shell command -v bash 2> /dev/null)
   ifneq ($(BASHCMD),)
     export SHELL=$(BASHCMD)
-    export ECHO_BEGIN=@echo -ne "\033[1K\r"
-    export ECHO_END=$(ECHO_BEGIN)
+    ifeq ($(V),)
+      export ECHO_BEGIN=@echo -ne "\033[1K\r"
+      export ECHO_END=$(ECHO_BEGIN)
+    endif
   endif
 endif
 
@@ -435,8 +437,8 @@ define INSTALL_LIB
 	$(ECHO_END)
 endef
 
-# ARCHIVE_ADD - Add a list of files to an archive
-# Example: $(call ARCHIVE_ADD, archive-file, "file1 file2 file3 ...")
+# ARCHIVE - Add a list of files to an archive
+# Example: $(call ARCHIVE, archive-file, "file1 file2 file3 ...")
 #
 # Note: The fileN strings may not contain spaces or  characters that may be
 # interpreted strangely by the shell
@@ -451,18 +453,8 @@ endef
 #
 #   CONFIG_WINDOWS_NATIVE - Defined for a Windows native build
 
-define ARCHIVE_ADD
-	$(ECHO_BEGIN)"AR (add): ${shell basename $(1)} "
-	$(Q) $(AR) $1 $2
-	$(ECHO_END)
-endef
-
-# ARCHIVE - Same as above, but ensure the archive is
-# created from scratch
-
 define ARCHIVE
-	$(Q) $(RM) $1
-	$(Q) $(AR) $1  $2
+	$(AR) $1  $2
 endef
 
 # PRELINK - Prelink a list of files
@@ -675,6 +667,11 @@ ifeq ($(CONFIG_STACK_USAGE),y)
 	EXTRA += *.su
 endif
 
+ifeq ($(CONFIG_ARCH_TOOLCHAIN_TASKING),y)
+	EXTRA += *.d
+	EXTRA += *.src
+endif
+
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 define CLEAN
 	$(Q) if exist *$(OBJEXT) (del /f /q *$(OBJEXT))
@@ -683,11 +680,12 @@ define CLEAN
 	$(Q) if exist (del /f /q  .*.swp)
 	$(call DELFILE,$(subst /,\,$(OBJS)))
 	$(Q) if exist $(BIN) (del /f /q  $(subst /,\,$(BIN)))
+	$(Q) if exist $(BIN).lock (del /f /q  $(subst /,\,$(BIN).lock))
 	$(Q) if exist $(EXTRA) (del /f /q  $(subst /,\,$(EXTRA)))
 endef
 else
 define CLEAN
-	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp $(OBJS) $(BIN) $(EXTRA)
+	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp $(OBJS) $(BIN) $(BIN).lock $(EXTRA)
 endef
 endif
 
@@ -755,21 +753,25 @@ else
   endif
 endif
 
+ifeq ($(CONFIG_LIBCXXABI),y)
+ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libcxxabi
+endif
+
 ifeq ($(CONFIG_LIBM_NEWLIB),y)
-  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)newlib$(DELIM)include
-  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)newlib$(DELIM)include
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)newlib
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)newlib
 endif
 
 #libmcs`s math.h should include after libcxx, or it will override libcxx/include/math.h and build error
 ifeq ($(CONFIG_LIBM_LIBMCS),y)
   ARCHDEFINES += ${DEFINE_PREFIX}LIBMCS_LONG_DOUBLE_IS_64BITS
-  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)libmcs$(DELIM)libmcs$(DELIM)libm$(DELIM)include
-  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)libmcs$(DELIM)libmcs$(DELIM)libm$(DELIM)include
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libmcs
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)libmcs
 endif
 
 ifeq ($(CONFIG_LIBM_OPENLIBM),y)
-  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)openlibm$(DELIM)openlibm$(DELIM)include
-  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)libs$(DELIM)libm$(DELIM)openlibm$(DELIM)openlibm$(DELIM)include
+  ARCHINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)openlibm
+  ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include$(DELIM)openlibm
 endif
 
 ARCHXXINCLUDES += ${INCSYSDIR_PREFIX}$(TOPDIR)$(DELIM)include

@@ -317,12 +317,6 @@ USART/UART can be also used to emulate 1 wire interface. SAMv7 MCUs do not have 
 Output pins are configured as if serial mode was selected plus TX is open drain. SAMv7 part of the driver
 is initialized by :c:func:`sam_1wireinitialize` with port number as an argument.
 
-USART/UART can be also used to emulate 1 wire interface. SAMv7 MCUs do not have build in support for
-1 wire therefore external hardware as TX/RX connection or optical isolation might be required. Selecting
-``CONFIG_SAMV7_UARTx_1WIREDRIVER`` enables 1 wire driver and sets USART/UART peripheral to this mode.
-Output pins are configured as if serial mode was selected plus TX is open drain. SAMv7 part of the driver
-is initialized by :c:func:`sam_1wireinitialize` with port number as an argument.
-
 Watchdog Timer (WDT)
 ---------------------
 

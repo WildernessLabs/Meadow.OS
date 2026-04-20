@@ -307,10 +307,6 @@ int nxsched_smp_call_async(cpu_set_t cpuset,
   int ret = OK;
   int i;
 
-  /* Cannot wait in interrupt context. */
-
-  DEBUGASSERT(!(wait && up_interrupt_context()));
-
   /* Prevent reschedule on another processor */
 
   if (!up_interrupt_context())

@@ -404,14 +404,6 @@ static int ipv4_in(FAR struct net_driver_s *dev)
     }
 #endif
 
-#ifdef CONFIG_NET_IPFILTER
-  if (ipv4_filter_in(dev) != IPFILTER_TARGET_ACCEPT)
-    {
-      ninfo("Drop/Reject INPUT packet due to filter.\n");
-      goto done;
-    }
-#endif
-
   /* Now process the incoming packet according to the protocol. */
 
   switch (ipv4->proto)

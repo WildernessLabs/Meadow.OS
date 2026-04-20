@@ -71,14 +71,6 @@ static size_t g_region_count;
 static spinlock_t g_lock;
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifdef CONFIG_MM_KASAN_GLOBAL
-extern const unsigned char g_globals_region[];
-#endif
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -100,22 +92,6 @@ kasan_mem_to_shadow(FAR const void *ptr, size_t size,
           return &g_region[i]->shadow[addr / KASAN_BITS_PER_WORD];
         }
     }
-
-#ifdef CONFIG_MM_KASAN_GLOBAL
-  for (region = (FAR struct kasan_region_s *)g_globals_region;
-       region->next;
-       region = KASAN_GLOBAL_NEXT_REGION(region))
-    {
-      if (addr >= region->begin && addr < region->end)
-        {
-          DEBUGASSERT(addr + size <= region->end);
-          addr -= region->begin;
-          addr /= KASAN_GLOBAL_SHADOW_SCALE;
-          *bit  = addr % KASAN_BITS_PER_WORD;
-          return &region->shadow[addr / KASAN_BITS_PER_WORD];
-        }
-    }
-#endif
 
   return NULL;
 }

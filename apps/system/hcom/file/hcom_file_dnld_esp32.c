@@ -392,10 +392,11 @@ int hcom_nx_exec_ex_update_ESP32()
   for (i = 0; i < filecount; i++)
   {
     char firmware_fullpath[PATH_MAX] = UPDATE_FIRMWARE_DIR;
-    strncat(firmware_fullpath, meadow_esp32_firmware[i].filename, PATH_MAX);
+    uint32_t firmware_fullpath_len = strlen(firmware_fullpath);
+    strncat(firmware_fullpath, meadow_esp32_firmware[i].filename, PATH_MAX - firmware_fullpath_len - 1);
     char firmware_fullpath_md5[PATH_MAX];
     strncpy(firmware_fullpath_md5, firmware_fullpath, PATH_MAX);
-    strncat(firmware_fullpath_md5, ".md5", PATH_MAX - 1);
+    strncat(firmware_fullpath_md5, ".md5", PATH_MAX - firmware_fullpath_len - 1);
     uint8_t *file_ptr = NULL;
     uint8_t *md5_hash_buf = NULL;
     uint8_t *file_buf = NULL;
