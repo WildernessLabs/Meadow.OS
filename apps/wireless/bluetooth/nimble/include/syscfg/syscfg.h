@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/wireless/bluetooth/nimble/include/syscfg/syscfg.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -56,7 +58,7 @@
 /* Transport configuration */
 
 #define MYNEWT_VAL_BLE_TRANSPORT_ACL_FROM_HS_COUNT     (10)
-#define MYNEWT_VAL_BLE_TRANSPORT_ACL_FROM_LL_COUNT     (0)
+#define MYNEWT_VAL_BLE_TRANSPORT_ACL_FROM_LL_COUNT     (10)
 #define MYNEWT_VAL_BLE_TRANSPORT_ACL_SIZE              (251)
 #define MYNEWT_VAL_BLE_TRANSPORT_EVT_COUNT             (4)
 #define MYNEWT_VAL_BLE_TRANSPORT_EVT_DISCARDABLE_COUNT (16)
@@ -92,6 +94,11 @@
 #define MYNEWT_VAL_BLE_HS_REQUIRE_OS                   (1)
 #define MYNEWT_VAL_BLE_HS_STOP_ON_SHUTDOWN             (1)
 #define MYNEWT_VAL_BLE_HS_STOP_ON_SHUTDOWN_TIMEOUT     (2000)
+
+/* LE Isochronous Channels not supported for now */
+
+#define MYNEWT_BLE_ISO                       (0)
+#define MYNEWT_VAL_BLE_ISO_MAX_BISES         (0)
 
 /* BLE role configuration */
 
@@ -134,7 +141,7 @@
 #endif
 
 #ifdef CONFIG_NIMBLE_BLE_EXT_ADV
-#  define MYNEWT_VAL_BLE_EXT_ADV                           (1)
+#  define MYNEWT_VAL_BLE_EXT_ADV                    (1)
 #  define MYNEWT_VAL_BLE_EXT_ADV_MAX_SIZE           (CONFIG_NIMBLE_BLE_EXT_ADV_MAX_SIZE)
 #else
 #  define MYNEWT_VAL_BLE_EXT_ADV                    (0)
@@ -143,6 +150,7 @@
 #define MYNEWT_VAL_BLE_MAX_CONNECTIONS              (CONFIG_NIMBLE_BLE_MAX_CONN)
 #define MYNEWT_VAL_BLE_MAX_PERIODIC_SYNCS           (CONFIG_NIMBLE_BLE_MAX_PERIODIC_SYNCS)
 #define MYNEWT_VAL_BLE_MULTI_ADV_INSTANCES          (CONFIG_NIMBLE_BLE_MULTI_ADV_INSTANCES)
+#define MYNEWT_VAL_BLE_HS_EXT_ADV_LEGACY_INSTANCE   (0)
 
 #ifdef CONFIG_NIMBLE_BLE_PERIODIC_ADV
 #  define MYNEWT_VAL_BLE_PERIODIC_ADV               (1)
@@ -178,6 +186,7 @@
 #define MYNEWT_VAL_BLE_ATT_SVR_INDICATE         (1)
 #define MYNEWT_VAL_BLE_ATT_SVR_MAX_PREP_ENTRIES (64)
 #define MYNEWT_VAL_BLE_ATT_SVR_NOTIFY           (1)
+#define MYNEWT_VAL_BLE_ATT_SVR_NOTIFY_MULTI     (1)
 #define MYNEWT_VAL_BLE_ATT_SVR_QUEUED_WRITE     (1)
 #define MYNEWT_VAL_BLE_ATT_SVR_QUEUED_WRITE_TMO (30000)
 #define MYNEWT_VAL_BLE_ATT_SVR_READ             (1)
@@ -188,6 +197,10 @@
 #define MYNEWT_VAL_BLE_ATT_SVR_SIGNED_WRITE     (1)
 #define MYNEWT_VAL_BLE_ATT_SVR_WRITE            (1)
 #define MYNEWT_VAL_BLE_ATT_SVR_WRITE_NO_RSP     (1)
+
+/* EATT disabled for now */
+
+#define MYNEWT_VAL_BLE_EATT_CHAN_NUM            (0)
 
 /* GAP configuration */
 
@@ -236,7 +249,7 @@
 #ifdef CONFIG_NIMBLE_BLE_SM_SC
 #  define MYNEWT_VAL_BLE_SM_SC              (1)
 #else
-#  define MYNEWT_VAL_BLE_SM_SC                             (0)
+#  define MYNEWT_VAL_BLE_SM_SC              (0)
 #endif
 
 #ifdef CONFIG_NIMBLE_BLE_SM_SC_DEBUG

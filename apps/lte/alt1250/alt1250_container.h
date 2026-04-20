@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/lte/alt1250/alt1250_container.h
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -71,4 +73,4 @@ void container_free_all(FAR struct alt_container_s *head);
 FAR struct alt_container_s *
     container_pick_listtop(FAR struct alt_container_s **head);
 
-#endif	/* __APPS_LTE_ALT1250_ALT1250_CONTAINER_H */
+#endif /* __APPS_LTE_ALT1250_ALT1250_CONTAINER_H */

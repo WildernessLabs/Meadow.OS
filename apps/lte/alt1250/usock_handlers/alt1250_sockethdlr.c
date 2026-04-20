@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/lte/alt1250/usock_handlers/alt1250_sockethdlr.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -94,7 +96,7 @@ static int send_fctl_command(FAR struct alt1250_s *dev,
   set_container_postproc(container, cmd == ALTCOM_SETFL ? postproc_setfl :
                           cmd == ALTCOM_GETFL ? postproc_getfl : NULL, 0);
 
-  return altdevice_send_command(dev->altfd, container, usock_result);
+  return altdevice_send_command(dev, dev->altfd, container, usock_result);
 }
 
 /****************************************************************************
@@ -331,7 +333,7 @@ static int send_socket_command(FAR struct alt1250_s *dev,
   set_container_response(container, USOCKET_REP_RESPONSE(usock), idx);
   set_container_postproc(container, postproc_socket, 0);
 
-  return altdevice_send_command(dev->altfd, container, usock_result);
+  return altdevice_send_command(dev, dev->altfd, container, usock_result);
 }
 
 /****************************************************************************
@@ -393,11 +395,11 @@ int usockreq_socket(FAR struct alt1250_s *dev,
            request->type != SOCK_CTRL)
     {
       /* If domain is AF_INET while usock_enable is false,
-       * set usockid to -EPROTONOSUPPORT to fallback kernel
+       * set usockid to -ENOTSUP to fallback kernel
        * network stack.
        */
 
-      *usock_result = -EPROTONOSUPPORT;
+      *usock_result = -ENOTSUP;
       return REP_SEND_ACK_WOFREE;
     }
 

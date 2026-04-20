@@ -1,6 +1,8 @@
 /****************************************************************************
  * apps/testing/ostest/pthread_exit.c
  *
+ * SPDX-License-Identifier: Apache-2.0
+ *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.  The
@@ -25,6 +27,7 @@
 #include <nuttx/config.h>
 #include <sys/wait.h>
 #include <stdio.h>
+#include <sched.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -44,7 +47,7 @@
  * Private Functions
  ****************************************************************************/
 
-static void *pthread_exit_thread(FAR void *parameter)
+static FAR void *pthread_exit_thread(FAR void *parameter)
 {
   unsigned me = (unsigned)pthread_self();
 
@@ -56,7 +59,7 @@ static void *pthread_exit_thread(FAR void *parameter)
   return NULL;
 }
 
-static int pthread_exit_main(int argc, char **argv)
+static FAR void *pthread_exit_main(FAR void *arg)
 {
   pthread_t child;
 #ifdef SDCC
@@ -86,6 +89,8 @@ static int pthread_exit_main(int argc, char **argv)
 
   printf("pthread_exit_main %u: ERROR:  Still running\n", me);
   exit(0);
+
+  return NULL;
 }
 
 /****************************************************************************
@@ -94,20 +99,29 @@ static int pthread_exit_main(int argc, char **argv)
 
 void pthread_exit_test(void)
 {
-  int statloc;
+  struct sched_param param;
+  pthread_attr_t attr;
+  pid_t pid;
   int ret;
 
-  ret = task_create("pthread_exit", PRIORITY, STACKSIZE, pthread_exit_main,
-                    NULL);
+  pthread_attr_init(&attr);
+  param.sched_priority = PRIORITY;
+  pthread_attr_setschedparam(&attr, &param);
+  pthread_attr_setstacksize(&attr, STACKSIZE);
+  ret = pthread_create(&pid, &attr, pthread_exit_main, NULL);
   if (ret < 0)
     {
-      printf("pthread_exit_test:  ERROR task_create Failed\n");
+      printf("pthread_exit_test:  ERROR pthread_create Failed\n");
     }
   else
     {
       printf("pthread_exit_test: Started pthread_exit_main at PID=%d\n",
-             ret);
-      waitpid((pid_t)ret, &statloc, 0);
+             pid);
+      if (pthread_join(pid, NULL) != 0)
+        {
+          printf("pthread_exit_test: ERROR Failed to join to terminate\n");
+          ASSERT(false);
+        };
     }
 }
 
