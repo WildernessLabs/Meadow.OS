@@ -6,6 +6,7 @@ The following notes discuss practical experience of rebasing NuttX OS and Apps i
 
 The following directory structure is assumed:
 
+```
 OS/
 ├─ MainlineApps/
 ├─ Mainline/
@@ -13,6 +14,7 @@ OS/
 │  ├─ apps
 │  ├─ nuttx
 │  ├─ <other files>
+```
 
 The names of the _Mainline_, _MainlineApps_ and _Rebase_ directories can be changed if desired, just adjust the instructions to your needs.
 

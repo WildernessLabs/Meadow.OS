@@ -11,3 +11,4 @@ For a project overview, architecture summary, build instructions, and hardware s
 | [Kernelspace.md](Kernelspace.md) | Kernel startup flow, board support package, all kernel modules and their responsibilities |
 | [Userspace.md](Userspace.md) | hcom application structure, all user-space modules and shared headers |
 | [Debugging.md](Debugging.md) | OpenOCD/GDB setup, flashing options, QEMU support, Python GDB extensions |
+| [Rebasing](Rebasing.md) | Rebasing with mainline NuttX and NuttX apps |
