@@ -12,8 +12,8 @@ set remote hardware-watchpoint-limit 4
 set confirm off
 
 define load-nuttx-symbols
-  file ../nuttx/nuttx
-  add-symbol-file -readnow ../nuttx/nuttx
+  file ../nuttx/nuttx.elf
+  add-symbol-file -readnow ../nuttx/nuttx.elf
   #
   # The following loads the bootloader symbols for debugging but is commented out for general use
   # as it adds over 45 seconds to the debugger startup.
@@ -87,14 +87,22 @@ source NuttxHeap.py
 source Tracing.py
 
 target extended-remote :4242
-mon gdb_breakpoint_override hard
+mon gdb breakpoint_override hard
 #reset-qemu
-monitor nuttx.pid_offset 12
-monitor nuttx.xcpreg_offset 332
-monitor nuttx.state_offset 26
-monitor nuttx.name_offset 540
-monitor nuttx.name_size 64
+
+# monitor nuttx.pid_offset 12
+# monitor nuttx.xcpreg_offset 332
+# monitor nuttx.state_offset 26
+# monitor nuttx.name_offset 540
+# monitor nuttx.name_size 64
 monitor nuttx.g_tasklisttable_size 72
+
+eval "monitor nuttx.pid_offset %d", &((struct tcb_s *)(0))->pid
+eval "monitor nuttx.xcpreg_offset %d", &((struct tcb_s *)(0))->xcp.regs
+eval "monitor nuttx.state_offset %d", &((struct tcb_s *)(0))->task_state
+eval "monitor nuttx.name_offset %d", &((struct tcb_s *)(0))->name
+eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
+
 
 #
 #   Commands specific to your debug scenario should be placed here.  The following
