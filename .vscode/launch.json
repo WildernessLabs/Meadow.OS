@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name":"Debug STM32F7",
+      "cwd":"${workspaceFolder}",
+      "executable":"${workspaceFolder}/nuttx/nuttx",
+      "request": "launch",
+      "type":"cortex-debug",
+      "servertype":"openocd",
+      "device":"STM32F777iik6",
+      "gdbPath":"gdb-multiarch",
+      "rtos": "nuttx",
+      "svdFile":"${workspaceFolder}/gdb/STM32F777.svd",
+      "showDevDebugOutput":"raw",
+      "configFiles":[
+        "interface/stlink.cfg",
+        "target/stm32f7x.cfg"
+      ],
+      "loadFiles": [
+        "${workspaceFolder}/nuttx/nuttx",
+        "${workspaceFolder}/nuttx/nuttx_user.elf",
+      ],
+      "symbolFiles": [
+        "${workspaceFolder}/nuttx/nuttx",
+        "${workspaceFolder}/nuttx/nuttx_user.elf",
+      ],
+      // "liveWatch": {"enabled": true},
+    }
+  ]
+}
