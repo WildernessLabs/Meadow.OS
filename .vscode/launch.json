@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name":"Debug STM32F7",
+      "cwd":"${workspaceFolder}",
+      "executable":"${workspaceFolder}/nuttx/nuttx.elf",
+      "request": "launch",
+      "type":"cortex-debug",
+      "servertype":"openocd",
+      "device":"STM32F777iik6",
+      "gdbPath":"arm-none-eabi-gdb-py",
+      "rtos": "nuttx",
+      "svdFile":"${workspaceFolder}/svd/STM32F777.svd",
+      "showDevDebugOutput":"raw",
+      "configFiles":[
+        "interface/stlink.cfg",
+        "target/stm32f7x.cfg"
+      ],
+      "loadFiles": [
+        "${workspaceFolder}/nuttx/nuttx.elf",
+        "${workspaceFolder}/nuttx/nuttx_user.elf",
+      ],
+      "symbolFiles": [
+        "${workspaceFolder}/nuttx/nuttx.elf",
+        "${workspaceFolder}/nuttx/nuttx_user.elf",
+      ],
+    }
+  ]
+}
