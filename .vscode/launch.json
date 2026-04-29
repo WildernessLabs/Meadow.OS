@@ -4,7 +4,7 @@
     {
       "name":"Debug STM32F7",
       "cwd":"${workspaceFolder}",
-      "executable":"${workspaceFolder}/nuttx/nuttx",
+      "executable":"${workspaceFolder}/nuttx/nuttx.elf",
       "request": "launch",
       "type":"cortex-debug",
       "servertype":"openocd",
@@ -18,14 +18,13 @@
         "target/stm32f7x.cfg"
       ],
       "loadFiles": [
-        "${workspaceFolder}/nuttx/nuttx",
+        "${workspaceFolder}/nuttx/nuttx.elf",
         "${workspaceFolder}/nuttx/nuttx_user.elf",
       ],
       "symbolFiles": [
-        "${workspaceFolder}/nuttx/nuttx",
+        "${workspaceFolder}/nuttx/nuttx.elf",
         "${workspaceFolder}/nuttx/nuttx_user.elf",
       ],
-      // "liveWatch": {"enabled": true},
     }
   ]
 }

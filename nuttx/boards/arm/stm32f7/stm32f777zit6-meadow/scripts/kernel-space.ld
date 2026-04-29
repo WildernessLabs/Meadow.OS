@@ -37,6 +37,7 @@ SECTIONS
         *(.fixup)
         *(.gnu.warning)
         *(.rodata .rodata.*)
+        KEEP(*(.rodata.g_tcbinfo))  /* retain for OpenOCD NuttX RTOS plugin */
         *(.gnu.linkonce.t.*)
         *(.glue_7)
         *(.glue_7t)

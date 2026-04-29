@@ -170,7 +170,7 @@ if [[ "$OS" == "mac" ]]; then
   #
   # Launch custom gdb-py from /Meadow
   #
-  arm-none-eabi-gdb-py $MI -q
+  arm-none-eabi-gdb-py3 $MI -q
 elif [[ "$OS" == "linux" ]]; then
   #
   # Launch custom versions from arm of arm-none-eabi-gdb having python baked in

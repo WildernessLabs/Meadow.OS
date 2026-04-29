@@ -36,6 +36,11 @@ else
   ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)
 endif
 
+# Force g_tcbinfo to be linked even when --gc-sections would otherwise discard
+# it (nothing in the kernel binary references it directly, but OpenOCD's NuttX
+# RTOS plugin requires the symbol to be present for task-aware debugging).
+LDFLAGS += --undefined=g_tcbinfo
+
 ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r10
 
 CFLAGS := $(ARCHCFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS) -I $(BOARD_DIR)$(DELIM)src -I $(BOARD_DIR)$(DELIM)src/Meadow.OS/include
@@ -48,3 +53,10 @@ AFLAGS := $(CFLAGS) -D__ASSEMBLY__
 NXFLATLDFLAGS1 = -r -d -warn-common
 NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
 LDNXFLATFLAGS = -e main -s 2048
+
+EXEEXT = .elf
+
+# The hcom app incorrectly uses EXEEXT in its PROGNAME, which breaks 
+# Application.mk by creating an invalid C macro definition. 
+# We force it to use a name without the extension here.
+CONFIG_EXAMPLES_HCOM_PROGNAME = hcom

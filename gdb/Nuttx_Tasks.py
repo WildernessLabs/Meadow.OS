@@ -351,7 +351,7 @@ class NX_show_interrupted_thread (gdb.Command):
 
     def invoke(self, args, from_tty):
         regs = gdb.lookup_global_symbol('current_regs').value()
-        if regs is 0:
+        if regs == 0:
             raise gdb.GdbError('not in interrupt context')
         else:
             registers = NX_register_set.with_xcpt_regs(regs)
