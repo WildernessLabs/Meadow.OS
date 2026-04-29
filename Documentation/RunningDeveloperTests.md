@@ -81,7 +81,7 @@ The test numbers can be found in the file `nuttx/boards/arm/stm32f7/stm32f777zit
 
 ### List Available Tests
 
-If you trigger a test with ID `0`, the system will output a list of all tests currently compiled into the firmware to the host.
+If you trigger a test with `meadow developer -p 0`, the system will output a list of all tests currently compiled into the firmware to the host.
 
 ## Adding New Tests
 
