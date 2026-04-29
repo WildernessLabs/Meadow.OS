@@ -9,9 +9,9 @@
       "type":"cortex-debug",
       "servertype":"openocd",
       "device":"STM32F777iik6",
-      "gdbPath":"arm-none-eabi-gdb-py",
+      "gdbPath":"gdb-multiarch",
       "rtos": "nuttx",
-      "svdFile":"${workspaceFolder}/svd/STM32F777.svd",
+      "svdFile":"${workspaceFolder}/gdb/STM32F777.svd",
       "showDevDebugOutput":"raw",
       "configFiles":[
         "interface/stlink.cfg",
