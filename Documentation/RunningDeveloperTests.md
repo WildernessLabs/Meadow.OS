@@ -73,9 +73,9 @@ When using the Meadow CLI, you can trigger developer tests with a command such a
 meadow developer -p <test number> -v <value for the test> -t <timeout>
 ```
 
-* <test number> is the test to be run.
-* <value for the test> `uint32_t` value to be passed to the test.  It is up to the test how (or even if) this value is processed.
-* <timeout> Timeout in seconds that the test will run for.  This is useful for running tests that will exceed the default CLI timeout, for instance consuming 10,000 web pages.
+* &gt;test number&lt; is the test to be run.
+* &gt;value for the test&lt; `uint32_t` value to be passed to the test.  It is up to the test how (or even if) this value is processed.
+* &gt;timeout&lt; Timeout in seconds that the test will run for.  This is useful for running tests that will exceed the default CLI timeout, for instance consuming 10,000 web pages.
 
 The test numbers can be found in the file `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Meadow.OS/include/meadow/meadow_unit_test_framework.h`
 
