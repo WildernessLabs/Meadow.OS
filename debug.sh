@@ -164,13 +164,24 @@ fi
 cd $scriptdir/gdb
 
 #
+# Activate the Python virtual environment.
+#
+if [ ! -d "$scriptdir/.venv" ]; then
+	  python3 -m venv $scriptdir/.venv
+    #
+    #   Update pip and install the required dependencies for pynuttx.
+    #
+    python3 -m pip install --upgrade pip
+    python3 -m pip install -r $scriptdir/nuttx/tools/pynuttx/requirements.txt
+    python3 -m pip install numpy matplotlib debugpy pyelftools
+fi
+source $scriptdir/.venv/bin/activate
+
+#
 #   Launch GDB with Python scripting configurations
 #
 if [[ "$OS" == "mac" ]]; then
-  #
-  # Launch custom gdb-py from /Meadow
-  #
-  arm-none-eabi-gdb-py3 $MI -q
+  arm-none-eabi-gdb $MI -q -iex 'set auto-load safe-path /'
 elif [[ "$OS" == "linux" ]]; then
   #
   # Launch custom versions from arm of arm-none-eabi-gdb having python baked in
