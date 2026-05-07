@@ -92,7 +92,7 @@ SECTIONS
         CONSTRUCTORS
         . = ALIGN(4);
         _edata = ABSOLUTE(.);
-    } > usram AT > uflash
+    } > usram AT > uflash :data
 
     .bss : {
         _sbss = ABSOLUTE(.);
