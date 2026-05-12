@@ -208,7 +208,7 @@ struct HcomProtoTextMsg_s
   HcomProtoStdHdr_t stdHeader;
 
   // Some 'simple' messages containing string information.
-  char textData[0];   // This can be path name
+  char textData[0];   // This can be path name, NULL terminated
 
 } __attribute__((packed));
 

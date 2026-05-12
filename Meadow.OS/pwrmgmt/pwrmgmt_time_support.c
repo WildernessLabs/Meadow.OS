@@ -217,7 +217,7 @@ int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
   setTimeCmd = (HcomProtoTextMsg_t *) hdrMsg;
   dateTimeLen = packetSize - HCOM_PROTOCOL_TEXT_MSG_START_OFF;
 
-  if(dateTimeLen == 0 || setTimeCmd->textData == NULL)
+  if(dateTimeLen == 0 || setTimeCmd->textData[0] == '\0')
   {
     syslog(LOG_ERR, "%s@%d-Error:No time value found\n", thisFile, __LINE__);
     return -EINVAL;
