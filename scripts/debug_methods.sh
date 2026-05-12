@@ -19,9 +19,9 @@ set_openocd_variables() {
     MEADOW_OPENOCD_COMMAND="${MEADOW_MACOS_OPENOCD_DIR}/src/openocd"
     MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_MACOS_OPENOCD_DIR}/tcl"
   elif [[ "$OS" == "linux" ]]; then
-    MEADOW_OPENOCD_COMMAND="openocd"
-    MEADOW_OPENOCD_SCRIPT_DIR="/usr/local/share/openocd/scripts"
-else
+    MEADOW_OPENOCD_COMMAND="/usr/bin/openocd"
+    MEADOW_OPENOCD_SCRIPT_DIR="~/openSourceTools/openocd/tcl"
+  else
     echo "Unsupported OS ${bold}$OS${reset}.\n"
     exit -1
   fi
