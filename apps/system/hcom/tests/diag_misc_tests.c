@@ -40,7 +40,7 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_shared_common.h>
 
-#if (CONFIG_USR_WORK_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS)
 #include <nuttx/wqueue.h>
 #endif
 
@@ -71,7 +71,7 @@ static int _nx_access_fd;
  ****************************************************************************/
 static int overload_main(int argc, char *argv[]);
 
-#if (CONFIG_USR_WORK_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS)
 static struct work_s qtest_work_queue;
 #endif
 
@@ -272,6 +272,7 @@ void diag_misc_tests_snprintf_on_nuttx(uint32_t userData)
 }
 
 //============================================================
+#if defined(CONFIG_USR_WORK_TESTS)
 // This code allows the USRWORK worker queue to be called from the apps side
 // of nuttx. On the kernel side of Nuttx we have the low-priority worker
 // queue and the high-priority worker queue. This tests the only worker
@@ -285,11 +286,11 @@ static void diag_misc_tests_verify_usrwork_callback(void *arg)
 
 //-------------------------------------------------------------
 // Start, restart, or stop the USRWORK queue timer
-static int diag_misc_tests_verify_usrwork_set_delay(time_t delayInSeconds)
+static int diag_misc_tests_verify_usrwork_set_delay(int delayInSeconds)
 {
   int ret;
 
-  syslog(LOG_MTEST, "%s@%d-Setting usrwork timer for: %lld seconds.\n",
+  syslog(LOG_MTEST, "%s@%d-Setting usrwork timer for: %d seconds.\n",
     __FILE__, __LINE__, delayInSeconds);
   usleep(20 * 1000);
 
@@ -303,7 +304,6 @@ static int diag_misc_tests_verify_usrwork_set_delay(time_t delayInSeconds)
 
 //============================================================
 // This test will verify that USRWORK functions as expected
-#if (CONFIG_USR_WORK_TESTS)
 void diag_misc_tests_verify_usrwork(uint32_t userData)
 {
   int ret;
@@ -319,9 +319,9 @@ void diag_misc_tests_verify_usrwork(uint32_t userData)
       break;
 
     case 2:
-      // Check if usrwork crashes OS when time cleared
-      ret = diag_misc_tests_verify_usrwork_set_delay(0);
-      syslog(LOG_MTEST, "%s@%d-Reset USRWORK queue, ret = %d\n",
+      // Check if usrwork crashes OS when time cancelled
+      ret = work_cancel(USRWORK, &qtest_work_queue);
+      syslog(LOG_MTEST, "%s@%d-Cancelled USRWORK via work_cancel(), ret = %d\n",
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
       break;
@@ -334,7 +334,7 @@ void diag_misc_tests_verify_usrwork(uint32_t userData)
       usleep(20 * 1000);
       sleep(3);
       ret = diag_misc_tests_verify_usrwork_set_delay(10);
-      syslog(LOG_MTEST, "%s@%d-Resetting timeout for 10 more. ret = %d\n",
+      syslog(LOG_MTEST, "%s@%d-Overright timeout with 10 seconds. ret = %d\n",
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
       break;

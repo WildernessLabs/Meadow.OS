@@ -206,7 +206,7 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_CELL_TESTS                      20
 
 /**
- * @brief Cell tests ID.
+ * @brief USRWORK tests.
  */
 #define MEADOW_TEST_USRWORK_TESTS                   21
 
