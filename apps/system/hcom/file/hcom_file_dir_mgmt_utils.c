@@ -334,7 +334,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
   enum hcom_file_msg_cat_e catType;
   uint32_t pathNameElements;
   size_t dnldFileAndPathLen;
-  char *hostMsg;
+  char *hostMsg = NULL;
 
   // Make sure shared version available
   _dnldShared = dnldShared;
