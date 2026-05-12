@@ -206,6 +206,11 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_CELL_TESTS                      20
 
 /**
+ * @brief Cell tests ID.
+ */
+#define MEADOW_TEST_USRWORK_TESTS                   21
+
+/**
  * @brief User space assert test ID.
  */
 #define MEADOW_TEST_USER_SPACE_ASSERT               900

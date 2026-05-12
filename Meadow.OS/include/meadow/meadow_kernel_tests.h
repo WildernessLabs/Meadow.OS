@@ -39,6 +39,7 @@
 
 #include <stdint.h>
 
+// These are tests that must run on the kernel side of Nuttx
 void meadow_kt_espcp_tests(uint32_t arg);
 void meadow_kt_espcp_test_get_web_resource(uint32_t arg);
 
