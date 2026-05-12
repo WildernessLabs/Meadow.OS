@@ -40,6 +40,10 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_shared_common.h>
 
+#if defined(CONFIG_USR_WORK_TESTS)
+#include <nuttx/wqueue.h>
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -66,6 +70,10 @@ static int _nx_access_fd;
  * Private Function Prototypes
  ****************************************************************************/
 static int overload_main(int argc, char *argv[]);
+
+#if defined(CONFIG_USR_WORK_TESTS)
+static struct work_s qtest_work_queue;
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -263,3 +271,87 @@ void diag_misc_tests_snprintf_on_nuttx(uint32_t userData)
   hcom_diag_print_buffer((uint8_t *)buffer, 16, 1);
 }
 
+//============================================================
+#if defined(CONFIG_USR_WORK_TESTS)
+// This code allows the USRWORK worker queue to be called from the apps side
+// of nuttx. On the kernel side of Nuttx we have the low-priority worker
+// queue and the high-priority worker queue. This tests the only worker
+// queue available on the apps side, USRWORK.
+// Work queue callback
+static void diag_misc_tests_verify_usrwork_callback(void *arg)
+{
+  syslog(LOG_MTEST, "%s@%d-USRWORK Callback timed out.\n",
+    __FILE__, __LINE__);
+}
+
+//-------------------------------------------------------------
+// Start, restart, or stop the USRWORK queue timer
+static int diag_misc_tests_verify_usrwork_set_delay(int delayInSeconds)
+{
+  int ret;
+
+  syslog(LOG_MTEST, "%s@%d-Setting usrwork timer for: %d seconds.\n",
+    __FILE__, __LINE__, delayInSeconds);
+  usleep(20 * 1000);
+
+  ret = work_queue(USRWORK,
+    &qtest_work_queue,
+    diag_misc_tests_verify_usrwork_callback,
+    NULL,
+    SEC2TICK(delayInSeconds));
+  return ret;
+}
+
+//============================================================
+// This test will verify that USRWORK functions as expected
+void diag_misc_tests_verify_usrwork(uint32_t userData)
+{
+  int ret;
+  
+  switch(userData)
+  {
+    case 1:
+      // Check if usrwork crashes OS when time set
+      ret = diag_misc_tests_verify_usrwork_set_delay(7);
+      syslog(LOG_MTEST, "%s@%d-USRWORK, ret = %d\n",
+        __FILE__, __LINE__, ret);
+      usleep(20 * 1000);
+      break;
+
+    case 2:
+      // Check if usrwork crashes OS when time cancelled
+      ret = work_cancel(USRWORK, &qtest_work_queue);
+      syslog(LOG_MTEST, "%s@%d-Cancelled USRWORK via work_cancel(), ret = %d\n",
+        __FILE__, __LINE__, ret);
+      usleep(20 * 1000);
+      break;
+
+    case 3:
+      // Check if usrwork crashes OS when time reset
+      ret = diag_misc_tests_verify_usrwork_set_delay(7);
+      syslog(LOG_MTEST, "%s@%d-set time for 7 seconds. ret = %d\n",
+        __FILE__, __LINE__, ret);
+      usleep(20 * 1000);
+      sleep(3);
+      ret = diag_misc_tests_verify_usrwork_set_delay(10);
+      syslog(LOG_MTEST, "%s@%d-Overright timeout with 10 seconds. ret = %d\n",
+        __FILE__, __LINE__, ret);
+      usleep(20 * 1000);
+      break;
+
+    case 99:
+      // Verify that sleep() works as expected
+      ret = sleep(3);
+      syslog(LOG_MTEST, "%s@%d-Slept for 3 seconds. ret = %d\n",
+        __FILE__, __LINE__, ret);
+      usleep(20 * 1000);
+      break;
+
+    default:
+      syslog(LOG_MTEST, "%s@%d-No valid USRWORK test found.\n",
+        __FILE__, __LINE__);
+      usleep(20 * 1000);
+  }
+}
+
+#endif

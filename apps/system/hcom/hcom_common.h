@@ -431,6 +431,7 @@ int MonoVsRemoteDebugTestSetup(int argc, char *argv[]);
 void hcom_bbr_tests(uint32_t);
 
 void diag_misc_tests_snprintf_on_nuttx(uint32_t userData);
+void diag_misc_tests_verify_usrwork(uint32_t userData);
 
 void hcom_meadow_sqlite_tests(uint32_t userData);
 void hcom_meadow_diag_gpio_tests(uint32_t userData);

@@ -321,6 +321,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS
             BUILD_TESTS=true
             ;;
+            usrwork)
+            echo "Verify USRWORK functions as expected on apps side."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable USR_WORK_TESTS
+            BUILD_TESTS=true
+            ;;
             all)
             echo "All tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS

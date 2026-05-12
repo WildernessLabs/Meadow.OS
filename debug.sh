@@ -3,6 +3,8 @@
 #set -e
 scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 
+# printf "debug>-scriptdir: ( $scriptdir ).\n"
+
 . $scriptdir/scripts/common_methods.sh
 . $scriptdir/scripts/debug_methods.sh
 
@@ -130,13 +132,22 @@ if [ "$QEMU" = true ] && [ "$SERVER" = true ]; then
   exit 0
 fi
 
+# printf "debug>Launching GDB server\n"
+
 #
 # Launch the GDB debug server if passed the --server flag.
 #
 
 if [ "$SERVER" = true ] ; then
   if [ "$OCD" = true ] ; then
+    # printf "debug>Using openocd command: ($MEADOW_OPENOCD_COMMAND)\n"
+    # printf "debug>Using openocd script dir: ($MEADOW_OPENOCD_SCRIPT_DIR)\n"
+    # printf "debug>Using scriptdir: (-f$scriptdir/debug.cfg)\n"
+
+    # printf "debug>-$MEADOW_OPENOCD_COMMAND -s$MEADOW_OPENOCD_SCRIPT_DIR -f$scriptdir/debug.cfg\n"
+
     exec "$MEADOW_OPENOCD_COMMAND" "-s${MEADOW_OPENOCD_SCRIPT_DIR}" "-f$scriptdir/debug.cfg"
+    # exec "$MEADOW_OPENOCD_COMMAND" "-s${MEADOW_OPENOCD_SCRIPT_DIR}" "-f$scriptdir/debug.cfg -c transport select jtag"
   else
     exec $stutil -v -m --semihosting
   fi
@@ -145,6 +156,8 @@ fi
 #
 #   Check if .gdbinit is available.
 #
+
+printf "Launched GDB\n"
 
 if [ ! -r "$scriptdir/gdb/.gdbinit" ] || $FORCE; then
     printf "Missing .gdbinit GDB configuration file.\n"
@@ -188,8 +201,15 @@ elif [[ "$OS" == "linux" ]]; then
   #
   printf "Current Working Directory: '$( pwd )'. Launching arm-none-eabi-gdb -q -iex 'set auto-load safe-path'/\n"
 
-  # gdb-multiarch -q -iex 'set auto-load safe-path /'
-  arm-none-eabi-gdb -q -iex 'set auto-load safe-path /'
+  /usr/bin/gdb-multiarch -q -iex 'set auto-load safe-path /'
+  # This code suggested by copilot, saved till time to fix this
+  #  gdb_multiarch="$(command -v gdb-multiarch)"
+  #  if [ -z "$gdb_multiarch" ]; then
+  #    printf "Error: gdb-multiarch was not found in PATH.\n"
+  #    exit 1
+  #  fi
+  #  "$gdb_multiarch" -q -iex 'set auto-load safe-path /'  
+  # arm-none-eabi-gdb -q -iex 'set auto-load safe-path /'
 else
   printf "Unsupported OS ${bold}$OS${reset}.\n"
 fi
