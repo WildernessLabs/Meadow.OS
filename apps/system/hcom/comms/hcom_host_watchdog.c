@@ -49,17 +49,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-// Temporary until reason for chash can be found
-#define HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD (1)
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static char *thisFile = __FILE__;
 static struct work_s wdog_work_queue;
-#endif
-
 static bool _shutting_down;
 static hcom_dnld_shared_t *_dnldShared;
 
@@ -67,9 +61,7 @@ static hcom_dnld_shared_t *_dnldShared;
  * Private Function Prototypes
  ****************************************************************************/
 
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static void hcom_host_watchdog_worker(void *arg);
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -82,13 +74,9 @@ int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared)
   _dnldShared = dnldShared;
   _shutting_down = false;
 
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
-  return OK;
-#else
   // One time setup
   memset(&wdog_work_queue, 0, sizeof(struct work_s));
   return OK;
-#endif
 }
 
 //=================================================================
@@ -99,7 +87,6 @@ void hcom_host_watchdog_stopping()
 
 //=================================================================
 // Callback via the USRWORK worker queue
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 0)
 static void hcom_host_watchdog_worker(void *arg)
 {
   if (_shutting_down)
@@ -115,16 +102,12 @@ static void hcom_host_watchdog_worker(void *arg)
   // (below) to cleanup the partial download state information.
   hcom_host_enq_deq_dnld_watchdog_wakeup();
 }
-#endif
 
 //=================================================================
 // Encountered a watchdog timeout. This function gets called from our
 // pthread main loop while waiting for the semaphore.
 void hcom_host_watchdog_dnld_cleanup_wdog()
 {
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
-  return;
-#else
   int ret;
 
   syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
@@ -166,7 +149,6 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 
   // Setting the download state to none allows future downloads.
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-#endif
 }
 
 //=================================================================
@@ -174,20 +156,12 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 // This gets called a lot when downloading, once per packet
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
-  return OK;
-#else
   int ret;
 
-  // (--) REWROTE TO DEBUG
-  // // Reset the work_queue to keep watchdog from timing out
-  // return work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
-  //    NULL, SEC2TICK(delayInSeconds));
-
+  // Wrote like this to allow breakpoint
   ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
      NULL, SEC2TICK(delayInSeconds));
   return ret;
-#endif
 }
 
 //=================================================================
@@ -196,11 +170,8 @@ int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 // as the file download is finished.
 void hcom_host_watchdog_dnld_timer_cancel()
 {
-#if (HCOM_HOST_WATCHDOG_REMOVE_FROM_BUILD == 1)
-  return;
-#else
-  syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
-    __FILE__, __LINE__, wdog_work_queue.worker);
+  // syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
+  //   __FILE__, __LINE__, wdog_work_queue.worker);
 
   // If worker is not active return. Otherwise cancel the work
   if (work_available(&wdog_work_queue))
@@ -208,5 +179,4 @@ void hcom_host_watchdog_dnld_timer_cancel()
 
   // Only possible error is -ENOENT no such work queued, we can ignore
   work_cancel(USRWORK, &wdog_work_queue);
-#endif
 }
