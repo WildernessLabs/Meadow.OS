@@ -20,10 +20,12 @@
       "loadFiles": [
         "${workspaceFolder}/nuttx/nuttx.elf",
         "${workspaceFolder}/nuttx/nuttx_user.elf",
+        "${workspaceFolder}/bootloader/Debug/Meadow.BL.elf",
       ],
       "symbolFiles": [
         "${workspaceFolder}/nuttx/nuttx.elf",
         "${workspaceFolder}/nuttx/nuttx_user.elf",
+        "${workspaceFolder}/bootloader/Debug/Meadow.BL.elf",
       ],
     }
   ]
