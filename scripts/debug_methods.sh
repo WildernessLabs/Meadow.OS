@@ -19,7 +19,7 @@ set_openocd_variables() {
     MEADOW_OPENOCD_COMMAND="${MEADOW_MACOS_OPENOCD_DIR}/src/openocd"
     MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_MACOS_OPENOCD_DIR}/tcl"
   elif [[ "$OS" == "linux" ]]; then
-    MEADOW_OPENOCD_COMMAND="/usr/bin/openocd"
+    MEADOW_OPENOCD_COMMAND="openocd"
     MEADOW_OPENOCD_SCRIPT_DIR="~/openSourceTools/openocd/tcl"
     # Copilot suggests the following
     # The Linux defaults here are hard-coded and user-machine specific

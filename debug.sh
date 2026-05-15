@@ -140,14 +140,7 @@ fi
 
 if [ "$SERVER" = true ] ; then
   if [ "$OCD" = true ] ; then
-    # printf "debug>Using openocd command: ($MEADOW_OPENOCD_COMMAND)\n"
-    # printf "debug>Using openocd script dir: ($MEADOW_OPENOCD_SCRIPT_DIR)\n"
-    # printf "debug>Using scriptdir: (-f$scriptdir/debug.cfg)\n"
-
-    # printf "debug>-$MEADOW_OPENOCD_COMMAND -s$MEADOW_OPENOCD_SCRIPT_DIR -f$scriptdir/debug.cfg\n"
-
     exec "$MEADOW_OPENOCD_COMMAND" "-s${MEADOW_OPENOCD_SCRIPT_DIR}" "-f$scriptdir/debug.cfg"
-    # exec "$MEADOW_OPENOCD_COMMAND" "-s${MEADOW_OPENOCD_SCRIPT_DIR}" "-f$scriptdir/debug.cfg -c transport select jtag"
   else
     exec $stutil -v -m --semihosting
   fi
