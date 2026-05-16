@@ -20,21 +20,7 @@ set_openocd_variables() {
     MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_MACOS_OPENOCD_DIR}/tcl"
   elif [[ "$OS" == "linux" ]]; then
     MEADOW_OPENOCD_COMMAND="openocd"
-    MEADOW_OPENOCD_SCRIPT_DIR="~/openSourceTools/openocd/tcl"
-    # Copilot suggests the following
-    # The Linux defaults here are hard-coded and user-machine specific
-    #  ("/usr/bin/openocd" and a script dir under "/openSourceTools").
-    #  Also, "" inside quotes will not expand in bash, so OpenOCD will
-    #  receive a literal path starting with '~' and fail to find scripts.
-    # Consider defaulting to just "openocd" (PATH lookup) and a standard
-    #  scripts directory, and/or allowing
-    #  MEADOW_OPENOCD_COMMAND/MEADOW_OPENOCD_SCRIPT_DIR to be overridden
-    # via environment variables (using $HOME for home-relative paths).
-    #
-    #   MEADOW_OPENOCD_COMMAND="${MEADOW_OPENOCD_COMMAND:-openocd}"
-    #  if [ -z "$MEADOW_OPENOCD_SCRIPT_DIR" ]; then
-    #    MEADOW_OPENOCD_SCRIPT_DIR="${OPENOCD_SCRIPTS:-/usr/share/openocd/scripts}"
-    #  fi
+    MEADOW_OPENOCD_SCRIPT_DIR="${PWD}/openSourceTools/openocd/tcl"
   else
     echo "Unsupported OS ${bold}$OS${reset}.\n"
     exit -1

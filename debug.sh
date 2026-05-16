@@ -192,17 +192,8 @@ elif [[ "$OS" == "linux" ]]; then
   #
   # Launch custom versions from arm of arm-none-eabi-gdb having python baked in
   #
-  printf "Current Working Directory: '$( pwd )'. Launching arm-none-eabi-gdb -q -iex 'set auto-load safe-path'/\n"
-
-  /usr/bin/gdb-multiarch -q -iex 'set auto-load safe-path /'
-  # This code suggested by copilot, saved till time to fix this
-  #  gdb_multiarch="$(command -v gdb-multiarch)"
-  #  if [ -z "$gdb_multiarch" ]; then
-  #    printf "Error: gdb-multiarch was not found in PATH.\n"
-  #    exit 1
-  #  fi
-  #  "$gdb_multiarch" -q -iex 'set auto-load safe-path /'  
-  # arm-none-eabi-gdb -q -iex 'set auto-load safe-path /'
+  # printf "Current Working Directory: '$( pwd )'. Launching gdb-multiarch -q -iex 'set auto-load safe-path'/\n"
+  gdb-multiarch -q -iex 'set auto-load safe-path /'
 else
   printf "Unsupported OS ${bold}$OS${reset}.\n"
 fi
