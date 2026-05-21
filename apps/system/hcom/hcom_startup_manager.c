@@ -56,6 +56,8 @@
 
 #include <meadow/meadow_os.h>
 
+// #pragma GCC optimize("O0")    // Prevent code optimization
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -126,7 +128,7 @@ int hcom_main(int argc, char *argv[])
   int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "Nuttx startup pthread [PID:%ld] hcom_main()\n", getpid());
+  syslog(LOG_MDIAG, "Nuttx startup pthread [PID:%d] hcom_main()\n", getpid());
   usleep(10 * 1000);
 #endif
 

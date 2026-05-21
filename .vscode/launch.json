@@ -2,31 +2,28 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name":"Debug STM32F7",
-      "cwd":"${workspaceFolder}",
-      "executable":"${workspaceFolder}/nuttx/nuttx.elf",
+      "name": "Debug STM32F7",
+      "cwd": "${workspaceFolder}",
+      "executable": "${workspaceFolder}/nuttx/nuttx.elf",
       "request": "launch",
-      "type":"cortex-debug",
-      "servertype":"openocd",
-      "device":"STM32F777iik6",
-      "gdbPath":"gdb-multiarch",
-      "rtos": "nuttx",
-      "svdFile":"${workspaceFolder}/gdb/STM32F777.svd",
-      "showDevDebugOutput":"raw",
-      "configFiles":[
+      "type": "cortex-debug",
+      "servertype": "openocd",
+      "device": "STM32F777iik6",
+      "gdbPath": "gdb-multiarch",
+      "svdFile": "${workspaceFolder}/gdb/STM32F777.svd",
+      "showDevDebugOutput": "parsed",
+      "configFiles": [
         "interface/stlink.cfg",
-        "target/stm32f7x.cfg"
+        "target/stm32f7x.cfg",
+        "${workspaceFolder}/gdb/meadow_cortex-debug.cfg"
       ],
-      "loadFiles": [
-        "${workspaceFolder}/nuttx/nuttx.elf",
-        "${workspaceFolder}/nuttx/nuttx_user.elf",
-        "${workspaceFolder}/bootloader/Debug/Meadow.BL.elf",
-      ],
-      "symbolFiles": [
-        "${workspaceFolder}/nuttx/nuttx.elf",
-        "${workspaceFolder}/nuttx/nuttx_user.elf",
-        "${workspaceFolder}/bootloader/Debug/Meadow.BL.elf",
-      ],
+      "overrideLaunchCommands": [
+        "monitor reset halt",
+        "file ${workspaceFolder}/nuttx/nuttx.elf",
+        "add-symbol-file -readnow ${workspaceFolder}/nuttx/nuttx_user.elf",
+        "monitor reset halt"
+      ]
     }
   ]
 }
+
