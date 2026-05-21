@@ -14,7 +14,8 @@
       "showDevDebugOutput": "parsed",
       "configFiles": [
         "interface/stlink.cfg",
-        "target/stm32f7x.cfg"
+        "target/stm32f7x.cfg",
+        "${workspaceFolder}/gdb/meadow_cortex-debug.cfg"
       ],
       "overrideLaunchCommands": [
         "monitor reset halt",
