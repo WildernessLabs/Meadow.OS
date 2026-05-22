@@ -8,19 +8,16 @@
 #   Assumes set_os_name has already been called.
 #
 set_openocd_variables() {
+  if [ -z "$MEADOW_OPENOCD_DIR" ]; then
+    echo "Environment variable MEADOW_OPENOCD_DIR is not set. Please set it to the path where Meadow OpenOCD is located."
+    exit -1
+  fi
   if [[ "$OS" == "mac" ]]; then
-    #
-    # Custom version of nuttx aware openocd
-    #
-    if [ -z "$MEADOW_MACOS_OPENOCD_DIR" ]; then
-      echo "Environment variable MEADOW_MACOS_OPENOCD_DIR is not set. Please set it to the path where Meadow OpenOCD is located."
-      exit -1
-    fi
-    MEADOW_OPENOCD_COMMAND="${MEADOW_MACOS_OPENOCD_DIR}/src/openocd"
-    MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_MACOS_OPENOCD_DIR}/tcl"
+    MEADOW_OPENOCD_COMMAND="${MEADOW_OPENOCD_DIR}/src/openocd"
+    MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_OPENOCD_DIR}/tcl"
   elif [[ "$OS" == "linux" ]]; then
-    MEADOW_OPENOCD_COMMAND="${HOME}/openSourceTools/openocd/src/openocd"
-    MEADOW_OPENOCD_SCRIPT_DIR="${HOME}/openSourceTools/openocd/tcl"
+    MEADOW_OPENOCD_COMMAND="${MEADOW_OPENOCD_DIR}/src/openocd"
+    MEADOW_OPENOCD_SCRIPT_DIR="${MEADOW_OPENOCD_DIR}/tcl"
   else
     echo "Unsupported OS ${bold}$OS${reset}.\n"
     exit -1
