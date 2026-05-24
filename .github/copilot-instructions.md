@@ -8,54 +8,71 @@
 
 ## Project Description
 
-The project is based on the open source NuttX RTOS. It is a real-time operating system that is designed for embedded systems. The project is written in C and C++. The codebase is large and complex, and it is important to maintain a consistent code style throughout the project.
+Meadow.OS is firmware for the **Wilderness Labs Meadow F7Micro** development board.
+It combines a NuttX RTOS kernel, an ESP32 Wi-Fi/BT coprocessor, a host communication
+application (`hcom`), and an OTA-capable bootloader into a single flash image
+(`Meadow.OS.bin`).
 
-The OS is configured as a protected / kernel build.  The OS runs on a custom STM32F7 microcontroller.  The system uses the MPU to protect the OS from the user applications.
+**MCU:** STM32F777ZIT6 (Cortex-M7, 216 MHz, 2 MB internal flash, 368 KB SRAM)  
+**Coprocessor:** ESP32 (Wi-Fi / BT, runs ESP-IDF + FreeRTOS)
 
-There is also a custom bootloader that starts the OS. The bootloader is written in C and is responsible for checking for any OtA updates and then starting the OS.
+The OS is configured as a **protected / kernel build** (`CONFIG_BUILD_PROTECTED=y`).
+The MPU enforces a hard kernel/user boundary at runtime. User applications cross into
+kernel space only via defined syscalls (`meadow_syscall_support.h`).
 
-The `hcom` application is a custom application that deals with communication to a host computer.  It allows for control of the board as well as file transfers.
+> For detailed architecture, protocol specs, memory maps, and code conventions, invoke
+> the `meadowos` skill: type `/meadowos` in Copilot Chat or run `@meadowos` in the CLI.
 
 ## Tech Stack
 
 ### Bootloader
 
-This is a STM32CubeIDE project using the STM32 HAL.
+STM32CubeIDE project using the STM32 HAL. Checks OTA state in QSPI flash, verifies
+CRC of the primary NuttX image, then jumps to `NUTTX_PRI_LOC + 4`.
 
 ### NuttX
 
-This is a makefile project for the STM32 and it is written in C.
+Makefile project (C). Protected-mode kernel + user-space split. Board-specific code
+in `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/`. All public Meadow APIs are
+declared under `Meadow.OS/include/meadow/`.
+
+### ESP32
+
+ESP-IDF CMake project (C++). Communicates with the STM32 via SPI (data) and UART
+(control/events) using the `espcp` protocol.
 
 ### Debugging
 
-Both the bootloader and the NuttX RTOS are debugged using `openocd` and `gdb`.  The `.gdbinit` file for the debugging sessions can be found in the `gdb` directory in the root of the project workspace.
+OpenOCD + `gdb-multiarch`. The `.gdbinit` in `gdb/` loads all three ELF symbol files
+(kernel, user, bootloader) and sets up register/peripheral helpers.
 
 ## Project Structure
 
 ### Bootloader
 
-- Source code is in the `bootloader` directory in the root of the project workspace.
-- This is built using `makefile`
+- Source: `bootloader/` — STM32CubeIDE / HAL project
 
 ### NuttX
 
-The NuttX system is split into three areas:
+- `nuttx/` — NuttX RTOS core
+- `apps/` — User-space NuttX applications
+- `Meadow.OS/` — Meadow-specific kernel + user code; `include/meadow/` is the
+  canonical header location
+- `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/` — board BSP and linker scripts
 
-- Applications that will run on NuttX, these are in the `apps` directory
-- Core operating system components in the `nuttx` directory
-- Hardware specific operating system files in the `Meadow.OS` directory and the `stm32f777zit6-meadow` directory
+The RTOS starts `hcom` as the initial user-space application.
 
-The RTOS is a protected mode code that starts the `hcom` application.  `hcom` runs in user space.
+### ESP32 Coprocessor
+
+- `esp32/` — ESP-IDF project; `main/AppMain.cpp` is the entry point;
+  `components/F7Services/` implements the STM32↔ESP32 transport layer
 
 ## Resources
 
-- build.sh
-  This builds the application using the various `makefiles`.  It also concatenates the various binary files to project the `Meadow.OS.bin` file.
-- Linker
-  The directory `/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts` directory contains the linker scripts for creating the `nuttx` binary.
-- flash.sh
-  This file writes the `Meaodw.OS.bin` file to the flash memory on the STM32.
-- debug.sh
-  This starts `openocd` when run with the `--server` command line argument.  Running this script with no arguments starts `gdb`
-- gdb/.gdbinit
-  This defines some gdb macros and executes some commands loading the various symbol files and setting up `gdb` ready for debugging through the command line.
+- `build.sh` — Builds all components and produces `nuttx/Meadow.OS.bin`.
+  Key flags: `--configure`, `--clean`, `--debug`, `--unittests`, `--verbose`.
+- `flash.sh` — Writes `Meadow.OS.bin` to STM32 internal flash via OpenOCD.
+- `debug.sh --server` — Starts OpenOCD. `debug.sh` (no args) launches GDB.
+- `gdb/.gdbinit` — Macros and symbol loading for multi-image debugging.
+- Linker scripts: `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/`
+- `.vscode/launch.json` — VS Code cortex-debug launch (ST-Link, loads all ELFs).
