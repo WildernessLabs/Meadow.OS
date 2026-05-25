@@ -31,7 +31,7 @@ class DebugPy(gdb.Command):
     """Start debugpy server, so we can debug python code from IDE like VSCode"""
 
     def __init__(self):
-        debugpy = utils.import_check("debugpy", errmsg="Please pip install debugpy")
+        debugpy = utils.import_check("debugpy", errmsg="Please pip install debugpy\n")
         if not debugpy:
             return
 
