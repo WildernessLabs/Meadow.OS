@@ -170,21 +170,73 @@ fi
 cd $scriptdir/gdb
 
 #
-# Activate the Python virtual environment.
+# Activate a virtual environment compatible with GDB's embedded Python.
 #
-if [ ! -d "$scriptdir/.venv" ]; then
-	  python3 -m venv $scriptdir/.venv
-    #
-    #   Update pip and install the required dependencies for pynuttx.
-    #
-    python3 -m pip install --upgrade pip
-    python3 -m pip install -r $scriptdir/nuttx/tools/pynuttx/requirements.txt
-    python3 -m pip install numpy matplotlib debugpy pyelftools
+if [[ "$OS" == "mac" ]]; then
+  GDB_BIN=arm-none-eabi-gdb
+else
+  GDB_BIN=gdb-multiarch
 fi
-source $scriptdir/.venv/bin/activate
+
+gdb_python_mm=$($GDB_BIN -q -nx -ex 'python import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' -ex quit 2>/dev/null | tail -n 1 | tr -d '\r')
+if [[ ! "$gdb_python_mm" =~ ^[0-9]+\.[0-9]+$ ]]; then
+  gdb_python_mm=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+fi
+
+venv_dir="$scriptdir/.venv"
+if [ -x "$venv_dir/bin/python3" ]; then
+  venv_python_mm=$($venv_dir/bin/python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+  if [ "$venv_python_mm" != "$gdb_python_mm" ]; then
+    printf "Rebuilding .venv for Python %s (current .venv is %s)\n" "$gdb_python_mm" "$venv_python_mm"
+    rm -rf "$venv_dir"
+  fi
+fi
+
+if [ ! -d "$venv_dir" ]; then
+  py_cmd="python${gdb_python_mm}"
+  if command -v "$py_cmd" > /dev/null 2>&1; then
+    "$py_cmd" -m venv "$venv_dir"
+  else
+    printf "${red}Error:${reset} Required interpreter %s was not found in PATH.\n" "$py_cmd"
+    printf "Install Python %s or update PATH, then run debug again.\n" "$gdb_python_mm"
+    exit 1
+  fi
+fi
+
+venv_python="$venv_dir/bin/python3"
+"$venv_python" -m pip install --upgrade pip > /dev/null
+
+missing_modules=$(
+  "$venv_python" -c 'import importlib.util; modules=["numpy","matplotlib","debugpy","elftools"]; missing=[m for m in modules if importlib.util.find_spec(m) is None]; print(" ".join(missing))'
+)
+if [ -n "$missing_modules" ]; then
+  # Try pinned deps first; if they are incompatible with this Python version,
+  # fall back to unpinned runtime deps used by nxgdb.
+  if ! "$venv_python" -m pip install -r "$scriptdir/nuttx/tools/pynuttx/requirements.txt"; then
+    printf "Pinned pynuttx requirements failed for Python %s. Falling back to compatible latest packages.\n" "$gdb_python_mm"
+  fi
+
+  packages_to_install=()
+  for module in $missing_modules; do
+    case "$module" in
+      elftools)
+        packages_to_install+=("pyelftools")
+        ;;
+      *)
+        packages_to_install+=("$module")
+        ;;
+    esac
+  done
+
+  if [ ${#packages_to_install[@]} -gt 0 ]; then
+    "$venv_python" -m pip install "${packages_to_install[@]}"
+  fi
+fi
+
+source "$venv_dir/bin/activate"
 
 # GDB uses embedded Python; add venv site-packages explicitly so nxgdb imports work.
-venv_site_packages=$(echo "$scriptdir/.venv/lib/python"*/site-packages)
+venv_site_packages=$("$venv_python" -c 'import site; print(site.getsitepackages()[0])')
 if [ -d "$venv_site_packages" ]; then
   export PYTHONPATH="$venv_site_packages${PYTHONPATH:+:$PYTHONPATH}"
 fi
