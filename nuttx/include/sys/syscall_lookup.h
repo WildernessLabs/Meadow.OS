@@ -474,12 +474,6 @@ SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
 SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
 SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
 #endif
-#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
-SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
-SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
-#endif
 
 /* I/O event notification facility */
 
