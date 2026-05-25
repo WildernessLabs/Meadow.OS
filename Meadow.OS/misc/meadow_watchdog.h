@@ -49,7 +49,7 @@
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os.h>
 
-#include "../nuttx/wdog.h"
+#include <nuttx/wdog.h>
 
 /****************************************************************************
  * Preprocessor Definitions

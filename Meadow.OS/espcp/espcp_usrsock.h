@@ -439,7 +439,7 @@ int espcp_usrsock_listen(struct socket *psock, int backlog);
  ****************************************************************************/
 
 int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr,
-                   socklen_t *addrlen, struct socket *newsock);
+                   socklen_t *addrlen, struct socket *newsock, int flags);
 
 /****************************************************************************
  * Name: usrsock_poll
@@ -655,7 +655,7 @@ int espcp_usrsock_getpeername(struct socket *psock,
  *
  ****************************************************************************/
 
-int espcp_usrsock_ioctl(struct socket *psock, int cmd, void *arg, size_t arglen);
+int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg);
 
 /****************************************************************************
  * Name: usrsock_register_sockif
@@ -699,9 +699,9 @@ void usrsock_register_sockif(const struct sock_intf_s* sockif);
 int32_t espcp_usrsock_read(struct socket *psock, const void *buffer, size_t count);
 
 int espcp_usrsock_dup2(struct socket *old_psock, struct socket *new_psock);
-size_t espcp_usrsock_sendmsg(struct socket *psock, const struct msghdr *msg, int flags);
+ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flags);
 int espcp_usrsock_shutdown(struct socket *psock, int how);
-size_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flags);
+ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flags);
 int espcp_usrsock_getaddrinfo(const char *hostname, const char *servname,
                 const struct addrinfo *hint, struct addrinfo **res);
 void espcp_usrsock_not_implemented(const char *source);

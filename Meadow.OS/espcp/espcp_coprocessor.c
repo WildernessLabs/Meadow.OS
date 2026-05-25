@@ -892,13 +892,6 @@ int espcp_late_init(void)
         espcp_usrsock_init();
         result = espcp_thread_start(g_espcp_configuration);
 
-        // MEADOW.OS REBASE: Nuttx 12 seems to no longer registers usrsock in
-        // this way.
-#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
-        usrsock_register_sockif(&g_usrsock_sockif_esp32);
-#else
-        syslog(1, "%s@%d-Would have registered usrsock here.", __FILE__, __LINE__);
-#endif
         espcp_gpio_init();
         espcp_spi_init();
 
