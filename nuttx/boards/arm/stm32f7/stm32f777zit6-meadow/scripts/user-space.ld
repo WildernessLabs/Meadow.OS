@@ -101,7 +101,7 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         _ebss = ABSOLUTE(.);
-    } > usram
+    } > usram :NONE
 
     /* Stabs debugging sections */
 
