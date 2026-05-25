@@ -63,7 +63,7 @@ end
 #
 define start-file-logging
   set logging file gdblog.txt
-  set logging on
+  set logging enabled on
   set trace-commands on
 end
 
@@ -71,7 +71,7 @@ end
 #   Stop logging to file.
 #
 define stop-file-logging
-  set logging off
+  set logging enabled off
   set trace-commands off
 end
 
