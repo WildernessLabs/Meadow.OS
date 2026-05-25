@@ -41,6 +41,8 @@ import hashlib
 import json
 import os
 import re
+import shutil
+import subprocess
 import tempfile
 import time
 from os import path
@@ -140,7 +142,25 @@ def fetch_macro_info(file):
     print(f"Load macro: {cache}")
     if not path.isfile(cache):
         t = time.time()
-        os.system(f'readelf -wm "{file}" > "{cache}"')
+        readelf_cmd = shutil.which("readelf")
+        if not readelf_cmd:
+            readelf_cmd = shutil.which("arm-none-eabi-readelf")
+        if not readelf_cmd:
+            readelf_cmd = shutil.which("llvm-readelf")
+        if not readelf_cmd:
+            readelf_cmd = shutil.which("readelf.py")
+
+        if readelf_cmd:
+            with open(cache, "w") as out:
+                subprocess.run([readelf_cmd, "-wm", file], stdout=out, check=False)
+        else:
+            print(
+                "No readelf executable found (tried readelf, arm-none-eabi-readelf, "
+                "llvm-readelf, readelf.py); macro expansion disabled"
+            )
+            with open(cache, "w") as out:
+                out.write("{}")
+
         print(f"readelf took {time.time() - t:.1f} seconds")
 
         t = time.time()
