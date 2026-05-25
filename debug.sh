@@ -183,6 +183,12 @@ if [ ! -d "$scriptdir/.venv" ]; then
 fi
 source $scriptdir/.venv/bin/activate
 
+# GDB uses embedded Python; add venv site-packages explicitly so nxgdb imports work.
+venv_site_packages=$(echo "$scriptdir/.venv/lib/python"*/site-packages)
+if [ -d "$venv_site_packages" ]; then
+  export PYTHONPATH="$venv_site_packages${PYTHONPATH:+:$PYTHONPATH}"
+fi
+
 #
 #   Launch GDB with Python scripting configurations
 #
