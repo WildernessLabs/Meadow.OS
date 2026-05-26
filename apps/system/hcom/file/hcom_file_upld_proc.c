@@ -1,5 +1,5 @@
 /****************************************************************************
- * \apps\examples\hcom\file\hcom_file_upld_proc.c
+ * \apps\system\hcom\file\hcom_file_upld_proc.c
  * 
  *   Copyright (C) 2021-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
