@@ -23,6 +23,17 @@
 #ifndef __BOARDS_ARM_STM32F777ZIT6_MEADOW_INCLUDE_BOARD_H
 #define __BOARDS_ARM_STM32F777ZIT6_MEADOW_INCLUDE_BOARD_H
 
+/*
+* It looks like this file was originally copied from
+* nuttx/boards/arm/stm32f7/stm32f769i-disco/include/board.h or a one like it.
+* However, boards like nuttx/boards/arm/stm32f7/nucleo-f767zi/include/board.h
+* don't even have a CONFIG_STM32F7_OTGFS configuration option.
+*
+* This file has been modified to use the nucleo-f767zi scheme for Meadow Rebase.
+*/
+
+// #pragma message "(--) nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h"
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -39,20 +50,24 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+// This is temporary while confirming 216 MHz works.
+// Set to '0' to revert to 192 MHz.
+#define MEADOW_TRY_216_MHz_CLOCK (1)
+
 /* Clocking *****************************************************************/
 
 /* The Meadow board provides the following clock sources:
  *
  *   X2:  25 MHz oscillator for STM32F777ZIT6 microcontroller
  *   and Ethernet PHY.
- *   X1:  32.768 KHz crystal for STM32F777ZIT6 embedded RTC
+ *   X1:  No crystal for STM32F777ZIT6 embedded RTC
  *
  * So we have these clock source available within the STM32
  *
  *   HSI: 16 MHz RC factory-trimmed
  *   LSI: 32 KHz RC
  *   HSE: On-board crystal frequency is 25MHz
- *   LSE: 32.768 kHz
+ *   LSE: None
  */
 
 #define STM32_BOARD_XTAL        25000000ul
@@ -61,6 +76,21 @@
 #define STM32_LSI_FREQUENCY     32000
 #define STM32_HSE_FREQUENCY     STM32_BOARD_XTAL
 #define STM32_LSE_FREQUENCY     32768
+
+
+#if (MEADOW_TRY_216_MHz_CLOCK == 1)
+// The following partially copied from
+// nuttx/boards/arm/stm32f7/nucleo-f767zi/include/board.h
+// Except that nucleo-f767zi has a 8 MHz crystal and Meadow a 25 MHz
+
+#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
+#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(432)
+#define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
+#define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(9)
+
+#define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 25) * 432)
+#define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)   // 432/2=216 MHz
+#define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)   // 432/9=48 MHz
 
 /* Main PLL Configuration.
  *
@@ -87,6 +117,8 @@
  *
  * 2 <= PLLQ <= 15
  */
+
+#else   // #if (MEADOW_TRY_216_MHz_CLOCK == 1)
 
 #if defined(CONFIG_STM32F7_OTGFS)
 /* USB OTG FS clock (= SDMMCCLK = RNGCLK) must be 48 MHz
@@ -146,6 +178,9 @@
 #define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 10)
 #endif
+
+#endif  // #if (MEADOW_TRY_216_MHz_CLOCK == 1)
+
 
 /* Configure factors for  PLLSAI clock */
 
