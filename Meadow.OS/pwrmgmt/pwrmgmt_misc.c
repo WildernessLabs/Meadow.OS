@@ -49,6 +49,7 @@
 #include "stm32_rtc.h"
 #include "stm32_exti.h"
 #include "arm_internal.h"
+#include <inttypes.h>
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
@@ -103,24 +104,24 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 
   syslog(LOG_MTEST, "%s:\n", msg);
   syslog(LOG_MTEST, "Registers set to default by Backup Domain Reset\n");
-  syslog(LOG_MTEST, "  RTC_CR: %08x\n", getreg32(STM32_RTC_CR));
-  syslog(LOG_MTEST, "    PRER: %08x\n", getreg32(STM32_RTC_PRER));
-  syslog(LOG_MTEST, "    CALR: %08x\n", getreg32(STM32_RTC_CALR));
-  syslog(LOG_MTEST, "  SHIFTR: %08x\n", getreg32(STM32_RTC_SHIFTR));
-  syslog(LOG_MTEST, "   TSSSR: %08x\n", getreg32(STM32_RTC_TSSSR));
-  syslog(LOG_MTEST, "    TSTR: %08x\n", getreg32(STM32_RTC_TSTR));
-  syslog(LOG_MTEST, "    TSDR: %08x\n", getreg32(STM32_RTC_TSDR));
-  syslog(LOG_MTEST, "  TAMPCR: %08x\n", getreg32(STM32_RTC_TAMPCR));
-  syslog(LOG_MTEST, "    WUTR: %08x\n", getreg32(STM32_RTC_WUTR));
-  syslog(LOG_MTEST, "ALRMASSR: %08x\n", getreg32(STM32_RTC_ALRMASSR));
-  syslog(LOG_MTEST, "  ALRMBR: %08x\n", getreg32(STM32_RTC_ALRMBR));
-  syslog(LOG_MTEST, "ALRMBSSR: %08x\n", getreg32(STM32_RTC_ALRMBSSR));
-  syslog(LOG_MTEST, "  ALRMAR: %08x\n", getreg32(STM32_RTC_ALRMAR));
+  syslog(LOG_MTEST, "  RTC_CR: %08" PRIx32 "\n", getreg32(STM32_RTC_CR));
+  syslog(LOG_MTEST, "    PRER: %08" PRIx32 "\n", getreg32(STM32_RTC_PRER));
+  syslog(LOG_MTEST, "    CALR: %08" PRIx32 "\n", getreg32(STM32_RTC_CALR));
+  syslog(LOG_MTEST, "  SHIFTR: %08" PRIx32 "\n", getreg32(STM32_RTC_SHIFTR));
+  syslog(LOG_MTEST, "   TSSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSSSR));
+  syslog(LOG_MTEST, "    TSTR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSTR));
+  syslog(LOG_MTEST, "    TSDR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSDR));
+  syslog(LOG_MTEST, "  TAMPCR: %08" PRIx32 "\n", getreg32(STM32_RTC_TAMPCR));
+  syslog(LOG_MTEST, "    WUTR: %08" PRIx32 "\n", getreg32(STM32_RTC_WUTR));
+  syslog(LOG_MTEST, "ALRMASSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMASSR));
+  syslog(LOG_MTEST, "  ALRMBR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBR));
+  syslog(LOG_MTEST, "ALRMBSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBSSR));
+  syslog(LOG_MTEST, "  ALRMAR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMAR));
   syslog(LOG_MTEST, "Other RTC Registers\n");
-  syslog(LOG_MTEST, "TR(time): %08x\n", getreg32(STM32_RTC_TR));
-  syslog(LOG_MTEST, "DR(date): %08x\n", getreg32(STM32_RTC_DR));
-  syslog(LOG_MTEST, "     ISR: %08x\n", getreg32(STM32_RTC_ISR));
-  syslog(LOG_MTEST, "MAGICREG: %08x\n", getreg32(RTC_MAGIC_REG));
+  syslog(LOG_MTEST, "TR(time): %08" PRIx32 "\n", getreg32(STM32_RTC_TR));
+  syslog(LOG_MTEST, "DR(date): %08" PRIx32 "\n", getreg32(STM32_RTC_DR));
+  syslog(LOG_MTEST, "     ISR: %08" PRIx32 "\n", getreg32(STM32_RTC_ISR));
+  syslog(LOG_MTEST, "MAGICREG: %08" PRIx32 "\n", getreg32(RTC_MAGIC_REG));
 
   rtc_state =
     ((getreg32(STM32_EXTI_IMR)  & EXTI_RTC_ALARM) ? 0x0010 : 0) |

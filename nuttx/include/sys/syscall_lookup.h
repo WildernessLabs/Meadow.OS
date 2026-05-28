@@ -414,14 +414,10 @@ SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
 
 #if defined(CONFIG_ESP_TESTS)
 SYSCALL_LOOKUP(meadow_kt_espcp_tests, 1)
-SYSCALL_LOOKUP(meadow_kt_espcp_load_test_web_page, 1)
-SYSCALL_LOOKUP(meadow_kt_espcp_load_test_large_file_download, 1)
 #endif
 
 #if defined(CONFIG_ETHERNET_TESTS)
 SYSCALL_LOOKUP(meadow_kt_ethernet_tests, 1)
-SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_large_file_download, 1)
-SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_web_page, 1)
 #endif
 
 #if defined(CONFIG_BG77_TESTS)
