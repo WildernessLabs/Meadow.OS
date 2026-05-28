@@ -366,19 +366,11 @@ int hcom_nx_upd_diag_fd_inode(unsigned long arg)
 // This is also called to add serial number to USB
 int hcom_nx_get_mcu_ser_numb(unsigned long arg)
 {
-  int ret;
   char strMcuSn[16];
   struct hcom_nx_upd_mcu_ser_numb_s *mcu_ser;
   mcu_ser = (struct hcom_nx_upd_mcu_ser_numb_s *)arg;
 
-  ret = hcom_nx_common_utils_calculate_serial_numb(NULL, strMcuSn);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Calc of serial numb failed:ret:%d\n",
-           thisFile, __LINE__, ret);
-    return ret;
-  }
-
+  hcom_nx_common_utils_calc_f7_sn(NULL, strMcuSn);
   strcpy(mcu_ser->ser_numb, strMcuSn);
   return OK;
 }

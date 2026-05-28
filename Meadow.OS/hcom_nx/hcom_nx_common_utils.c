@@ -155,8 +155,18 @@ int hcom_nx_utils_startup_handling_of_trace_level()
 }
 
 //============================================================================
+// This function provides the serial number to the CDCACM via a Nuttx definition
+FAR const char *board_usbdev_serialstr(void)
+{
+  static char strMcuSn[16];
+
+  hcom_nx_common_utils_calc_f7_sn(NULL, strMcuSn);
+  return strMcuSn;
+}
+
+//============================================================================
 // Returns the MCU serial number as int and as a null terminated char, as requested
-int hcom_nx_common_utils_calculate_serial_numb(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[])
+void hcom_nx_common_utils_calc_f7_sn(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[])
 {
   uint8_t uniqueId[12];  // 96 bit unique chip id as 12 bytes
   
@@ -175,13 +185,12 @@ int hcom_nx_common_utils_calculate_serial_numb(uint8_t mcu6ByteSerialNumb[], cha
     memcpy(mcu6ByteSerialNumb, serialNumb, 6);
   
   if(mcu12CharSerialNumb == NULL)
-    return OK;
+    return;
 
   // Convert serial number to string. The result is 12 + NULL = 13 bytes
   snprintf_chk(mcu12CharSerialNumb, 16, "%02X%02X%02X%02X%02X%02X", 
           serialNumb[0], serialNumb[1], serialNumb[2],
           serialNumb[3], serialNumb[4], serialNumb[5]);
-  return OK;
 }
 
 //============================================================================

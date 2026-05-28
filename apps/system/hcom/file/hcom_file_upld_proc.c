@@ -148,7 +148,6 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   
   snprintf_chk(fileName, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s/%s",
                 fullMountPtName, fileNameBuffer);
-  free(fileNameBuffer);
   free(fullMountPtName);
 
   // Open the file
@@ -163,6 +162,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
 
     syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
                 thisFile, __LINE__, fileName, errno);                
+    free(fileNameBuffer);
     free(fileName);
     return;
   }
@@ -181,9 +181,12 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
               thisFile, __LINE__, fileNameBuffer, errno);
     
     close(fd);
+    free(fileNameBuffer);
     free(fileName);
     return;
   }
+
+  free(fileNameBuffer);
 
   // Read first data bytes
   uint8_t *returnBinData = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
