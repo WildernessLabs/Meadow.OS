@@ -332,4 +332,5 @@ nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
 **/*.o
 **/Meadow.BL.*
 tmp/**
+.github/context-mode/sessions/
 # bootloader/Debug/Meadow.BL.map
