@@ -78,20 +78,6 @@
 #define STM32_LSE_FREQUENCY     32768
 
 
-#if (MEADOW_TRY_216_MHz_CLOCK == 1)
-// The following partially copied from
-// nuttx/boards/arm/stm32f7/nucleo-f767zi/include/board.h
-// Except that nucleo-f767zi has a 8 MHz crystal and Meadow a 25 MHz
-
-#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
-#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(432)
-#define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
-#define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(9)
-
-#define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 25) * 432)
-#define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)   // 432/2=216 MHz
-#define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)   // 432/9=48 MHz
-
 /* Main PLL Configuration.
  *
  * PLL source is HSE = 25,000,000
@@ -117,11 +103,28 @@
  *
  * 2 <= PLLQ <= 15
  */
+ 
+#if (MEADOW_TRY_216_MHz_CLOCK == 1)
+/* USB OTG FS clock (= SDMMCCLK = RNGCLK) must be 48 MHz
+ *
+ * PLL_VCO = (25,000,000 / 25) * 432 = 432 MHz
+ * SYSCLK  = 432 MHz / 2 = 216 MHz
+ * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
+ * DSI CLK = PLL_VCO / PLLR = 432 / 8 = 54 MHz
+ */
+
+#define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
+#define STM32_PLLCFG_PLLN       RCC_PLLCFG_PLLN(432)
+#define STM32_PLLCFG_PLLP       RCC_PLLCFG_PLLP_2
+#define STM32_PLLCFG_PLLQ       RCC_PLLCFG_PLLQ(9)
+
+#define STM32_VCO_FREQUENCY     ((STM32_HSE_FREQUENCY / 25) * 432)
+#define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)   // 432/2=216 MHz
+#define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)   // 432/9=48 MHz
 
 #else   // #if (MEADOW_TRY_216_MHz_CLOCK == 1)
 
 #if defined(CONFIG_STM32F7_OTGFS)
-/* USB OTG FS clock (= SDMMCCLK = RNGCLK) must be 48 MHz
  *
  * PLL_VCO = (25,000,000 / 25) * 384 = 384 MHz
  * SYSCLK  = 384 MHz / 2 = 192 MHz
