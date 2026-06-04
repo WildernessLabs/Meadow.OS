@@ -61,7 +61,7 @@
  * Private Data
  ****************************************************************************/
 static char *thisFile = __FILE__;
-static int _syslogMask;
+static uint32_t _syslogMask;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -95,15 +95,24 @@ void hcom_nx_common_utils_only_restart_meadow()
 }
 
 //============================================================================
+// This call must be before any trace handling, it detects power cycle.
 int hcom_nx_utils_startup_handling_of_trace_level()
 {
 #if defined(CONFIG_STM32F7_PWR)
   // Check if this is a reboot or a power-on restart. The MCU at 
   // Power-on (unless there's a coin cell) clears all 32 battery
   // backed registers to 0.
-  int bbrValue = getreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
+  uint32_t bbrValue = getreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
   if(bbrValue == 0)
   {
+    // #define LOG_EMERG     0  /* System is unusable */
+    // #define LOG_ALERT     1  /* Action must be taken immediately */
+    // #define LOG_CRIT      2  /* Critical conditions */
+    // #define LOG_ERR       3  /* Error conditions */
+    // #define LOG_WARNING   4  /* Warning conditions */
+    // #define LOG_NOTICE    5  /* Normal, but significant, condition */
+    // #define LOG_INFO      6  /* Informational message */
+    // #define LOG_DEBUG     7  /* Debug-level message */
     // Power-on restart clears all 32 of the battery backed registers to 0
     // Set and save the syslog level to the default value
     _syslogMask = LOG_MASK(LOG_EMERG) | LOG_MASK(LOG_ALERT) | LOG_MASK(LOG_CRIT) |
@@ -133,10 +142,10 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   //             LOG_MASK(LOG_INFO);  // | LOG_MASK(LOG_DEBUG);
 
   // Sets new mask and returns the previous syslog_mask
-  int syslogMaskPrev = setlogmask(_syslogMask);
+  uint32_t syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08lx\n", thisFile, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #else
@@ -147,7 +156,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   int syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08lx\n", thisFile, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #endif
