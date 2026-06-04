@@ -73,18 +73,18 @@ static char *thisFile = __FILE__;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Note: this is called from stm32_boot.c
+// Note: this is called from stm32_boot.c as the last item.
 int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 {
   int ret;
   meadow_configuration_t *config;
 
   // One GPIO (PB4) is used D05 for F7FeatherV2 and CCM. But, at reset it
-  // isn't initialized all the other GPIOs. It's one of the debugging 5 pins.
-  // and therefore is configured as pull-up/pull-down at F7 restart. However,
-  // this pin isn't needed for our ST-Link debugging so it's free to use. But,
-  // being configured differently is seen as not ideal. The following is used
-  // to reconfigure it like the other GPIOs.
+  // isn't initialized as all the other GPIOs. It's one of the debugging 5
+  // pins and therefore is configured as pull-up/pull-down at F7 restart.
+  // However, this pin isn't needed for our ST-Link debugging so it's free to
+  // use. But, being configured differently is seen as not ideal. The
+  // following line is used to reconfigure it like the other GPIOs.
   stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
@@ -100,21 +100,12 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(mtd);
 #endif
 
-// Initialize the file system first so config file can be read by others
-#if defined(CONFIG_HCOM_FILESYSTEM_INIT)    // defined in menuconfig
-  ret = hcom_nx_create_fs_initialize(mtd);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", thisFile, __LINE__, ret);
-    return ret;
-  }
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Kernel startup manager 2\n"); usleep(5 * 1000);
 #endif
 
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 2\n"); usleep(5 * 1000);
-#endif
   //
-  //  Only saves a copy of the mtd
+  //  Only saves a copy of the mtd and returns
   //
   //  This needs to be done before the config is set up as the block driver
   //  is accessed to copy Mono from the flash device to RAM.
@@ -130,13 +121,52 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 3\n"); usleep(5 * 1000);
 #endif
 
+  // Set trace level for syslog messaging
+  ret = hcom_nx_utils_startup_handling_of_trace_level();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "ERROR: Failed to initialize syslog level:%d\n", ret);
+    return ret;
+  }
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 4\n"); usleep(5 * 1000);
+#endif
+
+// Initialize the file system first so config file can be read by others
+#if defined(CONFIG_HCOM_FILESYSTEM_INIT)    // defined in menuconfig
+  ret = hcom_nx_create_fs_initialize(mtd);
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 5\n"); usleep(5 * 1000);
+#endif
+
+#if defined (CONFIG_RAMLOG_SYSLOG)
+  // Initialize the syslog message pump so syslog messages can be seen
+  ret = hcom_nx_trace_msg_proc_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_MDIAG, "%s@%d-setup trace msg pump %d\n", __FILE__, __LINE__, ret);
+  }
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 6\n"); usleep(5 * 1000);
+#endif
+
   //
   //  Prepare the logging system and clear the log file.
   //
   meadow_logging_init_os_logging();
   
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 4\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
 #endif
 
   //
@@ -155,6 +185,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   espcp_early_init();
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "Kernel startup manager 8\n"); usleep(5 * 1000);
 #endif
 
   //
@@ -180,7 +214,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 5\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 9\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
@@ -195,7 +229,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //  Set the system clock to the OS build time to help with SSL.
   //
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 6\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 10\n"); usleep(5 * 1000);
 #endif
 
   hcom_nx_config_set_time_to_os_build_time();
@@ -205,7 +239,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
 #endif
 
   ret = hcom_nx_route_text_to_host_setup();
@@ -216,18 +250,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 10\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
 #endif
 
-  ret = hcom_nx_utils_startup_handling_of_trace_level();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize syslog level:%d\n", ret);
-    return ret;
-  }
-
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 13\n"); usleep(5 * 1000);
 #endif
 
 #if (defined (CONFIG_FS_PROCFS) && defined (CONFIG_SYSTEM_NSH))
@@ -241,7 +268,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 14\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_TIMER_SUPPORT)
@@ -254,7 +281,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 13\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
 #endif
 
   // Initialize hcom nuttx driver
@@ -266,7 +293,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 14\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
 #endif
 
 #if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
@@ -279,7 +306,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 17\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -290,6 +317,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ret;
   }
 #endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 18\n"); usleep(5 * 1000);
+#endif
+
   // Setup meadow interrupt
   ret = meadow_interrupt_setup();
   if (ret < 0)
@@ -299,7 +331,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 19\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
@@ -312,7 +344,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 17\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 20\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_STM32F7_SDMMC2)
@@ -335,7 +367,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 18\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 21\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
@@ -397,7 +429,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif  // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 19\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 22\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_NETUTILS_PPPD)
@@ -419,7 +451,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 20\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 23\n"); usleep(5 * 1000);
 #endif
 #endif
 
@@ -434,7 +466,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 21\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 24\n"); usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
@@ -455,7 +487,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     }
   }
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 22\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 25\n"); usleep(5 * 1000);
 #endif
 
 #endif
@@ -468,13 +500,9 @@ if (ret < 0)
   return ret;
 }
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 23\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 26-All successful\n"); usleep(5 * 1000);
 #endif
 
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 23-All successful\n"); usleep(5 * 1000);
 #endif
 
   return OK;

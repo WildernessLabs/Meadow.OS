@@ -152,9 +152,9 @@ void stm32_boardinitialize(void)
 #ifdef CONFIG_DEBUG_FEATURES
 // If debug features defined Nuttx has output 'A' and after this will output
 // 'BCDE'
-  syslog(1, "\n%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
+  syslog(LOG_MDIAG, "\n%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
 #else
-  // syslog(1, "%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
+  // syslog(LOG_MDIAG, "%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
 #endif
 
 #if defined(CONFIG_STM32F7_SPI1) || defined(CONFIG_STM32F7_SPI2) || \
@@ -223,15 +223,6 @@ void board_late_initialize(void)
   FAR struct qspi_dev_s *qspi;
   FAR struct mtd_dev_s *mtd = NULL;
 
-#if defined (CONFIG_RAMLOG_SYSLOG)
-  // Initialize the syslog message pump
-  ret = hcom_nx_trace_msg_proc_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup trace msg pump %d\n", __FILE__, __LINE__, ret);
-  }
-#endif
-
 #if defined(CONFIG_STM32F7_PWR)
   // Initialize the backup SRAM and the 32 registers
   stm32_pwr_initbkp(true);    // initialize as writable
@@ -299,7 +290,8 @@ void board_late_initialize(void)
       meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_ERROR)
   {
     ferr("ERROR: Meadow version could not be determined\n");
-    syslog(1, "%s@%d-ERROR: Meadow version could not be determined\n", __FILE__, __LINE__);
+    syslog(1, "%s@%d-ERROR: Meadow version could not be determined\n",
+      __FILE__, __LINE__);
     return;
   }
 

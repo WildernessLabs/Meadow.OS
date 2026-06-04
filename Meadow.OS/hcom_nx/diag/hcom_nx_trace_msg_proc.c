@@ -60,8 +60,10 @@
 #include "stm32_gpio.h"
 
 // #define USE_MEADOW_DEBUG_HELPERS
-// // #undef USE_MEADOW_DEBUG_HELPERS
-// #include <meadow/meadow_debug_helpers.h>
+#undef USE_MEADOW_DEBUG_HELPERS
+#include <meadow/meadow_debug_helpers.h>
+
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
 /****************************************************************************
@@ -170,9 +172,10 @@ int hcom_nx_trace_msg_proc_setup()
 
 //==========================================================================
 // This function reads the battery backed register and sets appropriate flags
+// at startup
 void hcom_nx_trace_read_bbreg_config()
 {
-  int bbrRegValue;
+  uint32_t bbrRegValue;
 
   // If started after nuttx start time recheck the battery
   // backed registers as it could have been long ago.
@@ -201,7 +204,7 @@ void hcom_nx_trace_read_bbreg_config()
 // Called when mono starts
 int hcom_nx_trace_msg_mono_started()
 {
-  // When this message is received we know mono has begun running. When mono does
+  // When this function is called we know mono has begun running. When mono does
   // begin it will reconfigured all of the GPIOs, including those needed by this
   // code to send messages to the UART. Therefore, we must reconfigures these GPIOs
   // We don't want to do this all the time because there's no reason. So, we'll
@@ -253,7 +256,8 @@ int hcom_nx_trace_msg_lazy_initialization()
     hcom_nx_uart_direct(0, "\nMeadow.OS (Rebase) initialization has begun at %s UTC Meadow time.\n",
       timeBuf);
 
-    // Close uart port because the file descriptor is open by a different thread
+    // Close uart file descriptor opened by hcom_nx_uart_direct call.
+    // This is because the file descriptor is open by a different thread
     // than the one that will normally handle trace processing.
     close(_uart_fd);
     _uart_fd = -1;
@@ -624,18 +628,19 @@ int hcom_nx_trace_msg_save_recvd_data(uint8_t readBuf[], const ssize_t recvByteC
 
       if (pullResult == HCOM_CIR_BUF_GET_NONE_FOUND)
       {
-        // This makes no sense. Like a buffer full of garbage and no delimiter
+        // This makes no sense, next msg won't fit and there are no msgs.
+        // Like a buffer full of garbage and no delimiter
         hcom_cirbuf_clear_buffer(_ramlog_cbuf);
 
-        hcom_nx_uart_direct(LOG_ERR, "%s@%d-buffer corrupted or messages w/o linefeed. Deleted data.\n",
+        hcom_nx_uart_direct(LOG_ERR, "%s@%d-buffer corrupted or no linefeed. Deleted data.\n",
                  thisFile, __LINE__);
         
-        return HCOM_CIR_BUF_GET_NONE_FOUND;    // Reported so throw data away.
+        return HCOM_CIR_BUF_GET_NONE_FOUND;    // Reported so ignore.
       }
 
       if (pullResult == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
       {
-        // The message was too long for the allocated buffer and has been deleted.
+        // The message was too long for the allocated buffer. It has been deleted.
         hcom_nx_uart_direct(LOG_ERR, "%s@%d-pull packets from cir buf, msg too long, deleted\n",
                  thisFile, __LINE__);
         return pullResult;    // Reported and deleted.
@@ -655,7 +660,7 @@ int hcom_nx_trace_msg_save_recvd_data(uint8_t readBuf[], const ssize_t recvByteC
     }
   }   // while(!_shutting_down)
 
-  // Check if there's more complete message(s) buffered
+  // Check if there's more, complete message(s) buffered
   pullResult = hcom_nx_trace_msg_pull_all_packets_from_buffer();
   return pullResult;
 }
@@ -693,8 +698,8 @@ int hcom_nx_trace_msg_pull_all_packets_from_buffer()
 
       return ret; // _syslogMsgBuf too small, throw away data and keep going 
     }
-    
-    // Circular Buffer ret must have been HCOM_CIR_BUF_GET_FOUND_MSG
+
+    // Circular Buffer ret must have be HCOM_CIR_BUF_GET_FOUND_MSG
     _cliMsgLength = packetLength;
 
     // Route the isolated message
@@ -710,7 +715,7 @@ int hcom_nx_trace_msg_pull_all_packets_from_buffer()
       return HCOM_CIR_BUF_GET_NONE_FOUND;   // Assume buffer empty
     }
   }   // while(!_shutting_down)
-  
+
   return HCOM_CIR_BUF_GET_FOUND_MSG;
 }
 
@@ -720,6 +725,9 @@ int hcom_nx_trace_msg_pull_all_packets_from_buffer()
 int hcom_nx_trace_msg_route_trace_text(void)
 {
   int ret;
+
+  if(_cliMsgLength == 0)
+    return OK;
 
   if(_trace_log_to_uart)
   {
@@ -734,7 +742,8 @@ int hcom_nx_trace_msg_route_trace_text(void)
   if(_trace_log_to_host)
   {
     // Route to CLI
-    // Release CLI pthread to return the  message in the buffer it provided,
+
+    // Release CLI pthread to return the message in the buffer it provided,
     // to the CLI
     sem_post(&_sendCliSem);
 
