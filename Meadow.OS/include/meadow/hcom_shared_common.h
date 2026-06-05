@@ -979,6 +979,14 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // The default must be maintained as UART 1.
 #define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
+// This causes the build to add code that allows a function on the Nuttx
+// side to routed text messages to the user side and be sent to the
+// Host (CLI).
+// Set to 1 to include and 0 to exclude.
+// This should probably be removed as the code is often used by
+// other modules.
+#define HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST     1
+
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
 // This will enable debug code in the hcom_nx/create_fs/ files.
@@ -988,14 +996,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // debug. At startup syslog messages are routed to UART without
 // the need for configuration or the CLI Uart Trace command.
 #define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART     0
-
-// This causes the build to add code that allows a function on the Nuttx
-// side to routed text messages to the user side and be sent to the
-// Host (CLI).
-// Set to 1 to include and 0 to exclude.
-// This should probably be removed as the code is often used by
-// other modules.
-#define HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST     1
 
 // Cause the build to include the ability to print a buffer
 // full of data, showing hex and ascii. Duplicate code is created
@@ -1019,7 +1019,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Adds code that takes the HCOM messages from/to CLI and outputs a decoded
 // version to syslog. Enable HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE to add hex
 // dump of HCOM messages
-#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   0
+#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   1
 
 // LOG_DEBUG syslog message are almost never used. Set this to 1
 // if you wish to have them compiled into Meadow
