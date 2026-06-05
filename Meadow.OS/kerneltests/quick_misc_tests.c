@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs\stm32f777zit6-meadow\src\kerneltests\quick_misc_tests.c
  * 
- *   Copyright (C) 2023-2024 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2023-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_shared_common.h>
+#include <nuttx/wqueue.h>
 
 // Only build if configured
 #if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -50,6 +51,8 @@
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
+#pragma GCC optimize("O0")    // Prevent code optimization
+
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -57,7 +60,7 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-// Copied from meadow_interrupt.c
+static struct work_s wdog_work_queue;
 
 /************************************************************************************
  * Public Data
@@ -66,6 +69,9 @@
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
+static void quick_misc_tests_meadow_listen(uint32_t userData);
+static void quick_misc_tests_listen_worker(void *arg);
+static void quick_misc_tests_listen_cancel(void);
 
 /************************************************************************************
  * Public Functions
@@ -89,8 +95,19 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
       // Verify flash layout Test
       hcom_nx_flash_testing_verify_regions();
       break;
-
 #endif
+
+    // To test 'meadow listen' Send a message waits and repeats.
+    case 3:
+      syslog(LOG_MTEST, "Starting periodic syslog generator for 'meadow listen' command");
+      quick_misc_tests_meadow_listen(userData);
+      break;
+
+    case 4:
+      syslog(LOG_MTEST, "Stopping periodic syslog generator for 'meadow listen' command");
+      quick_misc_tests_listen_cancel();
+      break;
+
     default:
       syslog(LOG_MTEST,
         "Undefined test for meadow_kt_quick_misc_tests, userData:%lu. NO TEST DEFINED\n",
@@ -102,5 +119,47 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+// One time setup
+void quick_misc_tests_meadow_listen(uint32_t userData)
+{
+  syslog(LOG_MTEST, "Starting periodic syslog generator for 'meadow listen' command");
+
+  memset(&wdog_work_queue, 0, sizeof(struct work_s));
+
+  // Queue worker to send message again
+  work_queue(LPWORK, &wdog_work_queue, quick_misc_tests_listen_worker,
+    NULL, SEC2TICK(10));
+} 
+
+//=================================================================
+// Callback via the LPWORK worker queue
+static void quick_misc_tests_listen_worker(void *arg)
+{
+  static int count = 1;
+
+  syslog(LOG_MTEST, "meadow listen test-%d\n", count);
+  count ++;
+  
+  // Queue worker to send message again
+  work_queue(LPWORK, &wdog_work_queue, quick_misc_tests_listen_worker,
+    NULL, SEC2TICK(10));
+}
+
+//=================================================================
+// Delete the work queue timer for detecting download failures
+// Called from: hcom_host_preprocess.c and hcom_file_dnld_esp32.c as soon
+// as the file download is finished.
+void quick_misc_tests_listen_cancel(void)
+{
+  syslog(LOG_MTEST, "%s@%d-Cancelling the listen test timer\n",
+    __FILE__, __LINE__);
+
+  // If worker is not active return. Otherwise cancel the work
+  if (work_available(&wdog_work_queue))
+    return;
+
+  // Only possible error is -ENOENT no such work queued, we can ignore
+  work_cancel(LPWORK, &wdog_work_queue);
+}
 
 #endif  // #if defined(CONFIG_QUICK_MISC_TESTS)
