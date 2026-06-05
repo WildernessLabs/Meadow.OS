@@ -31,11 +31,13 @@
 #include <assert.h>
 #include <debug.h>
 
-#include "usrsock/usrsock.h"
 #include "socket/socket.h"
 
 #include "../../../Meadow.OS/hcom_nx/hcom_nx_config_manager.h"
 #include <meadow/hcom_shared_common.h>
+#ifdef CONFIG_NET_USRSOCK
+#include "../../../Meadow.OS/espcp/espcp_usrsock.h"
+#endif
 
 #ifdef CONFIG_NET
 
@@ -121,8 +123,8 @@ int psock_socket(int domain, int type, int protocol,
           * stack).
           */
 
-          psock->s_sockif = &g_usrsock_sockif;
-          return(g_usrsock_sockif.si_setup(psock));
+          psock->s_sockif = &g_usrsock_sockif_esp32;
+          return(g_usrsock_sockif_esp32.si_setup(psock));
 
           //
           //  TODO: Need to consider how we deal with this on the embedded module

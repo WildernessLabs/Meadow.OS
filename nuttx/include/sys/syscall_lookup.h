@@ -414,14 +414,10 @@ SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
 
 #if defined(CONFIG_ESP_TESTS)
 SYSCALL_LOOKUP(meadow_kt_espcp_tests, 1)
-SYSCALL_LOOKUP(meadow_kt_espcp_load_test_web_page, 1)
-SYSCALL_LOOKUP(meadow_kt_espcp_load_test_large_file_download, 1)
 #endif
 
 #if defined(CONFIG_ETHERNET_TESTS)
 SYSCALL_LOOKUP(meadow_kt_ethernet_tests, 1)
-SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_large_file_download, 1)
-SYSCALL_LOOKUP(meadow_kt_ethernet_load_test_web_page, 1)
 #endif
 
 #if defined(CONFIG_BG77_TESTS)
@@ -468,12 +464,6 @@ SYSCALL_LOOKUP(meadow_kt_rotary_encoder_tests, 1)
 SYSCALL_LOOKUP(meadow_kt_assert_test, 1)
 #endif
 
-#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
-SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
-SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
-#endif
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
 SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
 SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)

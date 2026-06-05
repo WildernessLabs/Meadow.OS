@@ -151,13 +151,16 @@ $(MEADOW_OS_DIR)/espcp/espcp_message.c \
 $(MEADOW_OS_DIR)/espcp/espcp_message_dispatcher.c \
 $(MEADOW_OS_DIR)/espcp/generic_list.c \
 $(MEADOW_OS_DIR)/espcp/espcp_coprocessor.c \
+$(MEADOW_OS_DIR)/espcp/espcp_core_dump.c \
 $(MEADOW_OS_DIR)/espcp/espcp_wifi.c \
 $(MEADOW_OS_DIR)/espcp/espcp_system.c \
 $(MEADOW_OS_DIR)/espcp/espcp_common.c \
 $(MEADOW_OS_DIR)/espcp/espcp_usrsock_sockif.c \
+$(MEADOW_OS_DIR)/espcp/espcp_uart_monitor.c \
 $(MEADOW_OS_DIR)/espcp/espcp_event_handlers.c \
 $(MEADOW_OS_DIR)/espcp/espcp_file_system.c \
-$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c \
+$(MEADOW_OS_DIR)/misc/meadow_watchdog.c
 endif
 
 CSRCS += $(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \

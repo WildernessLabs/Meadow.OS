@@ -39,7 +39,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <meadow/meadow_watchdog.h>
+#include "meadow_watchdog.h"
 
 #include "../hcom_nx/hcom_nx_config_manager.h"
 
@@ -104,10 +104,10 @@ void meadow_watchdog_reset_system(int argc, wdparm_t arg)
 void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_watchdog_methods_e watchdog_method)
 {
 #ifdef ENABLE_MEADOW_WATCHDOGS
-    // Clear the WDOGF_ACTIVE flag to ensure that the watchdog starts in an inactive state.
-    WDOG_CLRACTIVE(watchdog);
+    // Clear the wdog struct to ensure it starts in an inactive state.
+    memset(watchdog, 0, sizeof(*watchdog));
 
-    int ret = wd_start(watchdog, timeout, (wdentry_t)meadow_watchdog_reset_system, 1, (wdparm_t)watchdog_method);
+    int ret = wd_start(watchdog, timeout, (wdentry_t)meadow_watchdog_reset_system, (wdparm_t)watchdog_method);
     if (ret < 0)
     {
         syslog(LOG_ERR, "Failed to activate watchdog: %d\n", ret);

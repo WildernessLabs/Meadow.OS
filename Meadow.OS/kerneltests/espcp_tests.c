@@ -53,7 +53,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "../meadow-upd.h"
+#include <meadow/meadow-upd.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>
 #include "../espcp/espcp_usrsock.h"
@@ -223,13 +223,8 @@ void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mal
  ****************************************************************************/
 void espcp_test_get_mallinfo(struct mallinfo *mem, struct mallinfo *kmem)
 {
-#ifdef CONFIG_CAN_PASS_STRUCTS
   *mem = mallinfo();
   *kmem = kmm_mallinfo();
-#else
-  (void) mallinfo(mem);
-  (void) kmm_mallinfo(kmem);
-#endif
 }
 
 /****************************************************************************
@@ -597,11 +592,6 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP, &psock);
     espcp_test_check_result_equal(-ENETDOWN, result, "socket");
     //
-    //  Now assign a dummy socket ID for the rest of the tests.  The initial
-    //  socket ID for the ESP32 is 54.
-    //
-    psock.s_esp32_sockfd = 54;
-    //
     result = espcp_usrsock_setsockopt(&psock, 0, 0xb, (void *) &option_value, sizeof(option_value));
     espcp_test_check_result_equal(-ENETDOWN, result, "setsockopt");
     //
@@ -619,13 +609,13 @@ static void espcp_test_enetdown(void)
     //
     struct socket new_sock = { };
     socklen_t new_sock_length = sizeof(new_sock);
-    result = espcp_usrsock_accept(&psock, &sa, &new_sock_length, &new_sock);
+    result = espcp_usrsock_accept(&psock, &sa, &new_sock_length, &new_sock, 0);
     espcp_test_check_result_equal(-ENETDOWN, result, "accept");
     //
     result = espcp_usrsock_bind(&psock, &sa, sizeof(struct sockaddr));
     espcp_test_check_result_equal(-ENETDOWN, result, "bind");
     //
-    struct pollfd pollfds[] = { { psock.s_esp32_sockfd, POLLIN | POLLOUT, 5} };
+    struct pollfd pollfds[] = { { 54, POLLIN | POLLOUT, 5} };
     result = espcp_usrsock_poll(&psock, pollfds, 1);
     espcp_test_check_result_equal(-ENETDOWN, result, "poll");
     //
@@ -635,7 +625,7 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_getsockname(&psock, &sa, &sockaddr_length);
     espcp_test_check_result_equal(-ENETDOWN, result, "getsockname");
     //
-    result = espcp_usrsock_ioctl(&psock, 0, (void *) &sa, sockaddr_length);
+    result = espcp_usrsock_ioctl(&psock, 0, (unsigned long)(uintptr_t) &sa);
     espcp_test_check_result_equal(-ENETDOWN, result, "ioctl");
     //
     result = espcp_usrsock_listen(&psock, 0);
