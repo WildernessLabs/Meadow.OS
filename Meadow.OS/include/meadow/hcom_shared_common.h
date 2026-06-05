@@ -964,12 +964,20 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
   Rebase Note: Cloud isn't ready, therefore is set to added to defconfig file
   '# CONFIG_MEADOW_CLOUD is not set'
-  
 */
 
 // This Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
+
+//--------------------------------------------------------------------
+// This is the only non-optional #define in this list, must be set
+// The only valid UART options are 1, 4 or 6. All other value are considered
+// a build error.
+// At this time this #define is only controls code in
+// '/configs/stm32f777zit6-meadow/src/hcom_nx/diag/hcom_nx_trace_msg_proc.c'
+// The default must be maintained as UART 1.
+#define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
@@ -980,13 +988,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // debug. At startup syslog messages are routed to UART without
 // the need for configuration or the CLI Uart Trace command.
 #define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART     0
-
-// The only valid UART options are 1, 4 or 6. All other value are considered
-// a build error.
-// At this time this #define is only controls code in
-// '/configs/stm32f777zit6-meadow/src/hcom_nx/diag/hcom_nx_trace_msg_proc.c'
-// The default must be maintained as UART 1.
-#define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
 // This causes the build to add code that allows a function on the Nuttx
 // side to routed text messages to the user side and be sent to the

@@ -212,7 +212,7 @@ void hcom_diag_trace_priority_change_trace_level(uint32_t userData)
   }
 
 #if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART > 0
-  newTraceLevelMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO);
+  newTraceLevelMask |= (LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO));
 #endif
 
   // Set the new syslog mask

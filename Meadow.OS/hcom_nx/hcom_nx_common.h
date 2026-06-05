@@ -135,7 +135,7 @@ extern "C"
   // Common Utils
   void hcom_nx_common_utils_host_restart_meadow(void);
   void hcom_nx_common_utils_only_restart_meadow(void);
-  int hcom_nx_common_utils_calculate_serial_numb(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[]);
+  void hcom_nx_common_utils_calc_f7_sn(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[]);
 
   // Route text to host PC (CLI)
   int hcom_nx_route_text_to_host_setup(void);
