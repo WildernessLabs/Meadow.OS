@@ -39,17 +39,15 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>
 #include <nuttx/kthread.h>
 #include <nuttx/spi/spi.h>
 #include "stm32_spi.h"
-#include <up_arch.h>
-
-#include <nuttx/spi/spi.h>
-#include "stm32_spi.h"
-#include <up_arch.h>
+#include "arm_internal.h"
 
 // Only build if configured
 #if defined(CONFIG_SPI_DMA_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -341,7 +339,7 @@ int spi_initiate_loopback_test(SPITestingOptions *testOps)
           __FILE__, __LINE__, testOps->spiNumber,
           testOps->bufferSize);
 #else
-  syslog(LOG_MTEST, "%s@%d-Non-DMA test, SPI%lu, allocate %lu bytes\n",
+  syslog(LOG_MTEST, "%s@%d-Non-DMA test, SPI%" PRIu32 ", allocate %zd bytes\n",
           __FILE__, __LINE__, testOps->spiNumber,
           testOps->bufferSize);
 #endif
@@ -426,7 +424,7 @@ void spi_test_main_work_function(FAR void *arg)
     }
     else
     {
-      // There is also a requirement that the number be mulitple of 4,
+      // There is also a requirement that the number be multiple of 4,
       // in some cases.
       uint32_t numbToSend = testOps->bufferSize;
       uint8_t *txTempBuf = txBuff;
@@ -454,7 +452,7 @@ void spi_test_main_work_function(FAR void *arg)
       if(txBuff[bufOff] != rxBuff[bufOff])
       {
         syslog(LOG_MTEST,
-          "-->Loop:%02d - Error sent:%lu(0x%08x) bytes, err@bufOff:%lu(0x%08x), txBuff:%p, rxBuff:%p [txBuff:0x%02x(%p) != rxBuff:0x%02x(%p)]\n",
+          "-->Loop:%02d - Error sent:%zd(0x%08x) bytes, err@bufOff:%zd(0x%08x), txBuff:%p, rxBuff:%p [txBuff:0x%02x(%p) != rxBuff:0x%02x(%p)]\n",
           loopOff,
           testOps->bufferSize, testOps->bufferSize,
           bufOff, bufOff,

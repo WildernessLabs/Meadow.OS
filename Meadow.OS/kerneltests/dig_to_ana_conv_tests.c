@@ -40,20 +40,28 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+// #if defined (CONFIG_DAC_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
+#if defined (CONFIG_DAC_TESTS)
+#pragma message "(--) Hacking dig_to_ana_conv_tests.c"
+
+#include <stdio.h>
+#include <math.h>
 #include <sys/types.h>
-#include <nuttx/arch.h>   // up_enable_irq
-#include "up_arch.h"      // getreg32 & putreg32
+
+#include <nuttx/arch.h>         // up_enable_irq
+#include "arm_internal.h"       // getreg32 & putreg32
 #include <arch/stm32f7/chip.h>
 #include "stm32_gpio.h"
+#include "stm32_dac.h"
+#include "hardware/stm32f76xx77xx_memorymap.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_syscall_support.h>
 
-#if defined (CONFIG_DAC_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-#pragma message "(--) Hacking dig_to_ana_conv_tests.c"
-
-// Diagnostic always as this is test code
+//
+//  Uncomment the line below to include the debug helper file.
+//
 // #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 #pragma GCC optimize "Og"
@@ -61,9 +69,6 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
-#include <stdio.h>
-#include <math.h>
-#include "chip/stm32f76xx77xx_memorymap.h"
 
 #define QUICK_MISC_PIN_V2_A00_DAC_1  (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | GPIO_PIN4)
 #define QUICK_MISC_PIN_V2_A01_DAC_2  (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | GPIO_PIN5)
@@ -76,7 +81,6 @@
 // The following header needs this defined
 #define STM32_DAC_BASE      0x40007400
 #define STM32_NDAC 0
-#include "../../../../arch/arm/src/stm32/chip/stm32_dac.h"
 
 // Copied and modified from chip/stm32_dac.h since 
 #  define STM32_DAC_CR           (STM32_DAC_BASE+STM32_DAC_CR_OFFSET)

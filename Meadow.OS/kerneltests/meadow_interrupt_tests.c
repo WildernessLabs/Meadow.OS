@@ -45,12 +45,12 @@
 #if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_interrupt_tests.c"
 
-#include "stm32_gpio.h"   // stm32_configgpio
-#include "stm32_exti.h"   // STM32_EXTI_PR
-#include "up_arch.h"      // putreg32
-#include "nvic.h"         // NVIC access
+#include "stm32_gpio.h"             // stm32_configgpio
+#include "stm32_exti.h"             // STM32_EXTI_PR
+#include "arm_internal.h"           // putreg32
+#include "nvic.h"                   // NVIC access
 #include "clock/clock.h"
-#include "meadow-upd.h"   // mint_config_interrupt(cfg);
+#include "meadow/meadow-upd.h"      // mint_config_interrupt(cfg);
 #include "meadow_interrupt.h"
 #include "pwrmgmt/pwrmgmt_local.h"
 #include <meadow/meadow_syscall_support.h>
@@ -492,7 +492,7 @@ void meadow_interrupt_test_monitor_mint_mq(void)
         continue;
       }
 
-      syslog(LOG_ERR "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
+      syslog(LOG_ERR, "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
         thisFile, __LINE__, nbytes, errno);
         usleep(20 * 1000);
       break;

@@ -172,12 +172,13 @@ $(MEADOW_OS_DIR)/kerneltests/sdcard_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/power_management_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/iso8601_time_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/quick_misc_tests.c \
-#$(MEADOW_OS_DIR)/kerneltests/ana_to_dig_conv_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/ana_to_dig_conv_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/dig_to_ana_conv_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_interrupt_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_spi_dma_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_rotary_encoder_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/meadow_os_tests.c
+$(MEADOW_OS_DIR)/kerneltests/meadow_os_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_measure_freq_tests.c
 
 #
 #	Add the Meadow logging system.

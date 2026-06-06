@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+ #include <nuttx/config.h>
+
 #include "../hcom_nx/hcom_nx_common.h"
 
 #include <nuttx/arch.h>
@@ -44,6 +46,7 @@
 #include <sys/mount.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 
 #include <meadow/hcom_shared_common.h>
 
@@ -87,14 +90,14 @@ int hcom_nx_exec_test_sdcard_setup()
 // 101
 static int hcom_nx_sdcard_mount_card(void)
 {
-  int ret;
+  int32_t ret;
 
   // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
   ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
             MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
   if(ret < 0)
   {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
+    syslog(LOG_MTEST, "%s@%d-ERROR: Mount failed. ret:%" PRId32 ", errno:%d\n",
       thisFile, __LINE__, ret, errno);
     return ret;
   }
@@ -138,19 +141,19 @@ static int hcom_nx_sdcard_write_test_file(void)
   ssize_t nbytes = write(_activeFd, textForTesting, sizeof(textForTesting));
   if(nbytes < 0)
   {
-    syslog(LOG_MTEST, "%s@%d-ERROR: write failed. ret(nbytes):%d, errno:%d\n",
+    syslog(LOG_MTEST, "%s@%d-ERROR: write failed. ret(nbytes):%zd, errno:%d\n",
       thisFile, __LINE__, nbytes, errno);
     return nbytes;
   }
 
   if(nbytes != sizeof(textForTesting))
   {
-    syslog(LOG_MTEST, "%s@%d-Warning: write only wrote:%d out of:%d\n",
+    syslog(LOG_MTEST, "%s@%d-Warning: write only wrote:%zd out of:%zd\n",
       thisFile, __LINE__, nbytes, sizeof(textForTesting));
     return OK;
   }
 
-  syslog(LOG_MTEST, "Write successful (%d written)\n", nbytes);
+  syslog(LOG_MTEST, "Write successful (%zd written)\n", nbytes);
   return OK;
 }
 
@@ -171,8 +174,8 @@ static int hcom_nx_sdcard_read_test_file(void)
   off_t offset = lseek(_activeFd, 0, SEEK_SET);
   if (offset == (off_t)-1)
   {
-    syslog(LOG_MTEST, "%s@%d-ERROR: lseek failed. ret:%d, errno:%d\n",
-      thisFile, __LINE__, offset, errno);
+    syslog(LOG_MTEST, "%s@%d-ERROR: lseek failed. ret:%" PRId32 ", errno:%d\n",
+      thisFile, __LINE__, (int32_t)offset, errno);
     return -errno;
   }
 
@@ -182,12 +185,12 @@ static int hcom_nx_sdcard_read_test_file(void)
   if(nbytes < 0)
   {
     free(buffer);
-    syslog(LOG_MTEST, "%s@%d-ERROR: reading failed. ret:%d, errno:%d\n",
+    syslog(LOG_MTEST, "%s@%d-ERROR: reading failed. ret:%zd, errno:%d\n",
       thisFile, __LINE__, nbytes, errno);
     return nbytes;
   }
 
-  syslog(LOG_MTEST, "---- Read %d bytes from test file ----\n", nbytes);
+  syslog(LOG_MTEST, "---- Read %zd bytes from test file ----\n", nbytes);
   
 #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
     hcom_nx_diag_print_buffer(buffer, nbytes, 1);
@@ -309,7 +312,7 @@ static int hcom_nx_sdcard_file_stat_test(void)
 
   off_t fileSize = fileStatus.st_size;
 
-  syslog(LOG_MTEST, "fstat successful. file size:%d bytes\n", fileSize);
+  syslog(LOG_MTEST, "fstat successful. file size:%" PRId64 " bytes\n", (int64_t)fileSize);
   return fileSize;
 }
 
@@ -349,66 +352,66 @@ int meadow_kt_sd_card_tests(uint32_t userData)
     case 100:  // format as fat32
     // Future. For now use NSH or PC to format FAT32
     syslog(LOG_MTEST,
-      "sdcard tests received %u this is NOT a supported option\n",
+      "sdcard tests received %" PRIu32 " this is NOT a supported option\n",
       userData);
     break;
 
     case 101: // mount
-    syslog(LOG_MTEST, "sdcard tests received %u to execute mount test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mount test\n",
       userData);
     return hcom_nx_sdcard_mount_card();
     break;
 
     case 102: // Open test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute open testfile.txt\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute open testfile.txt\n",
       userData);
     return hcom_nx_sdcard_open_test_file();
     break;
 
     case 103: // Write test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute write test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute write test\n",
       userData);
     return hcom_nx_sdcard_write_test_file();
     break;
 
     case 104: // Read test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute read test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute read test\n",
       userData);
     return hcom_nx_sdcard_read_test_file();
     break;
 
     case 105: // Close test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute close test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute close test\n",
       userData);
     return hcom_nx_sdcard_close_test_file();
     break;
 
     case 106: // umount
-    syslog(LOG_MTEST, "sdcard tests received %u to execute umount test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute umount test\n",
       userData);
     return hcom_nx_sdcard_unmount_card();
     break;
 
     case 107: // Delete test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute delete test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute delete test\n",
       userData);
     return hcom_nx_sdcard_delete_test_file();
     break;
 
     case 108: // File Stat test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute fstat test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fstat test\n",
       userData);
     return hcom_nx_sdcard_file_stat_test();
     break;
 
     case 109: // fsync test file
-    syslog(LOG_MTEST, "sdcard tests received %u to execute fsync test\n",
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fsync test\n",
       userData);
     return hcom_nx_sdcard_fsync_file();
     break;
 
     default:
-    syslog(LOG_MTEST, "Unknown value %u passed to hcom_nx_exec_sdcard_tests()\n",
+    syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_sdcard_tests()\n",
       userData);
     break;
   }

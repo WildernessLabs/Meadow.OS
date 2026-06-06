@@ -39,7 +39,7 @@
 
 // Only build if configured
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-// #pragma message "(--) meadow_measure_freq_tests.c"
+#pragma message "(--) meadow_measure_freq_tests.c"
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>

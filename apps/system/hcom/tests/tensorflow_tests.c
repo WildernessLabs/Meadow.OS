@@ -40,7 +40,7 @@
 
 #include <math.h>
 
-#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <dlfcn.h>
 
