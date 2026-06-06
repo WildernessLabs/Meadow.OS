@@ -412,6 +412,10 @@ SYSCALL_LOOKUP(meadow_adc_read_values, 0)
 SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
 #endif
 
+#ifdef CONFIG_KERNEL_TESTS_SYSCALL
+SYSCALL_LOOKUP(meadow_kt_dispatcher, 2)
+#endif
+
 #if defined(CONFIG_ESP_TESTS)
 SYSCALL_LOOKUP(meadow_kt_espcp_tests, 1)
 #endif

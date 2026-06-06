@@ -40,6 +40,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <inttypes.h>
 #include <sys/types.h>
 
 #include <meadow/meadow_unit_test_framework.h>
@@ -168,7 +169,7 @@ int meadow_kt_dispatcher(uint32_t param, uint32_t value)
 {
     int result = TEST_ERR_NOT_FOUND;
 
-    syslog(LOGGING_LEVEL, "Checking for kernel test param: %u - value: %lu\n", param, value);
+    syslog(LOGGING_LEVEL, "Checking for kernel test param: %" PRIu32 " - value: %" PRIu32 "\n", param, value);
     if (sizeof(_kernelTests) > 0)
     {
         for (int index = 0; index < sizeof(_kernelTests) / sizeof(meadow_test_methods_t); index++)
