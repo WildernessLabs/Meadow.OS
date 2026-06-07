@@ -24,4 +24,4 @@ jobs:
 
       - name: Run build.sh in Docker (with safe directory)
         run: |
-          docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" meadow-os-build ./build.sh --clean --force
+          docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" meadow-os-build ./build.sh --clean --force -u=all
