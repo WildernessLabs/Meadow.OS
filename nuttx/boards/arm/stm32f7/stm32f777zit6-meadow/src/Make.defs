@@ -78,6 +78,8 @@ ifeq ($(CONFIG_STM32F7_SDMMC2),y)
 CSRCS += $(MEADOW_OS_DIR)/meadow_os/meadow_sdmmc.c
 endif
 
+CSRCS += meadow_rotary_encoder.c
+
 ifdef MEADOW_OS
 
 # Enable Meadow.OS build (WORK IN PROGRESS)
@@ -91,7 +93,8 @@ $(MEADOW_OS_DIR)/misc/parse_iso8601_time.c \
 $(MEADOW_OS_DIR)/misc/meadow_client_cert.c \
 $(MEADOW_OS_DIR)/misc/meadow_reinit_flash_size.c \
 $(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c \
-$(MEADOW_OS_DIR)/misc/meadow_adc.c
+$(MEADOW_OS_DIR)/misc/meadow_adc.c \
+$(MEADOW_OS_DIR)/specialized/meadow_measure_freq.c
 
 MEADOW_OS_DIR=Meadow.OS
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR) -I $(TOPDIR)/fs
@@ -163,14 +166,22 @@ $(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c \
 $(MEADOW_OS_DIR)/misc/meadow_watchdog.c
 endif
 
-CSRCS += $(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \
+CSRCS += $(MEADOW_OS_DIR)/kerneltests/meadow_kt_dispatcher.c \
+$(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/ethernet_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/bg77_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/network_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/bg77_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/sdcard_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/power_management_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/iso8601_time_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/quick_misc_tests.c
+$(MEADOW_OS_DIR)/kerneltests/quick_misc_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/ana_to_dig_conv_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/dig_to_ana_conv_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_interrupt_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_spi_dma_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_rotary_encoder_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_os_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_measure_freq_tests.c
 
 #
 #	Add the Meadow logging system.

@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include "../hcom_nx/hcom_nx_common.h"
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
@@ -47,10 +49,12 @@
 #include <nuttx/mtd/mtd.h>
 #include <sys/mount.h>
 #include <dirent.h>
+#include <inttypes.h>
 #include <sys/stat.h>
 #include "stm32_rtc.h"
 #include "stm32_exti.h"
 #include "stm32_gpio.h"                 // Needed for testing input gpio->event
+#include "arm_internal.h"               // putreg32
 #include <arch/board/board.h>           // Needed for testing getreg16
 #include "hardware/stm32f76xx77xx_pwr.h"    // Needed for testing
 #include <nuttx/kthread.h>
@@ -88,7 +92,7 @@
  * Private Data
  ************************************************************************************/
 #if defined (CONFIG_POWER_MANAGEMENT_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-static char *thisFile = __FILE__;
+// static char *thisFile = __FILE__;
 #endif
 
 /************************************************************************************
@@ -164,10 +168,10 @@ void meadow_kt_power_management_tests(uint32_t userData)
 {
   int ret = OK;
   struct tm tmNowRtc;
-  static int testCount = 0;
+  static uint32_t testCount = 0;
 
   syslog(LOG_MTEST,
-    "Power Management tests received 'set developer -p 8 -v %lu'\n",
+    "Power Management tests received 'set developer -p 8 -v %" PRIu32 "'\n",
     userData);
 
   testCount++;
@@ -177,7 +181,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
 #if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
     case 1:
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - Verify Alarm timer parses correctly\n",
+        "==>>power mgmt tests received %" PRIu32 " - Verify Alarm timer parses correctly\n",
         userData);
 
       // Used to verify the alarm is being properly configured
@@ -187,7 +191,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
 
     case 2:
       syslog(LOG_MTEST,
-        "==>>power mgmt test 2 - Test Count:%u - Power Sleep x times for y seconds\n",
+        "==>>power mgmt test 2 - Test Count:%" PRIu32 " - Power Sleep x times for y seconds\n",
         testCount);
       usleep(20 * 1000);
       
@@ -197,7 +201,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     
     case 3:
       syslog(LOG_MTEST,
-        "==>>power mgmt test 3 - Test Count:%u - Power sleep x times for y seconds\n",
+        "==>>power mgmt test 3 - Test Count:%" PRIu32 " - Power sleep x times for y seconds\n",
         testCount);
       usleep(20 * 1000);
       
@@ -208,7 +212,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     case 52:
       // Enter Stop mode with max power savings & slowest restart
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - Stop mode MAX savings\n",
+        "==>>power mgmt tests received %" PRIu32 " - Stop mode MAX savings\n",
         userData);
       sleep(1);
       // Directly execute stop mode with no timer setup
@@ -218,7 +222,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     case 53:
       // Enter Stop mode with minimum power savings & fastest restart
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - Stop mode Min savings\n",
+        "==>>power mgmt tests received %" PRIu32 " - Stop mode Min savings\n",
         userData);
       sleep(1);
       // Directly execute stop mode with no timer setup
@@ -228,7 +232,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     case 55:
       // Set clock to HSE
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - HSE for clock\n",
+        "==>>power mgmt tests received %" PRIu32 " - HSE for clock\n",
         userData);
       usleep(20 * 1000);
       ret = meadow_pwr_mgmt_use_hse_for_rtc();
@@ -237,7 +241,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     case 56:
       // Set clock to LSI
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - LSI for clock\n",
+        "==>>power mgmt tests received %" PRIu32 " - LSI for clock\n",
         userData);
       usleep(20 * 1000);
       ret = meadow_pwr_mgmt_use_lsi_for_rtc();
@@ -248,7 +252,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
       // is used that the wakeup timer is working  as expected. No switching
       // clocks or going to sleep.
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - Testing wakeup timer, not sleep\n",
+        "==>>power mgmt tests received %" PRIu32 " - Testing wakeup timer, not sleep\n",
         userData);
       usleep(20 * 1000);
       // Should call alarm ISR in x seconds
@@ -258,7 +262,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
     case 58:
       // Set alarm for X sec, switch to LSI, enter Stop-mode, after alarm wake up switch to HSE.
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %u - Sleeping for 10 seconds\n",
+        "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds\n",
         userData);
       up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
       syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
@@ -277,13 +281,13 @@ void meadow_kt_power_management_tests(uint32_t userData)
       break;
 
     default:
-    syslog(LOG_MTEST, "Unknown value %u passed to hcom_nx_exec_power_mgmt_tests()\n", userData);
+    syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_power_mgmt_tests()\n", userData);
     break;
   }
 
   if(ret < 0)
   {
-    syslog(LOG_MTEST, "==>>power mgmt tests received %u - Error ret:%d errno:%d\n", userData, ret, errno);
+    syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Error ret:%d errno:%d\n", userData, ret, errno);
   }
 }
 
@@ -435,7 +439,7 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Configure the hardware
   // Set alarm wakeup period and wait for ISR to notify that time has elapsed
-  syslog(LOG_MTEST, "==> Setting RTC alarm for %d seconds\n", wakeupPeriod);
+  syslog(LOG_MTEST, "==> Setting RTC alarm for %lld seconds\n", wakeupPeriod);
   ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
   if(ret < 0)
   {

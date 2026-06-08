@@ -49,7 +49,9 @@
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
 #include "stm32_gpio.h"
-#include "stm32f777zit6-meadow.h"
+#include "stm32_rcc.h"
+#include "arm_internal.h"
+#include <meadow/stm32f777zit6-meadow.h>
 #include "../hcom_nx/hcom_nx_common.h"
 #include "specialized/meadow_measure_freq_local.h"
 #include <meadow/meadow_hw_version.h>
@@ -58,8 +60,8 @@
 
 //=====================================================
 // #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
-// #include <meadow/meadow_debug_helpers.h>
+#include <meadow/meadow_debug_helpers.h>
+
 // #pragma message "(--) meadow_measure_freq.c"
 // #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 
@@ -933,7 +935,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       return ret;   // Done with unconfigure
 
     default:
-      syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%llu\n",
+      syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%" PRIu32 "\n",
                 __FILE__, __LINE__, mdwCfgTimerChan->configOption);
       return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;   // Function not implemented
   }
@@ -945,7 +947,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
             timerNumber, portAndPin);
   if(chanValid4TimerPortPin == 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:The Port and Pin, not valid for timer %d\n",
+    syslog(LOG_ERR, "%s@%d-Error:The Port and Pin, not valid for timer %" PRIu32 "\n",
               __FILE__, __LINE__, timerNumber);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_NOT_FOR_TIM;
   }
@@ -983,7 +985,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   uint8_t chanBit = meadow_measure_freq_get_channel_bit(channelNumber);
   if(mdwFreqTimerInfo->chanActiveBits & chanBit)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Timer %d, channel %d already in use\n",
+    syslog(LOG_ERR, "%s@%d-Error:Timer %" PRIu32 ", channel %" PRIu32 " already in use\n",
               __FILE__, __LINE__, timerNumber, channelNumber);
     return MEADOW_MEAS_FREQ_CONF_TIM_CHAN_IN_USE;
   }
@@ -1028,7 +1030,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   ret = stm32_configgpio(inputGpioConfig);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:stm32_configgpio() returned:%ld\n",
+    syslog(LOG_ERR, "%s@%d-Error:stm32_configgpio() returned:%d\n",
               __FILE__, __LINE__, ret);
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
     return MEADOW_MEAS_FREQ_CONF_CONFIGGPIO_ERR;   // Not supported

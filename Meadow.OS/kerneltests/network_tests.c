@@ -38,11 +38,12 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) || defined(ALL_MEADOW_TESTS)
 
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <poll.h>
 #include <nuttx/mm/mm.h>
@@ -168,7 +169,7 @@ char *network_test_number_with_commas(uint32_t number)
         return NULL;
     }
 
-    size_t len = snprintf(buffer, buffer_size, "%u", number);
+    size_t len = snprintf(buffer, buffer_size, "%" PRIu32, number);
 
     if (len <= 3)
     {
@@ -341,7 +342,7 @@ int network_test_get_web_resource(uint32_t number_of_requests, char *webserver_i
         number_of_requests = 1;
     }
 
-    syslog(LOGGING_LEVEL, "********** Getting %s from %s, %u request%s\n", resource, webserver_ip, number_of_requests, number_of_requests == 1 ? "" : "s");
+    syslog(LOGGING_LEVEL, "********** Getting %s from %s, %" PRIu32 " request%s\n", resource, webserver_ip, number_of_requests, number_of_requests == 1 ? "" : "s");
 
     in_addr_t address = inet_addr(webserver_ip);
     in_port_t port = htons(webserver_port);
@@ -380,7 +381,7 @@ int network_test_get_web_resource(uint32_t number_of_requests, char *webserver_i
     }
     else
     {
-        syslog(LOGGING_LEVEL, "    PASS: Downloaded %d bytes in %.2f seconds, %.2f KBytes per second\n", total_bytes, seconds, (total_bytes / seconds) / 1024);
+        syslog(LOGGING_LEVEL, "    PASS: Downloaded %" PRIu32 " bytes in %.2f seconds, %.2f KBytes per second\n", total_bytes, seconds, (total_bytes / seconds) / 1024);
     }
 
     return(0);
@@ -441,7 +442,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
             return(ERROR);
         }
 
-        int total_bytes = 0;
+        uint32_t total_bytes = 0;
         buffer = (char *) malloc(BUFFER_SIZE);
         if (buffer == NULL)
         {
@@ -470,7 +471,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         double seconds = difftime(end, start);
 
         syslog(LOGGING_LEVEL, "File downloaded successfully as LargeFile%d.html\n", index);
-        syslog(LOGGING_LEVEL, "Downloaded %d bytes in %.2f seconds\n", total_bytes, seconds);
+        syslog(LOGGING_LEVEL, "Downloaded %" PRIu32 " bytes in %.2f seconds\n", total_bytes, seconds);
     }
     usleep(DELAY);
 
@@ -497,7 +498,6 @@ int network_test_misc_network_functions(void)
 {
     // Had to add this #if because with CONFIG_ETHERNET_TESTS and not
     // CONFIG_ESP_TESTS configured this functions would not build. Peter 15Oct25
-#if(CONFIG_ESP_TESTS)
     syslog(LOGGING_LEVEL, "********** Testing misc network functions.\n");
 
     ALLOCATE_HEAP_STRUCTURES;
@@ -561,7 +561,6 @@ int network_test_misc_network_functions(void)
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-#endif      // #if(CONFIG_ESP_TESTS)
     return(0);
 }
 

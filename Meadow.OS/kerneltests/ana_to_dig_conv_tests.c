@@ -42,15 +42,15 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <nuttx/arch.h>   // up_enable_irq
-#include "up_arch.h"      // getreg32 & putreg32
+#include <nuttx/arch.h>         // up_enable_irq
+#include "arm_internal.h"       // getreg32 & putreg32
 #include <arch/stm32f7/chip.h>
 #include "stm32_gpio.h"
 #include <nuttx/kthread.h>
-#include "chip/stm32f74xx77xx_adc.h"
-#include "chip/stm32f76xx77xx_rcc.h"
-#include "chip/stm32f76xx77xx_dma.h"
-#include "chip/stm32f76xx77xx_memorymap.h"
+#include "stm32_adc.h"
+#include "stm32_rcc.h"
+#include "stm32_dma.h"
+#include "hardware/stm32f76xx77xx_memorymap.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_syscall_support.h>
 #include "hcom_nx/hcom_nx_common.h"
@@ -63,9 +63,10 @@
 #error "Meadow ADC with DMA requires CONFIG_STM32F7_DMA2"
 #endif
 
-// Diagnostic always as this is test code
-#define USE_MEADOW_DEBUG_HELPERS
-// #undef USE_MEADOW_DEBUG_HELPERS
+//
+//  Uncomment the line below to include the debug helper file.
+//
+// #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 #pragma GCC optimize "Og"
@@ -99,7 +100,7 @@
  ************************************************************************************/
 
 static double _voltageResultBuf[ADC_TESTS_RESULT_BUFFER_SIZE];
-static bool _userData;
+static uint32_t _userData;
 static uint32_t _numbGpioActive;
 
 enum
@@ -384,7 +385,7 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
   do
   {
     // Add address of offset to beginning of line
-    lineBuffOff = snprintf(lineBuff, disp_total_line_len, "%08x ", dmaBuffOff);
+    lineBuffOff = snprintf(lineBuff, disp_total_line_len, "%08" PRIx32, dmaBuffOff);
 
     // Build a full row of data then print it
     for(columnCnt = 0; columnCnt < disp_max_per_row; columnCnt++)

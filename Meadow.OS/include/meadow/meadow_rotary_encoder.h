@@ -44,7 +44,8 @@
 
 #include <string.h>
 #include <stdint.h>
-#include <meadow/hcom_shared_common.h>
+#include "hcom_shared_common.h"
+// #include <meadow/hcom_shared_common.h>
 
 // Caller must populate this struct
 struct rotenc_config_parms

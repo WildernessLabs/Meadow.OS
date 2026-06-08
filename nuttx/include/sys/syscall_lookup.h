@@ -410,57 +410,64 @@ SYSCALL_LOOKUP(stm32_unconfiggpio, 1)
 SYSCALL_LOOKUP(meadow_adc_configure, 3)
 SYSCALL_LOOKUP(meadow_adc_read_values, 0)
 SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
+SYSCALL_LOOKUP(meadow_measure_freq_configure, 1)
+SYSCALL_LOOKUP(meadow_measure_freq_return_freq_info, 1)
 #endif
 
-#if defined(CONFIG_ESP_TESTS)
+#if defined(CONFIG_KERNEL_TESTS_SYSCALL) || defined(CONFIG_ALL_MEADOW_TESTS)
+SYSCALL_LOOKUP(meadow_kt_dispatcher, 2)
+SYSCALL_LOOKUP(meadow_os_get_unit_tests_config, 0)
+#endif
+
+#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_espcp_tests, 1)
 #endif
 
-#if defined(CONFIG_ETHERNET_TESTS)
+#if defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_ethernet_tests, 1)
 #endif
 
-#if defined(CONFIG_BG77_TESTS)
+#if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_bg77_tests, 1)
 #endif
 
-#if defined(CONFIG_SD_CARD_TESTS)
+#if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_sd_card_tests, 1)
 #endif
 
-#if defined(CONFIG_POWER_MANAGEMENT_TESTS)
+#if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_power_management_tests, 1)
 #endif
 
-#if defined(CONFIG_ISO8601_TESTS)
+#if defined(CONFIG_ISO8601_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_iso8601_tests, 1)
 #endif
 
-#if defined(CONFIG_QUICK_MISC_TESTS)
+#if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_quick_misc_tests, 1)
 #endif
 
-#if defined(CONFIG_ADC_TESTS)
+#if defined(CONFIG_ADC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_adc_tests, 1)
 #endif
 
-#if defined(CONFIG_DAC_TESTS)
+#if defined(CONFIG_DAC_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_dac_tests, 1)
 #endif
 
-#if defined(CONFIG_MEADOW_INTERRUPT_TESTS)
+#if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_meadow_interrupt_tests, 1)
 #endif
 
-#if defined(CONFIG_SPI_DMA_TESTS)
+#if defined(CONFIG_SPI_DMA_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_spi_dma_tests, 1)
 #endif
 
-#if defined(CONFIG_ROTARY_ENCODER_TESTS)
+#if defined(CONFIG_ROTARY_ENCODER_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_rotary_encoder_tests, 1)
 #endif
 
-#if defined(CONFIG_MEADOW_OS_TESTS)
+#if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_assert_test, 1)
 #endif
 

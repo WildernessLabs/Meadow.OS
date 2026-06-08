@@ -107,7 +107,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_MISC, "Quick and Misc tests" },
 #endif
 
-#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TENSORFLOW, "Tensorflow tests" },
 #endif
 
@@ -197,7 +197,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_GPIO, hcom_meadow_diag_gpio_tests },
 #endif
 
-#if defined(CONFIG_EXAMPLES_SQLITE_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_EXAMPLES_SQLITE_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SQLLITE, hcom_meadow_sqlite_tests },
 #endif
 
@@ -213,7 +213,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_BBR, hcom_bbr_tests },
 #endif
 
-#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TENSORFLOW, tensorflow_tests_hello_world },
 #endif
 
@@ -221,7 +221,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_DIRECTORY_MANAGEMENT, meadow_dir_mgmt_tests },
 #endif
 
-#if defined(CONFIG_USR_WORK_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, diag_misc_tests_verify_usrwork },
 #endif
 
