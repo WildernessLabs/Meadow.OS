@@ -48,7 +48,7 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_misc_diag.h>
-
+#include <meadow/hcom_shared_common.h>
 #include "hardware/stm32f76xx77xx_rcc.h"
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
@@ -75,6 +75,7 @@
 // this configuration entry (CONFIG_USEC_PER_TICK=1000)
 // This is a reasonable maximum for the no load idle count.
 #define MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT (1060)
+#define MEADOW_IDLE_MON_MIN_100_PER_CENT_COUNT (0)
 
 // For diagnostics
 // #define DEBUG_PIN_V2_D14  (0x00040c1c)
@@ -301,8 +302,8 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
   while(true)
   {
     idleValue = meadow_idle_monitor_get_value();
-    MEADOW_TRACE_INFORMATION"MCU Idle percent:%d, snapshot:%d\n",
-      idleValue, _idleCountSnapShot);
+    syslog(LOG_MTEST, "MCU Idle:%d%%, MCU Load:%d%%: snapshot:%lu\n",
+      idleValue, idleValue - 100, _idleCountSnapShot);
     sleep(1);
   }
 #endif

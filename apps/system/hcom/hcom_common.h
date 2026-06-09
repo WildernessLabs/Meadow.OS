@@ -169,11 +169,12 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
           char *shortText,size_t msgLength, char *sourceFileName,
           int sourceLineNumber);
-          
 // Matches typedef in /nuttx/include/meadow/hcom_shared_common.h
 // typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 //   size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 int hcom_host_send_std_data_msg(HcomProtoHdrMsg_t *hdrMsg,
+        size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
+int hcom_host_send_std_data_msg_long_wait(HcomProtoHdrMsg_t *hdrMsg,
         size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 int hcom_host_send_std_header_msg(HcomProtoHdrMsg_t *hdrMsg,
         size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);

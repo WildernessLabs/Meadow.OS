@@ -1019,7 +1019,7 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Adds code that takes the HCOM messages from/to CLI and outputs a decoded
 // version to syslog. Enable HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE to add hex
 // dump of HCOM messages
-#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   1
+#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   0
 
 // LOG_DEBUG syslog message are almost never used. Set this to 1
 // if you wish to have them compiled into Meadow

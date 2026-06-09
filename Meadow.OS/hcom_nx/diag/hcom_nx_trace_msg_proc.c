@@ -848,20 +848,22 @@ void hcom_nx_uart_direct(int priority, const char *fmt, ...)
 // Forward the message to the uart for transmission
 int hcom_nx_trace_msg_send_msg_to_uart(const char *toUartBuf, size_t numbBytes)
 {
+  int ret;
+
   // If uart not opened do this now
   if(_uart_fd < 0 && !_profiler_log_to_uart)
   {
-    int ret = hcom_nx_trace_msg_open_uart_serial_port();
+    ret = hcom_nx_trace_msg_open_uart_serial_port();
     if(ret < 0)
     {
       return ret;
     }
   }
 
-  // Because the mono/meadow runtime may reconfigure all the GPIOs used by the board
-  // we need to reconfigure them after mono starts. The problem is we don't know when
-  // this is is. Therefore, we execute this code for a predetermined amount of time,
-  // starting when mono has started running.
+  // Because the mono/meadow runtime may reconfigure all the GPIOs used by the
+  // board we need to reconfigure them after mono starts. The problem is we
+  // don't know when this is is. Therefore, when mono starts we set
+  // _txRxReCfgStopTime to a predetermined amount of time.
   if(_txRxReCfgStopTime != 0)
   {
     // [--] THE FOLLOWING MAY NEED TO BE REMOVED OR CHANGED

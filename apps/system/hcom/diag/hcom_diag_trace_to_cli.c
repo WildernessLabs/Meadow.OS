@@ -41,6 +41,9 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
 
+// #pragma message "(--) hcom_diag_trace_to_cli.c"
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -49,7 +52,7 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static bool _trace_log_to_host;
+static bool _shouldTraceLogToHost;
 static bool _thread_running;
 static pthread_t _cli_pthread;
 
@@ -66,18 +69,19 @@ static void hcom_trace_to_cli_create_thread(void);
 // Called during startup
 int hcom_trace_to_cli_setup()
 {
+  // If thread running something is serious
   _thread_running = false;
 
   // Check if the battery backed register indicates that the current
   // user wants syslog messages routed to CLI
   if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
   {
-    _trace_log_to_host = true;
+    _shouldTraceLogToHost = true;
     hcom_trace_to_cli_create_thread();
   }
   else
   {
-    _trace_log_to_host = false;
+    _shouldTraceLogToHost = false;
   }
 
   return OK;
@@ -87,7 +91,7 @@ int hcom_trace_to_cli_setup()
 // Are we logging to host (CLI)?
 bool hcom_trace_is_sending_to_cli()
 {
-  return _trace_log_to_host;
+  return _shouldTraceLogToHost;
 }
 
 //================================================================
@@ -129,30 +133,34 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
     getpid(), HCOM_THREAD_NAME_CLI_TRANSPORT);
 #endif
 
-  size_t stringLen;
+  _thread_running = true;
+
   char *cliMsgBuf = (char *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(cliMsgBuf == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return NULL;
+    _shouldTraceLogToHost = false;
+    _thread_running = false;
+    return NULL;    // Kill thread
   }
 
-  _thread_running = true;
-
   // Stay in this loop until told to stop
-  while(_trace_log_to_host)
+  while(_shouldTraceLogToHost)
   {
+    size_t stringLen;
+
     // Call into kernel-land to get the next CLI syslog message. This thread will
-    // wait in kernel-land until the next message or terminated, at either point
-    // it will return.
+    // wait in kernel-land until the next message or terminated.
     stringLen = hcom_via_nx_provide_cli_trace_transport(cliMsgBuf,
               HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-    if(stringLen <= 0 || cliMsgBuf == NULL)
-    {
-      if(!_trace_log_to_host)
-        break;
 
-      // In case something goes wrong we don't want to be in a tight loop
+    ASSERT(cliMsgBuf != NULL);
+    if(stringLen <= 0)
+    {
+      if(!_shouldTraceLogToHost)
+        break;    // Tracing no longer wanted, so exit
+
+      // In case something unexpected we don't want to be in a tight loop repeat.
       usleep(10 * 1000);
       continue;
     }
@@ -162,9 +170,8 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
            cliMsgBuf, __FILE__, __LINE__);
   }
 
+  // We exited loop, therefore, the pthread dies
   free(cliMsgBuf);
-
-  // pthread dies here
   _thread_running = false;
   return NULL;
 }
@@ -176,7 +183,13 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
 // Note: The battery backed register setting is updated in k-land
 void hcom_trace_to_cli_enable_command(uint32_t userData)
 {
-  _trace_log_to_host = true;
+  if(_thread_running)
+  {
+    return;
+  }
+
+  // Thread should be running
+  _shouldTraceLogToHost = true;
   hcom_trace_to_cli_create_thread();
 }
 
@@ -192,7 +205,7 @@ void hcom_trace_to_cli_enable_command(uint32_t userData)
 void hcom_trace_to_cli_disable_command(uint32_t userData)
 {
   // Prepare our pthread to exit when k-land sends it back
-  _trace_log_to_host = false;
+  _shouldTraceLogToHost = false;
 }
 
 //================================================================
