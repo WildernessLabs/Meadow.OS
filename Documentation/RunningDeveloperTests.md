@@ -61,12 +61,15 @@ Up to 10 parameters can be defined, `Parameter1` through to `Parameter10`.  The 
 
 ### ESP Unit Test Configuration
 
-The ESP tests currently uses two parameters:
+The ESP tests currently uses up to five parameters:
 
 ```yaml
 TestParameters
     Parameter1: SSID
     Parameter2: Password
+    Parameter3: Server IP Address
+    Parameter4: Server Port
+    Parameter5: Server Resource
 ```
 
 ## Test Infrastructure
