@@ -749,32 +749,26 @@ void espcp_deep_sleep(void)
     //
     //  This code is derived from the various methods in net_sockets.c
     //
-
-    // MEADOW.OS REBASE: The following code prevents the Meadow.OS build from
-    // completing. It seems the API for managing kernel the socket list has
-    // changed. And maybe the 'net_lockedwait' is no longer supported.
-#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
-    struct socketlist *list = sched_getsockets();
-    if (list)
-    {
-        int result;
-        while ((result = net_lockedwait(&list->sl_sem)) < 0)
-        {
-            /* The only case that an error should occr here is if
-            * the wait was awakened by a signal.
-            */
-            DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
-        for (int index = 0; index < CONFIG_NSOCKET_DESCRIPTORS; index++)
-        {
-            memset(&list->sl_sockets[index], 0, sizeof(struct socket));
-        }
+    //  TODO: This functionality has changed.  Bring this up to date with the latest NuttX code.
+    //
+    // struct socketlist *list = sched_getsockets();
+    // if (list)
+    // {
+    //     int result;
+    //     while ((result = net_lockedwait(&list->sl_sem)) < 0)
+    //     {
+    //         /* The only case that an error should occr here is if
+    //         * the wait was awakened by a signal.
+    //         */
+    //         DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
+    //     }
+    //     for (int index = 0; index < CONFIG_NSOCKET_DESCRIPTORS; index++)
+    //     {
+    //         memset(&list->sl_sockets[index], 0, sizeof(struct socket));
+    //     }
         
-        nxsem_post(&list->sl_sem);
-    }
-#else
-    syslog(1, "%s@%d-Would have raised espcp deep sleep message here.", __FILE__, __LINE__);
-#endif
+    //     nxsem_post(&list->sl_sem);
+    // }
 
     //
     //  Lastly, wait for the message to have been sent.

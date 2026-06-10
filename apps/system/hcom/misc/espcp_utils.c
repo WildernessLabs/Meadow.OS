@@ -119,26 +119,6 @@ int espcp_open_esp32_events_message_queue()
 }
 
 /****************************************************************************
- * Name: espcp_close_events_message_queue
- *
- * Description:
- *   Closes the ESP32 event message queue and resets the queue handler. This 
- *   function is used for clean shutdown or after the queue is no longer needed.
- *
- * Input Parameters:
- *   None
- *
- ****************************************************************************/
-// MEADOW.OS REBASE - This function is not called, it generated a warning
-// because of this.
-#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
-// static void espcp_close_events_message_queue(void)
-// {
-//   mq_close(espcp_events_queue_handler);
-//   espcp_events_queue_handler = (mqd_t) - 1;
-// }
-#endif
-/****************************************************************************
  * Name: espcp_encode_event_data
  *
  * Description:
