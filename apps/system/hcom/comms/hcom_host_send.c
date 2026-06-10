@@ -623,9 +623,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
     ssize_t writeRet = write(_comms_write_fd,
                              &_encodedXmitBuff[toWriteOffset],
                              remainingBytes);
-    // A zero return on write on a non-blocking fd is treated as a non-error
-    // some identifty it as a "transient stall" whatever that means.
-    if(writeRet >= 0)
+    if(writeRet > 0)
     {
       remainingBytes -= writeRet;   // Note: if remainingBytes == 0 will exit while loop
       toWriteOffset += writeRet;
@@ -646,7 +644,9 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
     }
 
     // Was the write attempt blocked? 
-    if(errno == EAGAIN)
+    // A zero return on write on a non-blocking fd is treated as a non-error
+    // some identifty it as a "transient stall" whatever that means.
+    if(errno == EAGAIN || writeRet == 0)
     {
       // In this case either host PC was disconnected from Meadow, CLI stopped running
       // or Meadow.CLI just can't keep up. We'll give it a chance to catchup.

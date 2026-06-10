@@ -303,7 +303,7 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
   {
     idleValue = meadow_idle_monitor_get_value();
     syslog(LOG_MTEST, "MCU Idle:%d%%, MCU Load:%d%%: snapshot:%lu\n",
-      idleValue, idleValue - 100, _idleCountSnapShot);
+      idleValue, 100 - idleValue, _idleCountSnapShot);
     sleep(1);
   }
 #endif
