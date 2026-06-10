@@ -1276,7 +1276,7 @@ void espcp_test_wait_for_esp_to_be_ready(void)
  ****************************************************************************/
 void meadow_kt_espcp_test_start_wifi(uint32_t arg)
 {
-    syslog(LOGGING_LEVEL, "Testing the start WiFi connection\n");
+    syslog(LOGGING_LEVEL, "Testing starting WiFi connection\n");
 
     espcp_test_start_wifi();
     
