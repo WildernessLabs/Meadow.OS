@@ -38,7 +38,7 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) || defined(ALL_MEADOW_TESTS)
+#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <stdint.h>
 #include <stdbool.h>
