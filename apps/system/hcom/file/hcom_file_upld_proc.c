@@ -539,7 +539,9 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 
       // This call will build the message and send it to the host.
       // Length must include header + data and be <= to max payload size.
-      hcom_host_send_std_data_msg((HcomProtoHdrMsg_t *)binMsg,
+      // Note: This call will wait longer than normal for the data to be
+      // sent
+      hcom_host_send_std_data_msg_long_wait((HcomProtoHdrMsg_t *)binMsg,
                 HCOM_PROTOCOL_HEADER_MSG_LENGTH + nbytes,
                 thisFile, __LINE__);
 
