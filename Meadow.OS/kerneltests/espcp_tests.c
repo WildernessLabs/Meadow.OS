@@ -40,6 +40,8 @@
 
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
+#pragma message "(--) espcp_tests.c included"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -396,8 +398,8 @@ static void espcp_test_start_wifi(void)
     GET_INITIAL_HEAP_INFORMATION;
 
     espcp_access_point_information_t access_point = { };
-    access_point.network_name = unit_tests_configuration->parameter1;
-    access_point.password = unit_tests_configuration->parameter2;
+    access_point.network_name = UNIT_TESTS_CONFIG_SSID;
+    access_point.password = UNIT_TESTS_CONFIG_PASSWORD;
 
     struct upd_esp32_command message;
     memset(&message, 0, sizeof(struct upd_esp32_command));

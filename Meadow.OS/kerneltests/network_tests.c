@@ -40,6 +40,8 @@
 
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
+#pragma message "(--) network_tests.c included"
+
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
