@@ -47,6 +47,28 @@ The following identifiers can be used with the `-u` flag:
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
 | `spi_dma` | SPI DMA tests | `SPI_DMA_TESTS` |
 
+## Test Configuration
+
+Additional parameters can be passed to a unit tests using the `unittests.config.yaml` file.  This file should be written to the root file system of a Meadow device.  The file should look something like:
+
+```yaml
+TestParameters
+    Parameter1: value1
+    Parameter2: value2
+```
+
+Up to 10 parameters can be defined, `Parameter1` through to `Parameter10`.  The parameters are optional and are stored in the `unit_tests_configuration_t *unit_test_configuration` variable as string values.  It is the responsibility of the test to interpret the parameter meaning.
+
+### ESP Unit Test Configuration
+
+The ESP tests currently uses two parameters:
+
+```yaml
+TestParameters
+    Parameter1: SSID
+    Parameter2: Password
+```
+
 ## Test Infrastructure
 
 ### Kernel-Side Dispatcher
