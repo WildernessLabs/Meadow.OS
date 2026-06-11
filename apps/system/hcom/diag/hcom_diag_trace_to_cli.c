@@ -149,8 +149,8 @@ FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
   {
     size_t stringLen;
 
-    // Call into kernel-land to get the next CLI syslog message. This thread will
-    // wait in kernel-land until the next message or terminated.
+    // Call into kernel-side to get the next CLI syslog message. This thread will
+    // wait in kernel-side until the next message or terminated.
     stringLen = hcom_via_nx_provide_cli_trace_transport(cliMsgBuf,
               HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
 

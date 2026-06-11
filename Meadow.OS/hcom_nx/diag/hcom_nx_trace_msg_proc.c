@@ -330,8 +330,8 @@ int hcom_nx_trace_msg_make_thread()
 
 //=================================================================
 // This thread reads all ramlog messages received via syslog from
-// the ramlog buffer and routes them to the UART and CLI. This
-// thread once started is not stopped until F7 reset.
+// the ramlog buffer and routes them to the UART and/or CLI. This
+// thread once started is not stopped until Meadow reset.
 void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
 {
   int ret;
@@ -729,6 +729,7 @@ int hcom_nx_trace_msg_route_trace_text(void)
   if(_cliMsgLength == 0)
     return OK;
 
+  // To UART?
   if(_trace_log_to_uart)
   {
     // Route to uart
@@ -739,10 +740,10 @@ int hcom_nx_trace_msg_route_trace_text(void)
     }
   }
 
+  // To HOST?
   if(_trace_log_to_host)
   {
     // Route to CLI
-
     // Release CLI pthread to return the message in the buffer it provided,
     // to the CLI
     sem_post(&_sendCliSem);
@@ -756,9 +757,9 @@ int hcom_nx_trace_msg_route_trace_text(void)
 }
 
 //==========================================================================
-// This is called via udp and provides a pthread, and the buffer for the
-// trace message to CLI. On every call it waits for the next message.
-// When a message is found it returns and calls the code to send
+// This is called from apps-side via udp and provides a pthread, and the
+// buffer for the trace message to CLI. On every call it waits for the next
+// message. When a message is found, it returns and calls the code to send
 // the trace message to CLI and returns again.
 size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t buffLen)
 {
@@ -796,7 +797,7 @@ size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t buffLen)
   // But, at this time the effort doesn't seem to be worth the benefit.
   memcpy(buff, _syslogMsgBuf, msgLength);
 
-  // Return to userland with the message
+  // Return to app-side with the message
   return msgLength;
 }
 

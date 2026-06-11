@@ -73,7 +73,8 @@ int hcom_via_nx_upd_setup()
   _nx_access_fd = hcom_via_nx_upd_driver_open();
   if (_nx_access_fd < 0)
   {
-    syslog(LOG_ERR, "%s@%d-setup hcom nx access open:%d\n", thisFile, __LINE__, _nx_access_fd);
+    syslog(LOG_ERR, "%s@%d-setup hcom nx access open:%d\n",
+      thisFile, __LINE__, _nx_access_fd);
     _nx_access_fd = -1;
     return _nx_access_fd;
   }
@@ -233,7 +234,7 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
 }
 
 //=============================================================
-// Provides the nuttx side with a way to pass syslog messages back
+// Provides the nuttx-side with a way to pass syslog messages back
 // to userland so it can be sent to the CLI
 size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
           char *buff, size_t bufLen)
@@ -258,8 +259,9 @@ size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
 }
 
 //=============================================================
-// Provides the nuttx side with a way to pass syslog messages back
-// to userland so it can be sent to the CLI
+// Provides the nuttx-side with a way to pass syslog messages back
+// to user-side so it can be sent to the CLI
+// Called from apps/system/hcom/diag/hcom_diag_trace_to_cli.c
 size_t hcom_via_nx_provide_cli_trace_transport(char *buff, size_t bufLen)
 {
   int ret;
