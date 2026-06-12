@@ -1258,6 +1258,32 @@ void espcp_test_wait_for_esp_to_be_ready(void)
 }
 
 /****************************************************************************
+ * Name: meadow_kt_espcp_test_start_wifi
+ *
+ * Description:
+ *  Start the ESP32 WiFi connection.  Used to test the connect to access
+ *  point functionality.
+ *
+ * Input Parameters:
+ *   arg - Argument passed to kernel test via CLI (ignored)
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+void meadow_kt_espcp_test_start_wifi(uint32_t arg)
+{
+    syslog(LOGGING_LEVEL, "Testing starting WiFi connection\n");
+
+    espcp_test_start_wifi();
+    
+    syslog(LOGGING_LEVEL, "Start WiFi connection test completed\n");
+}
+
+/****************************************************************************
  * Name: meadow_kt_espcp_test_get_web_resource
  *
  * Description:

@@ -256,9 +256,14 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_ALL_ESP32                       1000
 
 /**
+ * @brief ESP32 start WiFi connection test ID.
+ */
+#define MEADOW_TEST_ESP_START_WIFI                  1001
+
+/**
  * @brief ESP32 web page load test ID.
  */
-#define MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST          1001
+#define MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST          1002
 
 /**
  * @brief Ethernet (all tests) test ID.

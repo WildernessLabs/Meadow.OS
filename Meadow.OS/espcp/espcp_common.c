@@ -35,6 +35,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
+
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
@@ -42,7 +44,6 @@
 #include <debug.h>
 
 #include <nuttx/semaphore.h>
-#include <nuttx/config.h>
 
 #include "espcp_common.h"
 #include <meadow/hcom_shared_common.h>
@@ -101,12 +102,6 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     espcp_configuration_t *configuration = espcp_get_configuration();
     if (espcp_add_message_to_queue(configuration->request_queue, message) == espcp_status_codes_completed_ok)
     {
-
-        // MEADOW.OS REBASE: The 'net_lockedwait' function prevented the Meadow.OS build
-        // from completing. It seems the 'net_lockedwait' function is no longer available
-        // to this code or has been removed from the NuttX build in Nuttx 12.
-
-#if (MEADOW_BUILD_EXCLUDE_ESP32_CODE == 0)
         if (block)
         {
             //
@@ -114,13 +109,9 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
             //  as it is possible to have a return from a sem_wait as a result of a
             //  signal as well as a sem_post.  In the case of a signal we simply wait
             //  again.
-            while ((net_lockedwait(message->semaphore) != 0) && (get_errno() == EINTR));
+            while ((net_sem_wait(message->semaphore) != 0) && (get_errno() == EINTR));
         }
         result = espcp_status_codes_completed_ok;
-#else
-        syslog(1, "%s@%d-Would have raised a espcp queued message here.", __FILE__, __LINE__);
-#endif
-
     }
     return (result);
 }

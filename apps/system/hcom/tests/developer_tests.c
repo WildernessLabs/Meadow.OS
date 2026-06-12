@@ -165,6 +165,7 @@ static meadow_test_names_t _testNames[] =
     //
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_ALL_ESP32, "All ESP32 tests" },
+    { MEADOW_TEST_ESP_START_WIFI, "ESP32 start WiFi connection" },
     { MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST, "ESP32 get web resource n times (use -v <count> to specify number of iterations, default = 1)" },
 #endif
 
@@ -382,7 +383,7 @@ void hcom_developer_tests_developer(uint16_t param, uint32_t value)
                 snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Unknown error.\n");
                 break;
         }
-        // hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
     }
 
     free(hostMsg);
