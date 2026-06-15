@@ -266,6 +266,36 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST          1002
 
 /**
+ * @brief Bluetooth start service A test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_START_SERVICE_A       1100
+
+/**
+ * @brief Bluetooth start service B test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_START_SERVICE_B       1101
+
+/**
+ * @brief Bluetooth start service C test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_START_SERVICE_C       1102
+
+/**
+ * @brief Bluetooth start service D test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_START_SERVICE_D       1103
+
+/**
+ * @brief Bluetooth start service F7 test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_START_SERVICE_F7      1104
+
+/**
+ * @brief Bluetooth stop service test ID.
+ */
+#define MEADOW_TEST_BLUETOOTH_STOP                  1105
+
+/**
  * @brief Ethernet (all tests) test ID.
  */
 #define MEADOW_TEST_ETHERNET                        1200

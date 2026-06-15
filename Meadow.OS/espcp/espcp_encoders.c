@@ -1,8 +1,45 @@
+/****************************************************************************
+ * espcp_encoders.c
+ *
+ *   Copyright (C) 2019-26 Wilderness Labs. All rights reserved.
+ *   Author:  Wilderness Labs
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include "espcp_encoders.h"
 
-
-#include "espcp_encoders.h"
+//
+//  Temporarily undefine NDEBUG to be able to use assertions in this file.
+//
+// #undef NDEBUG
+#include <assert.h>
 
 /****************************************************************************
  * Name: espcp_calculate_spi_buffer_size
@@ -3384,4 +3421,184 @@ void espcp_encode_core_dump_fragment_request(espcp_core_dump_fragment_request_t 
         buffer += 4;
         espcp_encode_uint32(fragment->size, buffer);
     }
+}
+
+/****************************************************************************
+ * Name: espcp_b_t_stack_config_buffer_size
+ *
+ * Description:
+ *   Calculate the buffer size needed to encode a BTStackConfig object.
+ *
+ * Input Parameters:
+ *   config - pointer to the BTStackConfig object.
+ *
+ * Returned Value:
+ *   Number of bytes required to encode the object.
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+uint32_t espcp_b_t_stack_config_buffer_size(espcp_b_t_stack_config_t *config)
+{
+    return (espcp_string_length(config->config) + 1);
+}
+
+/****************************************************************************
+ * Name: espcp_encode_b_t_stack_config
+ *
+ * Description:
+ *   Encode a BTStackConfig (JSON string) into a byte buffer.
+ *
+ * Input Parameters:
+ *   config - pointer to the BTStackConfig object.
+ *   buffer - pointer to the buffer to encode into.
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+void espcp_encode_b_t_stack_config(espcp_b_t_stack_config_t *config, uint8_t *buffer)
+{
+    if ((config != NULL) && (buffer != NULL))
+    {
+        espcp_encode_string(config->config, buffer);
+    }
+}
+
+/****************************************************************************
+ * Name: espcp_b_t_server_data_set_buffer_size
+ *
+ * Description:
+ *   Calculate the buffer size needed to encode a BTServerDataSet object.
+ *
+ * Input Parameters:
+ *   data_set - pointer to the BTServerDataSet object.
+ *
+ * Returned Value:
+ *   Number of bytes required to encode the object.
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+uint32_t espcp_b_t_server_data_set_buffer_size(espcp_b_t_server_data_set_t *data_set)
+{
+    return (2 + 4 + data_set->set_data_length);
+}
+
+/****************************************************************************
+ * Name: espcp_encode_b_t_server_data_set
+ *
+ * Description:
+ *   Encode a BTServerDataSet (handle + data) into a byte buffer.
+ *
+ * Input Parameters:
+ *   data_set - pointer to the BTServerDataSet object.
+ *   buffer   - pointer to the buffer to encode into.
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+void espcp_encode_b_t_server_data_set(espcp_b_t_server_data_set_t *data_set, uint8_t *buffer)
+{
+    if ((data_set != NULL) && (buffer != NULL))
+    {
+        espcp_encode_uint16(data_set->handle, buffer);
+        buffer += 2;
+        espcp_encode_uint32(data_set->set_data_length, buffer);
+        buffer += 4;
+        memcpy(buffer, data_set->set_data, data_set->set_data_length);
+    }
+}
+
+/****************************************************************************
+ * Name: espcp_extract_b_t_data_write_request
+ *
+ * Description:
+ *   Decode a ClientWriteRequest event payload from a byte buffer.
+ *
+ * Input Parameters:
+ *   buffer - pointer to the buffer containing the encoded object.
+ *
+ * Returned Value:
+ *   Pointer to heap-allocated espcp_b_t_data_write_request_t; caller must free.
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+espcp_b_t_data_write_request_t *espcp_extract_b_t_data_write_request(uint8_t *buffer)
+{
+    espcp_b_t_data_write_request_t *request =
+        (espcp_b_t_data_write_request_t *) malloc(sizeof(espcp_b_t_data_write_request_t));
+    if (request != NULL)
+    {
+        request->handle = espcp_extract_uint16(buffer);
+        buffer += 2;
+        request->data_length = espcp_extract_uint32(buffer);
+        buffer += 4;
+        if (request->data_length > 0)
+        {
+            request->data = (uint8_t *) malloc(request->data_length);
+            if (request->data != NULL)
+            {
+                memcpy(request->data, buffer, request->data_length);
+            }
+        }
+        else
+        {
+            request->data = NULL;
+        }
+    }
+    return (request);
+}
+
+/****************************************************************************
+ * Name: espcp_extract_b_t_get_handles_response
+ *
+ * Description:
+ *   Decode a GetHandles response payload from a byte buffer.
+ *
+ * Input Parameters:
+ *   buffer - pointer to the buffer containing the encoded object.
+ *
+ * Returned Value:
+ *   Pointer to heap-allocated espcp_b_t_get_handles_response_t; caller must free.
+ *
+ * Assumptions/Limitations:
+ *   None
+ *
+ ****************************************************************************/
+espcp_b_t_get_handles_response_t *espcp_extract_b_t_get_handles_response(uint8_t *buffer)
+{
+    espcp_b_t_get_handles_response_t *response =
+        (espcp_b_t_get_handles_response_t *) malloc(sizeof(espcp_b_t_get_handles_response_t));
+    if (response != NULL)
+    {
+        response->handle_count = espcp_extract_uint16(buffer);
+        buffer += 2;
+        response->handles_length = espcp_extract_uint32(buffer);
+        buffer += 4;
+        if (response->handles_length > 0)
+        {
+            response->handles = (uint8_t *) malloc(response->handles_length);
+            if (response->handles != NULL)
+            {
+                memcpy(response->handles, buffer, response->handles_length);
+            }
+        }
+        else
+        {
+            response->handles = NULL;
+        }
+    }
+    return (response);
 }
