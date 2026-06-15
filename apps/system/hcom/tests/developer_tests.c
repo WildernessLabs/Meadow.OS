@@ -161,12 +161,23 @@ static meadow_test_names_t _testNames[] =
 #endif
 
     //
-    //  ESP tests 1000 - 1199
+    //  ESP tests 1000 - 1099
     //
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_ALL_ESP32, "All ESP32 tests" },
     { MEADOW_TEST_ESP_START_WIFI, "ESP32 start WiFi connection" },
     { MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST, "ESP32 get web resource n times (use -v <count> to specify number of iterations, default = 1)" },
+#endif
+
+#if defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_A, "Bluetooth start service (MeadowA, Espressif)" },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_B, "Bluetooth start service (MeadowB, Baidu)" },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_C, "Bluetooth start service (MeadowC, no company identifier)" },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_D, "Notify characteristic, multiple descriptors (MeadowD, no company identifier)" },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_F7, "Bluetooth start service (MeadowF7, Espressif)" },
+    { MEADOW_TEST_BLUETOOTH_STOP, "Bluetooth stop service" },
+    // { MEADOW_TEST_BLUETOOTH_NOTIFY, "Bluetooth notify characteristic (interactive)" },
+    // { MEADOW_TEST_BLUETOOTH_SOAK, "Bluetooth soak write characteristic (interactive)" },
 #endif
 
     //

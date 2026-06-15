@@ -59,5 +59,17 @@ void meadow_kt_spi_dma_tests(uint32_t);
 void meadow_kt_rotary_encoder_tests(uint32_t);
 void meadow_kt_assert_test(uint32_t);
 void meadow_kt_measure_freq_tests(uint32_t);
+void meadow_kt_bluetooth_tests(uint32_t);
+
+//
+//  Bluetooth tests.
+//
+void meadow_kt_bluetooth_test_start_service_a(uint32_t value);
+void meadow_kt_bluetooth_test_start_service_b(uint32_t value);
+void meadow_kt_bluetooth_test_start_service_c(uint32_t value);
+void meadow_kt_bluetooth_test_start_service_d(uint32_t value);
+void meadow_kt_bluetooth_test_start_service_meadow_f7(uint32_t value);
+void meadow_kt_bluetooth_test_stop_service(uint32_t value);
+
 
 #endif // __MEADOW_KERNEL_TESTS_H

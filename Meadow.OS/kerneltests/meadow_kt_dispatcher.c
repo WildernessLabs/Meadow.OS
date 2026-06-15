@@ -124,6 +124,17 @@ static meadow_test_methods_t _kernelTests[] =
     { MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST, meadow_kt_espcp_test_get_web_resource },
 #endif
 
+#if defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_A, meadow_kt_bluetooth_test_start_service_a },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_B, meadow_kt_bluetooth_test_start_service_b },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_C, meadow_kt_bluetooth_test_start_service_c },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_D, meadow_kt_bluetooth_test_start_service_d },
+    { MEADOW_TEST_BLUETOOTH_START_SERVICE_F7, meadow_kt_bluetooth_test_start_service_meadow_f7 },
+    { MEADOW_TEST_BLUETOOTH_STOP, meadow_kt_bluetooth_test_stop_service },
+    // { MEADOW_TEST_BLUETOOTH_NOTIFY, meadow_kt_bluetooth_test_notify_characteristic },
+    // { MEADOW_TEST_BLUETOOTH_SOAK, meadow_kt_bluetooth_test_soak_write_characteristic },
+#endif
+
 #if (defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS))
     { MEADOW_TEST_ETHERNET, meadow_kt_ethernet_tests },
     { MEADOW_TEST_ETHERNET_WEB_PAGE_LOAD_TEST, meadow_kt_ethernet_get_web_resource },

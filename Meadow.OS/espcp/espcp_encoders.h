@@ -726,5 +726,11 @@ espcp_core_dump_information_response_t *espcp_extract_core_dump_information_resp
 espcp_core_dump_fragment_response_t *espcp_extract_core_dump_fragment_response(uint8_t *buffer);
 int espcp_encoded_core_dump_fragment_request_buffer_size(espcp_core_dump_fragment_request_t *fragment);
 void espcp_encode_core_dump_fragment_request(espcp_core_dump_fragment_request_t *fragment, uint8_t *buffer);
+uint32_t espcp_b_t_stack_config_buffer_size(espcp_b_t_stack_config_t *config);
+void espcp_encode_b_t_stack_config(espcp_b_t_stack_config_t *config, uint8_t *buffer);
+uint32_t espcp_b_t_server_data_set_buffer_size(espcp_b_t_server_data_set_t *data_set);
+void espcp_encode_b_t_server_data_set(espcp_b_t_server_data_set_t *data_set, uint8_t *buffer);
+espcp_b_t_data_write_request_t *espcp_extract_b_t_data_write_request(uint8_t *buffer);
+espcp_b_t_get_handles_response_t *espcp_extract_b_t_get_handles_response(uint8_t *buffer);
 
 #endif /* _ESPCP_ENCODERS_H */
