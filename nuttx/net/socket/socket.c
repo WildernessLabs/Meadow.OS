@@ -31,13 +31,8 @@
 #include <assert.h>
 #include <debug.h>
 
+#include "usrsock/usrsock.h"
 #include "socket/socket.h"
-
-#include "../../../Meadow.OS/hcom_nx/hcom_nx_config_manager.h"
-#include <meadow/hcom_shared_common.h>
-#ifdef CONFIG_NET_USRSOCK
-#include "../../../Meadow.OS/espcp/espcp_usrsock.h"
-#endif
 
 #ifdef CONFIG_NET
 
@@ -102,64 +97,40 @@ int psock_socket(int domain, int type, int protocol,
   psock->s_type   = type & SOCK_TYPE_MASK;
 
 #ifdef CONFIG_NET_USRSOCK
-  hcom_nx_config_lock();
-  meadow_configuration_t *config = hcom_nx_config_get_pointer();
-  // This config == NULL test is necessary, without it, the first call here
-  // will lock Nuttx, as if the linker has optimized the above code away.
-  if(config == NULL)
-  {
-    syslog(LOG_ERR, "In %s() meadow_configuration_t is NULL\n", __FILE__);
-    hcom_nx_config_unlock();
-    return -ENETDOWN;
-  }
+  /* Get the usrsock interface */
 
-  if(config->default_interface->interface_type == MEADOW_IFT_ESP32)
+  sockif = &g_usrsock_sockif;
+  psock->s_sockif = sockif;
+
+  ret = sockif->si_setup(psock);
+
+  /* When usrsock daemon returns -ENOSYS or -ENOTSUP, it means to use
+   * kernel's network stack, so fallback to kernel socket.
+   * When -ENETDOWN is returned, it means the usrsock daemon was never
+   * launched or is no longer running, so fallback to kernel socket.
+   */
+
+  if (ret == 0 || (ret != -ENOSYS && ret != -ENOTSUP && ret != -ENETDOWN))
     {
-      if (domain != PF_LOCAL && domain != PF_UNSPEC)
-        {
-          hcom_nx_config_unlock();
-
-          /* Handle special setup for USRSOCK sockets (user-space networking
-          * stack).
-          */
-
-          psock->s_sockif = &g_usrsock_sockif_esp32;
-          return(g_usrsock_sockif_esp32.si_setup(psock));
-
-          //
-          //  TODO: Need to consider how we deal with this on the embedded module
-          //        as it may be connected to a wired ethernet.
-          //
-          // if (ret == -ENETDOWN)
-          //   {
-          //     /* -ENETDOWN means that USRSOCK daemon is not running.  Attempt to
-          //      * open socket with kernel networking stack.
-          //      */
-          //     return(ret);
-          //   }
-          // else
-          //   {
-          //     psock->s_sockif = g_usrsock_sockif;
-
-          //     if (ret < 0)
-          //       {
-          //         return ret;
-          //       }
-
-          //     return ret;
-          //   }
-        }
+      return ret;
     }
-#endif /* CONFIG_NET_USRSOCK */
 
-  hcom_nx_config_unlock();
-  
+#endif
+
   /* Get the socket interface */
 
   sockif = net_sockif(domain, psock->s_type, psock->s_proto);
   if (sockif == NULL)
     {
       nerr("ERROR: socket address family unsupported: %d\n", domain);
+#ifdef CONFIG_NET_USRSOCK
+
+      /* We tried to fallback to kernel socket, but one is not available,
+       * so use the return code from usrsock.
+       */
+
+      return ret;
+#endif
       return -EAFNOSUPPORT;
     }
 
