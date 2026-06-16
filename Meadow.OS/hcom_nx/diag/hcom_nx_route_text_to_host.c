@@ -70,6 +70,8 @@
 // // #undef USE_MEADOW_DEBUG_HELPERS
 // #include <meadow/meadow_debug_helpers.h>
 
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
+
 #if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)
 /****************************************************************************
  * Pre-processor Definitions
@@ -100,6 +102,7 @@ static sem_t _sendCliSem;
  ****************************************************************************/
 int hcom_nx_route_text_to_host_setup()
 {  
+  // (--) Can this allocation wait??? 
   _sharedMsgBuff = (uint8_t *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(_sharedMsgBuff == NULL)
   {
@@ -133,7 +136,8 @@ static void hcom_nx_route_text_wait_sem(sem_t *semaphore)
 }
 
 //=================================================================
-// Public entry to ship a generic text message to host
+// Public entry to ship a generic text message to host. Only called from a
+// few places on nuttx-side.
 // Note: The text must end with a '\n' character.
 int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
           size_t msgLen)
@@ -169,7 +173,7 @@ size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
   static bool firstTime = true;
   size_t msgLength;
 
-  // The first call must be ignored. Afterward we allow the reader to get the
+  // The first call must be ignored. Afterward we allow the reader
   // to keep things in sync.
   if(firstTime)
   {
@@ -205,8 +209,9 @@ size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
 
   *requestType = _sharedRqstType;
 
-  // Note: Even though this code is in kernel land, the app side pthread must
-  // be the one to copy the data into the app side buffer.
+  // Note: Even though this code is in nuttx-side, the app-side pthread must
+  // be the one to copy the data into the app-side buffer because the buffer
+  // in in app-side space.
   memcpy(buff, _sharedMsgBuff, msgLength);
 
   // Return to userland with the message and its length
