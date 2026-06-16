@@ -64,6 +64,7 @@
 #include "generic_list.h"
 #include "espcp_event_handlers.h"
 #include "espcp_message_dispatcher.h"
+#include "../hcom_nx/hcom_nx_config_manager.h"
 
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
@@ -176,6 +177,13 @@ static gl_linked_list_t *_espcp_poll_requests = NULL;
  *  Mutex used to control access to the poll request linked list.
  */
 static sem_t _espcp_poll_requests_mutex;
+
+/**
+ * @brief Has the ESP32 been selected?  This variable is used to speed up the
+ *        usrsock code by avoiding the need to check the configuration each time
+ *        a socket is created.
+ */
+static bool _esp32_selected = false;
 
 /****************************************************************************
  * Methods
@@ -352,6 +360,14 @@ void espcp_usrsock_init()
         sem_init(&_espcp_poll_requests_mutex, 0, 1);
         sem_setprotocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
     }
+
+    hcom_nx_config_lock();
+    meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    if ((config != NULL) && (config->default_interface->interface_type == MEADOW_IFT_ESP32))
+    {
+        _esp32_selected = true;
+    }
+    hcom_nx_config_unlock();
 }
 
 /****************************************************************************
@@ -370,10 +386,17 @@ void espcp_usrsock_init()
  * Returned Value:
  *   Zero (OK) is returned on success.  Otherwise, a negated errno value is
  *   returned.
+ * 
+ *   -ENOSYS: System is not configured for ESP32 networking.
  *
  ****************************************************************************/
 static int espcp_usrsock_sockif_setup(struct socket *psock)
 {
+    if (!_esp32_selected)
+    {
+        return(-ENOSYS);
+    }
+
     int domain = psock->s_domain;
     int type = psock->s_type;
 
