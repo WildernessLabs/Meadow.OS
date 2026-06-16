@@ -44,6 +44,8 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 
+// #pragma GCC optimize("O0")    // Prevent code optimization
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

@@ -40,6 +40,8 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
+
 #if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)
 /****************************************************************************
  * Pre-processor Definitions
@@ -115,8 +117,8 @@ FAR void *hcom_host_text_transport_pthread(FAR void *arg)
   // Stay in this loop
   while(true)
   {
-    // Call into kernel land to get the next host text message. This thread
-    // will wait in kernel land until the next message or terminated, at
+    // Call into nuttx-side to get the next host text message. This thread
+    // will wait in nuttx-side until the next message or terminated, at
     // either point it will return.
     stringLen = hcom_via_nx_provide_host_text_transport(&requestType,
           hostTextMsgBuf, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);

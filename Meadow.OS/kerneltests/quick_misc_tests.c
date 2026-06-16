@@ -99,12 +99,12 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 
     // To test 'meadow listen' Send a message waits and repeats.
     case 3:
-      syslog(LOG_MTEST, "Starting periodic syslog generator for 'meadow listen' command");
+      syslog(LOG_MTEST, "Starting periodic syslog for 'meadow listen' test");
       quick_misc_tests_meadow_listen(userData);
       break;
 
     case 4:
-      syslog(LOG_MTEST, "Stopping periodic syslog generator for 'meadow listen' command");
+      syslog(LOG_MTEST, "Stopping periodic syslog for 'meadow listen' test");
       quick_misc_tests_listen_cancel();
       break;
 
@@ -122,7 +122,7 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 // One time setup
 void quick_misc_tests_meadow_listen(uint32_t userData)
 {
-  syslog(LOG_MTEST, "Starting periodic syslog generator for 'meadow listen' command");
+  syslog(LOG_MTEST, "Starting syslog output every 10 seconds");
 
   memset(&wdog_work_queue, 0, sizeof(struct work_s));
 
@@ -137,7 +137,8 @@ static void quick_misc_tests_listen_worker(void *arg)
 {
   static int count = 1;
 
-  syslog(LOG_MTEST, "meadow listen test-%d\n", count);
+  // Output this message a periodically
+  syslog(LOG_MTEST, "meadow listen test message-%d\n", count);
   count ++;
   
   // Queue worker to send message again
@@ -151,7 +152,7 @@ static void quick_misc_tests_listen_worker(void *arg)
 // as the file download is finished.
 void quick_misc_tests_listen_cancel(void)
 {
-  syslog(LOG_MTEST, "%s@%d-Cancelling the listen test timer\n",
+  syslog(LOG_MTEST, "%s@%d-Cancelling the meadow listen test\n",
     __FILE__, __LINE__);
 
   // If worker is not active return. Otherwise cancel the work
