@@ -36,10 +36,20 @@ _Min_Stack_Size = 0x400 ;	/* required amount of stack */
 /* Memories definition */
 MEMORY
 {
-  RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 512K
+  RAM    (rw)     : ORIGIN = 0x20000000,   LENGTH = 512K
   BL_STARTUP	(rx)	: ORIGIN = 0x08000000,	LENGTH = 32K
   OTA_DATA		(rx)	: ORIGIN = 0x08008000,	LENGTH = 32K
   BOOTLOADER    (rx)    : ORIGIN = 0x08010000,   LENGTH = 192K
+}
+
+/* Program headers: explicit FLAGS prevent the linker from merging code and
+   data-initialiser LOAD segments into a single RWX segment (binutils >= 2.39). */
+PHDRS
+{
+  FLASH_STARTUP PT_LOAD FLAGS(5);   /* PF_R + PF_X */
+  FLASH_OTA     PT_LOAD FLAGS(4);   /* PF_R */
+  FLASH_TEXT    PT_LOAD FLAGS(5);   /* PF_R + PF_X */
+  FLASH_DATA    PT_LOAD FLAGS(6);   /* PF_R + PF_W */
 }
 
 /* Sections */
@@ -53,7 +63,7 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.isr_vector)) /* Startup code */
     . = ALIGN(4);
-  } >BL_STARTUP
+  } >BL_STARTUP :FLASH_STARTUP
 
 	/* Clear OTA data section when BL is flashed to set it to good known state */
 	/* Some data has to be written so linker has something in the output section */
@@ -74,7 +84,7 @@ SECTIONS
 		BYTE(0x00)	/*	ROLLBACK_ON_FAIL_BOOT_FLAG_LOC - SETTING THIS TO 1 WILL FORCE ROLLBACK ON BOOT FAIL	*/
 		BYTE(0x00)	/*	RESERVED	*/
 		
-	} > OTA_DATA
+	} > OTA_DATA :FLASH_OTA
 
   
 
@@ -98,7 +108,7 @@ SECTIONS
 
     . = ALIGN(4);
     _etext = .;        /* define a global symbols at end of code */
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
 
   /* Constant data into "BOOTLOADER" Rom type memory */
   .rodata :
@@ -107,13 +117,13 @@ SECTIONS
     *(.rodata)         /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
 
   .ARM.extab   : { 
     . = ALIGN(4);
     *(.ARM.extab* .gnu.linkonce.armextab.*)
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
   
   .ARM : {
     . = ALIGN(4);
@@ -121,7 +131,7 @@ SECTIONS
     *(.ARM.exidx*)
     __exidx_end = .;
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
 
   .preinit_array     :
   {
@@ -130,7 +140,7 @@ SECTIONS
     KEEP (*(.preinit_array*))
     PROVIDE_HIDDEN (__preinit_array_end = .);
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
   
   .init_array :
   {
@@ -140,7 +150,7 @@ SECTIONS
     KEEP (*(.init_array*))
     PROVIDE_HIDDEN (__init_array_end = .);
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
   
   .fini_array :
   {
@@ -150,7 +160,7 @@ SECTIONS
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
     . = ALIGN(4);
-  } >BOOTLOADER
+  } >BOOTLOADER :FLASH_TEXT
 
   /* Used by the startup to initialize data */
   _sidata = LOADADDR(.data);
@@ -166,7 +176,7 @@ SECTIONS
     . = ALIGN(4);
     _edata = .;        /* define a global symbol at data end */
     
-  } >RAM AT> BOOTLOADER
+  } >RAM AT> BOOTLOADER :FLASH_DATA
 
   /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
@@ -182,7 +192,7 @@ SECTIONS
     . = ALIGN(4);
     _ebss = .;         /* define a global symbol at bss end */
     __bss_end__ = _ebss;
-  } >RAM
+  } >RAM :NONE
 
   /* User_heap_stack section, used to check that there is enough "RAM" Ram  type memory left */
   ._user_heap_stack :
@@ -193,7 +203,7 @@ SECTIONS
     . = . + _Min_Heap_Size;
     . = . + _Min_Stack_Size;
     . = ALIGN(8);
-  } >RAM
+  } >RAM :NONE
 
   /* Remove information from the compiler libraries */
   /DISCARD/ :
@@ -203,5 +213,5 @@ SECTIONS
     libgcc.a ( * )
   }
 
-  .ARM.attributes 0 : { *(.ARM.attributes) }
+  .ARM.attributes 0 : { *(.ARM.attributes) } :NONE
 }
