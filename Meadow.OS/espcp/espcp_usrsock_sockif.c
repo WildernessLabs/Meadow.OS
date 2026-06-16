@@ -129,7 +129,7 @@ static void espcp_usrsock_sockif_addref(struct socket *psock);
 /**
  *  @brief Table of function pointers for the ESP32 networking methods.
  */
-const struct sock_intf_s g_usrsock_sockif_esp32 =
+const struct sock_intf_s g_usrsock_sockif =
 {
     espcp_usrsock_sockif_setup,       /* si_setup */
     espcp_usrsock_sockif_sockcaps,    /* si_sockcaps */
