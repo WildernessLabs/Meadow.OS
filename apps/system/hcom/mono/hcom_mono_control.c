@@ -405,7 +405,7 @@ int hcom_mono_ctrl_start_mono_main()
     meadow_os_config_free_resources(config);
   }
 
-  // Create a task to execute mono. A task will will only share stdin, stderr
+  // Create a task to execute mono. A task will only share stdin, stderr
   // and stdout with the threads running hcom. If this is a new concept look
   // up the nuttx "task group" in the documentaion for details.
   mono_pid = task_create(MONO_TASK_NAME, MONO_TASK_PRIORITY,
