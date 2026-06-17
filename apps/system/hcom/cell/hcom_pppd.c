@@ -386,7 +386,8 @@ static int hcom_pppd_create_handler(void)
 static void *pppd_thread(void *cell_settings_ptr)
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-    syslog(LOG_MDIAG, "New pthread [PID:%d],'%s'\n", getpid(), "pppd_thread");
+  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+     gettid(), getpid(), "pppd_thread");
 #endif
 
     cell_settings_t *cell_settings = (cell_settings_t *) cell_settings_ptr;

@@ -294,8 +294,8 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
   int idleValue;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New kthread [PID:%d],'%s'\n",
-    getpid(), "Idle monitor");
+  syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
+    gettid(), getpid(), "Idle monitor");
 #endif
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)

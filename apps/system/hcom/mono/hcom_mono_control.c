@@ -324,8 +324,8 @@ static void *monitor_mono_task(void *arg)
     int status;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-    syslog(LOG_MDIAG, "New pthread [PID:%d],'%s'\n",
-      getpid(), "hcom_mono_control");
+  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+    gettid(), getpid(), "hcom_mono_control");
 #endif
 
     // Wait for the mono_pid task to exit
@@ -405,7 +405,9 @@ int hcom_mono_ctrl_start_mono_main()
     meadow_os_config_free_resources(config);
   }
 
-  // Create a task to execute mono
+  // Create a task to execute mono. A task will only share stdin, stderr
+  // and stdout with the threads running hcom. If this is a new concept look
+  // up the nuttx "task group" in the documentaion for details.
   mono_pid = task_create(MONO_TASK_NAME, MONO_TASK_PRIORITY,
                          MONO_TASK_STACKSIZE,
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)

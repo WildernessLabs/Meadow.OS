@@ -60,6 +60,7 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+#if defined (CONFIG_MCU_OVERLOAD_TESTS)
 static bool _firstTime = true;
 static bool _keepRunning = true;
 static int _overload_pid;
@@ -70,11 +71,13 @@ static int _nx_access_fd;
  * Private Function Prototypes
  ****************************************************************************/
 static int overload_main(int argc, char *argv[]);
+#endif
 
 #if defined(CONFIG_USR_WORK_TESTS)
 static struct work_s qtest_work_queue;
 #endif
 
+#if defined (CONFIG_MCU_OVERLOAD_TESTS)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -270,13 +273,14 @@ void diag_misc_tests_snprintf_on_nuttx(uint32_t userData)
   syslog(LOG_MTEST, "AP-snprintf test:%s, Buffer Len:%d snprintf ret:%d\n", testDefn, bufLen, ret);
   hcom_diag_print_buffer((uint8_t *)buffer, 16, 1);
 }
+#endif
 
 //============================================================
 #if defined(CONFIG_USR_WORK_TESTS)
 // This code allows the USRWORK worker queue to be called from the apps side
 // of nuttx. On the kernel side of Nuttx we have the low-priority worker
-// queue and the high-priority worker queue. This tests the only worker
-// queue available on the apps side, USRWORK.
+// queue (LPWORK) and the high-priority worker queue (HPWORK). This tests
+// the USRWORK worker queue, only available on the apps side.
 // Work queue callback
 static void diag_misc_tests_verify_usrwork_callback(void *arg)
 {
@@ -294,6 +298,7 @@ static int diag_misc_tests_verify_usrwork_set_delay(int delayInSeconds)
     __FILE__, __LINE__, delayInSeconds);
   usleep(20 * 1000);
 
+  // Set the delay and the callback
   ret = work_queue(USRWORK,
     &qtest_work_queue,
     diag_misc_tests_verify_usrwork_callback,
@@ -333,10 +338,30 @@ void diag_misc_tests_verify_usrwork(uint32_t userData)
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
       sleep(3);
+      // After waiting only 3 seconds override the 7 seconds and replace
+      // with a different delay
       ret = diag_misc_tests_verify_usrwork_set_delay(10);
-      syslog(LOG_MTEST, "%s@%d-Overright timeout with 10 seconds. ret = %d\n",
+      syslog(LOG_MTEST, "%s@%d-Set override timeout for 10 seconds. ret = %d\n",
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
+      break;
+
+    // This case will only send a message to CLI if meadow is in
+    // meadow listen mode.
+    // (--) NOTICE:This test may not work!!
+    case 4:
+      syslog(LOG_MTEST, "%s@%d-In 7 seconds a message will be sent CLI. Get ready.\n",
+        __FILE__, __LINE__);
+
+      sleep(7);
+
+      syslog(LOG_MTEST, "%s@%d-Calling hcom_host_send, now.\n",
+        __FILE__, __LINE__);
+
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+        "This is a TEXT messages for CLI from USRWORK.",
+        __FILE__, __LINE__);
+
       break;
 
     case 99:

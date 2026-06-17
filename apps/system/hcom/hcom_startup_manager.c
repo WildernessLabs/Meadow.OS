@@ -112,11 +112,14 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// This is the hcom tasks main thread, created by Nuttx when it has finished
-// initializing and starting the OS. This thread will do all the following
-// initialization of hcom, then becomes the thread that receives CLI messages.
-// Other hcom threads are created by this thread or one of it's child threads.
-// This means that they are all in the same "task group." See the following
+// This is the hcom tasks main pthread, created by Nuttx when it has finished
+// initializing and starting the OS.
+// This pthread will do all the following initialization of hcom, then becomes
+// the thread that processes CLI messages. Any pthread created by this pthread
+// or a child one of those pthreads, will all share the same group of file
+// descriptors, streams, etc. In Nuttx this grouping of pthread are called a
+// "task group."
+// For more information look at the following links.
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 
@@ -128,7 +131,8 @@ int hcom_main(int argc, char *argv[])
   int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "Nuttx startup pthread [PID:%d] hcom_main()\n", getpid());
+  syslog(LOG_MDIAG, "Nuttx startup pthread [Thrd:%d][Task:%d] %s\n",
+     gettid(), getpid(), "hcom_main()");
   usleep(10 * 1000);
 #endif
 
