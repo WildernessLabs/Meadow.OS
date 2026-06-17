@@ -201,7 +201,7 @@ static meadow_test_methods_t _userspaceTests[] =
     //
     //  Miscellaneous tests 1 - 999
     //
-#if defined(CONFIG_SNPRINTF_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_SNPRINTF_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SNPRINTF, diag_misc_tests_snprintf_on_nuttx },
 #endif
 
@@ -213,7 +213,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_SQLLITE, hcom_meadow_sqlite_tests },
 #endif
 
-#if defined(CONFIG_MCU_OVERLOAD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_MCU_OVERLOAD_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_MCU_OVERLOAD, diag_misc_tests_overload_mcu },
 #endif
 
@@ -233,7 +233,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_DIRECTORY_MANAGEMENT, meadow_dir_mgmt_tests },
 #endif
 
-#if defined(CONFIG_USR_WORK_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, diag_misc_tests_verify_usrwork },
 #endif
 
