@@ -233,7 +233,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_DIRECTORY_MANAGEMENT, meadow_dir_mgmt_tests },
 #endif
 
-#if defined(CONFIG_USR_WORK_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, diag_misc_tests_verify_usrwork },
 #endif
 

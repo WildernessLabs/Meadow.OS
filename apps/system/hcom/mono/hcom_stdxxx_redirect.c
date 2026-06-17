@@ -287,8 +287,8 @@ void *hcom_mono_stdxxx_pthread(FAR void *arg)
   int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New pthread [PID:%d],'%s'\n",
-    getpid(), HCOM_THREAD_NAME_STDXXX_REDIRECT);
+  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+    gettid(), getpid(), HCOM_THREAD_NAME_STDXXX_REDIRECT);
 #endif
 
   // Release startup manager's semaphore to continue startup

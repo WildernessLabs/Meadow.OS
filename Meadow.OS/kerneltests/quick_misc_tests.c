@@ -44,6 +44,7 @@
 
 // Only build if configured
 #if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+
 #pragma message "(--) quick_misc_tests.c"
 
 // Diagnostic always as this is test code
@@ -56,6 +57,8 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
+#define MEADOW_QUICK_MISC_TESTS_MSG_RATE (8)
 
 /************************************************************************************
  * Private Data
@@ -122,13 +125,14 @@ void meadow_kt_quick_misc_tests(uint32_t userData)
 // One time setup
 void quick_misc_tests_meadow_listen(uint32_t userData)
 {
-  syslog(LOG_MTEST, "Starting syslog output every 10 seconds");
+  syslog(LOG_MTEST, "Starting syslog output every %d seconds\n",
+    MEADOW_QUICK_MISC_TESTS_MSG_RATE);
 
   memset(&wdog_work_queue, 0, sizeof(struct work_s));
 
   // Queue worker to send message again
   work_queue(LPWORK, &wdog_work_queue, quick_misc_tests_listen_worker,
-    NULL, SEC2TICK(10));
+    NULL, SEC2TICK(MEADOW_QUICK_MISC_TESTS_MSG_RATE));
 } 
 
 //=================================================================
@@ -143,7 +147,7 @@ static void quick_misc_tests_listen_worker(void *arg)
   
   // Queue worker to send message again
   work_queue(LPWORK, &wdog_work_queue, quick_misc_tests_listen_worker,
-    NULL, SEC2TICK(10));
+    NULL, SEC2TICK(MEADOW_QUICK_MISC_TESTS_MSG_RATE));
 }
 
 //=================================================================
