@@ -381,7 +381,7 @@ void diag_misc_tests_verify_usrwork(uint32_t userData)
 //============================================================
 // These test will verify that USRWORK functions as expected
 
-FAR void *diag_misc_tests_verify_thread(FAR void *arg)
+static FAR void *diag_misc_tests_verify_thread(FAR void *arg)
 {
   syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
     gettid(), getpid(), "diag_misc_tests_verify_thread");

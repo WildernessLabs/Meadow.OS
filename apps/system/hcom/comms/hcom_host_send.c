@@ -45,7 +45,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_extended_errno.h>
 
-#pragma GCC optimize("O0")    // Prevent code optimization
+// #pragma GCC optimize("O0")    // Prevent code optimization
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -432,7 +432,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
     return OK;   // Throw the message away. What else can be done?
   }
 
-  int fullMsgLen = msgLength + HCOM_PROTOCOL_HEADER_MSG_LENGTH;
+  size_t fullMsgLen = msgLength + HCOM_PROTOCOL_HEADER_MSG_LENGTH;
   if(fullMsgLen > HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE)
   {
     // Truncate to fit
