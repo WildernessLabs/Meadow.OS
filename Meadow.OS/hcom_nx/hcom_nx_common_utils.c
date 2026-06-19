@@ -266,7 +266,8 @@ void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8
     memset(lineBuff, 0x20, HCOM_UTIL_DISPLAY_LENGTH);
 
     // Buffer offset address
-    snprintf(&lineBuff[HCOM_UTIL_LEADING_SPACES], HCOM_UTIL_DISPLAY_LENGTH, "%08x ", buffer + rowStartOffset);
+    snprintf(&lineBuff[HCOM_UTIL_LEADING_SPACES],
+      HCOM_UTIL_DISPLAY_LENGTH, "%08lx ", (uint32_t)(buffer + rowStartOffset));
 
     hexOffset = HCOM_UTIL_HEXADECIMAL_OFFSET;
     asciiOffset = HCOM_UTIL_ASCII_OFFSET;

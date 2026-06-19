@@ -39,16 +39,23 @@
 #include <stdio.h>
 #include "../hcom_common.h"
 #include <meadow/hcom_shared_common.h>
+#include <sched.h>
 
 #if defined(CONFIG_USR_WORK_TESTS)
 #include <nuttx/wqueue.h>
+
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 #endif
+
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 #define HCOM_OVERLOAD_CYCLE_TIME_MS (100)
 #define HCOM_OVERLOAD_CYCLE_TIME_NS (HCOM_OVERLOAD_CYCLE_TIME_MS * 1000000)
+
+#define HCOM_USRWORK_QUEUE_TEST_USER_DELAY (7)
+#define HCOM_USRWORK_QUEUE_TEXT_BUFFER_SIZE (64)
 
 // The timing can be seen on an oscilloscope if desired
 #define HCOM_OVERLOAD_INCLUDE_GPIO_OUTPUT 0
@@ -75,6 +82,8 @@ static int overload_main(int argc, char *argv[]);
 
 #if defined(CONFIG_USR_WORK_TESTS)
 static struct work_s qtest_work_queue;
+static FAR void *diag_misc_tests_verify_thread(FAR void *arg);
+
 #endif
 
 #if defined (CONFIG_MCU_OVERLOAD_TESTS)
@@ -284,86 +293,183 @@ void diag_misc_tests_snprintf_on_nuttx(uint32_t userData)
 // Work queue callback
 static void diag_misc_tests_verify_usrwork_callback(void *arg)
 {
-  syslog(LOG_MTEST, "%s@%d-USRWORK Callback timed out.\n",
-    __FILE__, __LINE__);
+  syslog(LOG_MTEST, "%s@%d-USRWORK Callback entered (TID:%d, PID:%d)\n",
+    __FILE__, __LINE__, gettid(), getpid());
+
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+    (char *)arg, __FILE__, __LINE__);
 }
 
 //-------------------------------------------------------------
 // Start, restart, or stop the USRWORK queue timer
-static int diag_misc_tests_verify_usrwork_set_delay(int delayInSeconds)
+static int diag_misc_tests_verify_usrwork_set_delay(int delayInSeconds,
+    void *arg)
 {
   int ret;
+
+  // If buffer is provided, assume it for building the message
+  char *txtBuf = (char *)arg;
 
   syslog(LOG_MTEST, "%s@%d-Setting usrwork timer for: %d seconds.\n",
     __FILE__, __LINE__, delayInSeconds);
   usleep(20 * 1000);
 
-  // Set the delay and the callback
+  if(txtBuf == NULL)
+  {
+    // Set the delay and wait for the callback
+    ret = work_queue(USRWORK,
+      &qtest_work_queue,
+      diag_misc_tests_verify_usrwork_callback,
+      NULL,    // No string so NULL
+      SEC2TICK(delayInSeconds));
+    return ret;
+  }
+
+  if(strlen(txtBuf) == 0)
+  {
+    // If txtBuf is not NULL and length is 0, assume it contains a buffer
+    // in which to build a text message
+    snprintf(txtBuf, HCOM_USRWORK_QUEUE_TEXT_BUFFER_SIZE,
+      "This text for CLI via USRWORK callback (TID:%d, PID:%d)",
+      gettid(), getpid());
+  }
+
   ret = work_queue(USRWORK,
     &qtest_work_queue,
     diag_misc_tests_verify_usrwork_callback,
-    NULL,
+    (void *) txtBuf,
     SEC2TICK(delayInSeconds));
   return ret;
 }
 
-//============================================================
-// This test will verify that USRWORK functions as expected
+//=================================================================
+// This is called from the Unit Test framework. It creates a thread to execute
+// the tests that send data to the CLI for meadow listen. To work we needed a
+// thread in the same "task group" as the one that opened the file descriptor
+// in hcom_host_send.c. See Nuttx documentation to understand "task group"
+//
+// And without a separate thread this code would own the calling thread until
+// the executing test had finished. This would mean 'meadow listen' couldn't
+// start until the HCOM main thread returned, in some cases making it
+// impossible to determine if the test passed or failed.
 void diag_misc_tests_verify_usrwork(uint32_t userData)
 {
+  // Create a thread to run the chat server
   int ret;
-  
+  pthread_t thread;
+  pthread_attr_t attr;
+  struct sched_param param;
+
+  param.sched_priority = HCOM_THREAD_PRIORITY_HCOM_RECEIVE;
+  (void)pthread_attr_init(&attr);
+  (void)pthread_attr_setschedparam(&attr, &param);
+  (void)pthread_attr_setstacksize(&attr,
+    HCOM_THREAD_STACKSIZE_HCOM_RECEIVE);
+
+  ret = pthread_create(&thread, &attr,
+    diag_misc_tests_verify_thread, (void *)userData);
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+              __FILE__, __LINE__, "Ethernet Chat", ret, errno);
+    return;
+  }
+
+  return;
+}
+
+//============================================================
+// These test will verify that USRWORK functions as expected
+
+static FAR void *diag_misc_tests_verify_thread(FAR void *arg)
+{
+  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+    gettid(), getpid(), "diag_misc_tests_verify_thread");
+
+  int ret = OK;
+  char textBuffer[HCOM_USRWORK_QUEUE_TEXT_BUFFER_SIZE];
+  uint32_t userData = (u_int32_t)arg;
+
   switch(userData)
   {
     case 1:
       // Check if usrwork crashes OS when time set
-      ret = diag_misc_tests_verify_usrwork_set_delay(7);
+      ret = diag_misc_tests_verify_usrwork_set_delay(
+        HCOM_USRWORK_QUEUE_TEST_USER_DELAY, NULL);
       syslog(LOG_MTEST, "%s@%d-USRWORK, ret = %d\n",
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
       break;
 
+    //----------------------------------------------------------------
     case 2:
       // Check if usrwork crashes OS when time cancelled
       ret = work_cancel(USRWORK, &qtest_work_queue);
-      syslog(LOG_MTEST, "%s@%d-Cancelled USRWORK via work_cancel(), ret = %d\n",
+      syslog(LOG_MTEST, "%s@%d-Cancelled USRWORK via work_cancel(), ret:%d\n",
         __FILE__, __LINE__, ret);
       usleep(20 * 1000);
       break;
 
+    //----------------------------------------------------------------
     case 3:
-      // Check if usrwork crashes OS when time reset
-      ret = diag_misc_tests_verify_usrwork_set_delay(7);
-      syslog(LOG_MTEST, "%s@%d-set time for 7 seconds. ret = %d\n",
-        __FILE__, __LINE__, ret);
+      // Check if usrwork crashes OS when time reset mid-wait
+      ret = diag_misc_tests_verify_usrwork_set_delay(
+        HCOM_USRWORK_QUEUE_TEST_USER_DELAY, NULL);
+
+      syslog(LOG_MTEST, "%s@%d-set time for %d seconds. ret = %d\n",
+        __FILE__, __LINE__, HCOM_USRWORK_QUEUE_TEST_USER_DELAY, ret);
       usleep(20 * 1000);
+      
       sleep(3);
-      // After waiting only 3 seconds override the 7 seconds and replace
+
+      // After waiting only 3 seconds override the x + 3 seconds and replace
       // with a different delay
-      ret = diag_misc_tests_verify_usrwork_set_delay(10);
-      syslog(LOG_MTEST, "%s@%d-Set override timeout for 10 seconds. ret = %d\n",
-        __FILE__, __LINE__, ret);
+      ret = diag_misc_tests_verify_usrwork_set_delay(
+        HCOM_USRWORK_QUEUE_TEST_USER_DELAY, NULL);
+
+      syslog(LOG_MTEST, "%s@%d-Set override timeout for %d seconds. ret = %d\n",
+        __FILE__, __LINE__, HCOM_USRWORK_QUEUE_TEST_USER_DELAY + 3, ret);
       usleep(20 * 1000);
       break;
 
-    // This case will only send a message to CLI if meadow is in
-    // meadow listen mode.
-    // (--) NOTICE:This test may not work!!
+    //--------------------------------------------------------------
+    // This case doesn't use USRWORK. It just send send a message to CLI, to
+    // verify that 'meadow listen' works.
     case 4:
-      syslog(LOG_MTEST, "%s@%d-In 7 seconds a message will be sent CLI. Get ready.\n",
-        __FILE__, __LINE__);
+      syslog(LOG_MTEST,
+        "%s@%d-Sending message to CLI in %d seconds. Start 'meadow listen'\n",
+        __FILE__, __LINE__, HCOM_USRWORK_QUEUE_TEST_USER_DELAY);
 
-      sleep(7);
+      // Time to enter 'meadow listen' mode
+      sleep(HCOM_USRWORK_QUEUE_TEST_USER_DELAY);
 
-      syslog(LOG_MTEST, "%s@%d-Calling hcom_host_send, now.\n",
-        __FILE__, __LINE__);
+      snprintf(textBuffer, HCOM_USRWORK_QUEUE_TEXT_BUFFER_SIZE,
+        "This text is for CLI via case 4. (TID:%d, PID:%d)",
+        gettid(), getpid());
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-        "This is a TEXT messages for CLI from USRWORK.",
-        __FILE__, __LINE__);
+        textBuffer, __FILE__, __LINE__);
 
+      syslog(LOG_MTEST, "%s@%d-Test 4 completed\n", __FILE__, __LINE__);
+      
       break;
 
+    //----------------------------------------------------------------
+    // This should FAIL - Can't send text from a thread not part of the hcom
+    // task group. Should see a syslog error message though.
+    // This uses USRWORK to send a fixed message, after a delay, from USRWORK's
+    // callback
+    case 5:
+      syslog(LOG_MTEST,
+        "%s@%d-In %d seconds will send message to CLI via USRWORK.\n",
+        __FILE__, __LINE__, HCOM_USRWORK_QUEUE_TEST_USER_DELAY);
+      
+      // Set USRWORK quque and exit
+      ret = diag_misc_tests_verify_usrwork_set_delay(
+        HCOM_USRWORK_QUEUE_TEST_USER_DELAY, "This is a hardcoded text message");
+      break;
+
+    //----------------------------------------------------------------
     case 99:
       // Verify that sleep() works as expected
       ret = sleep(3);
@@ -377,6 +483,16 @@ void diag_misc_tests_verify_usrwork(uint32_t userData)
         __FILE__, __LINE__);
       usleep(20 * 1000);
   }
+
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST, "%s@%d-Possible error from unit test. ret:%d, errno:%d\n",
+      __FILE__, __LINE__, ret, errno);
+  }
+
+  // Terminates pthread
+  syslog(LOG_MTEST, "%s@%d-Terminating test thread\n", __FILE__, __LINE__);
+  return NULL;
 }
 
 #endif

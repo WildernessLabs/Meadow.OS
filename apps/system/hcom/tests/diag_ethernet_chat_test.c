@@ -120,7 +120,7 @@ void diag_ethernet_chat_server(uint32_t userData)
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
+              __FILE__, __LINE__, "Ethernet Chat", ret, errno);
     return;
   }
 
