@@ -131,8 +131,8 @@ int hcom_main(int argc, char *argv[])
   int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "Nuttx startup pthread [Thrd:%d][Task:%d] %s\n",
-     gettid(), getpid(), "hcom_main()");
+  syslog(LOG_MDIAG, "hcom_main() [Thrd:%d][Task:%d] %s\n",
+     gettid(), getpid(), "Init Meadow on Apps, then proc all CLI commands");
   usleep(10 * 1000);
 #endif
 

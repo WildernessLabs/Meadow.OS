@@ -43,8 +43,9 @@
 
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
+#include <meadow/meadow_extended_errno.h>
 
-// #pragma GCC optimize("O0")    // Prevent code optimization
+#pragma GCC optimize("O0")    // Prevent code optimization
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -69,6 +70,7 @@
 static char *thisFile = __FILE__;
 
 static bool _shutting_down;
+static pid_t _hcomTaskGroup;
 static int _comms_write_fd;
 static uint8_t *_encodedXmitBuff;
 static sem_t _hostXmitSem;    // Implements event waiting
@@ -95,7 +97,7 @@ uint16_t g_current_hcom_maximum_packet_size = HCOM_PROTOCOL_CURRENT_PACKET_MAX_S
 static void hcom_host_send_build_msg_header(uint16_t requestType, uint16_t extraData,
           uint32_t userData, uint8_t *xmitBuffer);
 static int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
-          uint32_t userData, uint8_t *msgBuffer, size_t msgLen);
+          uint32_t userData, uint8_t *msgBuffer, size_t msgLength);
 static int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
           size_t totalLength, uint32_t waitCount);
 static int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
@@ -114,6 +116,9 @@ int hcom_host_send_setup()
 {
   int ret;
 
+  // We assume this function is ONLY called at startup up from
+  // hcom_startup_manager.c
+  _hcomTaskGroup = getpid();
   _comms_write_fd = -1;
   _lastXmitBlocked = true; // Assume blocked
   _lowPowerActive = false;
@@ -404,7 +409,7 @@ int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
 // host PC and CLI is not communicating and 3) Meadow is not connected
 // to a host PC, this is the most normal situation.
 int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
-        uint32_t userData, uint8_t *origMsg, size_t msgLen)
+        uint32_t userData, uint8_t *origMsg, size_t msgLength)
 {
   int ret;
 
@@ -427,7 +432,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
     return OK;   // Throw the message away. What else can be done?
   }
 
-  int fullMsgLen = msgLen + HCOM_PROTOCOL_HEADER_MSG_LENGTH;
+  int fullMsgLen = msgLength + HCOM_PROTOCOL_HEADER_MSG_LENGTH;
   if(fullMsgLen > HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE)
   {
     // Truncate to fit
@@ -435,7 +440,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
   }
 
   // Is this a header only message or a message with a body
-  if(msgLen > 0)
+  if(msgLength > 0)
   {
     // Buffer for the header + data message
     uint8_t *xmitBuffer = malloc(fullMsgLen);
@@ -449,7 +454,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
     hcom_host_send_build_msg_header(requestType, extraData, userData, xmitBuffer);
 
     // Copy the body of the message
-    memcpy(xmitBuffer + HCOM_PROTOCOL_HEADER_MSG_LENGTH, origMsg, msgLen);
+    memcpy(xmitBuffer + HCOM_PROTOCOL_HEADER_MSG_LENGTH, origMsg, msgLength);
     
     // Send the header and the body
     ret = hcom_host_send_transmit_to_host(xmitBuffer, fullMsgLen,
@@ -576,6 +581,15 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
   size_t remainingBytes;
   size_t toWriteOffset = 0;
   size_t blockedCount = 0;
+
+  // Only a thread, from the same task group as hcom, can send messages
+  if(getpid() != _hcomTaskGroup)
+  {
+    syslog(LOG_ERR, "%s@%d-Caller's Task Group %d is wrong, Task Group %d required.\n",
+      __FILE__, __LINE__, getpid(), _hcomTaskGroup);
+
+    return -EMEADOW_TASK_GRP_MISMATCH;
+  }
 
   if(_shutting_down)
   {

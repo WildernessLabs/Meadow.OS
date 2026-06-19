@@ -204,7 +204,6 @@ typedef struct HcomProtoFileMsg_s HcomProtoFileMsg_t;
 // Header plus Text Info
 struct HcomProtoTextMsg_s
 {
-  // This is the only thing in a header only message
   HcomProtoStdHdr_t stdHeader;
 
   // Some 'simple' messages containing string information.

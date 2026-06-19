@@ -384,7 +384,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
             hostMsg, thisFile, __LINE__);
 
     free(hostMsg);
-    return -EMEADOW_PATH_SUB_DIR_DEPTH; // Too many subdirectories
+    return -EMEADOW_PATH_SUBDIR_DEPTH; // Too many subdirectories
   }
 
   // Preallocate memory as needed either for the full file name or
@@ -483,7 +483,7 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
                                       hostMsg, thisFile, __LINE__);
 
       free(hostMsg);
-      return -EMEADOW_PATH_VALID_NOT_CONFIG; // Invalid pathname
+      return -EMEADOW_PATH_INVALID_CONFIG; // Invalid pathname
     }
 
     case pathnameInvalid:

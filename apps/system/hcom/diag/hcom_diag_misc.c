@@ -77,8 +77,9 @@ int hcom_diag_misc_setup()
 // For Nuttx side use hcom_nx_diag_print_buffer()
 void hcom_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t msgPriority)
 {
-  if ((hcom_diag_trace_priority_get_trace_level() & LOG_MASK(msgPriority)) == 0)
-    return;
+  // (--) This may be broken
+  // if ((hcom_diag_trace_priority_get_trace_level() & LOG_MASK(msgPriority)) == 0)
+  //   return;
 
   // Use the Nuttx standard syslog for output
   hcom_diag_print_buffer_x(buffer, bufLen, msgPriority, syslog);
