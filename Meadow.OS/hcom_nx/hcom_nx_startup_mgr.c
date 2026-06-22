@@ -51,6 +51,7 @@
 #include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
 #include "meadow_interrupt.h"
+#include <meadow/meadow_ku_traverse.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>
@@ -246,6 +247,13 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "ERROR: Failed to initialize host routing:%d\n", ret);
+    return ret;
+  }
+
+  ret = meadow_ku_traverse_init_kernel();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
     return ret;
   }
 

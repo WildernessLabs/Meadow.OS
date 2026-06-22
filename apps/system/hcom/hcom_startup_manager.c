@@ -55,6 +55,7 @@
 #endif
 
 #include <meadow/meadow_os.h>
+#include <meadow/meadow_ku_traverse.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
 
@@ -108,6 +109,24 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 
   sem_post(&_startupWaitSem);
 }
+
+// //===========================================================================
+// // Forward TRACE_TEXT messages arriving from the kernel to the host.
+// static void ku_traverse_trace_text_handler(
+//     const struct meadow_ku_traverse_msg_t *msg)
+// {
+//   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
+//       (char *)msg->payload, __FILE__, __LINE__);
+// }
+
+// //===========================================================================
+// // Forward RAMLOG_TEXT messages arriving from the kernel to the host.
+// static void ku_traverse_ramlog_text_handler(
+//     const struct meadow_ku_traverse_msg_t *msg)
+// {
+//   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
+//       (char *)msg->payload, __FILE__, __LINE__);
+// }
 
 /****************************************************************************
  * Public Functions
@@ -431,6 +450,14 @@ int hcom_main(int argc, char *argv[])
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-provide text transport %d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
+
+  // Open the ku traverse FIFO and spawn the receive thread.
+  ret = meadow_ku_traverse_init_user();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", thisFile, __LINE__, ret);
     return ret;
   }
 

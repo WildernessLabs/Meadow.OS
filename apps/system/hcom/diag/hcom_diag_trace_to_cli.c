@@ -40,6 +40,7 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
+#include <meadow/meadow_ku_traverse.h>
 
 // #pragma message "(--) hcom_diag_trace_to_cli.c"
 // #pragma GCC optimize("O0")    // Prevent compiler from changing the code
@@ -60,8 +61,8 @@ static pthread_t _cli_pthread;
  * Private Function Prototypes
  ****************************************************************************/
 
-static FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg);
-static void hcom_trace_to_cli_create_thread(void);
+// static FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg);
+// static void hcom_trace_to_cli_create_thread(void);
 
 /****************************************************************************
  * Public Functions
@@ -77,7 +78,7 @@ int hcom_trace_to_cli_setup()
   if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
   {
     _shouldTraceLogToHost = true;
-    hcom_trace_to_cli_create_thread();
+    // hcom_trace_to_cli_create_thread();
   }
   else
   {
@@ -95,86 +96,86 @@ bool hcom_trace_is_sending_to_cli()
 }
 
 //================================================================
-// Create a thread that can be used to transport the syslog message
-// from kernel-land to here in user-land, were they are forwarded
-// to CLI (if needed).
-// This pthread calls via hcom_via_nx_access into kernel-land and waits
-// there until the a message is ready to be sent to the CLI.
-// Note: This can be called during startup or from a CLI command.
-void hcom_trace_to_cli_create_thread()
-{
-  int ret;
-  pthread_attr_t attr;
-  struct sched_param param;
+// // Create a thread that can be used to transport the syslog message
+// // from kernel-land to here in user-land, were they are forwarded
+// // to CLI (if needed).
+// // This pthread calls via hcom_via_nx_access into kernel-land and waits
+// // there until the a message is ready to be sent to the CLI.
+// // Note: This can be called during startup or from a CLI command.
+// void hcom_trace_to_cli_create_thread()
+// {
+//   int ret;
+//   pthread_attr_t attr;
+//   struct sched_param param;
 
-  if(_thread_running)
-    return;
+//   if(_thread_running)
+//     return;
 
-  param.sched_priority = HCOM_THREAD_PRIORITY_CLI_TRANSPORT;
-  (void)pthread_attr_init(&attr);
-  (void)pthread_attr_setschedparam(&attr, &param);
-  (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_CLI_TRANSPORT);
+//   param.sched_priority = HCOM_THREAD_PRIORITY_CLI_TRANSPORT;
+//   (void)pthread_attr_init(&attr);
+//   (void)pthread_attr_setschedparam(&attr, &param);
+//   (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_CLI_TRANSPORT);
 
-  ret = pthread_create(&_cli_pthread, &attr, hcom_trace_to_cli_transport_pthread, NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, HCOM_THREAD_NAME_CLI_TRANSPORT, ret, errno);
-  }
-  return;
-}
+//   ret = pthread_create(&_cli_pthread, &attr, hcom_trace_to_cli_transport_pthread, NULL);
+//   if (ret < 0)
+//   {
+//     syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+//               __FILE__, __LINE__, HCOM_THREAD_NAME_CLI_TRANSPORT, ret, errno);
+//   }
+//   return;
+// }
 
-//================================================================
-// This thread is only needed when we are requested to send messages to CLI.
-FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
-{
-#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), HCOM_THREAD_NAME_CLI_TRANSPORT);
-#endif
+// //================================================================
+// // This thread is only needed when we are requested to send messages to CLI.
+// FAR void *hcom_trace_to_cli_transport_pthread(FAR void *arg)
+// {
+// #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+//   syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+//     gettid(), getpid(), HCOM_THREAD_NAME_CLI_TRANSPORT);
+// #endif
 
-  _thread_running = true;
+//   _thread_running = true;
 
-  char *cliMsgBuf = (char *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(cliMsgBuf == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    _shouldTraceLogToHost = false;
-    _thread_running = false;
-    return NULL;    // Kill thread
-  }
+//   char *cliMsgBuf = (char *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   if(cliMsgBuf == NULL)
+//   {
+//     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+//     _shouldTraceLogToHost = false;
+//     _thread_running = false;
+//     return NULL;    // Kill thread
+//   }
 
-  // Stay in this loop until told to stop
-  while(_shouldTraceLogToHost)
-  {
-    size_t stringLen;
+//   // Stay in this loop until told to stop
+//   while(_shouldTraceLogToHost)
+//   {
+//     size_t stringLen;
 
-    // Call into kernel-side to get the next CLI syslog message. This thread will
-    // wait in kernel-side until the next message or terminated.
-    stringLen = hcom_via_nx_provide_cli_trace_transport(cliMsgBuf,
-              HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//     // Call into kernel-side to get the next CLI syslog message. This thread will
+//     // wait in kernel-side until the next message or terminated.
+//     stringLen = hcom_via_nx_provide_syslog_transport(cliMsgBuf,
+//               HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
 
-    ASSERT(cliMsgBuf != NULL);
-    if(stringLen <= 0)
-    {
-      if(!_shouldTraceLogToHost)
-        break;    // Tracing no longer wanted, so exit
+//     ASSERT(cliMsgBuf != NULL);
+//     if(stringLen <= 0)
+//     {
+//       if(!_shouldTraceLogToHost)
+//         break;    // Tracing no longer wanted, so exit
 
-      // In case something unexpected we don't want to be in a tight loop repeat.
-      usleep(10 * 1000);
-      continue;
-    }
+//       // In case something unexpected we don't want to be in a tight loop repeat.
+//       usleep(10 * 1000);
+//       continue;
+//     }
 
-    // Forward to CLI and wait again for next message
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
-           cliMsgBuf, __FILE__, __LINE__);
-  }
+//     // Forward to CLI and wait again for next message
+//     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
+//            cliMsgBuf, __FILE__, __LINE__);
+//   }
 
-  // We exited loop, therefore, the pthread dies
-  free(cliMsgBuf);
-  _thread_running = false;
-  return NULL;
-}
+//   // We exited loop, therefore, the pthread dies
+//   free(cliMsgBuf);
+//   _thread_running = false;
+//   return NULL;
+// }
 
 //================================================================
 // Call by a CLI command that first calls into kernel-land then makes
@@ -190,7 +191,7 @@ void hcom_trace_to_cli_enable_command(uint32_t userData)
 
   // Thread should be running
   _shouldTraceLogToHost = true;
-  hcom_trace_to_cli_create_thread();
+  // hcom_trace_to_cli_create_thread();
 }
 
 //================================================================

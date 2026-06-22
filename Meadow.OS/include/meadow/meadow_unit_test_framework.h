@@ -211,6 +211,11 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_USRWORK_TESTS                   21
 
 /**
+ * @brief KU traverse channel tests.
+ */
+#define MEADOW_TEST_KU_TRAVERSE                     22
+
+/**
  * @brief User space assert test ID.
  */
 #define MEADOW_TEST_USER_SPACE_ASSERT               900

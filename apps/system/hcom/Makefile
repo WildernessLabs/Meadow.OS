@@ -50,6 +50,7 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	diag/hcom_diag_decode_protocol.c \
 	diag/hcom_diag_trace_to_cli.c \
 	diag/hcom_diag_host_text_transport.c \
+	diag/meadow_ku_traverse_user.c \
 	file/hcom_file_delete_stm32f7.c \
 	file/hcom_file_dir_mgmt_utils.c \
 	file/hcom_file_dnld_esp32.c \

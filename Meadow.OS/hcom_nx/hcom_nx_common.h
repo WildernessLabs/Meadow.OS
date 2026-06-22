@@ -139,8 +139,8 @@ extern "C"
 
   // Route text to host PC (CLI)
   int hcom_nx_route_text_to_host_setup(void);
-  int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
-          size_t msgLen);
+  // int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
+  //         size_t msgLen);
   size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
           char *buff, size_t buffLen);
 

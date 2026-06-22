@@ -89,7 +89,7 @@ static uint8_t *_sharedMsgBuff;
 static size_t _sharedMsgLen;
 static uint16_t _sharedRqstType;
 
-static sem_t _onlyOneSem;
+// static sem_t _onlyOneSem;
 static sem_t _readNxtSem;
 static sem_t _sendCliSem;
 
@@ -102,22 +102,22 @@ static sem_t _sendCliSem;
  ****************************************************************************/
 int hcom_nx_route_text_to_host_setup()
 {  
-  // (--) Can this allocation wait??? 
-  _sharedMsgBuff = (uint8_t *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(_sharedMsgBuff == NULL)
-  {
-    return -ENOMEM;
-  }
+  // // (--) Can this allocation wait??? 
+  // _sharedMsgBuff = (uint8_t *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+  // if(_sharedMsgBuff == NULL)
+  // {
+  //   return -ENOMEM;
+  // }
   
-  sem_init(&_onlyOneSem, 0, 1);
+  // sem_init(&_onlyOneSem, 0, 1);
 
-  // These semaphores are needed for sending trace to CLI. Why? Because there
-  // are 2 threads that must wait their turn in a ping-pong kind of way.
-  sem_init(&_readNxtSem, 0, 0);
-  sem_setprotocol(&_readNxtSem, SEM_PRIO_NONE);
+  // // These semaphores are needed for sending trace to CLI. Why? Because there
+  // // are 2 threads that must wait their turn in a ping-pong kind of way.
+  // sem_init(&_readNxtSem, 0, 0);
+  // sem_setprotocol(&_readNxtSem, SEM_PRIO_NONE);
 
-  sem_init(&_sendCliSem, 0, 0);
-  sem_setprotocol(&_sendCliSem, SEM_PRIO_NONE);
+  // sem_init(&_sendCliSem, 0, 0);
+  // sem_setprotocol(&_sendCliSem, SEM_PRIO_NONE);
 
   return OK;
 }
@@ -135,32 +135,32 @@ static void hcom_nx_route_text_wait_sem(sem_t *semaphore)
   while (ret == -EINTR);
 }
 
-//=================================================================
-// Public entry to ship a generic text message to host. Only called from a
-// few places on nuttx-side.
-// Note: The text must end with a '\n' character.
-int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
-          size_t msgLen)
-{
-  // Prevent multiple threads from stepping on each other
-  hcom_nx_route_text_wait_sem(&_onlyOneSem);
+// //=================================================================
+// // Public entry to ship a generic text message to host. Only called from a
+// // few places on nuttx-side.
+// // Note: The text must end with a '\n' character.
+// int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
+//           size_t msgLen)
+// {
+//   // Prevent multiple threads from stepping on each other
+//   hcom_nx_route_text_wait_sem(&_onlyOneSem);
 
-  // Copy the message to the shared buffer
-  memcpy(_sharedMsgBuff, msgBuff, msgLen);
-  _sharedMsgLen = msgLen;
-  _sharedRqstType = requestType;
+//   // Copy the message to the shared buffer
+//   memcpy(_sharedMsgBuff, msgBuff, msgLen);
+//   _sharedMsgLen = msgLen;
+//   _sharedRqstType = requestType;
 
-  // Release pthread to return the message in the shared buffer to the host
-  sem_post(&_sendCliSem);
+//   // Release pthread to return the message in the shared buffer to the host
+//   sem_post(&_sendCliSem);
 
-  // Wait for message to be sent before returning to caller. since
-  // the _sharedMsgBuff and _sharedMsgLen are shared by the callers
-  // and the callers which is a kthread.
-  hcom_nx_route_text_wait_sem(&_readNxtSem);
+//   // Wait for message to be sent before returning to caller. since
+//   // the _sharedMsgBuff and _sharedMsgLen are shared by the callers
+//   // and the callers which is a kthread.
+//   hcom_nx_route_text_wait_sem(&_readNxtSem);
 
-  sem_post(&_onlyOneSem);
-  return OK;
-}
+//   sem_post(&_onlyOneSem);
+//   return OK;
+// }
 
 //==========================================================================
 // This is called via udp and provides a pthread, and the buffer for the

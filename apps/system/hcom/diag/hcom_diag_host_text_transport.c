@@ -51,14 +51,14 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static pthread_t _host_text_pthread;
+// static pthread_t _host_text_pthread;
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static FAR void *hcom_host_text_transport_pthread(FAR void *arg);
-static void hcom_host_text_transport_create_thread(void);
+// static FAR void *hcom_host_text_transport_pthread(FAR void *arg);
+// static void hcom_host_text_transport_create_thread(void);
 
 /****************************************************************************
  * Public Functions
@@ -66,86 +66,85 @@ static void hcom_host_text_transport_create_thread(void);
 // Called during startup
 int hcom_host_text_transport_setup()
 {
-  hcom_host_text_transport_create_thread();
+  // hcom_host_text_transport_create_thread();
 
   return OK;
 }
 
+// //================================================================
+// // Create a thread that can be used to transport the syslog message
+// // from nuttx land to here in userland.
+// // This thread calls via hcom_via_nx_access into kernel land and lives
+// // there until the a message is ready to be sent to the host text.
+// void hcom_host_text_transport_create_thread()
+// {
+//   int ret;
+//   pthread_attr_t attr;
+//   struct sched_param param;
+
+//   param.sched_priority = HCOM_THREAD_PRIORITY_HOST_TRANSPORT;
+//   (void)pthread_attr_init(&attr);
+//   (void)pthread_attr_setschedparam(&attr, &param);
+//   (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_HOST_TRANSPORT);
+
+//   ret = pthread_create(&_host_text_pthread, &attr, hcom_host_text_transport_pthread, NULL);
+//   if (ret < 0)
+//   {
+//     syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
+//               __FILE__, __LINE__, HCOM_THREAD_NAME_HOST_TRANSPORT, ret, errno);
+//   }
+//   return;
+// }
+
 //================================================================
-// Create a thread that can be used to transport the syslog message
-// from nuttx land to here in userland.
-// This thread calls via hcom_via_nx_access into kernel land and lives
-// there until the a message is ready to be sent to the host text.
-void hcom_host_text_transport_create_thread()
-{
-  int ret;
-  pthread_attr_t attr;
-  struct sched_param param;
+// FAR void *hcom_host_text_transport_pthread(FAR void *arg)
+// {
+// #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+//   syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+//     gettid(), getpid(), HCOM_THREAD_NAME_HOST_TRANSPORT);
+// #endif
 
-  param.sched_priority = HCOM_THREAD_PRIORITY_HOST_TRANSPORT;
-  (void)pthread_attr_init(&attr);
-  (void)pthread_attr_setschedparam(&attr, &param);
-  (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_HOST_TRANSPORT);
-
-  ret = pthread_create(&_host_text_pthread, &attr, hcom_host_text_transport_pthread, NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, HCOM_THREAD_NAME_HOST_TRANSPORT, ret, errno);
-  }
-  return;
-}
-
-//================================================================
-FAR void *hcom_host_text_transport_pthread(FAR void *arg)
-{
-#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), HCOM_THREAD_NAME_HOST_TRANSPORT);
-#endif
-
-  size_t stringLen;
-  uint16_t requestType;
+//   size_t stringLen;
+//   uint16_t requestType;
   
-  char *hostTextMsgBuf = (char *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(hostTextMsgBuf == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return NULL;
-  }
+//   char *hostTextMsgBuf = (char *)malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   if(hostTextMsgBuf == NULL)
+//   {
+//     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+//     return NULL;
+//   }
 
-  // Stay in this loop
-  while(true)
-  {
-    // Call into nuttx-side to get the next host text message. This thread
-    // will wait in nuttx-side until the next message or terminated, at
-    // either point it will return.
-    stringLen = hcom_via_nx_provide_host_text_transport(&requestType,
-          hostTextMsgBuf, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//   // Stay in this loop
+//   while(true)
+//   {
+//     // Call into nuttx-side to get the next host text message. This thread
+//     // will wait in nuttx-side until the next message or terminated, at
+//     // either point it will return.
+//     stringLen = hcom_via_nx_provide_text_transport(requestType,
+//           hostTextMsgBuf, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
+//     if(stringLen <= 0 || hostTextMsgBuf == NULL)
+//     {
+//       // In case something goes wrong we don't want to be in a tight loop
+//       usleep(10 * 1000);
+//       continue;
+//     }
 
-    if(stringLen <= 0 || hostTextMsgBuf == NULL)
-    {
-      // In case something goes wrong we don't want to be in a tight loop
-      usleep(10 * 1000);
-      continue;
-    }
+//     // String is NULL terminated but no '\n'. So, output the text carefully.
+//     // syslog(LOG_MDIAG, "%s@%d-Sending msg:'%.*s' to CLI\n", __FILE__, __LINE__,
+//     //     strlen(hostTextMsgBuf), hostTextMsgBuf);
 
-    // String is NULL terminated but no '\n'. So, output the text carefully.
-    // syslog(LOG_MDIAG, "%s@%d-Sending msg:'%.*s' to CLI\n", __FILE__, __LINE__,
-    //     strlen(hostTextMsgBuf), hostTextMsgBuf);
+//     // Forward to host_text and wait again for next message
+//     // Note: this call will measure the message length based on the '\n' at
+//     //  the end of the string.
+//     hcom_host_send_simple_string_msg(requestType, 0,
+//            hostTextMsgBuf, __FILE__, __LINE__);
+//   }
 
-    // Forward to host_text and wait again for next message
-    // Note: this call will measure the message length based on the '\n' at
-    //  the end of the string.
-    hcom_host_send_simple_string_msg(requestType, 0,
-           hostTextMsgBuf, __FILE__, __LINE__);
-  }
+//   free(hostTextMsgBuf);
 
-  free(hostTextMsgBuf);
-
-  // pthread dies here
-  return NULL;
-}
+//   // pthread dies here
+//   return NULL;
+// }
 
 #else
 

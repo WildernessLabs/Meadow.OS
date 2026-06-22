@@ -236,8 +236,8 @@ typedef struct hcom_nx_upd_host_send_cb_s
 // 22 has been deleted as it is no longer used.
 #define HCOM_NX_UPD_GET_STRING                  23
 #define HCOM_NX_UPD_MONO_HAS_STARTED            24
-#define HCOM_NX_UPD_CLI_TRACE_TRANSPORT         25
-#define HCOM_NX_UPD_HOST_TEXT_TRANSPORT         26
+// #define HCOM_NX_UPD_CLI_TRACE_TRANSPORT         25
+// #define HCOM_NX_UPD_HOST_TEXT_TRANSPORT         26
 #define HCOM_NX_UPD_GET_HW_VERSION              27
 #define HCOM_NX_UPD_FLASH_OS_UPDATE             28
 #define HCOM_NX_UPD_DIAG_APP_CMD                29
