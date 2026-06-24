@@ -35,7 +35,7 @@
 
 /* Kernel-side implementation of the kernel-to-user text traverse channel.
  *
- * meadow_ku_traverse_init_kernel() creates the named FIFO during kernel
+ * meadow_ku_traverse_kernel_setup() creates the named FIFO during kernel
  * startup.  meadow_ku_traverse_send() opens the write end lazily on the
  * first call, by which time the user side will have already opened the
  * read end (so the open does not block).  Subsequent write() calls are
@@ -85,17 +85,16 @@ static int ku_traverse_open_write_end(void)
 
   fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_WRONLY | O_NONBLOCK);
   if (fd < 0)
-    {
-      return -1;
-    }
+  {
+    return -errno;
+  }
 
   /* Switch to blocking writes so the caller stalls on back-pressure. */
-
   flags = fcntl(fd, F_GETFL, 0);
   if (flags >= 0)
-    {
-      fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
-    }
+  {
+    fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+  }
 
   return fd;
 }
@@ -105,7 +104,7 @@ static int ku_traverse_open_write_end(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: meadow_ku_traverse_init_kernel
+ * Name: meadow_ku_traverse_kernel_setup
  *
  * Description:
  *   Create the named FIFO used for kernel-to-user text transport.  Call
@@ -117,10 +116,11 @@ static int ku_traverse_open_write_end(void)
  *   0 on success, -errno on failure.
  *
  ****************************************************************************/
-int meadow_ku_traverse_init_kernel(void)
+int meadow_ku_traverse_kernel_setup(void)
 {
   int ret;
 
+  // Make the fifo (aka named pipe)
   ret = mkfifo(MEADOW_KU_TRAVERSE_PIPE_PATH, 0666);
   if (ret < 0 && errno != EEXIST)
   {
@@ -135,13 +135,13 @@ int meadow_ku_traverse_init_kernel(void)
 
 //==================================================================
 // Trace / syslog send to CLI
-int hcom_nx_route_syslog_to_host(char *syslogMsg)
+int hcom_ku_traverse_syslog_to_host(char *syslogMsg, size_t syslogLen)
 {
   int ret;
 
   // Send the text from syslog messages
-  ret = meadow_ku_traverse_send_string(MEADOW_KU_TRAVERSE_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg);
+  ret = meadow_ku_traverse_send(MEADOW_KU_TRAVERSE_TYPE_SYSLOG_TEXT,
+    HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
   if(ret < 0)
   {
     return -errno;
@@ -151,7 +151,7 @@ int hcom_nx_route_syslog_to_host(char *syslogMsg)
 
 //==================================================================
 // Send generic text to CLI
-int hcom_nx_route_text_to_host(uint16_t requestType,
+int hcom_ku_traverse_text_to_host(uint16_t requestType,
         char *textMsg, size_t textLen)
 {
   int ret;
@@ -168,7 +168,7 @@ int hcom_nx_route_text_to_host(uint16_t requestType,
 
 //==================================================================
 // Send generic string (NULL terminated char array) to CLI
-int hcom_nx_route_string_to_host(uint16_t requestType,
+int hcom_ku_traverse_string_to_host(uint16_t requestType,
         char *stringMsg)
 {
   int ret;
@@ -236,7 +236,6 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
   /* Lazy open: attempt to connect to the read end opened by the user side.
    * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
    */
-
   if (_pipe_fd < 0)
   {
     _pipe_fd = ku_traverse_open_write_end();
@@ -266,3 +265,4 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
 
   return OK;
 }
+

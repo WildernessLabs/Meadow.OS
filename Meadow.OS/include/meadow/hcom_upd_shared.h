@@ -1,7 +1,7 @@
 /****************************************************************************
  * \include\meadow\hcom_upd_shared.h
  * 
- *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2020-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -160,21 +160,6 @@ struct hcom_nx_upd_ini_cfg_get_int_defval_s
   int return_int;
 };
 
-typedef struct hcom_nx_upd_cli_trace_transport_s
-{
-  char * transport_buf;
-  size_t buf_length;
-  size_t msg_length;
-} hcom_nx_upd_cli_trace_transport_t;
-
-typedef struct hcom_nx_upd_host_text_transport_s
-{
-  char *transport_buf;
-  uint16_t *requestType;
-  size_t buf_length;
-  size_t msg_length;    // Returned
-} hcom_nx_upd_host_text_transport_t;
-
 typedef struct hcom_nx_upd_get_hw_ver_s
 {
   uint32_t hwVer;
@@ -233,11 +218,11 @@ typedef struct hcom_nx_upd_host_send_cb_s
 #define HCOM_NX_UPD_ENTER_INTO_DFU_MODE         19
 #define HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU     20
 #define HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU     21
-// 22 has been deleted as it is no longer used.
+// 22 has been deleted
 #define HCOM_NX_UPD_GET_STRING                  23
 #define HCOM_NX_UPD_MONO_HAS_STARTED            24
-// #define HCOM_NX_UPD_CLI_TRACE_TRANSPORT         25
-// #define HCOM_NX_UPD_HOST_TEXT_TRANSPORT         26
+// 25 has been deleted
+// 26 has been deleted
 #define HCOM_NX_UPD_GET_HW_VERSION              27
 #define HCOM_NX_UPD_FLASH_OS_UPDATE             28
 #define HCOM_NX_UPD_DIAG_APP_CMD                29
@@ -249,7 +234,7 @@ typedef struct hcom_nx_upd_host_send_cb_s
 #define HCOM_NX_UPD_GET_UPDATE_FLAG             35
 #define HCOM_NX_UPD_SET_UPDATE_FLAG             36
 #define HCOM_NX_UPD_COPY_RUNTIME_TO_RAM         37
-// 38 has been deleted as it is no longer used.
+// 38 has been deleted
 #define HCOM_NX_UPD_REG_PWR_MGMT_CB             39
 
 #endif  // __INCLUDE_MEADOW_HCOM_NX_SHARED__H

@@ -433,28 +433,12 @@ int hcom_main(int argc, char *argv[])
   syslog(LOG_MDIAG, "Apps startup manager 20\n"); usleep(20 * 1000);
 #endif
 
-  // This is for transporting syslog messages to CLI. But, only if BBR requests it.
-  ret = hcom_trace_to_cli_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-provide cli access %d\n", thisFile, __LINE__, ret);
-    return ret;
-  }
-
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 21\n"); usleep(20 * 1000);
-#endif
-
-  // This is for transporting text messages to Host.
-  ret = hcom_host_text_transport_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-provide text transport %d\n", thisFile, __LINE__, ret);
-    return ret;
-  }
+// #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+//   syslog(LOG_MDIAG, "Apps startup manager 21\n"); usleep(20 * 1000);
+// #endif
 
   // Open the ku traverse FIFO and spawn the receive thread.
-  ret = meadow_ku_traverse_init_user();
+  ret = meadow_ku_traverse_init_user_setup();
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", thisFile, __LINE__, ret);

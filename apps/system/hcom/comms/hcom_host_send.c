@@ -44,6 +44,7 @@
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_extended_errno.h>
+#include <meadow/hcom_bbreg_defn.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
 
@@ -193,6 +194,16 @@ int hcom_host_send_low_power_notification(bool lpStart)
     sem_post(&_hostXmitSem);
   }
   return OK;
+}
+
+//=====================================================================
+// Is CLI to be receiving text messages?
+static bool hcom_trace_is_sending_to_cli(void)
+{
+  if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
+    return true;
+  else
+    return false;
 }
 
 //=====================================================================
@@ -732,16 +743,16 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
 
 //===================================================================
 // This function is for those places where hcom is processing text to
-// send to the host PC via syslog. The problem is if we are using syslog
-// and Meadow.OS was built with the configuration 'CONFIG_RAMLOG_SYSLOG'
-// calling to syslog could cause unending cycle of logs if the logs are
-// sent to the CLI.
+// send to the host PC via syslog. The problem is if we processing a syslog
+// and generate another syslog, this syslog will cause another in an endless
+// cycle.
 void syslog_if_safe(int priority, FAR const IPTR char *fmt, ...)
 {
 #if defined CONFIG_RAMLOG_SYSLOG
-  // If not sending to CLI we can just send via syslog
+  // If not sending to CLI we can send via syslog
   if(!hcom_trace_is_sending_to_cli())
   {
+    // Send via syslog
     va_list args;
     va_start(args, fmt);
     vsyslog(priority, fmt, args);
@@ -749,8 +760,7 @@ void syslog_if_safe(int priority, FAR const IPTR char *fmt, ...)
     return;
   }
 
-  // Can't send to syslog because this will be a recursive. Can't send
-  // directly to the host because this would be recursive too.
+  // Can't send directly to the host because this would be recursive.
   return;
 #else
   // If Nuttx is configured for outputting syslogs to the console via UART

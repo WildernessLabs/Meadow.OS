@@ -118,14 +118,13 @@ typedef void (*meadow_ku_traverse_handler_t)
  * Returns 0 on success, -errno on failure.
  */
 
-int meadow_ku_traverse_init_kernel(void);
+int meadow_ku_traverse_kernel_setup(void);
 
 // These allow access to meadow_ku_traverse_send
-int hcom_nx_route_syslog_to_host(char *syslogMsg);
-int hcom_nx_route_text_to_host(uint16_t requestType,
+int hcom_ku_traverse_syslog_to_host(char *syslogMsg, size_t syslogLen);
+int hcom_ku_traverse_text_to_host(uint16_t requestType,
         char *textMsg, size_t textLen);
-int hcom_nx_route_string_to_host(uint16_t requestType, char *stringMsg);
-
+int hcom_ku_traverse_string_to_host(uint16_t requestType, char *stringMsg);
 
 /* Marshal data into an envelope and write it atomically to the FIFO.
  * Blocks on back-pressure if the pipe buffer is full.  Returns -ENXIO and
@@ -148,7 +147,7 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType type,
  * Returns 0 on success, -errno on failure.
  */
 
-int meadow_ku_traverse_init_user(void);
+int meadow_ku_traverse_init_user_setup(void);
 
 // /* Register a handler for a message type.  At most one handler per type;
 //  * calling again replaces the previous handler.

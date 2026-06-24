@@ -35,7 +35,7 @@
 
 /* User-side implementation of the kernel-to-user text traverse channel.
  *
- * meadow_ku_traverse_init_user() opens the named FIFO O_RDONLY | O_NONBLOCK
+ * meadow_ku_traverse_init_user_setup() opens the named FIFO O_RDONLY | O_NONBLOCK
  * (so the open returns immediately without waiting for the kernel write end),
  * removes O_NONBLOCK so the receive thread blocks on each read(), and spawns
  * the receive thread.
@@ -147,7 +147,7 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: meadow_ku_traverse_init_user
+ * Name: meadow_ku_traverse_init_user_setup
  *
  * Description:
  *   Open the named FIFO for reading and spawn the receive thread.
@@ -164,7 +164,7 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
  *
  ****************************************************************************/
 
-int meadow_ku_traverse_init_user(void)
+int meadow_ku_traverse_init_user_setup(void)
 {
   pthread_attr_t    attr;
   struct sched_param param;
@@ -177,7 +177,6 @@ int meadow_ku_traverse_init_user(void)
     }
 
   /* Open O_NONBLOCK so we do not stall waiting for the kernel write end. */
-
   _recv_fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_RDONLY | O_NONBLOCK);
   if (_recv_fd < 0)
     {
@@ -185,6 +184,25 @@ int meadow_ku_traverse_init_user(void)
              __FILE__, __LINE__, errno);
       return -errno;
     }
+
+  //  (--)SAMPLE COPIED HERE BY ME
+  // int flags = fcntl(fd, F_GETFL, 0);
+  // if (flags == -1)
+  //   {
+  //     fprintf(stderr, "Error: Failed to get file flags: %s\n",
+  //             strerror(errno));
+  //     close(fd);
+  //     return -1;
+  //   }
+
+  // flags &= ~O_NONBLOCK;
+  // if (fcntl(fd, F_SETFL, flags) == -1)
+  //   {
+  //     fprintf(stderr, "Error: Failed to set blocking mode: %s\n",
+  //             strerror(errno));
+  //     close(fd);
+  //     return -1;
+  //   }
 
   /* Switch to blocking reads: the receive thread must block on each read(),
    * not spin-poll.
@@ -217,34 +235,3 @@ int meadow_ku_traverse_init_user(void)
 
   return OK;
 }
-
-// /****************************************************************************
-//  * Name: meadow_ku_traverse_register_handler
-//  *
-//  * Description:
-//  *   Register a handler callback for the given message type.  At most one
-//  *   handler per type; calling again replaces the previous handler.
-//  *
-//  *   May be called before or after meadow_ku_traverse_init_user().
-//  *
-//  * Input Parameters:
-//  *   type    - message type to handle
-//  *   handler - callback invoked from the receive thread with the full envelope
-//  *
-//  * Returned Value:
-//  *   0 on success, -EINVAL if type is out of range or handler is NULL.
-//  *
-//  ****************************************************************************/
-
-// int meadow_ku_traverse_register_handler(enum MeadowKUTraverseType type,
-//                                          meadow_ku_traverse_handler_t handler)
-// {
-//   if ((int)type < 0 || type >= MEADOW_KU_TRAVERSE_TYPE_COUNT ||
-//       handler == NULL)
-//     {
-//       return -EINVAL;
-//     }
-
-//   // _handlers[type] = handler;
-//   return OK;
-// }

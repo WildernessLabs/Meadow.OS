@@ -220,7 +220,7 @@ static void ping_text_to_host(int priority, FAR const IPTR char *fmt, ...)
   // size but will always place a terminating NULL at the end.
   int stringLen = vsnprintf(finalString, maxStringLen - 1, fmt, args);
 
-  hcom_nx_route_text_to_host(requestType, finalString, stringLen);
+  hcom_ku_traverse_text_to_host(requestType, finalString, stringLen);
 
   // Diagnostic - to see all text on syslog too
   // syslog(priority, finalString);

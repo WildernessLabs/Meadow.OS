@@ -58,6 +58,8 @@
 #include "stm32_ethernet.h"
 #endif
 
+#pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -122,6 +124,20 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 3\n"); usleep(5 * 1000);
 #endif
 
+#if defined (CONFIG_RAMLOG_SYSLOG)
+  // Initalize the trace support by making fifo, the named pipe
+  ret = meadow_ku_traverse_kernel_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
+    return ret;
+  }
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG, "Kernel startup manager 1c\n"); usleep(5 * 1000);
+#endif
+
   // Set trace level for syslog messaging
   ret = hcom_nx_utils_startup_handling_of_trace_level();
   if (ret < 0)
@@ -149,6 +165,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 6\n"); usleep(5 * 1000);
+#endif
+
   // Initialize the syslog message pump so syslog messages can be seen
   ret = hcom_nx_trace_msg_proc_setup();
   if (ret < 0)
@@ -158,22 +178,26 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 6\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
 #endif
 
   //
   //  Prepare the logging system and clear the log file.
   //
   meadow_logging_init_os_logging();
-  
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
-#endif
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "Kernel startup manager 8\n"); usleep(5 * 1000);
+#endif
+  
   //
   //  The bootloader will have put the reset reason into BBR30 for us.
   //
   meadow_os_reset_update_counters();
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(2,  "Kernel startup manager 9\n"); usleep(5 * 1000);
+#endif
 
   syslog(LOG_MDIAG, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(),
             meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
@@ -187,9 +211,9 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   espcp_early_init();
 #endif
-
+  
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 8\n"); usleep(5 * 1000);
+  syslog(2,  "Kernel startup manager 10\n"); usleep(5 * 1000);
 #endif
 
   //
@@ -210,12 +234,16 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     return ERROR;
   }
 
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
+#endif
+
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
   bool reset_esp32 = config->reset_esp32_at_startup;
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 9\n"); usleep(5 * 1000);
+  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
 #endif
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
@@ -229,37 +257,12 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   //
   //  Set the system clock to the OS build time to help with SSL.
   //
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 10\n"); usleep(5 * 1000);
-#endif
 
   hcom_nx_config_set_time_to_os_build_time();
   
   // syslog(LOG_MDIAG, "YAML Config:Net I/F:%s, DHCP:%s\n",
   //           config->default_interface->interface_name,
   //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
-#endif
-
-  ret = hcom_nx_route_text_to_host_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize host routing:%d\n", ret);
-    return ret;
-  }
-
-  ret = meadow_ku_traverse_init_kernel();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
-    return ret;
-  }
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
-#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG,  "Kernel startup manager 13\n"); usleep(5 * 1000);

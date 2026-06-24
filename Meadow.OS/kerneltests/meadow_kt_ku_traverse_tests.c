@@ -245,20 +245,20 @@ void meadow_kt_ku_traverse_tests(uint32_t userData)
       // directly to CLI.
       case 5:
         syslog(LOG_MTEST, "Via syslog() call from Unit Test #5a\n");
-
-        ret =  hcom_nx_route_syslog_to_host("Direct, syslog from Unit Test #5b");
+        ret =  hcom_ku_traverse_syslog_to_host("Direct, syslog from Unit Test #5b",
+        strlen("Direct, syslog from Unit Test #5b"));
         break;
 
       // Send a text message to 'meadow listen'
       case 6:
-        ret =  hcom_nx_route_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
+        ret =  hcom_ku_traverse_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
           "This is a text message from Unit Test #6",
           strlen("This is a text message from Unit Test #6"));
         break;
 
       // Send a string message to 'meadow listen'
       case 7:
-        ret =  hcom_nx_route_string_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
+        ret =  hcom_ku_traverse_string_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
           "This is a string from Unit Test #7");
         break;
 
