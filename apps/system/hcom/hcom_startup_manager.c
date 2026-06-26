@@ -110,24 +110,6 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
   sem_post(&_startupWaitSem);
 }
 
-// //===========================================================================
-// // Forward TRACE_TEXT messages arriving from the kernel to the host.
-// static void ku_traverse_trace_text_handler(
-//     const struct meadow_ku_traverse_msg_t *msg)
-// {
-//   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
-//       (char *)msg->payload, __FILE__, __LINE__);
-// }
-
-// //===========================================================================
-// // Forward RAMLOG_TEXT messages arriving from the kernel to the host.
-// static void ku_traverse_ramlog_text_handler(
-//     const struct meadow_ku_traverse_msg_t *msg)
-// {
-//   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_TRACE_MSG, 0,
-//       (char *)msg->payload, __FILE__, __LINE__);
-// }
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/

@@ -125,7 +125,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
-  // Initalize the trace support by making fifo, the named pipe
+  // Calls mkfifo to create a named pipe
   ret = meadow_ku_traverse_kernel_setup();
   if (ret < 0)
   {
@@ -173,7 +173,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = hcom_nx_trace_msg_proc_setup();
   if (ret < 0)
   {
-    syslog(LOG_MDIAG, "%s@%d-setup trace msg pump %d\n", __FILE__, __LINE__, ret);
+    syslog(LOG_MDIAG, "%s@%d-setup trace cache reader, err:%d\n", __FILE__, __LINE__, ret);
   }
 #endif
 

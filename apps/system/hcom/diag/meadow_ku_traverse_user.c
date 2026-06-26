@@ -50,13 +50,21 @@
 #include <meadow/meadow_ku_traverse.h>
 #include <meadow/meadow_thread_config.h>
 
-#pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
+// Diagnostic 
+#include "../diag/hcom_diag_gpio.h"
+
+// void hcom_diag_gpio_config(uint32_t pin);
+// void hcom_diag_gpio_set_high(uint32_t pin);
+// void hcom_diag_gpio_set_low(uint32_t pin);  
+// void hcom_diag_gpio_pulse(uint32_t pin, uint32_t usec);
+
+#pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static int         _recv_fd       = -1;
+static int         _recv_pipe_fd       = -1;
 static bool        _thread_running = false;
 static pthread_t   _recv_pthread;
 
@@ -87,15 +95,32 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
   struct meadow_ku_traverse_msg_t msg;
   ssize_t nread;
 
-  _thread_running = true;
+#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
+    gettid(), getpid(), HCOM_THREAD_NAME_RECV_TRAVERSE);
+#endif
 
+  _thread_running = true;
+  
   while (_thread_running)
   {
-    nread = read(_recv_fd, &msg, sizeof(msg));
+    // Read end of pipe
+    nread = read(_recv_pipe_fd, &msg, sizeof(msg));
     if (nread != (ssize_t)sizeof(msg))
     {
-      if (nread < 0 && errno == EINTR)
+      if (nread < 0)
       {
+        if(errno == EINTR)
+        {
+          usleep(5 * 1000);
+          continue;          // Interrupted, try again
+        }
+
+        hcom_diag_gpio_set_high(DEBUG_PIN_V2_A1);
+        usleep(5 * 1000);
+        // hcom_diag_gpio_set_low(DEBUG_PIN_V2_A1);
+        // usleep(5 * 1000);
+        // Some error??
         continue;
       }
 
@@ -107,7 +132,11 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
           * permanently.
           */
 
-        usleep(1000);
+        // usleep(1000);
+        hcom_diag_gpio_set_high(DEBUG_PIN_V2_A0);
+        // usleep(5 * 1000);
+        // hcom_diag_gpio_set_low(DEBUG_PIN_V2_A0);
+        // usleep(5 * 1000);
         continue;
       }
 
@@ -116,6 +145,7 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
       break;
     }
 
+    // Based on type process the information
     switch(msg.traverseType)
     {
       case MEADOW_KU_TRAVERSE_TYPE_SYSLOG_TEXT:
@@ -171,65 +201,61 @@ int meadow_ku_traverse_init_user_setup(void)
   int flags;
   int ret;
 
+  // Configure and set low
+  hcom_diag_gpio_config(DEBUG_PIN_V2_A0);
+  hcom_diag_gpio_config(DEBUG_PIN_V2_A1);
+  // hcom_diag_gpio_config(DEBUG_PIN_V2_A2);
+
   if (_thread_running)
-    {
-      return OK;
-    }
+  {
+    return OK;
+  }
 
   /* Open O_NONBLOCK so we do not stall waiting for the kernel write end. */
-  _recv_fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_RDONLY | O_NONBLOCK);
-  if (_recv_fd < 0)
-    {
-      syslog(LOG_ERR, "%s@%d: open failed, errno:%d\n",
-             __FILE__, __LINE__, errno);
-      return -errno;
-    }
-
-  //  (--)SAMPLE COPIED HERE BY ME
-  // int flags = fcntl(fd, F_GETFL, 0);
-  // if (flags == -1)
-  //   {
-  //     fprintf(stderr, "Error: Failed to get file flags: %s\n",
-  //             strerror(errno));
-  //     close(fd);
-  //     return -1;
-  //   }
-
-  // flags &= ~O_NONBLOCK;
-  // if (fcntl(fd, F_SETFL, flags) == -1)
-  //   {
-  //     fprintf(stderr, "Error: Failed to set blocking mode: %s\n",
-  //             strerror(errno));
-  //     close(fd);
-  //     return -1;
-  //   }
+  _recv_pipe_fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_RDONLY | O_NONBLOCK);
+  if (_recv_pipe_fd < 0)
+  {
+    syslog(LOG_ERR, "%s@%d: open failed, errno:%d\n",
+            __FILE__, __LINE__, errno);
+    return -errno;
+  }
 
   /* Switch to blocking reads: the receive thread must block on each read(),
    * not spin-poll.
    */
-
-  flags = fcntl(_recv_fd, F_GETFL, 0);
-  if (flags >= 0)
+  flags = fcntl(_recv_pipe_fd, F_GETFL, 0);
+  if (flags == -1)
     {
-      fcntl(_recv_fd, F_SETFL, flags & ~O_NONBLOCK);
+      syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
+              strerror(errno));
+      close(_recv_pipe_fd);
+      return -1;
+    }
+
+  flags &= ~O_NONBLOCK;
+  if (fcntl(_recv_pipe_fd, F_SETFL, flags) == -1)
+    {
+      syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
+              strerror(errno));
+      close(_recv_pipe_fd);
+      return -1;
     }
 
   /* Spawn the receive thread at the same priority as other text-transport
    * threads.
    */
-
-  param.sched_priority = HCOM_THREAD_PRIORITY_CLI_TRANSPORT;
+  param.sched_priority = HCOM_THREAD_PRIORITY_RECV_TRAVERSE;
   (void)pthread_attr_init(&attr);
   (void)pthread_attr_setschedparam(&attr, &param);
-  (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_CLI_TRANSPORT);
+  (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_RECV_TRAVERSE);
 
   ret = pthread_create(&_recv_pthread, &attr, ku_traverse_recv_pthread, NULL);
   if (ret != 0)
     {
       syslog(LOG_CRIT, "%s@%d: pthread_create failed, ret:%d errno:%d\n",
              __FILE__, __LINE__, ret, errno);
-      close(_recv_fd);
-      _recv_fd = -1;
+      close(_recv_pipe_fd);
+      _recv_pipe_fd = -1;
       return -ret;
     }
 

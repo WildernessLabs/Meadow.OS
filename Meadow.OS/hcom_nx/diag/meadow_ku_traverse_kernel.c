@@ -54,11 +54,16 @@
 
 #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
+#define USE_MEADOW_DEBUG_HELPERS
+#include "stm32_gpio.h"
+// #undef USE_MEADOW_DEBUG_HELPERS
+#include <meadow/meadow_debug_helpers.h>
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static int _pipe_fd = -1;
+static int _send_pipe_fd = -1;
 
 /****************************************************************************
  * Private Functions
@@ -80,21 +85,66 @@ static int _pipe_fd = -1;
 
 static int ku_traverse_open_write_end(void)
 {
-  int fd;
+  int fd = -1;
   int flags;
 
-  fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_WRONLY | O_NONBLOCK);
-  if (fd < 0)
+  // fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_WRONLY | O_NONBLOCK);
+  // if (fd < 0)
+  // {
+  //   return -errno;
+  // }
+
+  do
   {
-    return -errno;
+    fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_WRONLY | O_NONBLOCK);
+    if(fd < 0)
+    {
+      syslog(LOG_MDIAG, "open Error:%d (%s)\n", errno, strerror(errno));
+      if(errno == ENXIO)
+      {
+        // Wait for reader to open named pipe and unblock writer
+        // DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
+        // usleep(500 * 1000);
+        // DEBUG_SET_LOW(DEBUG_PIN_V2_A3);
+        usleep(10 * 1000);
+        fd = -1;
+        continue;
+      }
+      else
+      {
+        // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
+        // usleep(500 * 1000);
+        // DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
+        // usleep(500 * 1000);
+        
+        syslog(LOG_MDIAG, "-->Error: Failed to get file open: %s\n", strerror(errno));
+        return -1;
+      }
+    }
+  } while(fd < 0);
+
+  // Convert to blocking
+  flags = fcntl(fd, F_GETFL, 0);
+  if (flags == -1)
+  {
+    syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
+            strerror(errno));
+    close(fd);
+    return -1;
   }
 
   /* Switch to blocking writes so the caller stalls on back-pressure. */
-  flags = fcntl(fd, F_GETFL, 0);
-  if (flags >= 0)
+  flags &= ~O_NONBLOCK;
+  if (fcntl(fd, F_SETFL, flags) == -1)
   {
-    fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+    syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
+            strerror(errno));
+    close(fd);
+    return -1;
   }
+
+  // if(fd >= 0)
+  //   DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
 
   return fd;
 }
@@ -120,6 +170,23 @@ int meadow_ku_traverse_kernel_setup(void)
 {
   int ret;
 
+  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A2);
+  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A3);
+  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A4);
+  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A5);
+
+  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A2);
+  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
+  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
+  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A5);
+
+  // sleep(1);
+  
+  // DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
+  // DEBUG_SET_LOW(DEBUG_PIN_V2_A3);
+  // DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
+  // DEBUG_SET_LOW(DEBUG_PIN_V2_A5);
+
   // Make the fifo (aka named pipe)
   ret = mkfifo(MEADOW_KU_TRAVERSE_PIPE_PATH, 0666);
   if (ret < 0 && errno != EEXIST)
@@ -129,12 +196,12 @@ int meadow_ku_traverse_kernel_setup(void)
     return -errno;
   }
 
-  _pipe_fd = -1;
+  _send_pipe_fd = -1;
   return OK;
 }
 
 //==================================================================
-// Trace / syslog send to CLI
+// Trace / syslog send to CLI called 
 int hcom_ku_traverse_syslog_to_host(char *syslogMsg, size_t syslogLen)
 {
   int ret;
@@ -213,10 +280,12 @@ int meadow_ku_traverse_send_string(enum MeadowKUTraverseType traverseType,
     uint16_t strLen = strlen(strBody);
     return meadow_ku_traverse_send(traverseType,
       requestType,
-      strBody,
+      (void *)strBody,
       strLen);
 }
 
+//-------------------------------------------------------------------
+// Primary send function
 int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
     uint16_t requestType, const void *msgBody, uint16_t msgLen)
 {
@@ -225,24 +294,33 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
 
   if (msgBody == NULL || msgLen == 0 || msgLen > MEADOW_KU_TRAVERSE_PAYLOAD_MAX)
   {
+    syslog(LOG_ERR, "%s@%d: send failed, message or length error\n",
+            __FILE__, __LINE__);
     return -EINVAL;
   }
   
   if ((int)traverseType < 0 || traverseType >= MEADOW_KU_TRAVERSE_TYPE_COUNT)
   {
+    syslog(LOG_ERR, "%s@%d: send failed, unknown traverse type value:%d\n",
+            __FILE__, __LINE__, traverseType);
     return -EINVAL;
   }
 
   /* Lazy open: attempt to connect to the read end opened by the user side.
    * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
    */
-  if (_pipe_fd < 0)
+  if (_send_pipe_fd < 0)
   {
-    _pipe_fd = ku_traverse_open_write_end();
-    if (_pipe_fd < 0)
+    DEBUG_SET_HIGH(DEBUG_PIN_V2_A2);
+    _send_pipe_fd = ku_traverse_open_write_end();
+    if (_send_pipe_fd < 0)
     {
-      return -ENXIO;
+      syslog(LOG_ERR, "%s@%d-_send_pipe_fd: errno%d\n",
+              __FILE__, __LINE__, errno);
+      DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
+      return -errno;
     }
+    DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
   }
 
   /* Build the envelope. */
@@ -255,14 +333,33 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
   /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
    * so partial writes cannot occur and no framing layer is needed.
    */
-  written = write(_pipe_fd, &msg, sizeof(msg));
-  if (written != (ssize_t)sizeof(msg))
+  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
+  while(1)
   {
-    syslog(LOG_ERR, "%s@%d: write failed, written:%zd errno:%d\n",
-            __FILE__, __LINE__, written, errno);
-    return -EIO;
-  }
+    written = write(_send_pipe_fd, &msg, sizeof(msg));
+    if (written == (ssize_t)sizeof(msg))
+      break;
 
+    if(errno == EAGAIN)      // 11 EAGAIN
+    {
+      DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
+      usleep(50 * 1000);
+      DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
+      usleep(1 * 1000);
+    }
+    else if(errno == EPIPE)      // 32 Broken pipe
+    {
+      DEBUG_SET_HIGH(DEBUG_PIN_V2_A5);
+      usleep(200);
+      DEBUG_SET_LOW(DEBUG_PIN_V2_A5);
+    }
+    else
+    {
+      // syslog(LOG_ERR, "%s@%d: write failed, written:%zd errno:%d\n",
+      //         __FILE__, __LINE__, written, errno);
+      return -errno;
+    }
+  }
   return OK;
 }
 

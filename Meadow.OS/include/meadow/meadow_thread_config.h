@@ -183,7 +183,7 @@
  */
 #define HCOM_THREAD_PRIORITY_TRACE_RAMLOG           120
 #define HCOM_THREAD_NAME_TRACE_RAMLOG               "RamlogRead"
-#define HCOM_THREAD_STACKSIZE_TRACE_RAMLOG          2048
+#define HCOM_THREAD_STACKSIZE_TRACE_RAMLOG          4096
 
 /**
  * This thread reads stdout and stderr and forwards text to the Host
@@ -195,16 +195,16 @@
 /**
  * 
  */
-#define HCOM_THREAD_PRIORITY_CLI_TRANSPORT          120
-#define HCOM_THREAD_NAME_CLI_TRANSPORT              "CliXport"
-#define HCOM_THREAD_STACKSIZE_CLI_TRANSPORT         2048
+#define HCOM_THREAD_PRIORITY_RECV_TRAVERSE          120
+#define HCOM_THREAD_NAME_RECV_TRAVERSE              "Traverse"
+#define HCOM_THREAD_STACKSIZE_RECV_TRAVERSE         2048
 
 /**
  * 
  */
-#define HCOM_THREAD_PRIORITY_HOST_TRANSPORT         120
-#define HCOM_THREAD_NAME_HOST_TRANSPORT             "HostXport"
-#define HCOM_THREAD_STACKSIZE_HOST_TRANSPORT        2048
+// #define HCOM_THREAD_PRIORITY_HOST_TRANSPORT         120
+// #define HCOM_THREAD_NAME_HOST_TRANSPORT             "HostXport"
+// #define HCOM_THREAD_STACKSIZE_HOST_TRANSPORT        2048
 
 /**
  * This thread works out how far the LSI drifts from real time.  The thread
