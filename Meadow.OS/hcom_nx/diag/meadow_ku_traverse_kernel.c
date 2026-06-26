@@ -86,13 +86,6 @@ static int _send_pipe_fd = -1;
 static int ku_traverse_open_write_end(void)
 {
   int fd = -1;
-  int flags;
-
-  // fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_WRONLY | O_NONBLOCK);
-  // if (fd < 0)
-  // {
-  //   return -errno;
-  // }
 
   do
   {
@@ -103,49 +96,26 @@ static int ku_traverse_open_write_end(void)
       if(errno == ENXIO)
       {
         // Wait for reader to open named pipe and unblock writer
-        // DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
-        // usleep(500 * 1000);
-        // DEBUG_SET_LOW(DEBUG_PIN_V2_A3);
         usleep(10 * 1000);
         fd = -1;
         continue;
       }
       else
       {
-        // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
-        // usleep(500 * 1000);
-        // DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
-        // usleep(500 * 1000);
-        
         syslog(LOG_MDIAG, "-->Error: Failed to get file open: %s\n", strerror(errno));
+        usleep(10 * 1000);
         return -1;
       }
     }
   } while(fd < 0);
 
-  // Convert to blocking
-  flags = fcntl(fd, F_GETFL, 0);
-  if (flags == -1)
-  {
-    syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
-            strerror(errno));
-    close(fd);
-    return -1;
-  }
-
-  /* Switch to blocking writes so the caller stalls on back-pressure. */
-  flags &= ~O_NONBLOCK;
-  if (fcntl(fd, F_SETFL, flags) == -1)
-  {
-    syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
-            strerror(errno));
-    close(fd);
-    return -1;
-  }
-
-  // if(fd >= 0)
-  //   DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
-
+  /* Keep O_NONBLOCK on the write end.  NuttX's blocking write can split
+   * a message across two circbuf_write() calls when the ring buffer is
+   * almost full, placing a partial envelope in the pipe.  The receiver
+   * sees nread != sizeof(msg) and loses sync.  With O_NONBLOCK the write
+   * either places the entire envelope atomically or returns EAGAIN with
+   * nothing written; the EAGAIN handler above retries after a short sleep.
+   */
   return fd;
 }
 
@@ -170,23 +140,6 @@ int meadow_ku_traverse_kernel_setup(void)
 {
   int ret;
 
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A2);
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A3);
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A4);
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A5);
-
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A2);
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A5);
-
-  // sleep(1);
-  
-  // DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
-  // DEBUG_SET_LOW(DEBUG_PIN_V2_A3);
-  // DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
-  // DEBUG_SET_LOW(DEBUG_PIN_V2_A5);
-
   // Make the fifo (aka named pipe)
   ret = mkfifo(MEADOW_KU_TRAVERSE_PIPE_PATH, 0666);
   if (ret < 0 && errno != EEXIST)
@@ -197,6 +150,7 @@ int meadow_ku_traverse_kernel_setup(void)
   }
 
   _send_pipe_fd = -1;
+
   return OK;
 }
 
@@ -311,16 +265,13 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
    */
   if (_send_pipe_fd < 0)
   {
-    DEBUG_SET_HIGH(DEBUG_PIN_V2_A2);
     _send_pipe_fd = ku_traverse_open_write_end();
     if (_send_pipe_fd < 0)
     {
       syslog(LOG_ERR, "%s@%d-_send_pipe_fd: errno%d\n",
               __FILE__, __LINE__, errno);
-      DEBUG_SET_HIGH(DEBUG_PIN_V2_A3);
       return -errno;
     }
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
   }
 
   /* Build the envelope. */
@@ -333,25 +284,32 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
   /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
    * so partial writes cannot occur and no framing layer is needed.
    */
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
-  while(1)
+  size_t total_written = 0;
+  while(total_written < sizeof(msg))
   {
-    written = write(_send_pipe_fd, &msg, sizeof(msg));
-    if (written == (ssize_t)sizeof(msg))
-      break;
+    written = write(_send_pipe_fd,
+                    (const uint8_t *)&msg + total_written,
+                    sizeof(msg) - total_written);
+    if (written > 0)
+    {
+      total_written += (size_t)written;
+
+      // Test if full message, get more if not
+      continue;
+    }
 
     if(errno == EAGAIN)      // 11 EAGAIN
     {
-      DEBUG_SET_HIGH(DEBUG_PIN_V2_A4);
-      usleep(50 * 1000);
-      DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
       usleep(1 * 1000);
     }
-    else if(errno == EPIPE)      // 32 Broken pipe
+    else if(errno == EPIPE)   // 32 Broken pipe
     {
-      DEBUG_SET_HIGH(DEBUG_PIN_V2_A5);
-      usleep(200);
-      DEBUG_SET_LOW(DEBUG_PIN_V2_A5);
+      // Spins here waiting for User side to be initialized
+      usleep(20 * 1000);
+    }
+    else if(errno == EINTR)      // 4 Interrupted
+    {
+      /* Signal interrupted the call — retry immediately. */
     }
     else
     {
@@ -360,6 +318,8 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
       return -errno;
     }
   }
+
+  // One message written
   return OK;
 }
 

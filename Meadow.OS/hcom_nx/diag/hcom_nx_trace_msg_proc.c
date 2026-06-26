@@ -392,7 +392,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
       }
     }
 
-    // Attempt to read from the ramlog buffer
+    // Attempt to read from the ramlog buffer and don't return
     ret = hcom_nx_trace_msg_read_ramlog_loop(readBuf);
     if(_shutting_down) break;
     if(ret < 0)

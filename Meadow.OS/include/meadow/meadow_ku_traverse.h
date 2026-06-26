@@ -90,8 +90,6 @@ enum MeadowKUTraverseType
  * Total size: 4 (TraverseType) + 2 (rqstType)  + 2 (length)+ 2 (pad) + 256 (payload) = 264 bytes,
  * well within PIPE_BUF.
  */
-
- // Assumes 'userData' nor 'extraData' is not needed.
 struct meadow_ku_traverse_msg_t
 {
   enum MeadowKUTraverseType traverseType;

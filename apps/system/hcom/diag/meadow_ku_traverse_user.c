@@ -93,7 +93,9 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg);
 static FAR void *ku_traverse_recv_pthread(FAR void *arg)
 {
   struct meadow_ku_traverse_msg_t msg;
-  ssize_t nread;
+  uint8_t *dst = (uint8_t *)&msg;
+  size_t   total = 0;
+  ssize_t  nread;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
@@ -104,45 +106,42 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
   
   while (_thread_running)
   {
-    // Read end of pipe
-    nread = read(_recv_pipe_fd, &msg, sizeof(msg));
-    if (nread != (ssize_t)sizeof(msg))
+    /* Accumulate bytes into msg until a complete envelope is assembled.
+     * The kernel writes fixed-size envelopes; NuttX may return fewer bytes
+     * than requested (partial read) when the pipe buffer is nearly full, so
+     * we must reassemble rather than require a single sizeof(msg) read.
+     */
+    nread = read(_recv_pipe_fd, dst + total, sizeof(msg) - total);
+    if (nread > 0)
     {
-      if (nread < 0)
+      total += (size_t)nread;
+      if (total < sizeof(msg))
       {
-        if(errno == EINTR)
-        {
-          usleep(5 * 1000);
-          continue;          // Interrupted, try again
-        }
-
-        hcom_diag_gpio_set_high(DEBUG_PIN_V2_A1);
-        usleep(5 * 1000);
-        // hcom_diag_gpio_set_low(DEBUG_PIN_V2_A1);
-        // usleep(5 * 1000);
-        // Some error??
-        continue;
+        continue;  /* Need more bytes to complete the envelope */
       }
 
-      if (nread == 0)
+      /* Complete envelope received — reset accumulator and dispatch. */
+      total = 0;
+    }
+    else if (nread < 0)
+    {
+      if(errno == EINTR)
       {
-        /* EOF: no writer is currently attached (kernel lazy-open has
-          * not yet happened).  Yield briefly and retry; the thread
-          * must not exit here or subsequent kernel writes will block
-          * permanently.
-          */
-
-        // usleep(1000);
-        hcom_diag_gpio_set_high(DEBUG_PIN_V2_A0);
-        // usleep(5 * 1000);
-        // hcom_diag_gpio_set_low(DEBUG_PIN_V2_A0);
-        // usleep(5 * 1000);
-        continue;
+        continue;          // Interrupted, try again
       }
 
-      syslog(LOG_ERR, "%s@%d: read failed, nread:%zd errno:%d\n",
-              __FILE__, __LINE__, nread, errno);
-      break;
+      usleep(5 * 1000);
+      continue;
+    }
+    else  /* nread == 0 */
+    {
+      /* EOF: no writer is currently attached (kernel lazy-open has
+        * not yet happened).  Yield briefly and retry; the thread
+        * must not exit here or subsequent kernel writes will block
+        * permanently.
+        */
+      usleep(5 * 1000);
+      continue;
     }
 
     // Based on type process the information
@@ -201,11 +200,6 @@ int meadow_ku_traverse_init_user_setup(void)
   int flags;
   int ret;
 
-  // Configure and set low
-  hcom_diag_gpio_config(DEBUG_PIN_V2_A0);
-  hcom_diag_gpio_config(DEBUG_PIN_V2_A1);
-  // hcom_diag_gpio_config(DEBUG_PIN_V2_A2);
-
   if (_thread_running)
   {
     return OK;
@@ -225,21 +219,21 @@ int meadow_ku_traverse_init_user_setup(void)
    */
   flags = fcntl(_recv_pipe_fd, F_GETFL, 0);
   if (flags == -1)
-    {
-      syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
-              strerror(errno));
-      close(_recv_pipe_fd);
-      return -1;
-    }
+  {
+    syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
+            strerror(errno));
+    close(_recv_pipe_fd);
+    return -1;
+  }
 
   flags &= ~O_NONBLOCK;
   if (fcntl(_recv_pipe_fd, F_SETFL, flags) == -1)
-    {
-      syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
-              strerror(errno));
-      close(_recv_pipe_fd);
-      return -1;
-    }
+  {
+    syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
+            strerror(errno));
+    close(_recv_pipe_fd);
+    return -1;
+  }
 
   /* Spawn the receive thread at the same priority as other text-transport
    * threads.
@@ -251,13 +245,13 @@ int meadow_ku_traverse_init_user_setup(void)
 
   ret = pthread_create(&_recv_pthread, &attr, ku_traverse_recv_pthread, NULL);
   if (ret != 0)
-    {
-      syslog(LOG_CRIT, "%s@%d: pthread_create failed, ret:%d errno:%d\n",
-             __FILE__, __LINE__, ret, errno);
-      close(_recv_pipe_fd);
-      _recv_pipe_fd = -1;
-      return -ret;
-    }
+  {
+    syslog(LOG_CRIT, "%s@%d: pthread_create failed, ret:%d errno:%d\n",
+            __FILE__, __LINE__, ret, errno);
+    close(_recv_pipe_fd);
+    _recv_pipe_fd = -1;
+    return -ret;
+  }
 
   return OK;
 }
