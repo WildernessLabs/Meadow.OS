@@ -154,11 +154,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #endif
 #endif
 
-// This feature (CLI sending text commands) is no longer supported
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
-  hcom_nx_upd_diag_app_command_t *diagAppCmd;
-#endif
-
   switch (cmd)
   {
   case HCOM_NX_UPD_SET_REGISTER:
@@ -267,14 +262,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     // Stage a updated external flash OS bin
     ret = hcom_nx_exec_ex_flash_OS_update_flash2();
     return ret;
-
-// This feature is no longer supported
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
-  case HCOM_NX_UPD_DIAG_APP_CMD:
-    diagAppCmd = (hcom_nx_upd_diag_app_command_t*)arg;
-    ret = hcom_nx_diagnostic_app_execute(diagAppCmd->hdrMsg, diagAppCmd->msgLen);
-    return ret;
-#endif
 
   case HCOM_NX_UPD_COPY_RUNTIME_TO_RAM:
     {

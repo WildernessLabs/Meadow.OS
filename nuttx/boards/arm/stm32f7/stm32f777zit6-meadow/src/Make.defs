@@ -143,8 +143,7 @@ CSRCS += $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_start.c \
 $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_utils.c \
 $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_connect.c \
 $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_monitor.c \
-$(MEADOW_OS_DIR)/ethernet/meadow_ethnet_dhcp.c \
-$(MEADOW_OS_DIR)/ethernet/meadow_ethnet_ping.c
+$(MEADOW_OS_DIR)/ethernet/meadow_ethnet_dhcp.c
 
 ifeq ($(CONFIG_MEADOW_ESPCP_MANAGER),y)
 CSRCS += $(MEADOW_OS_DIR)/espcp/espcp_thread.c \

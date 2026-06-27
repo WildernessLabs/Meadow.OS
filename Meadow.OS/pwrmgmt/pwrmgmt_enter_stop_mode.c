@@ -300,7 +300,7 @@ int pwrmgmt_enter_stop_mode(void)
   //   {
   //     // Ethernet Supported
   //   }
-  //   #endif
+  // #endif
 
   // SD-CARD POWER DOWN
   // See Ref Man section 39.8.1 SDMMC power control register and 39.8.2 SDMMC

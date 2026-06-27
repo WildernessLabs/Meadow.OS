@@ -146,7 +146,7 @@ bool meadow_hw_version_ethernet_supported(void)
   }
 #else
   return false;
-#endif
+#endif    // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 }
 
 //============================================================================
