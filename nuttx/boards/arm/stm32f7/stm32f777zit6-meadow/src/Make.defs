@@ -110,7 +110,7 @@ $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_create.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_littlefs.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_part_utils.c \
-$(MEADOW_OS_DIR)/hcom_nx/diag/meadow_traverse_ku_kernel.c \
+$(MEADOW_OS_DIR)/hcom_nx/diag/hcom_traverse_ku_kernel.c \
 $(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_trace_msg_proc.c \
 $(MEADOW_OS_DIR)/hcom_nx/tests/hcom_nx_qspi_flash_tests.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c

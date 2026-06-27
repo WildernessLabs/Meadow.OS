@@ -55,7 +55,7 @@
 #endif
 
 #include <meadow/meadow_os.h>
-#include <meadow/meadow_traverse_ku.h>
+#include <meadow/hcom_traverse_ku.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
 
@@ -420,7 +420,7 @@ int hcom_main(int argc, char *argv[])
 // #endif
 
   // Open the ku traverse FIFO and spawn the receive thread.
-  ret = meadow_traverse_ku_init_user_setup();
+  ret = hcom_traverse_ku_init_user_setup();
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", thisFile, __LINE__, ret);

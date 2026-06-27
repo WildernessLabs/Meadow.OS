@@ -43,7 +43,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_cirbuf.h>
-#include <meadow/meadow_traverse_ku.h>
+#include <meadow/hcom_traverse_ku.h>
 #include "../hcom_nx_config_manager.h"
 
 #include <nuttx/kthread.h>

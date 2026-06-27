@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/hcom_nx/diag/meadow_traverse_ku_kernel.c
+ * Meadow.OS/hcom_nx/diag/hcom_traverse_ku_kernel.c
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -35,8 +35,8 @@
 
 /* Kernel-side implementation of the kernel-to-user text traverse channel.
  *
- * meadow_traverse_ku_kernel_setup() creates the named FIFO during kernel
- * startup.  meadow_traverse_ku_send() opens the write end lazily on the
+ * hcom_traverse_ku_kernel_setup() creates the named FIFO during kernel
+ * startup.  hcom_traverse_ku_send() opens the write end lazily on the
  * first call, by which time the user side will have already opened the
  * read end (so the open does not block).  Subsequent write() calls are
  * atomic and block naturally on back-pressure.
@@ -48,7 +48,7 @@
 
 #include "../hcom_nx_common.h"
 
-#include <meadow/meadow_traverse_ku.h>
+#include <meadow/hcom_traverse_ku.h>
 
 #include <sys/stat.h>
 
@@ -90,7 +90,7 @@ static int traverse_ku_open_write_end(void)
 
   do
   {
-    fd = open(MEADOW_TRAVERSE_KU_PIPE_PATH, O_WRONLY | O_NONBLOCK);
+    fd = open(HCOM_TRAVERSE_KU_PIPE_PATH, O_WRONLY | O_NONBLOCK);
     if(fd < 0)
     {
       syslog(LOG_MDIAG, "open Error:%d (%s)\n", errno, strerror(errno));
@@ -125,7 +125,7 @@ static int traverse_ku_open_write_end(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: meadow_traverse_ku_kernel_setup
+ * Name: hcom_traverse_ku_kernel_setup
  *
  * Description:
  *   Create the named FIFO used for kernel-to-user text transport.  Call
@@ -137,12 +137,12 @@ static int traverse_ku_open_write_end(void)
  *   0 on success, -errno on failure.
  *
  ****************************************************************************/
-int meadow_traverse_ku_kernel_setup(void)
+int hcom_traverse_ku_kernel_setup(void)
 {
   int ret;
 
   // Make the fifo (aka named pipe)
-  ret = mkfifo(MEADOW_TRAVERSE_KU_PIPE_PATH, 0666);
+  ret = mkfifo(HCOM_TRAVERSE_KU_PIPE_PATH, 0666);
   if (ret < 0 && errno != EEXIST)
   {
     syslog(LOG_ERR, "%s@%d: mkfifo failed, errno:%d\n",
@@ -162,7 +162,7 @@ int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen)
   int ret;
 
   // Send the text from syslog messages
-  ret = meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
     HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
   if(ret < 0)
   {
@@ -179,7 +179,7 @@ int hcom_traverse_ku_text_to_host(uint16_t requestType,
   int ret;
   
   // Send the text to CLI
-  ret = meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_GENERIC_TEXT,
+  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,
     requestType, textMsg, textLen);
   if(ret < 0)
   {
@@ -196,7 +196,7 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
   int ret;
   
   // Send the NULL terminated string to CLI
-  ret = meadow_traverse_ku_send_string(MEADOW_TRAVERSE_KU_TYPE_GENERIC_STRING,
+  ret = hcom_traverse_ku_send_string(HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING,
     requestType, stringMsg);
   if(ret < 0)
   {
@@ -207,10 +207,10 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
 }
 
 /****************************************************************************
- * Name: meadow_traverse_ku_send
+ * Name: hcom_traverse_ku_send
  *
  * Description:
- *   Marshal msgBody into a meadow_traverse_ku_msg_t envelope and write it
+ *   Marshal msgBody into a hcom_traverse_ku_msg_t envelope and write it
  *   atomically to the FIFO.  Because sizeof(envelope) < PIPE_BUF (1024
  *   bytes on NuttX) the write is guaranteed to be atomic — no framing or
  *   mutex is needed.
@@ -222,18 +222,18 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
  * Input Parameters:
  *   traverseType - message type discriminator
  *   msgBody - pointer to payload bytes
- *   msgLen  - payload byte count; must be <= MEADOW_TRAVERSE_KU_PAYLOAD_MAX
+ *   msgLen  - payload byte count; must be <= HCOM_TRAVERSE_KU_PAYLOAD_MAX
  *
  * Returned Value:
  *   0 on success, -errno on failure.
  *
  ****************************************************************************/
 // Special case for strings
-int meadow_traverse_ku_send_string(enum MeadowTraverseKUType traverseType,
+int hcom_traverse_ku_send_string(enum HcomTraverseKUType traverseType,
     uint16_t requestType, const char *strBody)
 {
     uint16_t strLen = strlen(strBody);
-    return meadow_traverse_ku_send(traverseType,
+    return hcom_traverse_ku_send(traverseType,
       requestType,
       (void *)strBody,
       strLen);
@@ -241,20 +241,20 @@ int meadow_traverse_ku_send_string(enum MeadowTraverseKUType traverseType,
 
 //-------------------------------------------------------------------
 // Primary send function
-int meadow_traverse_ku_send(enum MeadowTraverseKUType traverseType,
+int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     uint16_t requestType, const void *msgBody, uint16_t msgLen)
 {
-  struct meadow_traverse_ku_msg_t msg;
+  struct hcom_traverse_ku_msg_t msg;
   ssize_t written;
 
-  if (msgBody == NULL || msgLen == 0 || msgLen > MEADOW_TRAVERSE_KU_PAYLOAD_MAX)
+  if (msgBody == NULL || msgLen == 0 || msgLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
   {
     syslog(LOG_ERR, "%s@%d: send failed, message or length error\n",
             __FILE__, __LINE__);
     return -EINVAL;
   }
   
-  if ((int)traverseType < 0 || traverseType >= MEADOW_TRAVERSE_KU_TYPE_COUNT)
+  if ((int)traverseType < 0 || traverseType >= HCOM_TRAVERSE_KU_TYPE_COUNT)
   {
     syslog(LOG_ERR, "%s@%d: send failed, unknown traverse type value:%d\n",
             __FILE__, __LINE__, traverseType);

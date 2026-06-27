@@ -56,7 +56,7 @@
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_pwr_mgmt.h>
-#include <meadow/meadow_traverse_ku.h>
+#include <meadow/hcom_traverse_ku.h>
 #include "pwrmgmt_local.h"
 
 #include "hardware/stm32f76xx77xx_pwr.h"

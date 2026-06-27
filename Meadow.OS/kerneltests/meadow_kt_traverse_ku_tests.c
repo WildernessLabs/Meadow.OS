@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/kerneltests/meadow_kt_traverse_ku_tests.c
+ * Meadow.OS/kerneltests/hcom_kt_traverse_ku_tests.c
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* On-target tests for the meadow_traverse_ku channel.
+/* On-target tests for the hcom_traverse_ku channel.
  *
  * The kernel-side send() is exercised directly; pass/fail is confirmed by
  * observing the messages at the host CLI (forwarded by the user-side handler).
@@ -41,7 +41,7 @@
  * Test cases (select with --unittests=traverse_ku and pass -v <N>):
  *
  *   value == 1  Round-trip smoke: send one TRACE_TEXT message and verify
- *               meadow_traverse_ku_send() returns OK.
+ *               hcom_traverse_ku_send() returns OK.
  *
  *   value == 2  Ordering: send 8 TRACE_TEXT messages with sequential
  *               counters.  Messages must appear at the host in order.
@@ -59,7 +59,7 @@
 #include <nuttx/config.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
-#include <meadow/meadow_traverse_ku.h>
+#include <meadow/hcom_traverse_ku.h>
 
 #include <inttypes.h>
 #include <string.h>
@@ -99,7 +99,7 @@ static void kt_traverse_ku_test_round_trip(void)
 
   syslog(LOG_INFO, "KU Traverse test 1: round-trip\n");
 
-  ret = meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
     0, msg, (uint16_t)strlen(msg));
   if (ret == OK)
   {
@@ -135,7 +135,7 @@ static void kt_traverse_ku_test_ordering(void)
     len = snprintf(msg, sizeof(msg), KUT_TAG ":order[%d/%d]\n",
       i, KUT_NORDER - 1);
 
-    if (meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+    if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
         0, msg, (uint16_t)len) != OK)
       {
         failures++;
@@ -173,7 +173,7 @@ static void kt_traverse_ku_test_multi_type(void)
 
   syslog(LOG_INFO, "KU Traverse test 3: multi-type\n");
 
-  if (meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+  if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
     0,
     trace_msg,
     (uint16_t)strlen(trace_msg)) != OK)
@@ -182,7 +182,7 @@ static void kt_traverse_ku_test_multi_type(void)
     syslog(LOG_ERR, "KU Traverse test 3: TRACE_TEXT send FAIL\n");
   }
 
-  if (meadow_traverse_ku_send(MEADOW_TRAVERSE_KU_TYPE_GENERIC_TEXT,
+  if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,
       0,
       ramlog_msg,
       (uint16_t)strlen(ramlog_msg)) != OK)
@@ -204,7 +204,7 @@ static void kt_traverse_ku_test_multi_type(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: meadow_kt_traverse_ku_tests
+ * Name: hcom_kt_traverse_ku_tests
  *
  * Description:
  *   Entry point for the KU traverse on-target test suite.
@@ -214,7 +214,7 @@ static void kt_traverse_ku_test_multi_type(void)
  *
  ****************************************************************************/
 
-void meadow_kt_traverse_ku_tests(uint32_t userData)
+void hcom_kt_traverse_ku_tests(uint32_t userData)
 {
   int ret = OK;
 
@@ -263,7 +263,7 @@ void meadow_kt_traverse_ku_tests(uint32_t userData)
         break;
 
       default:
-        syslog(LOG_MTEST, "Undefined test for meadow_kt_traverse_ku_tests, userData:%lu\n",
+        syslog(LOG_MTEST, "Undefined test for hcom_kt_traverse_ku_tests, userData:%lu\n",
             userData);
         break;
     }
