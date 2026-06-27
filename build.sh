@@ -331,6 +331,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable USR_WORK_TESTS
             BUILD_TESTS=true
             ;;
+            traverse_ku)
+            echo "KU traverse channel tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TRAVERSE_KU_TESTS
+            BUILD_TESTS=true
+            ;;
             all)
             echo "All tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS

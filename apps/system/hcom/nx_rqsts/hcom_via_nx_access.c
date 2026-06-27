@@ -234,54 +234,6 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
 }
 
 //=============================================================
-// Provides the nuttx-side with a way to pass syslog messages back
-// to userland so it can be sent to the CLI
-size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
-          char *buff, size_t bufLen)
-{
-  int ret;
-  hcom_nx_upd_host_text_transport_t text_transport;
-
-  text_transport.requestType = requestType;
-  text_transport.transport_buf = buff;
-  text_transport.buf_length = bufLen;
-
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_HOST_TEXT_TRANSPORT,
-            (unsigned long) &text_transport);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed text transport, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-
-  return text_transport.msg_length;
-}
-
-//=============================================================
-// Provides the nuttx-side with a way to pass syslog messages back
-// to user-side so it can be sent to the CLI
-// Called from apps/system/hcom/diag/hcom_diag_trace_to_cli.c
-size_t hcom_via_nx_provide_cli_trace_transport(char *buff, size_t bufLen)
-{
-  int ret;
-  hcom_nx_upd_cli_trace_transport_t trace_transport;
-
-  trace_transport.transport_buf = buff;
-  trace_transport.buf_length = bufLen;
-
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_CLI_TRACE_TRANSPORT, (unsigned long) &trace_transport);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed trace transport, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-
-  return trace_transport.msg_length;
-}
-
-//=============================================================
 // Is this partition mounted in the file system?
 bool hcom_via_nx_is_mounted(uint32_t partitionId)
 {
@@ -472,7 +424,7 @@ void hcom_via_nx_diag_fd_inode_read(int fd, struct inode **inodeOut)
 }
 
 //=============================================================
-// CLI requests that can be directly to be executed on the OS side are
+// CLI requests that can be directly executed on the OS side are
 // routed through here
 void hcom_via_nx_forward_cli_cmd_to_nx(uint16_t hcomCmd, uint32_t userData)
 {

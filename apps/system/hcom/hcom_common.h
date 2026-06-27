@@ -348,9 +348,6 @@ void hcom_via_nx_restore_uart_reconfig(uint32_t uartId);
 uint32_t hcom_via_nx_get_hw_version(void);
 uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd);
 void hcom_via_nx_mono_has_started_alt(int alt_access_fd);
-size_t hcom_via_nx_provide_cli_trace_transport(char *buff, size_t bufLen);
-size_t hcom_via_nx_provide_host_text_transport(uint16_t *requestType,
-        char *buff, size_t bufLen);
 void hcom_via_nx_diag_fd_inode(int fd);
 void hcom_via_nx_diag_fd_inode_read(int fd, struct inode **inodeOut);
 int hcom_via_nx_execute_espcp_tests(uint32_t);
@@ -381,11 +378,9 @@ int hcom_diag_trace_priority_get_trace_level(void);
 void hcom_diag_trace_priority_change_trace_level(uint32_t userData);
 int hcom_diag_trace_priority_level_init(void);
 
-int hcom_trace_to_cli_setup(void);
 void hcom_trace_to_cli_enable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_command(uint32_t userData);
 void hcom_trace_to_cli_disable_cleanup(uint32_t userData);
-bool hcom_trace_is_sending_to_cli(void);
 
 //-------------------------------------------------------
 // Ramlog to host
@@ -396,8 +391,6 @@ void hcom_diag_trace_to_cli_shutdown(void);
 
 void hcom_diag_trace_forward_to_host(uint32_t userData);
 void hcom_diag_trace_do_not_send_to_host(uint32_t userData);
-
-int hcom_host_text_transport_setup(void);
 
 int hcom_diag_misc_setup(void);
 int hcom_diag_nsh_support_setup(void);

@@ -143,6 +143,10 @@ static meadow_test_methods_t _kernelTests[] =
 #if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_BG77, meadow_kt_ethernet_tests },
 #endif
+
+#if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_TRAVERSE_KU, hcom_kt_traverse_ku_tests },
+#endif
 };
 
 /**

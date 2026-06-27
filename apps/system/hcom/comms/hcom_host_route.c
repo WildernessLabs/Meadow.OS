@@ -339,10 +339,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_SEND_TRACE_TO_HOST:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
          "", thisFile, __LINE__);
-      // Both k-land and userland need to know about this command,
-      // so make 2 calls. The nuttx side should start first
       hcom_via_nx_forward_cli_cmd_to_nx(requestType, userData);
-      hcom_trace_to_cli_enable_command(userData);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
          "", thisFile, __LINE__);
       break;
@@ -351,11 +348,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_NO_TRACE_TO_HOST:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
          "", thisFile, __LINE__);
-      // Both k-land and userland need this command.
-      // The nuttx side must stop first so the pthread it holds so it can terminate
-      hcom_trace_to_cli_disable_command(userData);
       hcom_via_nx_forward_cli_cmd_to_nx(requestType, userData);
-      hcom_trace_to_cli_disable_cleanup(userData);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
          "", thisFile, __LINE__);
       break;

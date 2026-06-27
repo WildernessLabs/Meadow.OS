@@ -979,14 +979,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // The default must be maintained as UART 1.
 #define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
-// This causes the build to add code that allows a function on the Nuttx
-// side to routed text messages to the user side and be sent to the
-// Host (CLI).
-// Set to 1 to include and 0 to exclude.
-// This should probably be removed as the code is often used by
-// other modules.
-#define HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST     1
-
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
 // This will enable debug code in the hcom_nx/create_fs/ files.

@@ -52,7 +52,7 @@
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-#pragma GCC optimize("O0")    // Prevent code optimization
+// #pragma GCC optimize("O0")    // Prevent code optimization
 
 /************************************************************************************
  * Pre-processor Definitions

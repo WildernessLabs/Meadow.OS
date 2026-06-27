@@ -137,13 +137,6 @@ extern "C"
   void hcom_nx_common_utils_only_restart_meadow(void);
   void hcom_nx_common_utils_calc_f7_sn(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[]);
 
-  // Route text to host PC (CLI)
-  int hcom_nx_route_text_to_host_setup(void);
-  int hcom_nx_route_text_to_host(uint16_t requestType, char *msgBuff,
-          size_t msgLen);
-  size_t hcom_nx_text_to_host_transport(uint16_t *requestType,
-          char *buff, size_t buffLen);
-
   // HCOM command handling on the Nuttx kernel side
   int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
   int hcom_nx_exec_profiler_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
@@ -181,7 +174,6 @@ extern "C"
   int hcom_nx_trace_msg_proc_setup(void);
   int hcom_nx_trace_msg_mono_started(void);
   void hcom_nx_trace_insure_correct_config (bool uartTracing, bool cliTracing, bool uartProfiling);
-  size_t hcom_nx_trace_cli_trace_transport(char *buff, size_t bufLen);
 #endif
 
   // Low-level file system support

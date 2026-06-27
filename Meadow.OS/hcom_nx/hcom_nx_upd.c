@@ -144,13 +144,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   struct hcom_nx_upd_bbr_update *bbr_update;
   struct hcom_nx_cmd_data *cmdData;
   struct hcom_nx_upd_is_part_mounted *is_mounted;
-#if defined (CONFIG_RAMLOG_SYSLOG)
-  hcom_nx_upd_cli_trace_transport_t *trace_transport;
-#endif
-
-#if defined(HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST)
-  hcom_nx_upd_host_text_transport_t *text_transport;
-#endif
 
   hcom_nx_upd_get_hw_ver_t *hardwareVer;
 
@@ -218,24 +211,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #if defined (CONFIG_RAMLOG_SYSLOG)
     return hcom_nx_trace_msg_mono_started();
 #else
-    return OK;
-#endif
-
-  case HCOM_NX_UPD_CLI_TRACE_TRANSPORT:
-#if defined (CONFIG_RAMLOG_SYSLOG)
-    trace_transport = (hcom_nx_upd_cli_trace_transport_t *)arg;
-    trace_transport->msg_length = hcom_nx_trace_cli_trace_transport(
-              trace_transport->transport_buf, trace_transport->buf_length);
-#endif
-    return OK;
-
-#if (HCOM_INCLUDE_NX_CODE_TO_SEND_TEXT_TO_HOST > 0)
-  case HCOM_NX_UPD_HOST_TEXT_TRANSPORT:
-    text_transport = (hcom_nx_upd_host_text_transport_t *)arg;
-    text_transport->msg_length = hcom_nx_text_to_host_transport(
-              text_transport->requestType,
-              text_transport->transport_buf,
-              text_transport->buf_length);
     return OK;
 #endif
 

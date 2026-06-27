@@ -147,6 +147,10 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_USRWORK_TESTS, "USRWORK tests" },
 #endif
 
+#if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_TRAVERSE_KU, "KU traverse channel tests" },
+#endif
+
     //
     //  Meadow OS tests (900-999)
     //

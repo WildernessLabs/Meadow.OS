@@ -110,7 +110,7 @@ $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_create.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_littlefs.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_part_utils.c \
-$(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_route_text_to_host.c \
+$(MEADOW_OS_DIR)/hcom_nx/diag/hcom_traverse_ku_kernel.c \
 $(MEADOW_OS_DIR)/hcom_nx/diag/hcom_nx_trace_msg_proc.c \
 $(MEADOW_OS_DIR)/hcom_nx/tests/hcom_nx_qspi_flash_tests.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c
@@ -182,7 +182,8 @@ $(MEADOW_OS_DIR)/kerneltests/meadow_spi_dma_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_rotary_encoder_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_os_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_measure_freq_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/meadow_kt_bluetooth_tests.c
+$(MEADOW_OS_DIR)/kerneltests/meadow_kt_bluetooth_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_kt_traverse_ku_tests.c
 
 #
 #	Add the Meadow logging system.
