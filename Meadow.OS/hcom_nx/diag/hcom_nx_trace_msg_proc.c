@@ -42,7 +42,6 @@
 #include <meadow/meadow_apps_core_share.h>
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
-#include <meadow/meadow_cirbuf.h>
 #include <meadow/hcom_traverse_ku.h>
 #include "../hcom_nx_config_manager.h"
 
@@ -70,12 +69,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
+// This is an arbituary value. Nuttx has no limit on syslog messages.
 #define HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG (512)
-#define HCOM_TRACE_RAMLOG_READ_BUF_SIZE (256)
-#define HCOM_TRACE_LOCAL_SYSLOG_CIR_BUF_SIZE (HCOM_TRACE_RAMLOG_READ_BUF_SIZE * 5)
 #define HCOM_TRACE_RAMLOG_RECONFIG_TIMEOUT (30)   // Seconds to reconfigure
-#define HCOM_TRACE_SHARED_SYSLOG_CIR_BUF_SIZE HCOM_TRACE_LOCAL_SYSLOG_CIR_BUF_SIZE
 
 #define HCOM_TRACE_RAMLOG_SERIAL_PORT_NAME_1 ("/dev/ttyS0")    // UART 1
 #define HCOM_TRACE_RAMLOG_SERIAL_PORT_NAME_4 ("/dev/ttyS1")    // UART 4
@@ -96,15 +92,9 @@ static char *thisFile = __FILE__;
 #if defined (CONFIG_RAMLOG_SYSLOG)
 
 static bool _shutting_down;
-static host_com_cir_buffer_t *_ramlog_cbuf;
-// This buffer is where each messages is placed before being sent out
-// via uart and/or to CLI. When we must send to CLI a semaphore protects
-// this shared memory so we don't need to copy it's data while being sent
-// It would be nice if we could just copy the data to a different buffer
-// but then there would be a risk that messages would arrive faster than
-// CLI can consume them.
+// This buffer receives complete syslog lines from fgets().
 static uint8_t *_syslogMsgBuf;
-static int _ramlog_fd;
+static FILE *_ramlog_fp;
 static int _uart_fd;
 static bool _trace_kthread_running;
 static bool _trace_log_to_host;
@@ -123,9 +113,7 @@ static int hcom_nx_trace_msg_make_thread(void);
 static int hcom_nx_trace_msg_open_ramlog(void);
 static int hcom_nx_trace_msg_lazy_initialization(void);
 static void hcom_nx_trace_msg_close_and_delay(bool ramLogClose);
-static int hcom_nx_trace_msg_read_ramlog_loop(uint8_t *readBuf);
-static int hcom_nx_trace_msg_save_recvd_data(uint8_t readBuf[], const ssize_t recvByteCnt);
-static int hcom_nx_trace_msg_pull_all_packets_from_buffer(void);
+static int hcom_nx_trace_msg_read_ramlog_loop(void);
 static int hcom_nx_trace_msg_route_trace_text(char* syslogMsg, size_t syslogMsgLen);
 static int hcom_nx_trace_msg_send_msg_to_uart(const char *toUartBuf, size_t numbBytes);
 static int hcom_nx_trace_msg_open_uart_serial_port(void);
@@ -229,7 +217,7 @@ int hcom_nx_trace_msg_lazy_initialization()
     return OK;
   }
 
-  _ramlog_fd = -1;
+  _ramlog_fp = NULL;
   _uart_fd = -1;
   _ramlog_reader_kthread_pid = 0;
 
@@ -265,30 +253,7 @@ int hcom_nx_trace_msg_lazy_initialization()
     _uart_fd = -1;
   }
 
-  // Create a circular buffer instance to manage messages read from ramlog
-  _ramlog_cbuf = (host_com_cir_buffer_t *)malloc(sizeof(struct host_com_cir_buffer_s));
-  if (_ramlog_cbuf == NULL)
-  {
-    hcom_nx_uart_direct(LOG_ERR, "%s@%d-cir buf malloc\n",
-      thisFile, __LINE__);
-    sem_post(&_startupSem);
-    return -ENOMEM;
-  }
-
-  // Initialize the internal circular buffer and use 0x0a as the delimiter.
-  // Therefore, every syslog string must be terminate by a new line
-  // (i.e '\n' or 0x0a) since they are all the same value 0x0a.
-  ret = hcom_cirbuf_init(_ramlog_cbuf,
-    HCOM_TRACE_LOCAL_SYSLOG_CIR_BUF_SIZE, 0x0a);
-  if (ret == HCOM_CIR_BUF_ALLOC_FAILED)
-  {
-    hcom_nx_uart_direct(LOG_ERR, "%s@%d-Cir buf alloc failed\n",
-      thisFile, __LINE__);
-    sem_post(&_startupSem);
-    return -1;
-  }
-
-  // Message buffer containing full messages pulled from the ramlog
+  // Message buffer containing complete syslog lines delivered by fgets()
   _syslogMsgBuf = malloc(HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG);
   if (_syslogMsgBuf == NULL)
   {
@@ -336,19 +301,11 @@ int hcom_nx_trace_msg_make_thread()
 void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
 {
   int ret;
-  uint8_t *readBuf;
   struct sigaction act;
 
   _trace_kthread_running = true;
   _shutting_down = false;
   sem_post(&_startupSem);
-
-  readBuf = malloc(HCOM_TRACE_RAMLOG_READ_BUF_SIZE);
-  if(readBuf == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    return NULL;
-  }
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
@@ -364,7 +321,6 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
   if (ret < 0)
   {
     _trace_kthread_running = false;
-    free(readBuf);
     return NULL;
   }
 
@@ -393,7 +349,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
     }
 
     // Attempt to read from the ramlog buffer and don't return
-    ret = hcom_nx_trace_msg_read_ramlog_loop(readBuf);
+    ret = hcom_nx_trace_msg_read_ramlog_loop();
     if(_shutting_down) break;
     if(ret < 0)
     {
@@ -406,7 +362,6 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
   hcom_nx_trace_kthread_exit_cleanup();
 
   _trace_kthread_running = false;
-  free(readBuf);
 
   return NULL;
 }
@@ -450,18 +405,14 @@ void hcom_nx_trace_kthread_exit_cleanup()
   _trace_log_to_host = false;
   _profiler_log_to_uart = false;
 
-  close(_ramlog_fd);
-  _ramlog_fd = -1;
+  if(_ramlog_fp != NULL)
+  {
+    fclose(_ramlog_fp);
+    _ramlog_fp = NULL;
+  }
 
   close(_uart_fd);
   _uart_fd = -1;
-
-  if(_ramlog_cbuf != NULL)
-  {
-    hcom_cirbuf_release_memory(_ramlog_cbuf);
-    free(_ramlog_cbuf);
-    _ramlog_cbuf = NULL;
-  }
 
   if(_syslogMsgBuf != NULL)
   {
@@ -473,10 +424,10 @@ void hcom_nx_trace_kthread_exit_cleanup()
 //=================================================================
 void hcom_nx_trace_msg_close_and_delay(bool ramLogClose)
 {
-  if(ramLogClose)
+  if(ramLogClose && _ramlog_fp != NULL)
   {
-    close(_ramlog_fd);
-    _ramlog_fd = -1;
+    fclose(_ramlog_fp);
+    _ramlog_fp = NULL;
   }
 
   if(_uart_fd > -1)
@@ -493,17 +444,17 @@ void hcom_nx_trace_msg_close_and_delay(bool ramLogClose)
 //=================================================================
 int hcom_nx_trace_msg_open_ramlog()
 {
-  if(_ramlog_fd > -1)
+  if(_ramlog_fp != NULL)
   {
-    close(_ramlog_fd);
-    _ramlog_fd = -1;
+    fclose(_ramlog_fp);
+    _ramlog_fp = NULL;
   }
 
-  _ramlog_fd = open(HCOM_TRACE_RAMLOG_DEVICE_NAME, O_RDONLY);
+  _ramlog_fp = fopen(HCOM_TRACE_RAMLOG_DEVICE_NAME, "r");
   if(_shutting_down) return OK;
-  if (_ramlog_fd < 0)
+  if (_ramlog_fp == NULL)
   {
-    hcom_nx_uart_direct(LOG_ERR, "%s@%d-open %s, errno:%d\n",
+    hcom_nx_uart_direct(LOG_ERR, "%s@%d-fopen %s, errno:%d\n",
             thisFile, __LINE__, HCOM_TRACE_RAMLOG_DEVICE_NAME, errno);
     return -1;
   }
@@ -540,190 +491,54 @@ int hcom_nx_trace_msg_open_uart_serial_port()
 }
 
 //=================================================================
-// This function reads the data put into the ramlog by Nuttx
-// Returning on error will close the uart connection
-int hcom_nx_trace_msg_read_ramlog_loop(uint8_t *readBuf)
+// Read complete syslog lines from the ramlog using fgets() and
+// route each line to the uart and/or host CLI.
+// Returning on error causes the caller to close and reopen the stream.
+int hcom_nx_trace_msg_read_ramlog_loop(void)
 {
-  ssize_t readReturn;
   int ret;
+  size_t msgLen;
 
   while(!_shutting_down)
   {
-    // Read ramlog
-    readReturn = read(_ramlog_fd, readBuf, HCOM_TRACE_RAMLOG_READ_BUF_SIZE);
-    if(_shutting_down) break;
-    if (readReturn < 0 )
+    if(fgets((char *)_syslogMsgBuf, HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG,
+             _ramlog_fp) == NULL)
     {
-      // Error
+      if(_shutting_down) break;
+
       hcom_nx_uart_direct(LOG_ERR,
-        "%s@%d ramlog read readReturn:%d errno:%d\n",
-        thisFile, __LINE__, readReturn, errno);
+        "%s@%d ramlog fgets failed, errno:%d\n",
+        thisFile, __LINE__, errno);
       return -errno;    // Close connection, wait and try again
     }
-    else if (readReturn == 0)
+
+    if(_shutting_down) break;
+
+    // Skip if all logging was disabled while blocked in fgets()
+    if(!_trace_log_to_host && !_trace_log_to_uart)
+      continue;
+
+    msgLen = strlen((char *)_syslogMsgBuf);
+
+    // Detect truncated message: buffer filled without encountering '\n'
+    if(msgLen > 0 && _syslogMsgBuf[msgLen - 1] != '\n')
     {
-      // EOF
-      hcom_nx_uart_direct(LOG_WARNING,
-        "%s@%d ramlog read EOF read returned:%d errno:%d\n",
-        thisFile, __LINE__, readReturn, errno);
-      return -errno;    // Close connection, wait and try again
+      hcom_nx_uart_direct(LOG_ERR,
+        "%s@%d-syslog message truncated at %zu bytes, no linefeed\n",
+        thisFile, __LINE__, msgLen);
     }
-    else
+
+    ret = hcom_nx_trace_msg_route_trace_text((char *)_syslogMsgBuf, msgLen);
+    if(ret < 0)
     {
-      // Successful ramlog data read. Put data into circular buffer unless
-      // all logging has been turned off.
-      if(_trace_log_to_host || _trace_log_to_uart)
-      {
-        ret = hcom_nx_trace_msg_save_recvd_data(readBuf, readReturn);
-        if (ret < 0 )
-        {
-          hcom_nx_uart_direct(LOG_WARNING,
-            "%s@%d hcom_nx_trace_msg_save_recvd_data() returned:%d\n",
-            thisFile, __LINE__, ret);
-          return ret;    // Close connection, wait and try again
-        }
-      }
+      hcom_nx_uart_direct(LOG_ERR,
+        "%s@%d-route_trace_text returned:%d\n",
+        thisFile, __LINE__, ret);
+      return ret;    // Close connection, wait and try again
     }
   }   // while (!_shutting_down)
 
   return OK;
-}
-
-//=======================================================================
-// Add the data read from ramlog into a circular buffer. It can be added
-// byte by byte or several bytes at once.
-// We assume that the message itself will be delimited with 0x0a
-// (AKA 'line feed' or '\n'). If not multiple messages will be output together
-int hcom_nx_trace_msg_save_recvd_data(uint8_t readBuf[],
-  const ssize_t recvByteCnt)
-{
-  int addResult;
-  int pullResult;
-
-  if (recvByteCnt == 0)
-    return OK;
-
-  // This loop is used to add received data and read all available data to/from
-  // the buffer until no more will fit
-  while(!_shutting_down)
-  {
-    // Can return HCOM_CIR_BUF_ADD_SUCCESS, HCOM_CIR_BUF_ADD_WONT_FIT,
-    // HCOM_CIR_BUF_ADD_BAD_ARG
-    addResult = hcom_cirbuf_add_bytes(_ramlog_cbuf, readBuf, recvByteCnt);
-    if(_shutting_down) break;
-    if(addResult == HCOM_CIR_BUF_ADD_SUCCESS)
-    {
-      break;    // Leave loop and check for data ready to read
-    }
-    else if (addResult == HCOM_CIR_BUF_ADD_WONT_FIT)
-    {
-      // The buffer doesn't have room for these bytes. We need to pull
-      // messages and retry to add this data Only returns -error,
-      // HCOM_CIR_BUF_GET_NONE_FOUND or HCOM_CIR_BUF_GET_DELETED_TOO_BIG
-      pullResult = hcom_nx_trace_msg_pull_all_packets_from_buffer();
-      if(_shutting_down) break;
-      if (pullResult == HCOM_CIR_BUF_GET_FOUND_MSG)
-      {
-        // Pulled and processed some message so attempt to add again
-        continue;
-      }
-
-      if (pullResult == HCOM_CIR_BUF_GET_NONE_FOUND)
-      {
-        // This makes no sense, next msg won't fit and there are no msgs.
-        // Like a buffer full of garbage and no delimiter
-        hcom_cirbuf_clear_buffer(_ramlog_cbuf);
-
-        hcom_nx_uart_direct(LOG_ERR,
-          "%s@%d-buffer corrupted or no linefeed. Deleted data.\n",
-          thisFile, __LINE__);
-        
-        return HCOM_CIR_BUF_GET_NONE_FOUND;    // Reported so ignore.
-      }
-
-      if (pullResult == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
-      {
-        // The message was too long for allocated buffer. It has been deleted.
-        hcom_nx_uart_direct(LOG_ERR,
-          "%s@%d-pull packets from cir buf, msg too long, deleted\n",
-          thisFile, __LINE__);
-        return pullResult;    // Reported and deleted.
-      }
-    }
-    else if (addResult == HCOM_CIR_BUF_ADD_BAD_ARG)
-    {
-      // A bad argument is never expected
-      hcom_nx_uart_direct(LOG_ERR, "%s@%d-Bad argument to cir buf\n",
-        thisFile, __LINE__);
-      return addResult; // Report, throw data away and keep going
-    }
-    else
-    {
-      // Undefined error????
-      hcom_nx_uart_direct(LOG_ERR, "%s@%d-Unknown cir buf add err:%d\n",
-        thisFile, __LINE__, addResult);
-      return addResult; // Report, throw data away and keep going
-    }
-  }   // while(!_shutting_down)
-
-  // Check if there's more, complete message(s) buffered
-  pullResult = hcom_nx_trace_msg_pull_all_packets_from_buffer();
-  return pullResult;
-}
-
-//====================================================================
-// Pull and process all the complete packets from the circular buffer
-// Returns -error or one of the circular buffer get return values
-int hcom_nx_trace_msg_pull_all_packets_from_buffer()
-{
-  int ret;
-  size_t packetLength;
-
-  while(!_shutting_down)
-  {
-    // If buffer too small for the found message packetLength will contain
-    // the needed buffer size.
-    ret = hcom_cirbuf_get_next_packet(_ramlog_cbuf, _syslogMsgBuf,
-            HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG, &packetLength);
-    if(_shutting_down) break;
-
-    // Any messages available?
-    if (ret == HCOM_CIR_BUF_GET_NONE_FOUND)
-    {
-      return ret; // Buffer empty, return to get more data
-    }
-
-    if(ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
-    {
-      // The message was too long.
-      // Probably corrupted data or no linefeed at end of messages
-      hcom_cirbuf_clear_buffer(_ramlog_cbuf);
-
-      hcom_nx_uart_direct(LOG_ERR,
-        "%s@%d-message %d long or w/o linefeed, deleted\n",
-        thisFile, __LINE__, packetLength);
-
-      return ret; // _syslogMsgBuf too small, throw away data and keep going 
-    }
-
-    // Circular Buffer ret must have be HCOM_CIR_BUF_GET_FOUND_MSG
-    // packetLength will include the terminating delimiter.
-    // Route the isolated message
-    ret = hcom_nx_trace_msg_route_trace_text((char *)_syslogMsgBuf, packetLength);
-    if(_shutting_down) break;
-    if (ret == OK)
-    {
-      continue; // pull next packet, if there is one
-    }
-    else
-    {
-      hcom_nx_uart_direct(LOG_ERR, "%s@%d-processing data:%d\n",
-        thisFile, __LINE__, ret);
-      return HCOM_CIR_BUF_GET_NONE_FOUND;   // Assume buffer empty
-    }
-  }   // while(!_shutting_down)
-
-  return HCOM_CIR_BUF_GET_FOUND_MSG;
 }
 
 //=================================================================
