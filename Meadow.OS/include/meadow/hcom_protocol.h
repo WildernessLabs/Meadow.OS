@@ -49,17 +49,6 @@
 #define HCOM_PROTOCOL_MINIMUM_PROTOCOL_NUMBER     ((uint16_t) 0x0007)
 #define HCOM_PROTOCOL_PREFERRED_VERSION_NUMBER    ((uint16_t) 0x0008)
 
-// This #define is used to enable the legacy behavior to support CLIv1 which
-// doesn't support subdirectories. When CLIv1 is retired this #define and all
-// the code it enables can be removed
-// Note: This change caused the protocol version to move from 7 to 8
-// (8Dec23 Peter Moody)
-//
-// MEADOW.OS REBASE - Setting #define to 0 will cause the legacy behavior to
-// NOT be supported in the Rebase. The legacy behavior doesn't support the
-// nested file system. Time to remove the code?
-#define HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR (0)
-
 // Hold the current protocol version number.  This can be used to allow
 // communication between older versions of CLI and the OS.
 extern uint16_t g_current_hcom_protocol_version;
@@ -336,10 +325,6 @@ enum HcomMeadowRequestType
   HCOM_MDOW_REQUEST_BULK_FLASH_ERASE        = 0x0a | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
   HCOM_MDOW_REQUEST_ENTER_DFU_MODE          = 0x0b | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
   HCOM_MDOW_REQUEST_ENABLE_DISABLE_NSH      = 0x0c | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-  HCOM_MDOW_REQUEST_LIST_PARTITION_FILES    = 0x0d | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
-  HCOM_MDOW_REQUEST_LIST_PART_FILES_AND_CRC = 0x0e | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
-#endif
   HCOM_MDOW_REQUEST_MONO_DISABLE            = 0x0f | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
   HCOM_MDOW_REQUEST_MONO_ENABLE             = 0x10 | HCOM_PROTOCOL_HEADER_ONLY_TYPE,
   HCOM_MDOW_REQUEST_MONO_RUN_STATE          = 0x11 | HCOM_PROTOCOL_HEADER_ONLY_TYPE,

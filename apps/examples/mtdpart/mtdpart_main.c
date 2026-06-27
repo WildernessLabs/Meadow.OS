@@ -43,12 +43,6 @@
 
 /* Configuration ************************************************************/
 
-/* Make sure that support for MTD partitions is enabled */
-
-#ifndef CONFIG_MTD_PARTITION
-#  error "CONFIG_MTD_PARTITION is required"
-#endif
-
 /* The default is to use the RAM MTD device at drivers/mtd/rammtd.c.  But
  * an architecture-specific MTD driver can be used instead by defining
  * CONFIG_EXAMPLES_MTDPART_ARCHINIT.  In this case, the initialization logic
