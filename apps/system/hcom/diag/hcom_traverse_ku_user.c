@@ -150,6 +150,7 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
         break;
 
       case HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING:
+        // Call finds length if terminated or not
         hcom_host_send_simple_string_msg(msg.rqstType, 0,
           (char *)&msg.payload, __FILE__, __LINE__);
         break;
@@ -181,7 +182,7 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
  *   calls return OK immediately if the thread is already running.
  *
  * Returned Value:
- *   0 on success, -errno on failure.
+ *   0 on success, negative failure.
  *
  ****************************************************************************/
 
@@ -215,7 +216,7 @@ int hcom_traverse_ku_init_user_setup(void)
     syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
             strerror(errno));
     close(_recv_pipe_fd);
-    return -1;
+    return -EINVAL;
   }
 
   flags &= ~O_NONBLOCK;
@@ -224,7 +225,7 @@ int hcom_traverse_ku_init_user_setup(void)
     syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
             strerror(errno));
     close(_recv_pipe_fd);
-    return -1;
+    return -EINVAL;
   }
 
   /* Spawn the receive thread at the same priority as other text-transport

@@ -261,64 +261,80 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     return -EINVAL;
   }
 
-  /* Lazy open: attempt to connect to the read end opened by the user side.
-   * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
-   */
-  if (_send_pipe_fd < 0)
+  do
   {
-    _send_pipe_fd = traverse_ku_open_write_end();
+    /* Lazy open: attempt to connect to the read end opened by the user side.
+    * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
+    */
     if (_send_pipe_fd < 0)
     {
-      syslog(LOG_ERR, "%s@%d-_send_pipe_fd: errno%d\n",
-              __FILE__, __LINE__, errno);
-      return -errno;
-    }
-  }
-
-  /* Build the envelope. */
-  memset(&msg, 0, sizeof(msg));
-  msg.traverseType = traverseType;
-  msg.rqstType     = requestType;
-  msg.length       = msgLen;
-  memcpy(msg.payload, msgBody, msgLen);
-
-  /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
-   * so partial writes cannot occur and no framing layer is needed.
-   */
-  size_t total_written = 0;
-  while(total_written < sizeof(msg))
-  {
-    written = write(_send_pipe_fd,
-                    (const uint8_t *)&msg + total_written,
-                    sizeof(msg) - total_written);
-    if (written > 0)
-    {
-      total_written += (size_t)written;
-
-      // Test if full message, get more if not
-      continue;
+      _send_pipe_fd = traverse_ku_open_write_end();
+      if (_send_pipe_fd < 0)
+      {
+        syslog(LOG_ERR, "%s@%d-_send_pipe_fd: errno%d\n",
+                __FILE__, __LINE__, errno);
+        return -errno;
+      }
     }
 
-    if(errno == EPIPE)   // 32 Broken pipe
+    /* Build the envelope. */
+    memset(&msg, 0, sizeof(msg));
+    msg.traverseType = traverseType;
+    msg.rqstType     = requestType;
+    msg.length       = msgLen;
+    memcpy(msg.payload, msgBody, msgLen);
+
+    /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
+    * so partial writes cannot occur and no framing layer is needed.
+    */
+    size_t total_written = 0;
+    while(total_written < sizeof(msg))
     {
-      // Will always spin here waiting for User side to start
-      usleep(20 * 1000);
+      written = write(_send_pipe_fd,
+                      (const uint8_t *)&msg + total_written,
+                      sizeof(msg) - total_written);
+      if (written > 0)
+      {
+        total_written += (size_t)written;
+
+        // Test if full message, get more if not
+        continue;
+      }
+
+      if(written == 0)
+      {
+        // Nothing written?
+        usleep(20 * 1000);
+        continue;
+      }
+
+      if(errno == EPIPE)            // 32 Broken pipe
+      {
+        // Will spin here waiting for User side to start, creating the other
+        // end of the pipe.
+        close(_send_pipe_fd);
+        _send_pipe_fd = -1;
+        usleep(20 * 1000);
+        break;            // Break out of inner loop
+      }
+      else if(errno == EAGAIN)      // 11 EAGAIN
+      {
+        usleep(1 * 1000);
+      }
+      else if(errno == EINTR)       // 4 Interrupted
+      {
+        /* Signal interrupted the call — retry immediately. */
+      }
+      else
+      {
+        syslog(LOG_ERR, "%s@%d: write failed, written:%zd errno:%d\n",
+                __FILE__, __LINE__, written, errno);
+        return -errno;
+      }
     }
-    else if(errno == EAGAIN)      // 11 EAGAIN
-    {
-      usleep(1 * 1000);
-    }
-    else if(errno == EINTR)      // 4 Interrupted
-    {
-      /* Signal interrupted the call — retry immediately. */
-    }
-    else
-    {
-      // syslog(LOG_ERR, "%s@%d: write failed, written:%zd errno:%d\n",
-      //         __FILE__, __LINE__, written, errno);
-      return -errno;
-    }
-  }
+
+    // Only loop if file descriptor closed
+  } while(_send_pipe_fd < 0);
 
   // One message written
   return OK;
