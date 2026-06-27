@@ -183,7 +183,7 @@
  */
 #define HCOM_THREAD_PRIORITY_TRACE_RAMLOG           120
 #define HCOM_THREAD_NAME_TRACE_RAMLOG               "RamlogRead"
-#define HCOM_THREAD_STACKSIZE_TRACE_RAMLOG          4096
+#define HCOM_THREAD_STACKSIZE_TRACE_RAMLOG          2048
 
 /**
  * This thread reads stdout and stderr and forwards text to the Host

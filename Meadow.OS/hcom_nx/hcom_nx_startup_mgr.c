@@ -58,7 +58,7 @@
 #include "stm32_ethernet.h"
 #endif
 
-#pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
+// #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
 /****************************************************************************
  * Pre-processor Definitions

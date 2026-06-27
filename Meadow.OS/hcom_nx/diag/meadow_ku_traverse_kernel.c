@@ -52,7 +52,7 @@
 
 #include <sys/stat.h>
 
-#pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
+// #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
 #define USE_MEADOW_DEBUG_HELPERS
 #include "stm32_gpio.h"
