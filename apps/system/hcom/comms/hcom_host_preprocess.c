@@ -647,10 +647,6 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   // Allow the file list processing to include a subdirectories if the
   // message type supports it.
   if( requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR ||
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-      requestType == HCOM_MDOW_REQUEST_LIST_PART_FILES_AND_CRC ||
-      requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR ||
-#endif
       requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR_CRC)
   {
     // Need to get the information associated with these list requests. It
@@ -764,26 +760,6 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
           requestType == HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END)
   {
     // End of file download
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-    // Looks like CLIv1 sent ending message even though an earlier error
-    if(dnldShared->dnldCurrentState == HcomStm32F7DnldStateInvalid)
-    {
-      // There must have been a previous error, let CLI know
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-              "'End' command received, but no active download",
-              thisFile, __LINE__);
-
-      syslog(LOG_ERR,
-                "%s@%d-No active download, but 'Download End' received\n",
-                thisFile, __LINE__);
-
-      // Caller expects a Concluded message for End message.
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-                "", thisFile, __LINE__);
-
-      return -EOWNERDEAD;
-    }
-#endif
   }
 
   //-------------------------------------------------------------------
@@ -811,10 +787,6 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       requestType == HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END ||
       requestType == HCOM_MDOW_REQUEST_UPLOAD_START_DATA_SEND ||
       requestType == HCOM_MDOW_REQUEST_DELETE_FILE_BY_NAME ||
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-      requestType == HCOM_MDOW_REQUEST_LIST_PARTITION_FILES ||
-      requestType == HCOM_MDOW_REQUEST_LIST_PART_FILES_AND_CRC ||
-#endif
       requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR ||
       requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR_CRC)
   {

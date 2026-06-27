@@ -243,11 +243,6 @@ int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared);
 
 // -----------------------------------------------
 // File listing functions
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-int hcom_file_lists_all_files_in_meadow0(const HcomProtoHdrMsg_t *hdrMsg,
-        hcom_dnld_shared_t *dnldShared, bool isCrcNeeded);
-#endif
-
 int hcom_file_lists_files_and_crc_in_partition(uint32_t partitionId);
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData);
 

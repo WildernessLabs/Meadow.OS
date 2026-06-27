@@ -185,24 +185,6 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0, thisFile, __LINE__);
       break;
 
-#if HCOM_SUPPORT_CLIV1_LEGACY_BEHAVIOR > 0
-    case HCOM_MDOW_REQUEST_LIST_PARTITION_FILES:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", thisFile, __LINE__);
-      hcom_file_lists_all_files_in_meadow0(hdrMsg, dnldShared, false);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", thisFile, __LINE__);
-      break;
-
-    case HCOM_MDOW_REQUEST_LIST_PART_FILES_AND_CRC:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", thisFile, __LINE__);
-      hcom_file_lists_all_files_in_meadow0(hdrMsg, dnldShared, true);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", thisFile, __LINE__);
-      break;
-#endif
-
     // New Dec2023 to support subdirectories
     case HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
