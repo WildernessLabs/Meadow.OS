@@ -87,7 +87,7 @@ enum MeadowKUTraverseType
 };
 
 /* Fixed-size envelope transferred atomically through the FIFO.
- * Total size: 4 (TraverseType) + 2 (rqstType)  + 2 (length)+ 2 (pad) + 256 (payload) = 264 bytes,
+ * Total size: 4 (TraverseType) + 2 (rqstType)  + 2 (length) + 256 (payload) = 264 bytes,
  * well within PIPE_BUF.
  */
 struct meadow_ku_traverse_msg_t
@@ -97,11 +97,6 @@ struct meadow_ku_traverse_msg_t
   uint16_t                  length;
   uint8_t                   payload[MEADOW_KU_TRAVERSE_PAYLOAD_MAX];
 };
-
-/* Handler callback invoked on the user-side receive thread. */
-
-typedef void (*meadow_ku_traverse_handler_t)
-    (const struct meadow_ku_traverse_msg_t *msg);
 
 /****************************************************************************
  * Public Function Prototypes
@@ -115,7 +110,6 @@ typedef void (*meadow_ku_traverse_handler_t)
  *
  * Returns 0 on success, -errno on failure.
  */
-
 int meadow_ku_traverse_kernel_setup(void);
 
 // These allow access to meadow_ku_traverse_send
@@ -123,14 +117,6 @@ int hcom_ku_traverse_syslog_to_host(char *syslogMsg, size_t syslogLen);
 int hcom_ku_traverse_text_to_host(uint16_t requestType,
         char *textMsg, size_t textLen);
 int hcom_ku_traverse_string_to_host(uint16_t requestType, char *stringMsg);
-
-/* Marshal data into an envelope and write it atomically to the FIFO.
- * Blocks on back-pressure if the pipe buffer is full.  Returns -ENXIO and
- * drops silently if the user side has not yet opened the read end.
- * len must be <= MEADOW_KU_TRAVERSE_PAYLOAD_MAX.
- *
- * Returns 0 on success, -errno on failure.
- */
 int meadow_ku_traverse_send_string(enum MeadowKUTraverseType type,
   uint16_t requestType, const char *string);
 
@@ -146,14 +132,5 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType type,
  */
 
 int meadow_ku_traverse_init_user_setup(void);
-
-// /* Register a handler for a message type.  At most one handler per type;
-//  * calling again replaces the previous handler.
-//  *
-//  * Returns 0 on success, -EINVAL if type is out of range or handler is NULL.
-//  */
-
-// int meadow_ku_traverse_register_handler(enum MeadowKUTraverseType type,
-//                                          meadow_ku_traverse_handler_t handler);
 
 #endif /* __INCLUDE_MEADOW_KU_TRAVERSE_H */

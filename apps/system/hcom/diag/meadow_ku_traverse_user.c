@@ -58,7 +58,7 @@
 // void hcom_diag_gpio_set_low(uint32_t pin);  
 // void hcom_diag_gpio_pulse(uint32_t pin, uint32_t usec);
 
-#pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
+// #pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
 
 /****************************************************************************
  * Private Data
@@ -67,8 +67,6 @@
 static int         _recv_pipe_fd       = -1;
 static bool        _thread_running = false;
 static pthread_t   _recv_pthread;
-
-// static meadow_ku_traverse_handler_t _handlers[MEADOW_KU_TRAVERSE_TYPE_COUNT];
 
 /****************************************************************************
  * Private Function Prototypes

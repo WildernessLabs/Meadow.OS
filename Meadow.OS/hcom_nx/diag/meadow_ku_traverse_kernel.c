@@ -54,10 +54,10 @@
 
 // #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
-#define USE_MEADOW_DEBUG_HELPERS
-#include "stm32_gpio.h"
+// #define USE_MEADOW_DEBUG_HELPERS
 // #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
+// #include "stm32_gpio.h"
 
 /****************************************************************************
  * Private Data
@@ -102,7 +102,7 @@ static int ku_traverse_open_write_end(void)
       }
       else
       {
-        syslog(LOG_MDIAG, "-->Error: Failed to get file open: %s\n", strerror(errno));
+        syslog(LOG_MDIAG, "-->Error: Failed to get file open:%d\n", errno);
         usleep(10 * 1000);
         return -1;
       }
@@ -298,14 +298,14 @@ int meadow_ku_traverse_send(enum MeadowKUTraverseType traverseType,
       continue;
     }
 
-    if(errno == EAGAIN)      // 11 EAGAIN
+    if(errno == EPIPE)   // 32 Broken pipe
+    {
+      // Will always spin here waiting for User side to start
+      usleep(20 * 1000);
+    }
+    else if(errno == EAGAIN)      // 11 EAGAIN
     {
       usleep(1 * 1000);
-    }
-    else if(errno == EPIPE)   // 32 Broken pipe
-    {
-      // Spins here waiting for User side to be initialized
-      usleep(20 * 1000);
     }
     else if(errno == EINTR)      // 4 Interrupted
     {
