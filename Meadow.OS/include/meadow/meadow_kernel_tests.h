@@ -60,7 +60,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t);
 void meadow_kt_assert_test(uint32_t);
 void meadow_kt_measure_freq_tests(uint32_t);
 void meadow_kt_bluetooth_tests(uint32_t);
-void meadow_kt_ku_traverse_tests(uint32_t);
+void meadow_kt_traverse_ku_tests(uint32_t);
 
 //
 //  Bluetooth tests.

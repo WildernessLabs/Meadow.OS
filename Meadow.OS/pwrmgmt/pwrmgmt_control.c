@@ -56,7 +56,7 @@
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_pwr_mgmt.h>
-#include <meadow/meadow_ku_traverse.h>
+#include <meadow/meadow_traverse_ku.h>
 #include "pwrmgmt_local.h"
 
 #include "hardware/stm32f76xx77xx_pwr.h"
@@ -281,7 +281,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   // This will route the message to app side and on to CLI.
   char *lowPowerNext = "Entering low-power mode\n";
-  hcom_ku_traverse_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
+  hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
             lowPowerNext, strlen(lowPowerNext));
   if(ret < 0)
   {

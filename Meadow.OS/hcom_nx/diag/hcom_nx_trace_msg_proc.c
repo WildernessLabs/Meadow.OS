@@ -43,7 +43,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_cirbuf.h>
-#include <meadow/meadow_ku_traverse.h>
+#include <meadow/meadow_traverse_ku.h>
 #include "../hcom_nx_config_manager.h"
 
 #include <nuttx/kthread.h>
@@ -748,7 +748,7 @@ int hcom_nx_trace_msg_route_trace_text(char* syslogMsg, size_t syslogMsgLen)
   if(_trace_log_to_host)
   {
     // This will block till pipe reader opens the read end
-    ret = hcom_ku_traverse_syslog_to_host((char *)  syslogMsg, syslogMsgLen);
+    ret = hcom_traverse_ku_syslog_to_host((char *)  syslogMsg, syslogMsgLen);
     if(ret < 0)
     {
       return ret;

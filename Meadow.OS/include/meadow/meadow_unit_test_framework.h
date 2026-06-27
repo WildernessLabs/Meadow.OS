@@ -213,7 +213,7 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 /**
  * @brief KU traverse channel tests.
  */
-#define MEADOW_TEST_KU_TRAVERSE                     22
+#define MEADOW_TEST_TRAVERSE_KU                     22
 
 /**
  * @brief User space assert test ID.

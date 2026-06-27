@@ -51,7 +51,7 @@
 #include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
 #include "meadow_interrupt.h"
-#include <meadow/meadow_ku_traverse.h>
+#include <meadow/meadow_traverse_ku.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>
@@ -126,7 +126,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Calls mkfifo to create a named pipe
-  ret = meadow_ku_traverse_kernel_setup();
+  ret = meadow_traverse_ku_kernel_setup();
   if (ret < 0)
   {
     syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);

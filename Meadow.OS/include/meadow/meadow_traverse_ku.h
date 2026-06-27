@@ -1,5 +1,5 @@
 /****************************************************************************
- * \include\meadow\meadow_ku_traverse.h
+ * \include\meadow\meadow_traverse_ku.h
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -36,7 +36,7 @@
 /* Reliable kernel-to-user text transport via a named FIFO (pipe).
  *
  * Design notes:
- *   - A fixed-size envelope (meadow_ku_traverse_msg_t) is written atomically
+ *   - A fixed-size envelope (meadow_traverse_ku_msg_t) is written atomically
  *     because sizeof(envelope) < PIPE_BUF (1024 bytes on NuttX).  No framing
  *     or mutex is required.
  *   - Blocking write() on the kernel side provides natural back-pressure: the
@@ -48,8 +48,8 @@
  *     that time the user side is already open, so the open does not block.
  */
 
-#ifndef __INCLUDE_MEADOW_KU_TRAVERSE_H
-#define __INCLUDE_MEADOW_KU_TRAVERSE_H
+#ifndef __INCLUDE_MEADOW_TRAVERSE_KU_H
+#define __INCLUDE_MEADOW_TRAVERSE_KU_H
 
 /****************************************************************************
  * Included Files
@@ -65,11 +65,11 @@
  * below PIPE_BUF (1024 bytes on NuttX) to guarantee an atomic write().
  */
 
-#define MEADOW_KU_TRAVERSE_PAYLOAD_MAX  256
+#define MEADOW_TRAVERSE_KU_PAYLOAD_MAX  256
 
 /* Path of the named FIFO used to cross the kernel/user boundary. */
 
-#define MEADOW_KU_TRAVERSE_PIPE_PATH    "/dev/meadow_ku_traverse"
+#define MEADOW_TRAVERSE_KU_PIPE_PATH    "/dev/meadow_traverse_ku"
 
 /****************************************************************************
  * Public Types
@@ -77,25 +77,25 @@
 
 /* Discriminator used to route each message to the correct handler. */
 
-enum MeadowKUTraverseType
+enum MeadowTraverseKUType
 {
-  MEADOW_KU_TRAVERSE_TYPE_UNKNOWN = 0,      /* Start of enum              */
-  MEADOW_KU_TRAVERSE_TYPE_SYSLOG_TEXT,      /* kernel syslog / trace text */
-  MEADOW_KU_TRAVERSE_TYPE_GENERIC_TEXT,     /* generic snapshot text      */
-  MEADOW_KU_TRAVERSE_TYPE_GENERIC_STRING,   /* NULL terminated char array */
-  MEADOW_KU_TRAVERSE_TYPE_COUNT             /* sentinel — keep last       */
+  MEADOW_TRAVERSE_KU_TYPE_UNKNOWN = 0,      /* Start of enum              */
+  MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT,      /* kernel syslog / trace text */
+  MEADOW_TRAVERSE_KU_TYPE_GENERIC_TEXT,     /* generic snapshot text      */
+  MEADOW_TRAVERSE_KU_TYPE_GENERIC_STRING,   /* NULL terminated char array */
+  MEADOW_TRAVERSE_KU_TYPE_COUNT             /* sentinel — keep last       */
 };
 
 /* Fixed-size envelope transferred atomically through the FIFO.
  * Total size: 4 (TraverseType) + 2 (rqstType)  + 2 (length) + 256 (payload) = 264 bytes,
  * well within PIPE_BUF.
  */
-struct meadow_ku_traverse_msg_t
+struct meadow_traverse_ku_msg_t
 {
-  enum MeadowKUTraverseType traverseType;
+  enum MeadowTraverseKUType traverseType;
   uint16_t                  rqstType;
   uint16_t                  length;
-  uint8_t                   payload[MEADOW_KU_TRAVERSE_PAYLOAD_MAX];
+  uint8_t                   payload[MEADOW_TRAVERSE_KU_PAYLOAD_MAX];
 };
 
 /****************************************************************************
@@ -106,31 +106,31 @@ struct meadow_ku_traverse_msg_t
 
 /* Create the named FIFO.  Call once from kernel init before user-space
  * starts.  Does not open the write end; that happens lazily on the first
- * meadow_ku_traverse_send() call once the user side is ready.
+ * meadow_traverse_ku_send() call once the user side is ready.
  *
  * Returns 0 on success, -errno on failure.
  */
-int meadow_ku_traverse_kernel_setup(void);
+int meadow_traverse_ku_kernel_setup(void);
 
-// These allow access to meadow_ku_traverse_send
-int hcom_ku_traverse_syslog_to_host(char *syslogMsg, size_t syslogLen);
-int hcom_ku_traverse_text_to_host(uint16_t requestType,
+// These allow access to meadow_traverse_ku_send
+int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen);
+int hcom_traverse_ku_text_to_host(uint16_t requestType,
         char *textMsg, size_t textLen);
-int hcom_ku_traverse_string_to_host(uint16_t requestType, char *stringMsg);
-int meadow_ku_traverse_send_string(enum MeadowKUTraverseType type,
+int hcom_traverse_ku_string_to_host(uint16_t requestType, char *stringMsg);
+int meadow_traverse_ku_send_string(enum MeadowTraverseKUType type,
   uint16_t requestType, const char *string);
 
-int meadow_ku_traverse_send(enum MeadowKUTraverseType type,
+int meadow_traverse_ku_send(enum MeadowTraverseKUType type,
   uint16_t requestType, const void *data, uint16_t len);
 
 /* User-side API ---------------------------------------------------------- */
 
 /* Open the FIFO for reading and spawn the receive thread.  Call early in
- * hcom startup before any kernel code calls meadow_ku_traverse_send().
+ * hcom startup before any kernel code calls meadow_traverse_ku_send().
  *
  * Returns 0 on success, -errno on failure.
  */
 
-int meadow_ku_traverse_init_user_setup(void);
+int meadow_traverse_ku_init_user_setup(void);
 
-#endif /* __INCLUDE_MEADOW_KU_TRAVERSE_H */
+#endif /* __INCLUDE_MEADOW_TRAVERSE_KU_H */

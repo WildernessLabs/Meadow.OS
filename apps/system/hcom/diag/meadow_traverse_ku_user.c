@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/system/hcom/diag/meadow_ku_traverse_user.c
+ * apps/system/hcom/diag/meadow_traverse_ku_user.c
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -35,7 +35,7 @@
 
 /* User-side implementation of the kernel-to-user text traverse channel.
  *
- * meadow_ku_traverse_init_user_setup() opens the named FIFO O_RDONLY | O_NONBLOCK
+ * meadow_traverse_ku_init_user_setup() opens the named FIFO O_RDONLY | O_NONBLOCK
  * (so the open returns immediately without waiting for the kernel write end),
  * removes O_NONBLOCK so the receive thread blocks on each read(), and spawns
  * the receive thread.
@@ -47,17 +47,11 @@
 
 #include "../hcom_common.h"
 
-#include <meadow/meadow_ku_traverse.h>
+#include <meadow/meadow_traverse_ku.h>
 #include <meadow/meadow_thread_config.h>
 
 // Diagnostic 
-#include "../diag/hcom_diag_gpio.h"
-
-// void hcom_diag_gpio_config(uint32_t pin);
-// void hcom_diag_gpio_set_high(uint32_t pin);
-// void hcom_diag_gpio_set_low(uint32_t pin);  
-// void hcom_diag_gpio_pulse(uint32_t pin, uint32_t usec);
-
+// #include "../diag/hcom_diag_gpio.h"
 // #pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
 
 /****************************************************************************
@@ -72,14 +66,14 @@ static pthread_t   _recv_pthread;
  * Private Function Prototypes
  ****************************************************************************/
 
-static FAR void *ku_traverse_recv_pthread(FAR void *arg);
+static FAR void *traverse_ku_recv_pthread(FAR void *arg);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ku_traverse_recv_pthread
+ * Name: traverse_ku_recv_pthread
  *
  * Description:
  *   Receive thread.  Blocks on each read() waiting for a complete envelope
@@ -88,9 +82,9 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg);
  *
  ****************************************************************************/
 
-static FAR void *ku_traverse_recv_pthread(FAR void *arg)
+static FAR void *traverse_ku_recv_pthread(FAR void *arg)
 {
-  struct meadow_ku_traverse_msg_t msg;
+  struct meadow_traverse_ku_msg_t msg;
   uint8_t *dst = (uint8_t *)&msg;
   size_t   total = 0;
   ssize_t  nread;
@@ -145,17 +139,17 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
     // Based on type process the information
     switch(msg.traverseType)
     {
-      case MEADOW_KU_TRAVERSE_TYPE_SYSLOG_TEXT:
+      case MEADOW_TRAVERSE_KU_TYPE_SYSLOG_TEXT:
         hcom_host_send_raw_string_msg(msg.rqstType, 0,
           (char *)&msg.payload, msg.length, __FILE__, __LINE__);
         break;
 
-      case MEADOW_KU_TRAVERSE_TYPE_GENERIC_TEXT:
+      case MEADOW_TRAVERSE_KU_TYPE_GENERIC_TEXT:
        hcom_host_send_raw_string_msg(msg.rqstType, 0,
           (char *)&msg.payload, msg.length, __FILE__, __LINE__);
         break;
 
-      case MEADOW_KU_TRAVERSE_TYPE_GENERIC_STRING:
+      case MEADOW_TRAVERSE_KU_TYPE_GENERIC_STRING:
         hcom_host_send_simple_string_msg(msg.rqstType, 0,
           (char *)&msg.payload, __FILE__, __LINE__);
         break;
@@ -174,7 +168,7 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: meadow_ku_traverse_init_user_setup
+ * Name: meadow_traverse_ku_init_user_setup
  *
  * Description:
  *   Open the named FIFO for reading and spawn the receive thread.
@@ -191,7 +185,7 @@ static FAR void *ku_traverse_recv_pthread(FAR void *arg)
  *
  ****************************************************************************/
 
-int meadow_ku_traverse_init_user_setup(void)
+int meadow_traverse_ku_init_user_setup(void)
 {
   pthread_attr_t    attr;
   struct sched_param param;
@@ -204,7 +198,7 @@ int meadow_ku_traverse_init_user_setup(void)
   }
 
   /* Open O_NONBLOCK so we do not stall waiting for the kernel write end. */
-  _recv_pipe_fd = open(MEADOW_KU_TRAVERSE_PIPE_PATH, O_RDONLY | O_NONBLOCK);
+  _recv_pipe_fd = open(MEADOW_TRAVERSE_KU_PIPE_PATH, O_RDONLY | O_NONBLOCK);
   if (_recv_pipe_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d: open failed, errno:%d\n",
@@ -241,7 +235,7 @@ int meadow_ku_traverse_init_user_setup(void)
   (void)pthread_attr_setschedparam(&attr, &param);
   (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_RECV_TRAVERSE);
 
-  ret = pthread_create(&_recv_pthread, &attr, ku_traverse_recv_pthread, NULL);
+  ret = pthread_create(&_recv_pthread, &attr, traverse_ku_recv_pthread, NULL);
   if (ret != 0)
   {
     syslog(LOG_CRIT, "%s@%d: pthread_create failed, ret:%d errno:%d\n",

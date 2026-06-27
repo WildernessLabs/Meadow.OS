@@ -129,7 +129,7 @@ static void syslogToHost(int priority, FAR const IPTR char *fmt, ...)
   // buffer size but will always place a terminating NULL at the end.
   int stringLen = vsnprintf(finalString, maxStringLen - 1, fmt, args);
   
-  hcom_ku_traverse_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
+  hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
     finalString, stringLen);
 
   va_end(args);

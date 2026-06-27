@@ -144,8 +144,8 @@ static meadow_test_methods_t _kernelTests[] =
     { MEADOW_TEST_BG77, meadow_kt_ethernet_tests },
 #endif
 
-#if defined(CONFIG_KU_TRAVERSE_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_KU_TRAVERSE, meadow_kt_ku_traverse_tests },
+#if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_TRAVERSE_KU, meadow_kt_traverse_ku_tests },
 #endif
 };
 
