@@ -122,21 +122,11 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
       if(ret < 0)
       {
         // Have we reached the end of empty directories?
-        // Note: ENOTEMPTY in the NuttX errno.h file is 90 but rmdir returned
-        //  39. I was only able to reconcile this by locating the littlefs
-        //  header file, lfs.h. Here 'not empty' id defined as 39. I tried to
-        //  reference this header at nuttx/fs/littlefs/lfs.h but the compiler
-        //  couldn't find it because it's on the Nuttx side and this code is
-        //  on the apps side.
-        // Rebase Note:
-        //  Realizing that the Nuttx Rebase may well fix the problem, I decided
-        //  to define it here.
-#define LITTLEFS_VERSION_OF_ENOTEMPTY (39)
 
         // If an attempt to delete a directory failed, because wasn't empty,
         // this is not an error. It means we are finished removing empty
         // directories.
-        if(errno != LITTLEFS_VERSION_OF_ENOTEMPTY)
+        if(errno != ENOTEMPTY)
         {
           syslog(LOG_ERR, "%s@%d-ERROR deleting directory '%s', ret:%d, errno:%d\n",
                     thisFile, __LINE__, pathNameTemp, ret, errno);
