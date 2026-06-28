@@ -187,12 +187,12 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partNumb, const char 
   if(ret >= 0)
     return OK;   // Mount successful, exit
 
-  // Rebase Note: In Legacy Meadow the return value for a corrupt file system
-  // was LFS_ERR_CORRUPT, which had a value of -52. A function was added to
-  // lfs_vfs.c [littlefs_convert_result()] that converts the LittleFS error
+  // In Legacy Meadow the return value for a corrupt file system
+  // was LFS_ERR_CORRUPT, which had a value of -52. A function has been added
+  // to lfs_vfs.c [littlefs_convert_result()] that converts the LittleFS error
   // values to ones that match Nuttx, -52 is now -EFAULT.
   // 
-  // While moving to Nutts V12 I found that without erasing the flash chip
+  // While moving to Nutts V12.x I found that without erasing the flash chip
   // the error returned was -EINVAL. If this error was encountered formatting
   // this partition also resolved the file system differences.
   if(ret != -EFAULT && ret != -EINVAL)
