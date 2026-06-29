@@ -20,9 +20,6 @@ Other Things that need attention
 1. Look for 'MEADOW.OS REBASE' in the code. These are places NOT fixed. But,
 are some form of workaround or change, needed for the code to build.
 
-2. Meadow/nuttx/include/meadow/'meadow_syscall.h' should be merged with
-'meadow_syscall_support.h'.
-
 3. The first few lines in our files Meadow files are incorrect. These contain
 inconsistent old copyright information, likely a wrong file location and the
 wrong copyright date. While no technical value, it should be done. We need a
@@ -58,7 +55,7 @@ This list needs to become several Meadow.OS Issues
 Things to look into (no order):
 // Issue 87
 1. A failed download - When a file download fails the file seems to be left in the file
-   System with a length of 0, not deleted.
+   System with a length of 0, not deleted. Fixed
 
 // Issue #88
 2. SD-Card mounting - Nuttx 12 has automount code for sd-cards. Should we consider using it?

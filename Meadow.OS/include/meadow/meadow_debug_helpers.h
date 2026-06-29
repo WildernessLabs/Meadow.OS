@@ -40,7 +40,6 @@
 
 #include <syslog.h>
 
-
 #if defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 
 /**
@@ -63,11 +62,10 @@
  *  Define USE_MEADOW_DEBUG_HELPERS in your source file and then include this file to use these definitions.
  */
 #if defined(USE_MEADOW_DEBUG_HELPERS) || defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
-
+// MEADOW.OS REBASE - When MEADOW_USE_HCOM_DEBUG_HELPERS or
+// USE_MEADOW_DEBUG_HELPERS is defined, there's build warnings complain about
+// being the following LOG_xxx being redefined.
 // #if defined(__KERNEL__) && defined(CONFIG_BUILD_PROTECTED)
-// MEADOW.OS REBASE - When MEADOW_USE_HCOM_DEBUG_HELPERS is defined in Meadow
-// Rebase, the following create warnings about being redefined. Without these
-// the build succeeds without warnings.
 // #if defined(CONFIG_BUILD_PROTECTED) && !defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 //     #define LOG_INFO    1
 //     #define LOG_DEBUG   1
