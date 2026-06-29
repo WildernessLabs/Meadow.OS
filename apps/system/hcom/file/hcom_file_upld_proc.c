@@ -45,6 +45,7 @@
 #include <meadow/hcom_shared_common.h>
 
 #include <nuttx/arch.h>
+#include <limits.h>
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
 #pragma message "(--) hcom_file_upld_proc.c"
@@ -88,8 +89,8 @@ int hcom_file_upld_proc_setup()
 }
 
 //==========================================================================
-// The hcom_file_upld_proc_initial_bytes_in_file() feature is rarely used, if
-// ever. Originally, it was a way to identify if a file was already downloaded
+// The hcom_file_upld_proc_initial_bytes_in_file() feature is rarely used.
+// Originally, it was a way to identify if a file was already downloaded
 // to the file system.
 //
 // This function receives a command from CLI and builds a single message to
@@ -104,7 +105,6 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   int ret;
   int fd;
   char *fileNameBuffer;
-  char *fileName;
   
   HcomProtoTextMsg_t *textMsg = (HcomProtoTextMsg_t *)hdrMsg;
 
@@ -123,47 +123,19 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   memset(fileNameBuffer, 0, fileNameLen + 1);
   memcpy(fileNameBuffer, textMsg->textData, fileNameLen);
 
-  // Create the name of the mount point part of the file name
-  char *fullMountPtName = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(fullMountPtName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", 
-              thisFile, __LINE__);
-    free(fileNameBuffer);
-    return;
-  }
-
-  strncpy(fullMountPtName, MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
-            HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
-
-  fileName = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(fileName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-              thisFile, __LINE__);
-    free(fileNameBuffer);
-    free(fullMountPtName);
-    return;
-  }
-  
-  snprintf_chk(fileName, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s/%s",
-                fullMountPtName, fileNameBuffer);
-  free(fullMountPtName);
-
   // Open the file
-  fd = open(fileName, O_RDONLY);
+  fd = open(fileNameBuffer, O_RDONLY);
   if (fd == -1)
   {
     char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
-          "File '%s' cannot be opened", fileName);
+          "File '%s' cannot be opened", fileNameBuffer);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             thisFile, __LINE__);
 
     syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
-                thisFile, __LINE__, fileName, errno);                
+                thisFile, __LINE__, fileNameBuffer, errno);
     free(fileNameBuffer);
-    free(fileName);
     return;
   }
 
@@ -173,7 +145,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   {
     char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
-          "The file '%s' encountered a lseek error", fileName);
+          "The file '%s' encountered a lseek error", fileNameBuffer);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             thisFile, __LINE__);
 
@@ -182,20 +154,16 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
     
     close(fd);
     free(fileNameBuffer);
-    free(fileName);
     return;
   }
 
-  free(fileNameBuffer);
-
-  // Read first data bytes
   uint8_t *returnBinData = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(returnBinData == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
 
     close(fd);
-    free(fileName);
+    free(fileNameBuffer);
     return;
   }
   
@@ -203,15 +171,16 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   int bufOff = 0;
   do
   {
+    // Read first part of file
     nbytes = read(fd, returnBinData + bufOff, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN - bufOff);
     if (nbytes < 0)
     {
       syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
-                thisFile, __LINE__, fileName, errno); usleep(20 * 1000);
+                thisFile, __LINE__, fileNameBuffer, errno); usleep(20 * 1000);
 
       close(fd);
+      free(fileNameBuffer);
       free(returnBinData);
-      free(fileName);
       return;
     }
 
@@ -223,18 +192,18 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-close %s, errno:%d\n",
-             thisFile, __LINE__, fileName, errno);
+             thisFile, __LINE__, fileNameBuffer, errno);
 
-    free(fileName);
+    free(fileNameBuffer);
     free(returnBinData);
     return;
   }
 
-  // Send the command to host
+  // Send the data to host
   hcom_host_send_binary_data_msg(HCOM_HOST_REQUEST_SEND_INITIAL_FILE_BYTES,
             0, returnBinData, bufOff, __FILE__, __LINE__);
 
-  free(fileName);
+  free(fileNameBuffer);
   free(returnBinData);
 }
 

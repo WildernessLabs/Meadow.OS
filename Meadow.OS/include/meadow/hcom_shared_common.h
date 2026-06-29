@@ -42,6 +42,7 @@
 #include <nuttx/net/net.h>
 #include <nuttx/semaphore.h>
 #include <meadow/hcom_protocol.h>
+#include <limits.h>
 
 /****************************************************************************
  * Shared enums.
