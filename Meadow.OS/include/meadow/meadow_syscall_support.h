@@ -54,6 +54,11 @@
  * Public Functions
  ************************************************************************************/
 
+// Make GPIO accessible to user-side
+int stm32_configgpio(uint32_t cfgset);
+int stm32_unconfiggpio(uint32_t cfgset);
+void stm32_gpiowrite(uint32_t pinset, bool value);
+
 // Meadow ADC
 int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount, double *userDataBuf);
 int meadow_adc_read_values(void);

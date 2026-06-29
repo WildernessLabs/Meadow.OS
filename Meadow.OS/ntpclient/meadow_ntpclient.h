@@ -35,11 +35,6 @@
  *
  ****************************************************************************/
 
-// MEADOW.OS REBASE
-// Renamed from ntpclient.c to meadow_ntpclient.c to get things to build,
-// not sure this was the only way.
-// Note: Nuttx has a ntpclient.c defined in 'apps'
-
 #ifndef __APPS_INCLUDE_NETUTILS_NTPCLIENT_H
 #define __APPS_INCLUDE_NETUTILS_NTPCLIENT_H 1
 

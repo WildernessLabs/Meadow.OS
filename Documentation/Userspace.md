@@ -54,7 +54,6 @@ User-space and kernel-space share protocol and data structure definitions via he
 | `hcom_nuttx_shared.h` | NuttX-specific shared definitions |
 | `hcom_upd_shared.h` | UPD (Universal Platform Driver) shared interface |
 | `hcom_dnld_shared.h` | File download shared types |
-| `meadow_syscall.h` | Meadow syscall numbers and prototypes |
 | `meadow_syscall_support.h` | Syscall support types |
 | `meadow_apps_core_share.h` | Core app/kernel shared data structures |
 | `meadow_partition_share.h` | QSPI partition layout shared between BL/OS/app |
