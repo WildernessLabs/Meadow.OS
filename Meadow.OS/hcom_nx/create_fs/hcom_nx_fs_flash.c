@@ -217,11 +217,7 @@ int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *geometry)
 static int MTD_BREAD_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock, 
           uint32_t numbBlocks, uint8_t *destBuff)
 {
-#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
     return partMtdBRead(startBlock, numbBlocks, destBuff);
-#else
-    return MTD_BREAD(mtd, startBlock, numbBlocks, destBuff);
-#endif
 }
 
 /****************************************************************************
@@ -246,11 +242,7 @@ static int MTD_BREAD_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
 static int MTD_BWRITE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock, 
           uint32_t numbBlocks, uint8_t *sourceBuff)
 {
-#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
     return partMtdBWrite(startBlock, numbBlocks, sourceBuff);
-#else
-    return MTD_BWRITE(mtd, startBlock, numbBlocks, sourceBuff);
-#endif
 }
 
 /****************************************************************************
@@ -274,11 +266,7 @@ static int MTD_BWRITE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
 static int MTD_ERASE_Proxy(struct mtd_dev_s *mtd, uint32_t startBlock,
           uint32_t numbBlocks)
 {
-#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
-    return partMtdErase(startBlock, numbBlocks);
-#else
-    return MTD_ERASE(mtd, startBlock, numbBlocks);
-#endif
+  return partMtdErase(startBlock, numbBlocks);
 }
 
 /****************************************************************************
@@ -459,7 +447,6 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
 {
   int ret;
 
-#if MEADOW_FLASH_PART_ONLY_USE_PARTITIONS > 0
   // The reason this code is necessary is that access to the file system
   // partition is restricted. Therefore, we must directly call MTD_ERASE, and
   // not use the MTD_ERASE_Proxy or the call will fail.
@@ -482,26 +469,6 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
     return ret;
   }
   return OK;
-
-#else
-  // userData has partition id
-  int sectorOffset = hcom_nx_fs_1st_erase_sector_of_partition(cmdData->userData);
-
-  // Erase the first few sectors of the partition and restart the MCU
-  // Can't use this because the file system partition is off-limits to callers
-  ret = MTD_ERASE_Proxy(_mtd, sectorOffset, 16);
-  if (ret < 0)
-  {
-    cmdData->logLevel = LOG_ERR;
-    // Don't use snprintf_chk here
-    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-flash erase SectorOffset %d, err:%d\n",
-                      thisFile, __LINE__, sectorOffset, ret);
-    return ret;
-  }
-  return OK;
-
-#endif
 }
 
 /****************************************************************************

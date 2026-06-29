@@ -21,9 +21,6 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
-// Set to '1' to use Partitions to access the external flash
-#define MEADOW_FLASH_PART_ONLY_USE_PARTITIONS (1)
-
 // This enables the ouput of partition information at startup
 #define HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP (1)
 
