@@ -68,7 +68,7 @@ NuttX is configured as a **protected build** (`CONFIG_BUILD_PROTECTED=y`):
 - **User space** — `hcom` application and NuttX libs. Runs unprivileged.  
   Linker script: `user-space.ld`. Output: `nuttx_user.elf` / `nuttx_user.bin`.
 - **MPU** enforces the boundary at runtime. User code crosses to kernel via syscalls
-  defined in `meadow_syscall.h` and `meadow_syscall_support.h`.
+  defined in `meadow_syscall_support.h`.
 - **Pass1 build**: kernel is configured first, then user-space libs are built against
   the exported kernel headers (`nuttx/staging/`).
 

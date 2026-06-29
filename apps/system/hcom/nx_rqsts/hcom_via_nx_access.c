@@ -391,38 +391,6 @@ void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
   }
 }
 
-//--------------------------------------------------------------
-// Diagnostic code
-// Determines if a file descriptor exists in calling task by calling
-// the calling thread's task inode list
-void hcom_via_nx_diag_fd_inode(int fd)
-{
-  hcom_via_nx_diag_fd_inode_read(fd, NULL);
-}
-
-//--------------------------------------------------------------
-// Diagnostic code
-void hcom_via_nx_diag_fd_inode_read(int fd, struct inode **inodeOut)
-{
-  int ret;
-  struct hcom_nx_upd_diag_fd_inode_s diag_fd_inode;
-
-  diag_fd_inode.fileDescriptor = fd;
-
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_DIAG_FD_INODE, (unsigned long) &diag_fd_inode);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed, ret:%d, errno:%d\n",
-            thisFile, __LINE__, __func__, ret, errno);
-    return;
-  }
-
-  if(inodeOut != NULL)
-    *inodeOut = diag_fd_inode.inodeAddr;
-
-  return;
-}
-
 //=============================================================
 // CLI requests that can be directly executed on the OS side are
 // routed through here

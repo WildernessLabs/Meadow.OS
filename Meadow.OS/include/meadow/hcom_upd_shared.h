@@ -212,7 +212,7 @@ typedef struct hcom_nx_upd_host_send_cb_s
 #define HCOM_NX_UPD_GET_MCU_ID                  8
 #define HCOM_NX_UPD_IS_PART_MOUNTED             9
 #define HCOM_NX_UPD_RESTORE_UART_CONFIG         11
-#define HCOM_NX_UPD_DIAG_FD_INODE               15
+// 12-15 have been deleted
 #define HCOM_NX_UPD_GET_MCU_SER_NUMB            16
 #define HCOM_NX_UPD_EXECUTE_ESPCP_TESTS         18
 #define HCOM_NX_UPD_ENTER_INTO_DFU_MODE         19

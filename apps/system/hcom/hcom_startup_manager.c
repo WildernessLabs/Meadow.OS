@@ -123,10 +123,7 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // For more information look at the following links.
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
-
-// MEADOW.OS REBASE Note: Name was defined using
-// CONFIG_USER_ENTRYPOINT="hcom_main" in Legacy Meadow. Nuttx 12 renamed this
-// to CONFIG_INIT_ENTRYPOINT.
+//
 int hcom_main(int argc, char *argv[])
 {
   int ret;
@@ -463,7 +460,7 @@ int hcom_main(int argc, char *argv[])
 
 // Last stop, start mono
 // MEADOW.OS REBASE - Besides a build error without mono built attempting to
-// start it is a bad idea.
+// start it is not possible.
 #if(0)
   int monoStartResult = hcom_mono_ctrl_start_mono_main();
 #endif
@@ -472,7 +469,7 @@ int hcom_main(int argc, char *argv[])
 // /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:480: undefined reference to `hcom_pppd_start'
 
   // Start PPPD app needed by cell driver, when cell interface is enabled
-  // and Mono is running
+  // and Mono is running.
 #if(0)
   if (monoStartResult == OK)
   {
