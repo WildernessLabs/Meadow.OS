@@ -41,16 +41,17 @@
 // This #define was added so timestamp code could be added without changing
 // the current behavior and and yet do the needed refactoring.
 // ONLY SET THIS TO 1 IF MEADOW.CORE HAS BEEN MODIFIED TO EXPECT TIME
-// Remove this #define after Managed code has been updated
-#define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (0)
+// OR IF TESTING.
+// Remove this #define after Managed code has been updated to exoect timestamp
+#define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (1)
 
-// This struct is sent from Meadow.Core to configure or remove an interrupt.
+// This struct is populated in Meadow.Core to configure or remove an interrupt.
 struct mint_gpio_int_config
 {
   // Must match ...\Meadow\Meadow.Core\source\Meadow.Core\Interop\Interop.upd.cs
   uint32_t port;                // 0 - 15 (A-K)
   uint32_t pin;                 // 0 - 15
-  uint32_t configType;          // 0=remove, 1=new, 2=lp wakeup
+  uint32_t configType;          // 0=remove, 1=add, 2=lp wakeup
   uint32_t risingEdge;          // 1 = enable
   uint32_t fallingEdge;         // 1 = enable
   uint32_t resistorMode;        // 0 = float, 1 = pull up, 2 = pull down
@@ -58,23 +59,22 @@ struct mint_gpio_int_config
   uint32_t glitchDuration;      // millisec * 10
 };
 
-// This struct is sent to Meadow.Core when an interrupt occurs
+// This struct is sent to Meadow.Core when any interrupt occurs
 struct mint_send_int_core_s
 {
   uint8_t gpioPinId;
   uint8_t gpioState;
 #if (MEADOW_INTERRUPT_INCLUDE_TIME_STAMP > 0)
-  clock_t interruptTicks;
+  clock_t mintSysTicks;     // uint64_t
 #endif
 } __attribute__((__packed__));
 typedef struct mint_send_int_core_s mint_send_int_core_t;
-
 #define MEADOW_INTERRUPT_MQ_MSG_SIZE sizeof(mint_send_int_core_t)
 
 enum GPIOInterruptCfgType_e
 {
   gpio_intrpt_cfg_type_remove = 0,
-  gpio_intrpt_cfg_type_new = 1,
+  gpio_intrpt_cfg_type_add = 1,
   gpio_intrpt_cfg_type_wakeup = 2
 };
 
