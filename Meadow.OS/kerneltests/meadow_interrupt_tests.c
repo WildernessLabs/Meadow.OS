@@ -279,7 +279,7 @@ void meadow_interrupt_test_monitor_mint_mq(void)
 #if (MEADOW_INTERRUPT_INCLUDE_TIME_STAMP > 0)
       // The time sent is currenly a count of ticks since Nuttx was last
       // started.
-  #if(1    // Simple just timestamp (tickstamp)
+  #if(1)    // Simple just timestamp
         // Convert Nuttx ticks to timespec and Nuttx up time
         struct timespec mintTimeSpec;
         clock_ticks2time(&mintTimeSpec, mint_recvd_msg.mintSysTicks);
