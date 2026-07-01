@@ -1,8 +1,8 @@
 /****************************************************************************
  * nuttx\configs\stm32f777zit6-meadow\src\meadow_interrupt.c
  * 
- *   Copyright (C) 2020, 2021, 2023, 2024, 2025 Wilderness Labs. All rights reserved.
- *   Author:  Wilderness Labs
+ *   Copyright (C) 2020 - 2026 Wilderness Labs. All rights reserved.
+ *   Author:  Wilderness Labs 
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -59,20 +59,20 @@
 #include <hardware/stm32f76xx77xx_rcc.h>
 #include <hardware/stm32f76xx77xx_gpio.h>
 #include <hardware/stm32f76xx77xx_tim.h>
-#include <nuttx/clock.h>    // for testing
+#include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #include <meadow/meadow-upd.h>
 #include "pwrmgmt/pwrmgmt_local.h"
 #include "meadow_interrupt.h"
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
-#include <nuttx/clock.h>
 #include "hcom_nx/hcom_nx_common.h"
 
 #if defined (CONFIG_MEADOW_INTERRUPT_TESTS)
 #pragma message "(--) meadow_interrupt.c"
 #endif
 
+// Required for GPIO IRQ timing output with an oscilloscope
 // #define USE_MEADOW_DEBUG_HELPERS
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
@@ -93,22 +93,22 @@
 // Prescaler is be between 0 and 0xffff. A prescaler value of 0 to will
 // not divide the input clock and a prescaler value of 1 will divide
 // the clock by 2 etc.
-// Timer 7's input clock is 96 MHz (1/2 of the STM32_SYSCLK_FREQUENCY speed).
+// Timer 7's input clock is 1/2 of the STM32_SYSCLK_FREQUENCY frequency.
 // (prescaler + 1) * (auto reload register + 1) = TimerClock / frequency.
-// The following values will give us a timer overflow interrupt every 0.1
-// millisecond, which is the desired frequency
-#define MEADOW_INTERRUPT_RUNNING_PSC (959)
+// The following values need to yield a timer overflow interrupt, every 0.1
+// millisecond (10 kHz).
+#define MEADOW_INTERRUPT_RUNNING_PSC (((STM32_SYSCLK_FREQUENCY / 2) / 100000) - 1)
 #define MEADOW_INTERRUPT_RUNNING_ARR (9)
-
-// This is a threshold at which any glitch duration greater than this value
-// will use milliseconds timing instead of 100 usec timing.
-#define MEADOW_INTERRUPT_GLITCH_TIME_USE_MS (200)    // 200 == 20 milliseconds
 
 #if CONFIG_USEC_PER_TICK == 1000
 #define MEADOW_INTERRUPT_TICK_MILLISEC_FACTOR (10)
 #else
 #define MEADOW_INTERRUPT_TICK_MILLISEC_FACTOR (1)
 #endif
+
+// This is a threshold at which any glitch duration greater than this value
+// will use milliseconds timing instead of 100 usec timing.
+#define MEADOW_INTERRUPT_GLITCH_TIME_USE_MS (200)    // 200 == 20 milliseconds
 
 /****************************************************************************
  * Private Data
@@ -305,7 +305,7 @@ int mint_gpio_no_delay_isr(int irq, void *context, void *arg)
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 0
     syslog(LOG_MDIAG,
-      "mint-(no delay)-0x%02x (P%c%d)- A 'no_delay' interrupt received, state:%d (5)\n",
+      "mint-(no delay isr)-0x%02x (P%c%d)- A 'no_delay' interrupt received, state:%d (5)\n",
       gpioInfoAddr->PinId,
       ((gpioInfoAddr->PinId) >> 4) + 'A', gpioInfoAddr->PinId & 0x0f,
       gpioInfoAddr->CurrentProcessState);
@@ -313,7 +313,7 @@ int mint_gpio_no_delay_isr(int irq, void *context, void *arg)
 
   if(gpioInfoAddr->CurrentProcessState != mint_state_mon_no_delay)
   {
-    syslog(LOG_ERR, "%s@%d-PinId:0x%02x 'no_delay' interrupt but not mint_state_mon_no_delay\n",
+    syslog(LOG_ERR, "%s@%d-PinId:0x%02x 'no_delay isr' interrupt but not mint_state_mon_no_delay\n",
             __FILE__, __LINE__, gpioInfoAddr->PinId);
     DEBUG_SET_LOW(DEBUG_PIN_V2_A1);
     return OK;
@@ -356,7 +356,7 @@ int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
   }
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-    syslog(LOG_MDIAG, "mint-(delay)-0x%02x (P%c%d)- received delay targeted interrupt\n",
+    syslog(LOG_MDIAG, "mint-(delay isr)-0x%02x (P%c%d)- received delay targeted interrupt\n",
             gpioInfoAddr->PinId,
             ((gpioInfoAddr->PinId) >> 4) + 'A', gpioInfoAddr->PinId & 0x0f);
 #endif
@@ -366,7 +366,7 @@ int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
   if(gpioInfoAddr->CurrentProcessState != mint_state_wait_gpio_chg)
   {
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-    syslog(LOG_MDIAG, "mint-(delay)--PinId:0x%02x ignored, not waiting for GPIO change\n", gpioInfoAddr->PinId);
+    syslog(LOG_MDIAG, "mint-(delay isr)--PinId:0x%02x ignored, not waiting for GPIO change\n", gpioInfoAddr->PinId);
 #endif
 
     DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
@@ -514,7 +514,7 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
     syslog(LOG_MDIAG, "mint-(debo)-0x%02x DEBOUNCE Starting\n",
       gpioInfoAddr->PinId);
-    gpioInfoAddr->TimeProcessingBegan = clock_systimer();
+    gpioInfoAddr->TimeProcessingBegan = clock_systime_ticks();
 #endif
 
     // In the case both Glitch and Debounce are requested, Glitch has
@@ -548,8 +548,8 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
     return glit_debo_ret_check_next_gpio;   // Not done yet
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-  uint32_t procTime = clock_systimer() - gpioInfoAddr->TimeProcessingBegan;
-  syslog(LOG_MDIAG, "mint-(debo)-0x%02x Debounce proccessing ended in %d ms\n",
+  uint32_t procTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
+  syslog(LOG_MDIAG, "mint-(debo)-0x%02x Debounce proccessing ended in %ld ms\n",
             gpioInfoAddr->PinId, procTime);
 #endif
 
@@ -636,8 +636,8 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
   // We've found a stable state!
   // Finished checking, GPIO state stable for filter time.
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
-  uint32_t totalTime = clock_systimer() - gpioInfoAddr->TimeProcessingBegan;
-  syslog(LOG_MDIAG, "mint-(glitch)-0x%02x Glitch completed in %d ms, timeouts:%d\n",
+  uint32_t totalTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
+  syslog(LOG_MDIAG, "mint-(glitch)-0x%02x Glitch completed in %ld ms, timeouts:%ld\n",
           gpioInfoAddr->PinId, totalTime, gpioInfoAddr->GlitchTimeoutsCounter);
 #endif
 
@@ -828,45 +828,9 @@ int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
   mint_send_msg.gpioPinId = gpioInfoAddr->PinId;  // port/pin of interrupt
   mint_send_msg.gpioState = state;                // GPIO state
 #if (MEADOW_INTERRUPT_INCLUDE_TIME_STAMP > 0)
-  mint_send_msg.interruptTicks = clock_systimer();
+  // Get the tick count
+  mint_send_msg.mintSysTicks = clock_systime_ticks();
 #endif
-
-  // At this time (05Dec25) no time information is being sent. The code that
-  // will be built if MEADOW_INTERRUPT_INCLUDE_TIME_STAMP is set to 1 will be
-  // the number of Nuttx ticks since startup. The entent is to have a
-  // framework here that can be easily modified to supply any type of
-  // timestamp Managed code can use best.
-  //
-  // Here is an possible (untested) implementation for the current time
-  //
-  // struct tm tmTime = {0};
-  // time_t secTime;         // uint32_t
-  // uint64_t secTime;
-  // int64_t nanoseconds;
-  // int64_t secPlusMs;
-  // int64_t timeUS;
-
-  // #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
-  //   ret = up_rtc_getdatetime_with_subseconds(&tmTime,
-         // (long int *)&nanoseconds);
-  // #endif
-  //   // Convert struct tm to seconds
-  //   secTime = (time_t)mktime(&tmTime);
-  //   secPlusMs = (secTime * 1000   ) + (nanoseconds / (1000 * 1000));
-  //   // timeUS = (secTime * 1000000) + (nanoseconds / 1000);
-  //
-  //   syslog(LOG_MTEST, "------------------------------------\n");
-  //   syslog(LOG_MTEST, "Sizes:secTime:%lu, nanoseconds:%lu, secPlusMs:%lu\n",
-  //     sizeof(secTime), sizeof(nanoseconds), sizeof(secPlusMs));
-  //
-  //   Wed Oct  1 17:21:03 2025
-  //   syslog(LOG_MTEST, "UTC:%s", ctime((time_t *) &secTime));
-  //   syslog(LOG_MTEST, "nanoseconds :%020lld\n", nanoseconds);
-  //   syslog(LOG_MTEST, "milliseconds:%020lld\n", nanoseconds / (1000 * 1000));
-  //   syslog(LOG_MTEST, "Seconds     :%020lld\n", secTime);
-  //   syslog(LOG_MTEST, "Sec+MilliSec:%020lld, Sec:%lld, MS::%lld\n",
-  //   syslog(LOG_MTEST, "Sec+MicroSec:%020lld\n", timeUS);
-  //     secPlusMs, secPlusMs / 1000, secPlusMs % (1000 * 1000));
 
   ret = mq_send(_mint_mqd, (char *) &mint_send_msg,
     MEADOW_INTERRUPT_MQ_MSG_SIZE, 0);
@@ -1001,6 +965,7 @@ static int mint_config_interrupt_prep_timer(int stm32_timer_numb)
   modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM7EN);
   
   // Set prescaler and auto reload register to determine timer interrupt period
+  // Target is 0.1ms
   putreg16(MEADOW_INTERRUPT_RUNNING_PSC, STM32_TIM7_BASE + STM32_BTIM_PSC_OFFSET);
   putreg16(MEADOW_INTERRUPT_RUNNING_ARR, STM32_TIM7_BASE + STM32_BTIM_ARR_OFFSET);
 
@@ -1072,7 +1037,7 @@ static void turn_periodic_timer_off(void)
 // Called from meadow-upd.c to configure or remove a gpio for monitoring
 int mint_config_interrupt(struct mint_gpio_int_config* cfg)
 {
-  int ret;
+  int ret = OK;
   struct interruptPinMap_s *gpioInfoAddr;
 
   if(cfg == NULL)
@@ -1091,7 +1056,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   uint8_t pinDesignation = cfg->port << 4 | cfg->pin;
 
   // If a new GPIO interrupt must have at least one 'edge' defined
-  if(cfg->configType == gpio_intrpt_cfg_type_new && \
+  if(cfg->configType == gpio_intrpt_cfg_type_add && \
      cfg->risingEdge == 0 && cfg->fallingEdge == 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt edge config type.\n",
@@ -1119,19 +1084,12 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
       _allConfiguredGpios[i] = NULL;
     }
 
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A0);    // True while in periodic isr
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A1);    // True while in no delay isr
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A2);    // True while in delay isr
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A3);
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A4);
-    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A5);
-    
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A0);
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A1);
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A3);
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A4);
-    DEBUG_SET_LOW(DEBUG_PIN_V2_A5);
+    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A0);   // High while in periodic isr
+    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A1);   // High while in no delay isr
+    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A2);   // High while in delay isr
+    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A3);   // High while glitch or debounce
+    // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A4);
+    // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_A5);
 
     // Setup the timer once, the first time
     ret = mint_config_interrupt_prep_timer(MEADOW_INTERRUPT_STM32F7_TIMER_NUMBER);
@@ -1170,7 +1128,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     ret = mint_config_interrupt_remove(cfg, gpioInfoAddr);
     break;
 
-  case gpio_intrpt_cfg_type_new:
+  case gpio_intrpt_cfg_type_add:
     ret = mint_config_interrupt_new(cfg, gpioInfoAddr, cfgset);
     break;
 
@@ -1267,9 +1225,8 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
   gpioInfoAddr->GlitchConfiguredDuration = cfg->glitchDuration;
   gpioInfoAddr->GlitchTimeoutsCounter = 0;
 
-  // none = 0, rising = 1, falling = 2 & both = 3 (must match F7GPIOManager_interrupts.cs
-  // in WireInterrupt()
-  gpioInfoAddr->GpioRiseFallValue = (cfg->risingEdge & 0x01) | (cfg->fallingEdge & 0x01) << 1;
+  // none = 0, rising = 1, falling = 2 & both = 3
+  gpioInfoAddr->GpioRiseFallValue = (cfg->risingEdge & 0x01) | ((cfg->fallingEdge & 0x01) << 1);
 
   // cfgset contains 20-bits of data. It is required by the Nuttx stm32_gpiosetevent
   // function. If the 20 bits of data are not correct, this Nuttx function will
@@ -1298,7 +1255,7 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 0
   syslog(LOG_MDIAG,
-    "mint-(cfg)- 0x%02x (P%c%d)-Cfg Enabled-LKS:%d, GLDuration:%d, DBDuration:%d, RiseFallValue:%d, cfgset:0x%08x\n",
+    "mint-(cfg)- 0x%02x (P%c%d)-Cfg Enabled-LKS:%d, GLDuration:%ld, DBDuration:%ld, RiseFallValue:%d, cfgset:0x%08lx\n",
     gpioInfoAddr->PinId,
     ((gpioInfoAddr->PinId) >> 4) + 'A', gpioInfoAddr->PinId & 0x0f,
     gpioInfoAddr->LastKnownGpioState,

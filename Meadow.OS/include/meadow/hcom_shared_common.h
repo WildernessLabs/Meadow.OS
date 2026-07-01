@@ -972,12 +972,10 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
 
 //--------------------------------------------------------------------
-// This is the only non-optional #define in this list, must be set
+// This is a non-optional #define, it must be set
 // The only valid UART options are 1, 4 or 6. All other value are considered
 // a build error.
-// At this time this #define is only controls code in
-// '/configs/stm32f777zit6-meadow/src/hcom_nx/diag/hcom_nx_trace_msg_proc.c'
-// The default must be maintained as UART 1.
+// The default, due to hardware design, must be UART 1.
 #define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
 //--------------------------------------------------------------------

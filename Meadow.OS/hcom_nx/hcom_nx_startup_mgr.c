@@ -83,10 +83,10 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   meadow_configuration_t *config;
 
   // One GPIO (PB4) is used D05 for F7FeatherV2 and CCM. But, at reset it
-  // isn't initialized as all the other GPIOs. It's one of the debugging 5
+  // isn't initialized as all the other GPIOs. It's one of the 5 debugging
   // pins and therefore is configured as pull-up/pull-down at F7 restart.
-  // However, this pin isn't needed for our ST-Link debugging so it's free to
-  // use. But, being configured differently is seen as not ideal. The
+  // However, this pin isn't needed for our ST-Link debugging so it's free
+  // to use. But, being configured differently is seen as not ideal. The
   // following line is used to reconfigure it like the other GPIOs.
   stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
 
@@ -248,7 +248,8 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Start trace messaging if so configured
-  hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false, (config->use_uart1_for_profiling ? true : false));
+  hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false),
+    false, (config->use_uart1_for_profiling ? true : false));
 #endif
   hcom_nx_config_unlock();
 

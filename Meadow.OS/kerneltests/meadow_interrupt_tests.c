@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs\stm32f777zit6-meadow\src\kerneltests\meadow_interrupt_tests.c
  * 
- *   Copyright (C) 2024-2025 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2024-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -41,6 +41,7 @@
 #include <meadow/hcom_shared_common.h>
 #include "meadow_interrupt.h"
 
+// To enable '-u=mint'
 // Only build if configured
 #if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_interrupt_tests.c"
@@ -49,16 +50,11 @@
 #include "stm32_exti.h"             // STM32_EXTI_PR
 #include "arm_internal.h"           // putreg32
 #include "nvic.h"                   // NVIC access
-#include "clock/clock.h"
+#include <nuttx/clock.h>
 #include "meadow/meadow-upd.h"      // mint_config_interrupt(cfg);
 #include "meadow_interrupt.h"
 #include "pwrmgmt/pwrmgmt_local.h"
 #include <meadow/meadow_syscall_support.h>
-
-// Diagnostic always as this is test code
-// #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
-#include <meadow/meadow_debug_helpers.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -67,14 +63,15 @@
 // D05 (PB4) for Version F7FeatherV2 or CCM V1
 // For Testing wanted a pin that was Px0-4 to more easily figure out interrupts
 // and because these are a high priority interrupts.
-// #define QUICK_MISC_PIN_V2_D05  (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN4)
+#define MINT_TST_GPIO_PIN_V2_D05 (GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN4)
+#define MINT_TST_GPIO_PIN_V2_D14 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN12)
 
 /************************************************************************************
  * Private Data
  ************************************************************************************/
 static char *thisFile = __FILE__;
 
-static bool keepReading = true;
+static bool keepReading;
 
 /************************************************************************************
  * Public Data
@@ -84,7 +81,7 @@ static bool keepReading = true;
  * Private Function Prototypes
  ************************************************************************************/
 static void meadow_interrupt_test_test_mem_leak_fix_free_1(void);
-static void meadow_interrupt_test_config_d05_gpio(void);
+static void meadow_interrupt_test_config_d05_gpio_add(void);
 static void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void);
 static void meadow_interrupt_test_test_mem_leak_fix_free_5(void);
 static void meadow_interrupt_test_initialize_interrupt_for_wakeup(void);
@@ -106,7 +103,53 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
 
   switch(userData)
   {
+    // Configure using D05 as input to generate and send mq messages.
+    // Also used for testing memory leak, in conjunction with #3.
     case 1:
+      meadow_interrupt_test_config_d05_gpio_add();
+      break;
+
+    // After #1 has configured a GPIO, this can be used to display interrupt
+    // information via syslog. It opens the message queue normally read by
+    // Meadow.Core and displays the data as it is generated.
+    // This test is stopped by resetting Meadow.
+    case 2:
+      keepReading = true;
+      meadow_interrupt_test_monitor_mint_mq();
+      break;
+
+    // Frees interrupt configuration done in #1 to verify
+    // memory leak with a single GPIO.
+    case 3:
+      meadow_interrupt_test_test_mem_leak_fix_free_1();
+      break;
+    
+    // Test low-power sleeping for 10 seconds as verification before doing
+    // the next test. No other test code is needed
+    case 4:
+      stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, true);
+      pwrmgmt_enter_stm32f7_stop_mode(10);    // Sleep for 10 seconds
+      stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, false);
+      break;
+
+    // Initialize wakeup pin then sleep
+    case 5:
+      meadow_interrupt_test_initialize_wakeup_and_sleep();
+      break;
+
+    // These next 2 are also designed to test a resolved memory leak problem
+    // Allocate memory for 5 interrupt GPIOs
+    case 6:
+      meadow_interrupt_test_test_mem_leak_fix_alloc_5();
+      break;
+
+    // Free allocated memory for 5 configureations 
+    case 7:
+      meadow_interrupt_test_test_mem_leak_fix_free_5();
+      break;
+
+    // Do initialization for wakeup
+    case 8:
       if(firstTime)
       {
         firstTime = false;
@@ -118,40 +161,6 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
       }
       break;
 
-    case 2:
-      DEBUG_SET_HIGH(DEBUG_PIN_V2_D14);
-      pwrmgmt_enter_stm32f7_stop_mode(10);    // Stop for 10 seconds
-      DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
-      break;
-
-    case 3:
-      // Initialize wakeup pin then sleep
-      meadow_interrupt_test_initialize_wakeup_and_sleep();
-      break;
-
-    case 4:
-      // Use D05 as input to send mq message
-      meadow_interrupt_test_config_d05_gpio();
-      break;
-
-    case 6:
-      // Works with meadow_interrupt_test_monitor_mint_mq to stop reading mq.
-      keepReading = false;
-      meadow_interrupt_test_test_mem_leak_fix_free_1();
-      break;
-      
-    case 7:
-      meadow_interrupt_test_test_mem_leak_fix_alloc_5();
-      break;
-
-    case 8:
-      meadow_interrupt_test_test_mem_leak_fix_free_5();
-      break;
-
-    case 9:
-      meadow_interrupt_test_monitor_mint_mq();
-      break;
-      
     default:
       syslog(LOG_MTEST, "Undefined test for meadow_kt_meadow_interrupt_tests, userData:%lu\n",
         userData);
@@ -162,14 +171,13 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
-// Meadow_Issue 346 was related to a memory leak found in meadow_interrupt.c.
-// This leak would occur whenever a interrupt was configured as the memory
-// allocated for the configuration would not be freed when the GPIO
-// configuration was removed.
-void meadow_interrupt_test_config_d05_gpio()
+// Test 1 - Configure D05 and mint interrupt configuration.
+void meadow_interrupt_test_config_d05_gpio_add()
 {
-  // Setup a GPIO
   int ret;
+
+  syslog(LOG_MDIAG, "MQ message size is:%d\n", MEADOW_INTERRUPT_MQ_MSG_SIZE);
+
   struct mint_gpio_int_config* cfg = malloc(sizeof(struct mint_gpio_int_config));
   if(cfg == NULL)
   {
@@ -177,21 +185,23 @@ void meadow_interrupt_test_config_d05_gpio()
       __FILE__, __LINE__);
     return;
   }
+
+  // D05 - PB4 Input for GPIO pin
+  stm32_configgpio(MINT_TST_GPIO_PIN_V2_D05);
   
-  // We need some GPIOs to initialize and free
-  // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
+  // We need some GPIO to initialize and free
+  // Populate config structure for GPIO PB4 (D05 in FeatherV2).
   // This is what Meadow.Core will do when it's been enhanced to support this
   // feature.
   // Note: cfg is not the Nuttx cfgset. The Nuttx cfgset is built by the call
   // to mint_config_interrupt().
-  // PB4
   cfg->port = 1;              // port B (D05 in FeatherV2)
   cfg->pin = 4;               // pin 4  (D05 in FeatherV2)
-  cfg->configType = gpio_intrpt_cfg_type_new;   // New
+  cfg->configType = gpio_intrpt_cfg_type_add;   // Add
   cfg->risingEdge = 1;
   cfg->fallingEdge = 0;
   cfg->resistorMode = 2;      // 2 = pull down
-  cfg->debounceDuration = 5;  // Must be 0 for lp wakeup
+  cfg->debounceDuration = 0;  // Must be 0 for lp wakeup
   cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
 
   // Call public configuration function used by managed code
@@ -205,10 +215,126 @@ void meadow_interrupt_test_config_d05_gpio()
 }
 
 // ============================================================================
-// Delete one GPIO
+// Test 2
+// This test reads the message queue into which interrupt's are placed.
+// This simulates what Meadow.Core does.
+// It displays the data of all interrupt messages queued.
+//
+// Execute 'developer -p 16 -v 1 first to configure D05 as DI.
+// Execute 'developer -p 16 -v 2 to begin reading mq for syslog display. This
+// command will not release the thread, so no other CLI commands can be sent.
+// Toggling D05 will generate a messages at each rising edge.
+// To Stop reset Meadow
+// 
+void meadow_interrupt_test_monitor_mint_mq(void)
+{
+  int ret;
+  mqd_t mint_test_mq_fd;
+  mint_send_int_core_t mint_recvd_msg;
+  ssize_t nbytes;
+
+  // Open existing mq
+  mint_test_mq_fd = mq_open(MINT_MSG_QUEUE_NAME, O_RDONLY);
+  if (mint_test_mq_fd == (mqd_t)-1)
+  {
+    syslog(LOG_ERR, "Error:Mint test open mq:-1, errno:%d\n",errno);
+    usleep(20 * 1000);
+    return;
+  }
+
+  // Read and display all interrupts, until we receive a command to stop
+  while(keepReading)
+  {
+    // syslog(LOG_MTEST, "----> %s@%d-Calling mq_receive, waiting for message\n",
+    //   thisFile, __LINE__);
+    // usleep(20 * 1000);
+
+    nbytes = mq_receive(mint_test_mq_fd, (char *)&mint_recvd_msg,
+      MEADOW_INTERRUPT_MQ_MSG_SIZE, NULL);
+    if(nbytes < 0)
+    {
+      // Signal
+      if(errno == EINTR)
+      {
+        continue;
+      }
+
+      syslog(LOG_ERR, "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
+        thisFile, __LINE__, nbytes, errno);
+        usleep(20 * 1000);
+      break;
+    }
+
+    if(nbytes == 0)
+    {
+      syslog(LOG_ERR, "Mint test - read mq, 0-byte message?\n");
+      usleep(20 * 1000);
+      break;      // No message
+    }
+
+    // Display the mq's data.
+    if(nbytes == MEADOW_INTERRUPT_MQ_MSG_SIZE)
+    {
+      // This define is in meadow_interrupt.h
+#if (MEADOW_INTERRUPT_INCLUDE_TIME_STAMP > 0)
+      // The time sent is currenly a count of ticks since Nuttx was last
+      // started.
+  #if(1)    // Simple just timestamp
+        // Convert Nuttx ticks to timespec and Nuttx up time
+        struct timespec mintTimeSpec;
+        clock_ticks2time(&mintTimeSpec, mint_recvd_msg.mintSysTicks);
+        
+        syslog(LOG_MTEST, "Mint test - Received, PinId:0x%02x, State:0x%02x, Ticks:%lld (sec:%lld, nsec:%ld)\n",
+          mint_recvd_msg.gpioPinId,
+          mint_recvd_msg.gpioState,
+          mint_recvd_msg.mintSysTicks,
+          mintTimeSpec.tv_sec,
+          mintTimeSpec.tv_nsec);
+  #endif
+
+  #if(0)    // Full execution time calculation
+        // Convert Nuttx tick count to wall time.
+        struct tm tm_info;
+        char timeBuffer[64];
+        struct timespec currentWall, delta, interruptWallTime;
+
+        clock_gettime(CLOCK_REALTIME, &currentWall);
+        clock_t elapsedTicks = clock_systime_ticks() - mint_recvd_msg.mintSysTicks;
+        clock_ticks2time(&delta, elapsedTicks);
+        clock_timespec_subtract(&currentWall, &delta, &interruptWallTime);  // currentWall - delta
+        gmtime_r(&interruptWallTime.tv_sec, &tm_info);
+        strftime(timeBuffer, sizeof(timeBuffer), "UTC-%Y-%m-%d %H:%M:%S", &tm_info);
+        syslog(LOG_MTEST, "Mint test - PinId:0x%02x, State:0x%02x, Ticks:%lld (%s.%ld)\n",
+          mint_recvd_msg.gpioPinId, mint_recvd_msg.gpioState,
+          mint_recvd_msg.mintSysTicks,
+          timeBuffer, interruptWallTime.tv_nsec);
+  #endif
+
+#else
+      syslog(LOG_MTEST, "Mint test - Received, PinId:0x%02x, State:0x%02x\n",
+        mint_recvd_msg.gpioPinId,
+        mint_recvd_msg.gpioState);
+#endif    
+    }
+    else
+    {
+      syslog(LOG_MTEST, "Mint test - unexpected length message received, size:%d\n", nbytes);
+    }
+  }   // while true
+
+  // Close mq
+  ret = mq_close(mint_test_mq_fd);
+  if (ret < 0)
+  {
+    syslog(LOG_MTEST, "Mint test read mq, mq_close error, ret:%d\n", ret);
+  }
+}
+
+// ============================================================================
+// Test 3 Remove D05 from interrupt configuration
 void meadow_interrupt_test_test_mem_leak_fix_free_1(void)
 {
-  // Setup a GPIO
+  // Configure a GPIO
   int ret;
   struct mint_gpio_int_config* cfg = malloc(sizeof(struct mint_gpio_int_config));
   if(cfg == NULL)
@@ -242,6 +368,81 @@ void meadow_interrupt_test_test_mem_leak_fix_free_1(void)
 }
 
 // ============================================================================
+// Test 4 no code needed
+
+// ============================================================================
+// Test 5
+// Should this be in power_management_tests instead of here?
+// This test is used to determine if an interrupt can wakeup the F7 from a
+// low-power mode. It simulates being configured via Meadow.Core.
+static void meadow_interrupt_test_initialize_wakeup_and_sleep(void)
+{
+  int ret;
+
+  struct mint_gpio_int_config* cfg = malloc(sizeof(struct mint_gpio_int_config));
+  if(cfg == NULL)
+  {
+    syslog(LOG_MTEST, "%s@%d-Error:malloc returned NULL\n",
+      __FILE__, __LINE__);
+    return;
+  }
+
+  // Only used by this module
+  stm32_configgpio(MINT_TST_GPIO_PIN_V2_D14);
+  stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, true); // HIgh while sleeping
+  
+  // D05 - PB4 Input for GPIO wakeup pin
+  stm32_configgpio(MINT_TST_GPIO_PIN_V2_D05);
+  
+  // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
+  // This is what Meadow.Core will do when it's been enhanced to support this
+  // feature.
+  // Note: cfg is not the Nuttx cfgset. The Nuttx cfgset is built by the call
+  // to mint_config_interrupt().
+  cfg->port = 1;              // port B (D05 in FeatherV2)
+  cfg->pin = 4;               // pin 4  (D05 in FeatherV2)
+  cfg->configType = gpio_intrpt_cfg_type_wakeup;
+  cfg->risingEdge = 1;
+  cfg->fallingEdge = 0;
+  cfg->resistorMode = 2;      // 2 = pull down
+  cfg->debounceDuration = 0;  // Must be 0 for lp wakeup
+  cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
+
+  // Configure interrupt pin via public function used by managed code
+  ret = mint_config_interrupt(cfg);
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n",
+      ret);
+  }
+  free (cfg);
+
+  syslog(LOG_MTEST, "%s@%d - Going into Low-power sleep for 30 seconds unless interrupted.\n",
+    __FILE__, __LINE__);
+  // Need a bit of time to insure message is received before low-power mode
+  usleep(50 * 1000);
+
+  stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, true);  // Time sleep
+
+  // Put Meadow to sleep for either time or till interrupt
+  ret = pwrmgmt_enter_stm32f7_stop_mode(30);
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST, "Error:pwrmgmt_enter_stm32f7_stop_mode returned ret:%d\n",
+      ret);
+  }
+
+  stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, false);  // Time sleep
+
+  // Verify wakeup reason
+  int wakeReason = pwrmgmt_most_recent_wakeup_reason();
+  syslog(LOG_MTEST, "%s@%d - Low-power sleep ended, reason:%d\n",
+    __FILE__, __LINE__, wakeReason);
+  usleep(20 * 1000);
+}
+
+// ============================================================================
+// Test 6
 // These tests exercise the fix for the memory leak in meadow_interrupt.c
 // Meadow_Issue 346
 void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
@@ -271,7 +472,7 @@ void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
 
     cfg->port = 1;              // port B
     cfg->pin = i;               // pin 7-11
-    cfg->configType = gpio_intrpt_cfg_type_new;   // New
+    cfg->configType = gpio_intrpt_cfg_type_add;   // New
     cfg->risingEdge = 1;
     cfg->fallingEdge = 0;
     cfg->resistorMode = 2;      // 2 = pull down
@@ -291,6 +492,7 @@ void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
 }
 
 // ============================================================================
+// Test 7
 // Delete one GPIO
 void meadow_interrupt_test_test_mem_leak_fix_free_5(void)
 {
@@ -336,6 +538,7 @@ void meadow_interrupt_test_test_mem_leak_fix_free_5(void)
 }
 
 // ============================================================================
+// Test 8
 // This test is used to verify that an interrupt can wakeup the F7 from a
 // low-power mode. It simulates being configured via Meadow.Core.
 // It only configures the interrupt part. The input needs to be configured
@@ -352,8 +555,8 @@ static void meadow_interrupt_test_initialize_interrupt_for_wakeup(void)
     return;
   }
 
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D14); // On while sleeping
-  DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
+  stm32_configgpio(MINT_TST_GPIO_PIN_V2_D14); // On while sleeping
+  stm32_gpiowrite(MINT_TST_GPIO_PIN_V2_D14, false);
 
   // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
   // This is what Meadow.Core will do when it's been enhanced to support this
@@ -378,166 +581,4 @@ static void meadow_interrupt_test_initialize_interrupt_for_wakeup(void)
   }
   free (cfg);
 }
-
-// ============================================================================
-// Should this be in power_management_tests instead of here?
-// This test is used to determine if an interrupt can wakeup the F7 from a
-// low-power mode. It simulates being configured via Meadow.Core.
-static void meadow_interrupt_test_initialize_wakeup_and_sleep(void)
-{
-  int ret;
-
-  struct mint_gpio_int_config* cfg = malloc(sizeof(struct mint_gpio_int_config));
-  if(cfg == NULL)
-  {
-    syslog(LOG_MTEST, "%s@%d-Error:malloc returned NULL\n",
-      __FILE__, __LINE__);
-    return;
-  }
-
-  // Only used by this module
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D14); // On while sleeping
-  DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
-  
-  // D05 - PB4 Input for GPIO wakeup pin
-  stm32_configgpio(GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN4);
-  
-  // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
-  // This is what Meadow.Core will do when it's been enhanced to support this
-  // feature.
-  // Note: cfg is not the Nuttx cfgset. The Nuttx cfgset is built by the call
-  // to mint_config_interrupt().
-  cfg->port = 1;              // port B (D05 in FeatherV2)
-  cfg->pin = 4;               // pin 4  (D05 in FeatherV2)
-  cfg->configType = gpio_intrpt_cfg_type_wakeup;
-  cfg->risingEdge = 1;
-  cfg->fallingEdge = 0;
-  cfg->resistorMode = 2;      // 2 = pull down
-  cfg->debounceDuration = 0;  // Must be 0 for lp wakeup
-  cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
-
-  // Configure interrupt pin via public function used by managed code
-  ret = mint_config_interrupt(cfg);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n",
-      ret);
-  }
-  free (cfg);
-
-  syslog(LOG_MTEST, "%s@%d - Going into Low-power sleep for 30 seconds unless interrupted.\n",
-    __FILE__, __LINE__);
-  // Need a bit of time to insure message is received before low-power mode
-  usleep(50 * 1000);
-
-  DEBUG_SET_HIGH(DEBUG_PIN_V2_D14);
-
-  // Put Meadow to sleep for either time or till interrupt
-  ret = pwrmgmt_enter_stm32f7_stop_mode(30);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "Error:pwrmgmt_enter_stm32f7_stop_mode returned ret:%d\n",
-      ret);
-  }
-
-  DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
-
-  // Verify wakeup reason
-  int wakeReason = pwrmgmt_most_recent_wakeup_reason();
-  syslog(LOG_MTEST, "%s@%d - Low-power sleep ended, reason:%d\n",
-    __FILE__, __LINE__, wakeReason);
-  usleep(20 * 1000);
-}
-
-// ============================================================================
-// This test reads the message queue into which interrupt's are placed.
-// This simulates what Meadow.Core does.
-// It displays the data of all queued messages, one-by-one and exits
-// when no message are left.
-//
-// Execute 'developer -p 18 -v 4' configure D05 as DI no time
-// Optional - Toggle D05, 1 or more times
-// Execute -v 9 to begin reading mq to syslog
-// Toggling D05 will now show messages at each toggle
-// Reset button stop testing
-void meadow_interrupt_test_monitor_mint_mq(void)
-{
-  int ret;
-  mqd_t mint_test_mq_fd;
-  mint_send_int_core_t mint_recvd_msg;
-  ssize_t nbytes;
-
-  // Open existing mq
-  mint_test_mq_fd = mq_open(MINT_MSG_QUEUE_NAME, O_RDONLY);
-  if (mint_test_mq_fd == (mqd_t)-1)
-  {
-    syslog(LOG_ERR, "Error:Mint test open mq:-1, errno:%d\n",errno);
-    usleep(20 * 1000);
-    return;
-  }
-
-  // Read and display all interrupt messages. 
-  while(keepReading)
-  {
-    // syslog(LOG_MTEST, "----> %s@%d-Calling mq_receive, waiting for message\n",
-    //   thisFile, __LINE__);
-    // usleep(20 * 1000);
-    nbytes = mq_receive(mint_test_mq_fd, (char *)&mint_recvd_msg,
-      MEADOW_INTERRUPT_MQ_MSG_SIZE, NULL);
-    if(nbytes < 0)
-    {
-      // Signal
-      if(errno == EINTR)
-      {
-        continue;
-      }
-
-      syslog(LOG_ERR, "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
-        thisFile, __LINE__, nbytes, errno);
-        usleep(20 * 1000);
-      break;
-    }
-
-    if(nbytes == 0)
-    {
-      syslog(LOG_ERR, "Mint test - read mq, 0-byte message?\n");
-      usleep(20 * 1000);
-      break;      // No message
-    }
-
-    // Display the mq's data.
-    if(nbytes == MEADOW_INTERRUPT_MQ_MSG_SIZE)
-    {
-#if (MEADOW_INTERRUPT_INCLUDE_TIME_STAMP > 0)
-      struct timespec mintTicks;
-
-      // Convert Nuttx ticks to time
-      (void)clock_ticks2time(mint_recvd_msg.interruptTicks, &mintTicks);
-
-      syslog(LOG_MTEST, "Mint test - Received, PinId:0x%02x, State:0x%02x, Ticks:%lld (sec:%d, nsec:%09d)\n",
-        mint_recvd_msg.gpioPinId,
-        mint_recvd_msg.gpioState,
-        mint_recvd_msg.interruptTicks,
-        mintTicks.tv_sec,
-        mintTicks.tv_nsec);
-#else
-      syslog(LOG_MTEST, "Mint test - Received, PinId:0x%02x, State:0x%02x\n",
-        mint_recvd_msg.gpioPinId,
-        mint_recvd_msg.gpioState);
-#endif    
-    }
-    else
-    {
-      syslog(LOG_MTEST, "Mint test - UNKNOWN message received, size:%d\n", nbytes);
-    }
-  }   // while true
-
-  // Close mq
-  ret = mq_close(mint_test_mq_fd);
-  if (ret < 0)
-  {
-    syslog(LOG_MTEST, "Mint test read mq, mq_close error, ret:%d\n", ret);
-  }
-}
-
 #endif  // #if defined(CONFIG_MEADOW_INTERRUPT_TESTS)

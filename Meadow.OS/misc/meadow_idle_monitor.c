@@ -195,7 +195,7 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
   regval |= BTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
   putreg16(regval, timerBase + STM32_BTIM_CR1_OFFSET);
 
-  // Timer 6 & 7 only support UIE interrupt
+  // Timer 6 (& 7) only supports UIE interrupt
   putreg16(BTIM_DIER_UIE, timerBase + STM32_BTIM_DIER_OFFSET);
 
   // The interupts are handled this ISR
