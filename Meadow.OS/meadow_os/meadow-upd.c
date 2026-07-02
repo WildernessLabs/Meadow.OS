@@ -23,7 +23,6 @@
 #include "fcntl.h"
 #include "stm32_pwm.h"
 #include <nuttx/i2c/i2c_master.h>
-#include <meadow/stm32f777zit6-meadow.h>
 #include "stm32_spi.h"
 #include "meadow_interrupt.h"
 #include <dirent.h>

@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx\configs\stm32f777zit6-meadow\src\meadow_interrupt.c
+ * Meadow.OS/meadow_os/meadow_interrupt.c
  * 
  *   Copyright (C) 2020 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs 
@@ -52,7 +52,6 @@
 #include <errno.h>
 #include "chip.h"
 #include "arm_internal.h"
-#include <meadow/stm32f777zit6-meadow.h>
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
 #include "stm32_gpio.h"

@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/configs/stm32f777zit6-meadow/src/misc/meadow_idle_monitor.c
+ * Meadow.OS/misc/meadow_idle_monitor.c
  * 
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

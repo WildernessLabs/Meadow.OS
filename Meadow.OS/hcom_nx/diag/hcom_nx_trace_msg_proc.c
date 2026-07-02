@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx\configs\stm32f777zit6-meadow\src\hcom_nx\diag\hcom_nx_trace_msg_proc.c
+ * Meadow.OS/hcom_nx/diag/hcom_nx_trace_msg_proc.c
  *
  *   Copyright (C) 2021-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

@@ -47,17 +47,17 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include "meadow_stm32f7_clockenable.h"
+#include "../hcom_nx/hcom_nx_common.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include "stm32_rcc.h"    // meadow_clockenable
-#include "boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h"
-
-#include "../hcom_nx/hcom_nx_common.h"
-#include "meadow_stm32f7_clockenable.h"
 #include "hardware/stm32f76xx77xx_pwr.h"
 #include "hardware/stm32f76xx77xx_flash.h"
+#include "hardware/stm32f76xx77xx_rcc.h"
+#include "boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h"
 
 /****************************************************************************
  * Pre-processor Definitions

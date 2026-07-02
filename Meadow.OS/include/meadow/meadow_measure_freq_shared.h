@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/configs/stm32f777zit6-meadow/src/specialized/meadow_measure_freq_shared.h
+ * Meadow.OS/include/meadow/meadow_measure_freq_shared.h
  * 
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

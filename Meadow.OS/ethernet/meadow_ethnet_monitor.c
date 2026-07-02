@@ -1,5 +1,5 @@
 /****************************************************************************
- * /configs/stm32f777zit6-meadow/src/ethernet/meadow_ethnet_monitor.c
+ * Meadow.OS/ethernet/meadow_ethnet_monitor.c
  * 
  *   Copyright (C) 2021-2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

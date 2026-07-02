@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\hcom_nx_upd.c
+ * Meadow.OS/hcom_nx/hcom_nx_upd.c
  * 
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -65,7 +65,6 @@
 #include <nuttx/board.h>
 #include <arch/board/board.h>
 #include "stm32_gpio.h"
-#include <meadow/stm32f777zit6-meadow.h>
 
 #include <sched.h>
 #include "sched/sched.h"

@@ -1,5 +1,5 @@
 /****************************************************************************
- * /nuttx/configs/stm32f777zit6-meadow/src/ethernet/meadow_ethnet_local.h
+ * Meadow.OS/ethernet/meadow_ethnet_local.h
  *
  *   Copyright (C) 2021-2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

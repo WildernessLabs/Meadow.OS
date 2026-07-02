@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_time_support.c
+ * Meadow.OS/pwrmgmt/pwrmgmt_time_support.c
  * 
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -36,7 +36,7 @@
 // This module contains code to set and read the Nuttx time and to set the
 // RTC Alarm.
 // The ISO 8601 parsing is done in
-// nuttx/configs/stm32f777zit6-meadow/src/misc/parse_iso8601_time.c
+// Meadow.OS/misc/parse_iso8601_time.c
 
 /****************************************************************************
  * Included Files
@@ -53,7 +53,6 @@
 
 #include <meadow/hcom_upd_shared.h>
 #include "hcom_nx/hcom_nx_common.h"
-#include <meadow/stm32f777zit6-meadow.h>
 
 #include "stm32_alarm.h"
 

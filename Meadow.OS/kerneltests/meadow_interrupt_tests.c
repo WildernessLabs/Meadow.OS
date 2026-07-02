@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\meadow_interrupt_tests.c
+ * Meadow.OS/kerneltests/meadow_interrupt_tests.c
  * 
  *   Copyright (C) 2024-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

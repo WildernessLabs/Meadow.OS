@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\meadow_rotary_encoder_tests.c
+ * Meadow.OS/kerneltests/meadow_rotary_encoder_tests.c
  * 
  *   Copyright (C) 2024-2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

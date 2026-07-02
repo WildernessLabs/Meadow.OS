@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\quick_misc_tests.c
+ * Meadow.OS/kerneltests/quick_misc_tests.c
  * 
  *   Copyright (C) 2023-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
