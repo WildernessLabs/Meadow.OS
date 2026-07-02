@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\dig_to_ana_conv_tests.c
+ * Meadow.OS/kerneltests/dig_to_ana_conv_tests.c
  * 
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

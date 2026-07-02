@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_switch_rtc_clock.c
+ * Meadow.OS/pwrmgmt/pwrmgmt_misc.c
  * 
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

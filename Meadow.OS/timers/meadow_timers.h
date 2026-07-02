@@ -1,5 +1,5 @@
 /****************************************************************************
- * /nuttx/configs/stm32f777zit6-meadow/src/timers/meadow_timers.h
+ * Meadow.OS/timers/meadow_timers.h
  * 
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -50,8 +50,6 @@
 #include "fcntl.h"
 #include <nuttx/semaphore.h>
 #include <nuttx/arch.h>
-
-#include <meadow/stm32f777zit6-meadow.h>
 
 #include <sys/ioctl.h>
 #include <nuttx/timers/timer.h>

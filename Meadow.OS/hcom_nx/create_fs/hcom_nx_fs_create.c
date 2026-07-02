@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\create_fs\hcom_nx_fs_create.c
+ * Meadow.OS/hcom_nx/create_fs/hcom_nx_fs_create.c
  * 
  *   Copyright (C) 2019 - 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

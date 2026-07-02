@@ -61,8 +61,6 @@
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 
-// #include "../configs/stm32f777zit6-meadow/src/ethernet/meadow_ethnet_local.h"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/

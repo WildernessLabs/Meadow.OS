@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx/configs/stm32f777zit6-meadow/src/specialized/meadow_measure_freq.c
+ * Meadow.OS/specialized/meadow_measure_freq.c
  * 
  *   Copyright (C) 2024, 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -51,7 +51,6 @@
 #include "stm32_gpio.h"
 #include "stm32_rcc.h"
 #include "arm_internal.h"
-#include <meadow/stm32f777zit6-meadow.h>
 #include "../hcom_nx/hcom_nx_common.h"
 #include "specialized/meadow_measure_freq_local.h"
 #include <meadow/meadow_hw_version.h>

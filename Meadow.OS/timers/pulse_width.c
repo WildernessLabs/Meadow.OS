@@ -1,5 +1,5 @@
 /****************************************************************************
- * /nuttx/configs/stm32f777zit6-meadow/src/timers/pulse_width.c
+ * Meadow.OS/timers/pulse_width.c
  * 
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

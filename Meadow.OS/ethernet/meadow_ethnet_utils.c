@@ -1,5 +1,5 @@
 /****************************************************************************
- * /nuttx/configs/stm32f777zit6-meadow/src/ethernet/meadow_meadow_eth_utils.c
+ * Meadow.OS/ethernet/meadow_ethnet_utils.c
  * 
  *   Copyright (C) 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -475,8 +475,9 @@ int meadow_eth_utils_set_router(const char *interfaceName,
 
 
 //==========================================================================
-// Same code at configs/stm32f777zit6-meadow/src/hcom_nx/hcom_nx_config_manager.c,
-// hcom_nx_config_parse_ip_address()
+// Same code at Meadow.OS/hcom_nx/hcom_nx_config_manager.c, but it is not
+// accessable.
+// (static uint32_t hcom_nx_config_parse_ip_address(const char *address))
 uint32_t meadow_eth_utils_parse_ip_str(const char *address)
 {
     uint32_t ip = 0;

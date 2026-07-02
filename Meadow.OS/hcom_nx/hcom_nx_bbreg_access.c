@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\hcom_nx_bbreg_access.c
+ * Meadow.OS/hcom_nx/hcom_nx_bbreg_access.c
  * 
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

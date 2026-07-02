@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_config_wakeup_alarm.c
+ * Meadow.OS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c
  * 
  *   Copyright (C) 2023-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -63,7 +63,6 @@
 
 #include <arch/board/board.h>
 
-#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx/hcom_nx_common.h"
 
 #include "stm32_alarm.h"

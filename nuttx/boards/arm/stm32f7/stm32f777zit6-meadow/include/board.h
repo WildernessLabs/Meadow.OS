@@ -1,5 +1,5 @@
 /****************************************************************************
- * boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h
+ * nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h
  *
  * SPDX-License-Identifier: Apache-2.0
  *

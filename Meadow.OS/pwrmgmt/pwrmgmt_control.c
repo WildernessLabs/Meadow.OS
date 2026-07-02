@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_control.c
+ * Meadow.OS/pwrmgmt/pwrmgmt_control.c
  * 
  *   Copyright (C) 2022-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -66,7 +66,6 @@
 #include <arch/board/board.h>
 #include "stm32_gpio.h"
 
-#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx/hcom_nx_common.h"
 
 #include "../espcp/espcp_coprocessor.h"

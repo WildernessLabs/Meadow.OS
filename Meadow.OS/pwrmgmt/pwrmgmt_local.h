@@ -1,5 +1,5 @@
 /****************************************************************************
- * /configs/stm32f777zit6-meadow/src/pwrmgmt/pwrmgmt_local.h
+ * Meadow.OS/pwrmgmt/pwrmgmt_local.h
  * 
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -87,7 +87,7 @@ void pwrmgmt_disable_rtc_alarm_wakeup(void);
 int meadow_pwr_mgmt_use_hse_for_rtc(void);
 int meadow_pwr_mgmt_use_lsi_for_rtc(void);
 
-// This function is in /configs/stm32f777zit6-meadow/src/stm32_idle.c
+// This function is in Meadow.OS/pwrmgmt/pwrmgmt_control.c
 void up_idle_pwrmgmt_set_idle_behavior(bool useWaitOps);
 
   #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0

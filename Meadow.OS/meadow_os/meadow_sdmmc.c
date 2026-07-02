@@ -1,5 +1,5 @@
 /****************************************************************************
- * \nuttx\configs\stm32f777zit6-meadow\src\meadow_sdmmc.c
+ * Meadow.OS/meadow_os/meadow_sdmmc.c
  *
  *   Copyright (C) 2022-2023 Wilderness Labs. All rights reserved.
  *
@@ -133,7 +133,7 @@ int stm32_sdio_initialize_meadow(void)
 
 #ifdef HAVE_MEADOW_NCD
   // Configure the card detect GPIO PG6 defined in
-  // nuttx/configs/stm32f777zit6-meadow/include/board.h
+  // Meadow.OS/include/meadow/meadow_sdmmc.h
   stm32_configgpio(GPIO_MEADOW_SDIO_NCD);
 
   // Register an interrupt handler for the card detect pin

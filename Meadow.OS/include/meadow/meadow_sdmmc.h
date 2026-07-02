@@ -1,5 +1,5 @@
 /****************************************************************************************************
- * configs/stm32f777zit6-meadow/src/meadow_sdmmc.h
+ * Meadow.OS/include/meadow/meadow_sdmmc.h
  *
  *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>

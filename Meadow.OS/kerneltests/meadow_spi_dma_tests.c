@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\spi_dma_tests.c
+ * Meadow.OS/kerneltests/meadow_spi_dma_tests.c
  * 
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

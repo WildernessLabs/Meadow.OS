@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/stm32f777zit6-meadow/src/kerneltests/iso8601_tests.c
+ * Meadow.OS/kerneltests/iso8601_time_tests.c
  * 
  *   Copyright (C) 2019 - 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

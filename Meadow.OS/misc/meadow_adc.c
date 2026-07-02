@@ -1,5 +1,5 @@
 /****************************************************************************
- * /nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Meadow.OS/misc/meadow_adc.c
+ * Meadow.OS/misc/meadow_adc.c
  * 
  *   Copyright (C) 2023-2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

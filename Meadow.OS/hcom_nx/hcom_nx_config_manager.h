@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\hcom_nx_config_manager.h
+ * Meadow.OS/hcom_nx/hcom_nx_config_manager.h
  *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

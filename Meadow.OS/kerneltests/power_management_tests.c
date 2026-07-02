@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\kerneltests\power_management_tests.c
+ * Meadow.OS/kerneltests/power_management_tests.c
  * 
  *   Copyright (C) 2019 - 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -162,7 +162,7 @@ static int pwmmgmt_test_wakeup_timer_isr_handler(int irq, FAR void *context, FAR
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Called from nuttx/configs/stm32f777zit6-meadow/src/hcom_nx/tests/hcom_nx_developer_3_tests.c
+// Called Meadow.OS/kerneltests/power_management_tests.c
 // These tests are for testing the power management implementation
 void meadow_kt_power_management_tests(uint32_t userData)
 {

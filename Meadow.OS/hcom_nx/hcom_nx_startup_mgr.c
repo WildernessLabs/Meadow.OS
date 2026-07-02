@@ -1,5 +1,5 @@
 /****************************************************************************
- * \configs\stm32f777zit6-meadow\src\hcom_nx\hcom_nx_startup_mgr.c
+ * /home/peter/wl/Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_startup_mgr.c
  * 
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -44,7 +44,6 @@
 #include <assert.h>
 #include "../misc/meadow_logging.h"
 
-#include <meadow/stm32f777zit6-meadow.h>
 #include "hcom_nx_config_manager.h"
 #include <meadow/hcom_bbreg_defn.h>
 #include <meadow/meadow_os.h>

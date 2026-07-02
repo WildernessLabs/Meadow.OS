@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs\stm32f777zit6-meadow\src\hcom_nx\tests\hcom_nx_qspi_flash_tests.c
+ * Meadow.OS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c
  * 
  *   Copyright (C) 2019 - 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
