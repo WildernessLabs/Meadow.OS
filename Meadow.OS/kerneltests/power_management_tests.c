@@ -61,6 +61,7 @@
 #include <meadow/meadow-upd.h>  // mint_config_interrupt(cfg);
 #include <meadow/meadow_kernel_tests.h>
 #include <meadow/meadow_syscall_support.h>
+#include <meadow/meadow_interrupt.h>
 
 #include "../pwrmgmt/pwrmgmt_local.h"
 
@@ -82,6 +83,8 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
+
+#define CONFIG_POWER_MANAGEMENT_TESTS 1
 
 /************************************************************************************
  * Pre-processor Definitions
