@@ -40,28 +40,26 @@
  * Included Files
  ****************************************************************************/
 #include <nuttx/config.h>
+#include <include/meadow/meadow_rotary_encoder.h>
 
-#include <meadow/hcom_shared_common.h>
-
-#if defined(CONFIG_MEADOW_ROTARY_ENCODER)
+#if(MEADOW_ROTARY_ENCODER_BUILD > 0)
 
 #include <nuttx/config.h>
+#include <meadow/meadow_rotary_encoder.h>
+
 #include <string.h>
 #include <stdbool.h>
 #include <arch/board/board.h>
 #include <nuttx/mqueue.h>
 #include <errno.h>
 #include "chip.h"
-#include <meadow/stm32f777zit6-meadow.h>
 #include <nuttx/timers/timer.h>
 #include "stm32_tim.h"
-#include <chip/stm32f76xx77xx_rcc.h>
+#include "stm32_gpio.h"
 #include <nuttx/clock.h>    // for testing
 #include <nuttx/arch.h>
-#include "meadow-upd.h"
 #include "pwrmgmt/pwrmgmt_local.h"
 #include <meadow/meadow_hw_version.h>
-#include <meadow/meadow_rotary_encoder.h>
 
 #if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_rotary_encoder.c"
@@ -70,6 +68,8 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
+
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 
 //============================================================
 // Defines the maximum number of encoders that can be monitored.
@@ -257,7 +257,7 @@ int rotenc_config_interrupt_remove(struct rotenc_config_parms* cfg)
   rotaryEncoderPtr = _allRotaryEncodersList[cfg->encoderNumb];
   if(rotaryEncoderPtr == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Slot %d is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Slot %ld is not configured\n",
               __FILE__, __LINE__, cfg->encoderNumb);
     return -ENODATA;   // No Data
   }
@@ -271,14 +271,14 @@ int rotenc_config_interrupt_remove(struct rotenc_config_parms* cfg)
   ret = stm32_gpiosetevent(PinInfoA, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%d Pin A interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->encoderNumb, ret);
   }
 
   ret = stm32_gpiosetevent(PinInfoB, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%d Pin B interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->encoderNumb, ret);
   }
 
@@ -317,7 +317,7 @@ int meadow_rotary_encoder_config(struct rotenc_config_parms* cfg)
   // Is encoder number out of range?
   if(cfg->encoderNumb > (MEADOW_ROTARY_ENC_MAX - 1))
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %lu.\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %u.\n",
               __FILE__, __LINE__, cfg->encoderNumb,
               (MEADOW_ROTARY_ENC_MAX - 1));
     return -ERANGE;    // Out of Range
@@ -326,7 +326,7 @@ int meadow_rotary_encoder_config(struct rotenc_config_parms* cfg)
   // Is requested slot free?
   if(_allRotaryEncodersList[cfg->encoderNumb] != NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Slot %d is in use\n",
+    syslog(LOG_ERR, "%s@%d-Slot %ld is in use\n",
               __FILE__, __LINE__, cfg->encoderNumb);
     return -ENOTEMPTY;    // Not empty
   }
@@ -390,7 +390,7 @@ int meadow_rotary_encoder_config(struct rotenc_config_parms* cfg)
     rotaryEncoderPtr);           // information address
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%d Pin A interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->encoderNumb, ret);
   }
   
@@ -403,7 +403,7 @@ int meadow_rotary_encoder_config(struct rotenc_config_parms* cfg)
     rotaryEncoderPtr);           // information address
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%d Pin B interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->encoderNumb, ret);
   }
 
@@ -433,7 +433,7 @@ int meadow_rotary_encoder_read_count(uint32_t encoderNumb,
   // Check for valid encoder number
   if(encoderNumb > (MEADOW_ROTARY_ENC_MAX - 1))
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %lu.\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %u.\n",
               __FILE__, __LINE__, encoderNumb,
               (MEADOW_ROTARY_ENC_MAX - 1));
     return -ERANGE;    // Out of Range
@@ -444,7 +444,7 @@ int meadow_rotary_encoder_read_count(uint32_t encoderNumb,
   // Is requested slot valid?
   if(rotaryEncoderPtr == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Slot %d is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Slot %ld is not configured\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENODATA;    // No Data
   }
@@ -474,7 +474,7 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t encoderCount)
   // Is requested slot valid?
   if(rotaryEncoderPtr == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Slot %d is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Slot %ld is not configured\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENODATA;    // No Data
   }
@@ -486,4 +486,4 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t encoderCount)
   return OK;
 }
 
-#endif      // defined(CONFIG_MEADOW_ROTARY_ENCODER)
+#endif      // defined(MEADOW_ROTARY_ENCODER_BUILD)

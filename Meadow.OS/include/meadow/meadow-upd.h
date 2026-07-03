@@ -44,7 +44,6 @@
 #include <string.h>
 #include <nuttx/mqueue.h>
 #include "espcp/espcp_encoders.h"
-#include "meadow_interrupt.h"
 
 /*
  *  Information about the function that should be requested to

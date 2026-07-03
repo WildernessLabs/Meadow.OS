@@ -49,7 +49,7 @@
 #include <meadow/meadow_os.h>
 #include <meadow/meadow_sdmmc.h>
 #include <meadow/meadow_os_fault_handling.h>
-#include "meadow_interrupt.h"
+#include <meadow/meadow_interrupt.h>
 #include <meadow/hcom_traverse_ku.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)

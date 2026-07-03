@@ -39,7 +39,6 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_shared_common.h>
-#include "meadow_interrupt.h"
 
 // To enable '-u=mint'
 // Only build if configured
@@ -52,7 +51,7 @@
 #include "nvic.h"                   // NVIC access
 #include <nuttx/clock.h>
 #include "meadow/meadow-upd.h"      // mint_config_interrupt(cfg);
-#include "meadow_interrupt.h"
+#include <meadow/meadow_interrupt.h>
 #include "pwrmgmt/pwrmgmt_local.h"
 #include <meadow/meadow_syscall_support.h>
 

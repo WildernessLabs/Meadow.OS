@@ -59,7 +59,6 @@
 #include "hardware/stm32f76xx77xx_pwr.h"    // Needed for testing
 #include <nuttx/kthread.h>
 #include <meadow/meadow-upd.h>  // mint_config_interrupt(cfg);
-#include "meadow_interrupt.h"
 #include <meadow/meadow_kernel_tests.h>
 #include <meadow/meadow_syscall_support.h>
 
