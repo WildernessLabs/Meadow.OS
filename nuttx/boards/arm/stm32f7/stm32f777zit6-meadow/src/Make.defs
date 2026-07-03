@@ -22,8 +22,8 @@
 
 include $(TOPDIR)/Make.defs
 
-CFLAGS += -I board/Meadow.OS
-$(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)
+CFLAGS += -I board/MeadowF7OS
+$(shell [ -L MeadowF7OS ] || ln -sfn board/MeadowF7OS MeadowF7OS)
 
 CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
 
@@ -95,7 +95,7 @@ $(MEADOW_OS_DIR)/misc/meadow_adc.c \
 $(MEADOW_OS_DIR)/specialized/meadow_measure_freq.c \
 $(MEADOW_OS_DIR)/specialized/meadow_rotary_encoder.c
 
-MEADOW_OS_DIR=Meadow.OS
+MEADOW_OS_DIR=MeadowF7OS
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR) -I $(TOPDIR)/fs
 
 ifeq ($(CONFIG_MEADOW_HCOM),y)
