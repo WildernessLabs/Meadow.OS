@@ -40,7 +40,10 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_MEADOW_ROTARY_ENCODER)
+#include <include/meadow/meadow_rotary_encoder.h>
+
+#define MEADOW_ROTARY_ENCODER_BUILD (0)
+#if (MEADOW_ROTARY_ENCODER_BUILD > 0)
 
 #include <string.h>
 #include <stdint.h>
@@ -96,6 +99,6 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t encoderCount);
 // Test function follow
 void rotary_encoder_test_exercise_test(uint32_t userData);
 
-#endif      // defined(CONFIG_MEADOW_ROTARY_ENCODER)
+#endif      // #if (MEADOW_ROTARY_ENCODER_BUILD > 0)
 
 #endif      // __CONFIGS_MEADOW_SRC_MEADOW_ROTENC__H

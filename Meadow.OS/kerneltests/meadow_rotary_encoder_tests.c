@@ -38,12 +38,11 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_MEADOW_ROTARY_ENCODER) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_ROTARY_ENCODER_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <meadow/hcom_shared_common.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
-// #include "meadow_rotary_encoder.h" 
 #include "stm32_gpio.h"   // stm32_configgpio
 #include <meadow/meadow_rotary_encoder.h>
 
@@ -426,4 +425,4 @@ void rotary_encoder_config_test_remove_n(uint32_t userData)
 
 #endif  // #if defined(CONFIG_ROTARY_ENCODER_TESTS)
 
-#endif  // defined(CONFIG_MEADOW_ROTARY_ENCODER)
+#endif  // defined(CONFIG_ROTARY_ENCODER_TESTS)

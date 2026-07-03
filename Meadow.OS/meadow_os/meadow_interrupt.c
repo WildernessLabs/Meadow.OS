@@ -61,8 +61,8 @@
 #include <nuttx/clock.h>
 #include <nuttx/arch.h>
 #include <meadow/meadow-upd.h>
+#include <meadow/meadow_interrupt.h>
 #include "pwrmgmt/pwrmgmt_local.h"
-#include "meadow_interrupt.h"
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
 #include "hcom_nx/hcom_nx_common.h"
