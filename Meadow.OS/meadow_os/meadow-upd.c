@@ -24,6 +24,7 @@
 #include "stm32_pwm.h"
 #include <nuttx/i2c/i2c_master.h>
 #include "stm32_spi.h"
+#include <meadow/meadow_interrupt.h>
 #include <dirent.h>
 #include "arm_internal.h"
 
