@@ -327,7 +327,7 @@ dkms.conf
 
 esp32/main/build_info.h
 esp32/main/build_info.template.bak
-MeadowF7OS/include/meadow/hcom_nuttx_shared.h.bak
+F7MeadowOS/include/meadow/hcom_nuttx_shared.h.bak
 nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
 **/*.o
 **/Meadow.BL.*

@@ -174,7 +174,7 @@ NUTTX_CONFIG="stm32f777zit6-meadow:$CONFIG"
 #
 if $WLCLEAN || $CLEAN; then
     find $scriptdir/apps/examples -name "*.o" -type f -exec rm {} \;
-    find $scriptdir/MeadowF7OS -name "*.o" -type f -exec rm {} \;
+    find $scriptdir/F7MeadowOS -name "*.o" -type f -exec rm {} \;
     run_command "make -C $scriptdir/nuttx clean -j8"
     run_command "make $MEADOW_ADDITIONAL_MAKE_OPTIONS -C $scriptdir/bootloader/Debug clean"
     #
