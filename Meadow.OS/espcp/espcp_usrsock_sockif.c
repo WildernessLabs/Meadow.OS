@@ -3237,16 +3237,18 @@ int espcp_usrsock_shutdown(struct socket *psock, int how)
  * Name: espcp_usrsock_recvmsg
  *
  * Description:
- *  TODO: Implement this method and complete the comment header.
- * 
+ *  Receive a message from the socket via the ESP32, populating the data,
+ *  source address, ancillary control data, and output flags of the
+ *  supplied msghdr.
+ *
  * Input Parameters:
- * 
+ *
  *  psock - Pointer to the socket structure to read from
- *  msg - Pointer to a block of memory that will receive the message.
- *  flags - 
+ *  msg - Pointer to a msghdr that will receive the message.
+ *  flags - Receive flags
  *
  * Returned Value:
- *  -1
+ *  Number of bytes received on success, negated errno on error.
  *
  * Assumptions/Limitations:
  *  None
