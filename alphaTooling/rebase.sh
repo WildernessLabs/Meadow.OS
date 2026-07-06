@@ -39,8 +39,8 @@ git add nuttx/Documentation
 # NOTE: Build system changes required for the new upstream board build structure:
 # - nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Make.defs
 #     Added: VPATH += :board  (so make finds board sources)
-#     Added: CFLAGS += -I board/Meadow.OS  (Meadow header path)
-#     Added: $(shell [ -L Meadow.OS ] || ln -sfn board/Meadow.OS Meadow.OS)  (object output dirs)
+#     Added: CFLAGS += -I board/F7MeadowOSLink  (Meadow header path)
+#     Added: $(shell [ -L F7MeadowOSLink ] || ln -sfn board/F7MeadowOSLink F7MeadowOSLink)  (object output dirs)
 #     Removed: include $(TOPDIR)/Make.defs  (now included by parent common/Makefile)
 #     Removed: include $(TOPDIR)/boards/Board.mk  (same reason)
 # - nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Makefile
