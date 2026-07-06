@@ -34,6 +34,7 @@
  ****************************************************************************/
 
 #include "espcp_encoders.h"
+#include <sys/socket.h>
 
 //
 //  Temporarily undefine NDEBUG to be able to use assertions in this file.
@@ -2291,6 +2292,389 @@ espcp_recv_from_response_t *espcp_extract_recv_from_response(uint8_t *buffer)
     }
     recv_from_response->source_address_len = espcp_extract_uint32(buffer);
     return(recv_from_response);
+}
+
+/****************************************************************************
+* Name: espcp_encode_msghdr
+*
+* Description:
+*  Serialise a POSIX msghdr into a flat byte buffer suitable for embedding
+*  in an espcp_sendmsg_request_t.
+*
+*  Wire layout of the produced scatter_array:
+*    [name_length:    uint32]
+*    [name:           name_length bytes]
+*    [iovec_count:    uint32]
+*    [iov_len[0..n]:  uint32 each]
+*    [iov_data[0..n]: concatenated bytes]
+*    [control_length: uint32]
+*    [control:        control_length bytes]
+*    [msg_flags:      int32]
+*
+*  Note that the returned pointer holds heap memory.  Call
+*  espcp_free_encoded_msghdr() when the encoded data is no longer needed.
+*
+* Input Parameters:
+*  msg - POSIX message header to encode.
+*
+* Returned Value:
+*  Pointer to the encoded msghdr on success, NULL on allocation failure.
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+espcp_encoded_msghdr_t *espcp_encode_msghdr(const struct msghdr *msg)
+{
+    uint32_t iovec_count = (uint32_t) msg->msg_iovlen;
+    uint32_t iov_data_length = 0;
+
+    for (uint32_t i = 0; i < iovec_count; i++)
+    {
+        iov_data_length += (uint32_t) msg->msg_iov[i].iov_len;
+    }
+
+    //
+    //  Values derived from the wire layout of the scatter array described in the comment above.
+    //
+    uint32_t name_length = (msg->msg_name != NULL) ? (uint32_t) msg->msg_namelen : 0;
+    uint32_t control_length = (msg->msg_control != NULL) ? (uint32_t) msg->msg_controllen : 0;
+    uint32_t scatter_array_length = 16 + name_length + (iovec_count * 4) + iov_data_length + control_length;
+    espcp_encoded_msghdr_t *encoded = (espcp_encoded_msghdr_t *) malloc(sizeof(espcp_encoded_msghdr_t));
+    if (encoded == NULL)
+    {
+        return(NULL);
+    }
+
+    encoded->scatter_array = (uint8_t *) malloc(scatter_array_length);
+    if (encoded->scatter_array == NULL)
+    {
+        free(encoded);
+        return(NULL);
+    }
+    encoded->scatter_array_length = scatter_array_length;
+
+    uint8_t *p = encoded->scatter_array;
+
+    espcp_encode_uint32(name_length, p);
+    p += 4;
+    if (name_length > 0)
+    {
+        memcpy((void *) p, msg->msg_name, name_length);
+        p += name_length;
+    }
+
+    espcp_encode_uint32(iovec_count, p);
+    p += 4;
+    for (uint32_t i = 0; i < iovec_count; i++)
+    {
+        espcp_encode_uint32((uint32_t) msg->msg_iov[i].iov_len, p);
+        p += 4;
+    }
+    for (uint32_t i = 0; i < iovec_count; i++)
+    {
+        if (msg->msg_iov[i].iov_len > 0)
+        {
+            memcpy((void *) p, msg->msg_iov[i].iov_base, msg->msg_iov[i].iov_len);
+            p += (uint32_t) msg->msg_iov[i].iov_len;
+        }
+    }
+
+    espcp_encode_uint32(control_length, p);
+    p += 4;
+    if (control_length > 0)
+    {
+        memcpy((void *) p, msg->msg_control, control_length);
+        p += control_length;
+    }
+
+    espcp_encode_int32(msg->msg_flags, p);
+
+    return(encoded);
+}
+
+/****************************************************************************
+* Name: espcp_free_encoded_msghdr
+*
+* Description:
+*  Release all heap memory associated with an espcp_encoded_msghdr_t
+*  returned by espcp_encode_msghdr().
+*
+* Input Parameters:
+*  hdr - encoded msghdr to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_encoded_msghdr(espcp_encoded_msghdr_t *hdr)
+{
+    if (hdr == NULL)
+    {
+        return;
+    }
+    free(hdr->scatter_array);
+    free(hdr);
+}
+
+/****************************************************************************
+* Name: espcp_sendmsg_request_buffer_size
+*
+* Description:
+*  Calculate the number of bytes required to hold an encoded
+*  espcp_sendmsg_request_t.
+*
+* Input Parameters:
+*  sendmsg_request - request object to be encoded.
+*
+* Returned Value:
+*  Number of bytes required.
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+int espcp_sendmsg_request_buffer_size(espcp_sendmsg_request_t *sendmsg_request)
+{
+    return(12 + (int) sendmsg_request->msghdr_length);
+}
+
+/****************************************************************************
+* Name: espcp_encode_sendmsg_request
+*
+* Description:
+*  Convert an espcp_sendmsg_request_t into a byte stream.
+*
+*  Wire layout:
+*    socket_handle:  int32
+*    flags:          int32
+*    msghdr_length:  uint32
+*    msghdr_data:    msghdr_length bytes
+*
+* Input Parameters:
+*  sendmsg_request - object to be encoded.
+*  buffer          - destination buffer; must be at least
+*                    espcp_sendmsg_request_buffer_size() bytes.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_encode_sendmsg_request(espcp_sendmsg_request_t *sendmsg_request, uint8_t *buffer)
+{
+    espcp_encode_int32(sendmsg_request->socket_handle, buffer);
+    buffer += 4;
+    espcp_encode_int32(sendmsg_request->flags, buffer);
+    buffer += 4;
+    espcp_encode_uint32(sendmsg_request->msghdr_length, buffer);
+    buffer += 4;
+    if (sendmsg_request->msghdr_length > 0)
+    {
+        memcpy((void *) buffer, (void *) sendmsg_request->msghdr_data, sendmsg_request->msghdr_length);
+    }
+}
+
+/****************************************************************************
+* Name: espcp_recvmsg_request_buffer_size
+*
+* Description:
+*  Calculate the number of bytes required to hold an encoded
+*  espcp_recvmsg_request_t.
+*
+* Input Parameters:
+*  recvmsg_request - request object to be encoded.
+*
+* Returned Value:
+*  Number of bytes required.
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+int espcp_recvmsg_request_buffer_size(espcp_recvmsg_request_t *recvmsg_request)
+{
+    return(20);
+}
+
+/****************************************************************************
+* Name: espcp_encode_recvmsg_request
+*
+* Description:
+*  Convert an espcp_recvmsg_request_t into a byte stream.
+*
+*  Wire layout:
+*    socket_handle:      int32
+*    length:             int32
+*    flags:              int32
+*    get_source_address: int32
+*    control_length:     uint32
+*
+* Input Parameters:
+*  recvmsg_request - object to be encoded.
+*  buffer          - destination buffer; must be at least
+*                    espcp_recvmsg_request_buffer_size() bytes.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_encode_recvmsg_request(espcp_recvmsg_request_t *recvmsg_request, uint8_t *buffer)
+{
+    espcp_encode_int32(recvmsg_request->socket_handle, buffer);
+    buffer += 4;
+    espcp_encode_int32(recvmsg_request->length, buffer);
+    buffer += 4;
+    espcp_encode_int32(recvmsg_request->flags, buffer);
+    buffer += 4;
+    espcp_encode_int32(recvmsg_request->get_source_address, buffer);
+    buffer += 4;
+    espcp_encode_uint32(recvmsg_request->control_length, buffer);
+}
+
+/****************************************************************************
+* Name: espcp_extract_recvmsg_response
+*
+* Description:
+*  Extract the espcp_recvmsg_response_t object encoded in the given buffer.
+*
+*  Note that the returned pointer and its variable-length fields point to
+*  heap memory.  Call espcp_free_recvmsg_response() when no longer needed.
+*
+*  Wire layout:
+*    buffer_length:        uint32
+*    buffer:               buffer_length bytes
+*    result:               int32
+*    response_errno:       int32
+*    source_address_length:uint32
+*    source_address:       source_address_length bytes
+*    source_address_len:   uint32 (POSIX socklen_t to write back to msg_namelen)
+*    control_length:       uint32
+*    control:              control_length bytes
+*    msg_flags:            int32
+*
+* Input Parameters:
+*  buffer - buffer containing the encoded espcp_recvmsg_response_t.
+*
+* Returned Value:
+*  Pointer to the extracted espcp_recvmsg_response_t, or NULL on failure.
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+espcp_recvmsg_response_t *espcp_extract_recvmsg_response(uint8_t *buffer)
+{
+    espcp_recvmsg_response_t *recvmsg_response = (espcp_recvmsg_response_t *) malloc(sizeof(espcp_recvmsg_response_t));
+    if (recvmsg_response == NULL)
+    {
+        return(NULL);
+    }
+
+    recvmsg_response->iov_data_length = espcp_extract_uint32(buffer);
+    buffer += 4;
+    if (recvmsg_response->iov_data_length > 0)
+    {
+        recvmsg_response->iov_data = (uint8_t *) malloc(recvmsg_response->iov_data_length);
+        if (recvmsg_response->iov_data == NULL)
+        {
+            free(recvmsg_response);
+            return(NULL);
+        }
+        memcpy(recvmsg_response->iov_data, buffer, recvmsg_response->iov_data_length);
+        buffer += recvmsg_response->iov_data_length;
+    }
+    else
+    {
+        recvmsg_response->iov_data = NULL;
+    }
+
+    recvmsg_response->result = espcp_extract_int32(buffer);
+    buffer += 4;
+    recvmsg_response->response_errno = espcp_extract_int32(buffer);
+    buffer += 4;
+
+    recvmsg_response->source_address_length = espcp_extract_uint32(buffer);
+    buffer += 4;
+    if (recvmsg_response->source_address_length > 0)
+    {
+        recvmsg_response->source_address = (uint8_t *) malloc(recvmsg_response->source_address_length);
+        if (recvmsg_response->source_address == NULL)
+        {
+            free(recvmsg_response->iov_data);
+            free(recvmsg_response);
+            return(NULL);
+        }
+        memcpy(recvmsg_response->source_address, buffer, recvmsg_response->source_address_length);
+        buffer += recvmsg_response->source_address_length;
+    }
+    else
+    {
+        recvmsg_response->source_address = NULL;
+    }
+    recvmsg_response->source_address_len = espcp_extract_uint32(buffer);
+    buffer += 4;
+
+    recvmsg_response->control_length = espcp_extract_uint32(buffer);
+    buffer += 4;
+    if (recvmsg_response->control_length > 0)
+    {
+        recvmsg_response->control = (uint8_t *) malloc(recvmsg_response->control_length);
+        if (recvmsg_response->control == NULL)
+        {
+            free(recvmsg_response->source_address);
+            free(recvmsg_response->iov_data);
+            free(recvmsg_response);
+            return(NULL);
+        }
+        memcpy(recvmsg_response->control, buffer, recvmsg_response->control_length);
+        buffer += recvmsg_response->control_length;
+    }
+    else
+    {
+        recvmsg_response->control = NULL;
+    }
+
+    recvmsg_response->msg_flags = espcp_extract_int32(buffer);
+
+    return(recvmsg_response);
+}
+
+/****************************************************************************
+* Name: espcp_free_recvmsg_response
+*
+* Description:
+*  Release all heap memory associated with an espcp_recvmsg_response_t
+*  returned by espcp_extract_recvmsg_response().
+*
+* Input Parameters:
+*  recvmsg_response - response object to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_recvmsg_response(espcp_recvmsg_response_t *recvmsg_response)
+{
+    if (recvmsg_response == NULL)
+    {
+        return;
+    }
+    free(recvmsg_response->iov_data);
+    free(recvmsg_response->source_address);
+    free(recvmsg_response->control);
+    free(recvmsg_response);
 }
 
 /****************************************************************************
