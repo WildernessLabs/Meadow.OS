@@ -3123,8 +3123,90 @@ int espcp_usrsock_dup2(struct socket *old_psock, struct socket *new_psock)
  ****************************************************************************/
 ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flags)
 {
-  espcp_usrsock_not_implemented(__func__);
-  return(-1);
+    MEADOW_TRACE_INFORMATION("sendmsg(%d, 0x%08x, %d)\n", espcp_sockfd(psock), (uint32_t) msg, flags);
+
+    if (espcp_get_configuration()->esp_not_responding)
+    {
+        MEADOW_TRACE_DEBUG("sendmsg - result ENETDOWN\n");
+        return(-ENETDOWN);
+    }
+
+    espcp_encoded_msghdr_t *encoded_hdr = espcp_encode_msghdr(msg);
+    if (encoded_hdr == NULL)
+    {
+        MEADOW_TRACE_DEBUG("sendmsg - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+
+    espcp_sendmsg_request_t *request = (espcp_sendmsg_request_t *) zalloc(sizeof(espcp_sendmsg_request_t));
+    if (request == NULL)
+    {
+        espcp_free_encoded_msghdr(encoded_hdr);
+        MEADOW_TRACE_DEBUG("sendmsg - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+    request->socket_handle = espcp_sockfd(psock);
+    request->msghdr_data = encoded_hdr->scatter_array;
+    request->msghdr_length = encoded_hdr->scatter_array_length;
+    request->flags = flags;
+
+    int payload_length = espcp_sendmsg_request_buffer_size(request);
+    uint8_t *payload = (uint8_t *) zalloc(payload_length);
+    if (payload == NULL)
+    {
+        espcp_free_encoded_msghdr(encoded_hdr);
+        free(request);
+        MEADOW_TRACE_DEBUG("sendmsg - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+    espcp_encode_sendmsg_request(request, payload);
+    espcp_free_encoded_msghdr(encoded_hdr);
+    free(request);
+
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
+                                        espcp_wi_fi_function_send_msg, espcp_status_codes_completed_ok,
+                                        espcp_get_next_message_id(), payload, payload_length);
+    int32_t result = -1;
+    if (message == NULL)
+    {
+        free(payload);
+        result = -ENOMEM;
+    }
+    else
+    {
+        if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+        {
+            switch (message->status_code)
+            {
+                case espcp_status_codes_completed_ok:
+                    {
+                        espcp_integer_and_errno_response_t *response = espcp_extract_integer_and_errno_response(message->payload);
+                        if (response == NULL)
+                        {
+                            result = -ENOMEM;
+                        }
+                        else
+                        {
+                            result = (response->result < 0) ? -response->response_errno : response->result;
+                            free(response);
+                        }
+                    }
+                    break;
+                case espcp_status_codes_thread_pool_is_full:
+                case espcp_status_codes_esp_out_of_memory:
+                    result = -ENOMEM;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    espcp_delete_message_and_payload(message);
+
+    MEADOW_TRACE_INFORMATION("sendmsg: socket %d, result: %d\n", espcp_sockfd(psock), result);
+
+    return (result);
 }
 
 /****************************************************************************
@@ -3172,8 +3254,121 @@ int espcp_usrsock_shutdown(struct socket *psock, int how)
  ****************************************************************************/
 ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flags)
 {
-  espcp_usrsock_not_implemented(__func__);
-  return(-1);
+    MEADOW_TRACE_INFORMATION("recvmsg(%d, 0x%08x, %d)\n", espcp_sockfd(psock), (uint32_t) msg, flags);
+
+    if (espcp_get_configuration()->esp_not_responding)
+    {
+        MEADOW_TRACE_DEBUG("recvmsg - result ENETDOWN\n");
+        return(-ENETDOWN);
+    }
+
+    size_t total_length = 0;
+    for (int i = 0; i < (int) msg->msg_iovlen; i++)
+    {
+        total_length += msg->msg_iov[i].iov_len;
+    }
+    if (total_length > ESPCP_MAXIMUM_PAYLOAD_SIZE)
+    {
+        total_length = ESPCP_MAXIMUM_PAYLOAD_SIZE;
+    }
+
+    espcp_recvmsg_request_t *request = (espcp_recvmsg_request_t *) zalloc(sizeof(espcp_recvmsg_request_t));
+    if (request == NULL)
+    {
+        MEADOW_TRACE_DEBUG("recvmsg - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+    request->socket_handle = espcp_sockfd(psock);
+    request->length = (int32_t) total_length;
+    request->flags = flags;
+    request->get_source_address = (msg->msg_name != NULL);
+    request->control_length = (uint32_t) msg->msg_controllen;
+
+    int payload_length = espcp_recvmsg_request_buffer_size(request);
+    uint8_t *payload = (uint8_t *) zalloc(payload_length);
+    if (payload == NULL)
+    {
+        free(request);
+        MEADOW_TRACE_DEBUG("recvmsg - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+    espcp_encode_recvmsg_request(request, payload);
+    free(request);
+
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
+                                        espcp_wi_fi_function_recv_msg, espcp_status_codes_completed_ok,
+                                        espcp_get_next_message_id(), payload, payload_length);
+    int32_t result = -1;
+    if (message == NULL)
+    {
+        free(payload);
+        result = -ENOMEM;
+    }
+    else
+    {
+        if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+        {
+            switch (message->status_code)
+            {
+                case espcp_status_codes_completed_ok:
+                    {
+                        espcp_recvmsg_response_t *response = espcp_extract_recvmsg_response(message->payload);
+                        if (response == NULL)
+                        {
+                            MEADOW_TRACE_DEBUG("recvmsg - result ENOMEM\n");
+                            result = -ENOMEM;
+                        }
+                        else
+                        {
+                            if (response->result > 0)
+                            {
+                                uint32_t remaining = response->iov_data_length;
+                                uint8_t *src = response->iov_data;
+                                for (int i = 0; i < (int) msg->msg_iovlen && remaining > 0; i++)
+                                {
+                                    uint32_t copy_len = ((uint32_t) msg->msg_iov[i].iov_len < remaining) ? (uint32_t) msg->msg_iov[i].iov_len : remaining;
+                                    memcpy(msg->msg_iov[i].iov_base, src, copy_len);
+                                    src += copy_len;
+                                    remaining -= copy_len;
+                                }
+                                if (response->source_address_length > 0 && msg->msg_name != NULL)
+                                {
+                                    uint32_t copy_len = (response->source_address_length < (uint32_t) msg->msg_namelen) ? response->source_address_length : (uint32_t) msg->msg_namelen;
+                                    memcpy(msg->msg_name, response->source_address, copy_len);
+                                    msg->msg_namelen = (socklen_t) response->source_address_len;
+                                }
+                                if (response->control_length > 0 && msg->msg_control != NULL)
+                                {
+                                    uint32_t copy_len = (response->control_length < (uint32_t) msg->msg_controllen) ? response->control_length : (uint32_t) msg->msg_controllen;
+                                    memcpy(msg->msg_control, response->control, copy_len);
+                                    msg->msg_controllen = (socklen_t) response->control_length;
+                                }
+                                msg->msg_flags = response->msg_flags;
+                                result = response->result;
+                            }
+                            else
+                            {
+                                result = -response->response_errno;
+                            }
+                            espcp_free_recvmsg_response(response);
+                        }
+                    }
+                    break;
+                case espcp_status_codes_thread_pool_is_full:
+                case espcp_status_codes_esp_out_of_memory:
+                    result = -ENOMEM;
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
+    espcp_delete_message_and_payload(message);
+
+    MEADOW_TRACE_INFORMATION("recvmsg: socket %d, result: %d\n", espcp_sockfd(psock), result);
+
+    return (result);
 }
 
 /****************************************************************************
