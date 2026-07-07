@@ -463,7 +463,7 @@ SYSCALL_LOOKUP(meadow_kt_meadow_interrupt_tests, 1)
 SYSCALL_LOOKUP(meadow_kt_spi_dma_tests, 1)
 #endif
 
-#if defined(CONFIG_ROTARY_ENCODER_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_rotary_encoder_tests, 1)
 #endif
 

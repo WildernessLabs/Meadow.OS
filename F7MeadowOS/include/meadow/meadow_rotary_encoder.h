@@ -40,9 +40,9 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#include <include/meadow/meadow_rotary_encoder.h>
+// Should rotary encoder code be built?
+#define MEADOW_ROTARY_ENCODER_BUILD  (1)
 
-#define MEADOW_ROTARY_ENCODER_BUILD (0)
 #if (MEADOW_ROTARY_ENCODER_BUILD > 0)
 
 #include <string.h>

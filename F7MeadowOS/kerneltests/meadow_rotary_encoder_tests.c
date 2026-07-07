@@ -33,12 +33,17 @@
  *
  ****************************************************************************/
 
+// In ./build.sh -u=rotenc
+// Then -p 18 -v <test number>
+// e.g. meadow developer -p 18 -v 1 (config D05 & D06)
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ROTARY_ENCODER_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+// Only build if configured
+#if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <meadow/hcom_shared_common.h>
 
@@ -46,9 +51,7 @@
 #include "stm32_gpio.h"   // stm32_configgpio
 #include <meadow/meadow_rotary_encoder.h>
 
-// Only build if configured
-#if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-#pragma message "(--) rotary_encoder_tests.c"
+#pragma message "(--) meadow_rotary_encoder_tests.c"
 
 // Diagnostic always as this is test code
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -81,57 +84,13 @@
  ************************************************************************************/
 static void rotary_encoder_config_test_add_n(uint32_t userData);
 static void rotary_encoder_config_test_remove_n(uint32_t userData);
+static void rotary_encoder_config_test_null_parms(uint32_t userData);
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
 // set developer -p 18 come here
-
-//==================================================================
-// Pass in bad parameters
-void rotary_encoder_config_test_null_parms(uint32_t userData)
-{
-  // Setup a rotary encoder
-  int ret = 0;
-  int32_t currentCount;
-  int32_t encoderChanged;
-  uint32_t rotClockWise;
-
-  // All these tests use encoder 0 alone
-  uint32_t encoderNumb = 0;
-
-  switch(userData)
-  {
-    // NULL config test, Should fail
-    case 41:
-      
-      // Call configuration function
-      ret = meadow_rotary_encoder_config(NULL);
-      if(ret < 0)
-      {
-        syslog(LOG_MTEST, "Error:meadow_rotary_encoder_config returned ret:%d\n",
-          ret);
-      }
-      break;
-
-    // There are 3 pointers needed for meadow_rotary_encoder_read_count()
-    case 42:
-      ret = meadow_rotary_encoder_read_count(0,
-        NULL, &encoderChanged, &rotClockWise);
-      break;
-    case 43:
-      ret = meadow_rotary_encoder_read_count(0,
-        &currentCount, NULL, &rotClockWise);
-      break;
-    case 44:
-      ret = meadow_rotary_encoder_read_count(0,
-        &currentCount, &encoderChanged, NULL);
-      break;
-  }
-  syslog(LOG_MTEST, "Rotary Encoder parameter test: encoder:%lu, ret:%d\n",
-    encoderNumb, ret);
-}
-
+// Testing entry point
 void meadow_kt_rotary_encoder_tests(uint32_t userData)
 {
   int ret;
@@ -177,14 +136,14 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       {
         syslog(LOG_MTEST, "Encoder 0 - No change since last read, count:%ld, direction:%s\n",
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST, "Encoder 0 - Has changed by %ld since last read, count:%ld, direction:%s\n",
           encoderChanged,
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
@@ -202,14 +161,14 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       {
         syslog(LOG_MTEST, "Encoder 5 - No since last read, count:%ld, direction:%s\n",
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST, "Encoder 5 - Has changed by %ld since last read, count:%ld, direction:%s\n",
           encoderChanged,
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
@@ -227,7 +186,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       {
         syslog(LOG_MTEST, "Encoder 7 - No since last read, count:%ld, direction:%s\n",
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
@@ -235,7 +194,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
           "Encoder 7 - Has changed by %ld since last read, count:%ld, direction:%s\n",
           encoderChanged,
           currentCount,
-          rotClockWise == 0 ? "ClockWise" : "CounterClockWise") ;
+          rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
@@ -276,11 +235,6 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       }
       syslog(LOG_MTEST, "Encoder 7 set to 0\n");
       break;
-      
-    default:
-      syslog(LOG_MTEST, "Rotary Encoder tests - received unknown userData of %lu\n",
-        userData);
-      break;
 
     // Function parameter null tests
     case 41:
@@ -288,6 +242,11 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
     case 43:
     case 44:
       rotary_encoder_config_test_null_parms(userData);
+
+    default:
+      syslog(LOG_MTEST, "Rotary Encoder tests - received unknown userData of %lu\n",
+        userData);
+      break;
   }
 }
 
@@ -331,7 +290,7 @@ void rotary_encoder_config_test_add_n(uint32_t userData)
       PinB = ENCODER_PIN_CCM_D10_PD5_INPUT;
       break;
     case 4:
-      encoderNumb = 8;    // Invalid-too big
+      encoderNumb = 8;    // Invalid encoder (too big)
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
@@ -423,6 +382,49 @@ void rotary_encoder_config_test_remove_n(uint32_t userData)
   free (cfg);
 }
 
-#endif  // #if defined(CONFIG_ROTARY_ENCODER_TESTS)
+//==================================================================
+// Pass in bad parameters
+void rotary_encoder_config_test_null_parms(uint32_t userData)
+{
+  // Setup a rotary encoder
+  int ret = 0;
+  int32_t currentCount;
+  int32_t encoderChanged;
+  uint32_t rotClockWise;
+
+  // All these tests use encoder 0 alone
+  uint32_t encoderNumb = 0;
+
+  switch(userData)
+  {
+    // NULL config test, Should fail
+    case 41:
+      
+      // Call configuration function
+      ret = meadow_rotary_encoder_config(NULL);
+      if(ret < 0)
+      {
+        syslog(LOG_MTEST, "Error:meadow_rotary_encoder_config returned ret:%d\n",
+          ret);
+      }
+      break;
+
+    // There are 3 pointers needed for meadow_rotary_encoder_read_count()
+    case 42:
+      ret = meadow_rotary_encoder_read_count(0,
+        NULL, &encoderChanged, &rotClockWise);
+      break;
+    case 43:
+      ret = meadow_rotary_encoder_read_count(0,
+        &currentCount, NULL, &rotClockWise);
+      break;
+    case 44:
+      ret = meadow_rotary_encoder_read_count(0,
+        &currentCount, &encoderChanged, NULL);
+      break;
+  }
+  syslog(LOG_MTEST, "Rotary Encoder parameter test: encoder:%lu, ret:%d\n",
+    encoderNumb, ret);
+}
 
 #endif  // defined(CONFIG_ROTARY_ENCODER_TESTS)

@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-// This module contains code to handle rotary encoders at a higher speed than
-// can be achieved using C# and interrupts
+// This module contains code to handle rotary encoders at a much higher
+// rate than can be achieved using C# and interrupts
 
 /****************************************************************************
  * Included Files
@@ -73,8 +73,8 @@
 
 //============================================================
 // Defines the maximum number of encoders that can be monitored.
-// Since the F7 with Nuttx only have 16 "interrupt groups" there's no
-// point in having more that 8 rotary encoders
+// Since the F7, under Nuttx, only has 16 "interrupt groups" there's no
+// point in having more that 8 rotary encoders.
 #define MEADOW_ROTARY_ENC_MAX (8)
 
 /****************************************************************************
@@ -109,11 +109,11 @@ static int rotenc_config_interrupt_remove(struct rotenc_config_parms* cfg);
 // A rotary encoder has 2 digital outputs, called A and B. Therefore, 2 GPIO
 // input are needed. The way a rotary encoder is designed, when rotated it
 // toggles output A and output B 90 degrees out of phase. If A toggles
-// followed by B it indicates clock-wise rotation, if B then A counter
+// followed by B, it indicates clock-wise rotation, if B then A, counter
 // clock-wise. This is how rotational direction is determined and whether
 // the count is incremented or decremented.
-// For each transition we must consider the previous state of A and B and the
-// current state of A and B. This can be represented by a 4-bit number.
+// For each transition we must consider the previous and current state of
+// A and B. This past and present state is represented by a 4-bit number.
 // Bits 0 and 1 represent the current state of A and B and bits 2 and 3
 // represent previous states of A and B.
 // |old|new|
@@ -128,6 +128,8 @@ static int rotenc_config_interrupt_remove(struct rotenc_config_parms* cfg);
 
 // The offsets yield 16 values which determine the direction, and how it
 // effects the count. Either add 1 or subtract 1 or do nothing
+
+// This is not a new idea, its been around for years.
 static int rotEncLookup[] =
 {
   // Notice the values forward and backward match
@@ -176,7 +178,7 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderPtr,
   // (48 edges/revolution).
   if((rotaryEncoderPtr->abEdgeCount % 9973) == 0)
   {
-    syslog(LOG_MTEST, "Encoder:%lu, Interrupts:%08ld, Direction:%s\n",
+    syslog(LOG_MTEST, "Encoder:%u, Interrupts:%08ld, Direction:%s\n",
       rotaryEncoderPtr->EncoderNumb,
       rotaryEncoderPtr->abEdgeCount,
       rotaryEncoderPtr->rotClockWise == 0 ? "ClockWise" : "CounterClockWise");
@@ -185,8 +187,8 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderPtr,
 }
 
 //===========================================================================
-// Rotary encoder input A
-// Note:may need to insure that both 'A' and 'B' are changing every other
+// Rotary encoder input A ISR
+// Note: may need to insure that both 'A' and 'B' are changing every other
 // call, Possibly use int isrACount and isrBCount and if difference > than
 // some small number, warn user (e.g. "Only GPIO is changing").
 int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
@@ -216,7 +218,7 @@ int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 }
 
 // ===========================================================================
-// Rotary encoder input B
+// Rotary encoder input B ISR
 int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 {
   uint8_t pinNumb;
