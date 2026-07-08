@@ -45,23 +45,31 @@
 
 #if (MEADOW_ROTARY_ENCODER_BUILD > 0)
 
+#include <nuttx/wqueue.h>
 #include <string.h>
 #include <stdint.h>
 #include "hcom_shared_common.h"
-// #include <meadow/hcom_shared_common.h>
+
+// The Rotary Encoder Count consists of 2 GPIOs (A and B) and both
+// rising and falling edges of each pulse equals one count.
+#define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
 // Caller must populate this struct
-struct rotenc_config_parms
+struct rotenc_config_parms_s
 {
   uint32_t encoderNumb;       // 0 - 7 to identify for collections
   bool isAddEncoder;          // true=add, false=remove
-  uint32_t portA;             // 0 - 15 (A-K)
+  uint32_t portA;             // 0 - 10 (A-K)
   uint32_t pinA;              // 0 - 15
-  uint32_t portB;             // 0 - 15 (A-K)
+  uint32_t portB;             // 0 - 10 (A-K)
   uint32_t pinB;              // 0 - 15
   uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
+  uint32_t delayMs;           // Requested delay in milliseconds
 };
 
+typedef struct rotenc_config_parms_s rotenc_config_parms_t;
+
+// Internal structure to manage rotary encoders
 struct rotaryEncoderInfo_s
 {
   uint8_t EncoderNumb;        // Encoder number
@@ -70,31 +78,47 @@ struct rotaryEncoderInfo_s
   uint8_t PinInfoA;           // Supplied by configuration
   uint8_t PinInfoB;           // Supplied by configuration
 
-  // Address of correct "Input Data Register" which holds GPIO's hardware port
-  // state bits
+  // Address of correct "Input Data Register" which holds GPIO's hardware
+  // port state bits
   uint32_t IDRAddressA;       // Calculated during configuration
   uint32_t IDRAddressB;       // Calculated during configuration
 
-  uint32_t prevCondBits;
-  uint32_t prevOff;
-  int32_t abEdgeCount;        // Count of A and B, rising and falling edges
-  int32_t abEdgeChange;       // Count of edges since last read
+  uint32_t prevCondBits;      // Current state information
+  uint32_t lookupOff;         // Current lookup table offset
+  // Using int32_t for count as this will roll-over in 24,855 days at 1 count
+  // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
+  int32_t totalCount;         // Total of A and B, rising and/or falling edges
+  int32_t sinceRdCount;       // Count since last read
   uint32_t rotClockWise;      // Current direction 0 = Clockwise
+  uint32_t delayMs;           // Delay in milliseconds
+  sem_t callerSem;            // Blocks until time to return
+  struct work_s rotEncWQueue;
+
+  // Teardown synchronization: a reader (meadow_rotary_encoder_read_data) or
+  // the wqueue worker may be using callerSem/rotEncWQueue at the same time
+  // rotenc_config_interrupt_remove() wants to free this struct. Each user
+  // registers in activeUserCount before touching either one; remove() sets
+  // isRemoving and then waits on removeDoneSem until the last registered
+  // user unregisters, so free() never races a concurrent reader/worker.
+  bool isRemoving;            // Set by remove() before waking blocked users
+  int32_t activeUserCount;    // Readers/worker currently using callerSem/rotEncWQueue
+  sem_t removeDoneSem;        // Posted by the last active user during removal
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
-// The Rotary Encoder Count consists of 2 GPIOs (A and B) and the rising and
-// falling edges of each pulse equals one count.
-#define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
+struct rotaryEncoderData_s
+{
+  uint32_t encoderNumb;     // 0 - 7 encoder config number
+  int32_t encoderCount;     // Current full count (+/-)
+  int32_t encoderChange;    // Full counts since last read (+/-)
+  uint32_t rotClockWise;    // Current rotational director
+};
+typedef struct rotaryEncoderData_s rotaryEncoderData_t;
 
 // Public functions with syscalls
-int meadow_rotary_encoder_config(struct rotenc_config_parms* rotencCfg);
-int meadow_rotary_encoder_read_count(
-  uint32_t encoderNumb,     // 0 - 7 encoder config number
-  int32_t *encoderCount,    // Current full count (+/-)
-  int32_t *encoderChanged,  // Full counts since last read (+/-)
-  uint32_t *rotClockWise);  // Current rotational director
-int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t encoderCount);
+int meadow_rotary_encoder_config(rotenc_config_parms_t *rotencCfg);
+int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount);
+int meadow_rotary_encoder_read_data(rotaryEncoderData_t *rotenc_snapshot);
 
 // Test function follow
 void rotary_encoder_test_exercise_test(uint32_t userData);

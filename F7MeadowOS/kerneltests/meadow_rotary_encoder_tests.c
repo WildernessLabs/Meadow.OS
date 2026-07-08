@@ -94,9 +94,7 @@ static void rotary_encoder_config_test_null_parms(uint32_t userData);
 void meadow_kt_rotary_encoder_tests(uint32_t userData)
 {
   int ret;
-  int32_t currentCount;
-  int32_t encoderChanged;
-  uint32_t rotClockWise;
+  rotaryEncoderData_t rotencSnapshot;
 
   syslog(LOG_MTEST,
     "Rotary Encoder tests received 'set developer -p 18 -v %lu'\n",
@@ -122,79 +120,81 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
 
     // Test reading count
     case 21:
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 0 count (%lu)\n",
-        userData);
-      ret = meadow_rotary_encoder_read_count(0, &currentCount,
-        &encoderChanged, &rotClockWise);
-      if(ret < 0)
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 0 count\n");
+
+      rotencSnapshot.encoderNumb = 0;
+      ret = meadow_rotary_encoder_read_data(&rotencSnapshot);
+              if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 0 returned error:%d\n", ret);
         break;
       }
 
-      if(encoderChanged == 0)
+      if(rotencSnapshot.encoderChange == 0)
       {
-        syslog(LOG_MTEST, "Encoder 0 - No change since last read, count:%ld, direction:%s\n",
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+        syslog(LOG_MTEST,
+          "Encoder 0 - No change since read, total:%ld, direction:%s\n",
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
-        syslog(LOG_MTEST, "Encoder 0 - Has changed by %ld since last read, count:%ld, direction:%s\n",
-          encoderChanged,
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+        syslog(LOG_MTEST,
+          "Encoder 0 - Changed by %ld since read, total:%ld, direction:%s\n",
+          rotencSnapshot.encoderChange,
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
     case 22:
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 5 count (%lu)\n",
-        userData);
-      ret = meadow_rotary_encoder_read_count(5, &currentCount,
-        &encoderChanged, &rotClockWise);
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 5 count\n");
+        
+      rotencSnapshot.encoderNumb = 5;
+      ret = meadow_rotary_encoder_read_data(&rotencSnapshot);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 5 returned error:%d\n", ret);
         break;
       }
-      if(encoderChanged == 0)
+      if(rotencSnapshot.encoderChange == 0)
       {
-        syslog(LOG_MTEST, "Encoder 5 - No since last read, count:%ld, direction:%s\n",
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+        syslog(LOG_MTEST, "Encoder 5 - No changes since read, total:%ld, direction:%s\n",
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
-        syslog(LOG_MTEST, "Encoder 5 - Has changed by %ld since last read, count:%ld, direction:%s\n",
-          encoderChanged,
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+        syslog(LOG_MTEST, "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
+          rotencSnapshot.encoderChange,
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
     case 23:
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 7 count (%lu)\n",
-        userData);
-      ret = meadow_rotary_encoder_read_count(7, &currentCount,
-        &encoderChanged, &rotClockWise);
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 7 count\n");
+        
+      rotencSnapshot.encoderNumb = 7;
+      ret = meadow_rotary_encoder_read_data(&rotencSnapshot);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 7 returned error:%d\n", ret);
         break;
       }
-      if(encoderChanged == 0)
+      if(rotencSnapshot.encoderChange == 0)
       {
-        syslog(LOG_MTEST, "Encoder 7 - No since last read, count:%ld, direction:%s\n",
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+        syslog(LOG_MTEST, "Encoder 7 - No changes since read, total:%ld, direction:%s\n",
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST,
-          "Encoder 7 - Has changed by %ld since last read, count:%ld, direction:%s\n",
-          encoderChanged,
-          currentCount,
-          rotClockWise == 0 ? "CW" : "CCW") ;
+          "Encoder 7 - Changed by %ld since read total:%ld, direction:%s\n",
+          rotencSnapshot.encoderChange,
+          rotencSnapshot.encoderCount,
+          rotencSnapshot.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
@@ -261,7 +261,7 @@ void rotary_encoder_config_test_add_n(uint32_t userData)
   uint32_t PinA = 0;
   uint32_t PinB = 0;
 
-  struct rotenc_config_parms* cfg = malloc(sizeof(struct rotenc_config_parms));
+  rotenc_config_parms_t* cfg = malloc(sizeof(rotenc_config_parms_t));
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "Memory allocation failed\n");
@@ -329,7 +329,7 @@ void rotary_encoder_config_test_remove_n(uint32_t userData)
   uint32_t PinA = 0;
   uint32_t PinB = 0;
 
-  struct rotenc_config_parms* cfg = malloc(sizeof(struct rotenc_config_parms));
+  rotenc_config_parms_t* cfg = malloc(sizeof(rotenc_config_parms_t));
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "Memory allocation failed\n");
@@ -388,9 +388,6 @@ void rotary_encoder_config_test_null_parms(uint32_t userData)
 {
   // Setup a rotary encoder
   int ret = 0;
-  int32_t currentCount;
-  int32_t encoderChanged;
-  uint32_t rotClockWise;
 
   // All these tests use encoder 0 alone
   uint32_t encoderNumb = 0;
@@ -408,21 +405,8 @@ void rotary_encoder_config_test_null_parms(uint32_t userData)
           ret);
       }
       break;
-
-    // There are 3 pointers needed for meadow_rotary_encoder_read_count()
-    case 42:
-      ret = meadow_rotary_encoder_read_count(0,
-        NULL, &encoderChanged, &rotClockWise);
-      break;
-    case 43:
-      ret = meadow_rotary_encoder_read_count(0,
-        &currentCount, NULL, &rotClockWise);
-      break;
-    case 44:
-      ret = meadow_rotary_encoder_read_count(0,
-        &currentCount, &encoderChanged, NULL);
-      break;
   }
+
   syslog(LOG_MTEST, "Rotary Encoder parameter test: encoder:%lu, ret:%d\n",
     encoderNumb, ret);
 }
