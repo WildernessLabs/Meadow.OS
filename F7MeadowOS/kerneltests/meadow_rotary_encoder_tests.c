@@ -41,6 +41,7 @@
  * Included Files
  ****************************************************************************/
 #include <nuttx/config.h>
+#include <meadow/meadow_rotary_encoder.h>
 
 // Only build if configured
 #if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -49,7 +50,6 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include "stm32_gpio.h"   // stm32_configgpio
-#include <meadow/meadow_rotary_encoder.h>
 
 #pragma message "(--) meadow_rotary_encoder_tests.c"
 
@@ -82,7 +82,7 @@
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
-static void rotary_encoder_config_test_add_n(uint32_t userData);
+static void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs);
 static void rotary_encoder_config_test_remove_n(uint32_t userData);
 static void rotary_encoder_config_test_null_parms(uint32_t userData);
 
@@ -94,7 +94,8 @@ static void rotary_encoder_config_test_null_parms(uint32_t userData);
 void meadow_kt_rotary_encoder_tests(uint32_t userData)
 {
   int ret;
-  rotaryEncoderState_t rotEncState;
+  uint32_t delayMs = 0;
+  rotEncReadData_t rotEncReadData;
 
   syslog(LOG_MTEST,
     "Rotary Encoder tests received 'set developer -p 18 -v %lu'\n",
@@ -103,15 +104,28 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
   switch(userData)
   {
     // Test adding new configuration
-    case 1:   // Encoder 0  Delay 0 millisec
-    case 2:   // Encoder 5  Delay 0 millisec
-    case 3:   // Encoder 7  Delay 0 millisec
-    case 4:   // Encoder 8  Delay 0 millisec
+    case 1:   // Encoder 0 Delay 0 millisec
+    case 2:   // Encoder 5 Delay 0 millisec
+    case 3:   // Encoder 7 Delay 0 millisec
+    case 4:   // Encoder 8 Delay 0 millisec
+      rotary_encoder_config_test_add_n(userData, delayMs);
+      break;
+      
     case 5:   // Encoder 0  Delay 2 millisec
-    case 6:   // Encoder 0  Delay 20 millisec
-    case 7:   // Encoder 0  Delay 200 millisec
-    case 8:   // Encoder 0  Delay 2000 millisec
-      rotary_encoder_config_test_add_n(userData);
+      delayMs = 2;
+      rotary_encoder_config_test_add_n(userData, delayMs);
+      break;
+    case 6:   // Encoder 0 Delay 20 millisec
+      delayMs = 20;
+      rotary_encoder_config_test_add_n(userData, delayMs);
+      break;
+    case 7:   // Encoder 0 Delay 200 millisec
+      delayMs = 200;
+      rotary_encoder_config_test_add_n(userData, delayMs);
+      break;
+    case 8:   // Encoder 0 Delay 2000 millisec
+      rotary_encoder_config_test_add_n(userData, delayMs);
+      delayMs = 2000;
       break;
 
     // Test removing configuration
@@ -124,81 +138,81 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
 
     // Test reading count
     case 21:    // Encoder 0
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 0 count\n");
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder:0 count\n");
 
-      rotEncState.encoderNumb = 0;
-      ret = meadow_rotary_encoder_read_data(&rotEncState);
-              if(ret < 0)
+      rotEncReadData.encoderNumb = 0;
+      ret = meadow_rotary_encoder_read_data(&rotEncReadData);
+      if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 0 returned error:%d\n", ret);
         break;
       }
 
-      if(rotEncState.encoderChange == 0)
+      if(rotEncReadData.encoderChange == 0)
       {
         syslog(LOG_MTEST,
           "Encoder 0 - No change since read, total:%ld, direction:%s\n",
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST,
           "Encoder 0 - Changed by %ld since read, total:%ld, direction:%s\n",
-          rotEncState.encoderChange,
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderChange,
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
     case 22:    // Encoder 5
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 5 count\n");
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder:5 count\n");
         
-      rotEncState.encoderNumb = 5;
-      ret = meadow_rotary_encoder_read_data(&rotEncState);
+      rotEncReadData.encoderNumb = 5;
+      ret = meadow_rotary_encoder_read_data(&rotEncReadData);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 5 returned error:%d\n", ret);
         break;
       }
-      if(rotEncState.encoderChange == 0)
+      if(rotEncReadData.encoderChange == 0)
       {
         syslog(LOG_MTEST, "Encoder 5 - No changes since read, total:%ld, direction:%s\n",
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST, "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
-          rotEncState.encoderChange,
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderChange,
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
     case 23:    // Encoder 7
-      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder 7 count\n");
+      syslog(LOG_MTEST, "Rotary Encoder tests - reading encoder:7 count\n");
         
-      rotEncState.encoderNumb = 7;
-      ret = meadow_rotary_encoder_read_data(&rotEncState);
+      rotEncReadData.encoderNumb = 7;
+      ret = meadow_rotary_encoder_read_data(&rotEncReadData);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "Encoder 7 returned error:%d\n", ret);
         break;
       }
-      if(rotEncState.encoderChange == 0)
+      if(rotEncReadData.encoderChange == 0)
       {
         syslog(LOG_MTEST, "Encoder 7 - No changes since read, total:%ld, direction:%s\n",
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       else
       {
         syslog(LOG_MTEST,
           "Encoder 7 - Changed by %ld since read total:%ld, direction:%s\n",
-          rotEncState.encoderChange,
-          rotEncState.encoderCount,
-          rotEncState.rotClockWise == 0 ? "CW" : "CCW") ;
+          rotEncReadData.encoderChange,
+          rotEncReadData.encoderCount,
+          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       }
       break;
 
@@ -256,16 +270,15 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
-void rotary_encoder_config_test_add_n(uint32_t userData)
+void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs)
 {
   // Setup a rotary encoder
   int ret;
-  uint32_t encoderNumb;
+  uint32_t encoderNumb = 0;
   uint32_t PinA = 0;
   uint32_t PinB = 0;
-  uint32_t delayMs = 0;   // Default
 
-  rotenc_config_parms_t* cfg = malloc(sizeof(rotenc_config_parms_t));
+  rotEncConfigParms_t* cfg = malloc(sizeof(rotEncConfigParms_t));
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "Memory allocation failed\n");
@@ -279,7 +292,6 @@ void rotary_encoder_config_test_add_n(uint32_t userData)
   switch(userData)
   {
     case 1:
-      encoderNumb = 0;
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
@@ -298,28 +310,24 @@ void rotary_encoder_config_test_add_n(uint32_t userData)
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
-      // Same GPIO as #1 but different delays
+      // All the same GPIO as #1 but different delays
     case 5:
       delayMs = 2;    // too small, ignored
-      encoderNumb = 0;
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 6:
       delayMs = 20;       // 50 times/second
-      encoderNumb = 0;
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 7:
       delayMs = 200;      // 5 times/second
-      encoderNumb = 0;
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 8:
       delayMs = 2000;     // 2 seconds
-      encoderNumb = 0;
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
@@ -361,7 +369,7 @@ void rotary_encoder_config_test_remove_n(uint32_t userData)
   uint32_t PinA = 0;
   uint32_t PinB = 0;
 
-  rotenc_config_parms_t* cfg = malloc(sizeof(rotenc_config_parms_t));
+  rotEncConfigParms_t* cfg = malloc(sizeof(rotEncConfigParms_t));
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "Memory allocation failed\n");

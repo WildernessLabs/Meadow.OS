@@ -58,7 +58,7 @@
 #define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (10)
 
 // Caller must populate this struct
-struct rotenc_config_parms_s
+struct rotEncConfigParms_s
 {
   uint32_t encoderNumb;       // 0 - 7 to identify for collections
   bool isAddEncoder;          // true=add, false=remove
@@ -69,7 +69,7 @@ struct rotenc_config_parms_s
   uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
   uint32_t delayMs;           // Requested delay in milliseconds
 };
-typedef struct rotenc_config_parms_s rotenc_config_parms_t;
+typedef struct rotEncConfigParms_s rotEncConfigParms_t;
 
 // Internal structure to manage rotary encoders
 struct rotaryEncoderInfo_s
@@ -110,19 +110,22 @@ struct rotaryEncoderInfo_s
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
-struct rotaryEncoderState_s
+// This structure needs the encoderNumber set to 0-7 of the encoder. It is 
+// populated by the meadow_rotary_encoder_read_data() function which fills
+// the other fields.
+struct rotEncReadData_s
 {
-  uint32_t encoderNumb;     // 0 - 7 encoder config number
-  int32_t encoderCount;     // Current full count (+/-)
-  int32_t encoderChange;    // Full counts since last read (+/-)
-  uint32_t rotClockWise;    // Current rotational director
+  uint32_t encoderNumb;     // Supplied, 0 - 7 encoder config number
+  int32_t encoderCount;     // Returned, Current total count (+/-)
+  int32_t encoderChange;    // Returned, Counts since last read (+/-)
+  uint32_t rotClockWise;    // Returned, Current rotational director
 };
-typedef struct rotaryEncoderState_s rotaryEncoderState_t;
+typedef struct rotEncReadData_s rotEncReadData_t;
 
 // Public functions with syscalls
-int meadow_rotary_encoder_config(rotenc_config_parms_t *rotencCfg);
+int meadow_rotary_encoder_config(rotEncConfigParms_t *rotEncReadData_t);
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount);
-int meadow_rotary_encoder_read_data(rotaryEncoderState_t *rotEncState);
+int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData);
 
 // Test function follow
 void rotary_encoder_test_exercise_test(uint32_t userData);
