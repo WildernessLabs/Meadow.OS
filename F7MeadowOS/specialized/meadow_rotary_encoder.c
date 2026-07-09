@@ -114,7 +114,7 @@ static int rotEncLookup[] =
   0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0
 };
 
-// All F7 possible input data registers addresses, used for ISR access to read
+// All F7 possible input data register addresses, used for ISR access to read
 // GPIO state value.
 static uint32_t rotencInputDataReg[] = 
 {
@@ -139,7 +139,7 @@ static rotaryEncoderInfo_t *_allRotaryEncodersList[MEADOW_ROTARY_ENC_MAX_ENCODER
  * Private Function Prototypes
  ****************************************************************************/
 
-static int meadow_rotary_encoder_read_now(rotaryEncoderData_t *rotenc_snapshot);
+static int meadow_rotary_encoder_read_now(rotaryEncoderState_t *rotEncState);
 static int rotenc_config_interrupt_remove(rotenc_config_parms_t* cfg);
 static int meadow_rotenc_wqueue_set_delay(uint32_t encoderNumb);
 static void meadow_rotenc_wqueue_cancel(uint32_t encoderNumb);
@@ -186,19 +186,6 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
       break;
   }
   leave_critical_section(flags);
-
-#if defined(CONFIG_ROTARY_ENCODER_TESTS)
-  // For fast inputs, don't show every entry. The following was about right
-  // for hall effect sensor on the shaft of a brushed motor
-  // (48 edges/revolution).
-  if((rotaryEncoderInfo->totalCount % 9973) == 0)
-  {
-    syslog(LOG_MTEST, "Encoder:%u, Interrupts:%08ld, Direction:%s\n",
-      rotaryEncoderInfo->EncoderNumb,
-      rotaryEncoderInfo->totalCount,
-      rotaryEncoderInfo->rotClockWise == 0 ? "CW" : "CCW");
-  }
-#endif
 }
 
 //===========================================================================
@@ -262,27 +249,27 @@ int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 
 //========================================================================
 // Return data now
-int meadow_rotary_encoder_read_now(rotaryEncoderData_t *rotenc_snapshot)
+int meadow_rotary_encoder_read_now(rotaryEncoderState_t *rotEncState)
 {
   rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[rotenc_snapshot->encoderNumb];
+  rotaryEncoderInfo = _allRotaryEncodersList[rotEncState->encoderNumb];
 
   // Is requested slot valid?
   if(rotaryEncoderInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
-              __FILE__, __LINE__, rotenc_snapshot->encoderNumb);
+              __FILE__, __LINE__, rotEncState->encoderNumb);
     return -ENODATA;    // No Data
   }
 
   // Get the encoders state and return
   irqstate_t flags = enter_critical_section();
-  rotenc_snapshot->encoderChange = rotaryEncoderInfo->sinceRdCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
+  rotEncState->encoderChange = rotaryEncoderInfo->sinceRdCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
   rotaryEncoderInfo->sinceRdCount = 0;  // Clear count
 
   // Only return a full count
-  rotenc_snapshot->encoderCount = rotaryEncoderInfo->totalCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
-  rotenc_snapshot->rotClockWise = rotaryEncoderInfo->rotClockWise;
+  rotEncState->encoderCount = rotaryEncoderInfo->totalCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
+  rotEncState->rotClockWise = rotaryEncoderInfo->rotClockWise;
   leave_critical_section(flags);
   return OK;
 }
@@ -290,7 +277,7 @@ int meadow_rotary_encoder_read_now(rotaryEncoderData_t *rotenc_snapshot)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// To be called from .Net app to configure rotary encoder
+// To be called from .Net app to configure/delete rotary encoder
 int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
 {
   int ret = OK;
@@ -302,17 +289,6 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
               __FILE__, __LINE__);
     return -EINVAL;
   }
-
-  if(cfg->portA > MEADOW_ROTARY_ENC_MAX_PORT || cfg->portB > MEADOW_ROTARY_ENC_MAX_PORT ||
-    cfg->pinA > MEADOW_ROTARY_ENC_MAX_PIN || cfg->pinB > MEADOW_ROTARY_ENC_MAX_PIN)
-  {
-    syslog(LOG_ERR, "%s@%d-Encoder %lu, GPIO Port or PIN is out of range\n",
-              __FILE__, __LINE__, cfg->encoderNumb);
-    return -ERANGE;    // Out of Range
-  }
-
-  uint8_t pinDesignationA = cfg->portA << 4 | cfg->pinA;
-  uint8_t pinDesignationB = cfg->portB << 4 | cfg->pinB;
 
   // Is encoder number out of range?
   if(cfg->encoderNumb > (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1))
@@ -326,9 +302,18 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
   // Add or remove an encoder?
   if(! cfg->isAddEncoder)
   {
-    // Remove
+    // Removing
     ret = rotenc_config_interrupt_remove(cfg);
     return ret;
+  }
+
+  // Verify GPIO parameters are in range
+  if(cfg->portA > MEADOW_ROTARY_ENC_MAX_PORT || cfg->portB > MEADOW_ROTARY_ENC_MAX_PORT ||
+    cfg->pinA > MEADOW_ROTARY_ENC_MAX_PIN || cfg->pinB > MEADOW_ROTARY_ENC_MAX_PIN)
+  {
+    syslog(LOG_ERR, "%s@%d-Encoder %lu, GPIO Port or PIN is out of range\n",
+              __FILE__, __LINE__, cfg->encoderNumb);
+    return -ERANGE;    // Out of Range
   }
 
   // Is requested slot free?
@@ -346,6 +331,9 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
     return -ENOMEM;
   }
 
+  uint8_t pinDesignationA = cfg->portA << 4 | cfg->pinA;
+  uint8_t pinDesignationB = cfg->portB << 4 | cfg->pinB;
+
   // Add allocated memory to free array slot
   _allRotaryEncodersList[cfg->encoderNumb] = rotaryEncoderInfo;
 
@@ -360,7 +348,7 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
   rotaryEncoderInfo->IDRAddressA = rotencInputDataReg[cfg->portA];
   rotaryEncoderInfo->IDRAddressB = rotencInputDataReg[cfg->portB];
 
-  if(rotaryEncoderInfo->delayMs > 10)
+  if(rotaryEncoderInfo->delayMs > MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
   {
     // Need to be able to block callers thread if a delay is requested
     sem_init(&(rotaryEncoderInfo->callerSem), 0, 0);
@@ -383,12 +371,13 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
   // Setup the Nuttx cfgset for this point to be configured by Nuttx
   uint32_t cfgsetA = (pinDesignationA & 0x000000ff);   // Set Port and Pin and clear MM
   uint32_t cfgsetB = (pinDesignationB & 0x000000ff);   // Set Port and Pin and clear MM
+
   switch(cfg->resistorMode)
   {
     case 0: // Float
       cfgsetA |= GPIO_FLOAT;
       cfgsetB |= GPIO_FLOAT;
-      break;    // 0 = do nothing
+      break;
     case 1: // Pull up
       cfgsetA |= GPIO_PULLUP;
       cfgsetB |= GPIO_PULLUP;
@@ -399,7 +388,7 @@ int meadow_rotary_encoder_config(rotenc_config_parms_t* cfg)
       break;
   }
 
-  // Setup both input points to trigger isr
+  // Setup both rising and falling input points to trigger isr
   // This call also enables the interrupts
   ret = stm32_gpiosetevent(
     cfgsetA,                      // Nuttx cfgset
@@ -450,13 +439,16 @@ int rotenc_config_interrupt_remove(rotenc_config_parms_t* cfg)
   }
 
   // Release any waiting thread
-  if(rotaryEncoderInfo->delayMs > 10)
+  if(rotaryEncoderInfo->delayMs > MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
   {
-    // Mark removal in progress so a reader or the wqueue worker that's
+    // Indicate removal in progress so a reader or the wqueue worker that's
     // already mid-flight will bail out instead of touching callerSem /
-    // rotEncWQueue after we destroy/free them. Snapshot how many are
-    // currently registered while we still hold the critical section.
+    // rotEncWQueue after we destroy/free them. Keep track of how many
+    // are currently registered while we still hold the critical section.
     irqstate_t flags = enter_critical_section();
+    // Note the isRemoving variable is set 'true' but never set to 'false'.
+    // Why? Because the isRemoving flag is part of the rotaryEncoderInfo
+    // struct which is freed a few lines down.
     rotaryEncoderInfo->isRemoving = true;
     int32_t usersLeft = rotaryEncoderInfo->activeUserCount;
     leave_critical_section(flags);
@@ -528,21 +520,22 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 }
 
 //========================================================================
-// Interface - Immediately return the current rotary encoder state.
-//
-// Calling thread is blocked for the specified delay period. If the count has
-// changed, the thread returns with a new snapshot. If the count is not
-// changed the calling thread will continue to be blocked, and periodically
-// recheck. All delays are based on the delay value provided by the
-// configuration information. Any delay less than 10 ms will return
-// immediately.
-int meadow_rotary_encoder_read_data(rotaryEncoderData_t *rotenc_snapshot)
+// Interface - Return the current rotary encoder state.
+// 
+// If the configured delay is > MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS the
+// calling thread is blocked for the specified delay period. At the end of
+// the delay period, if the count has changed, the thread returns with
+// encoder data. If the count has not changed the calling thread will
+// continue to be blocked, and continue to be rechecked at the rate of
+// the provided delay. Any delay less than
+// MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS will return immediately.
+int meadow_rotary_encoder_read_data(rotaryEncoderState_t *rotEncState)
 {
   int ret;
   rotaryEncoderInfo_t *rotaryEncoderInfo;
 
   // Check for NULL
-  if(rotenc_snapshot == NULL)
+  if(rotEncState == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Input parameter cannot be NULL\n",
               __FILE__, __LINE__);
@@ -550,53 +543,55 @@ int meadow_rotary_encoder_read_data(rotaryEncoderData_t *rotenc_snapshot)
   }
 
   // Check for valid encoder number (0-7)
-  if(rotenc_snapshot->encoderNumb > (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1))
+  if(rotEncState->encoderNumb > (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1))
   {
     syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %u.\n",
-              __FILE__, __LINE__, rotenc_snapshot->encoderNumb,
+              __FILE__, __LINE__, rotEncState->encoderNumb,
               (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1));
     return -ERANGE;    // Out of Range
   }
 
-  rotaryEncoderInfo = _allRotaryEncodersList[rotenc_snapshot->encoderNumb];
+  rotaryEncoderInfo = _allRotaryEncodersList[rotEncState->encoderNumb];
 
   // Is requested slot valid?
   if(rotaryEncoderInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
-              __FILE__, __LINE__, rotenc_snapshot->encoderNumb);
+              __FILE__, __LINE__, rotEncState->encoderNumb);
     return -ENODATA;    // No Data
   }
 
-  if(rotaryEncoderInfo->delayMs <= 10)
+  if(rotaryEncoderInfo->delayMs <= MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
   {
     // No delay configured, get info and exit
-    return meadow_rotary_encoder_read_now(rotenc_snapshot);
+    return meadow_rotary_encoder_read_now(rotEncState);
   }
 
-  // Register as an active user of callerSem/rotEncWQueue before touching
-  // either one, so a concurrent remove() knows to wait for us. If removal
-  // is already in progress, don't register at all.
   irqstate_t flags = enter_critical_section();
+  // If in the process of being removed bailout
   if(rotaryEncoderInfo->isRemoving)
   {
     leave_critical_section(flags);
     return -ENODEV;
   }
+
+  // Register as an active user of callerSem/rotEncWQueue before touching
+  // either one, so a concurrent remove() knows to wait for us.
   rotaryEncoderInfo->activeUserCount++;
   leave_critical_section(flags);
 
   ret = OK;
 
   // Has count changed?
-  while(rotaryEncoderInfo->sinceRdCount == 0 && !rotaryEncoderInfo->isRemoving)
+  while(rotaryEncoderInfo->sinceRdCount == 0 &&
+    !rotaryEncoderInfo->isRemoving)
   {
     // Reschedule a delay
-    ret = meadow_rotenc_wqueue_set_delay(rotenc_snapshot->encoderNumb);
+    ret = meadow_rotenc_wqueue_set_delay(rotEncState->encoderNumb);
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Error: encoder:%ld set delay() ret:%d, errno:%d\n",
-                __FILE__, __LINE__, rotenc_snapshot->encoderNumb, ret, errno);
+                __FILE__, __LINE__, rotEncState->encoderNumb, ret, errno);
       break;
     }
 
@@ -607,7 +602,7 @@ int meadow_rotary_encoder_read_data(rotaryEncoderData_t *rotenc_snapshot)
   if(ret >= 0)
   {
     // Count has changed (or we were woken for removal) so return latest data
-    ret = meadow_rotary_encoder_read_now(rotenc_snapshot);
+    ret = meadow_rotary_encoder_read_now(rotEncState);
   }
 
   // Unregister. If removal is in progress and we're the last active user,

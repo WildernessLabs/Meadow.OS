@@ -54,6 +54,9 @@
 // rising and falling edges of each pulse equals one count.
 #define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
+// Any delay at or below this value will be considered a delay of 0.
+#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (10)
+
 // Caller must populate this struct
 struct rotenc_config_parms_s
 {
@@ -66,7 +69,6 @@ struct rotenc_config_parms_s
   uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
   uint32_t delayMs;           // Requested delay in milliseconds
 };
-
 typedef struct rotenc_config_parms_s rotenc_config_parms_t;
 
 // Internal structure to manage rotary encoders
@@ -100,25 +102,27 @@ struct rotaryEncoderInfo_s
   // registers in activeUserCount before touching either one; remove() sets
   // isRemoving and then waits on removeDoneSem until the last registered
   // user unregisters, so free() never races a concurrent reader/worker.
+  // Note: These variables are only used when deleting an encoder, which will
+  // free this entire structure, so these are used in a very brief way.
   bool isRemoving;            // Set by remove() before waking blocked users
   int32_t activeUserCount;    // Readers/worker currently using callerSem/rotEncWQueue
   sem_t removeDoneSem;        // Posted by the last active user during removal
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
-struct rotaryEncoderData_s
+struct rotaryEncoderState_s
 {
   uint32_t encoderNumb;     // 0 - 7 encoder config number
   int32_t encoderCount;     // Current full count (+/-)
   int32_t encoderChange;    // Full counts since last read (+/-)
   uint32_t rotClockWise;    // Current rotational director
 };
-typedef struct rotaryEncoderData_s rotaryEncoderData_t;
+typedef struct rotaryEncoderState_s rotaryEncoderState_t;
 
 // Public functions with syscalls
 int meadow_rotary_encoder_config(rotenc_config_parms_t *rotencCfg);
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount);
-int meadow_rotary_encoder_read_data(rotaryEncoderData_t *rotenc_snapshot);
+int meadow_rotary_encoder_read_data(rotaryEncoderState_t *rotEncState);
 
 // Test function follow
 void rotary_encoder_test_exercise_test(uint32_t userData);
