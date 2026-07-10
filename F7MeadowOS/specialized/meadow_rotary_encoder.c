@@ -33,8 +33,15 @@
  *
  ****************************************************************************/
 
-// This module contains code to handle rotary encoders at a much higher
-// rate than can be achieved using C# and interrupts
+// This module contains code to handle rotary encoders, at the native level.
+// There's a #define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS which determines
+// how the code behaves. If the configured delay is at or below this level the
+// current rotary encoder values are returned immediately, even if there's
+// been no change.
+// If the configured delay is above this threshold, the values will be
+// returned after the configured delay period, but only if there has been a
+// change in the rotary encoder values. If no change, the caller could wait
+// forever.
 
 /****************************************************************************
  * Included Files
@@ -193,8 +200,8 @@ int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
   uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x02;
 
   // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->IDRAddressA));
-  pinNumb = rotaryEncoderInfo->PinInfoA & 0x0f;
+  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressA));
+  pinNumb = rotaryEncoderInfo->pinInfoA & 0x0f;
   bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
   
   if(gpioState)
@@ -222,8 +229,8 @@ int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
   uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x01;
 
   // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->IDRAddressB));
-  pinNumb = rotaryEncoderInfo->PinInfoB & 0x0f;
+  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressB));
+  pinNumb = rotaryEncoderInfo->pinInfoB & 0x0f;
   bool gpioState =  (idrRegister & (1 << pinNumb)) > 0 ? true : false;
   if(gpioState)
   {
@@ -327,16 +334,16 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   // Add allocated memory to free array slot
   _allRotaryEncodersList[cfg->encoderNumb] = rotaryEncoderInfo;
 
-  rotaryEncoderInfo->EncoderNumb = cfg->encoderNumb;
+  rotaryEncoderInfo->encoderNumb = cfg->encoderNumb;
   rotaryEncoderInfo->delayMs = cfg->delayMs;
 
   // The 2 GPIO inputs are used to configure and remove interrupt handling
-  rotaryEncoderInfo->PinInfoA = pinDesignationA;
-  rotaryEncoderInfo->PinInfoB = pinDesignationB;
+  rotaryEncoderInfo->pinInfoA = pinDesignationA;
+  rotaryEncoderInfo->pinInfoB = pinDesignationB;
 
   // Find the correct offset for both GPIOs
-  rotaryEncoderInfo->IDRAddressA = rotencInputDataReg[cfg->portA];
-  rotaryEncoderInfo->IDRAddressB = rotencInputDataReg[cfg->portB];
+  rotaryEncoderInfo->idrAddressA = rotencInputDataReg[cfg->portA];
+  rotaryEncoderInfo->idrAddressB = rotencInputDataReg[cfg->portB];
 
   // Need a blank work queue (zalloc should do this)
   memset(&rotaryEncoderInfo->rotEncWQueue, 0, sizeof(struct work_s));
@@ -418,8 +425,8 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
 int rotenc_config_interrupt_remove(rotEncConfigParms_t* cfg)
 {
   int ret;
-  uint8_t PinInfoA;
-  uint8_t PinInfoB;
+  uint8_t pinInfoA;
+  uint8_t pinInfoB;
   rotaryEncoderInfo_t *rotaryEncoderInfo;
 
   // Requested to remove existing configuration
@@ -451,7 +458,7 @@ int rotenc_config_interrupt_remove(rotEncConfigParms_t* cfg)
 
     // Best-effort: stops a not-yet-dispatched timeout callback. If the
     // worker is already executing, the isRemoving check below handles it.
-    meadow_rotenc_wqueue_cancel(rotaryEncoderInfo->EncoderNumb);
+    meadow_rotenc_wqueue_cancel(rotaryEncoderInfo->encoderNumb);
 
     // Wait for any reader/worker that had already registered before we
     // set isRemoving to finish with callerSem/rotEncWQueue.
@@ -465,19 +472,19 @@ int rotenc_config_interrupt_remove(rotEncConfigParms_t* cfg)
   }
 
   // Get info from the configuration memory before freeing it
-  PinInfoA = rotaryEncoderInfo->PinInfoA;
-  PinInfoB = rotaryEncoderInfo->PinInfoB;
+  pinInfoA = rotaryEncoderInfo->pinInfoA;
+  pinInfoB = rotaryEncoderInfo->pinInfoB;
 
   // Tell Nuttx to forget about these GPIO interrupts
   // This call will also disables the interrupts
-  ret = stm32_gpiosetevent(PinInfoA, 0, 0, 0, NULL, NULL);
+  ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->encoderNumb, ret);
   }
 
-  ret = stm32_gpiosetevent(PinInfoB, 0, 0, 0, NULL, NULL);
+  ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
@@ -620,18 +627,10 @@ static void meadow_rotenc_wqueue_callback(void *arg)
   if(arg == NULL)
     return;
 
-  uint32_t encoderNumb = (uint32_t) arg;
+  rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *) arg;
 
-  // syslog(LOG_MDIAG, "Entered work queue worker, for encoder:%lu\n",
-  //   encoderNumb);
-
-  rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
-  
-  if(rotaryEncoderInfo == NULL)
-  {
-    return;
-  }
+  syslog(LOG_MDIAG, "Entered work queue worker, for encoder:%u\n",
+    rotaryEncoderInfo->encoderNumb);
 
   // Register before touching callerSem, same as a blocking reader does. If
   // remove() has already claimed the encoder, back off without touching it.
@@ -644,8 +643,8 @@ static void meadow_rotenc_wqueue_callback(void *arg)
   rotaryEncoderInfo->activeUserCount++;
   leave_critical_section(flags);
 
-  syslog(LOG_INFO, "%s@%d-RotEnc %ld timed out.\n",
-    __FILE__, __LINE__, encoderNumb);
+  syslog(LOG_INFO, "%s@%d-RotEnc %d timed out.\n",
+    __FILE__, __LINE__, rotaryEncoderInfo->encoderNumb);
 
   // Post the semaphore so the caller can return if value changed
   sem_post(&(rotaryEncoderInfo->callerSem));
@@ -681,7 +680,7 @@ int meadow_rotenc_wqueue_set_delay(uint32_t encoderNumb)
 
   ret = work_queue(LPWORK, &rotaryEncoderInfo->rotEncWQueue,
     meadow_rotenc_wqueue_callback,
-    (void *)encoderNumb,
+    (void *)rotaryEncoderInfo,
     MSEC2TICK(rotaryEncoderInfo->delayMs));
 
   return ret;

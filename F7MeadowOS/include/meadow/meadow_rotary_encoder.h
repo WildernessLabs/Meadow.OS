@@ -54,8 +54,10 @@
 // rising and falling edges of each pulse equals one count.
 #define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
-// Any delay at or below this value will be considered a delay of 0.
-#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (10)
+// Any delay at or below this value will be considered a delay of 0, and
+// will not invoke the work queue. Above this threashold the work queue
+// will be invoked and the delay will be honored.
+#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (0)
 
 // Caller must populate this struct
 struct rotEncConfigParms_s
@@ -74,16 +76,16 @@ typedef struct rotEncConfigParms_s rotEncConfigParms_t;
 // Internal structure to manage rotary encoders
 struct rotaryEncoderInfo_s
 {
-  uint8_t EncoderNumb;        // Encoder number
+  uint8_t encoderNumb;        // Encoder number
 
   // Represents the CPU Pin identifier (e.g. PD9, D=3 so 39)
-  uint8_t PinInfoA;           // Supplied by configuration
-  uint8_t PinInfoB;           // Supplied by configuration
+  uint8_t pinInfoA;           // Supplied by configuration
+  uint8_t pinInfoB;           // Supplied by configuration
 
   // Address of correct "Input Data Register" which holds GPIO's hardware
   // port state bits
-  uint32_t IDRAddressA;       // Calculated during configuration
-  uint32_t IDRAddressB;       // Calculated during configuration
+  uint32_t idrAddressA;       // Calculated during configuration
+  uint32_t idrAddressB;       // Calculated during configuration
 
   uint32_t prevCondBits;      // Current state information
   uint32_t lookupOff;         // Current lookup table offset
