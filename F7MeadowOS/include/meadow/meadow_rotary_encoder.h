@@ -57,7 +57,7 @@
 // Any delay at or below this value will be considered a delay of 0, and
 // will not invoke the work queue. Above this threashold the work queue
 // will be invoked and the delay will be honored.
-#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (0)
+#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (10)
 
 // Caller must populate this struct
 struct rotEncConfigParms_s
@@ -95,11 +95,11 @@ struct rotaryEncoderInfo_s
   int32_t sinceRdCount;       // Count since last read
   uint32_t rotClockWise;      // Current direction 0 = Clockwise
   uint32_t delayMs;           // Delay in milliseconds
-  sem_t callerSem;            // Blocks until time to return
+  sem_t delayChgSem;          // Used to implement time delay till change
   struct work_s rotEncWQueue;
 
   // Teardown synchronization: a reader (meadow_rotary_encoder_read_data) or
-  // the wqueue worker may be using callerSem/rotEncWQueue at the same time
+  // the wqueue worker may be using delayChgSem/rotEncWQueue at the same time
   // rotenc_config_interrupt_remove() wants to free this struct. Each user
   // registers in activeUserCount before touching either one; remove() sets
   // isRemoving and then waits on removeDoneSem until the last registered
@@ -107,7 +107,7 @@ struct rotaryEncoderInfo_s
   // Note: These variables are only used when deleting an encoder, which will
   // free this entire structure, so these are used in a very brief way.
   bool isRemoving;            // Set by remove() before waking blocked users
-  int32_t activeUserCount;    // Readers/worker currently using callerSem/rotEncWQueue
+  int32_t activeUserCount;    // Worker using delayChgSem/rotEncWQueue
   sem_t removeDoneSem;        // Posted by the last active user during removal
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
