@@ -51,7 +51,7 @@
 #include "hcom_shared_common.h"
 
 // The Rotary Encoder Count consists of 2 GPIOs (A and B) and both
-// rising and falling edges of each pulse equals one count.
+// rising and falling edges of each pulse equals one encoder count.
 #define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
 // Any delay at or below this value will be considered a delay of 0, and
@@ -73,12 +73,23 @@ struct rotEncConfigParms_s
 };
 typedef struct rotEncConfigParms_s rotEncConfigParms_t;
 
+// This structure needs the encoderNumber set to 0-7 for the encoder.
+// The meadow_rotary_encoder_read_data() function fills the other fields.
+struct rotEncReadData_s
+{
+  uint32_t encoderNumb;     // Supplied, 0 - 7 encoder config number
+  int32_t encoderCount;     // Returned, Current total count (+/-)
+  int32_t encoderChange;    // Returned, Counts since last read (+/-)
+  uint32_t rotClockWise;    // Returned, Current rotational director
+};
+typedef struct rotEncReadData_s rotEncReadData_t;
+
 // Internal structure to manage rotary encoders
 struct rotaryEncoderInfo_s
 {
   uint8_t encoderNumb;        // Encoder number
 
-  // Represents the CPU Pin identifier (e.g. PD9, D=3 so 39)
+  // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
   uint8_t pinInfoA;           // Supplied by configuration
   uint8_t pinInfoB;           // Supplied by configuration
 
@@ -97,32 +108,8 @@ struct rotaryEncoderInfo_s
   uint32_t delayMs;           // Delay in milliseconds
   sem_t delayChgSem;          // Used to implement time delay till change
   struct work_s rotEncWQueue;
-
-  // Teardown synchronization: a reader (meadow_rotary_encoder_read_data) or
-  // the wqueue worker may be using delayChgSem/rotEncWQueue at the same time
-  // rotenc_config_interrupt_remove() wants to free this struct. Each user
-  // registers in activeUserCount before touching either one; remove() sets
-  // isRemoving and then waits on removeDoneSem until the last registered
-  // user unregisters, so free() never races a concurrent reader/worker.
-  // Note: These variables are only used when deleting an encoder, which will
-  // free this entire structure, so these are used in a very brief way.
-  bool isRemoving;            // Set by remove() before waking blocked users
-  int32_t activeUserCount;    // Worker using delayChgSem/rotEncWQueue
-  sem_t removeDoneSem;        // Posted by the last active user during removal
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
-
-// This structure needs the encoderNumber set to 0-7 of the encoder. It is 
-// populated by the meadow_rotary_encoder_read_data() function which fills
-// the other fields.
-struct rotEncReadData_s
-{
-  uint32_t encoderNumb;     // Supplied, 0 - 7 encoder config number
-  int32_t encoderCount;     // Returned, Current total count (+/-)
-  int32_t encoderChange;    // Returned, Counts since last read (+/-)
-  uint32_t rotClockWise;    // Returned, Current rotational director
-};
-typedef struct rotEncReadData_s rotEncReadData_t;
 
 // Public functions with syscalls
 int meadow_rotary_encoder_config(rotEncConfigParms_t *rotEncReadData_t);

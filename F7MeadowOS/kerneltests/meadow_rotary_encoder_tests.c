@@ -148,22 +148,11 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
         break;
       }
 
-      // (--) TESTING but might be better?
-      // if(rotEncReadData.encoderChange == 0)
-      // {
-      //   syslog(LOG_MTEST,
-      //     "Encoder 0 - No change since read, total:%ld, direction:%s\n",
-      //     rotEncReadData.encoderCount,
-      //     rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      // }
-      // else
-      // {
-        syslog(LOG_MTEST,
-          "Encoder 0 - Changed by %ld since read, total:%ld, direction:%s\n",
-          rotEncReadData.encoderChange,
-          rotEncReadData.encoderCount,
-          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      // }
+      syslog(LOG_MTEST,
+        "Encoder 0 - Changed by %ld since read, total:%ld, direction:%s\n",
+        rotEncReadData.encoderChange,
+        rotEncReadData.encoderCount,
+        rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       break;
 
     case 22:    // Encoder 5
@@ -174,19 +163,11 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
         syslog(LOG_MTEST, "Encoder 5 returned error:%d\n", ret);
         break;
       }
-      if(rotEncReadData.encoderChange == 0)
-      {
-        syslog(LOG_MTEST, "Encoder 5 - No changes since read, total:%ld, direction:%s\n",
-          rotEncReadData.encoderCount,
-          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      }
-      else
-      {
-        syslog(LOG_MTEST, "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
-          rotEncReadData.encoderChange,
-          rotEncReadData.encoderCount,
-          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      }
+
+      syslog(LOG_MTEST, "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
+        rotEncReadData.encoderChange,
+        rotEncReadData.encoderCount,
+        rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       break;
 
     case 23:    // Encoder 7
@@ -197,20 +178,12 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
         syslog(LOG_MTEST, "Encoder 7 returned error:%d\n", ret);
         break;
       }
-      if(rotEncReadData.encoderChange == 0)
-      {
-        syslog(LOG_MTEST, "Encoder 7 - No changes since read, total:%ld, direction:%s\n",
-          rotEncReadData.encoderCount,
-          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      }
-      else
-      {
-        syslog(LOG_MTEST,
-          "Encoder 7 - Changed by %ld since read total:%ld, direction:%s\n",
-          rotEncReadData.encoderChange,
-          rotEncReadData.encoderCount,
-          rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
-      }
+
+      syslog(LOG_MTEST,
+        "Encoder 7 - Changed by %ld since read total:%ld, direction:%s\n",
+        rotEncReadData.encoderChange,
+        rotEncReadData.encoderCount,
+        rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
       break;
 
     //-------------------------------------------------------------
@@ -309,22 +282,28 @@ void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs)
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
       // All the same GPIO as #1 but different delays
+      // Note: MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS
     case 5:
-      delayMs = 2;    // too small, ignored
+      delayMs = 0;       // Return data immediately
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 6:
-      delayMs = 20;       // 50 times/second
+      delayMs = 2;       // 500 times/second
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 7:
-      delayMs = 200;      // 5 times/second
+      delayMs = 20;      // 50 times/second
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
       break;
     case 8:
+      delayMs = 200;     // 5 times/second
+      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
+      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
+      break;
+    case 9:
       delayMs = 2000;     // 2 seconds
       PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
       PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
