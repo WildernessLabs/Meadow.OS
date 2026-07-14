@@ -81,8 +81,9 @@
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
-static void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs);
-static void rotary_encoder_config_test_remove_n(uint32_t userData);
+static void rotary_encoder_test_add_config(uint32_t testNumb,
+  uint32_t encoderNumb, uint32_t delayMs, uint32_t PinA, uint32_t PinB);
+static void rotary_encoder_test_remove_config(uint32_t userData);
 static void rotary_encoder_config_test_null_parms(uint32_t userData);
 
 /************************************************************************************
@@ -93,7 +94,6 @@ static void rotary_encoder_config_test_null_parms(uint32_t userData);
 void meadow_kt_rotary_encoder_tests(uint32_t userData)
 {
   int ret;
-  uint32_t delayMs = 0;
   rotEncReadData_t rotEncReadData;
 
   syslog(LOG_MTEST,
@@ -103,38 +103,67 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
   switch(userData)
   {
     //-------------------------------------------------------------
-    // Test adding new configuration
-    case 1:   // Encoder 0 Delay 0 millisec
-    case 2:   // Encoder 5 Delay 0 millisec
-    case 3:   // Encoder 7 Delay 0 millisec
-    case 4:   // Encoder 8 Delay 0 millisec
-      rotary_encoder_config_test_add_n(userData, delayMs);
+    // Configuring the encoder with and without a delay
+    // Note: The input pins defined are for F7FeatherV2 D05, D06, D07, D08.
+    // This test code only defines the first 6 GPIOs, even though 8 GPIOs are
+    // supported. And be careful to not use the pins used by syslog,
+    // D12 and D13. And keep in mind GPIO groups.
+    //
+    case 1:   // Encoder 0 Delay Zero millisec, D05 & DO6
+    //                                       # Dly
+    rotary_encoder_test_add_config(userData, 0, 0,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,    // GPIO A
+      ENCODER_PIN_CCM_D06_PB13_INPUT);  // GPIO B
       break;
-      
-    case 5:   // Encoder 0  Delay 2 millisec
-      delayMs = 2;
-      rotary_encoder_config_test_add_n(userData, delayMs);
+    case 2:   // Encoder 5 Delay 0 millisec, D07 & D08
+      rotary_encoder_test_add_config(userData, 5, 0,
+        ENCODER_PIN_CCM_D07_PB7_INPUT,
+        ENCODER_PIN_CCM_D08_PB6_INPUT);
       break;
-    case 6:   // Encoder 0 Delay 20 millisec
-      delayMs = 20;
-      rotary_encoder_config_test_add_n(userData, delayMs);
+    case 3:   // Encoder 7 Delay 0 millisec, D09 & D10
+      rotary_encoder_test_add_config(userData, 7, 0,
+        ENCODER_PIN_CCM_D09_PI11_INPUT,
+        ENCODER_PIN_CCM_D10_PD5_INPUT);
       break;
-    case 7:   // Encoder 0 Delay 200 millisec
-      delayMs = 200;
-      rotary_encoder_config_test_add_n(userData, delayMs);
+    case 4:   // Encoder 8 Delay 0 millisec, D05 & DO6
+      // This configuration should fail, encoder out of range
+      rotary_encoder_test_add_config(userData, 8, 0,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
       break;
-    case 8:   // Encoder 0 Delay 2000 millisec
-      rotary_encoder_config_test_add_n(userData, delayMs);
-      delayMs = 2000;
+    case 5:   // Encoder 0 Delay 1 millisec, D05 & DO6
+      rotary_encoder_test_add_config(userData, 0, 1,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
+      break;
+    case 6:   // Encoder 0 Delay 2 millisec, D05 & DO6
+      rotary_encoder_test_add_config(userData, 0, 2,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
+      break;
+    case 7:   // Encoder 0 Delay 20 millisec, D05 & DO6
+      rotary_encoder_test_add_config(userData, 0, 20,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
+      break;
+    case 8:   // Encoder 0 Delay 200 millisec, D05 & DO6
+      rotary_encoder_test_add_config(userData, 0, 200,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
+      break;
+    case 9:   // Encoder 0 Delay 2000 millisec, D05 & DO6
+      rotary_encoder_test_add_config(userData, 0, 2000,
+      ENCODER_PIN_CCM_D05_PB4_INPUT,
+      ENCODER_PIN_CCM_D06_PB13_INPUT);
       break;
 
     //-------------------------------------------------------------
-    // Test removing configuration
+    // Unconfigure
     case 11:  // Encoder 0
     case 12:  // Encoder 5
     case 13:  // Encoder 7
-    case 14:  // Encoder 8
-      rotary_encoder_config_test_remove_n(userData);
+    case 14:  // Encoder 8 This should fail
+      rotary_encoder_test_remove_config(userData);
       break;
 
     //-------------------------------------------------------------
@@ -164,7 +193,8 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
         break;
       }
 
-      syslog(LOG_MTEST, "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
+      syslog(LOG_MTEST,
+        "Encoder 5 - Changed by %ld since read, total:%ld, direction:%s\n",
         rotEncReadData.encoderChange,
         rotEncReadData.encoderCount,
         rotEncReadData.rotClockWise == 0 ? "CW" : "CCW") ;
@@ -187,7 +217,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       break;
 
     //-------------------------------------------------------------
-    // Test Resetting count, encoder 0
+    // Reset/change count, encoder 0
     case 31:
       syslog(LOG_MTEST,
         "Rotary Encoder test-setting count encoder 0 to 0 (%lu)\n",
@@ -227,6 +257,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
       syslog(LOG_MTEST, "Encoder 7 set to 0\n");
       break;
 
+    //-------------------------------------------------------------
     // Function parameter null test
     case 41:    // Encoder 0
       rotary_encoder_config_test_null_parms(userData);
@@ -241,13 +272,11 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
-void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs)
+void rotary_encoder_test_add_config(uint32_t testNumb,
+  uint32_t encoderNumb, uint32_t delayMs, uint32_t PinA, uint32_t PinB)
 {
   // Setup a rotary encoder
   int ret;
-  uint32_t encoderNumb = 0;
-  uint32_t PinA = 0;
-  uint32_t PinB = 0;
 
   rotEncConfigParms_t* cfg = malloc(sizeof(rotEncConfigParms_t));
   if(cfg == NULL)
@@ -256,64 +285,10 @@ void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs)
     return;
   }
 
-  // Note: The input pins defined for F7FeatherV2 would be D05, D06, D07, D08
-  // for the first 4 pins. The last 2 are not available on F7FeatherV2
-  // Rotary Encoder testing. And be careful to not use the pins used by syslog,
-  // D12 and D13.
-  switch(userData)
-  {
-    case 1:
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-    case 2:
-      encoderNumb = 5;
-      PinA = ENCODER_PIN_CCM_D07_PB7_INPUT;
-      PinB = ENCODER_PIN_CCM_D08_PB6_INPUT;
-      break;
-    case 3:
-      encoderNumb = 7;
-      PinA = ENCODER_PIN_CCM_D09_PI11_INPUT;
-      PinB = ENCODER_PIN_CCM_D10_PD5_INPUT;
-      break;
-    case 4:
-      encoderNumb = 8;    // Invalid encoder (too big)
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-      // All the same GPIO as #1 but different delays
-      // Note: MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS
-    case 5:
-      delayMs = 0;       // Return data immediately
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-    case 6:
-      delayMs = 2;       // 500 times/second
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-    case 7:
-      delayMs = 20;      // 50 times/second
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-    case 8:
-      delayMs = 200;     // 5 times/second
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-    case 9:
-      delayMs = 2000;     // 2 seconds
-      PinA = ENCODER_PIN_CCM_D05_PB4_INPUT;
-      PinB = ENCODER_PIN_CCM_D06_PB13_INPUT;
-      break;
-  }
-
   syslog(LOG_MTEST, "Rotary Encoder tests-configuring encoder %lu with %lu ms delay\n",
     encoderNumb, delayMs);
 
-  // For testing need to initialize 2 GPIOs as inputs
+  // For testing need to initialize the 2 GPIOs as inputs
   stm32_configgpio(PinA);
   stm32_configgpio(PinB);
   
@@ -339,7 +314,7 @@ void rotary_encoder_config_test_add_n(uint32_t userData, uint32_t delayMs)
 }
 
 //============================================================================
-void rotary_encoder_config_test_remove_n(uint32_t userData)
+void rotary_encoder_test_remove_config(uint32_t userData)
 {
   int ret;
   uint32_t encoderNumb = 9;  // Invalid

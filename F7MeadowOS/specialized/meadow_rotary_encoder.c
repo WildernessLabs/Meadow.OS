@@ -141,7 +141,7 @@ static rotaryEncoderInfo_t *_allRotaryEncodersList[MEADOW_ROTARY_ENC_MAX_ENCODER
 
 static void meadow_rotary_encoder_read_now(rotEncReadData_t *rotEncReadData);
 static int rotenc_config_interrupt_remove(uint32_t encoderNumb);
-static int meadow_rotenc_wqueue_queue_work(rotaryEncoderInfo_t *rotaryEncoderInfo);
+static int meadow_rotenc_wqueue_enqueue_work(rotaryEncoderInfo_t *rotaryEncoderInfo);
 static void meadow_rotenc_wqueue_cancel(rotaryEncoderInfo_t *rotaryEncoderInfo);
 static void meadow_rotenc_takesem(sem_t *semaphore);
 
@@ -173,13 +173,11 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
     case 1: // CW
       rotaryEncoderInfo->rotClockWise = 0;
       rotaryEncoderInfo->totalCount++;
-      rotaryEncoderInfo->sinceRdCount++;
       break;
 
     case -1: // CCW
       rotaryEncoderInfo->rotClockWise = 1;
       rotaryEncoderInfo->totalCount--;
-      rotaryEncoderInfo->sinceRdCount--;
       break;
 
     default:
@@ -254,19 +252,142 @@ void meadow_rotary_encoder_read_now(rotEncReadData_t *rotEncReadData)
   rotaryEncoderInfo_t *rotaryEncoderInfo;
   rotaryEncoderInfo = _allRotaryEncodersList[rotEncReadData->encoderNumb];
 
-  // Find the encoders current data values, clear one and return
+  // The use wants the current data values
   irqstate_t flags = enter_critical_section();
-  rotEncReadData->encoderCount = \
-      rotaryEncoderInfo->totalCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
   rotEncReadData->rotClockWise = \
       rotaryEncoderInfo->rotClockWise;
+  rotEncReadData->encoderCount = \
+      rotaryEncoderInfo->totalCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
   rotEncReadData->encoderChange = \
-      rotaryEncoderInfo->sinceRdCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
-  
-  // Since being read reset the since read count
-  rotaryEncoderInfo->sinceRdCount = 0;
+      (rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) / \
+      MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
+
+  // Prep for next read
+  rotaryEncoderInfo->prevCount = rotaryEncoderInfo->totalCount;
   leave_critical_section(flags);
   return;
+}
+
+//========================================================================
+// Static - Remove an existing rotary encoder entry
+// Caller will need to handle GPIO configuration as needed.
+int rotenc_config_interrupt_remove(uint32_t encoderNumb)
+{
+  int ret;
+  uint8_t pinInfoA;
+  uint8_t pinInfoB;
+  rotaryEncoderInfo_t *rotaryEncoderInfo;
+  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
+
+  // Release any waiting thread
+  if(rotaryEncoderInfo->delayMs > MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
+  {
+    // Wake anything already blocked in takesem()
+    sem_post(&(rotaryEncoderInfo->delayChgSem));
+
+    // Best-effort: stops a not-yet-dispatched timeout callback.
+    meadow_rotenc_wqueue_cancel(rotaryEncoderInfo);
+    sem_destroy(&(rotaryEncoderInfo->delayChgSem));
+  }
+
+  // Get info from the configuration memory before freeing it
+  pinInfoA = rotaryEncoderInfo->pinInfoA;
+  pinInfoB = rotaryEncoderInfo->pinInfoB;
+
+  // Tell Nuttx to forget about these GPIO interrupts
+  // This call will also disables the interrupts
+  ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
+              __FILE__, __LINE__, encoderNumb, ret);
+  }
+
+  ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
+              __FILE__, __LINE__, encoderNumb, ret);
+  }
+
+  free(rotaryEncoderInfo);
+  _allRotaryEncodersList[encoderNumb] = NULL;
+
+  return ret;
+}
+
+//=================================================================
+// Static Callback via the LPWORK worker queue
+static void meadow_rotenc_wqueue_callback(void *arg)
+{
+  if(arg == NULL)
+    return;
+
+  rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *) arg;
+
+  // Been any significate change yet?
+  if((rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) > \
+    MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+  {
+    // Post the semaphore so the caller's thread can return data to caller
+    syslog(LOG_MDIAG, "wqueue worker. Post Semaphore to wake up caller:%u\n",
+      rotaryEncoderInfo->encoderNumb);
+
+    sem_post(&(rotaryEncoderInfo->delayChgSem));
+  }
+  else
+  {
+    // Since no change wait again
+    meadow_rotenc_wqueue_enqueue_work(rotaryEncoderInfo);
+  }
+}
+
+//=================================================================
+// Static - Start, restart, or stop the work queue timer
+int meadow_rotenc_wqueue_enqueue_work(rotaryEncoderInfo_t *rotaryEncoderInfo)
+{
+  int ret;
+
+  // syslog(LOG_MDIAG, "Enqueuing for encoder:%lu, for:%lu millisec (ticks:%ld)\n",
+  //   encoderNumb, rotaryEncoderInfo->delayMs,
+  //   MSEC2TICK(rotaryEncoderInfo->delayMs));
+  // usleep(20 * 1000);
+
+  ret = work_queue(LPWORK, &rotaryEncoderInfo->rotEncWQueue,
+    meadow_rotenc_wqueue_callback,
+    (void *)rotaryEncoderInfo,
+    MSEC2TICK(rotaryEncoderInfo->delayMs));
+
+  return ret;
+}
+
+//=================================================================
+// Static - Delete the work queue timer
+void meadow_rotenc_wqueue_cancel(rotaryEncoderInfo_t *rotaryEncoderInfo)
+{
+  // syslog(LOG_INFO, "%s@%d-Cancelling the delay timer, ptr:%p\n",
+  //   __FILE__, __LINE__, _work_queue.worker);
+
+  // If worker is not active return. Otherwise cancel the work
+  if (work_available(&rotaryEncoderInfo->rotEncWQueue))
+    return;
+
+  // Only possible error is -ENOENT no such work queued, we can ignore
+  work_cancel(LPWORK, &rotaryEncoderInfo->rotEncWQueue);
+}
+
+//=====================================================================
+// Static - Wait for semaphore to be posted
+void meadow_rotenc_takesem(sem_t *semaphore)
+{
+  int ret;
+
+  do
+  {
+    /* Take the semaphore (perhaps waiting) */
+    ret = sem_wait(semaphore);
+  }
+  while (ret == -EINTR);
 }
 
 /****************************************************************************
@@ -423,54 +544,6 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
 }
 
 //========================================================================
-// Static - Remove an existing rotary encoder entry
-// Caller will need to handle GPIO configuration as needed.
-int rotenc_config_interrupt_remove(uint32_t encoderNumb)
-{
-  int ret;
-  uint8_t pinInfoA;
-  uint8_t pinInfoB;
-  rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
-
-  // Release any waiting thread
-  if(rotaryEncoderInfo->delayMs > MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
-  {
-    // Wake anything already blocked in takesem()
-    sem_post(&(rotaryEncoderInfo->delayChgSem));
-
-    // Best-effort: stops a not-yet-dispatched timeout callback.
-    meadow_rotenc_wqueue_cancel(rotaryEncoderInfo);
-    sem_destroy(&(rotaryEncoderInfo->delayChgSem));
-  }
-
-  // Get info from the configuration memory before freeing it
-  pinInfoA = rotaryEncoderInfo->pinInfoA;
-  pinInfoB = rotaryEncoderInfo->pinInfoB;
-
-  // Tell Nuttx to forget about these GPIO interrupts
-  // This call will also disables the interrupts
-  ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, encoderNumb, ret);
-  }
-
-  ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
-              __FILE__, __LINE__, encoderNumb, ret);
-  }
-
-  free(rotaryEncoderInfo);
-  _allRotaryEncodersList[encoderNumb] = NULL;
-
-  return ret;
-}
-
-//========================================================================
 // Public - Allow the user to set or clear the current rotary encoder count.
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 {
@@ -537,12 +610,13 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   // Check if we should wait or immediately read the encoder's values
   if(rotaryEncoderInfo->delayMs <= MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
   {
-    // Get info and exit since there's no delay requested.
+    // Get info and return since there's no delay requested.
     meadow_rotary_encoder_read_now(rotEncReadData);
     return OK;
   }
 
-  int ret = meadow_rotenc_wqueue_queue_work(rotaryEncoderInfo);
+  // Need to enqueue with a delay and then return
+  int ret = meadow_rotenc_wqueue_enqueue_work(rotaryEncoderInfo);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error: encoder:%ld set delay() ret:%d, errno:%d\n",
@@ -558,79 +632,5 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   meadow_rotary_encoder_read_now(rotEncReadData);
   return OK;
 }
-
-//=================================================================
-// Static Callback via the LPWORK worker queue
-static void meadow_rotenc_wqueue_callback(void *arg)
-{
-  if(arg == NULL)
-    return;
-
-  rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *) arg;
-
-  syslog(LOG_MDIAG, "Entered wqueue worker, timeout for encoder:%u\n",
-    rotaryEncoderInfo->encoderNumb);
-
-  // The since read count is incremented on each edge of the GPIO input
-  if(rotaryEncoderInfo->sinceRdCount > MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
-  {
-    // Post the semaphore so the caller's thread can return data to caller
-    sem_post(&(rotaryEncoderInfo->delayChgSem));
-  }
-  else
-  {
-    // Since no change wait again
-    meadow_rotenc_wqueue_queue_work(rotaryEncoderInfo);
-  }
-}
-
-//=================================================================
-// Static - Start, restart, or stop the work queue timer
-int meadow_rotenc_wqueue_queue_work(rotaryEncoderInfo_t *rotaryEncoderInfo)
-{
-  int ret;
-
-  // syslog(LOG_MDIAG, "Enqueuing for encoder:%lu, for:%lu millisec (ticks:%ld)\n",
-  //   encoderNumb, rotaryEncoderInfo->delayMs,
-  //   MSEC2TICK(rotaryEncoderInfo->delayMs));
-  // usleep(20 * 1000);
-
-  ret = work_queue(LPWORK, &rotaryEncoderInfo->rotEncWQueue,
-    meadow_rotenc_wqueue_callback,
-    (void *)rotaryEncoderInfo,
-    MSEC2TICK(rotaryEncoderInfo->delayMs));
-
-  return ret;
-}
-
-//=================================================================
-// Static - Delete the work queue timer
-void meadow_rotenc_wqueue_cancel(rotaryEncoderInfo_t *rotaryEncoderInfo)
-{
-  // syslog(LOG_INFO, "%s@%d-Cancelling the delay timer, ptr:%p\n",
-  //   __FILE__, __LINE__, _work_queue.worker);
-
-  // If worker is not active return. Otherwise cancel the work
-  if (work_available(&rotaryEncoderInfo->rotEncWQueue))
-    return;
-
-  // Only possible error is -ENOENT no such work queued, we can ignore
-  work_cancel(LPWORK, &rotaryEncoderInfo->rotEncWQueue);
-}
-
-//=====================================================================
-// Static - Wait for semaphore to be posted
-void meadow_rotenc_takesem(sem_t *semaphore)
-{
-  int ret;
-
-  do
-  {
-    /* Take the semaphore (perhaps waiting) */
-    ret = sem_wait(semaphore);
-  }
-  while (ret == -EINTR);
-}
-
 
 #endif      // defined(MEADOW_ROTARY_ENCODER_BUILD)

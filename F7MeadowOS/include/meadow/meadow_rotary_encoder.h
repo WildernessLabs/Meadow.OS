@@ -55,11 +55,15 @@
 #define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
 // Any delay at or below this value will be considered a delay of 0, and
-// will not invoke the work queue. Above this threashold the work queue
-// will be invoked and the delay will be honored.
-#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (10)
+// will not invoke the work queue and the delay. Above this threashold
+// the LPWORK work queue will be invoked and the delay will be honored.
+// Why? It's been observed via testing that a delay of 1 ms prevents Meadow
+// from functioning normally, while a delay of 2 ms seems to work okay.
+// Therefore, the following forces delays of 1 and 2 milliseconds to be
+// executed as a 0 delay, immediately.
+#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (2)
 
-// Caller must populate this struct
+// Caller must populate this struct before sending it
 struct rotEncConfigParms_s
 {
   uint32_t encoderNumb;       // 0 - 7 to identify for collections
@@ -80,7 +84,7 @@ struct rotEncReadData_s
   uint32_t encoderNumb;     // Supplied, 0 - 7 encoder config number
   int32_t encoderCount;     // Returned, Current total count (+/-)
   int32_t encoderChange;    // Returned, Counts since last read (+/-)
-  uint32_t rotClockWise;    // Returned, Current rotational director
+  uint32_t rotClockWise;    // Returned, Current A/B relation, 0 = CW
 };
 typedef struct rotEncReadData_s rotEncReadData_t;
 
@@ -103,10 +107,10 @@ struct rotaryEncoderInfo_s
   // Using int32_t for count as this will roll-over in 24,855 days at 1 count
   // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
   int32_t totalCount;         // Total of A and B, rising and/or falling edges
-  int32_t sinceRdCount;       // Count since last read
+  int32_t prevCount;          // Count at last read, used to calc cnt change
   uint32_t rotClockWise;      // Current direction 0 = Clockwise
   uint32_t delayMs;           // Delay in milliseconds
-  sem_t delayChgSem;          // Used to implement time delay till change
+  sem_t delayChgSem;          // Releases callers thread to return data
   struct work_s rotEncWQueue;
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
