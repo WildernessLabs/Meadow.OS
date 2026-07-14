@@ -54,14 +54,8 @@
 // rising and falling edges of each pulse equals one encoder count.
 #define MEADOW_ROTENC_GPIO_EDGES_PER_COUNT (4)
 
-// Any delay at or below this value will be considered a delay of 0, and
-// will not invoke the work queue and the delay. Above this threashold
-// the LPWORK work queue will be invoked and the delay will be honored.
-// Why? It's been observed via testing that a delay of 1 ms prevents Meadow
-// from functioning normally, while a delay of 2 ms seems to work okay.
-// Therefore, the following forces delays of 1 and 2 milliseconds to be
-// executed as a 0 delay, immediately.
-#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (2)
+// Any delay below this value will be considered a delay of 0.
+#define MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS (0)
 
 // Caller must populate this struct before sending it
 struct rotEncConfigParms_s
@@ -110,8 +104,6 @@ struct rotaryEncoderInfo_s
   int32_t prevCount;          // Count at last read, used to calc cnt change
   uint32_t rotClockWise;      // Current direction 0 = Clockwise
   uint32_t delayMs;           // Delay in milliseconds
-  sem_t delayChgSem;          // Releases callers thread to return data
-  struct work_s rotEncWQueue;
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
