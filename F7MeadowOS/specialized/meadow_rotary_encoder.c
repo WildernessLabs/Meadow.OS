@@ -130,8 +130,11 @@ static rotaryEncoderInfo_t *_allRotaryEncodersList[MEADOW_ROTARY_ENC_MAX_ENCODER
  * Private Function Prototypes
  ****************************************************************************/
 
-static void meadow_rotary_encoder_read_now(rotEncReadData_t *rotEncReadData);
+static void meadow_rotary_encoder_read_now(rotaryEncoderInfo_t *rotaryEncoderInfo,
+          rotEncReadData_t *rotEncReadData);
 static int rotenc_config_interrupt_remove(uint32_t encoderNumb);
+static rotaryEncoderInfo_t *rotenc_acquire(uint32_t encoderNumb);
+static void rotenc_release(rotaryEncoderInfo_t *rotaryEncoderInfo);
 
 /****************************************************************************
  * Private Functions
@@ -232,12 +235,49 @@ static int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 }
 
 //========================================================================
-// Static - Return data now
-void meadow_rotary_encoder_read_now(rotEncReadData_t *rotEncReadData)
+// Static - Register the caller as an active reader of encoderNumb's info,
+// guarding against a concurrent rotenc_config_interrupt_remove(). The
+// lookup and the increment happen in the same critical section as
+// rotenc_config_interrupt_remove()'s un-publish step, so the two can never
+// interleave: either this sees the still-valid pointer and remove() is then
+// blocked from freeing it, or remove() already ran and this sees NULL.
+// Returns NULL if the encoder is not configured; caller must not call
+// rotenc_release() in that case.
+rotaryEncoderInfo_t *rotenc_acquire(uint32_t encoderNumb)
 {
-  rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[rotEncReadData->encoderNumb];
+  irqstate_t flags = enter_critical_section();
+  rotaryEncoderInfo_t *rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
+  if(rotaryEncoderInfo != NULL)
+  {
+    rotaryEncoderInfo->activeReaders++;
+  }
+  leave_critical_section(flags);
+  return rotaryEncoderInfo;
+}
 
+//========================================================================
+// Static - Unregister as an active reader. If rotenc_config_interrupt_remove()
+// ran while we were active it deferred the free() to whichever caller turns
+// out to be last out - do it here if that's us.
+void rotenc_release(rotaryEncoderInfo_t *rotaryEncoderInfo)
+{
+  irqstate_t flags = enter_critical_section();
+  rotaryEncoderInfo->activeReaders--;
+  bool shouldFree = (rotaryEncoderInfo->activeReaders == 0) &&
+                     rotaryEncoderInfo->pendingFree;
+  leave_critical_section(flags);
+
+  if(shouldFree)
+  {
+    free(rotaryEncoderInfo);
+  }
+}
+
+//========================================================================
+// Static - Return data now. Caller must hold a reference via rotenc_acquire().
+void meadow_rotary_encoder_read_now(rotaryEncoderInfo_t *rotaryEncoderInfo,
+          rotEncReadData_t *rotEncReadData)
+{
   // Get the current data values
   irqstate_t flags = enter_critical_section();
   rotEncReadData->encoderCount = \
@@ -267,9 +307,30 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
   uint8_t pinInfoA;
   uint8_t pinInfoB;
   rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
+  bool shouldFreeNow = false;
 
-  // Get info from the configuration memory before freeing it
+  // Un-publish the slot and snapshot whether a reader is currently active,
+  // atomically with rotenc_acquire()'s lookup+increment (see there). This
+  // also guards against two concurrent removes of the same encoder both
+  // acting on it - the second one to run this critical section sees NULL.
+  irqstate_t flags = enter_critical_section();
+  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
+  if(rotaryEncoderInfo != NULL)
+  {
+    _allRotaryEncodersList[encoderNumb] = NULL;
+    rotaryEncoderInfo->pendingFree = true;
+    shouldFreeNow = (rotaryEncoderInfo->activeReaders == 0);
+  }
+  leave_critical_section(flags);
+
+  if(rotaryEncoderInfo == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-Encoder %ld already removed\n",
+              __FILE__, __LINE__, encoderNumb);
+    return -ENOTEMPTY;
+  }
+
+  // Get info from the configuration memory before possibly freeing it
   pinInfoA = rotaryEncoderInfo->pinInfoA;
   pinInfoB = rotaryEncoderInfo->pinInfoB;
 
@@ -289,8 +350,10 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
               __FILE__, __LINE__, encoderNumb, ret);
   }
 
-  free(rotaryEncoderInfo);
-  _allRotaryEncodersList[encoderNumb] = NULL;
+  if(shouldFreeNow)
+  {
+    free(rotaryEncoderInfo);
+  }
 
   return ret;
 }
@@ -445,8 +508,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
 // Public - Allow the user to set or clear the current rotary encoder count.
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 {
-  rotaryEncoderInfo_t *rotaryEncoderInfo;
-  rotaryEncoderInfo = _allRotaryEncodersList[encoderNumb];
+  rotaryEncoderInfo_t *rotaryEncoderInfo = rotenc_acquire(encoderNumb);
 
   // Is requested slot valid?
   if(rotaryEncoderInfo == NULL)
@@ -460,6 +522,7 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
   rotaryEncoderInfo->totalCount = newCount;
   leave_critical_section(flags);
 
+  rotenc_release(rotaryEncoderInfo);
   return OK;
 }
 
@@ -477,6 +540,7 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
 {
   rotaryEncoderInfo_t *rotaryEncoderInfo;
+  int ret = OK;
 
   // Check for NULL
   if(rotEncReadData == NULL)
@@ -495,7 +559,7 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
     return -ERANGE;    // Out of Range
   }
 
-  rotaryEncoderInfo = _allRotaryEncodersList[rotEncReadData->encoderNumb];
+  rotaryEncoderInfo = rotenc_acquire(rotEncReadData->encoderNumb);
 
   // Is requested slot configured?
   if(rotaryEncoderInfo == NULL)
@@ -509,21 +573,38 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   if(rotaryEncoderInfo->delayMs <= MEADOW_ROTENC_DELAY_LOWER_THRESHOLD_MS)
   {
     // Get info and return since there's no delay requested.
-    meadow_rotary_encoder_read_now(rotEncReadData);
-    return OK;
+    meadow_rotary_encoder_read_now(rotaryEncoderInfo, rotEncReadData);
   }
-
-  // This simple polling loop does the waiting. abs() is used so a change
-  // in either direction (CW or CCW) satisfies the wait.
-  while(abs(rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) < \
-    MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+  else
   {
-    usleep(rotaryEncoderInfo->delayMs * 1000);
+    // This simple polling loop does the waiting. abs() is used so a change
+    // in either direction (CW or CCW) satisfies the wait.
+    while(abs(rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) < \
+      MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+    {
+      usleep(rotaryEncoderInfo->delayMs * 1000);
+
+      // Bail out if the encoder was removed while we were waiting - the
+      // hardware is already torn down at that point, so a count change is
+      // never coming.
+      irqstate_t pollFlags = enter_critical_section();
+      bool wasRemoved = rotaryEncoderInfo->pendingFree;
+      leave_critical_section(pollFlags);
+      if(wasRemoved)
+      {
+        ret = -ENODATA;
+        break;
+      }
+    }
+
+    if(ret == OK)
+    {
+      meadow_rotary_encoder_read_now(rotaryEncoderInfo, rotEncReadData);
+    }
   }
 
-  // Read data and return 
-  meadow_rotary_encoder_read_now(rotEncReadData);
-  return OK;
+  rotenc_release(rotaryEncoderInfo);
+  return ret;
 }
 
 #endif      // defined(MEADOW_ROTARY_ENCODER_BUILD)

@@ -116,6 +116,15 @@ struct rotaryEncoderInfo_s
   int32_t prevCount;          // Count at last read, used to calc cnt change
   uint32_t rotClockWise;      // Current direction 0 = Clockwise
   uint32_t delayMs;           // Delay in milliseconds
+
+  // Guards against rotenc_config_interrupt_remove() freeing this struct
+  // while a read (or set_count) call is still using it. A caller registers
+  // by incrementing activeReaders before use and decrementing after; remove()
+  // sets pendingFree and only frees immediately if no reader is registered,
+  // otherwise the last reader to unregister does the free. See
+  // rotenc_acquire()/rotenc_release() in meadow_rotary_encoder.c.
+  uint16_t activeReaders;     // Count of in-flight callers referencing this struct
+  bool pendingFree;           // remove() requested while a reader was active
 };
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
