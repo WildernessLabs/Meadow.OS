@@ -40,8 +40,15 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
+#include <string.h>
+#include <stdint.h>
+#include "hcom_shared_common.h"
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 // Should rotary encoder code be built?
-// This is a temporary #define. Remove when working
+// This is a temporary #define. Remove #define when final decision made
 #define MEADOW_ROTARY_ENCODER_BUILD     (1)
 
 // Define the maximum number of encoders that can be monitored.
@@ -56,11 +63,6 @@
 #define MEADOW_ROTARY_ENC_DIRECTION_CCW (1)
 
 #if (MEADOW_ROTARY_ENCODER_BUILD > 0)
-
-#include <nuttx/wqueue.h>
-#include <string.h>
-#include <stdint.h>
-#include "hcom_shared_common.h"
 
 // The Rotary Encoder Count consists of 2 GPIOs (A and B) and both
 // rising and falling edges of each pulse equals one encoder count.

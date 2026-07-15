@@ -61,6 +61,7 @@
 #include <arch/board/board.h>
 #include "stm32_gpio.h"
 #include <nuttx/arch.h>
+#include <nuttx/kmalloc.h>
 
 #if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_rotary_encoder.c"
@@ -269,7 +270,7 @@ void rotenc_release(rotaryEncoderInfo_t *rotaryEncoderInfo)
 
   if(shouldFree)
   {
-    free(rotaryEncoderInfo);
+    kmm_free(rotaryEncoderInfo);
   }
 }
 
@@ -352,7 +353,7 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
 
   if(shouldFreeNow)
   {
-    free(rotaryEncoderInfo);
+    kmm_free(rotaryEncoderInfo);
   }
 
   return ret;
@@ -421,7 +422,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     return -ERANGE;    // Out of Range
   }
 
-  rotaryEncoderInfo = zalloc(sizeof(rotaryEncoderInfo_t));
+  rotaryEncoderInfo = kmm_zalloc(sizeof(rotaryEncoderInfo_t));
   if(rotaryEncoderInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Memory allocation failed\n", __FILE__, __LINE__);
