@@ -508,6 +508,15 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
 // Public - Allow the user to set or clear the current rotary encoder count.
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 {
+  // Check for valid encoder number (0-7)
+  if(encoderNumb > (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1))
+  {
+    syslog(LOG_ERR, "%s@%d-Encoder %lu not available. Encoder range is 0 - %u.\n",
+              __FILE__, __LINE__, encoderNumb,
+              (MEADOW_ROTARY_ENC_MAX_ENCODERS - 1));
+    return -ERANGE;    // Out of Range
+  }
+
   rotaryEncoderInfo_t *rotaryEncoderInfo = rotenc_acquire(encoderNumb);
 
   // Is requested slot valid?
