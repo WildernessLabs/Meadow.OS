@@ -56,17 +56,16 @@
 // point in having more that 8 gpio counters.
 #define MEADOW_GPIO_COUNT_MAX_ENCODERS    (8)
 
-#define MEADOW_ROTARY_ENC_MAX_PORT        (10)   // A-K
-#define MEADOW_ROTARY_ENC_MAX_PIN         (15)    // 0-15
+#define MEADOW_GPIO_COUNTER_MAX_PORT      (10)   // A-K
+#define MEADOW_GPIO_COUNTER_MAX_PIN       (15)   // 0-15
 
 #define MEADOW_GPIO_COUNTER_DIRECTION_CW  (0)
 #define MEADOW_GPIO_COUNTER_DIRECTION_CCW (1)
 
 #if (MEADOW_GPIO_COUNTER_BUILD > 0)
 
-// The GPIO Counters consists of 2 GPIOs (A and B) and both
-// rising and falling edges of each pulse equals one gpio counter count.
-#define MEADOW_GPIO_COUNT_EDGES_PER_COUNT (4)
+// The GPIO Counters count both rising and falling edges of each pulse.
+#define MEADOW_GPIO_COUNT_EDGES_PER_COUNT (2)
 
 // Any delay below this value will be considered a delay of 0.
 #define MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS (0)
@@ -74,12 +73,10 @@
 // Caller must populate this struct before sending it
 struct gpioCntConfigParms_s
 {
-  uint32_t gpioCntrNumb;       // 0 - 7 to identify for collections
-  bool isAddGpioCounter;          // true=add, false=remove
-  uint32_t portA;             // 0 - 10 (A-K)
-  uint32_t pinA;              // 0 - 15
-  uint32_t portB;             // 0 - 10 (A-K)
-  uint32_t pinB;              // 0 - 15
+  uint32_t gpioCntrNumb;      // 0 - 7 to identify for collections
+  bool isAddGpioCounter;      // true=add, false=remove
+  uint32_t gpioPortInfo;             // 0 - 10 (A-K)
+  uint32_t gpioPinInfo;              // 0 - 15
   uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
   uint32_t delayMs;           // Requested delay in milliseconds
 };
@@ -92,7 +89,6 @@ struct gpioCntReadData_s
   uint32_t gpioCntrNumb;     // Supplied, 0 - 7 gpio counter config number
   int32_t gpioCount;     // Returned, Current total count (+/-)
   int32_t gpioCountChange;    // Returned, Counts since last read (+/-)
-  uint32_t gpioCntDirection;    // Returned, Current A/B relation, 0 = CW
 };
 typedef struct gpioCntReadData_s gpioCntReadData_t;
 
@@ -102,13 +98,11 @@ struct gpioCounterInfo_s
   uint8_t gpioCntrNumb;       // GPIOCntr number
 
   // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
-  uint8_t pinInfoA;           // Supplied by configuration
-  uint8_t pinInfoB;           // Supplied by configuration
+  uint8_t gpioPinInfo;           // Supplied by configuration
 
   // Address of correct "Input Data Register" which holds GPIO's hardware
   // port state bits
-  uint32_t idrAddressA;       // Calculated during configuration
-  uint32_t idrAddressB;       // Calculated during configuration
+  uint32_t idrAddress;       // Calculated during configuration
 
   uint32_t prevCondBits;      // Current state information
   uint32_t lookupOff;         // Current lookup table offset
@@ -116,17 +110,7 @@ struct gpioCounterInfo_s
   // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
   int32_t totalCount;         // Total of A and B, rising and/or falling edges
   int32_t prevCount;          // Count at last read, used to calc cnt change
-  uint32_t gpioCntDirection;  // Current direction 0 = Clockwise
   uint32_t delayMs;           // Delay in milliseconds
-
-  // Guards against gpio_cnt_config_interrupt_remove() freeing this struct
-  // while a read (or set_count) call is still using it. A caller registers
-  // by incrementing activeReaders before use and decrementing after; remove()
-  // sets pendingFree and only frees immediately if no reader is registered,
-  // otherwise the last reader to unregister does the free. See
-  // gpio_cnt_acquire()/gpio_cnt_release() in meadow_rotary_encoder.c.
-  uint16_t activeReaders;     // Count of in-flight callers referencing this struct
-  bool pendingFree;           // remove() requested while a reader was active
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 

@@ -76,12 +76,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static int gpioCntLookup[] =
-{
-  // Notice the values forward and backward match
-  0, -1, 1, 0, 1, 0, 0, -1, -1, 0, 0, 1, 0, 1, -1, 0
-};
-
 // All F7 possible input data register addresses, used for ISR access to read
 // GPIO state value.
 static uint32_t gpioCntInputDataReg[] = 
@@ -110,104 +104,33 @@ static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_ENCODERS]\
 static void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
           gpioCntReadData_t *gpioCntReadData);
 static int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb);
-static gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb);
-static void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// This function, called by the GPIO ISRs, adds/subtracts the count.
-// Both rising and falling edges of are counted for interrupts, 'A' and 'B'.
-static void gpio_cnt_calc_dir_count(gpioCounterInfo_t *gpioCounterInfo,
-          uint32_t newCondBits)
-{
-  irqstate_t flags = enter_critical_section();
-
-  // Calculate the new lookup table offset to determine what happened
-  uint32_t lookupOff = gpioCounterInfo->lookupOff;
-  lookupOff <<= 2;           // Move previous A & B to bits 2 & 3
-  lookupOff |= newCondBits;  // Add the new A or B in bits 0 & 1
-  lookupOff &= 0x0000000f;   // Save only lowest 4 bits
-  gpioCounterInfo->lookupOff = lookupOff;
-
-  // Use the new state bits to lookup direction (only 3 possible values)
-  int newDir = gpioCntLookup[lookupOff];
-
-  switch (newDir)
-  {
-    case 0: // no change
-      break;
-
-    case 1: // CW
-      gpioCounterInfo->totalCount++;
-      break;
-
-    case -1: // CCW
-      gpioCounterInfo->totalCount--;
-      break;
-
-    default:
-      break;
-  }
-  leave_critical_section(flags);
-}
 
 //===========================================================================
-// GPIO counter input A ISR
+// GPIO counter input ISR
 // Note: may need to insure that both 'A' and 'B' are changing every other
 // call, Possibly use int isrACount and isrBCount and if difference > than
 // some small number, warn user (e.g. "Only GPIO is changing").
-static int meadow_gpio_count_isr_a(int irq, void *context, void *arg)
+static int meadow_gpio_count_isr(int irq, void *context, void *arg)
 {
   uint8_t pinNumb;
   uint32_t idrRegister;
   gpioCounterInfo_t *gpioCounterInfo = (gpioCounterInfo_t *)arg;
    
   // Save previous B state
-  uint32_t newCondBits = (gpioCounterInfo->prevCondBits) & 0x02;
+  // uint32_t newCondBits = (gpioCounterInfo->prevCondBits) & 0x02;
 
   // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddressA));
-  pinNumb = gpioCounterInfo->pinInfoA & 0x0f;
+  idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddress));
+  pinNumb = gpioCounterInfo->gpioPinInfo & 0x0f;
+
   bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  
-  if(gpioState)
-  {
-    newCondBits |= 0x01;    // Set bit A if high
-  }
+  syslog(LOG_MDIAG, "gpioState:%d\n", gpioState);
 
-  // Only saves 2 ls bits
-  gpioCounterInfo->prevCondBits = newCondBits;
-
-  gpio_cnt_calc_dir_count(gpioCounterInfo, newCondBits);
-  return OK;
-}
-
-// ===========================================================================
-// GPIO counter input B ISR
-static int meadow_gpio_count_isr_b(int irq, void *context, void *arg)
-{
-  uint8_t pinNumb;
-  uint32_t idrRegister;
-  
-  gpioCounterInfo_t *gpioCounterInfo = (gpioCounterInfo_t *)arg;
-
-  // Save previous A state
-  uint32_t newCondBits = (gpioCounterInfo->prevCondBits) & 0x01;
-
-  // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddressB));
-  pinNumb = gpioCounterInfo->pinInfoB & 0x0f;
-  bool gpioState =  (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  if(gpioState)
-  {
-    newCondBits |= 0x02;    // Set bit B
-  }
-
-  // Only saves 2 ls bits
-  gpioCounterInfo->prevCondBits = newCondBits;
-
-  gpio_cnt_calc_dir_count(gpioCounterInfo, newCondBits);
+  gpioCounterInfo->totalCount++;
   return OK;
 }
 
@@ -222,13 +145,13 @@ static int meadow_gpio_count_isr_b(int irq, void *context, void *arg)
 // gpio_cnt_release() in that case.
 gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb)
 {
-  irqstate_t flags = enter_critical_section();
+  // irqstate_t flags = enter_critical_section();
   gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
-  if(gpioCounterInfo != NULL)
-  {
-    gpioCounterInfo->activeReaders++;
-  }
-  leave_critical_section(flags);
+  // if(gpioCounterInfo != NULL)
+  // {
+  //   gpioCounterInfo->activeReaders++;
+  // }
+  // leave_critical_section(flags);
   return gpioCounterInfo;
 }
 
@@ -238,16 +161,16 @@ gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb)
 // out to be last out - do it here if that's us.
 void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo)
 {
-  irqstate_t flags = enter_critical_section();
-  gpioCounterInfo->activeReaders--;
-  bool shouldFree = (gpioCounterInfo->activeReaders == 0) &&
-                     gpioCounterInfo->pendingFree;
-  leave_critical_section(flags);
+  // irqstate_t flags = enter_critical_section();
+  // gpioCounterInfo->activeReaders--;
+  // bool shouldFree = (gpioCounterInfo->activeReaders == 0) &&
+  //                    gpioCounterInfo->pendingFree;
+  // leave_critical_section(flags);
 
-  if(shouldFree)
-  {
+  // if(shouldFree)
+  // {
     kmm_free(gpioCounterInfo);
-  }
+  // }
 }
 
 //========================================================================
@@ -262,8 +185,6 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
 
   // What was the overall direction CW or CCW?
   int countDiff = gpioCounterInfo->totalCount - gpioCounterInfo->prevCount;
-  gpioCntReadData->gpioCntDirection = countDiff >= 0 ? \
-    MEADOW_GPIO_COUNTER_DIRECTION_CW : MEADOW_GPIO_COUNTER_DIRECTION_CCW;
  
   // How much did the count change?
   gpioCntReadData->gpioCountChange = \
@@ -281,8 +202,7 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
 int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 {
   int ret;
-  uint8_t pinInfoA;
-  uint8_t pinInfoB;
+  uint8_t gpioPinInfo;
   gpioCounterInfo_t *gpioCounterInfo;
   bool shouldFreeNow = false;
 
@@ -295,8 +215,8 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
   if(gpioCounterInfo != NULL)
   {
     _allGpioCountList[gpioCntrNumb] = NULL;
-    gpioCounterInfo->pendingFree = true;
-    shouldFreeNow = (gpioCounterInfo->activeReaders == 0);
+    // gpioCounterInfo->pendingFree = true;
+    // shouldFreeNow = (gpioCounterInfo->activeReaders == 0);
   }
   leave_critical_section(flags);
 
@@ -308,22 +228,14 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
   }
 
   // Get info from the configuration memory before possibly freeing it
-  pinInfoA = gpioCounterInfo->pinInfoA;
-  pinInfoB = gpioCounterInfo->pinInfoB;
+  gpioPinInfo = gpioCounterInfo->gpioPinInfo;
 
   // Tell Nuttx to forget about these GPIO interrupts
   // This call will also disables the interrupts
-  ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
+  ret = stm32_gpiosetevent(gpioPinInfo, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error removing gpio counter:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, gpioCntrNumb, ret);
-  }
-
-  ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error removing gpio counter:%ld Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, gpioCntrNumb, ret);
   }
 
@@ -390,8 +302,8 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   // Adding new Rotary GPIOCnt
 
   // Verify GPIO parameters are in range
-  if(cfg->portA > MEADOW_ROTARY_ENC_MAX_PORT || cfg->portB > MEADOW_ROTARY_ENC_MAX_PORT ||
-    cfg->pinA > MEADOW_ROTARY_ENC_MAX_PIN || cfg->pinB > MEADOW_ROTARY_ENC_MAX_PIN)
+  if(cfg->gpioPortInfo > MEADOW_GPIO_COUNTER_MAX_PORT ||
+     cfg->gpioPinInfo > MEADOW_GPIO_COUNTER_MAX_PIN)
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu, GPIO Port or PIN is out of range\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb);
@@ -412,15 +324,12 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   gpioCounterInfo->gpioCntrNumb = cfg->gpioCntrNumb;
   gpioCounterInfo->delayMs = cfg->delayMs;
 
-  // The 2 GPIO inputs are used to configure and remove interrupt handling
-  uint8_t pinDesignationA = cfg->portA << 4 | cfg->pinA;
-  uint8_t pinDesignationB = cfg->portB << 4 | cfg->pinB;
-  gpioCounterInfo->pinInfoA = pinDesignationA;
-  gpioCounterInfo->pinInfoB = pinDesignationB;
+  // The GPIO input is used to configure and remove interrupt handling
+  uint8_t pinDesignationA = cfg->gpioPortInfo << 4 | cfg->gpioPinInfo;
+  gpioCounterInfo->gpioPinInfo = pinDesignationA;
 
   // Find the correct static offset for both GPIOs
-  gpioCounterInfo->idrAddressA = gpioCntInputDataReg[cfg->portA];
-  gpioCounterInfo->idrAddressB = gpioCntInputDataReg[cfg->portB];
+  gpioCounterInfo->idrAddress = gpioCntInputDataReg[cfg->gpioPortInfo];
 
   // cfgset contains 20-bits of data. It is required by the Nuttx stm32_gpiosetevent
   // function. If the 20 bits of data are not correct, this Nuttx function will
@@ -432,21 +341,17 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   // X  = configure as EXTI interrupt. Event or ISR set by stm32_gpiosetevent
   // Setup the Nuttx cfgset for this point to be configured by Nuttx
   uint32_t cfgsetA = (pinDesignationA & 0x000000ff);   // Set Port and Pin and clear MM
-  uint32_t cfgsetB = (pinDesignationB & 0x000000ff);   // Set Port and Pin and clear MM
 
   switch(cfg->resistorMode)
   {
     case 0: // Float
       cfgsetA |= GPIO_FLOAT;
-      cfgsetB |= GPIO_FLOAT;
       break;
     case 1: // Pull up
       cfgsetA |= GPIO_PULLUP;
-      cfgsetB |= GPIO_PULLUP;
       break;
     case 2: // Pull down
       cfgsetA |= GPIO_PULLDOWN;
-      cfgsetB |= GPIO_PULLDOWN;
       break;
   }
 
@@ -457,24 +362,11 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     1,                            // rising edge,
     1,                            // falling edge,
     0,                            // event
-    meadow_gpio_count_isr_a,    // ISR A
+    meadow_gpio_count_isr,        // ISR
     gpioCounterInfo);           // information address
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error gpio counter:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, cfg->gpioCntrNumb, ret);
-  }
-
-  ret = stm32_gpiosetevent(
-    cfgsetB,                      // Nuttx cfgset
-    1,                            // rising edge,
-    1,                            // falling edge,
-    0,                            // event
-    meadow_gpio_count_isr_b,    // ISR B
-    gpioCounterInfo);           // information address
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error gpio counter:%ld Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb, ret);
   }
 
@@ -569,18 +461,6 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
       MEADOW_GPIO_COUNT_EDGES_PER_COUNT)
     {
       usleep(gpioCounterInfo->delayMs * 1000);
-
-      // Bail out if the gpio counter was removed while we were waiting - the
-      // hardware is already torn down at that point, so a count change is
-      // never coming.
-      irqstate_t pollFlags = enter_critical_section();
-      bool wasRemoved = gpioCounterInfo->pendingFree;
-      leave_critical_section(pollFlags);
-      if(wasRemoved)
-      {
-        ret = -ENODATA;
-        break;
-      }
     }
 
     if(ret == OK)

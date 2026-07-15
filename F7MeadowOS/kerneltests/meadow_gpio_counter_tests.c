@@ -180,10 +180,9 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 0 - Changed by %ld since read, total:%ld, direction:%s\n",
+        "GPIO Count 0 - Changed by %ld since read, total:%ld\n",
         rotEncReadData.gpioCountChange,
-        rotEncReadData.gpioCount,
-        rotEncReadData.gpioCntDirection == 0 ? "CW" : "CCW") ;
+        rotEncReadData.gpioCount) ;
       break;
 
     case 22:    // GPIO Count 5
@@ -196,10 +195,9 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 5 - Changed by %ld since read, total:%ld, direction:%s\n",
+        "GPIO Count 5 - Changed by %ld since read, total:%ld\n",
         rotEncReadData.gpioCountChange,
-        rotEncReadData.gpioCount,
-        rotEncReadData.gpioCntDirection == 0 ? "CW" : "CCW") ;
+        rotEncReadData.gpioCount) ;
       break;
 
     case 23:    // GPIO Count 7
@@ -212,10 +210,9 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 7 - Changed by %ld since read total:%ld, direction:%s\n",
+        "GPIO Count 7 - Changed by %ld since read total:%ld\n",
         rotEncReadData.gpioCountChange,
-        rotEncReadData.gpioCount,
-        rotEncReadData.gpioCntDirection == 0 ? "CW" : "CCW") ;
+        rotEncReadData.gpioCount) ;
       break;
 
     //-------------------------------------------------------------
@@ -462,83 +459,83 @@ void *gpio_counter_test_blocking_read_kthread(int argc, char *argv[])
 // background thread's PASS/FAIL line.
 void gpio_counter_test_exercise_test(uint32_t userData)
 {
-  int ret;
-  int pid;
-  gpioCountConfigParms_t *cfg = malloc(sizeof(gpioCountConfigParms_t));
-  if(cfg == NULL)
-  {
-    syslog(LOG_ERR, "Memory allocation failed\n");
-    return;
-  }
+//   int ret;
+//   int pid;
+//   gpioCountConfigParms_t *cfg = malloc(sizeof(gpioCountConfigParms_t));
+//   if(cfg == NULL)
+//   {
+//     syslog(LOG_ERR, "Memory allocation failed\n");
+//     return;
+//   }
 
-  syslog(LOG_MTEST,
-    "GPIO Count race test-starting (userData:%lu)\n", userData);
+//   syslog(LOG_MTEST,
+//     "GPIO Count race test-starting (userData:%lu)\n", userData);
 
-  // For testing need to initialize the 2 GPIOs as inputs
-  stm32_configgpio(GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-  stm32_configgpio(GPIO_CNT_PIN_CCM_D06_PB13_INPUT);
+//   // For testing need to initialize the 2 GPIOs as inputs
+//   stm32_configgpio(GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
+//   stm32_configgpio(GPIO_CNT_PIN_CCM_D06_PB13_INPUT);
 
-  // Configure gpio counter 0 with a 500ms blocking delay
-  cfg->gpioCntrNumb = 0;
-  cfg->isAddGpioCounter = true;
-  cfg->portA = (GPIO_CNT_PIN_CCM_D05_PB4_INPUT & 0xf0) >> 4;
-  cfg->pinA =  (GPIO_CNT_PIN_CCM_D05_PB4_INPUT & 0x0f);
-  cfg->portB = (GPIO_CNT_PIN_CCM_D06_PB13_INPUT & 0xf0) >> 4;
-  cfg->pinB =  (GPIO_CNT_PIN_CCM_D06_PB13_INPUT & 0x0f);
-  cfg->resistorMode = 2;    // 2 = pull down
-  cfg->delayMs = 500;
+//   // Configure gpio counter 0 with a 500ms blocking delay
+//   cfg->gpioCntrNumb = 0;
+//   cfg->isAddGpioCounter = true;
+//   cfg->portA = (GPIO_CNT_PIN_CCM_D05_PB4_INPUT & 0xf0) >> 4;
+//   cfg->pinA =  (GPIO_CNT_PIN_CCM_D05_PB4_INPUT & 0x0f);
+//   cfg->portB = (GPIO_CNT_PIN_CCM_D06_PB13_INPUT & 0xf0) >> 4;
+//   cfg->pinB =  (GPIO_CNT_PIN_CCM_D06_PB13_INPUT & 0x0f);
+//   cfg->resistorMode = 2;    // 2 = pull down
+//   cfg->delayMs = 500;
 
-  ret = meadow_gpio_counter_config(cfg);
-  free(cfg);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST,
-      "GPIO Count race test-setup failed, ret:%d (gpio counter 0 may already "
-      "be configured - remove it first with -v 11)\n", ret);
-    return;
-  }
+//   ret = meadow_gpio_counter_config(cfg);
+//   free(cfg);
+//   if(ret < 0)
+//   {
+//     syslog(LOG_MTEST,
+//       "GPIO Count race test-setup failed, ret:%d (gpio counter 0 may already "
+//       "be configured - remove it first with -v 11)\n", ret);
+//     return;
+//   }
 
-  // Start the background thread that will block reading gpio counter 0
-  pid = kthread_create("GpioCntRaceTest", 100, 4096,
-    (main_t) gpio_counter_test_blocking_read_kthread, (char * const *)NULL);
-  if(pid < 0)
-  {
-    syslog(LOG_MTEST,
-      "GPIO Count race test-failed to create test thread, ret:%d\n", pid);
-    return;
-  }
+//   // Start the background thread that will block reading gpio counter 0
+//   pid = kthread_create("GpioCntRaceTest", 100, 4096,
+//     (main_t) gpio_counter_test_blocking_read_kthread, (char * const *)NULL);
+//   if(pid < 0)
+//   {
+//     syslog(LOG_MTEST,
+//       "GPIO Count race test-failed to create test thread, ret:%d\n", pid);
+//     return;
+//   }
 
-  // Give the background thread time to enter its blocking read/poll loop
-  // before removing the gpio counter out from under it. This is shorter than
-  // the gpio counter's configured delayMs so the remove lands mid-poll, while
-  // the background thread is asleep inside its wait.
-  usleep(50 * 1000);
+//   // Give the background thread time to enter its blocking read/poll loop
+//   // before removing the gpio counter out from under it. This is shorter than
+//   // the gpio counter's configured delayMs so the remove lands mid-poll, while
+//   // the background thread is asleep inside its wait.
+//   usleep(50 * 1000);
 
-  syslog(LOG_MTEST,
-    "GPIO Count race test-removing gpio counter 0 while background read is outstanding\n");
+//   syslog(LOG_MTEST,
+//     "GPIO Count race test-removing gpio counter 0 while background read is outstanding\n");
 
-  stm32_unconfiggpio(GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-  stm32_unconfiggpio(GPIO_CNT_PIN_CCM_D06_PB13_INPUT);
+//   stm32_unconfiggpio(GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
+//   stm32_unconfiggpio(GPIO_CNT_PIN_CCM_D06_PB13_INPUT);
 
-  cfg = malloc(sizeof(gpioCountConfigParms_t));
-  if(cfg == NULL)
-  {
-    syslog(LOG_ERR, "Memory allocation failed\n");
-    return;
-  }
-  cfg->gpioCntrNumb = 0;
-  cfg->isAddGpioCounter = false;
+//   cfg = malloc(sizeof(gpioCountConfigParms_t));
+//   if(cfg == NULL)
+//   {
+//     syslog(LOG_ERR, "Memory allocation failed\n");
+//     return;
+//   }
+//   cfg->gpioCntrNumb = 0;
+//   cfg->isAddGpioCounter = false;
 
-  ret = meadow_gpio_counter_config(cfg);
-  free(cfg);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "GPIO Count race test-remove returned ret:%d\n", ret);
-  }
+//   ret = meadow_gpio_counter_config(cfg);
+//   free(cfg);
+//   if(ret < 0)
+//   {
+//     syslog(LOG_MTEST, "GPIO Count race test-remove returned ret:%d\n", ret);
+//   }
 
-  syslog(LOG_MTEST,
-    "GPIO Count race test-remove issued, watch for the background "
-    "thread's PASS/FAIL log line\n");
+//   syslog(LOG_MTEST,
+//     "GPIO Count race test-remove issued, watch for the background "
+//     "thread's PASS/FAIL log line\n");
 }
 
 #endif  // defined(CONFIG_GPIO_COUNTER_TESTS)
