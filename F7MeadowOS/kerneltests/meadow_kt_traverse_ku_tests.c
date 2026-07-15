@@ -59,17 +59,17 @@
 #include <nuttx/config.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
+
+/* Only build if configured */
+
+#if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #include <meadow/hcom_traverse_ku.h>
 
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
 
-/* Only build if configured */
-
-#if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-
-#pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
+// #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
 /****************************************************************************
  * Pre-processor Definitions

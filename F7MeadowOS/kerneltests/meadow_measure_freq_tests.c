@@ -42,12 +42,13 @@
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_measure_freq_tests.c"
 
-#include <meadow/hcom_shared_common.h>
-#include <meadow/meadow_kernel_tests.h>
-#include <meadow/meadow_measure_freq_shared.h>
 #include "../hcom_nx/hcom_nx_common.h"
+#include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_measure_freq_shared.h>
 #include "stm32_gpio.h"   // stm32_configgpio
 #include <arch/board/board.h>
+#include <meadow/meadow_kernel_tests.h>
+#include <meadow/hcom_traverse_ku.h>
 
 // Diagnostic always as this is test code
 // #define USE_MEADOW_DEBUG_HELPERS

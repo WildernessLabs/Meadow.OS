@@ -72,15 +72,6 @@
 
 // #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 
-//============================================================
-// Defines the maximum number of encoders that can be monitored.
-// Since the F7, under Nuttx, only has 16 "interrupt groups" there's no
-// point in having more that 8 rotary encoders.
-#define MEADOW_ROTARY_ENC_MAX_ENCODERS (8)
-
-#define MEADOW_ROTARY_ENC_MAX_PORT (10)   // A-K
-#define MEADOW_ROTARY_ENC_MAX_PIN (15)    // 0-15
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -145,9 +136,8 @@ static int rotenc_config_interrupt_remove(uint32_t encoderNumb);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// This function, called by the GPIO ISRs, finds the direction (CW or CCW)
-// and adds/subtracts the count. This counts rising and falling edges of
-// interrupts, 'A' and 'B'.
+// This function, called by the GPIO ISRs, adds/subtracts the count.
+// Both rising and falling edges of are counted for interrupts, 'A' and 'B'.
 static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
           uint32_t newCondBits)
 {
@@ -169,12 +159,10 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
       break;
 
     case 1: // CW
-      rotaryEncoderInfo->rotClockWise = 0;
       rotaryEncoderInfo->totalCount++;
       break;
 
     case -1: // CCW
-      rotaryEncoderInfo->rotClockWise = 1;
       rotaryEncoderInfo->totalCount--;
       break;
 
@@ -252,13 +240,17 @@ void meadow_rotary_encoder_read_now(rotEncReadData_t *rotEncReadData)
 
   // Get the current data values
   irqstate_t flags = enter_critical_section();
-  rotEncReadData->rotClockWise = \
-      rotaryEncoderInfo->rotClockWise;
   rotEncReadData->encoderCount = \
       rotaryEncoderInfo->totalCount / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
+
+  // What was the overall direction CW or CCW?
+  int countDiff = rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount;
+  rotEncReadData->rotClockWise = countDiff >= 0 ? \
+    MEADOW_ROTARY_ENC_DIRECTION_CW : MEADOW_ROTARY_ENC_DIRECTION_CCW;
+ 
+  // How much did the count change?
   rotEncReadData->encoderChange = \
-      (rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) / \
-      MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
+    countDiff / MEADOW_ROTENC_GPIO_EDGES_PER_COUNT;
 
   // Prep for next read
   rotaryEncoderInfo->prevCount = rotaryEncoderInfo->totalCount;

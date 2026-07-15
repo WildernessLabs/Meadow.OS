@@ -41,7 +41,19 @@
 #include <nuttx/config.h>
 
 // Should rotary encoder code be built?
-#define MEADOW_ROTARY_ENCODER_BUILD  (1)
+// This is a temporary #define. Remove when working
+#define MEADOW_ROTARY_ENCODER_BUILD     (1)
+
+// Define the maximum number of encoders that can be monitored.
+// Since the F7, under Nuttx, only has 16 "interrupt groups" there's no
+// point in having more that 8 rotary encoders.
+#define MEADOW_ROTARY_ENC_MAX_ENCODERS  (8)
+
+#define MEADOW_ROTARY_ENC_MAX_PORT      (10)   // A-K
+#define MEADOW_ROTARY_ENC_MAX_PIN       (15)    // 0-15
+
+#define MEADOW_ROTARY_ENC_DIRECTION_CW  (0)
+#define MEADOW_ROTARY_ENC_DIRECTION_CCW (1)
 
 #if (MEADOW_ROTARY_ENCODER_BUILD > 0)
 
