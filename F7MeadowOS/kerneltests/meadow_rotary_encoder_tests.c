@@ -49,6 +49,7 @@
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
 #include "stm32_gpio.h"   // stm32_configgpio
+#include <nuttx/kthread.h>
 
 #pragma message "(--) meadow_rotary_encoder_tests.c"
 
@@ -85,6 +86,7 @@ static void rotary_encoder_test_add_config(uint32_t testNumb,
   uint32_t encoderNumb, uint32_t delayMs, uint32_t PinA, uint32_t PinB);
 static void rotary_encoder_test_remove_config(uint32_t userData);
 static void rotary_encoder_config_test_null_parms(uint32_t userData);
+static void *rotary_encoder_test_blocking_read_kthread(int argc, char *argv[]);
 
 /************************************************************************************
  * Public Functions
@@ -261,6 +263,16 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
     // Function parameter null test
     case 41:    // Encoder 0
       rotary_encoder_config_test_null_parms(userData);
+      break;
+
+    //-------------------------------------------------------------
+    // Concurrent remove-while-blocking-read race test (encoder 0). Starts
+    // a background thread blocked in meadow_rotary_encoder_read_data(),
+    // then removes encoder 0 out from under it. Expect the background
+    // thread's syslog line to report a clean -ENODATA, not a hang or crash.
+    case 51:
+      rotary_encoder_test_exercise_test(userData);
+      break;
 
     default:
       syslog(LOG_MTEST, "Rotary Encoder test-received unknown userData of %lu\n",
@@ -399,6 +411,134 @@ void rotary_encoder_config_test_null_parms(uint32_t userData)
 
   syslog(LOG_MTEST, "Rotary Encoder parameter test: encoder:%lu, ret:%d\n",
     encoderNumb, ret);
+}
+
+//==================================================================
+// Background thread for the concurrent remove/read race test. Blocks in
+// meadow_rotary_encoder_read_data() for encoder 0 and reports whether it
+// came back with a clean -ENODATA (encoder removed while waiting) instead
+// of hanging or crashing.
+void *rotary_encoder_test_blocking_read_kthread(int argc, char *argv[])
+{
+  rotEncReadData_t rotEncReadData;
+  int ret;
+
+  rotEncReadData.encoderNumb = 0;
+
+  syslog(LOG_MTEST,
+    "Rotary Encoder race test-background thread starting blocking read on encoder 0\n");
+
+  ret = meadow_rotary_encoder_read_data(&rotEncReadData);
+
+  if(ret == -ENODATA)
+  {
+    syslog(LOG_MTEST,
+      "Rotary Encoder race test-PASS: background read returned -ENODATA (%d) "
+      "after concurrent remove, no hang/crash\n", ret);
+  }
+  else if(ret < 0)
+  {
+    syslog(LOG_MTEST,
+      "Rotary Encoder race test-background read returned unexpected error:%d\n",
+      ret);
+  }
+  else
+  {
+    syslog(LOG_MTEST,
+      "Rotary Encoder race test-background read returned data instead of "
+      "being removed (change:%ld, total:%ld) - encoder may have actually "
+      "rotated, re-run without touching it\n",
+      rotEncReadData.encoderChange, rotEncReadData.encoderCount);
+  }
+
+  return NULL;
+}
+
+//==================================================================
+// Stress-tests the activeReaders/pendingFree guard in
+// rotenc_config_interrupt_remove(): starts a background thread blocked in
+// meadow_rotary_encoder_read_data() for encoder 0, then removes encoder 0
+// out from under it while it's still waiting. Watch syslog for the
+// background thread's PASS/FAIL line.
+void rotary_encoder_test_exercise_test(uint32_t userData)
+{
+  int ret;
+  int pid;
+  rotEncConfigParms_t *cfg = malloc(sizeof(rotEncConfigParms_t));
+  if(cfg == NULL)
+  {
+    syslog(LOG_ERR, "Memory allocation failed\n");
+    return;
+  }
+
+  syslog(LOG_MTEST,
+    "Rotary Encoder race test-starting (userData:%lu)\n", userData);
+
+  // For testing need to initialize the 2 GPIOs as inputs
+  stm32_configgpio(ENCODER_PIN_CCM_D05_PB4_INPUT);
+  stm32_configgpio(ENCODER_PIN_CCM_D06_PB13_INPUT);
+
+  // Configure encoder 0 with a 500ms blocking delay
+  cfg->encoderNumb = 0;
+  cfg->isAddEncoder = true;
+  cfg->portA = (ENCODER_PIN_CCM_D05_PB4_INPUT & 0xf0) >> 4;
+  cfg->pinA =  (ENCODER_PIN_CCM_D05_PB4_INPUT & 0x0f);
+  cfg->portB = (ENCODER_PIN_CCM_D06_PB13_INPUT & 0xf0) >> 4;
+  cfg->pinB =  (ENCODER_PIN_CCM_D06_PB13_INPUT & 0x0f);
+  cfg->resistorMode = 2;    // 2 = pull down
+  cfg->delayMs = 500;
+
+  ret = meadow_rotary_encoder_config(cfg);
+  free(cfg);
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST,
+      "Rotary Encoder race test-setup failed, ret:%d (encoder 0 may already "
+      "be configured - remove it first with -v 11)\n", ret);
+    return;
+  }
+
+  // Start the background thread that will block reading encoder 0
+  pid = kthread_create("RotEncRaceTest", 100, 4096,
+    (main_t) rotary_encoder_test_blocking_read_kthread, (char * const *)NULL);
+  if(pid < 0)
+  {
+    syslog(LOG_MTEST,
+      "Rotary Encoder race test-failed to create test thread, ret:%d\n", pid);
+    return;
+  }
+
+  // Give the background thread time to enter its blocking read/poll loop
+  // before removing the encoder out from under it. This is shorter than
+  // the encoder's configured delayMs so the remove lands mid-poll, while
+  // the background thread is asleep inside its wait.
+  usleep(50 * 1000);
+
+  syslog(LOG_MTEST,
+    "Rotary Encoder race test-removing encoder 0 while background read is outstanding\n");
+
+  stm32_unconfiggpio(ENCODER_PIN_CCM_D05_PB4_INPUT);
+  stm32_unconfiggpio(ENCODER_PIN_CCM_D06_PB13_INPUT);
+
+  cfg = malloc(sizeof(rotEncConfigParms_t));
+  if(cfg == NULL)
+  {
+    syslog(LOG_ERR, "Memory allocation failed\n");
+    return;
+  }
+  cfg->encoderNumb = 0;
+  cfg->isAddEncoder = false;
+
+  ret = meadow_rotary_encoder_config(cfg);
+  free(cfg);
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST, "Rotary Encoder race test-remove returned ret:%d\n", ret);
+  }
+
+  syslog(LOG_MTEST,
+    "Rotary Encoder race test-remove issued, watch for the background "
+    "thread's PASS/FAIL log line\n");
 }
 
 #endif  // defined(CONFIG_ROTARY_ENCODER_TESTS)
