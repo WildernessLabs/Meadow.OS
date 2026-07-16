@@ -135,6 +135,10 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_ROTARY_ENCODER, "Rotary Encoder tests" },
 #endif
 
+#if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_GPIO_COUNTER, "GPIO Counter tests" },
+#endif
+
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_FREQUENCY_MEASUREMENT, "Measure Frequency tests" },
 #endif

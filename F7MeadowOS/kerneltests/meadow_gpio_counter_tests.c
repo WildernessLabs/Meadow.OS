@@ -33,9 +33,9 @@
  *
  ****************************************************************************/
 
-// In ./build.sh -u=gpioCount
-// Then -p 1? -v <test number>
-// e.g. meadow developer -p 1? -v 1 (config D05)
+// In ./build.sh -u=gpioCounter
+// Then -p 23 -v <test number>
+// e.g. meadow developer -p 23 -v 1 (config D05)
 
 /****************************************************************************
  * Included Files
@@ -44,8 +44,7 @@
 #include <meadow/meadow_gpio_counter.h>
 
 // Only build CONFIG_GPIO_COUNTER_TESTS if configured
-//#if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-#if(1)
+#if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
@@ -87,12 +86,11 @@ static void gpio_counter_test_add_config(uint32_t testNumb,
   uint32_t gpioCntrNumb, uint32_t gpioPin);
 static void gpio_counter_test_remove_config(uint32_t userData);
 static void gpio_counter_config_test_null_parms(uint32_t userData);
-// static void *gpio_counter_test_blocking_read_kthread(int argc, char *argv[]);
 
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
-// set developer -p 18 come here
+// set developer -p 23 come here
 // Testing entry point
 void meadow_kt_gpio_counter_tests(uint32_t userData)
 {
@@ -100,7 +98,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
   gpioCntReadData_t gpioCntReadData;
 
   syslog(LOG_MTEST,
-    "GPIO Counter tests received 'set developer -p 1? -v %lu'\n",
+    "GPIO Counter tests received 'set developer -p 23 -v %lu'\n",
     userData);
 
   switch(userData)
@@ -112,158 +110,129 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
     // supported. And be careful to not use the pins used by syslog,
     // D12 and D13. And keep in mind GPIO groups.
     //
-    case 1:   // GPIO Count 0 Delay Zero millisec, D05 & DO6
+    case 1:   // GPIO Counter 0, D05
     gpio_counter_test_add_config(userData, 0,
         GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
       break;
-    case 2:   // GPIO Count 5 Delay 0 millisec, D07 & D08
+    case 2:   // GPIO Counter 5, D07
       gpio_counter_test_add_config(userData, 5,
         GPIO_CNT_PIN_CCM_D07_PB7_INPUT);
       break;
-    case 3:   // GPIO Count 7 Delay 0 millisec, D09 & D10
+    case 3:   // GPIO Counter 7, D09
       gpio_counter_test_add_config(userData, 7,
         GPIO_CNT_PIN_CCM_D09_PI11_INPUT);
       break;
-    case 4:   // GPIO Count 8 Delay 0 millisec, D05 & DO6
+    case 4:   // GPIO Counter 8, D05
       // This configuration should fail, gpio counter out of range
       gpio_counter_test_add_config(userData, 8,
         GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
       break;
-    case 5:   // GPIO Count 0 Delay 1 millisec, D05 & DO6
-      gpio_counter_test_add_config(userData, 0,
-        GPIO_ADC1_IN13_0);
-      break;
-    case 6:   // GPIO Count 0 Delay 2 millisec, D05 & DO6
-      gpio_counter_test_add_config(userData, 0,
-        GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-      break;
-    case 7:   // GPIO Count 0 Delay 20 millisec, D05 & DO6
-      gpio_counter_test_add_config(userData, 0,
-        GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-      break;
-    case 8:   // GPIO Count 0 Delay 200 millisec, D05 & DO6
-      gpio_counter_test_add_config(userData, 0,
-        GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-      break;
-    case 9:   // GPIO Count 0 Delay 2000 millisec, D05 & DO6
-      gpio_counter_test_add_config(userData, 0,
-        GPIO_CNT_PIN_CCM_D05_PB4_INPUT);
-      break;
 
     //-------------------------------------------------------------
-    // Unconfigure
-    case 11:  // GPIO Count 0
-    case 12:  // GPIO Count 5
-    case 13:  // GPIO Count 7
-    case 14:  // GPIO Count 8 This should fail
+    // Unconfigure / remove
+    case 11:  // GPIO Counter 0
+    case 12:  // GPIO Counter 5
+    case 13:  // GPIO Counter 7
+    case 14:  // GPIO Counter 8 This should fail
       gpio_counter_test_remove_config(userData);
       break;
 
     //-------------------------------------------------------------
     // Test reading count
-    case 21:    // GPIO Count 0
+    case 21:    // GPIO Counter 0
       gpioCntReadData.gpioCntrNumb = 0;
       ret = meadow_gpio_counter_read_data(&gpioCntReadData);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 0 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 0 returned error:%d\n", ret);
         break;
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 0 - Changed by %ld since read, total:%ld\n",
+        "GPIO Counter 0 - Changed by %ld since read, total:%ld\n",
         gpioCntReadData.gpioCountChange,
-        gpioCntReadData.gpioCount) ;
+        gpioCntReadData.gpioCount);
       break;
 
-    case 22:    // GPIO Count 5
+    case 22:    // GPIO Counter 5
       gpioCntReadData.gpioCntrNumb = 5;
       ret = meadow_gpio_counter_read_data(&gpioCntReadData);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 5 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 5 returned error:%d\n", ret);
         break;
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 5 - Changed by %ld since read, total:%ld\n",
+        "GPIO Counter 5 - Changed by %ld since read, total:%ld\n",
         gpioCntReadData.gpioCountChange,
-        gpioCntReadData.gpioCount) ;
+        gpioCntReadData.gpioCount);
       break;
 
-    case 23:    // GPIO Count 7
+    case 23:    // GPIO Counter 7
       gpioCntReadData.gpioCntrNumb = 7;
       ret = meadow_gpio_counter_read_data(&gpioCntReadData);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 7 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 7 returned error:%d\n", ret);
         break;
       }
 
       syslog(LOG_MTEST,
-        "GPIO Count 7 - Changed by %ld since read total:%ld\n",
+        "GPIO Counter 7 - Changed by %ld since read total:%ld\n",
         gpioCntReadData.gpioCountChange,
-        gpioCntReadData.gpioCount) ;
+        gpioCntReadData.gpioCount);
       break;
 
     //-------------------------------------------------------------
     // Reset/change count, gpio counter 0
     case 31:
       syslog(LOG_MTEST,
-        "GPIO Count test-setting gpio counter 0 to 0 (%lu)\n",
+        "GPIO Counter test-setting gpio counter 0 to 0 (%lu)\n",
         userData);
       ret = meadow_gpio_counter_set_count(0, 0);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 0 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 0 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Count 0 set to 0\n");
+      syslog(LOG_MTEST, "GPIO Counter 0 set to 0\n");
       break;
 
     // Test Resetting count, gpio counter 5
     case 32:
-      syslog(LOG_MTEST, "GPIO Count test-setting gpio counter 5 to -999999 (%lu)\n",
+      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 5 to -999999 (%lu)\n",
         userData);
       ret = meadow_gpio_counter_set_count(5, -999999);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 5 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 5 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Count 5 set to -999999\n");
+      syslog(LOG_MTEST, "GPIO Counter 5 set to -999999\n");
       break;
 
     // Test Resetting count, gpio counter 7
     case 33:
-      syslog(LOG_MTEST, "GPIO Count test-setting gpio counter 7 to 0 (%lu)\n",
+      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 7 to 0 (%lu)\n",
         userData);
       ret = meadow_gpio_counter_set_count(7, 0);
       if(ret < 0)
       {
-        syslog(LOG_MTEST, "GPIO Count 7 returned error:%d\n", ret);
+        syslog(LOG_MTEST, "GPIO Counter 7 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Count 7 set to 0\n");
+      syslog(LOG_MTEST, "GPIO Counter 7 set to 0\n");
       break;
 
     //-------------------------------------------------------------
     // Function parameter null test
-    case 41:    // GPIO Count 0
+    case 41:    // GPIO Counter 0
       gpio_counter_config_test_null_parms(userData);
       break;
 
-    // //-------------------------------------------------------------
-    // // Concurrent remove-while-blocking-read race test (gpio counter 0). Starts
-    // // a background thread blocked in meadow_gpio_counter_read_data(),
-    // // then removes gpio counter 0 out from under it. Expect the background
-    // // thread's syslog line to report a clean -ENODATA, not a hang or crash.
-    // case 51:
-    //   gpio_counter_test_exercise_test(userData);
-    //   break;
-
     default:
-      syslog(LOG_MTEST, "GPIO Count test-received unknown userData of %lu\n",
+      syslog(LOG_MTEST, "GPIO Counter test-received unknown userData of %lu\n",
         userData);
       break;
   }
@@ -285,14 +254,14 @@ void gpio_counter_test_add_config(uint32_t testNumb,
     return;
   }
 
-  syslog(LOG_MTEST, "GPIO Count tests-configuring gpio counter %lu\n",
+  syslog(LOG_MTEST, "GPIO Counter tests-configuring gpio counter %lu\n",
     gpioCntrNumb);
 
   // For testing need to initialize the 2 GPIOs as inputs
   stm32_configgpio(gpioPin);
   
   // Populate configuration struct
-  cfg->gpioCntrNumb = gpioCntrNumb;   // GPIO Count number 0 - 7
+  cfg->gpioCntrNumb = gpioCntrNumb;   // GPIO Counter number 0 - 7
   cfg->isAddGpioCounter = true;         // New gpio counter
   cfg->gpioPortInfo = (gpioPin & 0xf0) >> 4;
   cfg->gpioPinInfo =  (gpioPin & 0x0f);
@@ -342,14 +311,14 @@ void gpio_counter_test_remove_config(uint32_t userData)
       gpioPin = GPIO_CNT_PIN_CCM_D05_PB4_INPUT;
       break;
   }
-  syslog(LOG_MTEST, "GPIO Count test-removing gpio counter %lu\n",
+  syslog(LOG_MTEST, "GPIO Counter test-removing gpio counter %lu\n",
     gpioCntrNumb);
 
   // Need to unconfigure the 2 GPIOs used as inputs
   stm32_unconfiggpio(gpioPin);
 
   // Setup to unconfigure as .Net will do
-  cfg->gpioCntrNumb = gpioCntrNumb;   // GPIO Count number 0 - 7
+  cfg->gpioCntrNumb = gpioCntrNumb;   // GPIO Counter number 0 - 7
   cfg->isAddGpioCounter = false;        // Remove gpio counter
 
   // Call meadow_rotary_encoder.c's configuration function, used by
@@ -376,7 +345,7 @@ void gpio_counter_config_test_null_parms(uint32_t userData)
   switch(userData)
   {
     // NULL config test, Should fail
-    case 41:    // GPIO Count 0
+    case 41:    // GPIO Counter 0
       // Call configuration function
       ret = meadow_gpio_counter_config(NULL);
       if(ret < 0)
@@ -387,49 +356,9 @@ void gpio_counter_config_test_null_parms(uint32_t userData)
       break;
   }
 
-  syslog(LOG_MTEST, "GPIO Count parameter test: gpio counter:%lu, ret:%d\n",
+  syslog(LOG_MTEST, "GPIO Counter parameter test: gpio counter:%lu, ret:%d\n",
     gpioCntrNumb, ret);
 }
 
-// //==================================================================
-// // Background thread for the concurrent remove/read race test. Blocks in
-// // meadow_gpio_counter_read_data() for gpio counter 0 and reports whether it
-// // came back with a clean -ENODATA (gpio counter removed while waiting) instead
-// // of hanging or crashing.
-// void *gpio_counter_test_blocking_read_kthread(int argc, char *argv[])
-// {
-//   gpioCntReadData_t gpioCntReadData;
-//   int ret;
-
-//   gpioCntReadData.gpioCntrNumb = 0;
-
-//   syslog(LOG_MTEST,
-//     "GPIO Count race test-background thread starting blocking read on gpio counter 0\n");
-
-//   ret = meadow_gpio_counter_read_data(&gpioCntReadData);
-
-//   if(ret == -ENODATA)
-//   {
-//     syslog(LOG_MTEST,
-//       "GPIO Count race test-PASS: background read returned -ENODATA (%d) "
-//       "after concurrent remove, no hang/crash\n", ret);
-//   }
-//   else if(ret < 0)
-//   {
-//     syslog(LOG_MTEST,
-//       "GPIO Count race test-background read returned unexpected error:%d\n",
-//       ret);
-//   }
-//   else
-//   {
-//     syslog(LOG_MTEST,
-//       "GPIO Count race test-background read returned data instead of "
-//       "being removed (change:%ld, total:%ld) - gpio counter may have actually "
-//       "rotated, re-run without touching it\n",
-//       gpioCntReadData.gpioCountChange, gpioCntReadData.gpioCount);
-//   }
-
-//   return NULL;
-// }
 
 #endif  // defined(CONFIG_GPIO_COUNTER_TESTS)

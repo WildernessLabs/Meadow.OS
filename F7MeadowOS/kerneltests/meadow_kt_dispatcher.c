@@ -110,6 +110,10 @@ static meadow_test_methods_t _kernelTests[] =
     { MEADOW_TEST_ROTARY_ENCODER, meadow_kt_rotary_encoder_tests },
 #endif
 
+#if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_GPIO_COUNTER, meadow_kt_gpio_counter_tests },
+#endif
+
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_FREQUENCY_MEASUREMENT, meadow_kt_measure_freq_tests },
 #endif

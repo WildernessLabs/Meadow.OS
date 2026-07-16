@@ -240,7 +240,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     return ret;
   }
 
-  // Adding new Counter
+  // Adding new GPIO Counter
 
   // Verify GPIO parameters are in range
   if(cfg->gpioPortInfo > MEADOW_GPIO_COUNTER_MAX_PORT ||
