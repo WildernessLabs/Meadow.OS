@@ -321,6 +321,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS
             BUILD_TESTS=true
             ;;
+            gpioCounter)
+            echo "GPIO Counter tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
+            BUILD_TESTS=true
+            ;;
             os)
             echo "Operating system tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS

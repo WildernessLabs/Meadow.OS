@@ -216,6 +216,11 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_TRAVERSE_KU                     22
 
 /**
+ * @brief GPIO counter test ID.
+ */
+#define MEADOW_TEST_GPIO_COUNTER                    23
+
+/**
  * @brief User space assert test ID.
  */
 #define MEADOW_TEST_USER_SPACE_ASSERT               900

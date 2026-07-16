@@ -467,6 +467,10 @@ SYSCALL_LOOKUP(meadow_kt_spi_dma_tests, 1)
 SYSCALL_LOOKUP(meadow_kt_rotary_encoder_tests, 1)
 #endif
 
+#if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+SYSCALL_LOOKUP(meadow_kt_gpio_counter_tests, 1)
+#endif
+
 #if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_assert_test, 1)
 #endif
