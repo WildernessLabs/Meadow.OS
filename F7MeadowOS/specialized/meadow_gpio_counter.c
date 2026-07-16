@@ -101,26 +101,10 @@ static int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// GPIO counter input ISR
-// Note: may need to insure that both 'A' and 'B' are changing every other
-// call, Possibly use int isrACount and isrBCount and if difference > than
-// some small number, warn user (e.g. "Only GPIO is changing").
+// GPIO counter input Interrupt Service Routine. Called by Nuttx
 static int meadow_gpio_count_isr(int irq, void *context, void *arg)
 {
-  // uint8_t pinNumb;
-  // uint32_t idrRegister;
   gpioCounterInfo_t *gpioCounterInfo = (gpioCounterInfo_t *)arg;
-
-  // uint32_t newCondBits = (gpioCounterInfo->prevCondBits) & 0x02;
-
-  // Find the current GPIO state 
-  // idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddress));
-  // pinNumb = gpioCounterInfo->gpioPinInfo & 0x0f;
-
-  // Could only count if state indicated true
-  // bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  // syslog(LOG_MDIAG, "gpioState:%d\n", gpioState);
-
   gpioCounterInfo->totalCount++;
   return OK;
 }
@@ -150,7 +134,6 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
 
 //========================================================================
 // Static - Remove an existing gpio counter entry
-// Caller will need to handle GPIO configuration as needed.
 int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 {
   int ret;
@@ -327,20 +310,19 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
   }
 
   gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
-
-  // Is requested slot valid?
-  if(gpioCounterInfo == NULL)
+  if(gpioCounterInfo == NULL)  // Is requested slot valid?
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is not configured\n",
               __FILE__, __LINE__, gpioCntrNumb);
     return -ENODATA;    // No Data
   }
 
+  // Set both the same
   irqstate_t flags = enter_critical_section();
   gpioCounterInfo->totalCount = newCount;
+  gpioCounterInfo->prevCount = newCount;
   leave_critical_section(flags);
 
-  kmm_free(gpioCounterInfo);
   return OK;
 }
 
@@ -349,6 +331,7 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
 int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
 {
   int ret = OK;
+  gpioCounterInfo_t *gpioCounterInfo;
 
   // Check for NULL
   if(gpioCntReadData == NULL)
@@ -367,10 +350,8 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
     return -ERANGE;    // Out of Range
   }
 
-  gpioCounterInfo_t *gpioCounterInfo = \
-    _allGpioCountList[gpioCntReadData->gpioCntrNumb];
-  // Is requested slot configured?
-  if(gpioCounterInfo == NULL)
+  gpioCounterInfo = _allGpioCountList[gpioCntReadData->gpioCntrNumb];
+  if(gpioCounterInfo == NULL)  // Is requested slot configured?
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is not configured\n",
               __FILE__, __LINE__, gpioCntReadData->gpioCntrNumb);

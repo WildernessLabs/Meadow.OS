@@ -149,7 +149,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Counter 0 - Changed by %ld since read, total:%ld\n",
+        "->GPIO Counter 0 - Changed by %ld since read, total:%ld\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -164,7 +164,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Counter 5 - Changed by %ld since read, total:%ld\n",
+        "->GPIO Counter 5 - Changed by %ld since read, total:%ld\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -179,7 +179,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "GPIO Counter 7 - Changed by %ld since read total:%ld\n",
+        "->GPIO Counter 7 - Changed by %ld since read total:%ld\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -188,41 +188,38 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
     // Reset/change count, gpio counter 0
     case 31:
       syslog(LOG_MTEST,
-        "GPIO Counter test-setting gpio counter 0 to 0 (%lu)\n",
-        userData);
+        "GPIO Counter test-setting gpio counter 0 to 0\n");
       ret = meadow_gpio_counter_set_count(0, 0);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "GPIO Counter 0 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Counter 0 set to 0\n");
+      syslog(LOG_MTEST, "->GPIO Counter 0 set to 0\n");
       break;
 
     // Test Resetting count, gpio counter 5
     case 32:
-      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 5 to -999999 (%lu)\n",
-        userData);
-      ret = meadow_gpio_counter_set_count(5, -999999);
+      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 5 to 0\n");
+      ret = meadow_gpio_counter_set_count(5, 0);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "GPIO Counter 5 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Counter 5 set to -999999\n");
+      syslog(LOG_MTEST, "->GPIO Counter 5 set to 0\n");
       break;
 
     // Test Resetting count, gpio counter 7
     case 33:
-      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 7 to 0 (%lu)\n",
-        userData);
+      syslog(LOG_MTEST, "GPIO Counter test-setting gpio counter 7 to 0\n");
       ret = meadow_gpio_counter_set_count(7, 0);
       if(ret < 0)
       {
         syslog(LOG_MTEST, "GPIO Counter 7 returned error:%d\n", ret);
         break;
       }
-      syslog(LOG_MTEST, "GPIO Counter 7 set to 0\n");
+      syslog(LOG_MTEST, "->GPIO Counter 7 set to 0\n");
       break;
 
     //-------------------------------------------------------------
@@ -311,6 +308,7 @@ void gpio_counter_test_remove_config(uint32_t userData)
       gpioPin = GPIO_CNT_PIN_CCM_D05_PB4_INPUT;
       break;
   }
+
   syslog(LOG_MTEST, "GPIO Counter test-removing gpio counter %lu\n",
     gpioCntrNumb);
 
@@ -359,6 +357,5 @@ void gpio_counter_config_test_null_parms(uint32_t userData)
   syslog(LOG_MTEST, "GPIO Counter parameter test: gpio counter:%lu, ret:%d\n",
     gpioCntrNumb, ret);
 }
-
 
 #endif  // defined(CONFIG_GPIO_COUNTER_TESTS)
