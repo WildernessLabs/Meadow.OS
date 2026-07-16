@@ -36,6 +36,8 @@
 
 #include <sys/types.h>
 
+#include <nuttx/kstring.h>
+
 #include <nuttx/kthread.h>
 #include <nuttx/wqueue.h>
 #include <meadow/hcom_shared_common.h>
@@ -485,6 +487,33 @@ static void espcp_send_logging_configuration(void)
 }
 
 /****************************************************************************
+ * Name: espcp_send_wifi_country_code
+ *
+ * Description:
+ *   Send the WiFi country to the ESP in case it needs changing.
+ *
+ * Input Parameters:
+ *   None.
+ *
+ ****************************************************************************/
+static void espcp_send_wifi_country_code(void)
+{
+    char *country_code = NULL;
+
+    meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    if (config != NULL)
+    {
+        country_code = kmm_strdup(config->country_code);
+    }
+    hcom_nx_config_unlock();
+    if (country_code != NULL)
+    {
+        hcom_nx_config_set_esp_string_value(espcp_configuration_items_country_code, country_code);
+        kmm_free(country_code);
+    }    
+}
+
+/****************************************************************************
  * Name: espcp_system_get_configuration_event_handler
  *
  * Description:
@@ -523,6 +552,7 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
             //  Send logging configuration to the ESP32.
             //
             espcp_send_logging_configuration();
+            espcp_send_wifi_country_code();
         }
     }
     espcp_delete_message_and_payload(message);
