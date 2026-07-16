@@ -182,7 +182,9 @@ $(MEADOW_OS_DIR)/kerneltests/meadow_rotary_encoder_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_os_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_measure_freq_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_kt_bluetooth_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/meadow_kt_traverse_ku_tests.c
+$(MEADOW_OS_DIR)/kerneltests/meadow_kt_traverse_ku_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_gpio_counter_tests.c
+
 
 #
 #	Add the Meadow logging system.

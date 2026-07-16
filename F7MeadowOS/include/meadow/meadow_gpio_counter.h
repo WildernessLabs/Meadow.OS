@@ -75,10 +75,9 @@ struct gpioCntConfigParms_s
 {
   uint32_t gpioCntrNumb;      // 0 - 7 to identify for collections
   bool isAddGpioCounter;      // true=add, false=remove
-  uint32_t gpioPortInfo;             // 0 - 10 (A-K)
-  uint32_t gpioPinInfo;              // 0 - 15
+  uint32_t gpioPortInfo;      // 0 - 10 (A-K)
+  uint32_t gpioPinInfo;       // 0 - 15
   uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
-  uint32_t delayMs;           // Requested delay in milliseconds
 };
 typedef struct gpioCntConfigParms_s gpioCntConfigParms_t;
 
@@ -110,7 +109,6 @@ struct gpioCounterInfo_s
   // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
   int32_t totalCount;         // Total of A and B, rising and/or falling edges
   int32_t prevCount;          // Count at last read, used to calc cnt change
-  uint32_t delayMs;           // Delay in milliseconds
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 

@@ -34,14 +34,6 @@
  ****************************************************************************/
 
 // This module contains code to handle gpio counters, at the native level.
-// There's a #define MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS which determines
-// how the code behaves. If the configured delay is at or below this level the
-// current gpio counter values are returned immediately, even if there's
-// been no change.
-// If the configured delay is above this threshold, the values will be
-// returned after the configured delay period, but only if there has been a
-// change in the gpio counter values. If no change, the caller could wait
-// forever.
 
 /****************************************************************************
  * Included Files
@@ -78,6 +70,7 @@
  ****************************************************************************/
 // All F7 possible input data register addresses, used for ISR access to read
 // GPIO state value.
+// I'm not sure we ned to read the GPIO state
 static uint32_t gpioCntInputDataReg[] = 
 {
   STM32_GPIOA_IDR,
@@ -108,73 +101,32 @@ static int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-//===========================================================================
 // GPIO counter input ISR
 // Note: may need to insure that both 'A' and 'B' are changing every other
 // call, Possibly use int isrACount and isrBCount and if difference > than
 // some small number, warn user (e.g. "Only GPIO is changing").
 static int meadow_gpio_count_isr(int irq, void *context, void *arg)
 {
-  uint8_t pinNumb;
-  uint32_t idrRegister;
+  // uint8_t pinNumb;
+  // uint32_t idrRegister;
   gpioCounterInfo_t *gpioCounterInfo = (gpioCounterInfo_t *)arg;
-   
-  // Save previous B state
+
   // uint32_t newCondBits = (gpioCounterInfo->prevCondBits) & 0x02;
 
   // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddress));
-  pinNumb = gpioCounterInfo->gpioPinInfo & 0x0f;
+  // idrRegister = *((uint32_t *)(gpioCounterInfo->idrAddress));
+  // pinNumb = gpioCounterInfo->gpioPinInfo & 0x0f;
 
-  bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  syslog(LOG_MDIAG, "gpioState:%d\n", gpioState);
+  // Could only count if state indicated true
+  // bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
+  // syslog(LOG_MDIAG, "gpioState:%d\n", gpioState);
 
   gpioCounterInfo->totalCount++;
   return OK;
 }
 
 //========================================================================
-// Static - Register the caller as an active reader of gpioCntrNumb's info,
-// guarding against a concurrent gpio_cnt_config_interrupt_remove(). The
-// lookup and the increment happen in the same critical section as
-// gpio_cnt_config_interrupt_remove()'s un-publish step, so the two can never
-// interleave: either this sees the still-valid pointer and remove() is then
-// blocked from freeing it, or remove() already ran and this sees NULL.
-// Returns NULL if the gpio counter is not configured; caller must not call
-// gpio_cnt_release() in that case.
-gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb)
-{
-  // irqstate_t flags = enter_critical_section();
-  gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
-  // if(gpioCounterInfo != NULL)
-  // {
-  //   gpioCounterInfo->activeReaders++;
-  // }
-  // leave_critical_section(flags);
-  return gpioCounterInfo;
-}
-
-//========================================================================
-// Static - Unregister as an active reader. If gpio_cnt_config_interrupt_remove()
-// ran while we were active it deferred the free() to whichever caller turns
-// out to be last out - do it here if that's us.
-void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo)
-{
-  // irqstate_t flags = enter_critical_section();
-  // gpioCounterInfo->activeReaders--;
-  // bool shouldFree = (gpioCounterInfo->activeReaders == 0) &&
-  //                    gpioCounterInfo->pendingFree;
-  // leave_critical_section(flags);
-
-  // if(shouldFree)
-  // {
-    kmm_free(gpioCounterInfo);
-  // }
-}
-
-//========================================================================
-// Static - Return data now. Caller must hold a reference via gpio_cnt_acquire().
+// Static - Return data now. 
 void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
           gpioCntReadData_t *gpioCntReadData)
 {
@@ -204,19 +156,12 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
   int ret;
   uint8_t gpioPinInfo;
   gpioCounterInfo_t *gpioCounterInfo;
-  bool shouldFreeNow = false;
 
-  // Un-publish the slot and snapshot whether a reader is currently active,
-  // atomically with gpio_cnt_acquire()'s lookup+increment (see there). This
-  // also guards against two concurrent removes of the same gpio counter both
-  // acting on it - the second one to run this critical section sees NULL.
   irqstate_t flags = enter_critical_section();
   gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
   if(gpioCounterInfo != NULL)
   {
     _allGpioCountList[gpioCntrNumb] = NULL;
-    // gpioCounterInfo->pendingFree = true;
-    // shouldFreeNow = (gpioCounterInfo->activeReaders == 0);
   }
   leave_critical_section(flags);
 
@@ -239,11 +184,7 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
               __FILE__, __LINE__, gpioCntrNumb, ret);
   }
 
-  if(shouldFreeNow)
-  {
-    kmm_free(gpioCounterInfo);
-  }
-
+  kmm_free(gpioCounterInfo);
   return ret;
 }
 
@@ -286,7 +227,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   }
   else
   {
-    // Remove, but is there something to remove?
+    // Asked to remove, but is there something to remove?
     if(gpioCounterInfo == NULL)
     {
       syslog(LOG_ERR, "%s@%d-GPIOCnt %ld already removed\n",
@@ -299,7 +240,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     return ret;
   }
 
-  // Adding new Rotary GPIOCnt
+  // Adding new Counter
 
   // Verify GPIO parameters are in range
   if(cfg->gpioPortInfo > MEADOW_GPIO_COUNTER_MAX_PORT ||
@@ -317,12 +258,11 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     return -ENOMEM;
   }
 
-  // Add allocated memory to correct free array slot
+  // Add allocated memory to the correct free array slot
   _allGpioCountList[cfg->gpioCntrNumb] = gpioCounterInfo;
 
   // Add configuration information to gpio counter information
   gpioCounterInfo->gpioCntrNumb = cfg->gpioCntrNumb;
-  gpioCounterInfo->delayMs = cfg->delayMs;
 
   // The GPIO input is used to configure and remove interrupt handling
   uint8_t pinDesignationA = cfg->gpioPortInfo << 4 | cfg->gpioPinInfo;
@@ -363,7 +303,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     1,                            // falling edge,
     0,                            // event
     meadow_gpio_count_isr,        // ISR
-    gpioCounterInfo);           // information address
+    gpioCounterInfo);             // information address
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error gpio counter:%ld Pin A interrupt, ret:%d\n",
@@ -386,7 +326,7 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
     return -ERANGE;    // Out of Range
   }
 
-  gpioCounterInfo_t *gpioCounterInfo = gpio_cnt_acquire(gpioCntrNumb);
+  gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
 
   // Is requested slot valid?
   if(gpioCounterInfo == NULL)
@@ -400,24 +340,14 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
   gpioCounterInfo->totalCount = newCount;
   leave_critical_section(flags);
 
-  gpio_cnt_release(gpioCounterInfo);
+  kmm_free(gpioCounterInfo);
   return OK;
 }
 
 //========================================================================
 // Public - Read gpio counter information.
-// 
-// A configured delay less or equal to MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS
-// gpio counter data is return immediately.
-// If the configured delay is greater than
-// MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS the calling thread waits for the
-// specified delay period. After that period, if the count has changed, the
-// calling thread returns with gpio counter data. If the count has not changed the
-// calling thread will continue to wait, only returning when there is a
-// change.
 int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
 {
-  gpioCounterInfo_t *gpioCounterInfo;
   int ret = OK;
 
   // Check for NULL
@@ -437,8 +367,8 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
     return -ERANGE;    // Out of Range
   }
 
-  gpioCounterInfo = gpio_cnt_acquire(gpioCntReadData->gpioCntrNumb);
-
+  gpioCounterInfo_t *gpioCounterInfo = \
+    _allGpioCountList[gpioCntReadData->gpioCntrNumb];
   // Is requested slot configured?
   if(gpioCounterInfo == NULL)
   {
@@ -447,29 +377,9 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
     return -ENODATA;    // No Data
   }
 
-  // Check if we should wait or immediately read the gpio counter's values
-  if(gpioCounterInfo->delayMs <= MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS)
-  {
-    // Get info and return since there's no delay requested.
-    meadow_gpio_counter_read_now(gpioCounterInfo, gpioCntReadData);
-  }
-  else
-  {
-    // This simple polling loop does the waiting. abs() is used so a change
-    // in either direction (CW or CCW) satisfies the wait.
-    while(abs(gpioCounterInfo->totalCount - gpioCounterInfo->prevCount) < \
-      MEADOW_GPIO_COUNT_EDGES_PER_COUNT)
-    {
-      usleep(gpioCounterInfo->delayMs * 1000);
-    }
+  // Get info and return
+  meadow_gpio_counter_read_now(gpioCounterInfo, gpioCntReadData);
 
-    if(ret == OK)
-    {
-      meadow_gpio_counter_read_now(gpioCounterInfo, gpioCntReadData);
-    }
-  }
-
-  gpio_cnt_release(gpioCounterInfo);
   return ret;
 }
 
