@@ -244,7 +244,7 @@ int hcom_nx_trace_msg_lazy_initialization()
       tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec);
 
     hcom_nx_uart_direct(0,
-      "\nMeadow.OS initialization began at % Meadow UTC time.\n",
+      "\nMeadow.OS initialization began at %s Meadow UTC time.\n",
       timeBuf);
 
     // Close uart file descriptor opened by hcom_nx_uart_direct call.
