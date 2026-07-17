@@ -239,11 +239,12 @@ int hcom_nx_trace_msg_lazy_initialization()
       return -EINVAL;
     }
 
-    snprintf_chk(timeBuf, 64, "%02d:%02d:%02d", tmNow.tm_hour, tmNow.tm_min,
-              tmNow.tm_sec);
+    snprintf_chk(timeBuf, 64, "%04d-%02d-%02d %02d:%02d:%02d",
+      tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
+      tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec);
 
     hcom_nx_uart_direct(0,
-      "\nMeadow.OS (Rebase) initialization has begun at %s UTC Meadow time.\n",
+      "\nMeadow.OS initialization began at % Meadow UTC time.\n",
       timeBuf);
 
     // Close uart file descriptor opened by hcom_nx_uart_direct call.
