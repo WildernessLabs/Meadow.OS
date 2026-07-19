@@ -13,3 +13,13 @@ For a project overview, architecture summary, build instructions, and hardware s
 | [Debugging.md](Debugging.md) | OpenOCD/GDB setup, flashing options, QEMU support, Python GDB extensions |
 | [Rebasing](Rebasing.md) | Rebasing with mainline NuttX and NuttX apps |
 | [Developer Tests](RunningDeveloperTests.md) | How to build and run developer (unit) tests |
+
+## In-Tree Documentation
+
+Some source directories have their own, more detailed documentation that isn't duplicated here:
+
+| Document | Contents |
+|----------|---------|
+| [`F7MeadowOS/espcp/readme.md`](../F7MeadowOS/espcp/readme.md) | ESP32 coprocessor overview |
+| [`F7MeadowOS/espcp/doc/coprocessor.md`](../F7MeadowOS/espcp/doc/coprocessor.md) | ESP32/STM32 wire protocol and GPIO handshake lines |
+| [`F7MeadowOS/espcp/doc/ImplementingPoll.md`](../F7MeadowOS/espcp/doc/ImplementingPoll.md) | Cross-layer `poll()` implementation (Mono/NuttX/usrsock/ESP32) |

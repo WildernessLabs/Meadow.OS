@@ -1,7 +1,9 @@
-# CLAUDE.md — Workspace Root
+# CLAUDE.md - Workspace Root
 
 This file provides workspace-level guidance. For NuttX-specific content (architecture, Kconfig,
-boot sequence, coding style, rebase state), see `nuttx/CLAUDE.md`.
+boot sequence, rebase state), see `Documentation/Rebasing.md` and the other files under
+`Documentation/` (there is no `nuttx/CLAUDE.md` - NuttX-specific guidance lives in `Documentation/`
+instead).
 
 ## What This Workspace Is
 
@@ -14,36 +16,43 @@ coprocessor driver, and a Mono/.NET runtime integration.
 
 ```
 Rebase/
-├── nuttx/              NuttX kernel source tree (see nuttx/CLAUDE.md)
-├── Meadow.OS/          Wilderness Labs kernel extensions, board support, and public APIs
-│   ├── include/meadow/ Public Meadow API headers
-│   ├── hcom_nx/        Host comm kernel side, OTA routing, QSPI/FS init
-│   ├── espcp/          ESP32 coprocessor driver (SPI data + UART control)
-│   ├── meadow_os/      Core OS init, fault handling, GPIO, battery-backed registers
-│   ├── pwrmgmt/        Stop-mode power management, LSI clock calibration
-│   ├── ethernet/       LAN8742A ethernet bring-up and monitoring
-│   ├── kerneltests/    On-target test suite
-│   └── misc/           Shared logging, ADC, watchdog, ISO8601, circular buffer
-├── apps/               NuttX applications (hcom lives in apps/system/hcom/)
-├── bootloader/         STM32 HAL bootloader (Meadow.BL) — CRC verify, OTA, rollback
-├── esp32/              ESP32 coprocessor firmware (ESP-IDF project)
-├── mbedtls/            mbedTLS — TLS support for the coprocessor protocol
-├── gdb/                GDB init scripts and NuttX-aware Python extensions
-├── scripts/            Shared shell helpers (common_methods.sh, debug_methods.sh, etc.)
-├── Documentation/      Detailed design docs (see below)
-├── build.sh            Top-level STM32 build script
-├── build-esp32.sh      ESP32 coprocessor build script
-├── build-bootloader.sh Bootloader build (called by build.sh automatically)
-├── build-mbedtls.sh    mbedTLS build (called by build.sh automatically)
-├── flash.sh            Flash STM32 via OpenOCD or DFU
-├── debug.sh            Launch OpenOCD GDB server and/or arm-none-eabi-gdb
-├── debug.cfg           OpenOCD configuration for interactive debugging
-└── flash.cfg           OpenOCD configuration for flashing
++-- nuttx/              NuttX kernel source tree
++-- F7MeadowOS/         Wilderness Labs kernel extensions, board support, and public APIs
+|   |                   (symlinked into the board tree as .../src/F7MeadowOSLink)
+|   +-- include/meadow/ Public Meadow API headers (~35 headers, shared with apps/system/hcom)
+|   +-- hcom_nx/        Host comm kernel side, OTA routing, QSPI/FS init
+|   +-- espcp/          ESP32 coprocessor driver (SPI data + UART control); see espcp/readme.md
+|   +-- meadow_os/      Core OS init, fault handling, GPIO, battery-backed registers
+|   +-- pwrmgmt/        Stop-mode power management, LSI clock calibration
+|   +-- ethernet/       LAN8742A ethernet bring-up and monitoring
+|   +-- timers/         Timer capture, PWM, frequency measurement
+|   +-- specialized/    Rotary encoder and frequency-measurement drivers
+|   +-- ntpclient/      Wilderness Labs fork of the NuttX ntpclient app
+|   +-- meadow_cloud/   Meadow Cloud key provisioning
+|   +-- kerneltests/    On-target test suite
+|   +-- misc/           Shared logging, ADC, watchdog, ISO8601, circular buffer
+|   +-- libyaml/        Vendored third-party YAML parser - do not modify
+|   +-- libcyaml/       Vendored third-party schema-driven YAML wrapper (used by hcom_nx_config_manager) - do not modify
++-- apps/               NuttX applications (hcom lives in apps/system/hcom/)
++-- bootloader/         STM32 HAL bootloader (Meadow.BL) - CRC verify, OTA, rollback
++-- esp32/              ESP32 coprocessor firmware (ESP-IDF project)
++-- mbedtls/            mbedTLS - TLS support for the coprocessor protocol
++-- gdb/                GDB init scripts and NuttX-aware Python extensions
++-- scripts/            Shared shell helpers (common_methods.sh, debug_methods.sh, etc.)
++-- Documentation/      Detailed design docs (see below)
++-- build.sh            Top-level STM32 build script
++-- build-esp32.sh      ESP32 coprocessor build script
++-- build-bootloader.sh Bootloader build (called by build.sh automatically)
++-- build-mbedtls.sh    mbedTLS build (called by build.sh automatically)
++-- flash.sh            Flash STM32 via OpenOCD or DFU
++-- debug.sh            Launch OpenOCD GDB server and/or arm-none-eabi-gdb
++-- debug.cfg           OpenOCD configuration for interactive debugging
++-- flash.cfg           OpenOCD configuration for flashing
 ```
 
-> **Symlink note:** `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/Meadow.OS` is a symlink
-> to `../../../../../../Meadow.OS` (i.e. `Meadow.OS/` at workspace root). Edit `Meadow.OS/`
-> directly — never via the symlink path.
+> **Symlink note:** `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/F7MeadowOSLink` is a
+> symlink to `../../../../../../F7MeadowOS` (i.e. `F7MeadowOS/` at workspace root). Edit
+> `F7MeadowOS/` directly - never via the symlink path.
 
 ## Environment Setup
 
@@ -68,7 +77,7 @@ All commands run from the **workspace root**, not from `nuttx/`:
 # Standard build (auto-configures on first run)
 ./build.sh
 
-# Iterative rebuild — cleans only Wilderness Labs and apps objects (fast)
+# Iterative rebuild - cleans only Wilderness Labs and apps objects (fast)
 ./build.sh --wlclean
 
 # Full clean rebuild
@@ -80,7 +89,7 @@ All commands run from the **workspace root**, not from `nuttx/`:
 # Build with unit tests enabled (comma-separated)
 ./build.sh --unittests=esp,gpio,adc
 
-# Build with stack dumps to USART1/COM1 (disables RAMLOG — hard fault debugging)
+# Build with stack dumps to USART1/COM1 (disables RAMLOG - hard fault debugging)
 ./build.sh --esd
 
 # Build with debug symbols
@@ -100,6 +109,9 @@ All commands run from the **workspace root**, not from `nuttx/`:
 | `nuttx/Meadow.OS.Update.bin` | 1792 KB kernel+user image with CRC (used for OTA) |
 | `nuttx/Meadow.OS.bin` | Bootloader + OS combined binary (flash from `0x08000000`) |
 | `nuttx/Meadow.OS.Runtime.bin` | Mono runtime slice, written separately via Meadow CLI |
+
+> These `Meadow.OS*` filenames are build-artifact names only - the source directory they are
+> built from is `F7MeadowOS/`, not `Meadow.OS/`.
 
 ### NuttX make targets (run from `nuttx/`)
 
@@ -157,7 +169,7 @@ and verifies after write.
 ## Debug Workflow
 
 ```bash
-# Start OpenOCD GDB server (port 4242) — leave running in a terminal
+# Start OpenOCD GDB server (port 4242) - leave running in a terminal
 ./debug.sh --server
 
 # In a second terminal: attach GDB to the running target
@@ -205,6 +217,14 @@ NuttX enforces a strict coding style. Check all files you touch before committin
 ```
 
 Lint failures are caught by CI (`lint/*` step). Fix pre-existing issues in every file you touch.
+
+## Character Encoding
+
+All files in this repository - source code, scripts, and documentation alike - must use ASCII
+characters only (code points 0x00-0x7F). Do not introduce Unicode box-drawing characters, arrows,
+em/en dashes, smart quotes, or any other non-ASCII symbol. Use plain ASCII equivalents instead:
+`->` for arrows, `--` for dashes, and `+`/`-`/`|` for diagram borders and tree structures. This
+applies to every file you create or edit, including ASCII-art diagrams in Markdown code blocks.
 
 ## Documentation
 
