@@ -5,6 +5,9 @@
 - We will be disappointed with any mistakes or deviations from the requested action.
 - We will be pleased with clear and concise feedback that follows the programming conventions outlined in this document.
 - You are speaking to an experienced Software Engineer and should phrase your responses accordingly.
+- All files must use ASCII characters only (code points 0x00-0x7F). Do not introduce Unicode
+  box-drawing characters, arrows, em/en dashes, or smart quotes into code, comments, or docs. Use
+  `->` for arrows, `--` for dashes, and `+`/`-`/`|` for diagrams.
 
 ## Project Description
 
@@ -50,29 +53,29 @@ OpenOCD + `gdb-multiarch`. The `.gdbinit` in `gdb/` loads all three ELF symbol f
 
 ### Bootloader
 
-- Source: `bootloader/` — STM32CubeIDE / HAL project
+- Source: `bootloader/` - STM32CubeIDE / HAL project
 
 ### NuttX
 
-- `nuttx/` — NuttX RTOS core
-- `apps/` — User-space NuttX applications
-- `Meadow.OS/` — Meadow-specific kernel + user code; `include/meadow/` is the
+- `nuttx/` - NuttX RTOS core
+- `apps/` - User-space NuttX applications
+- `Meadow.OS/` - Meadow-specific kernel + user code; `include/meadow/` is the
   canonical header location
-- `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/` — board BSP and linker scripts
+- `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/` - board BSP and linker scripts
 
 The RTOS starts `hcom` as the initial user-space application.
 
 ### ESP32 Coprocessor
 
-- `esp32/` — ESP-IDF project; `main/AppMain.cpp` is the entry point;
-  `components/F7Services/` implements the STM32↔ESP32 transport layer
+- `esp32/` - ESP-IDF project; `main/AppMain.cpp` is the entry point;
+  `components/F7Services/` implements the STM32<->ESP32 transport layer
 
 ## Resources
 
-- `build.sh` — Builds all components and produces `nuttx/Meadow.OS.bin`.
+- `build.sh` - Builds all components and produces `nuttx/Meadow.OS.bin`.
   Key flags: `--configure`, `--clean`, `--debug`, `--unittests`, `--verbose`.
-- `flash.sh` — Writes `Meadow.OS.bin` to STM32 internal flash via OpenOCD.
-- `debug.sh --server` — Starts OpenOCD. `debug.sh` (no args) launches GDB.
-- `gdb/.gdbinit` — Macros and symbol loading for multi-image debugging.
+- `flash.sh` - Writes `Meadow.OS.bin` to STM32 internal flash via OpenOCD.
+- `debug.sh --server` - Starts OpenOCD. `debug.sh` (no args) launches GDB.
+- `gdb/.gdbinit` - Macros and symbol loading for multi-image debugging.
 - Linker scripts: `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/`
-- `.vscode/launch.json` — VS Code cortex-debug launch (ST-Link, loads all ELFs).
+- `.vscode/launch.json` - VS Code cortex-debug launch (ST-Link, loads all ELFs).

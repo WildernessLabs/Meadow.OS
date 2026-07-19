@@ -2,7 +2,10 @@
 
 ## Overview
 
-The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-space code. All Wilderness Labs kernel extensions are compiled into the kernel ELF (`nuttx.bin`) and reside in `Meadow.OS` alongside the NuttX board support package at `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow`.
+The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-space code. All Wilderness Labs kernel extensions are compiled into the kernel ELF (`nuttx.bin`) and reside in `F7MeadowOS` (symlinked into the board tree as `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/F7MeadowOSLink`), alongside the NuttX board support package at `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow`.
+
+> **Naming note:** the source directory is `F7MeadowOS`. Build *output* filenames such as
+> `Meadow.OS.bin` and `Meadow.OS.Update.bin` are unrelated artifact names - don't confuse the two.
 
 ## Board Support Package
 
@@ -20,18 +23,17 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 | `stm32_idle.c` | Idle thread hook (power management integration) |
 | `stm32_autoleds.c` | Tri-colour LED (PA1=Green, PA0=Blue, PA2=Red) |
 | `stm32_reset.c` | Board reset implementation |
-| `meadow_rotary_encoder.c` | Rotary encoder driver |
 
 ## Kernel Startup Flow
 
 ```
 Reset
-  └─► stm32_boot()            — clocks, early SRAM init
-        └─► board_late_initialize()
-              └─► stm32_bringup()   — procfs, PWM
-                    └─► stm32_appinitialize()
-                          └─► hcom_nx_setup_mgr()   — Meadow kernel init
-                                └─► task_create("hcom_main")  — launch user app
+  +-> stm32_boot()            - clocks, early SRAM init
+        +-> board_late_initialize()
+              +-> stm32_bringup()   - procfs, PWM
+                    +-> stm32_appinitialize()
+                          +-> hcom_nx_setup_mgr()   - Meadow kernel init
+                                +-> task_create("hcom_main")  - launch user app
 ```
 
 `hcom_nx_setup_mgr()` is the main Wilderness Labs kernel entry point. It:
@@ -42,9 +44,9 @@ Reset
 4. Registers the Universal Platform Driver (`hcom_nx_upd`) syscall endpoint
 5. Starts the ESP32 coprocessor threads (`espcp`)
 
-## `hcom_nx` — Kernel-Side Host Communication
+## `hcom_nx` - Kernel-Side Host Communication
 
-Source: `Meadow.OS/hcom_nx`
+Source: `F7MeadowOS/hcom_nx`
 
 ### Config Manager (`hcom_nx_config_manager.c`)
 
@@ -79,13 +81,23 @@ Handles the kernel-side of OS update requests received from user space. Writes O
 
 Provides safe read/write access to the STM32 RTC `BKxxR` registers for inter-boot persistent state. See [Memory.md](Memory.md) for the register map.
 
-## `meadow_os` — Core OS Services
+### Subdirectories
 
-Source: `Meadow.OS/meadow_os`
+`hcom_nx` also contains three subdirectories not covered by the flat-file list above:
+
+| Directory | Purpose |
+|-----------|---------|
+| `create_fs/` | Creates and formats the LittleFS QSPI filesystem partitions at first boot |
+| `diag/` | Kernel-side trace/traverse diagnostics support |
+| `tests/` | QSPI flash test cases |
+
+## `meadow_os` - Core OS Services
+
+Source: `F7MeadowOS/meadow_os`
 
 | File | Key Functionality |
 |------|-----------------|
-| `meadow_os.c` | `meadow_os_reset_board()` — issues a controlled board reset with status code |
+| `meadow_os.c` | `meadow_os_reset_board()` - issues a controlled board reset with status code |
 | `meadow_os_fault_handling.c` | Hard fault and UsageFault handlers; stores fault info to battery-backed registers before reset |
 | `meadow_os_battery_backed_domain.c` | Enables RTC backup domain; reads/writes reset reason and control flags |
 | `meadow_os_config.c` | Persistent OS configuration (stored to QSPI) |
@@ -97,9 +109,9 @@ Source: `Meadow.OS/meadow_os`
 | `meadow-gpio.c` | GPIO configuration, Meadow-specific pin multiplexing |
 | `meadow_interrupt.c` | External interrupt routing and management |
 
-## `espcp` — ESP32 Coprocessor
+## `espcp` - ESP32 Coprocessor
 
-Source: `Meadow.OS/espcp`
+Source: `F7MeadowOS/espcp`
 
 The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it over a dedicated UART and SPI interface using a custom binary protocol.
 
@@ -107,20 +119,20 @@ The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it
 
 ```
 NuttX usrsock socket API
-        │
-        ▼
-  espcp_usrsock_sockif.c   — NuttX usrsock interface implementation
-        │
-        ▼
-  espcp_message_dispatcher.c  — routes messages to handlers
-        │
-        ▼
-  espcp_queue.c            — thread-safe message queues
-        │
-        ▼
-  espcp_thread.c           — UART reader/writer threads
-        │
-        ▼
+        |
+        v
+  espcp_usrsock_sockif.c   - NuttX usrsock interface implementation
+        |
+        v
+  espcp_message_dispatcher.c  - routes messages to handlers
+        |
+        v
+  espcp_queue.c            - thread-safe message queues
+        |
+        v
+  espcp_thread.c           - UART reader/writer threads
+        |
+        v
   [ESP32 SPI]
 ```
 
@@ -130,16 +142,28 @@ Key modules:
 |------|---------|
 | `espcp_coprocessor.c` | Initialisation, start/stop of the coprocessor subsystem |
 | `espcp_message.c` | ESPCP message structures |
+| `espcp_message_dispatcher.c` | Routes decoded messages to their handlers |
+| `espcp_queue.c` | Thread-safe message queues between reader/writer threads |
+| `espcp_thread.c` | UART reader/writer threads |
+| `espcp_usrsock_sockif.c` | Implements the NuttX `usrsock` socket interface over ESPCP |
+| `espcp_wifi.c` | WiFi-specific commands (connect, scan, credentials) |
 | `espcp_encoders.c` | Protocol field encoders |
 | `espcp_system.c` | ESP32 system-level commands (reset, version) |
 | `espcp_file_system.c` | File operations forwarded to ESP32 flash |
 | `espcp_core_dump.c` | Captures ESP32 core dumps on crash |
 | `espcp_uart_monitor.c` | Monitors UART for control messages from the EP32 to the STM32 |
 | `espcp_event_handlers.c` | Handles asynchronous events from ESP32 |
+| `espcp_common.c`, `generic_list.c` | Shared helpers and a generic linked-list utility |
 
-## `ethernet` — Wired Ethernet
+This table covers the most-referenced modules; `espcp` has 20+ source files in total. For the
+full wire protocol, GPIO handshake lines, firmware upload procedure, and the cross-layer `poll()`
+implementation (Mono/NuttX/usrsock/ESP32), see `F7MeadowOS/espcp/readme.md` and the docs under
+`F7MeadowOS/espcp/doc/` (`coprocessor.md`, `ImplementingPoll.md`) - these are more detailed than
+this summary and are not duplicated here.
 
-Source: `Meadow.OS/ethernet`
+## `ethernet` - Wired Ethernet
+
+Source: `F7MeadowOS/ethernet`
 
 Ethernet is supported on hardware versions that include the LAN8742A PHY (`CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD=y`, `CONFIG_ETH0_PHY_LAN8742A=y`). The hardware version is detected at runtime by `meadow_hw_version.c`.
 
@@ -149,11 +173,11 @@ Ethernet is supported on hardware versions that include the LAN8742A PHY (`CONFI
 | `meadow_ethnet_connect.c` | Manages link connect/disconnect |
 | `meadow_ethnet_dhcp.c` | DHCP client lease management |
 | `meadow_ethnet_monitor.c` | Polls link state and reconnects on drop |
-| `meadow_ethnet_ping.c` | Connectivity verification via ICMP echo |
+| `meadow_ethnet_utils.c` | Ethernet helper/utility routines |
 
-## `pwrmgmt` — Power Management
+## `pwrmgmt` - Power Management
 
-Source: `Meadow.OS/pwrmgmt`
+Source: `F7MeadowOS/pwrmgmt`
 
 A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use the NuttX PM framework. The idle thread hook (`stm32_idle.c`) calls into this subsystem when the scheduler determines the system can sleep.
 
@@ -168,17 +192,75 @@ A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use t
 | `pwrmgmt_time_support.c` | Time conversion utilities for wake-up calculations |
 | `pwrmgmt_misc.c` | Miscellaneous helpers |
 
-## `kerneltests` — In-Kernel Tests
+## `timers` - Timer Capture and Measurement
 
-Source: `Meadow.OS/kerneltests`
+Source: `F7MeadowOS/timers`
+
+Hardware timer-capture subsystem: PWM generation, pulse-width and frequency/duty-cycle
+measurement, RC servo decoding, CPU load measurement, and LSI clock frequency measurement.
+
+| File | Purpose |
+|------|---------|
+| `timer_manager.c` | Central timer-capture peripheral allocation and management |
+| `pulse_width.c` | Pulse-width capture |
+| `freq_duty.c` | Frequency/duty-cycle measurement |
+| `rc_servo_decode.c` | RC servo PWM signal decoding |
+| `cpu_measure.c` | CPU load measurement |
+| `lsi_clk_freq_measure.c` | Measures the LSI RC oscillator frequency (used by `pwrmgmt`) |
+
+## `specialized` - Specialized Peripheral Drivers
+
+Source: `F7MeadowOS/specialized`
+
+| File | Purpose |
+|------|---------|
+| `meadow_rotary_encoder.c` | Rotary encoder driver |
+| `meadow_measure_freq.c` | General-purpose frequency measurement |
+
+## `ntpclient` - NTP Client
+
+Source: `F7MeadowOS/ntpclient`
+
+A Wilderness Labs fork of the stock NuttX `apps/netutils/ntpclient` app (`meadow_ntpclient.c`),
+with its own `Kconfig`. Provides network time synchronisation.
+
+## `meadow_cloud` - Meadow Cloud Provisioning
+
+Source: `F7MeadowOS/meadow_cloud`
+
+Single-file module (`meadow_cloud.c`) handling provisioning and storage of Meadow Cloud
+public/private key files via the ESP32 coprocessor's file system.
+
+## `libyaml` / `libcyaml` - Vendored YAML Parsing
+
+Source: `F7MeadowOS/libyaml`, `F7MeadowOS/libcyaml`
+
+Vendored third-party libraries - **do not modify**. `libyaml` is the upstream YAML parser;
+`libcyaml` is a schema-driven wrapper around it (ISC license, from the netsurf-browser.org
+project). `hcom_nx_config_manager.c` calls `libcyaml` (`cyaml_load_file`, `cyaml_free`) directly,
+not `libyaml`.
+
+## `kerneltests` - In-Kernel Tests
+
+Source: `F7MeadowOS/kerneltests`
 
 Optional in-kernel test suite compiled into the kernel build when specific kconfig options are enabled (e.g., `CONFIG_MEADOW_OS_TESTS`, `CONFIG_GPIO_TESTS`). Tests are triggered by unit test flags set in `build.sh` via `kconfig-tweak`.
 
-## `misc` — Shared Kernel Utilities
+## `misc` - Shared Kernel Utilities
 
-Source: `Meadow.OS/misc`
+Source: `F7MeadowOS/misc`
 
-Shared utilities used across kernel modules including structured logging (`meadow_logging`), timer helpers, and specialised hardware access routines.
+Shared utilities used across kernel modules including structured logging (`meadow_logging`) and
+specialised hardware access routines. (Timer helpers live in the separate `timers/` module above,
+not here.)
+
+## `include` - Public Meadow API Headers
+
+Source: `F7MeadowOS/include/meadow`
+
+~35 public headers defining the API surface shared between kernel modules and, for the protocol
+and shared-data-structure headers, with the `hcom` user-space application. See
+[Userspace.md](Userspace.md) for the subset shared with user space.
 
 ## Linker Scripts
 

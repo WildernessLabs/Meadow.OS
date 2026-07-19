@@ -16,31 +16,31 @@ The combined `Meadow.OS.bin` image is assembled by the build script using `srec_
 ## Component Diagram
 
 ```
- ┌─────────────────────────────────────────────────────────────────────┐
- │  Internal Flash (2 MB)                                              │
- │                                                                     │
- │  0x08000000  ┌──────────────────────┐  Bootloader (Meadow.BL)       │
- │              │     Meadow.BL        │  256 KB                       │
- │  0x08040000  ├──────────────────────┤  NuttX kernel image           │
- │              │   nuttx (kernel)     │  kflash — up to 1 MB          │
- │  0x08100000  ├──────────────────────┤  NuttX user image             │
- │              │  nuttx_user (hcom)   │  uflash — up to 1 MB          │
- │  0x08200000  └──────────────────────┘                               │
- └─────────────────────────────────────────────────────────────────────┘
+ +---------------------------------------------------------------------+
+ |  Internal Flash (2 MB)                                              |
+ |                                                                     |
+ |  0x08000000  +----------------------+  Bootloader (Meadow.BL)       |
+ |              |     Meadow.BL        |  256 KB                       |
+ |  0x08040000  +----------------------+  NuttX kernel image           |
+ |              |   nuttx (kernel)     |  kflash - up to 1 MB          |
+ |  0x08100000  +----------------------+  NuttX user image             |
+ |              |  nuttx_user (hcom)   |  uflash - up to 1 MB          |
+ |  0x08200000  +----------------------+                               |
+ +---------------------------------------------------------------------+
 
- ┌─────────────────────────────────────────────────────────────────────┐
- │  SRAM                                                               │
- │  0x20000000  DTCM (128 KB)   — stack, fast kernel data              │
- │  0x20020000  ksram (128 KB)  — kernel .data / .bss / IDLE stack     │
- │  0x20040000  usram (240 KB)  — user .data / .bss / user heap        │
- │  0x2007c000  SRAM2 (16 KB)   — reserved                             │
- └─────────────────────────────────────────────────────────────────────┘
+ +---------------------------------------------------------------------+
+ |  SRAM                                                               |
+ |  0x20000000  DTCM (128 KB)   - stack, fast kernel data              |
+ |  0x20020000  ksram (128 KB)  - kernel .data / .bss / IDLE stack     |
+ |  0x20040000  usram (240 KB)  - user .data / .bss / user heap        |
+ |  0x2007c000  SRAM2 (16 KB)   - reserved                             |
+ +---------------------------------------------------------------------+
 
- ┌─────────────────────────────────────────────────────────────────────┐
- │  External Memory                                                    │
- │  0xC0000000  SDRAM (32 MB)   — heap2 (3 MB exposed to NuttX)        │
- │  QSPI        32 MB Flash     — secondary OS image / FS / runtime    │
- └─────────────────────────────────────────────────────────────────────┘
+ +---------------------------------------------------------------------+
+ |  External Memory                                                    |
+ |  0xC0000000  SDRAM (32 MB)   - heap2 (3 MB exposed to NuttX)        |
+ |  QSPI        32 MB Flash     - secondary OS image / FS / runtime    |
+ +---------------------------------------------------------------------+
 ```
 
 ## Bootloader
@@ -51,24 +51,24 @@ The bootloader (`bootloader`) is an STM32 HAL application built with a makefile.
 
 ```
 Power on / Reset
-      │
-      ▼
+      |
+      v
   HAL_Init(), SystemClock_Config()
-      │
-      ▼
+      |
+      v
   Init SDRAM (FMC), QSPI flash
-      │
-      ▼
+      |
+      v
   Detect board version (JEDEC ID)
-      │
-      ▼
+      |
+      v
   CheckPreviousOperationFailure()
-      │
-      ├── OTA update pending?  ──► PerformUpdate()
-      ├── Rollback pending?    ──► PerformRollback()
-      └── No action            ──► BootMeadowOS()
-                                        │
-                                        ▼
+      |
+      +-- OTA update pending?  --> PerformUpdate()
+      +-- Rollback pending?    --> PerformRollback()
+      +-- No action            --> BootMeadowOS()
+                                        |
+                                        v
                                Jump to 0x08040000
 ```
 
@@ -117,11 +117,15 @@ The NuttX kernel is configured with the `meadow_os` defconfig for the `stm32f777
 - WiFi via ESP32 usrsock driver
 - Ethernet via LAN8742A PHY (`CONFIG_ETH0_PHY_LAN8742A=y`)
 
-## Wilderness Labs Kernel Extensions (Meadow.OS/)
+## Wilderness Labs Kernel Extensions (F7MeadowOS/)
 
-All custom kernel-mode code lives in the `Meadow.OS` directory and is compiled as part of the kernel pass. It is structured as follows:
+All custom kernel-mode code lives in the `F7MeadowOS` directory (symlinked into the board tree
+as `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/F7MeadowOSLink`) and is compiled as part of
+the kernel pass. See [Kernelspace.md](Kernelspace.md) for the full module list, including vendored
+third-party libraries (`libyaml`, `libcyaml`) and modules not covered below (`timers`,
+`specialized`, `ntpclient`, `meadow_cloud`). It is structured as follows:
 
-### `hcom_nx` — Kernel-Side Host Communication
+### `hcom_nx` - Kernel-Side Host Communication
 
 The kernel half of the host communication system. Key modules:
 
@@ -129,11 +133,11 @@ The kernel half of the host communication system. Key modules:
 |------|---------------|
 | `hcom_nx_startup_mgr.c` | Called during NuttX startup; initialises hardware, config, networking |
 | `hcom_nx_config_manager.c` | Parses YAML config for system configuration |
-| `hcom_nx_upd.c` | Universal Platform Driver — provides the kernel-side syscall endpoint for user space code (HCOM / .NET applications) |
+| `hcom_nx_upd.c` | Universal Platform Driver - provides the kernel-side syscall endpoint for user space code (HCOM / .NET applications) |
 | `hcom_nx_bbreg_access.c` | Read/write RTC battery-backed registers |
 | `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and the kernel |
 
-### `meadow_os` — Core OS Services
+### `meadow_os` - Core OS Services
 
 | File | Responsibility |
 |------|---------------|
@@ -143,7 +147,7 @@ The kernel half of the host communication system. Key modules:
 | `meadow_os_config.c` | OS-level configuration persistence |
 | `meadow_os_info.c` | Board/version information |
 
-### `espcp` — ESP32 Coprocessor
+### `espcp` - ESP32 Coprocessor
 
 Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART and SPI. Exposes network connectivity to NuttX via the `usrsock` interface.
 

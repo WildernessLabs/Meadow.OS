@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Meadow-ESP32** is ESP32 firmware (C++20/C11, ESP-IDF 5.3+, FreeRTOS) that provides WiFi, Bluetooth, POSIX networking, and file storage services to an external STM32 microcontroller via SPI and UART.
 
 - **Target**: ESP32-PICO-D4
-- **STM32→ESP32**: UART for control/state, SPI for request/response
+- **STM32->ESP32**: UART for control/state, SPI for request/response
 - **Default branch**: `develop`
 
 ## Build Commands
@@ -56,23 +56,23 @@ idf.py monitor                  # Interactive menu selects test
 
 ```
 STM32 (SPI request)
-  → SpiTransportProvider        # Hardware SPI layer
-  → MessageDispatcher           # Routes by message type (singleton)
-      ├─ WiFiRequestHandler      # WiFi + POSIX socket requests
-      ├─ BluetoothRequestHandler # BLE requests
-      └─ SystemRequestHandler    # FileSystem, NVS, system state
-  → STM32 (SPI response)
+  -> SpiTransportProvider        # Hardware SPI layer
+  -> MessageDispatcher           # Routes by message type (singleton)
+      +- WiFiRequestHandler      # WiFi + POSIX socket requests
+      +- BluetoothRequestHandler # BLE requests
+      +- SystemRequestHandler    # FileSystem, NVS, system state
+  -> STM32 (SPI response)
 ```
 
 Communication protocol details: `Documentation/CommunicationsOverview.md`, `Documentation/SPIProtocolOverview.md`, `Documentation/MessageFormat.md`.
 
 ### Threading Model
 
-1. **Main Task** — entry point, creates handlers, then self-deletes
-2. **SPI Task** — receives/transmits SPI packets (stack: 8192 B)
-3. **Dispatcher Task** — routes messages to handlers
-4. **Handler Tasks** — WiFi, Bluetooth, System each run their own task
-5. **ThreadPool** — additional workers for parallel processing
+1. **Main Task** - entry point, creates handlers, then self-deletes
+2. **SPI Task** - receives/transmits SPI packets (stack: 8192 B)
+3. **Dispatcher Task** - routes messages to handlers
+4. **Handler Tasks** - WiFi, Bluetooth, System each run their own task
+5. **ThreadPool** - additional workers for parallel processing
 
 ### Component Layout
 
@@ -104,6 +104,10 @@ Top-level files: `Logging.*`, `Mapping.*`, `Globals.hpp`, `Utils.*`, `Progressiv
 
 **Formatting**: Allman style, 4-space indentation, rules in `.clang-format`.
 
+**Character encoding**: ASCII only (code points 0x00-0x7F) in every file you create or edit,
+including code, comments, and Markdown docs. No Unicode box-drawing characters, arrows, em/en
+dashes, or smart quotes. Use `->` for arrows, `--` for dashes, and `+`/`-`/`|` for diagrams.
+
 **Spelling**: UK English throughout (`ise` not `ize`).
 
 **Docstrings**: Required on all namespaces, classes, functions, and variables.
@@ -134,10 +138,10 @@ Top-level files: `Logging.*`, `Mapping.*`, `Globals.hpp`, `Utils.*`, `Progressiv
 ## Documentation
 
 `Documentation/` contains detailed guides:
-- `Building.md` — build options
-- `Testing.md` — test setup
-- `CommunicationsOverview.md` — STM32↔ESP32 protocol
-- `SPIProtocolOverview.md` — SPI low-level details
-- `MessageFormat.md` — message structure
-- `Diagnostics.md` — debugging techniques
-- `Tools.md` — VS Code, Docker, OpenOCD, GDB setup
+- `Building.md` - build options
+- `Testing.md` - test setup
+- `CommunicationsOverview.md` - STM32<->ESP32 protocol
+- `SPIProtocolOverview.md` - SPI low-level details
+- `MessageFormat.md` - message structure
+- `Diagnostics.md` - debugging techniques
+- `Tools.md` - VS Code, Docker, OpenOCD, GDB setup

@@ -34,7 +34,7 @@ The NuttX system is split into three areas:
 
 - Applications that will run on NuttX, these are in the `apps` directory
 - Core operating system components in the `nuttx` directory
-- Hardware specific operating system files in the `Meadow.OS` directory and the `stm32f777zit6-meadow` directory
+- Hardware specific operating system files in the `` directory and the `stm32f777zit6-meadow` directory
 
 The RTOS is a protected mode code that starts the `hcom` application.  `hcom` runs in user space.
 
@@ -51,24 +51,17 @@ The RTOS is a protected mode code that starts the `hcom` application.  `hcom` ru
 - gdb/.gdbinit
   This defines some gdb macros and executes some commands loading the various symbol files and setting up `gdb` ready for debugging through the command line.
 
-## The Problem
-
-### Without Bootloader
-
-When the application is built without the bootloader operating system starts as expected and it can be debugged.  The application starts `hcom` as expected and the hardware responds as designed.  This is the way the system works in the last commit of the `main` branch.
-
-In this mode `gdb` starts with the program counter (pc) set to 0x08040238.
-
-Running the code with the gdb `continue` command causes the board to run as expected.
-
-### With Bootloader
-
-The files in the current branch are designed to move NuttX and `hcom` and to setup the system to allow the use of the bootloader.
-
-In this mode `gdb` starts with the program counter (pc) set to 0x0804023c.
-
-Running the code with the gdb `continue` command causes the board to lock.
-
 ## The Task
 
-Analyse the current changes and advise why the code runs as expected without the bootloader but locks if the bootloader is present.
+Analyse the content in the following directories:
+
+- Documentation
+- F7MeadowOS
+- apps/system/hcom
+
+Make suggestions for changed to the documentation to achieve the following:
+
+- Make the system easily understood by Claude
+- Make the system understandable by a new developer
+
+This task is a documentation only task, no source code may be changed.
