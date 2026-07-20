@@ -174,6 +174,7 @@ NUTTX_CONFIG="stm32f777zit6-meadow:$CONFIG"
 #
 if $WLCLEAN || $CLEAN; then
     find $scriptdir/apps/examples -name "*.o" -type f -exec rm {} \;
+    find $scriptdir/apps/system -name "*.o" -type f -exec rm {} \;
     find $scriptdir/F7MeadowOS -name "*.o" -type f -exec rm {} \;
     run_command "make -C $scriptdir/nuttx clean -j8"
     run_command "make $MEADOW_ADDITIONAL_MAKE_OPTIONS -C $scriptdir/bootloader/Debug clean"
@@ -187,10 +188,8 @@ fi
 #
 # Force the version number to update if it has changed.
 #
-rm -f $scriptdir/nuttx/configs/stm32f777zit6-meadow/src/hcom_nx/hcom_nx_config_manager.o
-rm -f $scriptdir/nuttx/configs/stm32f777zit6-meadow/src/hcom_nx/diag/hcom_nx_trace_msg_proc.o
-rm -f $scriptdir/apps/examples/hcom/nx_rqsts/hcom_misc_requests.o
-rm -f $scriptdir/apps/examples/hcom/diag/hcom_diag_logging.o
+rm -f $scriptdir/F7MeadowOS/hcom_nx/hcom_nx_config_manager.o
+rm -f $scriptdir/F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.o
 rm -f $scriptdir/nuttx/*.bin
 rm -f $scriptdir/nuttx/*.elf
 rm -f $scriptdir/nuttx/*.hex
@@ -324,6 +323,13 @@ if [ ! -z "$UNIT_TESTS" ]; then
             gpioCounter)
             echo "GPIO Counter tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
+            BUILD_TESTS=true
+            ;;
+            sotest)
+            echo "sotest dlopen/dlsym tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SOTEST_TESTS
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
             BUILD_TESTS=true
             ;;
             os)

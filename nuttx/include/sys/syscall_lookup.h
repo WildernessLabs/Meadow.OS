@@ -112,6 +112,10 @@ SYSCALL_LOOKUP(nxsem_wait_slow,            1)
 
 /* The following can be individually enabled */
 
+#ifdef CONFIG_ARCH_ICACHE
+  SYSCALL_LOOKUP(up_coherent_dcache,       2)
+#endif
+
 #ifdef CONFIG_ARCH_HAVE_FORK
   SYSCALL_LOOKUP(up_fork,                  0)
 #endif

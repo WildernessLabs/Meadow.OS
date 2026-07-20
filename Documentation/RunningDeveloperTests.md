@@ -46,6 +46,7 @@ The following identifiers can be used with the `-u` flag:
 | `adc` | Analog to Digital converter tests | `ADC_TESTS` |
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
 | `spidma` | SPI DMA tests | `SPI_DMA_TESTS` |
+| `sotest` | Dynamic loading (dlopen/dlsym/dlclose) tests | `SOTEST_TESTS` |
 
 ## Test Configuration
 
@@ -107,6 +108,49 @@ The test numbers can be found in the file `F7MeadowOS/include/meadow/meadow_unit
 ### List Available Tests
 
 If you trigger a test with `meadow developer -p 0`, the system will output a list of all tests currently compiled into the firmware to the host.
+
+## Dynamic Loading Tests (sotest)
+
+The `sotest` test exercises NuttX's `dlopen`/`dlsym`/`dlclose` loadable module support
+(`CONFIG_LIBC_DLFCN`), confirmed working on real Meadow F7 hardware. Unlike the other
+developer tests, it requires extra setup because the loadable modules are separate files
+that must exist on the target filesystem before the test runs.
+
+### Prerequisites
+
+* Build with `./build.sh -u=sotest`. This enables `CONFIG_SOTEST_TESTS` (the test itself)
+  and `CONFIG_EXAMPLES_SOTEST` (builds the loadable module binaries).
+* `CONFIG_LIBC_DLFCN=y` and `CONFIG_ELF=y` must be enabled in the board defconfig (already
+  the case for `meadow_os`/`stm32f777zit6-meadow`). These select the `LIBC_ELF` chain that
+  `dlopen` depends on under `CONFIG_BUILD_PROTECTED`.
+* Two loadable module binaries, `modprint` and `sotest` (upstream NuttX's own
+  `apps/examples/sotest` smoke test, bare filenames with no `.so` extension), must be copied
+  to `CONFIG_EXAMPLES_SOTEST_BINDIR` (`/meadow0`, the root of the LittleFS QSPI filesystem)
+  on the device before triggering the test. They are built alongside the firmware but are
+  **not** flashed automatically - push them to the device separately (e.g. via the Meadow
+  CLI file-copy command) after flashing.
+
+### What It Verifies
+
+`apps/system/hcom/tests/sotest_tests.c` (`meadow_sotest_tests`, `MEADOW_TEST_SOTEST` = 24 in
+`meadow_unit_test_framework.h`) registers an exported-symbol table via `dlsymtab()` using the
+auto-generated `g_sot_exports` table, then:
+
+1. Opens `modprint`, then opens `sotest` (which depends on `modprint`).
+2. Resolves and calls `testfunc1`/`testfunc2`/`testfunc3` and their matching `g_msgN` symbols
+   via `dlsym` on the `sotest` handle.
+3. Confirms `dlclose(modprint)` fails while `sotest` still depends on it, then closes
+   `sotest` before closing `modprint`.
+
+A `PASS`/`FAIL` result is written to the syslog (`LOG_MTEST`) at the end of the run.
+
+### Known Gotcha: Reconfigure Required
+
+Enabling `CONFIG_LIBC_DLFCN` pulls in a kernel syscall proxy (`up_coherent_dcache`, used by
+`libs/libc/elf/elf_bind.c` during module relocation under `CONFIG_BUILD_PROTECTED`). NuttX's
+`nuttx/syscall/proxies|stubs/Make.defs` compute their source file lists via `$(shell ls *.c)`
+at Makefile-parse time, so newly generated proxy/stub files are only picked up by a fresh
+`./build.sh --configure` - a plain rebuild on an already-configured tree will not see them.
 
 ## Adding New Tests
 
