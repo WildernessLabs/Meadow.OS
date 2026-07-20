@@ -355,6 +355,8 @@ if [ ! -z "$UNIT_TESTS" ]; then
             all)
             echo "All tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
             BUILD_TESTS=true
             ;;
             *)
