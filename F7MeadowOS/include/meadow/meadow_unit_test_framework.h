@@ -221,6 +221,11 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_GPIO_COUNTER                    23
 
 /**
+ * @brief sotest dlopen/dlsym loadable module test ID.
+ */
+#define MEADOW_TEST_SOTEST                          24
+
+/**
  * @brief User space assert test ID.
  */
 #define MEADOW_TEST_USER_SPACE_ASSERT               900

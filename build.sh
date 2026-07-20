@@ -326,6 +326,12 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
             BUILD_TESTS=true
             ;;
+            sotest)
+            echo "sotest dlopen/dlsym tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SOTEST_TESTS
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
+            BUILD_TESTS=true
+            ;;
             os)
             echo "Operating system tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS

@@ -139,6 +139,10 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_GPIO_COUNTER, "GPIO Counter tests" },
 #endif
 
+#if defined(CONFIG_SOTEST_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_SOTEST, "sotest dlopen/dlsym tests" },
+#endif
+
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_FREQUENCY_MEASUREMENT, "Measure Frequency tests" },
 #endif
@@ -235,6 +239,10 @@ static meadow_test_methods_t _userspaceTests[] =
 
 #if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TENSORFLOW, tensorflow_tests_hello_world },
+#endif
+
+#if defined(CONFIG_SOTEST_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_SOTEST, meadow_sotest_tests },
 #endif
 
 #if defined(CONFIG_DIR_MGMT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)

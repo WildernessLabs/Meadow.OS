@@ -75,6 +75,7 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	tests/diag_misc_tests.c \
 	tests/diag_ethernet_chat_test.c \
 	tests/tensorflow_tests.c \
+	tests/sotest_tests.c \
 	tests/meadow_os_userspace_tests.c \
 	tests/meadow_bbd_tests.c \
 	misc/espcp_utils.c
