@@ -328,6 +328,8 @@ if [ ! -z "$UNIT_TESTS" ]; then
             sotest)
             echo "sotest dlopen/dlsym tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SOTEST_TESTS
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
             BUILD_TESTS=true
             ;;
             os)
