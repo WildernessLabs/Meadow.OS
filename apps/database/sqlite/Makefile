@@ -26,10 +26,12 @@ SQLITEDIR=$(APPDIR)/database/sqlite
 BUILDDIR=$(SQLITEDIR)/build
 
 CSRCS += ${BUILDDIR}/sqlite3.c
+CSRCS += sqlite_readlink_stub.c
 
 CFLAGS += ${INCDIR_PREFIX}$(SQLITEDIR)
 CFLAGS += ${DEFINE_PREFIX}_HAVE_SQLITE_CONFIG_H
 CFLAGS += ${DEFINE_PREFIX}NDEBUG
+CFLAGS += ${DEFINE_PREFIX}UINT32_TYPE="unsigned int"
 CFLAGS += -Wno-unused-variable -Wno-undef -Wno-unused-function -Wno-shadow
 
 ifneq ($(CONFIG_UTILS_SQLITE),)
