@@ -40,6 +40,8 @@
 
 #if defined(CONFIG_EXAMPLES_SQLITE_TESTS)  || defined(CONFIG_ALL_MEADOW_TESTS)
 
+#pragma message "(--) meadow_sqlite_tests.c"
+
 #include "sqlite3.h"
 
 #include "../hcom_common.h"
