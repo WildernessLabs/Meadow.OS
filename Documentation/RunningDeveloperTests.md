@@ -152,6 +152,43 @@ Enabling `CONFIG_LIBC_DLFCN` pulls in a kernel syscall proxy (`up_coherent_dcach
 at Makefile-parse time, so newly generated proxy/stub files are only picked up by a fresh
 `./build.sh --configure` - a plain rebuild on an already-configured tree will not see them.
 
+## SQLite Tests
+
+The `sqlite` test exercises SQLite running against a custom application-supplied VFS
+(`sqlite_meadow_vfs.c`), since NuttX's LittleFS/QSPI storage on this board doesn't support the
+POSIX file locking SQLite's default unix VFS assumes. See `apps/database/sqlite/sqlite_meadow.h`,
+`sqlite_meadow.c`, and `sqlite_meadow_vfs.c` for the VFS registration and implementation.
+
+### Prerequisites
+
+* Build with `./build.sh -u=sqlite`. This enables `CONFIG_EXAMPLES_SQLITE_TESTS`, which compiles
+  in `apps/system/hcom/tests/meadow_sqlite_tests.c`.
+* A tab-delimited file of first/last names, `/meadow0/TabDelimited200Names.txt`, must exist on
+  the device's filesystem before running the "populate database" test (test value 1) - it is not
+  bundled with the firmware and must be copied to the device separately (e.g. via the Meadow CLI
+  file-copy command), the same way the `sotest` loadable modules are pushed to `/meadow0`. A
+  ready-to-use copy (200 first/last name pairs) is provided at
+  [`TabDelimited200Names.txt`](TabDelimited200Names.txt) - copy it to the device as
+  `/meadow0/TabDelimited200Names.txt`.
+* The test database itself, `/meadow0/Test1.db`, is created automatically by the test (dropping
+  and recreating its `Names` table each run) - no setup needed for it.
+
+### What It Verifies
+
+`hcom_meadow_sqlite_tests` (`MEADOW_TEST_SQLITE` = 3 in `meadow_unit_test_framework.h`) dispatches
+on the `-v` value passed from the CLI:
+
+* `-v 1` - **Populate database.** Registers/opens the Meadow VFS, drops and recreates the `Names`
+  table in `/meadow0/Test1.db`, then reads first/last name pairs from
+  `/meadow0/TabDelimited200Names.txt` and inserts each as a row inside a single transaction.
+* `-v 2` - **Query 1.** Runs `SELECT * FROM Names ORDER BY last_name` against the database
+  populated by test 1 and logs each row (`id`, `first_name`, `last_name`) via syslog.
+* `-v 3` - **Query 2.** Currently a no-op placeholder (`execute_sqlite_query2_experiment`) -
+  reserved for a future test.
+
+Errors at any step (VFS registration, table create/drop, file open, insert, or query) are logged
+via `syslog(LOG_MTEST, ...)`.
+
 ## Adding New Tests
 
 To add a new kernel-space test:

@@ -167,7 +167,7 @@ All non-trivial changes must be tested. The build system includes named test sui
 ./build.sh -u=gpio,ethernet,os
 ```
 
-Available suites: `esp`, `gpio`, `ethernet`, `os`, `misc`, `sdcard`, `adc`, `dac`, `bbr`, `power`, `spidma`, `rotenc`, `snprintf`, `sqllite`, `tensorflow`, `dirmgmt`, `chat`, `bg77`, `iso8601` — see `build.sh` for the complete list.
+Available suites: `esp`, `gpio`, `ethernet`, `os`, `misc`, `sdcard`, `adc`, `dac`, `bbr`, `power`, `spidma`, `rotenc`, `snprintf`, `sqlite`, `tensorflow`, `dirmgmt`, `chat`, `bg77`, `iso8601` — see `build.sh` for the complete list.
 
 Pull requests should detail:
 

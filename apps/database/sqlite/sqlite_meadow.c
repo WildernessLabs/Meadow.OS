@@ -1,7 +1,7 @@
 /****************************************************************************
- * apps/database/sqlite/sqlite_readlink_stub.c
+ * apps/database/sqlite/sqlite_meadow.c
  *
- *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,29 +38,47 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#include <unistd.h>
-#include <errno.h>
+#include "sqlite3.h"
+#include "sqlite_meadow.h"
+
+#include <syslog.h>
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: readlink
+ * Name: sqlite3_os_init
  *
  * Description:
- *  NuttX has no symlink support on this board (CONFIG_PSEUDOFS_SOFTLINKS is
- *  not set), so no real readlink() is linkable.  SQLite's amalgamation
- *  unconditionally assumes readlink() exists on any non-VxWorks target and
- *  stores its address in a syscall table even when it is never invoked.
- *  This stub exists solely to satisfy that reference at link time.
- *
- * Returned Value:
- *  Always -1 with errno set to ENOSYS.
+ *  Called once by SQLite during sqlite3_initialize(), before any other
+ *  SQLite API use. Building with SQLITE_OS_OTHER means neither the unix
+ *  nor win32 VFS backends are compiled in (NuttX's LittleFS/QSPI storage
+ *  doesn't support the POSIX file locking the unix backend assumes), so
+ *  this application-supplied replacement must register the Meadow VFS
+ *  itself.
  *
  ****************************************************************************/
-ssize_t readlink(FAR const char *path, FAR char *buf, size_t bufsize)
+SQLITE_API int sqlite3_os_init(void)
 {
-    set_errno(ENOSYS);
-    return(-1);
+    sqlite3_vfs *pVfs = sqlite3_demovfs();
+    if (pVfs == 0)
+    {
+        syslog(LOG_ERR, "Failed to create sqlite3_demovfs\n");
+        return SQLITE_ERROR;
+    }
+
+    int ret = sqlite3_vfs_register(pVfs, 1);
+    if (ret)
+    {
+        syslog(LOG_ERR, "Failed to register sqlite3_demovfs\n");
+        return SQLITE_ERROR;
+    }
+
+    return SQLITE_OK;
+}
+
+SQLITE_API int sqlite3_os_end(void)
+{
+    return SQLITE_OK;
 }

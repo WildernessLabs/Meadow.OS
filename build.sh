@@ -230,8 +230,8 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BLUETOOTH_TESTS
             BUILD_TESTS=true
             ;;
-            sqllite)
-            echo "SQLLite tests requested."
+            sqlite)
+            echo "SQLite tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
