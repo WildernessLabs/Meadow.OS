@@ -208,13 +208,15 @@ rm -f $scriptdir/nuttx/*.hex
 # from a previous such collision is already there - fails outright with
 # "Directory not empty".
 #
-# Clear any stale sqlite.zip / sqlite-vesion-* leftovers first, then, if the
+# Clear any stale sqlite.zip / sqlite-vesion-* leftovers first. Then, if the
 # SQLite source isn't already present, download and extract it here,
-# ourselves, exactly once, and mark it with a placeholder sqlite/.git
-# directory. The Makefile's own download step only ever runs when
-# sqlite/.git is absent, so once this marker exists it permanently skips
-# its own fragile download/extract/mv logic - no matter how many times
-# "context" gets invoked within this build or on any future one.
+# ourselves, exactly once. Finally, unconditionally ensure a placeholder
+# sqlite/.git directory exists - whether or not a download just happened
+# above, since the source may already have been present from an earlier
+# run. The Makefile's own download step only ever runs when sqlite/.git is
+# absent, so once this marker exists it permanently skips its own fragile
+# download/extract/mv logic - no matter how many times "context" gets
+# invoked within this build or on any future one.
 #
 rm -f $scriptdir/apps/database/sqlite/sqlite.zip
 find $scriptdir/apps/database/sqlite -name "sqlite-vesion-*" -type d -prune -exec rm -rf {} \;
