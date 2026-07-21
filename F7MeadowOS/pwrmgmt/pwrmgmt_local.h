@@ -61,7 +61,7 @@
 #define PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ (7999)   // STMicro's AN4759 table 7
 
 // Which RTC Alarm to use 0 = Alarm A or 1 = Alarm B?
-// Note: Alarm B not fully tested
+// Note: Alarm B has not been tested
 #define PWRMGMT_LOW_PWR_0_USE_RTC_ALARM_A (0)
 
 // Miscellaneous functions

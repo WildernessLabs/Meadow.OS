@@ -35,6 +35,8 @@
 
 // This module is used to configure the RTC Alarm for low-power wakeup. This
 // makes possible a low-power mode that lasts 28 days - 1 second.
+// Note: the approach used in this file was abandoned in favor of wakeup on
+// alarm as it can be configured to wake up at any date/time in the future.
 
 /****************************************************************************
  * Included Files

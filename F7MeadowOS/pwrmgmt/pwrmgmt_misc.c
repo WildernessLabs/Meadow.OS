@@ -134,6 +134,7 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 
 //=============================================================
 // Required for making changes to RTC registers
+// Write PRotect Unlock
 void pwrmgmt_rtc_wprunlock(void)
 {
   // Sets the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
@@ -147,6 +148,7 @@ void pwrmgmt_rtc_wprunlock(void)
 }
 
 //=============================================================
+// Write PRotect Lock
 void pwrmgmt_rtc_wprlock(void)
 {
   // Disable write access to RTC Registers
@@ -160,7 +162,8 @@ void pwrmgmt_rtc_wprlock(void)
 
 //=============================================================
 // Set RTC_ISR_INIT bit in STM32_RTC_ISR and wait for RTC_ISR_INITF bit
-// Required for to change RTC_TR (time), RTC_DR (date) and RTC_PRER (prescaler)
+// Required for to change RTC_TR (time), RTC_DR (date) and
+// RTC_PRER (prescaler)
 int pwrmgmt_rtc_enterinit(void)
 {
   volatile uint32_t timeout;
@@ -211,7 +214,7 @@ void pwrmgmt_rtc_exitinit(void)
   // The STM32F77X Errata warns in ES0334-Rev 9 section 2.12.3 of a potential
   // problem if the above RTC_ISR_INIT bit is cleared and reset before the
   // proper wait time has occurred. This is the workaround given in the Errata.
-  // "After existing the initialization mode, clear the BYPSHAD bit (if set)
+  // "After exiting the initialization mode, clear the BYPSHAD bit (if set)
   // then wait for RSF to rise, before entering the initialization mode again."
   //
   // Do this on exit to be sure the workaround is honored.
@@ -258,7 +261,7 @@ int pwrmgmt_rtc_synchwait(void)
 }
 
 //=============================================================
-// Convert a 2 byte value into it's BCD representation
+// Convert a small binary value into it's BCD representation
 uint32_t pwrmgmt_rtc_bin2bcd(int value)
 {
   uint32_t msbcd = 0;

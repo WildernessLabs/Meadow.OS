@@ -35,8 +35,8 @@
 // In STMicro's AN4759 Rev 7 section 2.1.4 there is a brief section on
 // adjusting the source clock.
 //
-// This module first calibrates the LSI RC clock so it reasonably generates
-// the 1 Hz clock needed by the F7's RTC hardware.
+// This module first calibrates the LSI RC clock so it creates a reasonable
+// 1 Hz clock, needed by the F7's RTC hardware.
 
 // Testing showed that these clocks
 // are very inaccurate. This list shows 7 random F7Feature boards.
@@ -51,8 +51,8 @@
 //   100 LSI Average:32775.69Hz (+0.02%, +0:00/hr), Hi:32775.69, Lo:32764.51
 // Proving that the frequency measurement code was working properly.
 
-// The goal of this module is to adjust the RTC so that the variation in
-// the LSI clock speed can be compensated for.
+// The goal of this module is to adjust the RTC so that the variations in
+// the LSI clock speed can be somewhat compensated for.
 
 // Note: the underlying STM32_rtc.c driver doesn't support CONFIG_RTC_HIRES
 
@@ -101,7 +101,6 @@
 
 // The timer 5, channel 4 input is the only input that can be connected to LSI
 // clock.
-// STM32_APB1_TIM5_CLKIN is 96MHz assuming 192MHz MPU clock speed
 #define PWRMGMT_CLK_TIMER_5_BASE_CLOCK_FREQ (STM32_APB1_TIM5_CLKIN)
 #define PWRMGMT_CLK_CAL_TARGET_FREQUENCY (32768.00)     // Ideal clock source freq
 #define PWRMGMT_CLK_CAL_MEASURE_CLK_COUNT (100)         // Test LSI freq x times
