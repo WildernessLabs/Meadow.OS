@@ -194,6 +194,22 @@ rm -f $scriptdir/nuttx/*.bin
 rm -f $scriptdir/nuttx/*.elf
 rm -f $scriptdir/nuttx/*.hex
 
+#
+# The SQLite package downloads and extracts its own source tree
+# (apps/database/sqlite/sqlite/) outside of NuttX's normal context/clean
+# machinery. Its "mv sqlite-vesion-* sqlite" step re-runs on essentially
+# every build that enables a unit test (kconfig-tweak's edit to .config
+# appears to invalidate the apps context stamp), and since apps/database/sqlite/sqlite
+# already exists at that point, mv silently nests the fresh extraction
+# inside it as apps/database/sqlite/sqlite/sqlite-vesion-*/ instead of failing
+# outright. The *next* time this runs, that nested leftover already exists
+# and the mv fails for real ("Directory not empty"). Clear any stale
+# sqlite.zip and any sqlite-vesion-* directory -- top-level or nested
+# inside sqlite/ -- before every build so this can never collide.
+#
+rm -f $scriptdir/apps/database/sqlite/sqlite.zip
+find $scriptdir/apps/database/sqlite -name "sqlite-vesion-*" -type d -exec rm -rf {} \;
+
 NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
 if $FORCE; then
     if [ -r "$scriptdir/nuttx/.config" ]; then
@@ -357,6 +373,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
             kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
             *)
