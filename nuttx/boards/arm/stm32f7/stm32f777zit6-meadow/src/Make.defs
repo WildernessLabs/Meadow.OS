@@ -116,7 +116,7 @@ $(MEADOW_OS_DIR)/hcom_nx/tests/hcom_nx_qspi_flash_tests.c \
 $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c
 
 ifeq ($(CONFIG_ARCH_IDLE_CUSTOM),y)
-CSRCS +=  $(MEADOW_OS_DIR)/misc/meadow_idle_monitor.c
+CSRCS +=  $(MEADOW_OS_DIR)/specialized/meadow_idle_monitor.c
 endif
 
 ifeq ($(CONFIG_MEADOW_PWR_MGMT_SUPPORT),y)

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/misc/meadow_idle_monitor.c
+ * F7MeadowOS/specialized/meadow_idle_monitor.c
  * 
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -51,7 +51,9 @@
 #include <meadow/hcom_shared_common.h>
 #include "hardware/stm32f76xx77xx_rcc.h"
 
-#if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
+#if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0\
+// It would be nice if this thread would be replace with the HPWORK worker
+// queue since it is only for testing.
 #include <nuttx/kthread.h>
 #endif
 
@@ -61,8 +63,11 @@
 #include <meadow/meadow_apps_core_share.h>
 #include <meadow/meadow_debug_helpers.h>
 
+#pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
+
 //===================================================================
 // Timer 6 is one of the 2 basic timers. It has no connected GPIO I/O
+// Both of the following #defines must match
 #define MEADOW_IDLE_MON_USE_TIMER_NUMBER (6)
 #define MEADOW_IDLE_MON_TIMER_BASE (STM32_TIM6_BASE)
 
@@ -76,6 +81,10 @@
 // This is a reasonable maximum for the no load idle count.
 #define MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT (1060)
 #define MEADOW_IDLE_MON_MIN_100_PER_CENT_COUNT (0)
+
+#if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
+#define MEADOW_IDLE_MON_TEST_EXECUTE_TIMES (5)
+#endif
 
 // For diagnostics
 // #define DEBUG_PIN_V2_D14  (0x00040c1c)
@@ -97,8 +106,9 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
  ****************************************************************************/
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-static volatile uint32_t _idleActiveCount;
-static volatile uint32_t _idleCountSnapShot;
+// 
+static volatile uint32_t _idleLoopCounter;
+static uint32_t _idleOneSecSnapShot;
 #endif
 
 /****************************************************************************
@@ -108,8 +118,7 @@ static volatile uint32_t _idleCountSnapShot;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// This callback is called for interrupts configured for measuring idle time.
-// This is called designed to be called about once/second.
+// This ISR designed to be called once/second via a timer interrupt.
 int meadow_idle_mon_isr(int irq, void *context, void *arg)
 {
   // Check the timer's Status Register
@@ -120,20 +129,23 @@ int meadow_idle_mon_isr(int irq, void *context, void *arg)
     timStatusReg &= ~BTIM_SR_UIF;
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-    // Once per second, take a snapshot of idle count.
-    // The higher the count, the more often the OS dropped into idle mode. This
-    // is an indirect indication of how busy the system is. When Nuttx is
-    // really busy, the idle thread might not run for for several seconds.
-    if(_idleActiveCount < MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT)
+    // Once per second, capture the idle count.
+    // The higher the count, the more often the OS dropped into idle mode.
+    // This is an indirect indication of how busy the system is. When really
+    // busy, the idle thread might not run for for several seconds.
+    if(_idleLoopCounter < MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT)
     {
-      _idleCountSnapShot = _idleActiveCount;
+      // Save count for user
+      _idleOneSecSnapShot = _idleLoopCounter;
     }
     else
     {
-      _idleCountSnapShot = MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
+      // Save count for user
+      _idleOneSecSnapShot = MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
     }
 
-    _idleActiveCount = 0;    // And restart counting
+    // Reset counter
+    _idleLoopCounter = 0;
 
 #endif
 
@@ -152,8 +164,8 @@ int meadow_idle_monitor_setup()
   MEADOW_TRACE_INFORMATION("Entered meadow_idle_monitor_setup at startup\n");
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  _idleActiveCount = 0;
-  _idleCountSnapShot = 0;
+  _idleLoopCounter = 0;
+  _idleOneSecSnapShot = 0;
 #endif
 
   // Initialized the timer itself
@@ -168,14 +180,14 @@ int meadow_idle_monitor_setup()
 }
 
 //================================================================
-// This function uses Timer 6 to create a timer that will call the above ISR
-// once / second. It assumes timer #6 will be used
+// This function uses Timer 6 to create a periodic timer that will call
+// the above ISR once / second. It assumes timer #6.
 int meadow_idle_mon_timer_init(uint32_t timerBase)
 {
   int ret;
 
-  #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  _idleActiveCount = 0;
+#if defined (CONFIG_ARCH_IDLE_CUSTOM)
+  _idleLoopCounter = 0;
 #endif
 
   // Setup the clock enable for timer 6
@@ -195,7 +207,7 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
   regval |= BTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
   putreg16(regval, timerBase + STM32_BTIM_CR1_OFFSET);
 
-  // Timer 6 (& 7) only supports UIE interrupt
+  // Timer 6 only supports UIE interrupt
   putreg16(BTIM_DIER_UIE, timerBase + STM32_BTIM_DIER_OFFSET);
 
   // The interupts are handled this ISR
@@ -240,13 +252,11 @@ int meadow_idle_monitor_get_value()
   static int IdlePercent = 0;
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-
+  irqstate_t flags = enter_critical_section();
   // Calculate the percentage 
-  if(_idleCountSnapShot > 0)
-  {
-    IdlePercent = 
-        (_idleCountSnapShot * 100) / MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
-  }
+  IdlePercent = 
+      (_idleOneSecSnapShot * 100) / MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
+  leave_critical_section(flags);
 #endif    // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 
   return IdlePercent;
@@ -258,7 +268,9 @@ int meadow_idle_monitor_get_value()
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 void meadow_idle_mon_entering_idle_mode(void)
 {
-  _idleActiveCount++;
+  irqstate_t flags = enter_critical_section();
+  _idleLoopCounter++;
+  leave_critical_section(flags);
 }
 #endif
 
@@ -291,21 +303,47 @@ int meadow_idle_mon_create_test_thread()
 // idle percentage calculated.
 void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
 {
-  int idleValue;
-
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
     gettid(), getpid(), "Idle monitor");
 #endif
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  while(true)
+  int idleValue;
+  uint32_t fullTestLoopCount = 0;
+  uint32_t wasteTickTime;
+  uint32_t ticksToWaste;
+  uint32_t loopCnt;
+  uint32_t usecToSleep;
+
+  while(fullTestLoopCount < MEADOW_IDLE_MON_TEST_EXECUTE_TIMES)
   {
-    idleValue = meadow_idle_monitor_get_value();
-    syslog(LOG_MTEST, "MCU Idle:%d%%, MCU Load:%d%%: snapshot:%lu\n",
-      idleValue, 100 - idleValue, _idleCountSnapShot);
-    sleep(1);
+    // This loop execute once for each cycle
+    // Assumes 1000 ticks / second
+    for(loopCnt = 0; loopCnt < 11; loopCnt++)
+    {
+      // How many ticks to waste? Total time is 1 second
+      ticksToWaste = loopCnt * 100;   // 0 - 1000
+      usecToSleep = (TICK_PER_SEC - ticksToWaste) * USEC_PER_MSEC;
+      wasteTickTime = clock_systime_ticks() + ticksToWaste;
+
+      // Simply waste time wasting loop
+      // clock_systime_ticks(); Return ticks since start as clock_t (int64_t)
+      while(clock_systime_ticks() < wasteTickTime);
+
+      // Sleep the remaining time
+      usleep(usecToSleep);
+
+      // Now show the preceeding load values
+      idleValue = meadow_idle_monitor_get_value();
+      syslog(LOG_MTEST, "MCU Idle:%3d%%, MCU Load:%3d%% (Count:%4lu)\n",
+        idleValue, 100 - idleValue, _idleOneSecSnapShot);
+    }
+    fullTestLoopCount++;
   }
+
+  syslog(LOG_MTEST, "Monitor Idle Test was executed %lu times\n",
+    fullTestLoopCount);
 #endif
 
   return NULL;
