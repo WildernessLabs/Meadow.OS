@@ -208,7 +208,7 @@ rm -f $scriptdir/nuttx/*.hex
 # inside sqlite/ -- before every build so this can never collide.
 #
 rm -f $scriptdir/apps/database/sqlite/sqlite.zip
-find $scriptdir/apps/database/sqlite -name "sqlite-vesion-*" -type d -exec rm -rf {} \;
+find $scriptdir/apps/database/sqlite -name "sqlite-vesion-*" -type d -prune -exec rm -rf {} \;
 
 NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
 if $FORCE; then
