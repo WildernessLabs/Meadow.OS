@@ -87,11 +87,7 @@ uint32_t meadow_hw_version_get(void)
 uint64_t hcom_utils_get_current_time64_ns(void)
 {
   struct timespec ts;
-#ifdef CONFIG_CLOCK_MONOTONIC
   clock_gettime(CLOCK_MONOTONIC, &ts);
-#else
-  clock_gettime(CLOCK_REALTIME, &ts);
-#endif
   return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
 }
 
