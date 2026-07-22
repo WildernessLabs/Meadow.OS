@@ -56,10 +56,11 @@ MAINSRC = ${BUILDDIR}/shell.c
 endif
 
 
-# Download and unpack tarball if no git repo found
+# Download and unpack tarball if not already extracted
 
 sqlite.zip:
-ifeq ($(wildcard sqlite/.git),)
+ifeq ($(wildcard sqlite/configure),)
+	$(Q) rm -rf sqlite sqlite-vesion-*
 	$(Q) curl -L https://codeload.github.com/sqlite/sqlite/zip/refs/tags/vesion-${CONFIG_LIB_SQLITE_VERSION} -o sqlite.zip
 	$(Q) unzip -q -o sqlite.zip
 	$(Q) mv sqlite-vesion-* sqlite

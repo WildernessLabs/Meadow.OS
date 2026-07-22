@@ -194,54 +194,6 @@ rm -f $scriptdir/nuttx/*.bin
 rm -f $scriptdir/nuttx/*.elf
 rm -f $scriptdir/nuttx/*.hex
 
-#
-# apps/database/sqlite/Makefile downloads and extracts its own SQLite source
-# tree (apps/database/sqlite/sqlite/) via a "context::" recipe that is only
-# safe to run once: it always re-downloads and re-extracts unless
-# sqlite/.git already exists, then does "mv sqlite-vesion-* sqlite". If
-# sqlite/ already has content (from an earlier run, or even from an earlier
-# "context" invocation within this *same* build - context is a prerequisite
-# of both pass1 and pass2, and kconfig-tweak's edit to .config appears to
-# invalidate the apps context stamp, so it can run more than once per
-# build), that mv either silently nests the fresh extraction inside the
-# existing sqlite/ as sqlite/sqlite-vesion-*/, or - if a nested leftover
-# from a previous such collision is already there - fails outright with
-# "Directory not empty".
-#
-# Clear any stale sqlite.zip / sqlite-vesion-* leftovers first. Then, if the
-# SQLite source isn't already present, download and extract it here,
-# ourselves, exactly once. Finally, unconditionally ensure a placeholder
-# sqlite/.git directory exists - whether or not a download just happened
-# above, since the source may already have been present from an earlier
-# run. The Makefile's own download step only ever runs when sqlite/.git is
-# absent, so once this marker exists it permanently skips its own fragile
-# download/extract/mv logic - no matter how many times "context" gets
-# invoked within this build or on any future one.
-#
-rm -f $scriptdir/apps/database/sqlite/sqlite.zip
-find $scriptdir/apps/database/sqlite -name "sqlite-vesion-*" -type d -prune -exec rm -rf {} \;
-
-SQLITE_PKG_DIR=$scriptdir/apps/database/sqlite
-SQLITE_SRC_DIR=$SQLITE_PKG_DIR/sqlite
-if [ ! -f "$SQLITE_SRC_DIR/configure" ]; then
-    rm -rf "$SQLITE_SRC_DIR"
-    SQLITE_VERSION=$(grep -A2 '^config LIB_SQLITE_VERSION$' "$SQLITE_PKG_DIR/Kconfig" | grep 'default' | sed -E 's/.*"([^"]*)".*/\1/')
-    if [ -r "$scriptdir/nuttx/.config" ]; then
-        CONFIGURED_SQLITE_VERSION=$(grep '^CONFIG_LIB_SQLITE_VERSION=' "$scriptdir/nuttx/.config" | sed -E 's/^CONFIG_LIB_SQLITE_VERSION="(.*)"$/\1/')
-        if [ -n "$CONFIGURED_SQLITE_VERSION" ]; then
-            SQLITE_VERSION=$CONFIGURED_SQLITE_VERSION
-        fi
-    fi
-    printf "Downloading SQLite $SQLITE_VERSION...\n"
-    ( cd "$SQLITE_PKG_DIR" && \
-      curl -L "https://codeload.github.com/sqlite/sqlite/zip/refs/tags/vesion-$SQLITE_VERSION" -o sqlite.zip && \
-      unzip -q -o sqlite.zip && \
-      mv "sqlite-vesion-$SQLITE_VERSION" sqlite && \
-      rm -f sqlite.zip )
-    check_command_status
-fi
-mkdir -p "$SQLITE_SRC_DIR/.git"
-
 NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
 if $FORCE; then
     if [ -r "$scriptdir/nuttx/.config" ]; then
