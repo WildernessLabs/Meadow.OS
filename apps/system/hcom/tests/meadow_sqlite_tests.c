@@ -42,6 +42,8 @@
 
 #pragma message "(--) meadow_sqlite_tests.c"
 
+#include <inttypes.h>
+
 #include "sqlite3.h"
 
 #include "../hcom_common.h"
@@ -59,25 +61,22 @@ static int execute_sqlite_query2_experiment(void);
 // Callable from CLI
 void hcom_meadow_sqlite_tests(uint32_t userData)
 {
-  // syslog(LOG_MTEST, "SQLite test:Entered hcom_meadow_sqlite_tests switch, userData:%d\n", userData);
+  syslog(LOG_MTEST, "SQLite test: Entered hcom_meadow_sqlite_tests switch, userData:%" PRIu32 "\n", userData);
   
   switch(userData)
   {
     case 1:
-    execute_sqlite_populate_database();
-    break;
-    
+      execute_sqlite_populate_database();
+      break;
     case 2:
-    execute_sqlite_query1_experiment();
-    break;
-
+      execute_sqlite_query1_experiment();
+      break;
     case 3:
-    execute_sqlite_query2_experiment();
-    break;
-
+      execute_sqlite_query2_experiment();
+      break;
     default:
-    // syslog(LOG_MTEST, "SQLite-TEST only userData 1, 2 and 3 implemented\n");
-    break;
+      syslog(LOG_MTEST, "SQLite-TEST only userData 1, 2 and 3 implemented\n");
+      break;
   }
 }
 
@@ -88,7 +87,7 @@ static sqlite3 * hcom_sqlite_register_vfs_and_open(const char *databaseName)
   sqlite3 *sqlite_db;
   int ret;
     
-  // syslog(LOG_MTEST, "SQLite-TEST open database ENTERED\n");
+  syslog(LOG_MTEST, "SQLite-TEST open database ENTERED\n");
 
   // Must register the vfs since we cannot use one of the built-in ones
   // To do this we ask the vfs for a pointer that represents itself.
@@ -101,8 +100,8 @@ static sqlite3 * hcom_sqlite_register_vfs_and_open(const char *databaseName)
     // syslog(LOG_MTEST, "SQLite-TEST ERROR: sqlite3_demovfs\n");
     return NULL;
   }
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #1-register vfs - success\n");
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find just registered self\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #1-register vfs - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find just registered self\n");
 
   // Then we register the vfs with sqlite
   ret = sqlite3_vfs_register(pVfs, 1);
@@ -111,8 +110,8 @@ static sqlite3 * hcom_sqlite_register_vfs_and_open(const char *databaseName)
     // syslog(LOG_MTEST, "SQLite-TEST ERROR: sqlite3_vfs_register\n");
     return NULL;
   }
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #1-register vfs - success\n");
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find just registered self\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #1-register vfs - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find just registered self\n");
 
   // Next we attempt to find it...
   // This is really not needed because we already have what we
@@ -124,8 +123,8 @@ static sqlite3 * hcom_sqlite_register_vfs_and_open(const char *databaseName)
           VIRTUAL_FILE_SYS_NAME);
     return NULL;
   }
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find self registered - success\n");
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #3-open database\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #2-find self registered - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #3-open database\n");
 
   //-------------------------------------------------------
   // Open database
@@ -155,7 +154,7 @@ static int execute_sqlite_populate_database(void)
   int ret;
   char *errMsg;
     
-  // syslog(LOG_MTEST, "SQLite-TEST create and insert test:Started\n");
+  syslog(LOG_MTEST, "SQLite-TEST create and insert test:Started\n");
   sqlite_db = hcom_sqlite_register_vfs_and_open(DATABASE_TEST_NAME);
   if(sqlite_db == NULL)
   {
@@ -175,7 +174,7 @@ static int execute_sqlite_populate_database(void)
 
   char *tableDropSql = "DROP TABLE IF EXISTS Names";
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #4-Drop table if it exists [%s]\n", tableDropSql);
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #4-Drop table if it exists [%s]\n", tableDropSql);
   ret = sqlite3_exec(sqlite_db, tableDropSql, NULL, NULL, &errMsg);
   if(ret)
   {
@@ -191,7 +190,7 @@ static int execute_sqlite_populate_database(void)
     " first_name text not null,"
     " last_name text not null)";
  
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #5-create database [%s]\n", tableCreateSql);
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #5-create database [%s]\n", tableCreateSql);
 
   ret = sqlite3_exec(sqlite_db, tableCreateSql, NULL, NULL, &errMsg);
   if(ret)
@@ -202,9 +201,8 @@ static int execute_sqlite_populate_database(void)
     return -1;
   }
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #5-create database - success\n");
-  //--------------------------------------------------
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #6-open names file\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #5-create database - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #6-open names file\n");
 
   #define FILE_OF_NAMES "/meadow0/TabDelimited200Names.txt"
 
@@ -217,7 +215,7 @@ static int execute_sqlite_populate_database(void)
     return -1;
   }
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #6-open names file - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #6-open names file - success\n");
 
 #define BUFFER_SIZE 256
   int nameId = 0;
@@ -236,7 +234,7 @@ static int execute_sqlite_populate_database(void)
     return -1;
   }
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #7 - fill database table with names\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #7 - fill database table with names\n");
 
   //--------------------------------------------------
   // Insert names into SQLite database.
@@ -252,8 +250,8 @@ static int execute_sqlite_populate_database(void)
 
     // Insert statement
     sprintf(sSQL, "INSERT INTO Names VALUES (%d, '%s','%s')", nameId, sFirstName, sLastName);
-    // // syslog(LOG_MTEST, "--------------------------------------\n");
-    // // syslog(LOG_MTEST, "SQLite-TEST test:Step #8 (%d)-Insert statement '%s'\n", nameId, sSQL);
+    // syslog(LOG_MTEST, "--------------------------------------\n");
+    // syslog(LOG_MTEST, "SQLite-TEST test:Step #8 (%d)-Insert statement '%s'\n", nameId, sSQL);
 
     ret = sqlite3_exec(sqlite_db, sSQL, NULL, NULL, &errMsg);
     if(ret)
@@ -277,14 +275,14 @@ static int execute_sqlite_populate_database(void)
   {
     if(errno != 0)
     {
-      // syslog(LOG_MTEST, "SQLite-TEST test:Step #8 ERROR:ret:%d, errno:%d\n", ret, errno);
+      syslog(LOG_MTEST, "SQLite-TEST test:Step #8 ERROR:ret:%d, errno:%d\n", ret, errno);
       return -errno;
     }
   }
 
   sqlite3_close_v2(sqlite_db);
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #8 SUCCESS wrote %d entries\n", nameId);
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #8 SUCCESS wrote %d entries\n", nameId);
   return OK;
 }
 
@@ -294,7 +292,7 @@ static int execute_sqlite_query1_experiment(void)
   sqlite3 *sqlite_db;
   int ret;
     
-  // syslog(LOG_MTEST, "SQLite-TEST create and insert test:Started\n");
+  syslog(LOG_MTEST, "SQLite-TEST create and insert test:Started\n");
   sqlite_db = hcom_sqlite_register_vfs_and_open(DATABASE_TEST_NAME);
   if(sqlite_db == NULL)
   {
@@ -302,7 +300,7 @@ static int execute_sqlite_query1_experiment(void)
           DATABASE_TEST_NAME);
   }
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #3-query database\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #3-query database\n");
   
   //--------------------------------------------------------
   // Create a sorted list
@@ -346,14 +344,14 @@ static int execute_sqlite_query1_experiment(void)
   sqlite3_finalize(stmt);
   sqlite3_close_v2(sqlite_db);
 
-  // syslog(LOG_MTEST, "SQLite-TEST test:Step #3-query database - success\n");
+  syslog(LOG_MTEST, "SQLite-TEST test:Step #3-query database - success\n");
   return OK;
 }
 
 //===========================================================
 static int execute_sqlite_query2_experiment(void)
 {
-  // syslog(LOG_MTEST, "SQLite-TEST no test created\n");
+  syslog(LOG_MTEST, "SQLite-TEST no test created\n");
   return OK;
 }
 
