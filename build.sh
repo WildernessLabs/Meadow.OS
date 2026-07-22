@@ -212,6 +212,16 @@ if [ ! -r "$scriptdir/nuttx/.config" ]; then
 fi
 
 #
+# Set the initial system date.
+#
+BUILD_YEAR=$(date +%Y)
+BUILD_MONTH=$(date +%-m)
+BUILD_DAY=$(date +%-d)
+kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
+kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
+kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
+
+#
 #   Work out if any tests have been requested and turn them on in the build.
 #
 BUILD_TESTS=false
