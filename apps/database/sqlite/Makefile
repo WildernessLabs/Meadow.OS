@@ -26,10 +26,26 @@ SQLITEDIR=$(APPDIR)/database/sqlite
 BUILDDIR=$(SQLITEDIR)/build
 
 CSRCS += ${BUILDDIR}/sqlite3.c
+CSRCS += sqlite_meadow.c
+CSRCS += sqlite_meadow_vfs.c
 
 CFLAGS += ${INCDIR_PREFIX}$(SQLITEDIR)
+CFLAGS += ${INCDIR_PREFIX}$(BUILDDIR)
 CFLAGS += ${DEFINE_PREFIX}_HAVE_SQLITE_CONFIG_H
 CFLAGS += ${DEFINE_PREFIX}NDEBUG
+CFLAGS += ${DEFINE_PREFIX}UINT32_TYPE="unsigned int"
+
+# Build against a minimal application-supplied VFS (sqlite_meadow_vfs.c)
+# instead of SQLite's built-in unix VFS -- NuttX's LittleFS/QSPI storage on
+# this board doesn't support the POSIX file locking (fcntl advisory locks)
+# the unix VFS assumes, and this also avoids depending on dlopen/readlink
+# for the (unused) loadable-extension code path in that backend.
+CFLAGS += ${DEFINE_PREFIX}SQLITE_OS_OTHER=1
+CFLAGS += ${DEFINE_PREFIX}HAVE_USLEEP=1
+CFLAGS += ${DEFINE_PREFIX}SQLITE_THREADSAFE=0
+CFLAGS += ${DEFINE_PREFIX}SQLITE_OMIT_WAL=1
+CFLAGS += ${DEFINE_PREFIX}SQLITE_TEMP_STORE=3
+
 CFLAGS += -Wno-unused-variable -Wno-undef -Wno-unused-function -Wno-shadow
 
 ifneq ($(CONFIG_UTILS_SQLITE),)
@@ -40,10 +56,11 @@ MAINSRC = ${BUILDDIR}/shell.c
 endif
 
 
-# Download and unpack tarball if no git repo found
+# Download and unpack tarball if not already extracted
 
 sqlite.zip:
-ifeq ($(wildcard sqlite/.git),)
+ifeq ($(wildcard sqlite/configure),)
+	$(Q) rm -rf sqlite sqlite-vesion-*
 	$(Q) curl -L https://codeload.github.com/sqlite/sqlite/zip/refs/tags/vesion-${CONFIG_LIB_SQLITE_VERSION} -o sqlite.zip
 	$(Q) unzip -q -o sqlite.zip
 	$(Q) mv sqlite-vesion-* sqlite

@@ -76,7 +76,7 @@ static meadow_test_names_t _testNames[] =
 #endif
 
 #if defined(CONFIG_EXAMPLES_SQLITE_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_SQLLITE, "NuttX SQLLite tests" },
+    { MEADOW_TEST_SQLITE, "NuttX SQLite tests" },
 #endif
 
 #if defined(CONFIG_MCU_OVERLOAD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -222,7 +222,7 @@ static meadow_test_methods_t _userspaceTests[] =
 #endif
 
 #if defined(CONFIG_EXAMPLES_SQLITE_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_SQLLITE, hcom_meadow_sqlite_tests },
+    { MEADOW_TEST_SQLITE, hcom_meadow_sqlite_tests },
 #endif
 
 #if defined(CONFIG_MCU_OVERLOAD_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)

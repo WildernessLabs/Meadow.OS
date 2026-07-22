@@ -31,6 +31,8 @@ PRIORITY  = $(CONFIG_EXAMPLES_HCOM_PRIORITY)
 STACKSIZE = $(CONFIG_EXAMPLES_HCOM_STACKSIZE)
 
 CFLAGS += -I "$(TOPDIR)/../mbedtls/include"
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/database/sqlite
+CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/database/sqlite/build
 
 # hcom example
 
@@ -76,6 +78,7 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	tests/diag_ethernet_chat_test.c \
 	tests/tensorflow_tests.c \
 	tests/sotest_tests.c \
+	tests/meadow_sqlite_tests.c \
 	tests/meadow_os_userspace_tests.c \
 	tests/meadow_bbd_tests.c \
 	misc/espcp_utils.c

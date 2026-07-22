@@ -121,9 +121,9 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_GPIO                            2
 
 /**
- * @brief SQLLite test ID.
+ * @brief SQLite test ID.
  */
-#define MEADOW_TEST_SQLLITE                         3
+#define MEADOW_TEST_SQLITE                          3
 
 /**
  * @brief MCU overload test ID.

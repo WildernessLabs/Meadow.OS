@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y \
         xxd \
         sed \
         zip \
+        tcl \
         kconfig-frontends \
         gcc-arm-none-eabi \
         binutils-arm-none-eabi \
