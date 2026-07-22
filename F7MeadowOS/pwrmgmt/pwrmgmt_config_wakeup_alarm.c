@@ -33,9 +33,11 @@
  *
  ****************************************************************************/
 
-// This module is used to configure the RTC alarm feature, allowing it to
-// wakeup the F7. Because the alarm feature uses a specific date and time
-// as the alarm trigger it can wait from 1 second to 28 days - 1 second.
+// This module was used to configure the RTC timer feature, allowing it to
+// wakeup the F7, However, it's timer was a 16-bit number limiting it to
+// 65535 seconds. Where as the alarm feature uses a specific date and time
+// as the alarm trigger, it is limited to 1 second to 28 days - 1 second,
+// as is the wakeup timer.
 
 /****************************************************************************
  * Included Files
@@ -99,8 +101,8 @@ static int _diagCount = 0;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// Enter low-power mode for the period specified in seconds
-// This is where the managed code enters
+// Enter low-power mode for the period specified in seconds.
+// This is the entry point for the managed code.
 int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
 {
   int ret;
@@ -110,6 +112,7 @@ int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
   // Is the desired low-power period reasonable?
   if(secondsTillAlarm < 2)
   {
+    // Less than 2 seconds is not reasonable
     return -EPERM;    // Operation not permitted
   }
 
@@ -117,7 +120,7 @@ int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
   // hardware into a struct tm. However, the STM32F77X Errata warns about a
   // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
   // register not locked properly. Therefore, we'll read nsec twice and
-  // compare.
+  // compare, the suggested workaround.
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
   long nsec;
   long prevNsec;
@@ -189,7 +192,7 @@ do
 }
 
 //==================================================================
-// Enter low-power mode until the future time specified as struct tm
+// Enter low-power mode. Wakeup in time specified as struct tm
 int pwrmgmt_config_rtc_alarm_wakeup_tm(struct tm tmAlarm)
 {
   uint32_t regval;

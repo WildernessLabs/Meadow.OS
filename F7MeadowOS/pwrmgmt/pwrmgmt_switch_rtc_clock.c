@@ -33,18 +33,18 @@
  *
  ****************************************************************************/
 
-// Some of the stm32_rtc.c code has be duplicated here.
+// Some of the stm32_rtc.c code has been duplicated here.
 
 // The purpose of this module is to allow the caller to switch between
 // using the HSE and LSI clocks for driving the RTC hardware. This is needed
-// for low-power operation, because while HSE is accurate at keeping time, LSI
-// is not. However, HSE is not availalbe in any of the F7's low-power
-// modes. Therefore, the clock used to drive the RTC hardware must be switched
+// for low-power operation. Because, while HSE is accurate at keeping time,
+// and the LSI is not, the HSE is not availalbe in any low-power modes.
+// Therefore, the clock used to drive the RTC hardware must be switched
 // to the LSI clock before entering low-power mode and switched back to HSE
 // afterward.
 
 // Note: The F7 Data Sheet says the LSI oscillator can draw a maximum current
-// of 0.6 micro amps. For this reason there was no attempt of turning the LSI
+// of 0.6 micro amps. For this reason, there was no attempt of turning the LSI
 // clock off when not needed.
 
 // Note: the underlying STM32_rtc.c driver doesn't support CONFIG_RTC_HIRES
@@ -146,7 +146,8 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
       _hseRtcPrer = getreg32(STM32_RTC_PRER);
       if(_hseRtcPrer == 0)
       {
-        syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n", thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n",
+          thisFile, __LINE__);
         return -1;
       }
     }
@@ -159,8 +160,9 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
   {
     // Since the clock source is not HSE we are forced to use the hardcoded
     // values found in /arch/arm/src/stm32f7/stm32_rtc.c @510.
-    _hseRtcPrer = (uint32_t)PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_S_SHIFT |
-              (uint32_t)PWRMGMT_CLK_HSE_DIV_A_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_A_SHIFT;
+    _hseRtcPrer = \
+      (uint32_t)PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_S_SHIFT |
+      (uint32_t)PWRMGMT_CLK_HSE_DIV_A_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_A_SHIFT;
 
     // MEADOW_TRACE_DEBUG("Switching to HSE using hardcoded pre-scaler\n");
   }
@@ -169,7 +171,8 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
   ret = pwrmgmt_switch_rtc_as_per_args(RCC_BDCR_RTCSEL_HSE, _hseRtcPrer);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-HSE clock pre-scaler set error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-HSE clock pre-scaler set error\n",
+      thisFile, __LINE__);
     return -1;
   }
 
@@ -197,7 +200,8 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
       _hseRtcPrer = getreg32(STM32_RTC_PRER);
       if(_hseRtcPrer == 0)
       {
-        syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n", thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n",
+          thisFile, __LINE__);
         return -1;
       }
     }
@@ -215,15 +219,18 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
   // calibration factors saved at startup.
   if(pwrmgmt_get_lsi_calib_rtc_clk_value() == 0)
   {
-    syslog(LOG_ERR, "%s@%d-LSI BBR pre-scaler value is 0. It must be set\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-LSI BBR pre-scaler value is 0. It must be set\n",
+      thisFile, __LINE__);
     return -1;
   }
 
   // Switch to LSI clock.
-  ret = pwrmgmt_switch_rtc_as_per_args(RCC_BDCR_RTCSEL_LSI, pwrmgmt_get_lsi_calib_rtc_clk_value());
+  ret = pwrmgmt_switch_rtc_as_per_args(RCC_BDCR_RTCSEL_LSI,
+    pwrmgmt_get_lsi_calib_rtc_clk_value());
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-ERROR:Switching to LSI failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-ERROR:Switching to LSI failed\n",
+      thisFile, __LINE__);
     return -1;
   }
 

@@ -40,6 +40,8 @@
 // it, I decided to not use it because it made some assumptions about behavior
 // that I thought were not in line with how Meadow was to operate. That said
 // I did use the Nuttx implementation for "inspiration". Peter Moody 25Mar22
+// It may be that Nuttx's power management is now useable, but for the Rebase
+// project, we'll stick with the Legacy code. Peter Moody 21Jul26.
 
 /****************************************************************************
  * Included Files
@@ -99,7 +101,7 @@ static bool _firstTime = true;
 
 static sem_t _lowPwrCtrlEntry;
 
-// Space for n callbacks for notification of entering low-power mode
+// Space for callbacks for notification of entering low-power mode
 static pwr_mgmt_notify_callback _regCallback[PWR_MGMT_MAX_CALLBACKS_AVAILABLE];
 
 /************************************************************************************
@@ -113,6 +115,7 @@ static pwr_mgmt_notify_callback _regCallback[PWR_MGMT_MAX_CALLBACKS_AVAILABLE];
 // Notify subscribers that the power mode will change. This is not a full
 // featured implementation. The number that can signup is fixed at build
 // time and there's no unsubscribe.
+//
 // Possible future feature:
 // To allow a registered recipient to postpone the entry into low-power
 // would require first telling each recipient of the pending change. Each
@@ -223,7 +226,8 @@ int meadow_power_mgmt_initialize()
 
 //=======================================================================
 // This is the public entry point for mono to initiate entering stop mode.
-// It contains the steps to put F7 into Stop mode and recover
+// It contains the steps to put F7 into Stop mode and recover. If a
+// registered module can't connect it will return -EBUSY (-16).
 int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 {
   int ret;
@@ -235,7 +239,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(_firstTime)
   {
     _firstTime = false;
-    // Create semaphore to only allow single thread here
+    // Create semaphore to only allow single threaded access here
     sem_init(&_lowPwrCtrlEntry, 0, 1);
   }
 
@@ -278,7 +282,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   } while(true);
 
-  // This will route the message to app side and on to CLI.
+  // This will route a text message to app side and on to CLI.
   char *lowPowerNext = "Entering low-power mode\n";
   hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
             lowPowerNext, strlen(lowPowerNext));
@@ -291,8 +295,9 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   // Notify registered modules that low-power is about to begin.
   // Currently, (10Jul23) there are 3 modules that are notified before entering
-  // a low-power state. These are:hcom_host_receive, hcom_host_send,
+  // a low-power state. These are hcom_host_receive, hcom_host_send,
   // hcom_stdxxx_redirect.
+  // They have call hcom_via_nx_register_pwr_mgmt_callback() on the apps side.
   ret = pwrmgmt_notify_registered_modules(true);
   if(ret != OK)
   {
@@ -305,8 +310,9 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   pwrmgmt_idle_behavior_control(false);
 
   // Switch on LSI clock
-  // Note: this must be early because it does a backup domain reset which
-  // will clear some of the registers configured in the following steps.
+  // Note: this must be early in this configuration process because it does
+  // a backup domain reset, which would otherwise, clear some of the registers
+  // configured in the following steps.
   ret = meadow_pwr_mgmt_use_lsi_for_rtc();
   if(ret < 0)
   {
@@ -358,10 +364,10 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   //---------------------------------------------------------------------
   // Enter stop mode and wait for specified time to expire. Actually, not
-  // "waiting" but in stop mode. This call returns when the F7 has returned
-  // to normal operation.
+  // "waiting" but stopped. The pwrmgmt_enter_stop_mode() call returns when
+  // the F7 has returned to normal operation.
   // Note in this function we will leave the critical section just before
-  // entering low-power and reenter via ISR when time to wakeup.
+  // entering low-power and re-enter via ISR when time to wakeup.
   ret = pwrmgmt_enter_stop_mode();
   if(ret < 0)
   {
@@ -396,7 +402,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   pwrmgmt_idle_behavior_control(true);
 
   // Can now be reentered 
-    sem_post(&_lowPwrCtrlEntry);
+  sem_post(&_lowPwrCtrlEntry);
   return ret;
 }
 

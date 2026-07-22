@@ -152,7 +152,7 @@ int hcom_host_recv_setup()
 }
 
 //=======================================================================
-// This will be called when entering and after leaving low-power mode
+// This will be called before entering and after leaving low-power mode
 int hcom_host_recv_low_power_notification(bool lpStart)
 {
   int ret = OK;
@@ -162,7 +162,7 @@ int hcom_host_recv_low_power_notification(bool lpStart)
     // Low-Power mode is starting very soon
     _lowPowerSoon = true;
 
-    // Note: because the calling thread is from Kernal Land and this close
+    // Note: because the calling thread is from Kernel Land and this close
     // is attempting to close a fd assigned to a task, the user must be
     // becareful. The only thing I know of is that the fd must still be closed
     // by a member of this "Task Group." If this is not done the fd will be

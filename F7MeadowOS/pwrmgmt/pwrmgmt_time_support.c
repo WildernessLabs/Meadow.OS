@@ -113,10 +113,11 @@ static char *thisFile = __FILE__;
  ****************************************************************************/
 #if HCOM_INCLUDE_ISO8601_SUPPORT > 0
 
+// ** This function is incomplete **
+
 // Designed to be called by HCOM message when using ISO-8601 spec
 // Sets the low-power wakeup time. It accepts ether an absolute time of the
 // wakeup or a time duration.
-// ** This code is incomplete **
 int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
           size_t packetSize)
 {
@@ -200,8 +201,8 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
 #endif
 
 //===================================================================
-// Designed to be called by HCOM message
 // Set Date and Time in Nuttx
+// Designed to be called by a HCOM message
 int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
           size_t packetSize)
 {
@@ -326,10 +327,8 @@ int pwrmgmt_mono_cmd_time_read_clock(struct hcom_nx_cmd_data *cmdData)
 
   MEADOW_TRACE_DEBUG("HCOM-Sending time as '%s'\n", hostMsg);
   
-#if defined (CONFIG_TIME_EXTENDED)
-  MEADOW_TRACE_DEBUG("HCOM-FYI-Days since Sun:%d, Days since Jan 1:%03d\n",
+  MEADOW_TRACE_DEBUG("HCOM-Days since Sun:%d, Days since Jan 1:%03d\n",
             tmNow.tm_wday + 1, tmNow.tm_yday);
-#endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
           hostMsg, __FILE__, __LINE__);
