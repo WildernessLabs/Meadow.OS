@@ -1,7 +1,7 @@
 /****************************************************************************
- * Meadow.OS/kerneltests/power_management_tests.c
+ * F7MeadowOS/kerneltests/power_management_tests.c
  * 
- *   Copyright (C) 2019 - 2024 Wilderness Labs. All rights reserved.
+ *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,11 +79,9 @@
 #define TEST_PIN_V2_D04_IN    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN9)
 #endif
 
-// Diagnostic always as this is test code
 // #define USE_MEADOW_DEBUG_HELPERS
 #undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
-
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -92,9 +90,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-#if defined (CONFIG_POWER_MANAGEMENT_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-// static char *thisFile = __FILE__;
-#endif
 
 /************************************************************************************
  * Public Data
@@ -196,7 +191,7 @@ void meadow_kt_power_management_tests(uint32_t userData)
         testCount);
       usleep(20 * 1000);
       
-      // Used to verify that multiple sleep events can succeed
+      // Used to verify that multiple sleep events can succeed, one after the next
       pwrmgmt_enter_test_sleep_x_times_for_y_seconds();
       break;
     

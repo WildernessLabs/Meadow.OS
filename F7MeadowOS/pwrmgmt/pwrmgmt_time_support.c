@@ -327,10 +327,8 @@ int pwrmgmt_mono_cmd_time_read_clock(struct hcom_nx_cmd_data *cmdData)
 
   MEADOW_TRACE_DEBUG("HCOM-Sending time as '%s'\n", hostMsg);
   
-#if defined (CONFIG_TIME_EXTENDED)
-  MEADOW_TRACE_DEBUG("HCOM-FYI-Days since Sun:%d, Days since Jan 1:%03d\n",
+  MEADOW_TRACE_DEBUG("HCOM-Days since Sun:%d, Days since Jan 1:%03d\n",
             tmNow.tm_wday + 1, tmNow.tm_yday);
-#endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
           hostMsg, __FILE__, __LINE__);
