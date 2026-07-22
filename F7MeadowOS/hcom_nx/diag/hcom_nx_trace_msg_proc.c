@@ -128,11 +128,7 @@ static void hcom_nx_uart_direct(int priority, const char *outputMsg, ...);
 static uint32_t hcom_nx_trace_get_time_ms(void)
 {
   struct timespec ts;
-#ifdef CONFIG_CLOCK_MONOTONIC
   clock_gettime(CLOCK_MONOTONIC, &ts);
-#else
-  clock_gettime(CLOCK_REALTIME, &ts);
-#endif
   return(((uint32_t)ts.tv_sec * MSEC_PER_SEC) + ts.tv_nsec / NSEC_PER_MSEC);
 }
 

@@ -118,11 +118,7 @@ int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd)
 static uint64_t hcom_nx_utils_get_current_time64(void)
 {
   struct timespec ts;
-#ifdef CONFIG_CLOCK_MONOTONIC
   clock_gettime(CLOCK_MONOTONIC, &ts);
-#else
-  clock_gettime(CLOCK_REALTIME, &ts);
-#endif
   return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
 }
 
