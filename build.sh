@@ -176,7 +176,9 @@ if $WLCLEAN || $CLEAN; then
     find $scriptdir/apps/examples -name "*.o" -type f -exec rm {} \;
     find $scriptdir/apps/system -name "*.o" -type f -exec rm {} \;
     find $scriptdir/F7MeadowOS -name "*.o" -type f -exec rm {} \;
+    printf "Cleaning NuttX..."
     run_command "make -C $scriptdir/nuttx clean -j8"
+    check_command_status
     run_command "make $MEADOW_ADDITIONAL_MAKE_OPTIONS -C $scriptdir/bootloader/Debug clean"
     #
     # Sometimes the libapps.a file can become corrupt due to a previously failed
@@ -204,9 +206,11 @@ if $FORCE; then
 fi
 
 if [ ! -r "$scriptdir/nuttx/.config" ]; then
-    printf "Configuring NuttX...\n"
+    printf "Configuring NuttX..."
     run_command "$scriptdir/nuttx/tools/configure.sh $NUTTX_CONFIG"
+    check_command_status
 
+    printf "Building NuttX context..."
     run_command "make -C $scriptdir/nuttx context"
     check_command_status
 fi
