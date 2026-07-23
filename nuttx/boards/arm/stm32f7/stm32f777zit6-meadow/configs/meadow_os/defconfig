@@ -280,7 +280,7 @@ CONFIG_WATCHDOG=y
 # CONFIG_EXAMPLES_MONO_STACKSIZE=65536
 
 #
-# The following are set in Legacy but not here.
+#   The following are set in Legacy but not here.
 #
 # CONFIG_STM32F7_I2C1=y
 # CONFIG_STM32F7_I2C3=y
@@ -338,8 +338,6 @@ CONFIG_WATCHDOG=y
 # CONFIG_NFILE_STREAMS=8
 # CONFIG_NPTHREAD_KEYS=32
 # CONFIG_PTHREAD_CLEANUP_STACKSIZE=8
-# CONFIG_USERMAIN_STACKSIZE=65536
-# CONFIG_USER_ENTRYPOINT="hcom_main"
 
 #
 #	By default we turn the tests off and the build script can 
