@@ -260,6 +260,7 @@ CONFIG_UART5_RXBUFSIZE=512
 CONFIG_UART5_TXBUFSIZE=512
 CONFIG_STM32F7_SERIAL_DISABLE_REORDERING=y
 CONFIG_WATCHDOG=y
+
 #
 #   Turning the following off for the minute.  These variables seem to be used
 #   for debugging dynamic libraries like Tensorflow.
@@ -267,6 +268,7 @@ CONFIG_WATCHDOG=y
 # CONFIG_DEBUG_BINFMT=y
 # CONFIG_DEBUG_BINFMT_ERROR=y
 # CONFIG_DEBUG_BINFMT_WARN=y
+
 #
 #   Need investigation.
 #
@@ -282,17 +284,34 @@ CONFIG_WATCHDOG=y
 #
 #   The following are set in Legacy but not here.
 #
+
+#
+#   Turn on I2C and close issue https://github.com/WildernessLabs/Meadow.OS/issues/205
+#
 # CONFIG_STM32F7_I2C1=y
 # CONFIG_STM32F7_I2C3=y
+
+#
+#   Turn on PWM and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/206
+#
 # CONFIG_PWM=y
 # CONFIG_PWM_MULTICHAN=y
 # CONFIG_PWM_NCHANNELS=4
+
+#
+#   Turn on SPIDMA and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/207
+#
 # CONFIG_STM32F7_SPI2_DMA=y
 # CONFIG_STM32F7_SPI3=y
 # CONFIG_STM32F7_SPI3_DMA=y
 # CONFIG_STM32F7_SPI5=y
 # CONFIG_STM32F7_SPI5_DMA=y
 # CONFIG_STM32F7_SPI_DMA=y
+
+#
+#   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
+#
+# CONFIG_MEADOW_CLOUD=y
 
 # CONFIG_ARCH_STDARG_H=y
 # CONFIG_DEV_GPIO=y
@@ -326,7 +345,6 @@ CONFIG_WATCHDOG=y
 # CONFIG_SYSTEM_READLINE=y
 # CONFIG_SYS_NNEST=4
 # CONFIG_TIMER=y
-# CONFIG_MEADOW_CLOUD=y
 # CONFIG_RTC_NALARMS=2
 
 #
