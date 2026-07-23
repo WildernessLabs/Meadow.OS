@@ -290,10 +290,6 @@ CONFIG_FDCLONE_STDIO=y
 # CONFIG_EXAMPLES_MONO_STACKSIZE=65536
 
 #
-#   The following are set in Legacy but not here.
-#
-
-#
 #   Turning on the DEBUG_FEATURES causes the board to crash, see issue: https://github.com/WildernessLabs/Meadow.OS/issues/209
 #
 CONFIG_DEBUG_INFO=y
