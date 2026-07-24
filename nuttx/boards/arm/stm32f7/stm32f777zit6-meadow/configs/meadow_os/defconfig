@@ -249,6 +249,139 @@ CONFIG_NET_USRSOCK=y
 CONFIG_W25QXXXJV_QSPI_FREQUENCY=100000000
 CONFIG_LIBM_TOOLCHAIN=y
 CONFIG_LIB_SQLITE=y
+CONFIG_LIBC_STRERROR=y
+CONFIG_UART4_RXBUFSIZE=512
+CONFIG_UART4_TXBUFSIZE=512
+CONFIG_UART5_RXBUFSIZE=512
+CONFIG_UART5_TXBUFSIZE=512
+CONFIG_STM32F7_SERIAL_DISABLE_REORDERING=y
+CONFIG_WATCHDOG=y
+CONFIG_MMCSD_MULTIBLOCK_LIMIT=1
+CONFIG_NFILE_DESCRIPTORS_PER_BLOCK=32
+CONFIG_IOB_NBUFFERS=24
+CONFIG_SERIAL_TERMIOS=y
+CONFIG_SYSTEM_READLINE=y
+CONFIG_SYS_NNEST=4
+CONFIG_PREALLOC_TIMERS=4
+CONFIG_PSEUDOTERM=y
+CONFIG_TIMER=y
+CONFIG_RTC_NALARMS=2
+CONFIG_FDCLONE_DISABLE=y
+CONFIG_FDCLONE_STDIO=y
+CONFIG_EXAMPLES_PPPD=y
+CONFIG_NETUTILS_CMUX=y
+CONFIG_PTHREAD_MUTEX_TYPES=y
+
+#
+#   Turning the following off for the minute.  These variables seem to be used
+#   for debugging dynamic libraries like Tensorflow.
+#
+# CONFIG_DEBUG_BINFMT=y
+# CONFIG_DEBUG_BINFMT_ERROR=y
+# CONFIG_DEBUG_BINFMT_WARN=y
+
+#
+#   Need investigation.
+#
+# CONFIG_LIBC_ENVPATH=y
+# CONFIG_BOARDCTL_IOCTL=y
+
+#
+#   Leaving here as a reference for when Mono is integrated.
+#
+# CONFIG_EXAMPLES_MONO=y
+# CONFIG_EXAMPLES_MONO_STACKSIZE=65536
+
+#
+#   Turning on the DEBUG_FEATURES causes the board to crash, see issue: https://github.com/WildernessLabs/Meadow.OS/issues/209
+#
+CONFIG_DEBUG_INFO=y
+CONFIG_DEBUG_WARN=y
+CONFIG_DEBUG_ERROR=y
+# CONFIG_DEBUG_FEATURES=y
+
+#
+#   Turn on I2C and close issue https://github.com/WildernessLabs/Meadow.OS/issues/205
+#
+# CONFIG_STM32F7_I2C1=y
+# CONFIG_STM32F7_I2C3=y
+
+#
+#   Turn on PWM and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/206
+#
+# CONFIG_PWM=y
+# CONFIG_PWM_MULTICHAN=y
+# CONFIG_PWM_NCHANNELS=4
+
+#
+#   Turn on SPIDMA and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/207
+#
+# CONFIG_STM32F7_SPI2_DMA=y
+# CONFIG_STM32F7_SPI3=y
+# CONFIG_STM32F7_SPI3_DMA=y
+# CONFIG_STM32F7_SPI5=y
+# CONFIG_STM32F7_SPI5_DMA=y
+# CONFIG_STM32F7_SPI_DMA=y
+
+#
+#   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
+#
+# CONFIG_MEADOW_CLOUD=y
+
+#
+#   Not sure if we need this.
+#
+# CONFIG_ARCH_STDARG_H=y
+
+#
+#   Do we need this as I think we write directly to registers.
+#
+# CONFIG_DEV_GPIO=y
+
+#
+#   Not sure we need this as any IO expanders are dealt with in managed land.
+#
+# CONFIG_IOEXPANDER=y
+
+#
+#   This turn on mmap and I don't know if we use this.
+#
+# CONFIG_FS_RAMMAP=y
+
+#
+#   I don't think we need this as it is a command line editor.
+#
+# CONFIG_SYSTEM_CLE=y
+
+#
+#   Described as a client to fetch files from a web server.
+#   I think this would all be done from managed code and so is not needed.
+#
+# CONFIG_NETUTILS_WEBCLIENT=y
+
+# CONFIG_LIBM=y
+
+CONFIG_NETDB_HOSTFILE=y
+CONFIG_NETUTILS_DISCOVER=y
+
+#
+#   Renamed
+#
+# CONFIG_NET_TCP_CONNS=16
+NET_TCP_PREALLOC_CONNS=8
+NET_TCP_ALLOC_CONNS=8
+
+# CONFIG_NPTHREAD_KEYS=32
+CONFIG_TLS_NELEM=32
+
+# CONFIG_PTHREAD_CLEANUP_STACKSIZE=8
+CONFIG_TLS_NCLEANUP=8
+
+# CONFIG_NFILE_STREAMS=8
+CONFIG_FILE_STREAM=y
+
+# CONFIG_NFILE_DESCRIPTORS=32
+CONFIG_NFILE_DESCRIPTORS_PER_BLOCK=32
 
 
 #
@@ -282,3 +415,4 @@ CONFIG_USR_WORK_TESTS=n
 CONFIG_MEADOW_INTERRUPT_TESTS=n
 CONFIG_ALL_MEADOW_TESTS=n
 CONFIG_KERNEL_TESTS_SYSCALL=n
+CONFIG_SQLLITE_TESTS=n

@@ -368,7 +368,11 @@ exit:
 
 static void ota_rsa_keygen (unsigned char *private_key_pem, unsigned char *public_key_pem)
 {
-    int ret;
+    //
+    //  Marking ret as unused incase the asserts are compiled out as it would generate
+    //  a warning about an unused variable otherwise.
+    //
+    int  __attribute__((unused)) ret;
     ota_rsa_init();
 
     ret = mbedtls_rsa_gen_key (mbedtls_pk_rsa (key),
