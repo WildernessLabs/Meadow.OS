@@ -436,95 +436,37 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
   }
 
   //----------------------------------------------------------
-  // Get the channel data first to be used in common code
+  // This part of the ISR has optimized to remove an unneeded loop.
   // stm32_gpiowrite(DEBUG_PIN_V2_D06, true);    // Diagnostic only
 
-  mdwFreqChanData_t *isrChanData[4];  // Pointer to channels data
-  uint32_t           isrCapCounts[4]; // Current captured values
+  // CC1IF..CC4IF occupy SR bits 1-4 (see GTIM_SR_CCxIF). Shifted right by 1
+  // they line up exactly with ACTIVE_CHAN_BITFIELD_1..4 (bits 0-3), so a
+  // single mask tells us which channels are both pending and configured.
+  uint8_t pendingCCBits = (timStatusReg >> 1) & 0x0f;
 
-  // Memory off the stack is always dirty so set to NULL
-  for(int chan = 0; chan < MEADOW_FREQ_MAX_TIMER_CHANNELS; chan++)
-    isrChanData[chan] = NULL;
+  // All fired CCxIF flags must be cleared here, even for channels that
+  // aren't configured, or the interrupt would immediately re-fire.
+  timStatusReg &= ~(pendingCCBits << 1);
 
-  if(timStatusReg & GTIM_SR_CC1IF)    // Channel 1
+  uint8_t pendingActive = pendingCCBits & mdwFreqTimerInfo->chanActiveBits;
+
+  // CCR1-CCR4 are contiguous 32-bit registers, so index them directly
+  // instead of one getreg32() call per channel.
+  volatile uint32_t *ccr =
+            (volatile uint32_t *)(timerBase + STM32_GTIM_CCR1_OFFSET);
+
+  while(pendingActive)
   {
-    timStatusReg &= ~GTIM_SR_CC1IF;
+    int chan = __builtin_ctz(pendingActive);
+    pendingActive &= pendingActive - 1;    // Clear lowest set bit, move on
 
-    // Ignore interrupt if channel not configured
-    if(mdwFreqTimerInfo->chanActiveBits & ACTIVE_CHAN_BITFIELD_1)
-    {
-      isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_1] = 
-              mdwFreqTimerInfo->mdwFreqChanData[FREQ_CHAN_DATA_OFFSET_CHAN_1];
-      if(isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_1] == NULL)
-      {
-        syslog(LOG_ERR, "%s@%d-Error:Channel 1 is NULL\n", __FILE__, __LINE__);
-        return -ENXIO;  // No such device or address
-      }
+    mdwFreqChanData_t *mdwFreqChanData = mdwFreqTimerInfo->mdwFreqChanData[chan];
 
-      isrCapCounts[FREQ_CHAN_DATA_OFFSET_CHAN_1] = getreg32(timerBase + STM32_GTIM_CCR1_OFFSET);
-    }
-  }
-  
-  if(timStatusReg & GTIM_SR_CC2IF)    // Channel 2
-  {
-    timStatusReg &= ~GTIM_SR_CC2IF;
-    if(mdwFreqTimerInfo->chanActiveBits & ACTIVE_CHAN_BITFIELD_2)
-    {
-      isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_2] = 
-              mdwFreqTimerInfo->mdwFreqChanData[FREQ_CHAN_DATA_OFFSET_CHAN_2];
-      if(isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_2] == NULL)
-      {
-        syslog(LOG_ERR, "%s@%d-Error:Channel 2 is NULL\n", __FILE__, __LINE__);
-        return -ENXIO;
-      }
+    // chanActiveBits is only set after mdwFreqChanData[chan] is allocated
+    // (see meadow_measure_freq_configure), so this should never be NULL.
+    DEBUGASSERT(mdwFreqChanData != NULL);
 
-      isrCapCounts[FREQ_CHAN_DATA_OFFSET_CHAN_2] = getreg32(timerBase + STM32_GTIM_CCR2_OFFSET);
-    }
-  }
-
-  if(timStatusReg & GTIM_SR_CC3IF)    // Channel 3
-  {
-    timStatusReg &= ~GTIM_SR_CC3IF;
-    if(mdwFreqTimerInfo->chanActiveBits & ACTIVE_CHAN_BITFIELD_3)
-    {
-      isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_3] = 
-              mdwFreqTimerInfo->mdwFreqChanData[FREQ_CHAN_DATA_OFFSET_CHAN_3];
-      if(isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_3] == NULL)
-      {
-        syslog(LOG_ERR, "%s@%d-Error:Channel 3 is NULL\n", __FILE__, __LINE__);
-        return -ENXIO;
-      }
-
-      isrCapCounts[FREQ_CHAN_DATA_OFFSET_CHAN_3] = getreg32(timerBase + STM32_GTIM_CCR3_OFFSET);
-    }
-  }
-  
-  if(timStatusReg & GTIM_SR_CC4IF)    // Channel 4
-  {
-    timStatusReg &= ~GTIM_SR_CC4IF;
-    if(mdwFreqTimerInfo->chanActiveBits & ACTIVE_CHAN_BITFIELD_4)
-    {
-      isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_4] = 
-              mdwFreqTimerInfo->mdwFreqChanData[FREQ_CHAN_DATA_OFFSET_CHAN_4];
-      if(isrChanData[FREQ_CHAN_DATA_OFFSET_CHAN_4] == NULL)
-      {
-        syslog(LOG_ERR, "%s@%d-Error:Channel 4 is NULL\n", __FILE__, __LINE__);
-        return -ENXIO;
-      }
-
-      isrCapCounts[FREQ_CHAN_DATA_OFFSET_CHAN_4] = getreg32(timerBase + STM32_GTIM_CCR4_OFFSET);
-    }
-  }
-
-  //----------------------------------------------------------
-  // Channels 1 - 4
-  for(int chan = 0; chan < MEADOW_FREQ_MAX_TIMER_CHANNELS; chan++)
-  {
-    mdwFreqChanData_t *mdwFreqChanData = isrChanData[chan];
-    if(isrChanData[chan] == NULL)
-    {
-      continue;
-    }
+    uint32_t isrCapCount = ccr[chan];
 
     //----------------------------------------------------------
     // Lastly capture the needed data for each register
@@ -544,7 +486,7 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
         mdwFreqChanData->midResultOvr = mdwFreqChanData->midCaptureOvr;
 
         // Capture end count and current overflow count
-        mdwFreqChanData->endResultCnt = isrCapCounts[chan];
+        mdwFreqChanData->endResultCnt = isrCapCount;
         mdwFreqChanData->endResultOvr = mdwFreqTimerInfo->timerOverflow;
 
         // The following is for calculating average frequency
@@ -553,7 +495,7 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
       else
       {
         // Duty cycle falling edge
-        mdwFreqChanData->midCaptureCnt = isrCapCounts[chan];
+        mdwFreqChanData->midCaptureCnt = isrCapCount;
         mdwFreqChanData->midCaptureOvr = mdwFreqTimerInfo->timerOverflow;
       }
     }
@@ -567,7 +509,7 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
       mdwFreqChanData->midResultOvr = mdwFreqChanData->midCaptureOvr;
 
       // End is now
-      mdwFreqChanData->endResultCnt = isrCapCounts[chan];
+      mdwFreqChanData->endResultCnt = isrCapCount;
       mdwFreqChanData->endResultOvr = mdwFreqTimerInfo->timerOverflow;
 
       // For calculating average frequency
@@ -665,6 +607,8 @@ static uint8_t meadow_measure_freq_get_channel_bit(const uint32_t timerChan)
 //==================================================================
 // Get the current time in nanoseconds. This is used for the average
 // frequency calculations.
+// Note: Since reading of frequency information is asynchronous with their
+// calculation, the average frequence will vary a bit.
 static uint64_t meadow_measure_freq_get_current_time(void)
 {
   int ret;
@@ -673,14 +617,14 @@ static uint64_t meadow_measure_freq_get_current_time(void)
   long prevNsecs;
   uint64_t returnTime;
 
-  // This function reads the date, time and sub-seconds from the MCU's
-  // hardware into a struct tm. However, the STM32F77X Errata warns about a
-  // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
-  // register not locked properly. Therefore, we'll implement the workaround
-  // by reading the nsec twice and compare, if different repeat till equal.
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
   do
   {
+    // This function reads the date, time and sub-seconds from the MCU's
+    // hardware into a struct tm. However, the STM32F77X Errata warns about a
+    // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
+    // register not locked properly. Therefore, we'll implement the workaround
+    // by reading the nsec twice and compare, if different repeat till equal.
     ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &prevNsecs);
     if(ret < 0)
     {
@@ -1537,6 +1481,8 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   returnData->gpioCountForAvg   = (uint32_t)dblTotalInputCount;
 
   // Reset capture counts and Meadow time for next average
+  // Since reading the information is asynchronous with these calculation
+  // the average frequence can vary a bit.
   mdwFreqChanData->gpioCountForAvg = 0;
   mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
 

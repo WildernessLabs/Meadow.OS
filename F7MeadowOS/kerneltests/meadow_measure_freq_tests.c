@@ -211,9 +211,15 @@ void meadow_kt_measure_freq_tests(uint32_t userData)
   // 4th digit = channel number (1-4)
   switch(userData)
   {
-    case 1:
-      syslog(LOG_MTEST, "%s@%d-Invalid test:%lu\n",
-        __FILE__, __LINE__, userData);
+    // Catch all unsupported tests
+    default:
+#if (MEADOW_FREQ_MEAS_TEST_USE_SYSLOG_OUTPUT > 0)
+      syslog(LOG_MTEST, "meadow_measure_freq_tests, no test:%lu\n",
+        userData);
+#else
+    syslogToHost(LOG_MTEST, "meadow_measure_freq_tests, no test:%lu\n",
+      userData);
+#endif
       break;
     
     //--------------------------------------------------------------
@@ -427,16 +433,6 @@ void meadow_kt_measure_freq_tests(uint32_t userData)
       mdwFreqReturnData.channelNumber = 1;
       ret = meadow_measure_freq_return_freq_info(&mdwFreqReturnData);
       display_frequency_and_friends(mdwFreqReturnData, ret);
-      break;
-      
-    default:
-#if (MEADOW_FREQ_MEAS_TEST_USE_SYSLOG_OUTPUT > 0)
-      syslog(LOG_MTEST, "meadow_measure_freq_tests, no test:%lu\n",
-        userData);
-#else
-    syslogToHost(LOG_MTEST, "meadow_measure_freq_tests, no test:%lu\n",
-      userData);
-#endif
       break;
   }
 
