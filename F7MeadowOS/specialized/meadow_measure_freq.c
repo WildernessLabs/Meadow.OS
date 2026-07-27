@@ -57,13 +57,17 @@
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_measure_freq_shared.h>
 
-//=====================================================
+#if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 // #define USE_MEADOW_DEBUG_HELPERS
+#undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-// #pragma message "(--) meadow_measure_freq.c"
-// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
+#pragma message "(--) meadow_measure_freq.c"
+#pragma GCC optimize("O0")    // Prevent compiler from changing the code
+#endif
 
+//=====================================================
+// Preprocessor defines
 #define MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP (0)
 
 // Adds syslog diagnostic output
@@ -93,7 +97,8 @@
  ****************************************************************************/
 // This array contains timer information most of which is fixed by the
 // STM32F7's hardware. It contains each F7 timer and a flag for useability
-// (TIM1, TIM6, TIM7 and TIM8 are not usable).
+// (TIM1, TIM6, TIM7 and TIM8 are not usable) and some timer numbers don't
+// exist in the STM32F777IIK6 we use.
 // See 'struct mdwFreqTimerInfo_s' for exact field usage.
 static mdwFreqTimerInfo_t mdwFreqTimerInfoArray[] =
 {
@@ -118,22 +123,22 @@ static mdwFreqTimerInfo_t mdwFreqTimerInfoArray[] =
 
 // Unused Timers TIM1, TIM6, TIM7 and TIM8
 // TIM1 and TIM8 are "Advanced-control timers" For example, instead of 1 IRQ
-//  each both timers have 4 IRQs each. This alone makes them incompatible with
-//  this implementation.
-// TIM6 and TIM7 have no ability to connect to a GPIO. They are called Basic
-//  Timers.
+//  for the timer, these have 4 IRQs timer. This alone makes them incompatible
+//  with this implementation.
+// TIM6 and TIM7 are called Basic Timers and have no ability to connect to a
+//  GPIO.
 
 //----------------------------------------------------------------------------
 // This table contains all of the STM32F7's timers and their valid GPIOs with
 // channel. It is used for F7v1 and F7v2 and CCM. It should be able to verify
 // any timer, GPIO combination.
 //
-// To save perhaps 50% in memory usage, this array could be refactored into 2
-// arrays. Both would be have one dimension. The first would be an timer
-// offset table with 14 elements. The other would be the timer information
-// array. Access the first table using (timer number - 1) as offset and use
-// the offset found to calculate the a pointer into the timer informational
-// table.
+// Each Pin, timer takes 2 bytes. To save perhaps 50% in memory usage, this
+// array could be refactored into 2 arrays. Both would be have one dimension.
+// The first would be an timer offset table with 14 elements. The other would
+// be the timer information array. Access the first table using
+// (timer number - 1) as offset and use the offset found to calculate the a
+// pointer into the timer informational table.
 mdwFreqChanPortPin_t validStm32F7GpioArray[][MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER] = 
 {
   /* Tim 1 */
@@ -408,22 +413,17 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
   uint16_t timStatusReg = getreg16(timerBase + STM32_GTIM_SR_OFFSET);
 
   //----------------------------------------------------------
-  // Check UIF (Update Interrupt Flag), which indicates CNT changed.
+  // Check UIF (Update Interrupt Flag), which indicates CNT changed. In our
+  // case timer rollover. Rollover for 16-bit timer is:
+  // 1.08 MHz / 65536 = 16.479 times/second.
   if(timStatusReg & GTIM_SR_UIF)
   {
     timStatusReg &= ~GTIM_SR_UIF;
 
-    // What we have is both 16/32-bit timer counts.The 16-bit timers rollover
-    // multiple times per second. This is not good. Therefore, we use another
-    // 32-bit uint for the overflow value. This approach effectively adds
-    // 32-bits to each timer's length.
-    //
-    // Note: with a 96 MHz clock a 16-bit timer will rollover every 683
-    // microseconds and at 960 kHz it will rollover every 68.3 milliseconds,
-    // about 14.6 times/second.
-    //
-    // This overflow value is for the entire timer. It will be used in
-    // conjunction with the captured values to calculate the frequency.
+    // What we have are both 16/32-bit timer counts.The 16-bit timers rollover
+    // multiple times per second. Therefore, we use another 32-bit uint for
+    // the overflow value. This approach effectively adds 32-bits to each
+    // timer's length.
     mdwFreqTimerInfo->timerOverflow++;
   }
 
@@ -559,7 +559,7 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
     }
     else
     {
-      // Not using duty cycle. Raising edge only. This is end of
+      // Not using duty cycle. Raising edge only. This is the end of
       // previous capture and the beginning of a new capture.
       mdwFreqChanData->bgnResultCnt = mdwFreqChanData->endResultCnt;
       mdwFreqChanData->bgnResultOvr = mdwFreqChanData->endResultOvr;
@@ -1197,9 +1197,9 @@ int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
   apbClock = meadow_measure_freq_get_apb_clock(mdwFreqTimerInfo);
   modifyreg32(apbClock, 0, mdwFreqTimerInfo->timerClkEn);
 
-  // Must be between 0 and 0xffff. Set the prescaler value of 0 to allow
-  // highest speed, allowed by MEADOW_FREQ_CLOCK_FREQ.
-  // A prescaler value of 1 will divide the clock by 2.
+  // Must be between 0 and 0xffff. Setting the prescaler value to 0 to allow
+  // highest speed.
+  //Note: A prescaler value of 1 will divide the clock by 2.
   uint16_t prescaler = (meadow_measure_freq_get_max_clock(mdwFreqTimerInfo)/ \
             (MEADOW_FREQ_CLOCK_FREQ) - 1);
   putreg16(prescaler, timerBase + STM32_GTIM_PSC_OFFSET);
@@ -1394,6 +1394,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 }
 
 //================================================================
+// Public entry point
 // Return Frequency and Duty Cycle information to caller.
 int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
 {
@@ -1467,7 +1468,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     return MEADOW_MEAS_FREQ_READ_NO_CHANS_ACTIVE;
   }
 
-  // Any activity since last this code was last executed?
+  // Any activity since last time this code was last executed?
   if(mdwFreqChanData->gpioCountForAvg == 0)
   {
     returnData->dutyCycleX1000  = 0;
@@ -1511,7 +1512,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     dblDutyCycle = (((double)halfCycle) * 100.0) / ((double)fullCycle);
   else
     dblDutyCycle = 0;
-    
+
   // The dblFrequency is the timer's clock divided by the cycle count.
   dblFrequency = ((double)MEADOW_FREQ_CLOCK_FREQ) / ((double)fullCycle);
 

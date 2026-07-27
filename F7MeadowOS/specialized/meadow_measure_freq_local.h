@@ -45,14 +45,13 @@
 #include <stdint.h>
 #include "stm32_gpio.h"   // stm32_configgpio
 
-// 96 MHz is top speed. Since the interrupts are based on edges,
-// the only reason for slowing the clock would be to slow down the
-// number of overflows for a 16-bit timer (see comments below in ISR).
+// Since the interrupts are based on edges, the only reason for slowing the
+// clock would be to slow down the number of overflows for a 16-bit timer
+// (see comments in ISR).
 // The clock speed can only be even multiples of the system clock.
 // See board.h for details.
-// #define MEADOW_FREQ_CLOCK_FREQ (96000000) // 96 MHz target frequency
-// For current application reduce clock speed by 100x
-#define MEADOW_FREQ_CLOCK_FREQ (960000)       // 960kHz
+// For current application reduce clock speed by ((216/2)/100) = 1.08MHz
+#define MEADOW_FREQ_CLOCK_FREQ ((STM32_SYSCLK_FREQUENCY/2)/100)
 
 //=====================================================
 #define MEADOW_FREQ_MAX_TIMER_CHANNELS     (4)
