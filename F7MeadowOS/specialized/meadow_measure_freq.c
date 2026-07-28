@@ -645,7 +645,7 @@ static uint64_t meadow_measure_freq_get_current_time(void)
   } while (1);
 #else
   // This function is used if no sub-seconds.
-  ret = up_rtc_getdatetime(&rtcTime)
+  ret = up_rtc_getdatetime(&rtcTime);
   nsecs = 0;
 #endif
 
@@ -976,6 +976,8 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR, "%s@%d-Error:stm32_configgpio() returned:%d\n",
               __FILE__, __LINE__, ret);
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
+    mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
+    mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
     return MEADOW_MEAS_FREQ_CONF_CONFIGGPIO_ERR;   // Not supported
   }
 
@@ -991,6 +993,8 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR, "%s@%d-Error:Channel hardware init failed:%d\n",
               __FILE__, __LINE__, ret);
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
+    mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
+    mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
     return MEADOW_MEAS_FREQ_CONF_INIT_CHAN_HW_FAIL;
   }
 
@@ -1004,6 +1008,8 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       syslog(LOG_ERR, "%s@%d-Error:Timer hardware init failed:%d\n",
                 __FILE__, __LINE__, ret);
       free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
+      mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
+      mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
       return MEADOW_MEAS_FREQ_CONF_INIT_TIM_HW_FAIL;
     }
   }
@@ -1273,7 +1279,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       putreg32(regVal32, timerBase + STM32_GTIM_CCMR2_OFFSET);
 
       channelBit &= ~ACTIVE_CHAN_BITFIELD_4;
-      ccerRegVal &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC2NP);
+      ccerRegVal &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
       dierRegVal &= ~GTIM_DIER_CC4IE;
       break;
   }
@@ -1332,7 +1338,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 
   // Free channel runtime memory
   free(mdwFreqChanData);
-  mdwFreqChanData = NULL;
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
 
   return MEADOW_MEAS_FREQ_UNCFG_SUCCESSFUL;
 }
@@ -1404,16 +1410,35 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     return MEADOW_MEAS_FREQ_READ_CHANNEL_DATA_NULL;
   }
 
-  // Does this timer have any channels?
-  if(mdwFreqTimerInfo->chanActiveBits == 0)
-  {
-    // This should be impossible state
-    syslog(LOG_ERR, "%s@%d-Error:No channels active\n", __FILE__, __LINE__);
-    return MEADOW_MEAS_FREQ_READ_NO_CHANS_ACTIVE;
-  }
+  // The fields below are written by the ISR at interrupt context, so they
+  // must be snapshotted (and gpioCountForAvg reset) atomically with respect
+  // to it. Otherwise a torn read could pair a stale 'bgn'/'mid' with a
+  // fresh 'end', or lose a count increment that lands between the read and
+  // the reset.
+  bool useDutyCycle;
+  uint32_t bgnResultCnt, bgnResultOvr, midResultCnt, midResultOvr;
+  uint32_t endResultCnt, endResultOvr;
+  uint64_t gpioCountForAvg;
+  uint64_t startTimeForAvg;
+
+  irqstate_t flags = enter_critical_section();
+
+  useDutyCycle    = mdwFreqChanData->useDutyCycle;
+  bgnResultCnt    = mdwFreqChanData->bgnResultCnt;
+  bgnResultOvr    = mdwFreqChanData->bgnResultOvr;
+  midResultCnt    = mdwFreqChanData->midResultCnt;
+  midResultOvr    = mdwFreqChanData->midResultOvr;
+  endResultCnt    = mdwFreqChanData->endResultCnt;
+  endResultOvr    = mdwFreqChanData->endResultOvr;
+  gpioCountForAvg = mdwFreqChanData->gpioCountForAvg;
+  startTimeForAvg = mdwFreqChanData->startTimeForAvg;
+
+  mdwFreqChanData->gpioCountForAvg = 0;
+
+  leave_critical_section(flags);
 
   // Any activity since last time this code was last executed?
-  if(mdwFreqChanData->gpioCountForAvg == 0)
+  if(gpioCountForAvg == 0)
   {
     returnData->dutyCycleX1000  = 0;
     returnData->frequencyX1000  = 0;
@@ -1422,7 +1447,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
 
     // Reset capture time for next average
     mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
-  
+
     syslog(LOG_ERR, "%s@%d-Error:No freq input since last read\n",
               __FILE__, __LINE__);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
@@ -1435,24 +1460,34 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   else
     regOvrFloTimSize = MEADOW_FREQ_16_BIT_OVERFLOW_COUNT;
 
-  uint64_t ovrFloStartCnt = mdwFreqChanData->bgnResultOvr;
+  uint64_t ovrFloStartCnt = bgnResultOvr;
 
   // Add in the overflow counts
-  bgnCapture = mdwFreqChanData->bgnResultCnt + \
-        ((mdwFreqChanData->bgnResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
-  midCapture = mdwFreqChanData->midResultCnt + \
-        ((mdwFreqChanData->midResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
-  endCapture = mdwFreqChanData->endResultCnt + \
-        ((mdwFreqChanData->endResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
-  
+  bgnCapture = bgnResultCnt + \
+        ((bgnResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+  midCapture = midResultCnt + \
+        ((midResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+  endCapture = endResultCnt + \
+        ((endResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+
   // Normalize from the beginning
   fullCycle = endCapture - bgnCapture;
   halfCycle = midCapture - bgnCapture;
 
+  // A zero-length cycle is only possible if an edge landed exactly on
+  // CNT==0 on the very first capture; guard against the divide-by-zero
+  // below rather than propagating inf/NaN into the uint32_t return fields.
+  if(fullCycle == 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:Zero-length cycle, discarding sample\n",
+              __FILE__, __LINE__);
+    return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
+  }
+
   // To preserve resolution, use floating point math.
   // Duty Cycle is the ratio of the full cycle count and the cycle count
   // before the trailing edge was detected.
-  if(mdwFreqChanData->useDutyCycle)
+  if(useDutyCycle)
     dblDutyCycle = (((double)halfCycle) * 100.0) / ((double)fullCycle);
   else
     dblDutyCycle = 0;
@@ -1463,15 +1498,15 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   // Average frequency since last calculated
   totalCaptureTime =
             meadow_measure_freq_get_current_time() - \
-            mdwFreqChanData->startTimeForAvg;
+            startTimeForAvg;
 
   // Convert time in nanoseconds to fractional seconds
   double dblTotalCaptureTime =\
             ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
-  dblTotalInputCount = (double)mdwFreqChanData->gpioCountForAvg;
+  dblTotalInputCount = (double)gpioCountForAvg;
   dblAvgFreq = ((double)dblTotalInputCount) / dblTotalCaptureTime;
 
-  if(mdwFreqChanData->useDutyCycle)
+  if(useDutyCycle)
     returnData->dutyCycleX1000  = (dblDutyCycle * 1000.0);
   else
     returnData->dutyCycleX1000  = 0;
@@ -1480,10 +1515,10 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   returnData->avgFreqX1000      = (dblAvgFreq   * 1000.0);
   returnData->gpioCountForAvg   = (uint32_t)dblTotalInputCount;
 
-  // Reset capture counts and Meadow time for next average
+  // Reset Meadow time for next average. gpioCountForAvg was already reset
+  // above, atomically with the snapshot.
   // Since reading the information is asynchronous with these calculation
   // the average frequence can vary a bit.
-  mdwFreqChanData->gpioCountForAvg = 0;
   mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
 
   return MEADOW_MEAS_FREQ_READ_SUCCESSFUL;
