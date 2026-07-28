@@ -87,10 +87,12 @@
 // Each Feather timer entry can have as many as 4 entries that takes 1 byte.
 #define MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER (4)
 
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
 // Need 2 bytes for each CCM entry because channel number is defined in this
 // as well as the port and pin pair
 #define MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER \
   (MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER * 2)
+#endif
 
 /****************************************************************************
  * Private Data
@@ -692,7 +694,8 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
       if(*entryPtr == portAndPin)
       {
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-        syslog(LOG_MDIAG, "--->%s@%d-Found v1 match for 0x%02x at entry:%d\n",
+        syslog(LOG_MDIAG,
+          "--->%s@%d-Found v1 match for 0x%02x at entry:%d\n",
           __FILE__, __LINE__, portAndPin, entryCnt);
         dbgPortPin = *entryPtr;
 #endif
@@ -707,7 +710,8 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     }
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-    syslog(LOG_MDIAG, "--->%s@%d-F7v1 Timer%lu, Offset:%p, 0x%02x (P%c%d)\n\n",
+    syslog(LOG_MDIAG,
+      "--->%s@%d-F7v1 Timer%lu, Offset:%p, 0x%02x (P%c%d)\n\n",
       __FILE__, __LINE__,
       timerNumb, entryPtr, dbgPortPin,
       ((dbgPortPin) >> 4) + 'A', dbgPortPin & 0x0f);
@@ -719,7 +723,8 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     // syslog(LOG_MDIAG,
     //    "--->%s@%d All Entries for F7FeatherV2\n", __FILE__, __LINE__);
     // hcom_nx_diag_print_buffer((uint8_t *)&validF7v2GpioArray[0][0],
-    //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER, 1);
+    //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * \
+    //      MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER, 1);
 #endif
 
     // Find offset to top of array
@@ -771,9 +776,11 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
   // syslog(LOG_MDIAG, "--->%s@%d All Entries for CCM\n", __FILE__, __LINE__);
-  // syslog(LOG_MDIAG, "--->Timer:%lu, Top of CCM array:%p\n", timerNumb, &validStm32F7GpioArray[0][0]);
-  // hcom_nx_diag_print_buffer((uint8_t *)&validStm32F7GpioArray[0][0],
-  //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER, 1);
+  // syslog(LOG_MDIAG, "--->Timer:%lu, Top of CCM array:%p\n",
+  //   timerNumb, &validStm32F7GpioArray[0][0]);
+  //   hcom_nx_diag_print_buffer((uint8_t *)&validStm32F7GpioArray[0][0],
+  //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * \
+  //     MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER, 1);
 #endif
 
   // Get top of array
@@ -880,7 +887,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     default:
       syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%" PRIu32 "\n",
                 __FILE__, __LINE__, mdwCfgTimerChan->configOption);
-      return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;   // Function not implemented
+      return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;
   }
 
   // Insure a valid timer, channel, port+pin combination was supplied.
@@ -890,16 +897,18 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
             timerNumber, portAndPin);
   if(chanValid4TimerPortPin == 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:The Port and Pin, not valid for timer %" PRIu32 "\n",
-              __FILE__, __LINE__, timerNumber);
+    syslog(LOG_ERR,
+      "%s@%d-Error:The Port and Pin, not valid for timer %" PRIu32 "\n",
+      __FILE__, __LINE__, timerNumber);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_NOT_FOR_TIM;
   }
 
   // Is this the channel the user wanted?
   if(channelNumber != chanValid4TimerPortPin)
   {
-    syslog(LOG_ERR, "%s@%d-Error:The Port/Pin/Timer/Channel combination, not valid\n",
-              __FILE__, __LINE__);
+    syslog(LOG_ERR,
+      "%s@%d-Error:The Port/Pin/Timer/Channel combination, not valid\n",
+      __FILE__, __LINE__);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_TIM_CHAN_INVALID;
   }
 
@@ -928,8 +937,9 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   uint8_t chanBit = meadow_measure_freq_get_channel_bit(channelNumber);
   if(mdwFreqTimerInfo->chanActiveBits & chanBit)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Timer %" PRIu32 ", channel %" PRIu32 " already in use\n",
-              __FILE__, __LINE__, timerNumber, channelNumber);
+    syslog(LOG_ERR,
+      "%s@%d-Error:Timer %" PRIu32 ", channel %" PRIu32 " already in use\n",
+      __FILE__, __LINE__, timerNumber, channelNumber);
     return MEADOW_MEAS_FREQ_CONF_TIM_CHAN_IN_USE;
   }
 
@@ -944,7 +954,8 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   }
 
   // Start populating the channel structure
-  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->useDutyCycle = chanNeedsDuty;
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->useDutyCycle = \
+    chanNeedsDuty;
 
   // Init time and count used to calculate average frequency
   mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->gpioCountForAvg = 0;
@@ -1199,11 +1210,11 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   uint16_t dierRegVal;    // DMA/Interrupt Enable Register
 
   mdwFreqTimerInfo_t *mdwFreqTimerInfo =
-            meadow_measure_freq_chk_get_timer_info(mdwCfgTimerChan->timerNumber);
+    meadow_measure_freq_chk_get_timer_info(mdwCfgTimerChan->timerNumber);
   if(mdwFreqTimerInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Error:Couldn't get TimerInfo via timer number:%lu\n",
-          __FILE__, __LINE__, mdwCfgTimerChan->timerNumber);
+      __FILE__, __LINE__, mdwCfgTimerChan->timerNumber);
     return MEADOW_MEAS_FREQ_UNCFG_TIMER_ACCESS_NULL;
   }
 
@@ -1224,7 +1235,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   }
 
   mdwFreqChanData_t *mdwFreqChanData =
-            mdwFreqTimerInfo->mdwFreqChanData[channelOffset];
+    mdwFreqTimerInfo->mdwFreqChanData[channelOffset];
   if(mdwFreqChanData == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Error:Channel data NULL\n", __FILE__, __LINE__);
@@ -1380,14 +1391,15 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
             meadow_measure_freq_chk_get_timer_info(returnData->timerNumber);
   if(mdwFreqTimerInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Couldn't get TimerInfo from timer number:%lu\n",
-          __FILE__, __LINE__, returnData->timerNumber);
+    syslog(LOG_ERR,
+      "%s@%d-Error:Couldn't get TimerInfo from timer number:%lu\n",
+      __FILE__, __LINE__, returnData->timerNumber);
     return MEADOW_MEAS_FREQ_READ_TIMER_ACCESS_NULL;
   }
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
   // syslog(LOG_MDIAG,
-  //   "--->%s@%d-Returning data-for timer:%lu, channel:%lu, active channels:0x%02x\n",
+  //   "--->%s@%d-Data-for timer:%lu, chan:%lu, active chans:0x%02x\n",
   //   __FILE__, __LINE__,
   //   returnData->timerNumber, returnData->channelNumber,
   //   mdwFreqTimerInfo->chanActiveBits);
@@ -1398,7 +1410,8 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
           returnData->channelNumber);
   if((mdwFreqTimerInfo->chanActiveBits & channelBit) == 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Unconfigured channel accessed\n", __FILE__, __LINE__);
+    syslog(LOG_ERR,
+      "%s@%d-Error:Unconfigured channel accessed\n", __FILE__, __LINE__);
     return MEADOW_MEAS_FREQ_READ_CHAN_NOT_CONFIG;
   }
 
