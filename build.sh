@@ -224,9 +224,15 @@ BUILD_DAY=$(date +%-d)
 CURRENT_START_YEAR=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_YEAR)
 CURRENT_START_MONTH=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_MONTH)
 CURRENT_START_DAY=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_DAY)
-if [ "$CURRENT_START_YEAR" != "$BUILD_YEAR" ] || [ "$CURRENT_START_MONTH" != "$BUILD_MONTH" ] || [ "$CURRENT_START_DAY" != "$BUILD_DAY" ]; then
+if [ "$CURRENT_START_YEAR" != "$BUILD_YEAR" ]; then 
     kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
+fi
+
+if [ "$CURRENT_START_MONTH" != "$BUILD_MONTH" ]; then 
     kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
+fi
+
+if [ "$CURRENT_START_DAY" != "$BUILD_DAY" ]; then
     kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
 fi
 
@@ -369,6 +375,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             mint)
             echo "Meadow interrupt tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_INTERRUPT_TESTS
+            BUILD_TESTS=true
+            ;;
+            measfreq)
+            echo "Measure Frequency tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEASURE_FREQUENCY_TESTS
             BUILD_TESTS=true
             ;;
             all)
