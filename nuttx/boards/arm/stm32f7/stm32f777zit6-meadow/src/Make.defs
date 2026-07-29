@@ -23,6 +23,7 @@
 include $(TOPDIR)/Make.defs
 
 CFLAGS += -I board/F7MeadowOSLink
+CFLAGS += -Werror
 $(shell [ -L F7MeadowOSLink ] || ln -sfn board/F7MeadowOSLink F7MeadowOSLink)
 
 CSRCS = stm32_boot.c stm32_bringup.c stm32_spi.c
