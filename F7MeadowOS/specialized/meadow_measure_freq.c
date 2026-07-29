@@ -71,13 +71,16 @@
 #define MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP (0)
 
 // Adds syslog diagnostic output
-#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT (0)
+#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT (1)
 
 // Diagnostic
+#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME (0)
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
 // Use pin for timing via scope
-// #define DEBUG_PIN_V2_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL |
-//   GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
-// Diagnostic
+#define DEBUG_GPIO_V2_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | \
+  GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
+#endif
 
 #define MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS (14)
 
@@ -88,10 +91,10 @@
 #define MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER (4)
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-// Need 2 bytes for each CCM entry because channel number is defined in this
-// as well as the port and pin pair
-#define MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER \
-  (MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER * 2)
+  // Need 2 bytes for each CCM entry because channel number is defined in this
+  // as well as the port and pin pair
+  #define MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER \
+    (MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER * 2)
 #endif
 
 /****************************************************************************
@@ -406,8 +409,13 @@ static void meadow_measure_freq_diag_dump_timer_regs(char *label,
 // This ISR is called for all frequency measurement interrupts.
 // There is a unique ISR vector for each timer. But, each timer must process
 // 1 - 4 inputs. On entry we don't know which input(s) is/are involved.
+// Measuring 100kHz, average time in ISR measured 1 microsec
 int meadow_measure_freq_isr(int irq, void *context, void *arg)
 {
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
+  stm32_gpiowrite(DEBUG_GPIO_V2_D06, true);    // Diagnostic only
+#endif
+
   mdwFreqTimerInfo_t *mdwFreqTimerInfo = (mdwFreqTimerInfo_t *)arg;
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;
 
@@ -415,8 +423,8 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
   uint16_t timStatusReg = getreg16(timerBase + STM32_GTIM_SR_OFFSET);
 
   //----------------------------------------------------------
-  // Check UIF (Update Interrupt Flag), which indicates CNT changed. In our
-  // case timer rollover. Rollover for 16-bit timer is:
+  // Check UIF (Update Interrupt Flag), which indicates CNT changed.
+  // In our case timer rollover. Rollover for 16-bit timer is:
   // 1.08 MHz / 65536 = 16.479 times/second.
   if(timStatusReg & GTIM_SR_UIF)
   {
@@ -439,7 +447,6 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
 
   //----------------------------------------------------------
   // This part of the ISR has optimized to remove an unneeded loop.
-  // stm32_gpiowrite(DEBUG_PIN_V2_D06, true);    // Diagnostic only
 
   // CC1IF..CC4IF occupy SR bits 1-4 (see GTIM_SR_CCxIF). Shifted right by 1
   // they line up exactly with ACTIVE_CHAN_BITFIELD_1..4 (bits 0-3), so a
@@ -520,7 +527,9 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
   }
 
   putreg16(timStatusReg, timerBase + STM32_GTIM_SR_OFFSET);
-  // stm32_gpiowrite(DEBUG_PIN_V2_D06, false);    // Diagnostic only
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
+  stm32_gpiowrite(DEBUG_GPIO_V2_D06, false);    // Diagnostic only
+#endif
   return OK;
 }
 
@@ -723,7 +732,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     // syslog(LOG_MDIAG,
     //    "--->%s@%d All Entries for F7FeatherV2\n", __FILE__, __LINE__);
     // hcom_nx_diag_print_buffer((uint8_t *)&validF7v2GpioArray[0][0],
-    //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * \
+    //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS *
     //      MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER, 1);
 #endif
 
@@ -779,7 +788,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
   // syslog(LOG_MDIAG, "--->Timer:%lu, Top of CCM array:%p\n",
   //   timerNumb, &validStm32F7GpioArray[0][0]);
   //   hcom_nx_diag_print_buffer((uint8_t *)&validStm32F7GpioArray[0][0],
-  //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS * \
+  //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS *
   //     MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER, 1);
 #endif
 
@@ -860,9 +869,11 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     return MEADOW_MEAS_FREQ_CONF_CHAN_NUMB_ILLEGAL;
   }
 
-  // stm32_unconfiggpio(DEBUG_PIN_V2_D06);     // Diagnostic only
-  // stm32_configgpio(DEBUG_PIN_V2_D06);       // Diagnostic only
-  // stm32_gpiowrite(DEBUG_PIN_V2_D06, false); // Diagnostic only
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
+  stm32_unconfiggpio(DEBUG_GPIO_V2_D06);     // Diagnostic only
+  stm32_configgpio(DEBUG_GPIO_V2_D06);       // Diagnostic only
+  stm32_gpiowrite(DEBUG_GPIO_V2_D06, false); // Diagnostic only
+#endif
 
   // Configure the timer and channel
   // 1 = Configure without Duty Cycle (reduces interrupts by 50%)
@@ -886,15 +897,15 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 
     default:
       syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%" PRIu32 "\n",
-                __FILE__, __LINE__, mdwCfgTimerChan->configOption);
+        __FILE__, __LINE__, mdwCfgTimerChan->configOption);
       return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;
   }
 
   // Insure a valid timer, channel, port+pin combination was supplied.
   // Timers have, at most, 4 channels, each representing 1 GPIO. For the
   // specified timer we need to verify a proper port and pin.
-  uint8_t chanValid4TimerPortPin = meadow_measure_freq_verify_portpin_get_chan(
-            timerNumber, portAndPin);
+  uint8_t chanValid4TimerPortPin = 
+    meadow_measure_freq_verify_portpin_get_chan(timerNumber, portAndPin);
   if(chanValid4TimerPortPin == 0)
   {
     syslog(LOG_ERR,
