@@ -221,9 +221,14 @@ fi
 BUILD_YEAR=$(date +%Y)
 BUILD_MONTH=$(date +%-m)
 BUILD_DAY=$(date +%-d)
-kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
-kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
-kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
+CURRENT_START_YEAR=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_YEAR)
+CURRENT_START_MONTH=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_MONTH)
+CURRENT_START_DAY=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_DAY)
+if [ "$CURRENT_START_YEAR" != "$BUILD_YEAR" ] || [ "$CURRENT_START_MONTH" != "$BUILD_MONTH" ] || [ "$CURRENT_START_DAY" != "$BUILD_DAY" ]; then
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
+fi
 
 #
 #   Work out if any tests have been requested and turn them on in the build.
