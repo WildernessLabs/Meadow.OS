@@ -764,7 +764,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     }
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-    syslog(LOG_MDIAG, "--->%s@%d-F7v2 Timer%lu, Offset:%p, 0x%02x (P%c%d)\n\n",
+    syslog(LOG_MDIAG, "--->%s@%d-F7v2 Timer%lu, Offset:%p, 0x%02x (P%c%d)\n",
         __FILE__, __LINE__,
         timerNumb, entryPtr, dbgPortPin,
         ((dbgPortPin) >> 4) + 'A', dbgPortPin & 0x0f);
@@ -1175,6 +1175,10 @@ int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
   uint16_t prescaler = (meadow_measure_freq_get_max_clock(mdwFreqTimerInfo)/ \
             (MEADOW_FREQ_CLOCK_FREQ) - 1);
   putreg16(prescaler, timerBase + STM32_GTIM_PSC_OFFSET);
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
+    syslog(LOG_MDIAG, "--->%s@%d prescaler value:%u\n",
+      __FILE__, __LINE__, prescaler);
+#endif
 
   // The value put into the ARR is maximum allowed for the timer. Either
   // 32-bit or 16-bit ARR register.
