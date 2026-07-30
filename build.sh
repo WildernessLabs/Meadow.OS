@@ -25,6 +25,7 @@ DEBUG_BL_CDC=false
 DEBUG_BL_UART=false
 HELP=false
 ENABLE_STACK_DUMP=false
+EMULATOR=false
 MAKE_OPTIONS="MEADOW_OS=1"
 UNIT_TESTS=
 BOOTLOADER_OPTIONS=
@@ -73,6 +74,9 @@ case $i in
     --esd)
     ENABLE_STACK_DUMP=true
     ;;
+    --emulator)
+    EMULATOR=true
+    ;;
     --dbc|--debug-bl-cdc)
     DEBUG_BL_CDC=true
     ;;
@@ -106,6 +110,7 @@ if [ "$HELP" = true ]; then
   echo "  --configure                  Configure the build"
   echo "  --debug                      Build with debug symbols"
   echo "  --esd                        Enable stack dumps to be sent to USART1 (COM1)"
+  echo "  --emulator                   Skip the bootloader build and apply Renode-emulator kconfig tweaks"
   echo "  --config=mono|netcore        Select Mono or .NET Core builds (default Mono)"
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
@@ -213,6 +218,27 @@ if [ ! -r "$scriptdir/nuttx/.config" ]; then
     printf "Building NuttX context..."
     run_command "make -C $scriptdir/nuttx context"
     check_command_status
+fi
+
+if $EMULATOR; then
+    echo "--- Applying emulator config tweaks ---"
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --disable CONFIG_CDCACM
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --disable CONFIG_BOARDCTL_USBDEVCTRL
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --disable CONFIG_STM32F7_OTGFS
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --disable CONFIG_USBDEV
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --enable CONFIG_STM32F7_UART4
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str CONFIG_HCOM_COMMS_DEVICE_NAME /dev/ttyS1
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_BAUD 115200
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_BITS 8
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_PARITY 0
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_2STOP 0
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_RXBUFSIZE 512
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_UART4_TXBUFSIZE 512
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --enable CONFIG_DEV_CONSOLE
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --enable CONFIG_SYSLOG_SERIAL_CONSOLE
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --disable CONFIG_RAMLOG_SYSLOG
+    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val CONFIG_BOARD_RESET_ON_ASSERT 0
+    make -C $scriptdir/nuttx olddefconfig 2>/dev/null || true
 fi
 
 #
@@ -434,9 +460,11 @@ fi
 #
 #   Build the bootloader
 #
-$scriptdir/build-bootloader.sh $BOOTLOADER_OPTIONS
-if [ $? -ne 0 ]; then
-    exit 1
+if ! $EMULATOR; then
+    $scriptdir/build-bootloader.sh $BOOTLOADER_OPTIONS
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 fi
 
 printf "Building NuttX (kernel pass)...\n"
@@ -473,7 +501,11 @@ check_command_status
 #
 #   Package Meadow.OS
 #
-if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
+#   Skipped under --emulator: these artifacts (Meadow.OS.Update.bin, Meadow.OS.bin,
+#   Meadow.OS.Runtime.bin) merge in the bootloader binary, which isn't built in emulator
+#   mode. The emulator consumes nuttx.elf/nuttx_user.elf/nuttx.bin/nuttx_user.bin directly.
+#
+if ! $EMULATOR && ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   MEADOW_OS_BIN=$scriptdir/nuttx/Meadow.OS.Update.bin
   MEADOW_BL_BIN=$scriptdir/bootloader/Debug/Meadow.BL.bin
   MEADOW_OS_BL_BIN=$scriptdir/nuttx/Meadow.OS.bin

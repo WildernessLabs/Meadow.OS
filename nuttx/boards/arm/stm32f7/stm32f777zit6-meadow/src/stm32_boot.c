@@ -72,6 +72,7 @@ struct qspi_dev_s *g_qspi;
  ****************************************************************************/
 
 // Called from above to initialize USB communications
+#if defined(CONFIG_CDCACM)
 static int board_init_usbdev(void)
 {
 #if defined(CONFIG_BOARDCTL_USBDEVCTRL)
@@ -99,6 +100,7 @@ static int board_init_usbdev(void)
 
   return OK;
 }
+#endif
 
 #if defined(CONFIG_MTD_S25FL)
 static struct mtd_dev_s * board_init_mtd_s25fl(FAR struct qspi_dev_s *qspi)
