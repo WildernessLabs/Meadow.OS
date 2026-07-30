@@ -125,7 +125,7 @@
 #else   // #if (MEADOW_TRY_216_MHz_CLOCK != 1)
 
 #if defined(CONFIG_STM32F7_OTGFS)
- *
+/*
  * PLL_VCO = (25,000,000 / 25) * 384 = 384 MHz
  * SYSCLK  = 384 MHz / 2 = 192 MHz
  * USB OTG FS, SDMMC and RNG Clock = 384 MHz / 8 = 48MHz
