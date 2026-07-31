@@ -151,6 +151,11 @@ static meadow_test_methods_t _kernelTests[] =
 #if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TRAVERSE_KU, hcom_kt_traverse_ku_tests },
 #endif
+
+#if defined(CONFIG_I2C_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_I2C1_SCAN, meadow_kt_i2c1_scan_tests },
+    { MEADOW_TEST_I2C3_SCAN, meadow_kt_i2c3_scan_tests },
+#endif
 };
 
 /**

@@ -159,6 +159,11 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_TRAVERSE_KU, "KU traverse channel tests" },
 #endif
 
+#if defined(CONFIG_I2C_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_I2C1_SCAN, "I2C1 bus scan tests (-v 0: 0x08-0x77 default, -v 1: 0x00-0x7f full range)" },
+    { MEADOW_TEST_I2C3_SCAN, "I2C3 bus scan tests (-v 0: 0x08-0x77 default, -v 1: 0x00-0x7f full range)" },
+#endif
+
     //
     //  Meadow OS tests (900-999)
     //

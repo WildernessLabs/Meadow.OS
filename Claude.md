@@ -98,7 +98,7 @@ All commands run from the **workspace root**, not from `nuttx/`:
 
 **Available `--unittests=` values:** `esp`, `sqlite`, `snprintf`, `gpio`, `overload`, `bbr`,
 `chat`, `ethernet`, `bg77`, `iso8601`, `power`, `sdcard`, `misc`, `dirmgmt`, `adc`, `dac`,
-`spidma`, `rotenc`, `os`, `usrwork`, `sotest`, `all`
+`spidma`, `rotenc`, `i2c`, `os`, `usrwork`, `sotest`, `all`
 
 ### What `build.sh` produces
 
