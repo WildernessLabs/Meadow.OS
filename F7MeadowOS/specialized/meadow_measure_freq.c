@@ -33,7 +33,31 @@
  *
  ****************************************************************************/
 
-// This module, uses timers to calculate frequency
+// This module, uses timers to calculate frequency. It is not designed for
+// measuring higher frequencies.
+// Since this implementation is fairly simple, and uses interrutps to
+// measure the frequency, and since interrupts are called more often for
+// higher frequencies there are limitations:
+// 1. Frequency / Resolution Limit
+//   The maximum frequency for a single channel is about 40 kHz. At this
+//   frequency resolution is very limited. At these higher frequencies,
+//   quantization causes steps in resolution that get worse as the frequency
+//   rises. For example, from 39589 Hz to 40205 Hz, it reads 40000.00Hz. But.
+//   at lower frequencies it works perfectly. For example an input of:
+//   - 100.00 Hz reads 100.00Hz and an input of 101.00Hz reads 101.00 Hz
+//   - 1000.00 Hz reads 1,000.00Hz and an input of 1,010.00Hz reads 1,009.35 Hz
+//   - 10,000.00 Hz reads 10,000.00Hz and an input of 10,100.00Hz reads 10,093.46Hz
+// 2. Multiple Input Limitions 
+//   While several GPIOs can be configured each one generates interrupts.
+//   Since the MCU has a fininite amount of processing power, the combination
+//   of freqency and the number of inputs is limited. It is reasonable to
+//   expect that if the maximum frequency is 40 kHz for 1 channel, then
+//   maximum for multiple channels would be there sum, and this should not
+//   exceed 40 kHz total.
+//   
+// Note: a more complex scheme could be designed using DMA or using 2 timers
+// per channel, etc.
+
 
 /****************************************************************************
  * Included Files
@@ -66,325 +90,9 @@
 #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 #endif
 
-//=====================================================
-// Preprocessor defines
-#define MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP (0)
-
-// Adds syslog diagnostic output
-#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT (1)
-
-// Diagnostic
-#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME (0)
-
-#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
-// Use pin for timing via scope
-#define DEBUG_GPIO_V2_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | \
-  GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
-#endif
-
-#define MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS (14)
-
-// There are up to 10 entries for each timer
-#define MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER (10)
-
-// Each Feather timer entry can have as many as 4 entries that takes 1 byte.
-#define MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER (4)
-
-#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-  // Need 2 bytes for each CCM entry because channel number is defined in this
-  // as well as the port and pin pair
-  #define MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER \
-    (MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER * 2)
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-// This array contains timer information most of which is fixed by the
-// STM32F7's hardware. It contains each F7 timer and a flag for useability
-// (TIM1, TIM6, TIM7 and TIM8 are not usable) and some timer numbers don't
-// exist in the STM32F777IIK6 we use.
-// See 'struct mdwFreqTimerInfo_s' for exact field usage.
-static mdwFreqTimerInfo_t mdwFreqTimerInfoArray[] =
-{
-            //   |--- bit-field---|---------------------- Fixed by hardware -----------------------|--------- Runtime Data ---------|
-            //   #  32b 216 apb use    Base Addr       Clk Timer Enable      IRQ Vector*   Alt Func OvF Acv  Chan1 Chan2 Chan3 Chan4
-  /* TIM1   */  {1 , 0,  1,  1, 0, STM32_TIM1_BASE,  RCC_APB2ENR_TIM1EN,  0,               GPIO_AF1, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM2   */  {2 , 1,  0,  0, 1, STM32_TIM2_BASE,  RCC_APB1ENR_TIM2EN,  STM32_IRQ_TIM2,  GPIO_AF1, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM3   */  {3 , 0,  0,  0, 1, STM32_TIM3_BASE,  RCC_APB1ENR_TIM3EN,  STM32_IRQ_TIM3,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM4   */  {4 , 0,  0,  0, 1, STM32_TIM4_BASE,  RCC_APB1ENR_TIM4EN,  STM32_IRQ_TIM4,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM5   */  {5 , 1,  0,  0, 1, STM32_TIM5_BASE,  RCC_APB1ENR_TIM5EN,  STM32_IRQ_TIM5,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM6   */  {6 , 0,  0,  0, 0, STM32_TIM6_BASE,  RCC_APB1ENR_TIM6EN,  STM32_IRQ_TIM6,  0xff,     0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM7   */  {7 , 0,  0,  0, 0, STM32_TIM7_BASE,  RCC_APB1ENR_TIM7EN,  STM32_IRQ_TIM7,  0xff,     0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM8   */  {8 , 0,  1,  1, 0, STM32_TIM8_BASE,  RCC_APB2ENR_TIM8EN,  0,               GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM9   */  {9 , 0,  1,  1, 1, STM32_TIM9_BASE,  RCC_APB2ENR_TIM9EN,  STM32_IRQ_TIM9,  GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM10  */  {10, 0,  1,  1, 1, STM32_TIM10_BASE, RCC_APB2ENR_TIM10EN, STM32_IRQ_TIM10, GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM11  */  {11, 0,  1,  1, 1, STM32_TIM11_BASE, RCC_APB2ENR_TIM11EN, STM32_IRQ_TIM11, GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM12  */  {12, 0,  0,  0, 1, STM32_TIM12_BASE, RCC_APB1ENR_TIM12EN, STM32_IRQ_TIM12, GPIO_AF9, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM13  */  {13, 0,  0,  0, 1, STM32_TIM13_BASE, RCC_APB1ENR_TIM13EN, STM32_IRQ_TIM13, GPIO_AF9, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM14  */  {14, 0,  0,  0, 1, STM32_TIM14_BASE, RCC_APB1ENR_TIM14EN, STM32_IRQ_TIM14, GPIO_AF9, 0,  0, {NULL, NULL, NULL, NULL}}
-};
-#define MEADOW_FREQ_TOTAL_TIMERS_AVAILABLE (sizeof(mdwFreqTimerInfoArray)/sizeof(mdwFreqTimerInfo_t))
-
-// Unused Timers TIM1, TIM6, TIM7 and TIM8
-// TIM1 and TIM8 are "Advanced-control timers" For example, instead of 1 IRQ
-//  for the timer, these have 4 IRQs timer. This alone makes them incompatible
-//  with this implementation.
-// TIM6 and TIM7 are called Basic Timers and have no ability to connect to a
-//  GPIO.
-
-//----------------------------------------------------------------------------
-// This table contains all of the STM32F7's timers and their valid GPIOs with
-// channel. It is used for F7v1 and F7v2 and CCM. It should be able to verify
-// any timer, GPIO combination.
-//
-// Each Pin, timer takes 2 bytes. To save perhaps 50% in memory usage, this
-// array could be refactored into 2 arrays. Both would be have one dimension.
-// The first would be an timer offset table with 14 elements. The other would
-// be the timer information array. Access the first table using
-// (timer number - 1) as offset and use the offset found to calculate the a
-// pointer into the timer informational table.
-mdwFreqChanPortPin_t validStm32F7GpioArray[][MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER] = 
-{
-  /* Tim 1 */
-  {
-    {GPIO_PORTA | GPIO_PIN8,  1},   // PA8
-    {GPIO_PORTE | GPIO_PIN9,  1},   // PE9
-    {GPIO_PORTA | GPIO_PIN9,  2},   // PA9
-    {GPIO_PORTE | GPIO_PIN11, 2},   // PE11
-    {GPIO_PORTA | GPIO_PIN10, 3},   // PA10
-    {GPIO_PORTE | GPIO_PIN13, 3},   // PE13
-    {GPIO_PORTA | GPIO_PIN11, 4},   // PA11
-    {GPIO_PORTE | GPIO_PIN14, 4},   // PE14
-  },
-
-  /* Tim 2 */
-  {
-    {GPIO_PORTA | GPIO_PIN0,  1},   // PA0
-    {GPIO_PORTA | GPIO_PIN15, 1},   // PA15
-    {GPIO_PORTA | GPIO_PIN1,  2},   // PA1
-    {GPIO_PORTB | GPIO_PIN3,  2},   // PB3
-    {GPIO_PORTA | GPIO_PIN2,  3},   // PA2
-    {GPIO_PORTB | GPIO_PIN10, 3},   // PB10
-    {GPIO_PORTA | GPIO_PIN3,  4},   // PA3
-    {GPIO_PORTB | GPIO_PIN11, 4},   // PB11
-  },
-
-  /* Tim 3 */
-  {
-    {GPIO_PORTA | GPIO_PIN6, 1},    // PA6
-    {GPIO_PORTC | GPIO_PIN6, 1},    // PC6
-    {GPIO_PORTB | GPIO_PIN4, 1},    // PB4
-    {GPIO_PORTA | GPIO_PIN7, 2},    // PA7
-    {GPIO_PORTC | GPIO_PIN7, 2},    // PC7
-    {GPIO_PORTB | GPIO_PIN5, 2},    // PB5
-    {GPIO_PORTB | GPIO_PIN0, 3},    // PB0
-    {GPIO_PORTC | GPIO_PIN8, 3},    // PC8
-    {GPIO_PORTB | GPIO_PIN1, 4},    // PB1
-    {GPIO_PORTC | GPIO_PIN9, 4},    // PC9
-  },
-  
-  /* Tim 4 */
-  {
-    {GPIO_PORTD | GPIO_PIN12, 1},    // PD12
-    {GPIO_PORTB | GPIO_PIN6,  1},    // PB6
-    {GPIO_PORTD | GPIO_PIN13, 2},    // PD13
-    {GPIO_PORTB | GPIO_PIN7,  2},    // PB7
-    {GPIO_PORTD | GPIO_PIN14, 3},    // PD14
-    {GPIO_PORTB | GPIO_PIN8,  3},    // PB8
-    {GPIO_PORTD | GPIO_PIN15, 4},    // PD15
-    {GPIO_PORTB | GPIO_PIN9,  4},    // PB9
-  },
-
-  /* Tim 5 */
-  {
-    {GPIO_PORTA | GPIO_PIN0,  1},    // PA0
-    {GPIO_PORTH | GPIO_PIN10, 1},    // PH10
-    {GPIO_PORTA | GPIO_PIN1,  2},    // PA1
-    {GPIO_PORTH | GPIO_PIN11, 2},    // PH11
-    {GPIO_PORTA | GPIO_PIN2,  3},    // PA2
-    {GPIO_PORTH | GPIO_PIN12, 3},    // PH12
-    {GPIO_PORTA | GPIO_PIN3,  4},    // PA3
-    {GPIO_PORTI | GPIO_PIN0,  4},    // PI0
-  },
-
-  /* Tim 6 No GPIOs */
-    {},
-
-  /* Tim 7 No GPIOs */
-    {},
-
-  /* Tim 8 */
-  {
-    {GPIO_PORTC | GPIO_PIN6, 1},    // PC6
-    {GPIO_PORTI | GPIO_PIN5, 1},    // PI5
-    {GPIO_PORTC | GPIO_PIN7, 2},    // PC7
-    {GPIO_PORTI | GPIO_PIN6, 2},    // PI6
-    {GPIO_PORTC | GPIO_PIN8, 3},    // PC8
-    {GPIO_PORTI | GPIO_PIN7, 3},    // PI7
-    {GPIO_PORTC | GPIO_PIN9, 4},    // PC9
-    {GPIO_PORTI | GPIO_PIN2, 4},    // PI2
-  },
-
-  /* Tim 9 */
-  {
-    {GPIO_PORTE | GPIO_PIN5, 1},    // PE5
-    {GPIO_PORTA | GPIO_PIN2, 1},    // PA2
-    {GPIO_PORTE | GPIO_PIN6, 2},    // PE6
-    {GPIO_PORTA | GPIO_PIN3, 2},    // PA3
-  },
-
-  /* Tim 10 */
-  {
-    {GPIO_PORTF | GPIO_PIN6, 1},    // PF6
-    {GPIO_PORTB | GPIO_PIN8, 1},    // PB8
-  },
-
-  /* Tim 11 */
-  {
-    {GPIO_PORTF | GPIO_PIN7, 1},    // PF7
-    {GPIO_PORTB | GPIO_PIN9, 1},    // PB9
-  },
-
-  /* Tim 12 */
-  {
-    {GPIO_PORTH | GPIO_PIN6,  1},    // PH6
-    {GPIO_PORTB | GPIO_PIN14, 1},    // PB14
-    {GPIO_PORTH | GPIO_PIN9,  2},    // PH9
-    {GPIO_PORTB | GPIO_PIN15, 2},    // PB15
-  },
-
-  /* Tim 13 */
-  {
-    {GPIO_PORTF | GPIO_PIN8, 1},    // PF8
-    {GPIO_PORTA | GPIO_PIN6, 1},    // PA6
-  },
-
-  /* Tim 14 */
-  {
-    {GPIO_PORTF | GPIO_PIN9, 1},    // PF9
-    {GPIO_PORTA | GPIO_PIN7, 1},    // PA7
-  },
-};
-
-//-------------------------------------------------
-// Used to verify port and pin availability on F7FeatherV1
-static uint8_t validF7v1GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER] =
-{
-  /* TIM1 No GPIO exposed */
-  {},
-
-  /* TIM2  No GPIO exposed */
-  {},
-  
-  /* TIM3  */
-  {GPIO_PORTC | GPIO_PIN6,  // PC6, D02
-   GPIO_PORTC | GPIO_PIN7,  // PC7, D05
-   GPIO_PORTB | GPIO_PIN0,  // PB0, D06
-   GPIO_PORTB | GPIO_PIN1,  // PB1, D09 (or PC9, D11)
-  },
-
-  /* TIM4 */
-  {GPIO_PORTB | GPIO_PIN6,  // PB6, D08
-   GPIO_PORTB | GPIO_PIN7,  // PB7, D07
-   GPIO_PORTB | GPIO_PIN8,  // PB8, D03
-   GPIO_PORTB | GPIO_PIN9,  // PB9, D04
-  },
-
-  // /* TIM5 */
-  {GPIO_PORTH | GPIO_PIN10,  // PH10, D10
-  },
-
-  /* TIM6  No GPIO exposed */
-  {},
-  /* TIM7  No GPIO exposed */
-  {},
-  /* TIM8  No GPIO exposed */
-  {},
-
-  /* TIM9  */
-  {GPIO_PORTA | GPIO_PIN3,  // PA3, A02
-  },
-
-  /* TIM10 */
-  {GPIO_PORTB | GPIO_PIN8,  // PB8, D03
-  },
-
-  /* TIM11 */
-  {GPIO_PORTB | GPIO_PIN9,  // PB9, D04
-  },
-
-  /* TIM12 */
-  {GPIO_PORTB | GPIO_PIN14,  // PB14, D12
-   GPIO_PORTB | GPIO_PIN15,  // PB15, D13
-  },
-
-  /* TIM13  No GPIO exposed */
-  {0xff},
-
-  /* TIM14 */
-  {GPIO_PORTA | GPIO_PIN7,  // PA7, A03
-  },
-};
-
-//-------------------------------------------------
-// Used to verify port and pin availability on F7FeatherV2
-static uint8_t validF7v2GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER]=
-{
-  /* TIM1 No GPIO exposed */
-  {},
-
-  /* TIM2 No GPIO exposed */
-  {},
-
-  /* TIM3 */
-  {GPIO_PORTB | GPIO_PIN4,  // PB4, D05
-   GPIO_PORTC | GPIO_PIN7,  // PC7, D10
-   GPIO_PORTB | GPIO_PIN0,  // PB0, A03
-   GPIO_PORTB | GPIO_PIN1,  // PB1, A04
-  },
-
-  /* TIM4 D08, D07, D03*, D04* */
-  /* TIM4 */
-  {GPIO_PORTB | GPIO_PIN6,  // PB6, D08
-   GPIO_PORTB | GPIO_PIN7,  // PB7, D07
-   GPIO_PORTB | GPIO_PIN8,  // PB8, D03
-   GPIO_PORTB | GPIO_PIN9,  // PB9, D04
-  },
-
-  /* TIM5 */
-  {GPIO_PORTH | GPIO_PIN10,  // PH10, D02
-   GPIO_PORTA | GPIO_PIN3,   // PA3, A02
-  },
-
-  /* TIM6 No GPIO exposed */
-  {},
-  /* TIM7 No GPIO exposed */
-  {},
-  /* TIM8 No GPIO exposed */
-  {},
-  /* TIM9 No GPIO exposed */
-  {},
-
-  /* TIM10 */
-  {GPIO_PORTB | GPIO_PIN8,  // PB8, D03
-  },
-
-  /* TIM11 */
-  {GPIO_PORTB | GPIO_PIN9,  // PB9, D04
-  },
-
-  /* TIM12 */
-  {GPIO_PORTB | GPIO_PIN14,  // PB14, D12
-   GPIO_PORTB | GPIO_PIN15,  // PB15, D13
-  },
-
-  /* TIM13 No GPIO exposed */
-  {},
-
-  /* TIM14 No GPIO exposed */
-  {},
-};
 
 /************************************************************************************
  * Private Function Prototypes
@@ -478,51 +186,35 @@ int meadow_measure_freq_isr(int irq, void *context, void *arg)
     uint32_t isrCapCount = ccr[chan];
 
     //----------------------------------------------------------
-    // Lastly capture the needed data for each register
-    if(mdwFreqChanData->useDutyCycle)
+    // Lastly capture the needed data for each register. Without duty cycle
+    // every capture is a rising edge - shift it in unconditionally. With
+    // duty cycle, only do so on the rising edge (found by reading the pin
+    // level); the falling edge just records the mid-point for the duty
+    // cycle ratio. Short-circuit evaluation means stm32_gpioread() is only
+    // ever called when duty cycle is actually in use.
+    if(!mdwFreqChanData->useDutyCycle ||
+       stm32_gpioread(mdwFreqChanData->inputConfig))
     {
-      // With duty cycle we must read the GPIO's input state to determine
-      // if this is raising or falling edge.
-      if(stm32_gpioread(mdwFreqChanData->inputConfig))
-      {
-        // Raising edge with duty cycle
-        // The end of the previous edge is now the beginning of this count.
-        // These are captured so that when the calculations are executed
-        // it is free to be unconcerned about changing values.
-        mdwFreqChanData->bgnResultCnt = mdwFreqChanData->endResultCnt;
-        mdwFreqChanData->bgnResultOvr = mdwFreqChanData->endResultOvr;
-        mdwFreqChanData->midResultCnt = mdwFreqChanData->midCaptureCnt;
-        mdwFreqChanData->midResultOvr = mdwFreqChanData->midCaptureOvr;
-
-        // Capture end count and current overflow count
-        mdwFreqChanData->endResultCnt = isrCapCount;
-        mdwFreqChanData->endResultOvr = mdwFreqTimerInfo->timerOverflow;
-
-        // The following is for calculating average frequency
-        mdwFreqChanData->gpioCountForAvg++;
-      }
-      else
-      {
-        // Duty cycle falling edge
-        mdwFreqChanData->midCaptureCnt = isrCapCount;
-        mdwFreqChanData->midCaptureOvr = mdwFreqTimerInfo->timerOverflow;
-      }
-    }
-    else
-    {
-      // Not using duty cycle. Raising edge only. This is the end of
-      // previous capture and the beginning of a new capture.
+      // The end of the previous edge is now the beginning of this count.
+      // These are captured so that when the calculations are executed
+      // it is free to be unconcerned about changing values.
       mdwFreqChanData->bgnResultCnt = mdwFreqChanData->endResultCnt;
       mdwFreqChanData->bgnResultOvr = mdwFreqChanData->endResultOvr;
       mdwFreqChanData->midResultCnt = mdwFreqChanData->midCaptureCnt;
       mdwFreqChanData->midResultOvr = mdwFreqChanData->midCaptureOvr;
 
-      // End is now
+      // Capture end count and current overflow count
       mdwFreqChanData->endResultCnt = isrCapCount;
       mdwFreqChanData->endResultOvr = mdwFreqTimerInfo->timerOverflow;
 
       // For calculating average frequency
       mdwFreqChanData->gpioCountForAvg++;
+    }
+    else
+    {
+      // Duty cycle falling edge
+      mdwFreqChanData->midCaptureCnt = isrCapCount;
+      mdwFreqChanData->midCaptureOvr = mdwFreqTimerInfo->timerOverflow;
     }
   }
 
@@ -669,9 +361,9 @@ static uint64_t meadow_measure_freq_get_current_time(void)
 
 //=============================================================
 // This function will evaluate the GPIO based on 3 tables containing the
-// valid GPIOs. For CCM only one table is checked. For F7v1 and F7v2
-// The a version specific table is checked, and then the CCM table.
-// Returns the channel, 1-4 unless error, then returns 0.
+// valid GPIOs. For F7v1 and F7v2 a version specific table is checked, and
+// then the table for the STM32F7. This function returns the channel, 1-4
+// or an error, then returns 0.
 static uint8_t meadow_measure_freq_verify_portpin_get_chan(
           const uint32_t timerNumb, uint8_t portAndPin)
 {
@@ -686,7 +378,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
   uint32_t hardwareVersion = meadow_hw_version_get();
 
   if(hardwareVersion == MEADOW_F7_HW_VERSION_NUMB_F7V1)
-  {    
+  {
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
     syslog(LOG_MDIAG, "--->%s@%d  This is a F7FeatherV1\n",
       __FILE__, __LINE__);
@@ -694,7 +386,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     // Find offset to top of array
     uint8_t *featherArrayTop = &validF7v1GpioArray[gpioArrayOff][0];
 
-    // We know we have the right channel look for the GPIO match
+    // We now we have the right channel look for the GPIO match
     for(entryCnt = 0;
       entryCnt < MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER;
       entryCnt++)
@@ -1488,15 +1180,15 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   else
     regOvrFloTimSize = MEADOW_FREQ_16_BIT_OVERFLOW_COUNT;
 
-  uint64_t ovrFloStartCnt = bgnResultOvr;
-
-  // Add in the overflow counts
-  bgnCapture = bgnResultCnt + \
-        ((bgnResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+  // Add in the overflow counts, normalized relative to bgnResultOvr so the
+  // multiply stays on small deltas instead of the free-running (and
+  // ever-growing) absolute overflow count. bgnCapture needs no overflow
+  // term of its own: relative to its own baseline, it's always zero.
+  bgnCapture = bgnResultCnt;
   midCapture = midResultCnt + \
-        ((midResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+        ((midResultOvr - bgnResultOvr) * regOvrFloTimSize);
   endCapture = endResultCnt + \
-        ((endResultOvr - ovrFloStartCnt) * regOvrFloTimSize);
+        ((endResultOvr - bgnResultOvr) * regOvrFloTimSize);
 
   // Normalize from the beginning
   fullCycle = endCapture - bgnCapture;
