@@ -88,6 +88,31 @@ typedef struct SPITestingOptions_s SPITestingOptions;
 SPITestingOptions SpiTestOps;
 SPITestingOptions *_testOps = &SpiTestOps;
 
+// Buffer sizes for each meadow_kt_spi_dma_tests userData value. 0-13 step
+// through common sizes from 4k down to 1 byte; 14-32 step up in 10k
+// increments to 200k; 33-37 straddle the F7 DMA controller's 65535-item
+// single-transaction limit (Ref Man section 8.3.6/8.3.16 last bullet: "This
+// means that a maximum of 65535 data items can be managed by the DMA in a
+// single transaction") to exercise the driver's split-transfer workaround.
+static const size_t _spiDmaTestBufferSizes[] =
+{
+  // 0-9
+  4096, 3072, 2048, 1024, 512, 256, 128, 64, 32, 16,
+
+  // 10-19
+  8, 4, 2, 1, 1024 * 10, 1024 * 20, 1024 * 40, 1024 * 50, 1024 * 60, 1024 * 70,
+
+  // 20-29
+  1024 * 80, 1024 * 90, 1024 * 100, 1024 * 110, 1024 * 120, 1024 * 130,
+  1024 * 140, 1024 * 150, 1024 * 160, 1024 * 170,
+
+  // 30-37
+  1024 * 180, 1024 * 190, 1024 * 200, 65534, 65535, 65536, 65537, 65538,
+};
+
+#define SPI_DMA_TEST_BUFFER_COUNT \
+  (sizeof(_spiDmaTestBufferSizes) / sizeof(_spiDmaTestBufferSizes[0]))
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
@@ -112,193 +137,18 @@ void meadow_kt_spi_dma_tests(uint32_t userData)
   _testOps->bufferSize = 2048;
   _testOps->msgBits = 8;
 
-  switch(userData)
+  if(userData >= SPI_DMA_TEST_BUFFER_COUNT)
   {
-    case 0:      // 4k buffer
-      _testOps->bufferSize = 4096;
-      break;
-
-    case 1:      // 3k buffer
-      _testOps->bufferSize = 3072;
-      break;
-
-    case 2:      // 2k buffer (default)
-      break;
-
-    case 3:      // 1k buffer
-      _testOps->bufferSize = 1024;
-      break;
-
-    case 4:      // 512 buffer
-      _testOps->bufferSize = 512;
-      break;
-
-    case 5:      // 256 buffer
-      _testOps->bufferSize = 256;
-      break;
-
-    case 6:      // 128 buffer
-      _testOps->bufferSize = 128;
-      break;
-
-    case 7:      // 64 buffer
-      _testOps->bufferSize = 64;
-      break;
-
-    case 8:      // 32 buffer
-      _testOps->bufferSize = 32;
-      break;
-
-    case 9:      // 16 buffer
-      _testOps->bufferSize = 16;
-      break;
-
-    case 10:      // 8 buffer
-      _testOps->bufferSize = 8;
-      break;
-
-    case 11:      // 4 buffer
-      _testOps->bufferSize = 4;
-      break;
-
-    case 12:      // 2 buffer
-      _testOps->bufferSize = 2;
-      break;
-
-    case 13:      // 1 buffer
-      _testOps->bufferSize = 1;
-      break;
-
-    case 14:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 10;
-      break;
-
-    case 15:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 20;
-      break;
-
-    case 16:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 40;
-      break;
-
-    case 17:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 50;
-      break;
-
-    case 18:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 60;
-      break;
-
-    case 19:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 70;
-      break;
-
-    case 20:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 80;
-      break;
-
-    case 21:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 90;
-      break;
-
-    case 22:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 100;
-      break;
-
-    case 23:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 110;
-      break;
-
-    case 24:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 120;
-      break;
-
-    case 25:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 130;
-      break;
-
-    case 26:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 140;
-      break;
-
-    case 27:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 150;
-      break;
-
-    case 28:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 160;
-      break;
-
-    case 29:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 170;
-      break;
-
-    case 30:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 180;
-      break;
-
-    case 31:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 190;
-      break;
-      
-    case 32:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 1024 * 200;
-      break;
-    
-    // The following are for testing the workaround needed to exceed the F7's
-    // DMA limit of 65535 bytes. For more information see Ref Man section
-    // 8.3.6 and 8.3.16 the last bullet,"This means that a maximum of 65535
-    // data items can be managed by the DMA in a single transaction."
-
-    case 33:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 65534;
-      break;
-
-    case 34:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 65535;
-      break;
-
-    case 35:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 65536;
-      break;
-
-    case 36:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 65537;
-      break;
-
-    case 37:
-      // _testOps->repeatExchange = 20;
-      _testOps->bufferSize = 65538;
-      break;
-
-    default:
-      syslog(LOG_MTEST, "Undefined test meadow_kt_spi_dma_tests, userData:%lu\n",
-        userData);
-      return;
+    syslog(LOG_MTEST, "Undefined test meadow_kt_spi_dma_tests, userData:%lu\n",
+      userData);
+    return;
   }
+
+  _testOps->bufferSize = _spiDmaTestBufferSizes[userData];
+  // if (userData >= 14)
+  // {
+  //   _testOps->repeatExchange = 20;
+  // }
 
   spi_initiate_loopback_test(_testOps);
 }
