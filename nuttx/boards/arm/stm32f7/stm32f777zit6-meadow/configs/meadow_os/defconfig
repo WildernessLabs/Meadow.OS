@@ -271,6 +271,8 @@ CONFIG_FDCLONE_STDIO=y
 CONFIG_EXAMPLES_PPPD=y
 CONFIG_NETUTILS_CMUX=y
 CONFIG_PTHREAD_MUTEX_TYPES=y
+CONFIG_STM32F7_I2C1=y
+CONFIG_STM32F7_I2C3=y
 
 #
 #   Turning the following off for the minute.  These variables seem to be used
@@ -299,12 +301,6 @@ CONFIG_DEBUG_INFO=y
 CONFIG_DEBUG_WARN=y
 CONFIG_DEBUG_ERROR=y
 # CONFIG_DEBUG_FEATURES=y
-
-#
-#   Turn on I2C and close issue https://github.com/WildernessLabs/Meadow.OS/issues/205
-#
-CONFIG_STM32F7_I2C1=y
-CONFIG_STM32F7_I2C3=y
 
 #
 #   Turn on PWM and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/206
