@@ -340,6 +340,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SPI_DMA_TESTS
             BUILD_TESTS=true
             ;;
+            i2c)
+            echo "I2C bus scan tests requested."
+            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable I2C_TESTS
+            BUILD_TESTS=true
+            ;;
             rotenc)
             echo "Rotary Encoder tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS

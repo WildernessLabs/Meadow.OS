@@ -62,6 +62,8 @@ void meadow_kt_assert_test(uint32_t);
 void meadow_kt_measure_freq_tests(uint32_t);
 void meadow_kt_bluetooth_tests(uint32_t);
 void hcom_kt_traverse_ku_tests(uint32_t);
+void meadow_kt_i2c1_scan_tests(uint32_t);
+void meadow_kt_i2c3_scan_tests(uint32_t);
 
 //
 //  Bluetooth tests.

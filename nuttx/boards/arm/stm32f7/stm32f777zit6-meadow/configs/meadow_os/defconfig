@@ -303,8 +303,8 @@ CONFIG_DEBUG_ERROR=y
 #
 #   Turn on I2C and close issue https://github.com/WildernessLabs/Meadow.OS/issues/205
 #
-# CONFIG_STM32F7_I2C1=y
-# CONFIG_STM32F7_I2C3=y
+CONFIG_STM32F7_I2C1=y
+CONFIG_STM32F7_I2C3=y
 
 #
 #   Turn on PWM and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/206

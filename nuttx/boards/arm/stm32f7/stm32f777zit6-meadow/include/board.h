@@ -552,8 +552,13 @@
  * I2C1_SDA - PB7
  */
 
-#define GPIO_I2C1_SCL        (GPIO_I2C1_SCL_1|GPIO_SPEED_50MHz)
-#define GPIO_I2C1_SDA        (GPIO_I2C1_SDA_1|GPIO_SPEED_50MHz)
+// Meadow feather exposes only 1 I2C bus.  It's on D07 (SDA) and D08 (SCL)
+#define GPIO_I2C1_SCL       (GPIO_I2C1_SCL_1 | GPIO_SPEED_50MHz)
+#define GPIO_I2C1_SDA       (GPIO_I2C1_SDA_1 | GPIO_SPEED_50MHz)
+//meadow core compute has an additional I2C
+#define GPIO_I2C3_SCL       (GPIO_I2C3_SCL_2 | GPIO_SPEED_50MHz)
+#define GPIO_I2C3_SDA       (GPIO_I2C3_SDA_2 | GPIO_SPEED_50MHz)
+
 
 #define GPIO_SPI2_CS          (GPIO_SPI_CS | GPIO_PORTI | GPIO_PIN0)
 #define GPIO_SPI2_SCK         GPIO_SPI2_SCK_4 

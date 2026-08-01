@@ -46,6 +46,7 @@ The following identifiers can be used with the `-u` flag:
 | `adc` | Analog to Digital converter tests | `ADC_TESTS` |
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
 | `spidma` | SPI DMA tests | `SPI_DMA_TESTS` |
+| `i2c` | I2C bus scan tests (I2C1 and I2C3) | `I2C_TESTS` |
 | `sotest` | Dynamic loading (dlopen/dlsym/dlclose) tests | `SOTEST_TESTS` |
 
 ## Test Configuration
@@ -188,6 +189,34 @@ on the `-v` value passed from the CLI:
 
 Errors at any step (VFS registration, table create/drop, file open, insert, or query) are logged
 via `syslog(LOG_MTEST, ...)`.
+
+## I2C Bus Scan Tests
+
+The `i2c` test exercises the two I2C buses Meadow F7 exposes to board code - I2C1 (the
+Feather bus, present on both the Feather form factor and the CCM) and I2C3 (an additional
+bus present only on the CCM).
+
+### Prerequisites
+
+* Build with `./build.sh -u=i2c`. This enables `CONFIG_I2C_TESTS`, which compiles in
+  `F7MeadowOS/kerneltests/meadow_i2c_tests.c`. Unlike `sotest`, no reconfigure is needed -
+  the test is only ever called from kernel space (via `meadow_kt_dispatcher`, which already
+  has its own syscall), so it does not need a syscall of its own.
+
+### What It Verifies
+
+`meadow_kt_i2c1_scan_tests` (`MEADOW_TEST_I2C1_SCAN` = 25) and `meadow_kt_i2c3_scan_tests`
+(`MEADOW_TEST_I2C3_SCAN` = 26), both in `meadow_unit_test_framework.h`, scan their respective
+bus for connected devices:
+
+* `-v 0` (default) - probes the standard 7-bit address range, `0x08`-`0x77`.
+* `-v 1` - probes the full `0x00`-`0x7f` range, including reserved addresses.
+
+The scan is fixed at 100 kHz (I2C standard mode) and is not affected by the `-v` value beyond
+selecting the address range. Each probed address is a single-byte `I2C_M_READ` transfer; a
+successful transfer means a device ACK'd and is logged as present. Results - not a pass/fail
+verdict - are written to the syslog (`LOG_MTEST`): one line per device found (address in hex
+and decimal), or a single "No devices found" line if the bus is empty.
 
 ## Adding New Tests
 

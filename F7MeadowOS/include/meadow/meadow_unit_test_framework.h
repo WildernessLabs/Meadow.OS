@@ -226,6 +226,16 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_SOTEST                          24
 
 /**
+ * @brief I2C1 bus scan test ID.
+ */
+#define MEADOW_TEST_I2C1_SCAN                       25
+
+/**
+ * @brief I2C3 bus scan test ID.
+ */
+#define MEADOW_TEST_I2C3_SCAN                       26
+
+/**
  * @brief User space assert test ID.
  */
 #define MEADOW_TEST_USER_SPACE_ASSERT               900
