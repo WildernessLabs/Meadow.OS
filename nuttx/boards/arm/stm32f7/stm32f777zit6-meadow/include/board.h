@@ -546,29 +546,44 @@
 #define GPIO_ETH_RMII_TXD0    (GPIO_ETH_RMII_TXD0_2|GPIO_SPEED_100MHz)
 #define GPIO_ETH_RMII_TXD1    (GPIO_ETH_RMII_TXD1_2|GPIO_SPEED_100MHz)
 
-/* I2C Mapping
- *
- * I2C1_SCL - PB6
- * I2C1_SDA - PB7
- */
+// ============================== I2C ==============================
 
-// Meadow feather exposes only 1 I2C bus.  It's on D07 (SDA) and D08 (SCL)
+//  Meadow feather exposes only 1 I2C bus.  It's on D07 (SDA) and D08 (SCL)
 #define GPIO_I2C1_SCL       (GPIO_I2C1_SCL_1 | GPIO_SPEED_50MHz)
 #define GPIO_I2C1_SDA       (GPIO_I2C1_SDA_1 | GPIO_SPEED_50MHz)
-//meadow core compute has an additional I2C
+
+//  Meadow core compute has an additional I2C
 #define GPIO_I2C3_SCL       (GPIO_I2C3_SCL_2 | GPIO_SPEED_50MHz)
 #define GPIO_I2C3_SDA       (GPIO_I2C3_SDA_2 | GPIO_SPEED_50MHz)
 
+// ============================== SPI ==============================
 
-#define GPIO_SPI2_CS          (GPIO_SPI_CS | GPIO_PORTI | GPIO_PIN0)
-#define GPIO_SPI2_SCK         GPIO_SPI2_SCK_4 
-#define GPIO_SPI2_MISO        GPIO_SPI2_MISO_3
-#define GPIO_SPI2_MOSI        GPIO_SPI2_MOSI_3
+#define GPIO_SPI2_CS        (GPIO_SPI_CS | GPIO_PORTI | GPIO_PIN0)
+#define GPIO_SPI2_SCK       GPIO_SPI2_SCK_4 
+#define GPIO_SPI2_MISO      GPIO_SPI2_MISO_3
+#define GPIO_SPI2_MOSI      GPIO_SPI2_MOSI_3
+
+#define GPIO_SPI_CS         (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_SET)
+
+#define GPIO_SPI5_SCK       (GPIO_SPI5_SCK_2 | GPIO_SPEED_50MHz)
+#define GPIO_SPI5_MISO      (GPIO_SPI5_MISO_1 | GPIO_SPEED_50MHz)
+#define GPIO_SPI5_MOSI      (GPIO_SPI5_MOSI_1 | GPIO_SPEED_50MHz)
+
+#define GPIO_SPI3_SCK       (GPIO_SPI3_SCK_2 | GPIO_SPEED_50MHz)
+#define GPIO_SPI3_MISO      (GPIO_SPI3_MISO_2 | GPIO_SPEED_50MHz)
+#define GPIO_SPI3_MOSI      (GPIO_SPI3_MOSI_2 | GPIO_SPEED_50MHz)
 
 // Meadow uses 3 SPI devices SPI2, SPI3 and SPI5
-// SPI2 only has one option for RX and TX this is baked into stm32_spi.c
-// #define DMAMAP_SPI2_RX             STM32_DMA_MAP(DMA1,DMA_STREAM3,DMA_CHAN0)
-// #define DMAMAP_SPI2_TX             STM32_DMA_MAP(DMA1,DMA_STREAM4,DMA_CHAN0)
+// SPI2 only has one option for RX and TX, so in the Legacy NuttX tree
+// stm32f76xx77xx_dma.h defined the unsuffixed DMAMAP_SPI2_RX/TX directly and
+// board.h did not need to. This rebase is on a newer upstream NuttX whose
+// stm32f76xx77xx_dma.h added a second SPI2 stream/channel option
+// (DMAMAP_SPI2_RX_1/TX_1), so it now only provides the suffixed _1/_2 macros
+// and leaves the unsuffixed alias to board.h, same as SPI3/SPI5 below. Using
+// the _2 mapping here reproduces the DMA1/STREAM3/STREAM4/CHAN0 wiring
+// Legacy used unconditionally.
+#define DMAMAP_SPI2_RX             STM32_DMA_MAP(DMA1,DMA_STREAM3,DMA_CHAN0)
+#define DMAMAP_SPI2_TX             STM32_DMA_MAP(DMA1,DMA_STREAM4,DMA_CHAN0)
 
 // Mapping for SPI3.
 // #define DMAMAP_SPI3_RX_1  STM32_DMA_MAP(DMA1,DMA_STREAM0,DMA_CHAN0)

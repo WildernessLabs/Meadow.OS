@@ -335,7 +335,7 @@ int spi_initiate_loopback_test(SPITestingOptions *testOps)
   SPI_SETBITS(testOps->spiDev, testOps->msgBits);
 
 #if defined (CONFIG_STM32F7_SPI_DMA)
-  syslog(LOG_MTEST, "%s@%d-DMA test, SPI%lu, allocate %lu bytes\n",
+  syslog(LOG_MTEST, "%s@%d-DMA test, SPI%" PRIu32 ", allocate %zd bytes\n",
           __FILE__, __LINE__, testOps->spiNumber,
           testOps->bufferSize);
 #else

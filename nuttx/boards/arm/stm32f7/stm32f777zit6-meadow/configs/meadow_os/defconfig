@@ -312,12 +312,12 @@ CONFIG_DEBUG_ERROR=y
 #
 #   Turn on SPIDMA and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/207
 #
-# CONFIG_STM32F7_SPI2_DMA=y
-# CONFIG_STM32F7_SPI3=y
-# CONFIG_STM32F7_SPI3_DMA=y
-# CONFIG_STM32F7_SPI5=y
-# CONFIG_STM32F7_SPI5_DMA=y
-# CONFIG_STM32F7_SPI_DMA=y
+CONFIG_STM32F7_SPI2_DMA=y
+CONFIG_STM32F7_SPI3=y
+CONFIG_STM32F7_SPI3_DMA=y
+CONFIG_STM32F7_SPI5=y
+CONFIG_STM32F7_SPI5_DMA=y
+CONFIG_STM32F7_SPI_DMA=y
 
 #
 #   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
