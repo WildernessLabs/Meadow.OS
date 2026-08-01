@@ -260,6 +260,49 @@ it with the RX buffer via `SPI_EXCHANGE`, and compares the two. Results are writ
 syslog (`LOG_MTEST`): a successful loop reports the number of bytes transferred; a failed loop
 reports the offset of the first mismatch along with total error/success byte counts.
 
+### Sample Results for SPI DMA Tests
+
+Results will be written to the developer / debug console (when enabled).
+
+The following shows the sample output when the COPI and CIPO lines are not connected (a failed test):
+
+```
+[   23.692000] [10] Developer test param: 17 - value: 0
+[   23.692000] [10] Checking for userspace test param: 17 - value: 0
+[   23.692000] [10] Checking for kernel test param: 17 - value: 0
+[   23.692000] [10] Number of kernel tests: 1
+[   23.694000] [10] Unit test configuration file could not be processed. Error: Could not open file
+[   23.698000] [10] F7MeadowOSLink/kerneltests/meadow_spi_dma_tests.c@339-DMA test, SPI5, allocate 4096 bytes
+[   23.701000] [ 1] -->Loop:00 - Error sent:4096(0x00001000) bytes, err@bufOff:0(0x00000000), txBuff:0xc000c0e0, rxBuff:0xc000d0e8 [txBuff:0x00(0xc000c0e0) != rxBuff:0xff(0xc000d0e8)]
+[   23.702000] [ 1] Loop:00 - Transfer failed. First offset:0, total errors:1, total success:0
+```
+
+The following sample output shows a number of successful tests:
+
+```
+[  312.225000] [10] Developer test param: 17 - value: 0
+[  312.225000] [10] Checking for userspace test param: 17 - value: 0
+[  312.225000] [10] Checking for kernel test param: 17 - value: 0
+[  312.226000] [10] Number of kernel tests: 1
+[  312.227000] [10] Unit test configuration file could not be processed. Error: Could not open file
+[  312.483000] [10] F7MeadowOSLink/kerneltests/meadow_spi_dma_tests.c@339-DMA test, SPI5, allocate 4096 bytes
+[  312.486000] [ 1] Loop:01 - Successful transfer of:4096 bytes
+[  351.156000] [10] Developer test param: 17 - value: 10
+[  351.157000] [10] Checking for userspace test param: 17 - value: 10
+[  351.157000] [10] Checking for kernel test param: 17 - value: 10
+[  351.157000] [10] Number of kernel tests: 1
+[  351.158000] [10] Unit test configuration file could not be processed. Error: Could not open file
+[  351.163000] [10] F7MeadowOSLink/kerneltests/meadow_spi_dma_tests.c@339-DMA test, SPI5, allocate 8 bytes
+[  351.163000] [ 1] Loop:01 - Successful transfer of:8 bytes
+[  359.158000] [10] Developer test param: 17 - value: 20
+[  359.158000] [10] Checking for userspace test param: 17 - value: 20
+[  359.158000] [10] Checking for kernel test param: 17 - value: 20
+[  359.159000] [10] Number of kernel tests: 1
+[  359.160000] [10] Unit test configuration file could not be processed. Error: Could not open file
+[  359.355000] [10] F7MeadowOSLink/kerneltests/meadow_spi_dma_tests.c@339-DMA test, SPI5, allocate 81920 bytes
+[  359.420000] [ 1] Loop:01 - Successful transfer of:81920 bytes
+```
+
 ## Adding New Tests
 
 To add a new kernel-space test:
