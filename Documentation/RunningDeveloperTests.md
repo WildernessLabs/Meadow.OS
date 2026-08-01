@@ -218,6 +218,48 @@ successful transfer means a device ACK'd and is logged as present. Results - not
 verdict - are written to the syslog (`LOG_MTEST`): one line per device found (address in hex
 and decimal), or a single "No devices found" line if the bus is empty.
 
+## SPI DMA Tests
+
+The `spidma` test (`MEADOW_TEST_SPI_DMA` = 17 in `meadow_unit_test_framework.h`) exercises
+DMA-driven SPI transfers on SPI5 by running a loopback test: it clocks a pseudo-random pattern
+out on COPI (MOSI) while simultaneously capturing on CIPO (MISO), then compares the two buffers
+byte-for-byte.
+
+### Prerequisites
+
+* Build with `./build.sh -u=spidma`. This enables `CONFIG_SPI_DMA_TESTS`, which compiles in
+  `F7MeadowOS/kerneltests/meadow_spi_dma_tests.c`.
+* **A physical jumper wire connecting COPI to CIPO on SPI5 is required.** The test does not
+  enable any hardware/internal loopback mode in the STM32F7 SPI peripheral or driver - it
+  relies entirely on an external wire looping the output back into the input. On the
+  STM32F777ZIT6, SPI5 is mapped (see `board.h`, `GPIO_SPI5_MOSI`/`GPIO_SPI5_MISO`) to:
+  - COPI (MOSI): PF9
+  - CIPO (MISO): PF8
+  - SCK: PH6
+
+  Without the jumper, CIPO floats and is sampled as a constant `0xff` for every byte
+  transferred, which the test reports as a transfer failure starting at offset 0 for every loop.
+
+### Running It
+
+```bash
+meadow developer -p 17 -v <n>
+```
+
+The `-v` value selects the buffer size for the transfer (see the `switch` in
+`meadow_kt_spi_dma_tests` for the full list) - `0`-`13` step through common sizes from 4 KB down
+to 1 byte, `14`-`32` step up in 10 KB increments to 200 KB, and `33`-`37` specifically probe
+around the F7 DMA controller's 65535-item single-transaction limit (see ARM reference manual
+section 8.3.6/8.3.16) to exercise the driver's split-transfer workaround for buffers that exceed
+it.
+
+### What It Verifies
+
+For each configured buffer size, the test fills a TX buffer with a repeating pattern, exchanges
+it with the RX buffer via `SPI_EXCHANGE`, and compares the two. Results are written to the
+syslog (`LOG_MTEST`): a successful loop reports the number of bytes transferred; a failed loop
+reports the offset of the first mismatch along with total error/success byte counts.
+
 ## Adding New Tests
 
 To add a new kernel-space test:
