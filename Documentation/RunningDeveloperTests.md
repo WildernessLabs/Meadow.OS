@@ -80,6 +80,13 @@ TestParameters
 
 Kernel-side tests are managed by a dispatcher located at `F7MeadowOS/kerneltests/meadow_kt_dispatcher.c`. This dispatcher maintains an array of available tests and routes execution requests to the appropriate test implementation.
 
+Individual kernel-side test functions (e.g. `meadow_kt_adc_tests`, `meadow_kt_spi_dma_tests`,
+`meadow_kt_sd_card_tests`, and the rest of the `_kernelTests[]` table) are called directly by the
+dispatcher via a function pointer and are not themselves registered as syscalls in
+`nuttx/syscall/syscall.csv` - only `meadow_kt_dispatcher` needs a syscall of its own, since it is
+the only one of these functions ever called from user space (see the I2C test section below for
+the same reasoning applied to a newer test).
+
 ### User-Side Dispatcher
 
 User-side tests and the bridge to kernel tests are managed in `apps/system/hcom/tests/developer_tests.c`. 
