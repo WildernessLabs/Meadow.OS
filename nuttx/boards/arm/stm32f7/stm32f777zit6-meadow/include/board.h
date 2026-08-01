@@ -122,10 +122,10 @@
 #define STM32_SYSCLK_FREQUENCY  (STM32_VCO_FREQUENCY / 2)   // 432/2=216 MHz
 #define STM32_OTGFS_FREQUENCY   (STM32_VCO_FREQUENCY / 9)   // 432/9=48 MHz
 
-#else   // #if (MEADOW_TRY_216_MHz_CLOCK == 1)
+#else   // #if (MEADOW_TRY_216_MHz_CLOCK != 1)
 
 #if defined(CONFIG_STM32F7_OTGFS)
- *
+/*
  * PLL_VCO = (25,000,000 / 25) * 384 = 384 MHz
  * SYSCLK  = 384 MHz / 2 = 192 MHz
  * USB OTG FS, SDMMC and RNG Clock = 384 MHz / 8 = 48MHz

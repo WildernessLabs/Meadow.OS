@@ -45,19 +45,22 @@
 
 struct mdwFreqCfgTimer_s
 {
-  uint32_t timerNumber;   // 1-14 (1 & 8 not supported)
-  uint32_t channelNumber; // 1-4
-  uint32_t portAndPin;    // bits 7:4 port 0=A, 1=B & bits 3:0 pin 0-15
-  uint32_t configOption;  // See below
+  // Configuration option values
   // 0 = illegal - Must set configOption to 1-3
   // 1 = Configure without Duty Cycle,
   // 2 = Configure with Duty Cycle (twice the interrupts),
   // 3 = Unconfigure
+  uint32_t timerNumber;   // 1-14 (1 & 8 not supported)
+  uint32_t channelNumber; // 1-4
+  uint32_t portAndPin;    // bits 7:4 port 0=A, 1=B & bits 3:0 pin 0-15
+  uint32_t configOption;  // See above
 };
 typedef struct mdwFreqCfgTimer_s mdwFreqCfgTimer_t;
 
 struct mdwFreqReturnData_s
 {
+  // To increase resolution while keeping it simple, we'll multiply appropriate
+  // fields by 1000.
   uint32_t timerNumber;       // The timer number 1-14
   uint32_t channelNumber;     // The channel number 1-4
   uint32_t frequencyX1000;    // Frequency * 1000
