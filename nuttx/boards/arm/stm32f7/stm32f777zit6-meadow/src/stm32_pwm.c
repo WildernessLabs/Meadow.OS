@@ -43,11 +43,11 @@
 #include <debug.h>
 #include <sys/types.h>
 
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <arch/board/board.h>
 
 #include "chip.h"
-#include "up_arch.h"
+#include "arm_internal.h"
 #include "stm32_pwm.h"
 #include <meadow/stm32f777zit6-meadow.h>
 

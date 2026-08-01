@@ -311,9 +311,9 @@ CONFIG_DEBUG_ERROR=y
 #
 #   Turn on PWM and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/206
 #
-# CONFIG_PWM=y
-# CONFIG_PWM_MULTICHAN=y
-# CONFIG_PWM_NCHANNELS=4
+CONFIG_PWM=y
+CONFIG_PWM_MULTICHAN=y
+CONFIG_PWM_NCHANNELS=4
 
 #
 #   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
