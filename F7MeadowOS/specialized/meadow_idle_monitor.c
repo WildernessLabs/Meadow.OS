@@ -51,7 +51,7 @@
 #include <meadow/hcom_shared_common.h>
 #include "hardware/stm32f76xx77xx_rcc.h"
 
-#if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0\
+#if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
 // It would be nice if this thread would be replace with the HPWORK worker
 // queue since it is only for testing.
 #include <nuttx/kthread.h>
@@ -63,7 +63,7 @@
 #include <meadow/meadow_apps_core_share.h>
 #include <meadow/meadow_debug_helpers.h>
 
-#pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
+// #pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
 
 //===================================================================
 // Timer 6 is one of the 2 basic timers. It has no connected GPIO I/O
@@ -80,7 +80,6 @@
 // this configuration entry (CONFIG_USEC_PER_TICK=1000)
 // This is a reasonable maximum for the no load idle count.
 #define MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT (1060)
-#define MEADOW_IDLE_MON_MIN_100_PER_CENT_COUNT (0)
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
 #define MEADOW_IDLE_MON_TEST_EXECUTE_TIMES (5)
@@ -93,7 +92,7 @@
  * Private Function Prototypes
  ************************************************************************************/
 
-int meadow_idle_mon_timer_init(uint32_t timerBase);
+static int meadow_idle_mon_timer_init(uint32_t timerBase);
 static int meadow_idle_mon_isr(int irq, void *context, void *arg);
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
@@ -108,7 +107,7 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 // 
 static volatile uint32_t _idleLoopCounter;
-static uint32_t _idleOneSecSnapShot;
+static volatile uint32_t _idleOneSecSnapShot;
 #endif
 
 /****************************************************************************
@@ -182,7 +181,7 @@ int meadow_idle_monitor_setup()
 //================================================================
 // This function uses Timer 6 to create a periodic timer that will call
 // the above ISR once / second. It assumes timer #6.
-int meadow_idle_mon_timer_init(uint32_t timerBase)
+static int meadow_idle_mon_timer_init(uint32_t timerBase)
 {
   int ret;
 
@@ -222,14 +221,14 @@ int meadow_idle_mon_timer_init(uint32_t timerBase)
   up_enable_irq(STM32_IRQ_TIM6);
 
   // Enable the timer
-  uint16_t cr1Val = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
-  cr1Val |= GTIM_CR1_CEN;
-  
-  uint16_t egrVal = getreg16(timerBase + STM32_GTIM_EGR_OFFSET);
-  egrVal |= GTIM_EGR_UG;
+  uint16_t cr1Val = getreg16(timerBase + STM32_BTIM_CR1_OFFSET);
+  cr1Val |= BTIM_CR1_CEN;
 
-  putreg16(egrVal, timerBase + STM32_GTIM_EGR_OFFSET);
-  putreg16(cr1Val, timerBase + STM32_GTIM_CR1_OFFSET);
+  uint16_t egrVal = getreg16(timerBase + STM32_BTIM_EGR_OFFSET);
+  egrVal |= BTIM_EGR_UG;
+
+  putreg16(egrVal, timerBase + STM32_BTIM_EGR_OFFSET);
+  putreg16(cr1Val, timerBase + STM32_BTIM_CR1_OFFSET);
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
   ret = meadow_idle_mon_create_test_thread();
