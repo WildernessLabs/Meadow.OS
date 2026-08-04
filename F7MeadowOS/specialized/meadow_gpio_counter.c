@@ -101,7 +101,7 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
   gpioCntReadData->gpioCount = gpioCounterInfo->totalCount;
 
   // What was the overall difference
-  int countDiff = gpioCounterInfo->totalCount - gpioCounterInfo->prevCount;
+  uint64_t countDiff = gpioCounterInfo->totalCount - gpioCounterInfo->prevCount;
   gpioCounterInfo->prevCount = gpioCounterInfo->totalCount;
   leave_critical_section(flags);
  
@@ -128,7 +128,7 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 
   if(gpioCounterInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-GPIOCnt %ld already removed\n",
+    syslog(LOG_ERR, "%s@%d-GPIOCnt %lu already removed\n",
               __FILE__, __LINE__, gpioCntrNumb);
     return -ENOTEMPTY;
   }
@@ -142,7 +142,7 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
   if(ret < 0)
   {
     syslog(LOG_ERR,
-      "%s@%d-Error removing gpio counter:%ld Pin A interrupt, ret:%d\n",
+      "%s@%d-Error removing gpio counter:%lu Pin A interrupt, ret:%d\n",
       __FILE__, __LINE__, gpioCntrNumb, ret);
   }
 
@@ -182,7 +182,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     // Asked to remove, but is there something to remove?
     if(gpioCounterInfo == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-GPIOCnt %ld already removed\n",
+      syslog(LOG_ERR, "%s@%d-GPIOCnt %lu already removed\n",
                 __FILE__, __LINE__, cfg->gpioCntrNumb);
       return -ENOTEMPTY;    // Not empty
     }
@@ -195,7 +195,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   // Add, but is slot empty?
   if(gpioCounterInfo != NULL)
   {
-    syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is in use\n",
+    syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is in use\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb);
     return -ENOTEMPTY;    // Not empty
   }
@@ -261,9 +261,10 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     gpioCounterInfo);             // information address
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error gpio counter:%ld Pin A interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error gpio counter:%lu Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb, ret);
     kmm_free(gpioCounterInfo);
+    _allGpioCountList[cfg->gpioCntrNumb] = NULL;
   }
 
   return ret;
@@ -271,7 +272,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
 
 //========================================================================
 // Public - Allow the user to set or clear the current gpio counter count.
-int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
+int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, uint64_t newCount)
 {
   // Check for valid gpio counter number (0-7)
   if(gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_MONITORED - 1))
@@ -285,7 +286,7 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
   gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
   if(gpioCounterInfo == NULL)  // Is requested slot valid?
   {
-    syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is not configured\n",
               __FILE__, __LINE__, gpioCntrNumb);
     return -ENODATA;    // No Data
   }
@@ -327,7 +328,7 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
   gpioCounterInfo = _allGpioCountList[gpioCntReadData->gpioCntrNumb];
   if(gpioCounterInfo == NULL)  // Is requested slot configured?
   {
-    syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is not configured\n",
               __FILE__, __LINE__, gpioCntReadData->gpioCntrNumb);
     return -ENODATA;    // No Data
   }

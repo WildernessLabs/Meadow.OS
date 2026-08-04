@@ -350,7 +350,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS
             BUILD_TESTS=true
             ;;
-            gpioCounter)
+            gpiocount)
             echo "GPIO Counter tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
             BUILD_TESTS=true
@@ -385,11 +385,6 @@ if [ ! -z "$UNIT_TESTS" ]; then
             mint)
             echo "Meadow interrupt tests requested."
             kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_INTERRUPT_TESTS
-            BUILD_TESTS=true
-            ;;
-            gpiocount)
-            echo "Measure GPIO Count tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
             BUILD_TESTS=true
             ;;
             all)

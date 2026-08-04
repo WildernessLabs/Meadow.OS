@@ -77,8 +77,8 @@ typedef struct gpioCntConfigParms_s gpioCntConfigParms_t;
 struct gpioCntReadData_s
 {
   uint32_t gpioCntrNumb;    // Supplied, 0 - 7 gpio counter config number
-  int32_t gpioCount;        // Returned, Current total count (+/-)
-  int32_t gpioCountChange;  // Returned, Counts since last read (+/-)
+  uint64_t gpioCount;       // Returned, Current total count
+  uint64_t gpioCountChange; // Returned, Counts since last read
 };
 typedef struct gpioCntReadData_s gpioCntReadData_t;
 
@@ -90,16 +90,17 @@ struct gpioCounterInfo_s
   // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
   uint8_t gpioPinInfo;        // Supplied by configuration
 
-  // Using int32_t for count as this will roll-over in 24,855 days at 1 count
-  // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
-  int32_t totalCount;         // Total of rising edges
-  int32_t prevCount;          // Count at last read
+  // Using uint64_t for count since this only counts up (rising edges); at
+  // 1000 counts per second this will not roll over for well over a million
+  // years, so no reasonable application will ever see it wrap.
+  uint64_t totalCount;        // Total of rising edges
+  uint64_t prevCount;         // Count at last read
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 
 // Public functions with syscalls (yet to be added)
-int meadow_gpio_counter_config(gpioCntConfigParms_t *gpioCntReadData_t);
-int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount);
+int meadow_gpio_counter_config(gpioCntConfigParms_t *cfg);
+int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, uint64_t newCount);
 int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData);
 
 // Test function follow
