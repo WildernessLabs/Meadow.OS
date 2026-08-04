@@ -87,8 +87,9 @@
 #include <meadow/meadow_debug_helpers.h>
 
 #pragma message "(--) meadow_measure_freq.c"
-#pragma GCC optimize("O0")    // Prevent compiler from changing the code
 #endif
+
+// #pragma GCC optimize("O0")    // Prevent compiler from changing the code
 
 /****************************************************************************
  * Private Data
