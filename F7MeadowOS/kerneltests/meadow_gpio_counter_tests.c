@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-// In ./build.sh -u=gpioCounter
+// In ./build.sh -u=gpiocount
 // Then -p 23 -v <test number>
 // e.g. meadow developer -p 23 -v 1 (config D05)
 

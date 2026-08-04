@@ -68,26 +68,8 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-// All F7 possible input data register addresses, used for ISR access to read
-// GPIO state value.
-// I'm not sure we ned to read the GPIO state
-static uint32_t gpioCntInputDataReg[] = 
-{
-  STM32_GPIOA_IDR,
-  STM32_GPIOB_IDR,
-  STM32_GPIOC_IDR,
-  STM32_GPIOD_IDR,
-  STM32_GPIOE_IDR,
-  STM32_GPIOF_IDR,
-  STM32_GPIOG_IDR,
-  STM32_GPIOH_IDR,
-  STM32_GPIOI_IDR,
-  STM32_GPIOJ_IDR,
-  STM32_GPIOK_IDR,
-};
-
-// This is the list of the GPIOs currently configured.
-static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_ENCODERS]\
+// This is the list of configured GPIOs.
+static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_MONITORED]\
         = {NULL};
 
 /****************************************************************************
@@ -110,30 +92,26 @@ static int meadow_gpio_count_isr(int irq, void *context, void *arg)
 }
 
 //========================================================================
-// Static - Return data now. 
+// Return count now. 
 void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
           gpioCntReadData_t *gpioCntReadData)
 {
   // Get the current data values
   irqstate_t flags = enter_critical_section();
-  gpioCntReadData->gpioCount = \
-      gpioCounterInfo->totalCount / MEADOW_GPIO_COUNT_EDGES_PER_COUNT;
+  gpioCntReadData->gpioCount = gpioCounterInfo->totalCount;
 
-  // What was the overall direction CW or CCW?
+  // What was the overall difference
   int countDiff = gpioCounterInfo->totalCount - gpioCounterInfo->prevCount;
- 
-  // How much did the count change?
-  gpioCntReadData->gpioCountChange = \
-    countDiff / MEADOW_GPIO_COUNT_EDGES_PER_COUNT;
-
-  // Prep for next read
   gpioCounterInfo->prevCount = gpioCounterInfo->totalCount;
   leave_critical_section(flags);
+ 
+  // How much did the count change?
+  gpioCntReadData->gpioCountChange = countDiff;
   return;
 }
 
 //========================================================================
-// Static - Remove an existing gpio counter entry
+// Remove an existing gpio counter entry
 int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 {
   int ret;
@@ -163,8 +141,9 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
   ret = stm32_gpiosetevent(gpioPinInfo, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing gpio counter:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, gpioCntrNumb, ret);
+    syslog(LOG_ERR,
+      "%s@%d-Error removing gpio counter:%ld Pin A interrupt, ret:%d\n",
+      __FILE__, __LINE__, gpioCntrNumb, ret);
   }
 
   kmm_free(gpioCounterInfo);
@@ -188,27 +167,17 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   }
 
   // Is gpio counter number out of range?
-  if(cfg->gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1))
+  if(cfg->gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_MONITORED - 1))
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu not available. GPIOCnt range is 0 - %u.\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb,
-              (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1));
+              (MEADOW_GPIO_COUNT_MAX_MONITORED - 1));
     return -ERANGE;    // Out of Range
   }
 
   // Check if slot is in use
   gpioCounterInfo = _allGpioCountList[cfg->gpioCntrNumb];
-  if(cfg->isAddGpioCounter)
-  {
-    // Add, but is slot empty?
-    if(gpioCounterInfo != NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is in use\n",
-                __FILE__, __LINE__, cfg->gpioCntrNumb);
-      return -ENOTEMPTY;    // Not empty
-    }
-  }
-  else
+  if(!cfg->isAddGpioCounter)
   {
     // Asked to remove, but is there something to remove?
     if(gpioCounterInfo == NULL)
@@ -223,7 +192,13 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     return ret;
   }
 
-  // Adding new GPIO Counter
+  // Add, but is slot empty?
+  if(gpioCounterInfo != NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-GPIOCnt %ld is in use\n",
+              __FILE__, __LINE__, cfg->gpioCntrNumb);
+    return -ENOTEMPTY;    // Not empty
+  }
 
   // Verify GPIO parameters are in range
   if(cfg->gpioPortInfo > MEADOW_GPIO_COUNTER_MAX_PORT ||
@@ -251,9 +226,6 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   uint8_t pinDesignationA = cfg->gpioPortInfo << 4 | cfg->gpioPinInfo;
   gpioCounterInfo->gpioPinInfo = pinDesignationA;
 
-  // Find the correct static offset for both GPIOs
-  gpioCounterInfo->idrAddress = gpioCntInputDataReg[cfg->gpioPortInfo];
-
   // cfgset contains 20-bits of data. It is required by the Nuttx stm32_gpiosetevent
   // function. If the 20 bits of data are not correct, this Nuttx function will
   // reconfigure the GPIO based on whatever the data is in cfgset.
@@ -278,12 +250,12 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
       break;
   }
 
-  // Setup both rising and falling input points to trigger isr
+  // Setup only rising edges of input GPIO to trigger isr
   // This call also enables the interrupts
   ret = stm32_gpiosetevent(
     cfgsetA,                      // Nuttx cfgset
     1,                            // rising edge,
-    1,                            // falling edge,
+    0,                            // falling edge,
     0,                            // event
     meadow_gpio_count_isr,        // ISR
     gpioCounterInfo);             // information address
@@ -291,6 +263,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   {
     syslog(LOG_ERR, "%s@%d-Error gpio counter:%ld Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb, ret);
+    kmm_free(gpioCounterInfo);
   }
 
   return ret;
@@ -301,11 +274,11 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
 int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount)
 {
   // Check for valid gpio counter number (0-7)
-  if(gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1))
+  if(gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_MONITORED - 1))
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu not available. GPIOCnt range is 0 - %u.\n",
               __FILE__, __LINE__, gpioCntrNumb,
-              (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1));
+              (MEADOW_GPIO_COUNT_MAX_MONITORED - 1));
     return -ERANGE;    // Out of Range
   }
 
@@ -333,6 +306,7 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
   int ret = OK;
   gpioCounterInfo_t *gpioCounterInfo;
 
+  // Verify input
   // Check for NULL
   if(gpioCntReadData == NULL)
   {
@@ -342,11 +316,11 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
   }
 
   // Check for valid gpio counter number (0-7)
-  if(gpioCntReadData->gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1))
+  if(gpioCntReadData->gpioCntrNumb > (MEADOW_GPIO_COUNT_MAX_MONITORED - 1))
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu not available. GPIOCnt range is 0 - %u.\n",
               __FILE__, __LINE__, gpioCntReadData->gpioCntrNumb,
-              (MEADOW_GPIO_COUNT_MAX_ENCODERS - 1));
+              (MEADOW_GPIO_COUNT_MAX_MONITORED - 1));
     return -ERANGE;    // Out of Range
   }
 
