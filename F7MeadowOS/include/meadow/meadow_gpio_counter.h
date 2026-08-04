@@ -47,30 +47,21 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-// Should gpio counter code be built?
-// This is a temporary #define. Remove #define when final decision made
+// Should gpio counter code be built? This is a temporary #define.
+// Remove #define when final decision made
 #define MEADOW_GPIO_COUNTER_BUILD         (1)
 
-// Define the maximum number of encoders that can be monitored.
+// Define the maximum number of GPIOs that can be monitored.
 // Since the F7, under Nuttx, only has 16 "interrupt groups" there's no
 // point in having more that 8 gpio counters.
-#define MEADOW_GPIO_COUNT_MAX_ENCODERS    (8)
+#define MEADOW_GPIO_COUNT_MAX_MONITORED   (8)
 
 #define MEADOW_GPIO_COUNTER_MAX_PORT      (10)   // A-K
 #define MEADOW_GPIO_COUNTER_MAX_PIN       (15)   // 0-15
 
-#define MEADOW_GPIO_COUNTER_DIRECTION_CW  (0)
-#define MEADOW_GPIO_COUNTER_DIRECTION_CCW (1)
-
 #if (MEADOW_GPIO_COUNTER_BUILD > 0)
 
-// The GPIO Counters count both rising and falling edges of each pulse.
-#define MEADOW_GPIO_COUNT_EDGES_PER_COUNT (2)
-
-// Any delay below this value will be considered a delay of 0.
-#define MEADOW_GPIOCNT_DELAY_LOWER_THRESHOLD_MS (0)
-
-// Caller must populate this struct before sending it
+// Caller must populate this struct before configuring a GPIO
 struct gpioCntConfigParms_s
 {
   uint32_t gpioCntrNumb;      // 0 - 7 to identify for collections
@@ -81,13 +72,13 @@ struct gpioCntConfigParms_s
 };
 typedef struct gpioCntConfigParms_s gpioCntConfigParms_t;
 
-// This structure needs the encoderNumber set to 0-7 for the gpio counter.
+// This structure needs the counter number set to 0-7.
 // The meadow_gpio_counter_read_data() function fills the other fields.
 struct gpioCntReadData_s
 {
-  uint32_t gpioCntrNumb;     // Supplied, 0 - 7 gpio counter config number
-  int32_t gpioCount;     // Returned, Current total count (+/-)
-  int32_t gpioCountChange;    // Returned, Counts since last read (+/-)
+  uint32_t gpioCntrNumb;    // Supplied, 0 - 7 gpio counter config number
+  uint64_t gpioCount;       // Returned, Current total count
+  uint64_t gpioCountChange; // Returned, Counts since last read
 };
 typedef struct gpioCntReadData_s gpioCntReadData_t;
 
@@ -97,24 +88,19 @@ struct gpioCounterInfo_s
   uint8_t gpioCntrNumb;       // GPIOCntr number
 
   // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
-  uint8_t gpioPinInfo;           // Supplied by configuration
+  uint8_t gpioPinInfo;        // Supplied by configuration
 
-  // Address of correct "Input Data Register" which holds GPIO's hardware
-  // port state bits
-  uint32_t idrAddress;       // Calculated during configuration
-
-  uint32_t prevCondBits;      // Current state information
-  uint32_t lookupOff;         // Current lookup table offset
-  // Using int32_t for count as this will roll-over in 24,855 days at 1 count
-  // per second. or 24.855 days at 1000 counts per second. Could be int64_t.
-  int32_t totalCount;         // Total of A and B, rising and/or falling edges
-  int32_t prevCount;          // Count at last read, used to calc cnt change
+  // Using uint64_t for count since this only counts up (rising edges); at
+  // 1000 counts per second this will not roll over for well over a million
+  // years, so no reasonable application will ever see it wrap.
+  uint64_t totalCount;        // Total of rising edges
+  uint64_t prevCount;         // Count at last read
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 
-// Public functions with syscalls
-int meadow_gpio_counter_config(gpioCntConfigParms_t *gpioCntReadData_t);
-int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, int32_t newCount);
+// Public functions with syscalls (yet to be added)
+int meadow_gpio_counter_config(gpioCntConfigParms_t *cfg);
+int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, uint64_t newCount);
 int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData);
 
 // Test function follow

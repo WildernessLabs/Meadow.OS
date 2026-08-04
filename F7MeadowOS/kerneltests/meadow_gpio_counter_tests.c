@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-// In ./build.sh -u=gpioCounter
+// In ./build.sh -u=gpiocount
 // Then -p 23 -v <test number>
 // e.g. meadow developer -p 23 -v 1 (config D05)
 
@@ -149,7 +149,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "->GPIO Counter 0 - Changed by %ld since read, total:%ld\n",
+        "->GPIO Counter 0 - Changed by %llu since read, total:%llu\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -164,7 +164,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "->GPIO Counter 5 - Changed by %ld since read, total:%ld\n",
+        "->GPIO Counter 5 - Changed by %llu since read, total:%llu\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -179,7 +179,7 @@ void meadow_kt_gpio_counter_tests(uint32_t userData)
       }
 
       syslog(LOG_MTEST,
-        "->GPIO Counter 7 - Changed by %ld since read total:%ld\n",
+        "->GPIO Counter 7 - Changed by %llu since read total:%llu\n",
         gpioCntReadData.gpioCountChange,
         gpioCntReadData.gpioCount);
       break;
@@ -319,7 +319,7 @@ void gpio_counter_test_remove_config(uint32_t userData)
   cfg->gpioCntrNumb = gpioCntrNumb;   // GPIO Counter number 0 - 7
   cfg->isAddGpioCounter = false;        // Remove gpio counter
 
-  // Call meadow_rotary_encoder.c's configuration function, used by
+  // Call meadow_gpio_counter.c's configuration function, used by
   // managed code
   ret = meadow_gpio_counter_config(cfg);
   if(ret < 0)
