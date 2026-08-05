@@ -530,6 +530,7 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
 
   irqstate_t flags = enter_critical_section();
   rotaryEncoderInfo->totalCount = newCount;
+  rotaryEncoderInfo->prevCount = newCount;
   leave_critical_section(flags);
 
   rotenc_release(rotaryEncoderInfo);
