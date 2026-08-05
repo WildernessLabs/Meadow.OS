@@ -144,12 +144,25 @@ static int rotenc_config_gpio_arm(uint32_t cfgset, xcpt_t isr,
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// This function, called by the GPIO ISRs, adds/subtracts the count.
-// Both rising and falling edges of are counted for interrupts, 'A' and 'B'.
+// This function, called by the GPIO ISRs, merges whichever pin just changed
+// into prevCondBits and adds/subtracts the count. Both rising and falling
+// edges are counted for interrupts, 'A' and 'B'. The read-modify-write of
+// prevCondBits happens in the same critical section as the lookupOff/
+// totalCount update (rather than in the calling ISR) so that isr_a and
+// isr_b can never interleave their updates to this shared per-encoder state,
+// regardless of their relative interrupt priorities.
 static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
-          uint32_t newCondBits)
+          uint32_t changedPinBitMask, bool pinIsHigh)
 {
   irqstate_t flags = enter_critical_section();
+
+  // Merge the changed pin's new level with the other pin's last-known level
+  uint32_t newCondBits = rotaryEncoderInfo->prevCondBits & ~changedPinBitMask;
+  if(pinIsHigh)
+  {
+    newCondBits |= changedPinBitMask;
+  }
+  rotaryEncoderInfo->prevCondBits = newCondBits;
 
   // Calculate the new lookup table offset to determine what happened
   uint32_t lookupOff = rotaryEncoderInfo->lookupOff;
@@ -198,18 +211,11 @@ static int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 {
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
 
-  // Save previous B state
-  uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x02;
+  bool pinIsHigh = rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressA,
+            rotaryEncoderInfo->pinInfoA);
 
-  if(rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressA, rotaryEncoderInfo->pinInfoA))
-  {
-    newCondBits |= 0x01;    // Set bit A if high
-  }
-
-  // Only saves 2 ls bits
-  rotaryEncoderInfo->prevCondBits = newCondBits;
-
-  rotenc_calc_dir_count(rotaryEncoderInfo, newCondBits);
+  // Bit 0x01 is pin A's bit within prevCondBits/newCondBits
+  rotenc_calc_dir_count(rotaryEncoderInfo, 0x01, pinIsHigh);
   return OK;
 }
 
@@ -219,18 +225,11 @@ static int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 {
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
 
-  // Save previous A state
-  uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x01;
+  bool pinIsHigh = rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressB,
+            rotaryEncoderInfo->pinInfoB);
 
-  if(rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressB, rotaryEncoderInfo->pinInfoB))
-  {
-    newCondBits |= 0x02;    // Set bit B
-  }
-
-  // Only saves 2 ls bits
-  rotaryEncoderInfo->prevCondBits = newCondBits;
-
-  rotenc_calc_dir_count(rotaryEncoderInfo, newCondBits);
+  // Bit 0x02 is pin B's bit within prevCondBits/newCondBits
+  rotenc_calc_dir_count(rotaryEncoderInfo, 0x02, pinIsHigh);
   return OK;
 }
 
