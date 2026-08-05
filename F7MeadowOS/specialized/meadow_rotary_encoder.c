@@ -600,9 +600,19 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   {
     // This simple polling loop does the waiting. abs() is used so a change
     // in either direction (CW or CCW) satisfies the wait.
-    while(abs(rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) < \
-      MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+    while(true)
     {
+      // totalCount/prevCount are also written from ISR context (and reset
+      // together by set_count()), so read them under a critical section
+      // rather than racing the ISR/writer for an unprotected read.
+      irqstate_t condFlags = enter_critical_section();
+      int countDiff = rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount;
+      leave_critical_section(condFlags);
+      if(abs(countDiff) >= MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+      {
+        break;
+      }
+
       usleep(rotaryEncoderInfo->delayMs * 1000);
 
       // Bail out if the encoder was removed while we were waiting - the
