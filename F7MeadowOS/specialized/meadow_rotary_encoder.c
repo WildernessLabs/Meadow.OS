@@ -136,16 +136,33 @@ static void meadow_rotary_encoder_read_now(rotaryEncoderInfo_t *rotaryEncoderInf
 static int rotenc_config_interrupt_remove(uint32_t encoderNumb);
 static rotaryEncoderInfo_t *rotenc_acquire(uint32_t encoderNumb);
 static void rotenc_release(rotaryEncoderInfo_t *rotaryEncoderInfo);
+static bool rotenc_read_gpio_bit(volatile uint32_t *idrAddress, uint8_t pinInfo);
+static int rotenc_config_gpio_arm(uint32_t cfgset, xcpt_t isr,
+          rotaryEncoderInfo_t *rotaryEncoderInfo, uint32_t encoderNumb,
+          char pinLetter);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-// This function, called by the GPIO ISRs, adds/subtracts the count.
-// Both rising and falling edges of are counted for interrupts, 'A' and 'B'.
+// This function, called by the GPIO ISRs, merges whichever pin just changed
+// into prevCondBits and adds/subtracts the count. Both rising and falling
+// edges are counted for interrupts, 'A' and 'B'. The read-modify-write of
+// prevCondBits happens in the same critical section as the lookupOff/
+// totalCount update (rather than in the calling ISR) so that isr_a and
+// isr_b can never interleave their updates to this shared per-encoder state,
+// regardless of their relative interrupt priorities.
 static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
-          uint32_t newCondBits)
+          uint32_t changedPinBitMask, bool pinIsHigh)
 {
   irqstate_t flags = enter_critical_section();
+
+  // Merge the changed pin's new level with the other pin's last-known level
+  uint32_t newCondBits = rotaryEncoderInfo->prevCondBits & ~changedPinBitMask;
+  if(pinIsHigh)
+  {
+    newCondBits |= changedPinBitMask;
+  }
+  rotaryEncoderInfo->prevCondBits = newCondBits;
 
   // Calculate the new lookup table offset to determine what happened
   uint32_t lookupOff = rotaryEncoderInfo->lookupOff;
@@ -177,33 +194,28 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
 }
 
 //===========================================================================
+// Static - Read one GPIO pin's current level from its cached IDR pointer.
+// Shared by both ISRs below.
+static bool rotenc_read_gpio_bit(volatile uint32_t *idrAddress, uint8_t pinInfo)
+{
+  uint8_t pinNumb = pinInfo & 0x0f;
+  return (*idrAddress & (1 << pinNumb)) != 0;
+}
+
+//===========================================================================
 // Rotary encoder input A ISR
 // Note: may need to insure that both 'A' and 'B' are changing every other
 // call, Possibly use int isrACount and isrBCount and if difference > than
 // some small number, warn user (e.g. "Only GPIO is changing").
 static int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 {
-  uint8_t pinNumb;
-  uint32_t idrRegister;
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
-   
-  // Save previous B state
-  uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x02;
 
-  // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressA));
-  pinNumb = rotaryEncoderInfo->pinInfoA & 0x0f;
-  bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  
-  if(gpioState)
-  {
-    newCondBits |= 0x01;    // Set bit A if high
-  }
+  bool pinIsHigh = rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressA,
+            rotaryEncoderInfo->pinInfoA);
 
-  // Only saves 2 ls bits
-  rotaryEncoderInfo->prevCondBits = newCondBits;
-
-  rotenc_calc_dir_count(rotaryEncoderInfo, newCondBits);
+  // Bit 0x01 is pin A's bit within prevCondBits/newCondBits
+  rotenc_calc_dir_count(rotaryEncoderInfo, 0x01, pinIsHigh);
   return OK;
 }
 
@@ -211,27 +223,13 @@ static int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 // Rotary encoder input B ISR
 static int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 {
-  uint8_t pinNumb;
-  uint32_t idrRegister;
-  
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
 
-  // Save previous A state
-  uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x01;
+  bool pinIsHigh = rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressB,
+            rotaryEncoderInfo->pinInfoB);
 
-  // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressB));
-  pinNumb = rotaryEncoderInfo->pinInfoB & 0x0f;
-  bool gpioState =  (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  if(gpioState)
-  {
-    newCondBits |= 0x02;    // Set bit B
-  }
-
-  // Only saves 2 ls bits
-  rotaryEncoderInfo->prevCondBits = newCondBits;
-
-  rotenc_calc_dir_count(rotaryEncoderInfo, newCondBits);
+  // Bit 0x02 is pin B's bit within prevCondBits/newCondBits
+  rotenc_calc_dir_count(rotaryEncoderInfo, 0x02, pinIsHigh);
   return OK;
 }
 
@@ -326,7 +324,7 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
 
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld already removed\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu already removed\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENOTEMPTY;
   }
@@ -340,14 +338,14 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
   ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%lu Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, encoderNumb, ret);
   }
 
   ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%lu Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, encoderNumb, ret);
   }
 
@@ -356,6 +354,23 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
     kmm_free(rotaryEncoderInfo);
   }
 
+  return ret;
+}
+
+//========================================================================
+// Static - Arm one pin's rising/falling-edge interrupt for a rotary
+// encoder GPIO, logging on failure. Returns the stm32_gpiosetevent()
+// result (>= 0 on success).
+int rotenc_config_gpio_arm(uint32_t cfgset, xcpt_t isr,
+          rotaryEncoderInfo_t *rotaryEncoderInfo, uint32_t encoderNumb,
+          char pinLetter)
+{
+  int ret = stm32_gpiosetevent(cfgset, 1, 1, 0, isr, rotaryEncoderInfo);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error encoder:%lu Pin %c interrupt, ret:%d\n",
+              __FILE__, __LINE__, encoderNumb, pinLetter, ret);
+  }
   return ret;
 }
 
@@ -391,7 +406,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     // Add, but is slot empty?
     if(rotaryEncoderInfo != NULL)
     {
-      syslog(LOG_ERR, "%s@%d-Encoder %ld is in use\n",
+      syslog(LOG_ERR, "%s@%d-Encoder %lu is in use\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
       return -ENOTEMPTY;    // Not empty
     }
@@ -401,7 +416,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     // Remove, but is there something to remove?
     if(rotaryEncoderInfo == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-Encoder %ld already removed\n",
+      syslog(LOG_ERR, "%s@%d-Encoder %lu already removed\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
       return -ENOTEMPTY;    // Not empty
     }
@@ -443,8 +458,10 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   rotaryEncoderInfo->pinInfoB = pinDesignationB;
 
   // Find the correct static offset for both GPIOs
-  rotaryEncoderInfo->idrAddressA = rotencInputDataReg[cfg->portA];
-  rotaryEncoderInfo->idrAddressB = rotencInputDataReg[cfg->portB];
+  rotaryEncoderInfo->idrAddressA =
+    (volatile uint32_t *)rotencInputDataReg[cfg->portA];
+  rotaryEncoderInfo->idrAddressB =
+    (volatile uint32_t *)rotencInputDataReg[cfg->portB];
 
   // cfgset contains 20-bits of data. It is required by the Nuttx stm32_gpiosetevent
   // function. If the 20 bits of data are not correct, this Nuttx function will
@@ -472,37 +489,34 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
       cfgsetA |= GPIO_PULLDOWN;
       cfgsetB |= GPIO_PULLDOWN;
       break;
+    default:
+      syslog(LOG_ERR, "%s@%d-Encoder %lu, resistorMode %lu is out of range\n",
+                __FILE__, __LINE__, cfg->encoderNumb, cfg->resistorMode);
+      rotenc_config_interrupt_remove(cfg->encoderNumb);
+      return -EINVAL;
   }
 
-  // Setup both rising and falling input points to trigger isr
-  // This call also enables the interrupts
-  ret = stm32_gpiosetevent(
-    cfgsetA,                      // Nuttx cfgset
-    1,                            // rising edge,
-    1,                            // falling edge,
-    0,                            // event
-    rotenc_gpio_rot_enc_isr_a,    // ISR A
-    rotaryEncoderInfo);           // information address
+  // Setup both rising and falling input points to trigger isr. This also
+  // enables the interrupts. If either pin fails to arm, undo everything via
+  // rotenc_config_interrupt_remove() rather than leaving a half-wired
+  // encoder permanently stuck in the "in use" slot.
+  ret = rotenc_config_gpio_arm(cfgsetA, rotenc_gpio_rot_enc_isr_a, rotaryEncoderInfo,
+            cfg->encoderNumb, 'A');
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, cfg->encoderNumb, ret);
+    rotenc_config_interrupt_remove(cfg->encoderNumb);
+    return ret;
   }
 
-  ret = stm32_gpiosetevent(
-    cfgsetB,                      // Nuttx cfgset
-    1,                            // rising edge,
-    1,                            // falling edge,
-    0,                            // event
-    rotenc_gpio_rot_enc_isr_b,    // ISR B
-    rotaryEncoderInfo);           // information address
+  ret = rotenc_config_gpio_arm(cfgsetB, rotenc_gpio_rot_enc_isr_b, rotaryEncoderInfo,
+            cfg->encoderNumb, 'B');
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin B interrupt, ret:%d\n",
-              __FILE__, __LINE__, cfg->encoderNumb, ret);
+    rotenc_config_interrupt_remove(cfg->encoderNumb);
+    return ret;
   }
 
-  return ret;
+  return OK;
 }
 
 //========================================================================
@@ -523,13 +537,14 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
   // Is requested slot valid?
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu is not configured\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENODATA;    // No Data
   }
 
   irqstate_t flags = enter_critical_section();
   rotaryEncoderInfo->totalCount = newCount;
+  rotaryEncoderInfo->prevCount = newCount;
   leave_critical_section(flags);
 
   rotenc_release(rotaryEncoderInfo);
@@ -574,7 +589,7 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   // Is requested slot configured?
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu is not configured\n",
               __FILE__, __LINE__, rotEncReadData->encoderNumb);
     return -ENODATA;    // No Data
   }
@@ -589,9 +604,19 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   {
     // This simple polling loop does the waiting. abs() is used so a change
     // in either direction (CW or CCW) satisfies the wait.
-    while(abs(rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount) < \
-      MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+    while(true)
     {
+      // totalCount/prevCount are also written from ISR context (and reset
+      // together by set_count()), so read them under a critical section
+      // rather than racing the ISR/writer for an unprotected read.
+      irqstate_t condFlags = enter_critical_section();
+      int countDiff = rotaryEncoderInfo->totalCount - rotaryEncoderInfo->prevCount;
+      leave_critical_section(condFlags);
+      if(abs(countDiff) >= MEADOW_ROTENC_GPIO_EDGES_PER_COUNT)
+      {
+        break;
+      }
+
       usleep(rotaryEncoderInfo->delayMs * 1000);
 
       // Bail out if the encoder was removed while we were waiting - the

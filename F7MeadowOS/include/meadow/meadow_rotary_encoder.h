@@ -107,8 +107,8 @@ struct rotaryEncoderInfo_s
 
   // Address of correct "Input Data Register" which holds GPIO's hardware
   // port state bits
-  uint32_t idrAddressA;       // Calculated during configuration
-  uint32_t idrAddressB;       // Calculated during configuration
+  volatile uint32_t *idrAddressA;    // Calculated during configuration
+  volatile uint32_t *idrAddressB;    // Calculated during configuration
 
   uint32_t prevCondBits;      // Current state information
   uint32_t lookupOff;         // Current lookup table offset
@@ -131,7 +131,7 @@ struct rotaryEncoderInfo_s
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
 // Public functions with syscalls
-int meadow_rotary_encoder_config(rotEncConfigParms_t *rotEncReadData_t);
+int meadow_rotary_encoder_config(rotEncConfigParms_t *cfg);
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount);
 int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData);
 
