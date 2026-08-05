@@ -418,6 +418,12 @@ SYSCALL_LOOKUP(meadow_measure_freq_configure, 1)
 SYSCALL_LOOKUP(meadow_measure_freq_return_freq_info, 1)
 #endif
 
+#if defined(CONFIG_MEADOW_CLOUD)
+SYSCALL_LOOKUP(meadow_cloud_provision, 5)
+SYSCALL_LOOKUP(meadow_cloud_release_private_key, 1)
+SYSCALL_LOOKUP(meadow_cloud_retrieve_private_key, 2)
+#endif
+
 #if defined(CONFIG_KERNEL_TESTS_SYSCALL) || defined(CONFIG_ALL_MEADOW_TESTS)
 SYSCALL_LOOKUP(meadow_kt_dispatcher, 2)
 SYSCALL_LOOKUP(meadow_os_get_unit_tests_config, 0)
