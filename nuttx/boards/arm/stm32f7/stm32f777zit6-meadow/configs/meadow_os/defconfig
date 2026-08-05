@@ -323,7 +323,7 @@ CONFIG_DEBUG_ERROR=y
 #
 #   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
 #
-# CONFIG_MEADOW_CLOUD=y
+CONFIG_MEADOW_CLOUD=y
 
 #
 #   Not sure if we need this.
