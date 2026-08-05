@@ -489,6 +489,11 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
       cfgsetA |= GPIO_PULLDOWN;
       cfgsetB |= GPIO_PULLDOWN;
       break;
+    default:
+      syslog(LOG_ERR, "%s@%d-Encoder %lu, resistorMode %lu is out of range\n",
+                __FILE__, __LINE__, cfg->encoderNumb, cfg->resistorMode);
+      rotenc_config_interrupt_remove(cfg->encoderNumb);
+      return -EINVAL;
   }
 
   // Setup both rising and falling input points to trigger isr. This also
