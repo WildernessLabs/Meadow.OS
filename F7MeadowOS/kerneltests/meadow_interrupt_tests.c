@@ -80,7 +80,7 @@ static bool keepReading;
  * Private Function Prototypes
  ************************************************************************************/
 static void meadow_interrupt_test_test_mem_leak_fix_free_1(void);
-static void meadow_interrupt_test_config_d05_gpio_add(void);
+static void meadow_interrupt_test_config_d05_add_debounce(uint32_t duration);
 static void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void);
 static void meadow_interrupt_test_test_mem_leak_fix_free_5(void);
 static void meadow_interrupt_test_initialize_interrupt_for_wakeup(void);
@@ -104,14 +104,16 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
   {
     // Configure using D05 as input to generate and send mq messages.
     // Also used for testing memory leak, in conjunction with #3.
+    // No debounce or glitch timeout
     case 1:
-      meadow_interrupt_test_config_d05_gpio_add();
+      meadow_interrupt_test_config_d05_add_debounce(0);
       break;
 
     // After #1 has configured a GPIO, this can be used to display interrupt
     // information via syslog. It opens the message queue normally read by
     // Meadow.Core and displays the data as it is generated.
-    // This test is stopped by resetting Meadow.
+    // This test is stopped by resetting Meadow as the calling thread is in a
+    // loop reading the mq.
     case 2:
       keepReading = true;
       meadow_interrupt_test_monitor_mint_mq();
@@ -160,6 +162,33 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
       }
       break;
 
+      // The follow set (11 - 15) configure D05 as interrupt input with range
+      // timeout. It is exactly like test case 1 but with a debounce duration.
+    case 11:
+      // Debounce duration of 0.1 millisecond
+      meadow_interrupt_test_config_d05_add_debounce(1);
+      break;
+
+    case 12:
+      // Debounce duration of 1 millisecond
+      meadow_interrupt_test_config_d05_add_debounce(10);
+      break;
+
+    case 13:
+      // Debounce duration of 10 millisecond
+      meadow_interrupt_test_config_d05_add_debounce(100);
+      break;
+
+    case 14:
+      // Debounce duration of 100 millisecond
+      meadow_interrupt_test_config_d05_add_debounce(1000);
+      break;
+
+    case 15:
+      // Debounce duration of 1 second
+      meadow_interrupt_test_config_d05_add_debounce(10000);
+      break;
+
     default:
       syslog(LOG_MTEST, "Undefined test for meadow_kt_meadow_interrupt_tests, userData:%lu\n",
         userData);
@@ -171,7 +200,7 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
  * Private Functions
  ************************************************************************************/
 // Test 1 - Configure D05 and mint interrupt configuration.
-void meadow_interrupt_test_config_d05_gpio_add()
+void meadow_interrupt_test_config_d05_add_debounce(uint32_t duration)
 {
   int ret;
 
@@ -200,7 +229,7 @@ void meadow_interrupt_test_config_d05_gpio_add()
   cfg->risingEdge = 1;
   cfg->fallingEdge = 0;
   cfg->resistorMode = 2;      // 2 = pull down
-  cfg->debounceDuration = 0;  // Must be 0 for lp wakeup
+  cfg->debounceDuration = duration;  // Must be 0 for lp wakeup
   cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
 
   // Call public configuration function used by managed code
@@ -355,7 +384,7 @@ void meadow_interrupt_test_test_mem_leak_fix_free_1(void)
   cfg->debounceDuration = 5;  // Must be 0 for lp wakeup
   cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
 
-  // Call public configuration function to dispose of interrupt GPIO
+  // Call public configuration function to delete interrupt GPIO
   ret = mint_config_interrupt(cfg);
   if(ret < 0)
   {

@@ -86,7 +86,7 @@
 // monitored.
 #define MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS (32)
 
-// Timer 7 is a basic timer with fewer features than other timer types
+// Timer 7 is a basic timer with no GPIO inputs
 #define MEADOW_INTERRUPT_STM32F7_TIMER_NUMBER (7)
 
 // Prescaler is be between 0 and 0xffff. A prescaler value of 0 to will
@@ -916,6 +916,24 @@ static int mint_free_gpio_in_allocation_list(uint8_t pinId)
 }
 
 //===============================================================
+// Find the already-configured GPIO struct for pinId, or NULL if none is
+// configured. Used so a remove request operates on the same struct that
+// was originally allocated for this pin (and may still be referenced by
+// the ISRs/timed list) instead of an unrelated, freshly allocated one.
+static struct interruptPinMap_s *mint_find_configured_gpio(uint8_t pinId)
+{
+  for(int i = 0; i < MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS; i++)
+  {
+    if(_allConfiguredGpios[i] != NULL && _allConfiguredGpios[i]->PinId == pinId)
+    {
+      return _allConfiguredGpios[i];
+    }
+  }
+
+  return NULL;
+}
+
+//===============================================================
 // Removes from the timer isr
 void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr)
 {
@@ -1078,6 +1096,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     _allGpiosBeingTimedCnt = 0;
     _firstTimeConfig = false;
 
+    // Clear array on first invocation
     for(int i = 0; i < MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS; i++)
     {
       _allConfiguredGpios[i] = NULL;
@@ -1101,6 +1120,24 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     }
   }
 
+  // Remove operates on the struct originally allocated for this pin, not a
+  // new one - it may still be referenced by the ISRs and/or the timed list.
+  if(cfg->configType == gpio_intrpt_cfg_type_remove)
+  {
+    gpioInfoAddr = mint_find_configured_gpio(pinDesignation);
+    if(gpioInfoAddr == NULL)
+    {
+      syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is not configured\n",
+        thisFile, __LINE__, pinDesignation);
+      return -ENODATA;
+    }
+
+    return mint_config_interrupt_remove(cfg, gpioInfoAddr);
+  }
+
+  // Only gpio_intrpt_cfg_type_add and gpio_intrpt_cfg_type_wakeup reach here,
+  // both of which need a newly allocated struct for this GPIO.
+
   // Allocate memory for this GPIO's configuration and data storage needs
   gpioInfoAddr = (struct interruptPinMap_s *) zalloc(sizeof (struct interruptPinMap_s));
   if(gpioInfoAddr == NULL)
@@ -1123,10 +1160,6 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
 
   switch (cfg->configType)
   {
-  case gpio_intrpt_cfg_type_remove:
-    ret = mint_config_interrupt_remove(cfg, gpioInfoAddr);
-    break;
-
   case gpio_intrpt_cfg_type_add:
     ret = mint_config_interrupt_new(cfg, gpioInfoAddr, cfgset);
     break;
@@ -1138,6 +1171,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   default:
     syslog(LOG_ERR, "%s@%d-ERROR:Illegal configType:%lu\n",
       thisFile, __LINE__, cfg->configType);
+    free(gpioInfoAddr);
     break;
   }
 
@@ -1179,7 +1213,8 @@ int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
   gpioInfoAddr->CurrentProcessState = mint_state_uncfg;
 
   // This call will free the memory allocated when this GPIO was originally
-  // configured
+  // configured. gpioInfoAddr itself must not be freed here too - it's the
+  // exact same struct this call is about to free, found by PinId.
   ret = mint_free_gpio_in_allocation_list(gpioInfoAddr->PinId);
   if(ret < 0)
   {
@@ -1188,9 +1223,6 @@ int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
     // Have reported error, might as well finish removing GPIO
   }
 
-  // Free the memory was only allocated a moment ago by the caller to this
-  // function.
-  free(gpioInfoAddr);
   return ret;
 }
 

@@ -55,8 +55,8 @@ struct mint_gpio_int_config
   uint32_t risingEdge;          // 1 = enable
   uint32_t fallingEdge;         // 1 = enable
   uint32_t resistorMode;        // 0 = float, 1 = pull up, 2 = pull down
-  uint32_t debounceDuration;    // millisec * 10
-  uint32_t glitchDuration;      // millisec * 10
+  uint32_t debounceDuration;    // 100 microsec resolution (10 = 1 millisec)
+  uint32_t glitchDuration;      // 100 microsec resolution (10 = 1 millisec)
 };
 
 // This struct is sent to Meadow.Core when any interrupt occurs
