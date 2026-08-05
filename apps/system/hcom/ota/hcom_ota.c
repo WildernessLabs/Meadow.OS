@@ -38,6 +38,10 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
+#if defined(CONFIG_MEADOW_CLOUD)
+
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
@@ -53,8 +57,6 @@ static char *thisFile = __FILE__;
 #include <dirent.h>
 #include <sys/stat.h>
 
-#if defined (CONFIG_MEADOW_CLOUD)
-
 /* OS & App updaters */
 
 static void update_info(const char *msg, ...)
@@ -62,200 +64,216 @@ static void update_info(const char *msg, ...)
     char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
     va_list ap;
     va_start(ap, msg);
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-         msg, ap);
+    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
     va_end(ap);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
-            thisFile, __LINE__);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, thisFile, __LINE__);
 }
 
 static int update_file(const char *srcpath, const char *destpath, const char *rollbackpath)
 {
-  update_info("App Update: %s -> %s\n", srcpath, destpath);
-  struct stat statbuf;
-  int ret;
-  if (stat(destpath, &statbuf) == 0)
-  {
-    if (rollbackpath)
+    update_info("App Update: %s -> %s\n", srcpath, destpath);
+    struct stat statbuf;
+    int ret;
+    if (stat(destpath, &statbuf) == 0)
     {
-      ret = update_file(destpath, rollbackpath, NULL);
-      if (ret != 0)
-        return ret;
+        if (rollbackpath)
+        {
+            ret = update_file(destpath, rollbackpath, NULL);
+            if (ret != 0)
+                return ret;
+        }
+        else
+        {
+            ret = unlink(destpath);
+            if (ret != 0)
+                return ret;
+        }
     }
-    else
-    {
-      ret = unlink(destpath);
-      if (ret != 0)
-        return ret;
-    }
-  }
-  ret = rename(srcpath, destpath);
-  return ret;
+    ret = rename(srcpath, destpath);
+    return ret;
 }
 
 // TODO: We have limited stack, convert to iterative
 static int deltree(const char *path)
 {
-  DIR *dir = opendir(path);
-  struct dirent *entry;
+    DIR *dir = opendir(path);
+    struct dirent *entry;
 
-  if (!dir)
+    if (!dir)
+        return 0;
+
+    bool error = false;
+
+    while (((entry = readdir(dir)) != NULL) && !error)
+    {
+        char full_path[PATH_MAX];
+        int full_path_len = snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+        if ((full_path_len < 0) || ((size_t) full_path_len >= sizeof(full_path)))
+        {
+            // Path too long to fit full_path; skip rather than act on a truncated path.
+            continue;
+        }
+        if (DIRENT_ISDIRECTORY(entry->d_type) && strncmp(entry->d_name, ".", 1) && strncmp(entry->d_name, "..", 1))
+        {
+            deltree(full_path);
+        }
+        if (DIRENT_ISFILE(entry->d_type))
+        {
+            unlink(full_path);
+        }
+    }
+    closedir(dir);
+    rmdir(path);
+
     return 0;
-
-  bool error = false;
-
-  while ((entry = readdir(dir)) != NULL && !error)
-  {
-    char full_path[PATH_MAX];
-    snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
-    if (DIRENT_ISDIRECTORY(entry->d_type) && strncmp(entry->d_name, ".", 1) && strncmp(entry->d_name, "..", 1))
-    {
-      deltree(full_path);
-    }
-    if (DIRENT_ISFILE(entry->d_type))
-    {
-      unlink(full_path);
-    }
-  }
-  closedir(dir);
-  rmdir(path);
-
-  return 0;
 }
 
 int app_update(void)
 {
-  DIR *update_dir = opendir(UPDATE_APP_DIR);
-  struct dirent *entry;
+    DIR *update_dir = opendir(UPDATE_APP_DIR);
+    struct dirent *entry;
 
-  if (!update_dir)
-    return 0;
+    if (!update_dir)
+        return 0;
 
-  bool error = false;
-  int  __attribute__((unused)) ret;
-  ret = mkdir(ROLLBACK_DIR, 0777);
-  update_info("App Update: Applying...");
-
-  // TODO: Recursive copying
-  while ((entry = readdir(update_dir)) != NULL && !error)
-  {
-    if (DIRENT_ISFILE(entry->d_type))
-    {
-      char source_path[PATH_MAX];
-      char target_path[PATH_MAX];
-      char rollback_path[PATH_MAX];
-      snprintf(source_path, sizeof(source_path), "%s%s", UPDATE_APP_DIR, entry->d_name);
-      snprintf(target_path, sizeof(target_path), "/meadow0/%s", entry->d_name);
-      snprintf(rollback_path, sizeof(target_path), "%s/%s", ROLLBACK_DIR, entry->d_name);
-      if (update_file(source_path, target_path, rollback_path) != 0)
-        error = true;
-    }
-  }
-  closedir(update_dir);
-  if (error) // Invalid update; roll back
-  {
-    deltree(UPDATE_APP_DIR);
-    DIR *rollback_dir = opendir(ROLLBACK_DIR);
-
-    if (!rollback_dir)
-      return 0;
+    bool error = false;
+    int __attribute__((unused)) ret;
+    ret = mkdir(ROLLBACK_DIR, 0777);
+    update_info("App Update: Applying...");
 
     // TODO: Recursive copying
-    while ((entry = readdir(rollback_dir)) != NULL && !error)
+    while (((entry = readdir(update_dir)) != NULL) && !error)
     {
-      if (DIRENT_ISFILE(entry->d_type))
-      {
-        char source_path[PATH_MAX];
-        char target_path[PATH_MAX];
-        snprintf(source_path, sizeof(source_path), "%s/%s", ROLLBACK_DIR, entry->d_name);
-        snprintf(target_path, sizeof(target_path), "/meadow0/%s", entry->d_name);
-        if (update_file(source_path, target_path, NULL) != 0)
-        { 
-          syslog(LOG_ERR, "Error rolling back update, failed to restore %s to %s\n", source_path, target_path);
+        if (DIRENT_ISFILE(entry->d_type))
+        {
+            char source_path[PATH_MAX];
+            char target_path[PATH_MAX];
+            char rollback_path[PATH_MAX];
+            int source_path_len = snprintf(source_path, sizeof(source_path), "%s%s", UPDATE_APP_DIR, entry->d_name);
+            int target_path_len = snprintf(target_path, sizeof(target_path), "/meadow0/%s", entry->d_name);
+            int rollback_path_len = snprintf(rollback_path, sizeof(rollback_path), "%s/%s", ROLLBACK_DIR, entry->d_name);
+            if ((source_path_len < 0) || ((size_t) source_path_len >= sizeof(source_path)) || (target_path_len < 0) || ((size_t) target_path_len >= sizeof(target_path)) || (rollback_path_len < 0) || ((size_t) rollback_path_len >= sizeof(rollback_path)))
+            {
+                // File name too long to build a full path; treat as an update failure
+                // rather than act on a truncated (and therefore wrong) path.
+                error = true;
+            }
+            else if (update_file(source_path, target_path, rollback_path) != 0)
+            {
+                error = true;
+            }
         }
-      }
     }
-    closedir(rollback_dir);
-  }
-  return 1;
+    closedir(update_dir);
+    if (error) // Invalid update; roll back
+    {
+        deltree(UPDATE_APP_DIR);
+        DIR *rollback_dir = opendir(ROLLBACK_DIR);
 
+        if (!rollback_dir)
+            return 0;
+
+        // TODO: Recursive copying
+        while (((entry = readdir(rollback_dir)) != NULL) && !error)
+        {
+            if (DIRENT_ISFILE(entry->d_type))
+            {
+                char source_path[PATH_MAX];
+                char target_path[PATH_MAX];
+                snprintf(source_path, sizeof(source_path), "%s/%s", ROLLBACK_DIR, entry->d_name);
+                snprintf(target_path, sizeof(target_path), "/meadow0/%s", entry->d_name);
+                if (update_file(source_path, target_path, NULL) != 0)
+                {
+                    syslog(LOG_ERR, "Error rolling back update, failed to restore %s to %s\n", source_path, target_path);
+                }
+            }
+        }
+        closedir(rollback_dir);
+    }
+    return 1;
 }
 
-#define OS_BINARY_SIGNATURE_EXT ".sig"
+    #define OS_BINARY_SIGNATURE_EXT ".sig"
 
 static int validate_signature(const char *path)
 {
-  // mbedtls_pk_verify ()
-  return -1;
+    // mbedtls_pk_verify ()
+    return -1;
 }
 
-#define OS_PART1_BINARY_FILENAME HCOM_NX_FS_NUTTX_UPDATE_FILENAME
-#define OS_PART2_BINARY_FILENAME HCOM_NX_FS_MONO_RUNTIME_FILENAME
+    #define OS_PART1_BINARY_FILENAME HCOM_NX_FS_NUTTX_UPDATE_FILENAME
+    #define OS_PART2_BINARY_FILENAME HCOM_NX_FS_MONO_RUNTIME_FILENAME
 
 int os_update(void)
 {
-  DIR *update_dir = opendir(UPDATE_OS_DIR);
-  struct dirent *entry;
+    DIR *update_dir = opendir(UPDATE_OS_DIR);
+    struct dirent *entry;
 
-  if (!update_dir)
-    return 0;
-
-  bool part1_rollback_happening = false; // TODO: Check OTADATA for rollback
-
-  if (part1_rollback_happening)
-  {
-    deltree(UPDATE_OS_DIR);
-    return -1;
-  }
-
-  bool part1_update = false;
-  bool part2_update = false;
-
-  while ((entry = readdir(update_dir)) != NULL)
-  {
-    if (DIRENT_ISFILE(entry->d_type))
+    if (!update_dir)
     {
-      if (!strncmp(entry->d_name, OS_PART1_BINARY_FILENAME, strnlen(OS_PART1_BINARY_FILENAME, PATH_MAX)))
-        part1_update = true;
-      if (!strncmp(entry->d_name, OS_PART2_BINARY_FILENAME, strnlen(OS_PART2_BINARY_FILENAME, PATH_MAX)))
-        part2_update = true;
+        return 0;
     }
-  }
-  closedir(update_dir);
 
-  if (part1_update && part2_update)
-  {
-    validate_signature(OS_PART1_BINARY_FILENAME);
-    validate_signature(OS_PART2_BINARY_FILENAME);
-    update_info("OS Update: Applying Part 1...");
-    hcom_via_nx_update_OS1(); // should not return
-  }
+    bool part1_rollback_happening = false; // TODO: Check OTADATA for rollback
 
-  if (!part1_update && part2_update)
-  {
-    update_info("OS Update: Applying Part 2...");
-    return hcom_via_nx_update_OS2();
-  }
+    if (part1_rollback_happening)
+    {
+        deltree(UPDATE_OS_DIR);
+        return -1;
+    }
 
-  return -2;
+    bool part1_update = false;
+    bool part2_update = false;
+
+    while ((entry = readdir(update_dir)) != NULL)
+    {
+        if (DIRENT_ISFILE(entry->d_type))
+        {
+            if (!strncmp(entry->d_name, OS_PART1_BINARY_FILENAME, strlen(OS_PART1_BINARY_FILENAME)))
+            {
+                part1_update = true;
+            }
+            if (!strncmp(entry->d_name, OS_PART2_BINARY_FILENAME, strlen(OS_PART2_BINARY_FILENAME)))
+            {
+                part2_update = true;
+            }
+        }
+    }
+    closedir(update_dir);
+
+    if (part1_update && part2_update)
+    {
+        validate_signature(OS_PART1_BINARY_FILENAME);
+        validate_signature(OS_PART2_BINARY_FILENAME);
+        update_info("OS Update: Applying Part 1...");
+        hcom_via_nx_update_OS1(); // should not return
+    }
+
+    if (!part1_update && part2_update)
+    {
+        update_info("OS Update: Applying Part 2...");
+        return hcom_via_nx_update_OS2();
+    }
+
+    return -2;
 }
 
 int firmware_update(void)
 {
-  int result = hcom_nx_exec_ex_update_ESP32();
-  deltree(UPDATE_FIRMWARE_DIR);
-  if (result > 0) // successful update
-  {
-    update_info("Firmware Update Successful. Restarting...");
-    usleep(2 * 1000);
-    hcom_via_nx_only_restart_meadow();
-  }
-  if (result < 0)
-    update_info("Firmware Update Failed.");
-  return result;
+    int result = hcom_nx_exec_ex_update_ESP32();
+    deltree(UPDATE_FIRMWARE_DIR);
+    if (result > 0) // successful update
+    {
+        update_info("Firmware Update Successful. Restarting...");
+        usleep(2 * 1000);
+        hcom_via_nx_only_restart_meadow();
+    }
+    if (result < 0)
+    {
+        update_info("Firmware Update Failed.");
+    }
+    return result;
 }
-
-
 
 /* RSA+AES key generation data + functions */
 
@@ -278,12 +296,11 @@ static mbedtls_pk_type_t key_type = MBEDTLS_PK_RSA;
 static const int KEY_SIZE = 4096;
 static const int PEM_SIZE = 4096;
 
-#define DEV_URANDOM_THRESHOLD        32
-#define DEV_RANDOM_THRESHOLD        32
+    #define DEV_URANDOM_THRESHOLD 32
+    #define DEV_RANDOM_THRESHOLD 32
 
 // copied from mbedtls/programs/pkey/gen_key.c
-static int dev_random_entropy_poll( void *data, unsigned char *output,
-                             size_t len, size_t *olen )
+static int dev_random_entropy_poll(void *data, unsigned char *output, size_t len, size_t *olen)
 {
     FILE *file;
     size_t ret, left = len;
@@ -292,100 +309,91 @@ static int dev_random_entropy_poll( void *data, unsigned char *output,
 
     *olen = 0;
 
-    file = fopen( "/dev/random", "rb" );
-    if( file == NULL )
-        return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
+    file = fopen("/dev/random", "rb");
+    if (file == NULL)
+    {
+        return (MBEDTLS_ERR_ENTROPY_SOURCE_FAILED);
+    }
 
-    while( left > 0 )
+    while (left > 0)
     {
         /* /dev/random can return much less than requested. If so, try again */
-        ret = fread( p, 1, left, file );
-        if( ret == 0 && ferror( file ) )
+        ret = fread(p, 1, left, file);
+        if (ret == 0 && ferror(file))
         {
-            fclose( file );
-            return( MBEDTLS_ERR_ENTROPY_SOURCE_FAILED );
+            fclose(file);
+            return (MBEDTLS_ERR_ENTROPY_SOURCE_FAILED);
         }
 
         p += ret;
         left -= ret;
-        sleep( 1 );
+        sleep(1);
     }
-    fclose( file );
+    fclose(file);
     *olen = len;
 
-    return( 0 );
+    return (0);
 }
 
-static void ota_rsa_init (void)
+static void ota_rsa_init(void)
 {
     int ret;
     mbedtls_mpi N, P, Q, D, E, DP, DQ, QP;
-    mbedtls_mpi_init( &N ); mbedtls_mpi_init( &P ); mbedtls_mpi_init( &Q );
-    mbedtls_mpi_init( &D ); mbedtls_mpi_init( &E ); mbedtls_mpi_init( &DP );
-    mbedtls_mpi_init( &DQ ); mbedtls_mpi_init( &QP );
+    mbedtls_mpi_init(&N);
+    mbedtls_mpi_init(&P);
+    mbedtls_mpi_init(&Q);
+    mbedtls_mpi_init(&D);
+    mbedtls_mpi_init(&E);
+    mbedtls_mpi_init(&DP);
+    mbedtls_mpi_init(&DQ);
+    mbedtls_mpi_init(&QP);
 
-    mbedtls_pk_init( &key );
-    mbedtls_ctr_drbg_init( &ctr_drbg );
-
-
+    mbedtls_pk_init(&key);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
 
     mbedtls_entropy_init(&entropy);
 
-    if ((ret = mbedtls_entropy_add_source(&entropy, dev_random_entropy_poll,
-                                          NULL, DEV_RANDOM_THRESHOLD,
-                                          MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
+    if ((ret = mbedtls_entropy_add_source(&entropy, dev_random_entropy_poll, NULL, DEV_RANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
     {
-        printf(" failed\n  ! adding /dev/random entropy returned -0x%04x\n", (unsigned int)-ret);
-        goto exit;
+        printf(" failed\n  ! adding /dev/random entropy returned -0x%04x\n", (unsigned int) -ret);
+        return;
     }
 
-    if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll,
-                                          NULL, DEV_URANDOM_THRESHOLD,
-                                          MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
+    if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll, NULL, DEV_URANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
     {
-        printf(" failed\n  ! adding /dev/urandom entropy returned -0x%04x\n", (unsigned int)-ret);
-        goto exit;
+        printf(" failed\n  ! adding /dev/urandom entropy returned -0x%04x\n", (unsigned int) -ret);
+        return;
     }
 
-    if( ( ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
-                               (const unsigned char *) pers,
-                               strlen( pers ) ) ) != 0 )
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0)
     {
-        printf( " failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret );
-        goto exit;
+        printf(" failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret);
+        return;
     }
 
-    if( ( ret = mbedtls_pk_setup( &key,
-           mbedtls_pk_info_from_type (key_type)) ) != 0 )
+    if ((ret = mbedtls_pk_setup(&key, mbedtls_pk_info_from_type(key_type))) != 0)
     {
-        printf( " failed\n  !  mbedtls_pk_setup returned -0x%04x", (unsigned int) -ret );
-        goto exit;
+        printf(" failed\n  !  mbedtls_pk_setup returned -0x%04x", (unsigned int) -ret);
+        return;
     }
-
-exit:
-    return;
 }
 
-static void ota_rsa_keygen (unsigned char *private_key_pem, unsigned char *public_key_pem)
+static void ota_rsa_keygen(unsigned char *private_key_pem, unsigned char *public_key_pem)
 {
     //
     //  Marking ret as unused incase the asserts are compiled out as it would generate
     //  a warning about an unused variable otherwise.
     //
-    int  __attribute__((unused)) ret;
+    int __attribute__((unused)) ret;
     ota_rsa_init();
 
-    ret = mbedtls_rsa_gen_key (mbedtls_pk_rsa (key),
-                        mbedtls_ctr_drbg_random,
-                        &ctr_drbg,
-                        KEY_SIZE,
-                        65537);
-    assert (ret == 0);
+    ret = mbedtls_rsa_gen_key(mbedtls_pk_rsa(key), mbedtls_ctr_drbg_random, &ctr_drbg, KEY_SIZE, 65537);
+    assert(ret == 0);
 
-    ret = mbedtls_pk_write_key_pem (&key, private_key_pem, PEM_SIZE);
-    assert (ret == 0);
-    ret = mbedtls_pk_write_pubkey_pem (&key, public_key_pem, PEM_SIZE);
-    assert (ret == 0);
+    ret = mbedtls_pk_write_key_pem(&key, private_key_pem, PEM_SIZE);
+    assert(ret == 0);
+    ret = mbedtls_pk_write_pubkey_pem(&key, public_key_pem, PEM_SIZE);
+    assert(ret == 0);
 }
 
 void hcom_ota_rqst_register_device(uint32_t userData)
@@ -395,73 +403,66 @@ void hcom_ota_rqst_register_device(uint32_t userData)
     int private_key_len, public_key_len;
 
     ota_rsa_keygen(private_key_pem, public_key_pem);
-    private_key_len = strlen((char*)private_key_pem);
-    public_key_len = strlen((char*)public_key_pem);
+    private_key_len = strlen((char *) private_key_pem);
+    public_key_len = strlen((char *) public_key_pem);
 
-    //Send out public key
-    hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, public_key_pem, public_key_len, thisFile, __LINE__);
+    // Send out public key
+    hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, (char *) public_key_pem, public_key_len, thisFile, __LINE__);
 
-    meadow_cloud_provision((const char*)private_key_pem, private_key_len + 1, (const char*) public_key_pem, public_key_len + 1, NULL);
+    meadow_cloud_provision((const char *) private_key_pem, private_key_len + 1, (const char *) public_key_pem, public_key_len + 1, NULL);
 }
 
 int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_len, unsigned char *decrypted_buf)
 {
     unsigned char *private_key;
     int len, ret;
-    meadow_cloud_retrieve_private_key((const char**) &private_key, &len);
+    meadow_cloud_retrieve_private_key((const char **) &private_key, &len);
 
-    mbedtls_pk_init( &key );
-    mbedtls_ctr_drbg_init( &ctr_drbg );
-    mbedtls_entropy_init( &entropy );
+    mbedtls_pk_init(&key);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    mbedtls_entropy_init(&entropy);
 
-    if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll,
-                                          NULL, DEV_URANDOM_THRESHOLD,
-                                          MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
+    if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll, NULL, DEV_URANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
     {
-        printf(" failed\n  ! mbedtls_entropy_add_source returned -0x%04x\n", (unsigned int)-ret);
+        printf(" failed\n  ! mbedtls_entropy_add_source returned -0x%04x\n", (unsigned int) -ret);
         return -3;
     }
-    if( ( ret = mbedtls_ctr_drbg_seed( &ctr_drbg, mbedtls_entropy_func, &entropy,
-                               (const unsigned char *) pers,
-                               strlen( pers ) ) ) != 0 )
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0)
     {
-        printf( " failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret );
+        printf(" failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret);
         return -4;
     }
-    if( ( ret = mbedtls_pk_parse_key(&key, private_key, len, NULL, 0,
-                            mbedtls_ctr_drbg_random, &ctr_drbg) ) != 0 )
+    if ((ret = mbedtls_pk_parse_key(&key, private_key, len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
     {
-        printf( " failed\n  ! mbedtls_pk_parse_key returned -0x%04x\n", -ret );
+        printf(" failed\n  ! mbedtls_pk_parse_key returned -0x%04x\n", -ret);
         return -1;
     }
 
-    meadow_cloud_release_private_key((const char**) &private_key);
+    meadow_cloud_release_private_key((char **) &private_key);
 
     unsigned char result[MBEDTLS_MPI_MAX_SIZE];
     size_t olen = 0;
 
-    fflush( stdout );
+    fflush(stdout);
 
-    if( ( ret = mbedtls_pk_decrypt(&key, encrypted_buf, encrypted_len, result, &olen, sizeof(result),
-                                    mbedtls_ctr_drbg_random, &ctr_drbg ) ) != 0 )
+    if ((ret = mbedtls_pk_decrypt(&key, encrypted_buf, encrypted_len, result, &olen, sizeof(result), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
     {
-        printf( " failed\n  ! mbedtls_pk_decrypt returned -0x%04x\n", -ret );
+        printf(" failed\n  ! mbedtls_pk_decrypt returned -0x%04x\n", -ret);
         return -2;
     }
 
-    memcpy (decrypted_buf, result, olen);
+    memcpy(decrypted_buf, result, olen);
     return olen;
-
 }
 
-int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypted_len, const unsigned char *key, unsigned char *iv, unsigned char *decrypted_buf)
+int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypted_len, const unsigned char *aes_key, unsigned char *iv, unsigned char *decrypted_buf)
 {
     mbedtls_aes_context aes;
     mbedtls_aes_init(&aes);
-    mbedtls_aes_setkey_dec(&aes, key, 256 );
+    mbedtls_aes_setkey_dec(&aes, aes_key, 256);
     mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, encrypted_len, iv, encrypted_buf, decrypted_buf);
-    mbedtls_aes_free( &aes );
+    mbedtls_aes_free(&aes);
     return encrypted_len;
 }
 
-#endif  // CONFIG_MEADOW_CLOUD
+#endif // if defined(CONFIG_MEADOW_CLOUD)

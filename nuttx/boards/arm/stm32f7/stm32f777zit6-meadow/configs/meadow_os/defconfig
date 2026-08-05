@@ -50,6 +50,7 @@ CONFIG_CDCACM_PRODUCTSTR="Meadow F7 Micro"
 CONFIG_CDCACM_VENDORID=0x2E6A
 CONFIG_CDCACM_VENDORSTR="Wilderness Labs"
 CONFIG_CRYPTO=y
+CONFIG_CRYPTO_MBEDTLS=y
 CONFIG_CRYPTO_RANDOM_POOL=y
 CONFIG_DEBUG_FULLOPT=y
 CONFIG_DEBUG_SYMBOLS=y
@@ -323,7 +324,7 @@ CONFIG_DEBUG_ERROR=y
 #
 #   Turn on Meadow Cloud and close issue: https://github.com/WildernessLabs/Meadow.OS/issues/208
 #
-# CONFIG_MEADOW_CLOUD=y
+CONFIG_MEADOW_CLOUD=y
 
 #
 #   Not sure if we need this.
