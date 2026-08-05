@@ -131,7 +131,7 @@ struct rotaryEncoderInfo_s
 typedef struct rotaryEncoderInfo_s rotaryEncoderInfo_t;
 
 // Public functions with syscalls
-int meadow_rotary_encoder_config(rotEncConfigParms_t *rotEncReadData_t);
+int meadow_rotary_encoder_config(rotEncConfigParms_t *cfg);
 int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount);
 int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData);
 

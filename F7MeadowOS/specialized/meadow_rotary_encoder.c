@@ -324,7 +324,7 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
 
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld already removed\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu already removed\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENOTEMPTY;
   }
@@ -338,14 +338,14 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
   ret = stm32_gpiosetevent(pinInfoA, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin A interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%lu Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, encoderNumb, ret);
   }
 
   ret = stm32_gpiosetevent(pinInfoB, 0, 0, 0, NULL, NULL);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error removing encoder:%ld Pin B interrupt, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error removing encoder:%lu Pin B interrupt, ret:%d\n",
               __FILE__, __LINE__, encoderNumb, ret);
   }
 
@@ -406,7 +406,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     // Add, but is slot empty?
     if(rotaryEncoderInfo != NULL)
     {
-      syslog(LOG_ERR, "%s@%d-Encoder %ld is in use\n",
+      syslog(LOG_ERR, "%s@%d-Encoder %lu is in use\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
       return -ENOTEMPTY;    // Not empty
     }
@@ -416,7 +416,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     // Remove, but is there something to remove?
     if(rotaryEncoderInfo == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-Encoder %ld already removed\n",
+      syslog(LOG_ERR, "%s@%d-Encoder %lu already removed\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
       return -ENOTEMPTY;    // Not empty
     }
@@ -532,7 +532,7 @@ int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t newCount)
   // Is requested slot valid?
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu is not configured\n",
               __FILE__, __LINE__, encoderNumb);
     return -ENODATA;    // No Data
   }
@@ -584,7 +584,7 @@ int meadow_rotary_encoder_read_data(rotEncReadData_t *rotEncReadData)
   // Is requested slot configured?
   if(rotaryEncoderInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Encoder %ld is not configured\n",
+    syslog(LOG_ERR, "%s@%d-Encoder %lu is not configured\n",
               __FILE__, __LINE__, rotEncReadData->encoderNumb);
     return -ENODATA;    // No Data
   }
