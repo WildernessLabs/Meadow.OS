@@ -287,6 +287,7 @@ CONFIG_STM32F7_SPI3_DMA=y
 CONFIG_STM32F7_SPI5=y
 CONFIG_STM32F7_SPI5_DMA=y
 CONFIG_STM32F7_SPI_DMA=y
+# CONFIG_ARCH_LEDS is not set
 
 #
 #   Turning the following off for the minute.  These variables seem to be used
