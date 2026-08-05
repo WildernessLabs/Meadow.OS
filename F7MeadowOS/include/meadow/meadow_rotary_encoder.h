@@ -107,8 +107,8 @@ struct rotaryEncoderInfo_s
 
   // Address of correct "Input Data Register" which holds GPIO's hardware
   // port state bits
-  uint32_t idrAddressA;       // Calculated during configuration
-  uint32_t idrAddressB;       // Calculated during configuration
+  volatile uint32_t *idrAddressA;    // Calculated during configuration
+  volatile uint32_t *idrAddressB;    // Calculated during configuration
 
   uint32_t prevCondBits;      // Current state information
   uint32_t lookupOff;         // Current lookup table offset

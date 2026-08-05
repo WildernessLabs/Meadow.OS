@@ -136,6 +136,10 @@ static void meadow_rotary_encoder_read_now(rotaryEncoderInfo_t *rotaryEncoderInf
 static int rotenc_config_interrupt_remove(uint32_t encoderNumb);
 static rotaryEncoderInfo_t *rotenc_acquire(uint32_t encoderNumb);
 static void rotenc_release(rotaryEncoderInfo_t *rotaryEncoderInfo);
+static bool rotenc_read_gpio_bit(volatile uint32_t *idrAddress, uint8_t pinInfo);
+static int rotenc_config_gpio_arm(uint32_t cfgset, xcpt_t isr,
+          rotaryEncoderInfo_t *rotaryEncoderInfo, uint32_t encoderNumb,
+          char pinLetter);
 
 /****************************************************************************
  * Private Functions
@@ -177,25 +181,27 @@ static void rotenc_calc_dir_count(rotaryEncoderInfo_t *rotaryEncoderInfo,
 }
 
 //===========================================================================
+// Static - Read one GPIO pin's current level from its cached IDR pointer.
+// Shared by both ISRs below.
+static bool rotenc_read_gpio_bit(volatile uint32_t *idrAddress, uint8_t pinInfo)
+{
+  uint8_t pinNumb = pinInfo & 0x0f;
+  return (*idrAddress & (1 << pinNumb)) != 0;
+}
+
+//===========================================================================
 // Rotary encoder input A ISR
 // Note: may need to insure that both 'A' and 'B' are changing every other
 // call, Possibly use int isrACount and isrBCount and if difference > than
 // some small number, warn user (e.g. "Only GPIO is changing").
 static int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 {
-  uint8_t pinNumb;
-  uint32_t idrRegister;
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
-   
+
   // Save previous B state
   uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x02;
 
-  // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressA));
-  pinNumb = rotaryEncoderInfo->pinInfoA & 0x0f;
-  bool gpioState = (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  
-  if(gpioState)
+  if(rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressA, rotaryEncoderInfo->pinInfoA))
   {
     newCondBits |= 0x01;    // Set bit A if high
   }
@@ -211,19 +217,12 @@ static int rotenc_gpio_rot_enc_isr_a(int irq, void *context, void *arg)
 // Rotary encoder input B ISR
 static int rotenc_gpio_rot_enc_isr_b(int irq, void *context, void *arg)
 {
-  uint8_t pinNumb;
-  uint32_t idrRegister;
-  
   rotaryEncoderInfo_t *rotaryEncoderInfo = (rotaryEncoderInfo_t *)arg;
 
   // Save previous A state
   uint32_t newCondBits = (rotaryEncoderInfo->prevCondBits) & 0x01;
 
-  // Find the current GPIO state 
-  idrRegister = *((uint32_t *)(rotaryEncoderInfo->idrAddressB));
-  pinNumb = rotaryEncoderInfo->pinInfoB & 0x0f;
-  bool gpioState =  (idrRegister & (1 << pinNumb)) > 0 ? true : false;
-  if(gpioState)
+  if(rotenc_read_gpio_bit(rotaryEncoderInfo->idrAddressB, rotaryEncoderInfo->pinInfoB))
   {
     newCondBits |= 0x02;    // Set bit B
   }
@@ -359,6 +358,23 @@ int rotenc_config_interrupt_remove(uint32_t encoderNumb)
   return ret;
 }
 
+//========================================================================
+// Static - Arm one pin's rising/falling-edge interrupt for a rotary
+// encoder GPIO, logging on failure. Returns the stm32_gpiosetevent()
+// result (>= 0 on success).
+int rotenc_config_gpio_arm(uint32_t cfgset, xcpt_t isr,
+          rotaryEncoderInfo_t *rotaryEncoderInfo, uint32_t encoderNumb,
+          char pinLetter)
+{
+  int ret = stm32_gpiosetevent(cfgset, 1, 1, 0, isr, rotaryEncoderInfo);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error encoder:%lu Pin %c interrupt, ret:%d\n",
+              __FILE__, __LINE__, encoderNumb, pinLetter, ret);
+  }
+  return ret;
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -443,8 +459,10 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   rotaryEncoderInfo->pinInfoB = pinDesignationB;
 
   // Find the correct static offset for both GPIOs
-  rotaryEncoderInfo->idrAddressA = rotencInputDataReg[cfg->portA];
-  rotaryEncoderInfo->idrAddressB = rotencInputDataReg[cfg->portB];
+  rotaryEncoderInfo->idrAddressA =
+    (volatile uint32_t *)rotencInputDataReg[cfg->portA];
+  rotaryEncoderInfo->idrAddressB =
+    (volatile uint32_t *)rotencInputDataReg[cfg->portB];
 
   // cfgset contains 20-bits of data. It is required by the Nuttx stm32_gpiosetevent
   // function. If the 20 bits of data are not correct, this Nuttx function will
@@ -474,35 +492,27 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
       break;
   }
 
-  // Setup both rising and falling input points to trigger isr
-  // This call also enables the interrupts
-  ret = stm32_gpiosetevent(
-    cfgsetA,                      // Nuttx cfgset
-    1,                            // rising edge,
-    1,                            // falling edge,
-    0,                            // event
-    rotenc_gpio_rot_enc_isr_a,    // ISR A
-    rotaryEncoderInfo);           // information address
+  // Setup both rising and falling input points to trigger isr. This also
+  // enables the interrupts. If either pin fails to arm, undo everything via
+  // rotenc_config_interrupt_remove() rather than leaving a half-wired
+  // encoder permanently stuck in the "in use" slot.
+  ret = rotenc_config_gpio_arm(cfgsetA, rotenc_gpio_rot_enc_isr_a, rotaryEncoderInfo,
+            cfg->encoderNumb, 'A');
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin A interrupt, ret:%d\n",
-              __FILE__, __LINE__, cfg->encoderNumb, ret);
+    rotenc_config_interrupt_remove(cfg->encoderNumb);
+    return ret;
   }
 
-  ret = stm32_gpiosetevent(
-    cfgsetB,                      // Nuttx cfgset
-    1,                            // rising edge,
-    1,                            // falling edge,
-    0,                            // event
-    rotenc_gpio_rot_enc_isr_b,    // ISR B
-    rotaryEncoderInfo);           // information address
+  ret = rotenc_config_gpio_arm(cfgsetB, rotenc_gpio_rot_enc_isr_b, rotaryEncoderInfo,
+            cfg->encoderNumb, 'B');
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error encoder:%ld Pin B interrupt, ret:%d\n",
-              __FILE__, __LINE__, cfg->encoderNumb, ret);
+    rotenc_config_interrupt_remove(cfg->encoderNumb);
+    return ret;
   }
 
-  return ret;
+  return OK;
 }
 
 //========================================================================
