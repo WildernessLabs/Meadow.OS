@@ -20,8 +20,4 @@
 
 ifneq ($(CONFIG_SYSTEM_HCOM),)
 CONFIGURED_APPS += $(APPDIR)/system/hcom
-MBEDTLS_DIR = $(TOPDIR)/../mbedtls
-MBEDTLS_AOBJS = $(MBEDTLS_DIR)/library/libmbedcrypto.a \
-               $(MBEDTLS_DIR)/library/libmbedtls.a \
-               $(MBEDTLS_DIR)/library/libmbedx509.a
 endif

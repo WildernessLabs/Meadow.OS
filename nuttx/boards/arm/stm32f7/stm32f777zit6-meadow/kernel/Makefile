@@ -23,6 +23,25 @@
 include $(TOPDIR)/Make.defs
 include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/hcom/Make.defs
 
+# APPDIR is normally set up by the top-level apps build (nuttx/tools/Make.defs), which
+# this board Makefile never includes - define it here so the mbedTLS object lookup
+# below resolves correctly.
+APPDIR := $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))
+
+# Force the whole mbedTLS library (crypto + x509 + TLS, from apps/crypto/mbedtls) into
+# the final link, even for symbols nothing in the statically-linked C/C++ code
+# references directly (e.g. Mono/.NET code that calls into mbedTLS via reflection/
+# interop, invisible to the linker).
+#
+# apps/Make.defs's archiving step (AROBJSRULES) copies every compiled object to a
+# second, "_<N>"-suffixed name purely so ar can batch it into libapps.a without a
+# member-name collision - both names hold identical content. Only keep the plain name,
+# or the pair would be linked in directly (bypassing archive semantics) and give the
+# linker two definitions of every mbedTLS symbol.
+ifneq ($(CONFIG_CRYPTO_MBEDTLS),)
+MBEDTLS_AOBJS := $(shell find $(APPDIR)/crypto/mbedtls/mbedtls/library -maxdepth 1 -name '*$(OBJEXT)' 2>/dev/null | grep -vE '_[0-9]+\.o$$')
+endif
+
 # The entry point name (if none is provided in the .config file)
 
 CONFIG_INIT_ENTRYPOINT ?= user_start
@@ -59,7 +78,7 @@ $(COBJS): %$(OBJEXT): %.c
 # Create the nuttx_user.elf file containing all of the user-mode code
 
 nuttx_user.elf: $(OBJS)
-	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS)  --whole-archive $(MBEDTLS_AOBJS) --no-whole-archive  --start-group $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC)
+	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS) $(MBEDTLS_AOBJS) --start-group $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC)
 
 
 $(TOPDIR)$(DELIM)nuttx_user.elf: nuttx_user.elf

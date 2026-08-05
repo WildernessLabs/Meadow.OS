@@ -33,17 +33,17 @@ Rebase/
 |   +-- misc/           Shared logging, ADC, watchdog, ISO8601, circular buffer
 |   +-- libyaml/        Vendored third-party YAML parser - do not modify
 |   +-- libcyaml/       Vendored third-party schema-driven YAML wrapper (used by hcom_nx_config_manager) - do not modify
-+-- apps/               NuttX applications (hcom lives in apps/system/hcom/)
++-- apps/               NuttX applications (hcom lives in apps/system/hcom/; mbedTLS lives
+|                       in apps/crypto/mbedtls/ - used for HCOM OTA signature verification
+|                       and by apps/crypto/controlse, openssl_mbedtls_wrapper, netutils)
 +-- bootloader/         STM32 HAL bootloader (Meadow.BL) - CRC verify, OTA, rollback
 +-- esp32/              ESP32 coprocessor firmware (ESP-IDF project)
-+-- mbedtls/            mbedTLS - TLS support for the coprocessor protocol
 +-- gdb/                GDB init scripts and NuttX-aware Python extensions
 +-- scripts/            Shared shell helpers (common_methods.sh, debug_methods.sh, etc.)
 +-- Documentation/      Detailed design docs (see below)
 +-- build.sh            Top-level STM32 build script
 +-- build-esp32.sh      ESP32 coprocessor build script
 +-- build-bootloader.sh Bootloader build (called by build.sh automatically)
-+-- build-mbedtls.sh    mbedTLS build (called by build.sh automatically)
 +-- flash.sh            Flash STM32 via OpenOCD or DFU
 +-- debug.sh            Launch OpenOCD GDB server and/or arm-none-eabi-gdb
 +-- debug.cfg           OpenOCD configuration for interactive debugging

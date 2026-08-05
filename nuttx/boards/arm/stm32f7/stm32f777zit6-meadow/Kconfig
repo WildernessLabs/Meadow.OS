@@ -28,6 +28,7 @@ config HCOM_COMMS_DEVICE_NAME
 config MEADOW_CLOUD
     bool "Enables Meadow Cloud support"
     default n
+    select CRYPTO_MBEDTLS
 
 config MEADOW_ETHNET_INCLUDE_IN_BUILD
     bool "Build Meadow and include Ethernet for compute module"
