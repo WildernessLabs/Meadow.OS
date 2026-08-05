@@ -28,26 +28,27 @@ The following identifiers can be used with the `-u` flag:
 
 | Identifier | Description | Kconfig Option |
 |------------|-------------|----------------|
-| `esp` | ESP32 Coprocessor tests | `ESP_TESTS` |
-| `sqlite` | SQLite database tests | `EXAMPLES_SQLITE_TESTS` |
-| `snprintf` | `snprintf` functionality tests | `SNPRINTF_TESTS` |
-| `gpio` | GPIO peripheral tests | `GPIO_TESTS` |
-| `overload` | MCU stress/overload tests | `MCU_OVERLOAD_TESTS` |
-| `bbr` | Battery Backed Register tests | `BBR_TESTS` |
-| `chat` | Ethernet Chat tests | `CHAT_TESTS` |
-| `ethernet` | Ethernet peripheral tests | `ETHERNET_TESTS` |
-| `bg77` | BG77 Cellular modem tests | `BG77_TESTS` |
-| `iso8601` | ISO8601 time parsing tests | `ISO8601_TESTS` |
-| `power` | Power management tests | `POWER_MANAGEMENT_TESTS` |
-| `sdcard` | SD Card peripheral tests | `SD_CARD_TESTS` |
-| `tensorflow` | TensorFlow Lite for Microcontrollers tests | `TENSORFLOW_TESTS` |
-| `misc` | Miscellaneous system tests | `QUICK_MISC_TESTS` |
-| `dirmgmt` | Directory management tests | `DIR_MGMT_TESTS` |
 | `adc` | Analog to Digital converter tests | `ADC_TESTS` |
+| `bbr` | Battery Backed Register tests | `BBR_TESTS` |
+| `bg77` | BG77 Cellular modem tests | `BG77_TESTS` |
+| `chat` | Ethernet Chat tests | `CHAT_TESTS` |
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
-| `spidma` | SPI DMA tests | `SPI_DMA_TESTS` |
+| `dirmgmt` | Directory management tests | `DIR_MGMT_TESTS` |
+| `esp` | ESP32 Coprocessor tests | `ESP_TESTS` |
+| `ethernet` | Ethernet peripheral tests | `ETHERNET_TESTS` |
+| `gpio` | GPIO peripheral tests | `GPIO_TESTS` |
 | `i2c` | I2C bus scan tests (I2C1 and I2C3) | `I2C_TESTS` |
+| `iso8601` | ISO8601 time parsing tests | `ISO8601_TESTS` |
+| `misc` | Miscellaneous system tests | `QUICK_MISC_TESTS` |
+| `overload` | MCU stress/overload tests | `MCU_OVERLOAD_TESTS` |
+| `power` | Power management tests | `POWER_MANAGEMENT_TESTS` |
+| `pwm` | Per-pin PWM output tests | `PWM_TESTS` |
+| `sdcard` | SD Card peripheral tests | `SD_CARD_TESTS` |
+| `snprintf` | `snprintf` functionality tests | `SNPRINTF_TESTS` |
 | `sotest` | Dynamic loading (dlopen/dlsym/dlclose) tests | `SOTEST_TESTS` |
+| `spidma` | SPI DMA tests | `SPI_DMA_TESTS` |
+| `sqlite` | SQLite database tests | `EXAMPLES_SQLITE_TESTS` |
+| `tensorflow` | TensorFlow Lite for Microcontrollers tests | `TENSORFLOW_TESTS` |
 
 ## Test Configuration
 
@@ -309,6 +310,71 @@ The following sample output shows a number of successful tests:
 [  359.355000] [10] F7MeadowOSLink/kerneltests/meadow_spi_dma_tests.c@339-DMA test, SPI5, allocate 81920 bytes
 [  359.420000] [ 1] Loop:01 - Successful transfer of:81920 bytes
 ```
+
+## PWM Tests
+
+The `pwm` tests (IDs 800-870 in `meadow_unit_test_framework.h`) drive Meadow F7 pins with a
+PWM signal, so the output can be verified with a scope or logic analyzer. IDs 800-867 drive one
+pin each per duty cycle (20%, 40%, 60%, 80%) - `-v` selects the output frequency in kHz, not
+the duty cycle. IDs 868-870 operate on every PWM-capable pin at once (see "All-Channels Tests"
+below). Generation calls `upd_handle_pwm()` (`F7MeadowOS/meadow_os/meadow-upd.c`) directly -
+the same function that drives PWM from host/app requests in this codebase - rather than
+opening a `/dev/pwmN` character device or issuing `PWMIOC_*`/`MUPD_*` ioctls through the VFS.
+
+### Prerequisites
+
+* Build with `./build.sh -u=pwm`. This enables `CONFIG_PWM_TESTS`, which compiles in
+  `F7MeadowOS/kerneltests/meadow_pwm_tests.c`.
+* Some pins are hardware-capable only on certain Meadow F7 revisions (F7v1, F7v2/Feather,
+  CCM) - the test detects the running revision via `meadow_hw_version_get()` and reports
+  `TEST_ERR_INVALID_CONFIG` if the requested pin has no PWM-capable timer channel on that
+  revision, rather than attempting to drive a nonexistent pin mapping:
+  - D06 is F7v1 only.
+  - D09 and D10 are not supported on CCM.
+  - D15 is CCM only.
+  - A03 and A04 are not supported on F7v1.
+* D07 and D08 share their pin with the I2C1 bus (SDA/SCL respectively) on every revision -
+  expect I2C1 to be unusable while either of these tests is running.
+
+### Running It
+
+```bash
+meadow developer -p <id> -v <freq in kHz>
+```
+
+For example, `meadow developer -p 800 -v 1` drives D02 with a 1 kHz, 20%-duty signal. Run
+`meadow developer -p 0` to list every compiled-in test ID and its pin/duty description.
+
+### What It Verifies
+
+Each test configures the pin's timer channel for standard PWM output at the requested
+frequency and duty cycle, holds the signal for 5 seconds for external observation, then stops
+and releases the timer. Results - not a pass/fail verdict beyond configuration errors - are
+written to the syslog (`LOG_MTEST`): the timer/channel/frequency/duty used, followed by PASS
+or FAIL once the hold period ends.
+
+### All-Channels Tests
+
+Three additional tests operate on every PWM-capable pin at once, iterating the same per-pin
+table the tests above use. Pins unsupported on the running hardware revision are skipped
+silently (not a failure); an actual setup error is.
+
+| ID | Description | `-v` |
+|----|--------------|------|
+| 868 | Start every pin at 10 kHz / 50% duty and leave them running | ignored |
+| 869 | Stop every pin | ignored |
+| 870 | Cycle through every pin one at a time at 10 kHz / 30% duty | hold time in seconds per pin |
+
+```bash
+meadow developer -p 868          # turn everything on
+meadow developer -p 869          # turn everything off
+meadow developer -p 870 -v 3     # light each pin for 3 seconds, one at a time
+```
+
+Because `MUPD_PWM_SHUTDOWN` stops the whole timer, not a single channel, turning off one pin
+(869, or the end of each pin's turn in 870) also stops any other pin sharing the same physical
+timer (e.g. D03/D04/D07/D08 all share TIM4) - calling shutdown again for those pins afterward
+is harmless (idempotent), just redundant.
 
 ## Adding New Tests
 

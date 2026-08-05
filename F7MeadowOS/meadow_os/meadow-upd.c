@@ -60,14 +60,6 @@ struct upd_register_update
   uint32_t setBits;
 };
 
-struct upd_pwm_cmd
-{
-  uint32_t timer;
-  uint32_t channel;
-  uint32_t frequency;
-  uint32_t duty;
-};
-
 struct upd_i2c_cmd
 {
   uint32_t address;
@@ -134,7 +126,6 @@ static int upd_close(struct file *filep);
 
 // static int upd_gpio_interrupt(int irq, void *context, void *arg);
 
-static int upd_handle_pwm(int cmd, unsigned long arg);
 static int upd_handle_i2c(int cmd, struct upd_i2c_cmd*);
 static struct spi_dev_s * get_spi_bus(int busNumber);
 static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd*);
@@ -496,7 +487,7 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
   return result;
 }
 
-static int upd_handle_pwm(int cmd, unsigned long arg)
+int upd_handle_pwm(int cmd, unsigned long arg)
 {
   struct upd_pwm_cmd *_upd_pwm_cmd = (struct upd_pwm_cmd *)arg;
   struct pwm_lowerhalf_s *pwm;
@@ -523,17 +514,17 @@ static int upd_handle_pwm(int cmd, unsigned long arg)
   }
   case MUPD_PWM_START:
   {
-      struct pwm_info_s info;
+      struct pwm_info_s info = {};
       info.frequency = _upd_pwm_cmd->frequency;
 #ifdef CONFIG_PWM_MULTICHAN
-      pwm->ops->ioctl(pwm, 0, (unsigned long)&info);
-      for (int i = 0; i < CONFIG_PWM_NCHANNELS; i++)
-      {
-        if (info.channels[i].channel == _upd_pwm_cmd->channel)
-        {
-          info.channels[i].duty = _upd_pwm_cmd->duty;
-        }
-      }
+      // pwm->ops->ioctl() has no implementation in the STM32 PWM lower
+      // half (stm32_pwm.c's pwm_ioctl() unconditionally returns -ENOTTY
+      // without touching its argument), so info.channels[] can't be
+      // "read, then modify" - it has to be built from scratch here.
+      // channel == -1 terminates the list for pwm_duty_channels_update().
+      info.channels[0].channel = _upd_pwm_cmd->channel;
+      info.channels[0].duty = _upd_pwm_cmd->duty;
+      info.channels[1].channel = -1;
 #else
       info.duty = _upd_pwm_cmd->duty;
 #endif
@@ -543,16 +534,12 @@ static int upd_handle_pwm(int cmd, unsigned long arg)
   }
   case MUPD_PWM_STOP:
   {
-      struct pwm_info_s info;
+      struct pwm_info_s info = {};
+      info.frequency = _upd_pwm_cmd->frequency;
 #ifdef CONFIG_PWM_MULTICHAN
-      pwm->ops->ioctl(pwm, 0, (unsigned long)&info);
-      for (int i = 0; i < CONFIG_PWM_NCHANNELS; i++)
-      {
-        if (info.channels[i].channel == _upd_pwm_cmd->channel)
-        {
-          info.channels[i].duty = 0;
-        }
-      }
+      info.channels[0].channel = _upd_pwm_cmd->channel;
+      info.channels[0].duty = 0;
+      info.channels[1].channel = -1;
 #else
       info.duty = 0;
 #endif

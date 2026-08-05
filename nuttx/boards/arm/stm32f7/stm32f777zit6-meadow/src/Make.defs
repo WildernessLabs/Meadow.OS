@@ -167,6 +167,7 @@ $(MEADOW_OS_DIR)/misc/meadow_watchdog.c
 endif
 
 CSRCS += $(MEADOW_OS_DIR)/kerneltests/meadow_kt_dispatcher.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_kt_log.c \
 $(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/ethernet_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/network_tests.c \
@@ -185,7 +186,8 @@ $(MEADOW_OS_DIR)/kerneltests/meadow_measure_freq_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_kt_bluetooth_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_kt_traverse_ku_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_gpio_counter_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/meadow_i2c_tests.c
+$(MEADOW_OS_DIR)/kerneltests/meadow_i2c_tests.c \
+$(MEADOW_OS_DIR)/kerneltests/meadow_pwm_tests.c
 
 #
 #	Add the Meadow logging system.

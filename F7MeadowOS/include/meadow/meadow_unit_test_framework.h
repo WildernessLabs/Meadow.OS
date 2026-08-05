@@ -235,6 +235,365 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
  */
 #define MEADOW_TEST_I2C3_SCAN                       26
 
+//---------------------------------------------------------------------------
+//      PWM tests 800 - 899. -v is the output frequency in kHz.
+//---------------------------------------------------------------------------
+
+/**
+ * @brief PWM D02 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D02_DUTY20                  800
+
+/**
+ * @brief PWM D02 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D02_DUTY40                  801
+
+/**
+ * @brief PWM D02 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D02_DUTY60                  802
+
+/**
+ * @brief PWM D02 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D02_DUTY80                  803
+
+/**
+ * @brief PWM D03 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D03_DUTY20                  804
+
+/**
+ * @brief PWM D03 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D03_DUTY40                  805
+
+/**
+ * @brief PWM D03 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D03_DUTY60                  806
+
+/**
+ * @brief PWM D03 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D03_DUTY80                  807
+
+/**
+ * @brief PWM D04 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D04_DUTY20                  808
+
+/**
+ * @brief PWM D04 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D04_DUTY40                  809
+
+/**
+ * @brief PWM D04 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D04_DUTY60                  810
+
+/**
+ * @brief PWM D04 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D04_DUTY80                  811
+
+/**
+ * @brief PWM D05 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D05_DUTY20                  812
+
+/**
+ * @brief PWM D05 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D05_DUTY40                  813
+
+/**
+ * @brief PWM D05 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D05_DUTY60                  814
+
+/**
+ * @brief PWM D05 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D05_DUTY80                  815
+
+/**
+ * @brief PWM D06 20% duty test ID (F7v1 only).
+ */
+#define MEADOW_TEST_PWM_D06_DUTY20                  816
+
+/**
+ * @brief PWM D06 40% duty test ID (F7v1 only).
+ */
+#define MEADOW_TEST_PWM_D06_DUTY40                  817
+
+/**
+ * @brief PWM D06 60% duty test ID (F7v1 only).
+ */
+#define MEADOW_TEST_PWM_D06_DUTY60                  818
+
+/**
+ * @brief PWM D06 80% duty test ID (F7v1 only).
+ */
+#define MEADOW_TEST_PWM_D06_DUTY80                  819
+
+/**
+ * @brief PWM D07 20% duty test ID (shares a pin with I2C1_SDA).
+ */
+#define MEADOW_TEST_PWM_D07_DUTY20                  820
+
+/**
+ * @brief PWM D07 40% duty test ID (shares a pin with I2C1_SDA).
+ */
+#define MEADOW_TEST_PWM_D07_DUTY40                  821
+
+/**
+ * @brief PWM D07 60% duty test ID (shares a pin with I2C1_SDA).
+ */
+#define MEADOW_TEST_PWM_D07_DUTY60                  822
+
+/**
+ * @brief PWM D07 80% duty test ID (shares a pin with I2C1_SDA).
+ */
+#define MEADOW_TEST_PWM_D07_DUTY80                  823
+
+/**
+ * @brief PWM D08 20% duty test ID (shares a pin with I2C1_SCL).
+ */
+#define MEADOW_TEST_PWM_D08_DUTY20                  824
+
+/**
+ * @brief PWM D08 40% duty test ID (shares a pin with I2C1_SCL).
+ */
+#define MEADOW_TEST_PWM_D08_DUTY40                  825
+
+/**
+ * @brief PWM D08 60% duty test ID (shares a pin with I2C1_SCL).
+ */
+#define MEADOW_TEST_PWM_D08_DUTY60                  826
+
+/**
+ * @brief PWM D08 80% duty test ID (shares a pin with I2C1_SCL).
+ */
+#define MEADOW_TEST_PWM_D08_DUTY80                  827
+
+/**
+ * @brief PWM D09 20% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D09_DUTY20                  828
+
+/**
+ * @brief PWM D09 40% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D09_DUTY40                  829
+
+/**
+ * @brief PWM D09 60% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D09_DUTY60                  830
+
+/**
+ * @brief PWM D09 80% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D09_DUTY80                  831
+
+/**
+ * @brief PWM D10 20% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D10_DUTY20                  832
+
+/**
+ * @brief PWM D10 40% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D10_DUTY40                  833
+
+/**
+ * @brief PWM D10 60% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D10_DUTY60                  834
+
+/**
+ * @brief PWM D10 80% duty test ID (not supported on CCM).
+ */
+#define MEADOW_TEST_PWM_D10_DUTY80                  835
+
+/**
+ * @brief PWM D11 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D11_DUTY20                  836
+
+/**
+ * @brief PWM D11 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D11_DUTY40                  837
+
+/**
+ * @brief PWM D11 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D11_DUTY60                  838
+
+/**
+ * @brief PWM D11 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D11_DUTY80                  839
+
+/**
+ * @brief PWM D12 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D12_DUTY20                  840
+
+/**
+ * @brief PWM D12 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D12_DUTY40                  841
+
+/**
+ * @brief PWM D12 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D12_DUTY60                  842
+
+/**
+ * @brief PWM D12 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D12_DUTY80                  843
+
+/**
+ * @brief PWM D13 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D13_DUTY20                  844
+
+/**
+ * @brief PWM D13 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D13_DUTY40                  845
+
+/**
+ * @brief PWM D13 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D13_DUTY60                  846
+
+/**
+ * @brief PWM D13 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_D13_DUTY80                  847
+
+/**
+ * @brief PWM D15 20% duty test ID (CCM only).
+ */
+#define MEADOW_TEST_PWM_D15_DUTY20                  848
+
+/**
+ * @brief PWM D15 40% duty test ID (CCM only).
+ */
+#define MEADOW_TEST_PWM_D15_DUTY40                  849
+
+/**
+ * @brief PWM D15 60% duty test ID (CCM only).
+ */
+#define MEADOW_TEST_PWM_D15_DUTY60                  850
+
+/**
+ * @brief PWM D15 80% duty test ID (CCM only).
+ */
+#define MEADOW_TEST_PWM_D15_DUTY80                  851
+
+/**
+ * @brief PWM A01 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A01_DUTY20                  852
+
+/**
+ * @brief PWM A01 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A01_DUTY40                  853
+
+/**
+ * @brief PWM A01 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A01_DUTY60                  854
+
+/**
+ * @brief PWM A01 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A01_DUTY80                  855
+
+/**
+ * @brief PWM A02 20% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A02_DUTY20                  856
+
+/**
+ * @brief PWM A02 40% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A02_DUTY40                  857
+
+/**
+ * @brief PWM A02 60% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A02_DUTY60                  858
+
+/**
+ * @brief PWM A02 80% duty test ID.
+ */
+#define MEADOW_TEST_PWM_A02_DUTY80                  859
+
+/**
+ * @brief PWM A03 20% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A03_DUTY20                  860
+
+/**
+ * @brief PWM A03 40% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A03_DUTY40                  861
+
+/**
+ * @brief PWM A03 60% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A03_DUTY60                  862
+
+/**
+ * @brief PWM A03 80% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A03_DUTY80                  863
+
+/**
+ * @brief PWM A04 20% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A04_DUTY20                  864
+
+/**
+ * @brief PWM A04 40% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A04_DUTY40                  865
+
+/**
+ * @brief PWM A04 60% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A04_DUTY60                  866
+
+/**
+ * @brief PWM A04 80% duty test ID (not supported on F7v1).
+ */
+#define MEADOW_TEST_PWM_A04_DUTY80                  867
+
+/**
+ * @brief PWM all channels on test ID.
+ */
+#define MEADOW_TEST_PWM_ALL_ON                      868
+
+/**
+ * @brief PWM all channels off test ID.
+ */
+#define MEADOW_TEST_PWM_ALL_OFF                     869
+
+/**
+ * @brief PWM cycle through all channels test ID.
+ */
+#define MEADOW_TEST_PWM_CYCLE_ALL                   870
+
 /**
  * @brief User space assert test ID.
  */
