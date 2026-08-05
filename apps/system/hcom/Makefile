@@ -30,7 +30,6 @@ APPNAME = hcom
 PRIORITY  = $(CONFIG_EXAMPLES_HCOM_PRIORITY)
 STACKSIZE = $(CONFIG_EXAMPLES_HCOM_STACKSIZE)
 
-CFLAGS += -I "$(TOPDIR)/../mbedtls/include"
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/database/sqlite
 CFLAGS += ${INCDIR_PREFIX}$(APPDIR)/database/sqlite/build
 CFLAGS += -Werror

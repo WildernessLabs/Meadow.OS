@@ -457,16 +457,6 @@ check_command_status
 
 #   Now that the kernel is configured, we can build the userspace libs
 
-#
-#   Build mbedTLS
-#
-$scriptdir/build-mbedtls.sh "$@"
-if [ $? -ne 0 ]; then
-    exit 1
-fi
-
-
-
 if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   printf "Building NuttX (user pass)..."
   if $NETCORE; then
