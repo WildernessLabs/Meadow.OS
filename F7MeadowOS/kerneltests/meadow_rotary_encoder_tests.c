@@ -284,7 +284,7 @@ void meadow_kt_rotary_encoder_tests(uint32_t userData)
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
-void rotary_encoder_test_add_config(uint32_t testNumb,
+static void rotary_encoder_test_add_config(uint32_t testNumb,
   uint32_t encoderNumb, uint32_t delayMs, uint32_t PinA, uint32_t PinB)
 {
   // Setup a rotary encoder
@@ -297,8 +297,9 @@ void rotary_encoder_test_add_config(uint32_t testNumb,
     return;
   }
 
-  syslog(LOG_MTEST, "Rotary Encoder tests-configuring encoder %lu with %lu ms delay\n",
-    encoderNumb, delayMs);
+  syslog(LOG_MTEST,
+    "Rotary Encoder tests (-v %lu)-configuring encoder %lu with %lu ms delay\n",
+    testNumb, encoderNumb, delayMs);
 
   // For testing need to initialize the 2 GPIOs as inputs
   stm32_configgpio(PinA);
@@ -326,7 +327,7 @@ void rotary_encoder_test_add_config(uint32_t testNumb,
 }
 
 //============================================================================
-void rotary_encoder_test_remove_config(uint32_t userData)
+static void rotary_encoder_test_remove_config(uint32_t userData)
 {
   int ret;
   uint32_t encoderNumb = 9;  // Invalid
@@ -388,7 +389,7 @@ void rotary_encoder_test_remove_config(uint32_t userData)
 
 //==================================================================
 // Pass in bad parameters
-void rotary_encoder_config_test_null_parms(uint32_t userData)
+static void rotary_encoder_config_test_null_parms(uint32_t userData)
 {
   // Setup a rotary encoder
   int ret = 0;
@@ -418,7 +419,7 @@ void rotary_encoder_config_test_null_parms(uint32_t userData)
 // meadow_rotary_encoder_read_data() for encoder 0 and reports whether it
 // came back with a clean -ENODATA (encoder removed while waiting) instead
 // of hanging or crashing.
-void *rotary_encoder_test_blocking_read_kthread(int argc, char *argv[])
+static void *rotary_encoder_test_blocking_read_kthread(int argc, char *argv[])
 {
   rotEncReadData_t rotEncReadData;
   int ret;
