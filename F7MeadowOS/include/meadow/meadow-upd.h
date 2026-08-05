@@ -89,6 +89,19 @@ typedef struct upd_get_set_configuration_value_s upd_get_set_configuration_value
 int upd_handle_esp32_command(struct upd_esp32_command *);
 int upd_handle_esp32_get_event_result(espcp_event_data_payload_t *);
 
+/*
+ *  Information about a PWM setup/start/stop/shutdown request.
+ */
+struct upd_pwm_cmd
+{
+  uint32_t timer;
+  uint32_t channel;
+  uint32_t frequency;
+  uint32_t duty;
+};
+
+int upd_handle_pwm(int cmd, unsigned long arg);
+
 // Meadow UPD definitions
 #define MUPD_SET_REGISTER       1
 #define MUPD_GET_REGISTER       2

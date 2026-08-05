@@ -66,6 +66,81 @@ void meadow_kt_i2c1_scan_tests(uint32_t);
 void meadow_kt_i2c3_scan_tests(uint32_t);
 
 //
+//  PWM tests. -v is the output frequency in kHz.
+//
+void meadow_kt_pwm_d02_duty20_test(uint32_t);
+void meadow_kt_pwm_d02_duty40_test(uint32_t);
+void meadow_kt_pwm_d02_duty60_test(uint32_t);
+void meadow_kt_pwm_d02_duty80_test(uint32_t);
+void meadow_kt_pwm_d03_duty20_test(uint32_t);
+void meadow_kt_pwm_d03_duty40_test(uint32_t);
+void meadow_kt_pwm_d03_duty60_test(uint32_t);
+void meadow_kt_pwm_d03_duty80_test(uint32_t);
+void meadow_kt_pwm_d04_duty20_test(uint32_t);
+void meadow_kt_pwm_d04_duty40_test(uint32_t);
+void meadow_kt_pwm_d04_duty60_test(uint32_t);
+void meadow_kt_pwm_d04_duty80_test(uint32_t);
+void meadow_kt_pwm_d05_duty20_test(uint32_t);
+void meadow_kt_pwm_d05_duty40_test(uint32_t);
+void meadow_kt_pwm_d05_duty60_test(uint32_t);
+void meadow_kt_pwm_d05_duty80_test(uint32_t);
+void meadow_kt_pwm_d06_duty20_test(uint32_t);
+void meadow_kt_pwm_d06_duty40_test(uint32_t);
+void meadow_kt_pwm_d06_duty60_test(uint32_t);
+void meadow_kt_pwm_d06_duty80_test(uint32_t);
+void meadow_kt_pwm_d07_duty20_test(uint32_t);
+void meadow_kt_pwm_d07_duty40_test(uint32_t);
+void meadow_kt_pwm_d07_duty60_test(uint32_t);
+void meadow_kt_pwm_d07_duty80_test(uint32_t);
+void meadow_kt_pwm_d08_duty20_test(uint32_t);
+void meadow_kt_pwm_d08_duty40_test(uint32_t);
+void meadow_kt_pwm_d08_duty60_test(uint32_t);
+void meadow_kt_pwm_d08_duty80_test(uint32_t);
+void meadow_kt_pwm_d09_duty20_test(uint32_t);
+void meadow_kt_pwm_d09_duty40_test(uint32_t);
+void meadow_kt_pwm_d09_duty60_test(uint32_t);
+void meadow_kt_pwm_d09_duty80_test(uint32_t);
+void meadow_kt_pwm_d10_duty20_test(uint32_t);
+void meadow_kt_pwm_d10_duty40_test(uint32_t);
+void meadow_kt_pwm_d10_duty60_test(uint32_t);
+void meadow_kt_pwm_d10_duty80_test(uint32_t);
+void meadow_kt_pwm_d11_duty20_test(uint32_t);
+void meadow_kt_pwm_d11_duty40_test(uint32_t);
+void meadow_kt_pwm_d11_duty60_test(uint32_t);
+void meadow_kt_pwm_d11_duty80_test(uint32_t);
+void meadow_kt_pwm_d12_duty20_test(uint32_t);
+void meadow_kt_pwm_d12_duty40_test(uint32_t);
+void meadow_kt_pwm_d12_duty60_test(uint32_t);
+void meadow_kt_pwm_d12_duty80_test(uint32_t);
+void meadow_kt_pwm_d13_duty20_test(uint32_t);
+void meadow_kt_pwm_d13_duty40_test(uint32_t);
+void meadow_kt_pwm_d13_duty60_test(uint32_t);
+void meadow_kt_pwm_d13_duty80_test(uint32_t);
+void meadow_kt_pwm_d15_duty20_test(uint32_t);
+void meadow_kt_pwm_d15_duty40_test(uint32_t);
+void meadow_kt_pwm_d15_duty60_test(uint32_t);
+void meadow_kt_pwm_d15_duty80_test(uint32_t);
+void meadow_kt_pwm_a01_duty20_test(uint32_t);
+void meadow_kt_pwm_a01_duty40_test(uint32_t);
+void meadow_kt_pwm_a01_duty60_test(uint32_t);
+void meadow_kt_pwm_a01_duty80_test(uint32_t);
+void meadow_kt_pwm_a02_duty20_test(uint32_t);
+void meadow_kt_pwm_a02_duty40_test(uint32_t);
+void meadow_kt_pwm_a02_duty60_test(uint32_t);
+void meadow_kt_pwm_a02_duty80_test(uint32_t);
+void meadow_kt_pwm_a03_duty20_test(uint32_t);
+void meadow_kt_pwm_a03_duty40_test(uint32_t);
+void meadow_kt_pwm_a03_duty60_test(uint32_t);
+void meadow_kt_pwm_a03_duty80_test(uint32_t);
+void meadow_kt_pwm_a04_duty20_test(uint32_t);
+void meadow_kt_pwm_a04_duty40_test(uint32_t);
+void meadow_kt_pwm_a04_duty60_test(uint32_t);
+void meadow_kt_pwm_a04_duty80_test(uint32_t);
+void meadow_kt_pwm_all_on_test(uint32_t);
+void meadow_kt_pwm_all_off_test(uint32_t);
+void meadow_kt_pwm_cycle_all_test(uint32_t);
+
+//
 //  Bluetooth tests.
 //
 void meadow_kt_bluetooth_test_start_service_a(uint32_t value);

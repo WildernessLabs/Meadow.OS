@@ -48,7 +48,7 @@
 #include "stm32_gpio.h"   // stm32_configgpio
 #include <arch/board/board.h>
 #include <meadow/meadow_kernel_tests.h>
-#include <meadow/hcom_traverse_ku.h>
+#include "meadow_kt_log.h"
 
 // Diagnostic always as this is test code
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -112,33 +112,6 @@
 
 //   return OK;
 // }
-
-//===============================================================
-#if (MEADOW_FREQ_MEAS_TEST_USE_SYSLOG_OUTPUT == 0)
-// Send syslog like messages to CLI. This is needed because for Issue #842
-// we need to use PB14 and PB15 to do frequency measurements. But, these are
-// the pins used for syslog.
-static void syslogToHost(int priority, FAR const IPTR char *fmt, ...)
-{
-  size_t maxStringLen = 256;
-  char * finalString = malloc(maxStringLen);
- 
-  va_list args;
-  va_start(args, fmt);
-
-  // Create the complete message with prefix
-  // The Nuttx version of snprintf will truncate the string based on the
-  // buffer size but will always place a terminating NULL at the end.
-  int stringLen = vsnprintf(finalString, maxStringLen - 1, fmt, args);
-  
-  hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-    finalString, stringLen);
-
-  va_end(args);
-
-  free(finalString);
-}
-#endif
 
 //===============================================================
 // Display the frequency information
