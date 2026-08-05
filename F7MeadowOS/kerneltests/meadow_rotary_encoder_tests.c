@@ -504,7 +504,27 @@ void rotary_encoder_test_exercise_test(uint32_t userData)
   if(pid < 0)
   {
     syslog(LOG_MTEST,
-      "Rotary Encoder race test-failed to create test thread, ret:%d\n", pid);
+      "Rotary Encoder race test-failed to create test thread, ret:%d, "
+      "cleaning up encoder 0\n", pid);
+
+    stm32_unconfiggpio(ENCODER_PIN_CCM_D05_PB4_INPUT);
+    stm32_unconfiggpio(ENCODER_PIN_CCM_D06_PB13_INPUT);
+
+    cfg = malloc(sizeof(rotEncConfigParms_t));
+    if(cfg == NULL)
+    {
+      syslog(LOG_ERR, "Memory allocation failed\n");
+      return;
+    }
+    cfg->encoderNumb = 0;
+    cfg->isAddEncoder = false;
+
+    ret = meadow_rotary_encoder_config(cfg);
+    free(cfg);
+    if(ret < 0)
+    {
+      syslog(LOG_MTEST, "Rotary Encoder race test-cleanup remove returned ret:%d\n", ret);
+    }
     return;
   }
 
