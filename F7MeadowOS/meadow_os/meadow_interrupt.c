@@ -1172,6 +1172,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     syslog(LOG_ERR, "%s@%d-ERROR:Illegal configType:%lu\n",
       thisFile, __LINE__, cfg->configType);
     free(gpioInfoAddr);
+    ret = -EINVAL;
     break;
   }
 
