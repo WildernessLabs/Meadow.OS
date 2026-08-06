@@ -351,6 +351,7 @@ int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
   {
     syslog(LOG_ERR, "%s@%d-gpioInfoAddr == NULL. This indicates coding problem\n",
             __FILE__, __LINE__);
+    DEBUG_SET_LOW(DEBUG_PIN_V2_A2);
     return OK;
   }
 
@@ -1076,9 +1077,11 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   }
   uint8_t pinDesignation = cfg->port << 4 | cfg->pin;
 
-  // If a new GPIO interrupt must have at least one 'edge' defined
-  if(cfg->configType == gpio_intrpt_cfg_type_add && \
-     cfg->risingEdge == 0 && cfg->fallingEdge == 0)
+  // A new GPIO interrupt (add or wakeup) must have at least one 'edge'
+  // defined, otherwise it can never fire.
+  if((cfg->configType == gpio_intrpt_cfg_type_add ||
+    cfg->configType == gpio_intrpt_cfg_type_wakeup) && \
+    cfg->risingEdge == 0 && cfg->fallingEdge == 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt edge config type.\n",
        thisFile, __LINE__);
