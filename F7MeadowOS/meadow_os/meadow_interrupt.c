@@ -1142,6 +1142,16 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   // Only gpio_intrpt_cfg_type_add and gpio_intrpt_cfg_type_wakeup reach here,
   // both of which need a newly allocated struct for this GPIO.
 
+  // Reject adding a PinId that's already configured - otherwise the old
+  // struct is orphaned (leaked, and possibly still in the timed list) while
+  // the hardware interrupt gets silently re-armed to point at a new one.
+  if(mint_find_configured_gpio(pinDesignation) != NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is already configured\n",
+      thisFile, __LINE__, pinDesignation);
+    return -ENOTEMPTY;
+  }
+
   // Allocate memory for this GPIO's configuration and data storage needs
   gpioInfoAddr = (struct interruptPinMap_s *) zalloc(sizeof (struct interruptPinMap_s));
   if(gpioInfoAddr == NULL)
@@ -1322,11 +1332,14 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
     mint_gpio_need_delay_isr,   // Need delay GPIO ISR
     gpioInfoAddr);              // GPIO information address
 
-    // If not already configured
-    if(gpioInfoAddr->CurrentProcessState == mint_state_uncfg)
-        _totalGpiosCanBeTimed++;
+    if(ret >= 0)
+    {
+      // If not already configured
+      if(gpioInfoAddr->CurrentProcessState == mint_state_uncfg)
+          _totalGpiosCanBeTimed++;
 
-    gpioInfoAddr->CurrentProcessState = mint_state_wait_gpio_chg;
+      gpioInfoAddr->CurrentProcessState = mint_state_wait_gpio_chg;
+    }
   }
   else if(gpioInfoAddr->DebounceConfiguredDuration > 0)
   {
@@ -1348,11 +1361,14 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
     mint_gpio_need_delay_isr,   // Need delay GPIO ISR
     gpioInfoAddr);              // GPIO information address
 
-    // If not already configured
-    if(gpioInfoAddr->CurrentProcessState == mint_state_uncfg)
-        _totalGpiosCanBeTimed++;
+    if(ret >= 0)
+    {
+      // If not already configured
+      if(gpioInfoAddr->CurrentProcessState == mint_state_uncfg)
+          _totalGpiosCanBeTimed++;
 
-    gpioInfoAddr->CurrentProcessState = mint_state_wait_gpio_chg;
+      gpioInfoAddr->CurrentProcessState = mint_state_wait_gpio_chg;
+    }
   }
   else
   {
@@ -1375,7 +1391,21 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
     mint_gpio_no_delay_isr,   // No delay GPIO ISR
     gpioInfoAddr);            // GPIO information address
 
-    gpioInfoAddr->CurrentProcessState = mint_state_mon_no_delay;
+    if(ret >= 0)
+    {
+      gpioInfoAddr->CurrentProcessState = mint_state_mon_no_delay;
+    }
   }
+
+  if(ret < 0)
+  {
+    // Hardware interrupt setup failed - undo the allocation-list
+    // registration made at the top of this function so this PinId isn't
+    // left stuck claiming to be configured, and can be retried.
+    syslog(LOG_ERR, "%s@%d-ERROR:0x%02x stm32_gpiosetevent failed, ret:%d\n",
+      thisFile, __LINE__, gpioInfoAddr->PinId, ret);
+    mint_free_gpio_in_allocation_list(gpioInfoAddr->PinId);
+  }
+
   return ret;
 }
