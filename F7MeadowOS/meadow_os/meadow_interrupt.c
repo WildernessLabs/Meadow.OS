@@ -1064,7 +1064,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     return -EINVAL;
   }
 
-  if(cfg->port >= MEADOW_INTERRUPT_MAX_GPIO_PORT ||
+  if(cfg->port > MEADOW_INTERRUPT_MAX_GPIO_PORT ||
      cfg->pin > MEADOW_INTERRUPT_MAX_GPIO_PIN)
   {
     syslog(LOG_ERR,
