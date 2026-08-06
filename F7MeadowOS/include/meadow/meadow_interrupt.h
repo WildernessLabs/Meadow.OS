@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx\configs\stm32f777zit6-meadow\src\meadow_interrupt.h
+ * F7MeadowOS/include/meadow/meadow_interrupt.h
  * 
  *   Copyright (C) 2024-2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -38,11 +38,15 @@
 #define MINT_MSG_QUEUE_NAME           "/mdw_int"
 #define MINT_MSG_QUEUE_MAX_MSGS       16
 
+// Hardware GPIO maximum offset
+#define MEADOW_INTERRUPT_MAX_GPIO_PORT      (10)   // A-K
+#define MEADOW_INTERRUPT_MAX_GPIO_PIN       (15)   // 0-15
+
 // This #define was added so timestamp code could be added without changing
 // the current behavior and and yet do the needed refactoring.
 // ONLY SET THIS TO 1 IF MEADOW.CORE HAS BEEN MODIFIED TO EXPECT TIME
 // OR IF TESTING.
-// Remove this #define after Managed code has been updated to exoect timestamp
+// Remove this #define after Managed code has been updated to expect timestamp
 #define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (1)
 
 // This struct is populated in Meadow.Core to configure or remove an interrupt.
@@ -55,8 +59,8 @@ struct mint_gpio_int_config
   uint32_t risingEdge;          // 1 = enable
   uint32_t fallingEdge;         // 1 = enable
   uint32_t resistorMode;        // 0 = float, 1 = pull up, 2 = pull down
-  uint32_t debounceDuration;    // millisec * 10
-  uint32_t glitchDuration;      // millisec * 10
+  uint32_t debounceDuration;    // 100 microsec resolution (10 = 1 millisec)
+  uint32_t glitchDuration;      // 100 microsec resolution (10 = 1 millisec)
 };
 
 // This struct is sent to Meadow.Core when any interrupt occurs
