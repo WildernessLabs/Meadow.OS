@@ -213,7 +213,12 @@ struct interruptPinMap_s
 // This is the list of the GPIOs currently being timed. The entries in this
 // list are very short lived, begin added as soon as the GPIO ISR is called and
 // removed as soon as the glitch or debounce period has elapsed.
-static struct interruptPinMap_s *_allGpiosBeingTimed[MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS];
+// Mutated from mint_add_to_timed_list_and_incr()/mint_remove_from_timed_list_and_decr()
+// (both critical-section protected) but scanned without a lock by
+// mint_isr_periodic() below - volatile so that lock-free scan always
+// re-reads each slot instead of relying on a compiler-visible side effect
+// to force a reload.
+static struct interruptPinMap_s * volatile _allGpiosBeingTimed[MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS];
 
 // This list keeps the address of all the allocated structures so they can be
 // removed when the GPIO is removed
@@ -454,7 +459,14 @@ int mint_isr_periodic(int irq, void *context, void *arg)
     return OK;
   }
 
-  // Check all GPIOs currently being timed.
+  // Check all GPIOs currently being timed. Deliberately lock-free: the
+  // array itself is only ever mutated by the critical-section-protected
+  // mint_add_to_timed_list_and_incr()/mint_remove_from_timed_list_and_decr(),
+  // so a concurrent add/remove here can at most shift which entry lands in
+  // which slot, causing one entry to be processed one 0.1ms tick early/late
+  // - not a corrupted read. Wrapping this scan (and the mq_send() calls it
+  // can lead to) in a critical section too would be a much larger change,
+  // not needed just to fix that.
   int offset = 0;
   while(_allGpiosBeingTimed[offset] != NULL)
   {
@@ -838,7 +850,9 @@ int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
   {
     if(errno == ENOMEM)
     {
-      syslog(LOG_ERR, "0x%02x Queue overflow (too fast?)\n", gpioInfoAddr->PinId);
+      // This message will be output if there is no MQ reader after the
+      // MEADOW_INTERRUPT_MQ_MSG_SIZE number of interrupts.
+      syslog(LOG_ERR, "Pin 0x%02x, MQ overflow\n", gpioInfoAddr->PinId);
     }
     else
     {
@@ -864,6 +878,12 @@ uint8_t mint_read_current_gpio_state(struct interruptPinMap_s *gpioInfoAddr)
 // activity. Once the timing has completed it is removed from this list.
 void mint_add_to_timed_list_and_incr(struct interruptPinMap_s *gpioInfoAddr)
 {
+  // This is called from GPIO edge ISRs while mint_remove_from_timed_list_and_decr()
+  // may be running concurrently from the TIM7 periodic ISR or from task
+  // context (mint_config_interrupt_remove) - protect the array/count so
+  // the two can never interleave.
+  irqstate_t flags = enter_critical_section();
+
   // Find first empty slot
   for(int i = 0; i < MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS; i++)
   {
@@ -874,6 +894,8 @@ void mint_add_to_timed_list_and_incr(struct interruptPinMap_s *gpioInfoAddr)
       break;
     }
   }
+
+  leave_critical_section(flags);
 }
 
 //===============================================================
@@ -935,10 +957,16 @@ static struct interruptPinMap_s *mint_find_configured_gpio(uint8_t pinId)
 }
 
 //===============================================================
-// Removes from the timer isr
+// Removes from the timer isr. Also called from task context via
+// mint_config_interrupt_remove(), so this must be safe against running
+// concurrently with the TIM7 periodic ISR and with GPIO edge ISRs calling
+// mint_add_to_timed_list_and_incr() - protect the whole find/compact
+// sequence as one atomic operation.
 void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr)
 {
   int activeOffset;
+
+  irqstate_t flags = enter_critical_section();
 
   // Find the entry specified
   for(activeOffset = 0; activeOffset < MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS; activeOffset++)
@@ -949,7 +977,10 @@ void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr
 
   // Was the item in the list?
   if(activeOffset == MEADOW_INTERRUPT_MAX_SUPPORTED_GPIOS)
+  {
+    leave_critical_section(flags);
     return;  // Not found
+  }
 
   // Keep tally of entries
   _allGpiosBeingTimedCnt--;
@@ -959,14 +990,15 @@ void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr
   {
     // Remove the last entry in the array
     _allGpiosBeingTimed[activeOffset] = NULL;
+    leave_critical_section(flags);
     return;
   }
- 
+
   // Compress the list by moving the last entry in the list to the slot we
   // are about to remove and then clearing the last slot.
   _allGpiosBeingTimed[activeOffset] = _allGpiosBeingTimed[_allGpiosBeingTimedCnt];
   _allGpiosBeingTimed[_allGpiosBeingTimedCnt] = NULL;
-  return;
+  leave_critical_section(flags);
 }
 
 //=============================================================================
