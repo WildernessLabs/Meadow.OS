@@ -38,6 +38,10 @@
 #define MINT_MSG_QUEUE_NAME           "/mdw_int"
 #define MINT_MSG_QUEUE_MAX_MSGS       16
 
+// Hardware GPIO maximum offset
+#define MEADOW_INTERRUPT_MAX_GPIO_PORT      (10)   // A-K
+#define MEADOW_INTERRUPT_MAX_GPIO_PIN       (15)   // 0-15
+
 // This #define was added so timestamp code could be added without changing
 // the current behavior and and yet do the needed refactoring.
 // ONLY SET THIS TO 1 IF MEADOW.CORE HAS BEEN MODIFIED TO EXPECT TIME

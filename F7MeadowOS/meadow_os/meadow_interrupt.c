@@ -172,7 +172,7 @@ struct interruptPinMap_s
 
   // Address of correct "Input Data Register" which holds GPIO's hardware port
   // state bits
-  uint32_t IDRAddress;        // Calculated during configuration
+  volatile uint32_t *IDRAddress;    // Calculated during configuration
 
   // CurrentProcessState - tracks the current processing state for this GPIO
   // defined by an entry in MeadowInterruptProcState_e enum
@@ -853,7 +853,7 @@ int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
 uint8_t mint_read_current_gpio_state(struct interruptPinMap_s *gpioInfoAddr)
 {
   uint8_t pinNumb = gpioInfoAddr->PinId & 0x0f;
-  uint32_t idrRegisterValues = *((uint32_t *)(gpioInfoAddr->IDRAddress));
+  uint32_t idrRegisterValues = *(gpioInfoAddr->IDRAddress);
   return (idrRegisterValues & (1 << pinNumb)) > 0 ? 1 : 0;
 }
 
@@ -1064,10 +1064,14 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     return -EINVAL;
   }
 
-  if(cfg->port > 15|| cfg->pin > 15)
+  if(cfg->port >= MEADOW_INTERRUPT_MAX_GPIO_PORT ||
+     cfg->pin > MEADOW_INTERRUPT_MAX_GPIO_PIN)
   {
-    syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt port/pin error\n",
-       thisFile, __LINE__);
+    syslog(LOG_ERR,
+      "%s@%d-ERROR: mint_config_interrupt port/pin range error (port:0 - %u, pin:0 - %u)\n",
+       thisFile, __LINE__,
+       (unsigned int)(MEADOW_INTERRUPT_MAX_GPIO_PORT),
+       (unsigned int)(MEADOW_INTERRUPT_MAX_GPIO_PIN));
     return -EINVAL;
   }
   uint8_t pinDesignation = cfg->port << 4 | cfg->pin;
@@ -1150,7 +1154,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   gpioInfoAddr->PinId = pinDesignation;
 
   // Find the correct offset for this GPIO
-  gpioInfoAddr->IDRAddress = inputDataRegAddrs[cfg->port];
+  gpioInfoAddr->IDRAddress = (volatile uint32_t *)inputDataRegAddrs[cfg->port];
   gpioInfoAddr->CurrentProcessState = mint_state_uncfg;
   gpioInfoAddr->LastKnownGpioState = 0xff;
   gpioInfoAddr->InputUsage = cfg->configType;
