@@ -69,8 +69,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static char *thisFile = __FILE__;
-
 // Guards against creating more than one mq-monitor thread. There's currently
 // no way to signal/kill an already-running one, so a second request while
 // one is active is simply refused rather than spawning a duplicate.
@@ -90,8 +88,6 @@ static void meadow_interrupt_test_test_mem_leak_fix_free_5(void);
 static void meadow_interrupt_test_initialize_interrupt_for_wakeup(void);
 static void meadow_interrupt_test_initialize_wakeup_and_sleep(void);
 static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[]);
-
-int mint_config_interrupt(struct mint_gpio_int_config* cfg);    // This is a duplicate
 
 /************************************************************************************
  * Public Functions
@@ -157,7 +153,7 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
         break;
       }
 
-      int mqMonitorPid = kthread_create("MintMqMonitor", 100, 2048,
+      int mqMonitorPid = kthread_create("MintMqMonitor", 200, 2048,
         (main_t) meadow_interrupt_test_monitor_mint_mq, (char * const *)NULL);
       if(mqMonitorPid < 0)
       {
@@ -225,7 +221,7 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
  * Private Functions
  ************************************************************************************/
 // Test 1 - 6 - Configure D05 and mint interrupt configuration.
-void meadow_interrupt_test_config_d05_add_debounce(uint32_t duration)
+static void meadow_interrupt_test_config_d05_add_debounce(uint32_t duration)
 {
   int ret;
 
@@ -300,7 +296,7 @@ static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
   while(true)
   {
     // syslog(LOG_MTEST, "----> %s@%d-Calling mq_receive, waiting for message\n",
-    //   thisFile, __LINE__);
+    //   __FILE__, __LINE__);
     // usleep(20 * 1000);
 
     nbytes = mq_receive(mint_test_mq_fd, (char *)&mint_recvd_msg,
@@ -314,7 +310,7 @@ static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
       }
 
       syslog(LOG_ERR, "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
-        thisFile, __LINE__, nbytes, errno);
+        __FILE__, __LINE__, nbytes, errno);
         usleep(20 * 1000);
       break;
     }
@@ -395,7 +391,7 @@ static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
 
 // ============================================================================
 // Test 20 Remove D05 from interrupt configuration
-void meadow_interrupt_test_test_mem_leak_fix_free_1(void)
+static void meadow_interrupt_test_test_mem_leak_fix_free_1(void)
 {
   // Configure a GPIO
   int ret;
@@ -505,7 +501,7 @@ static void meadow_interrupt_test_initialize_wakeup_and_sleep(void)
 // Test 32
 // These tests exercise the fix for the memory leak in meadow_interrupt.c
 // Meadow_Issue 346
-void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
+static void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
 {
   // Setup a GPIO
   int ret;
@@ -554,7 +550,7 @@ void meadow_interrupt_test_test_mem_leak_fix_alloc_5(void)
 // ============================================================================
 // Test 33
 // Delete one GPIO
-void meadow_interrupt_test_test_mem_leak_fix_free_5(void)
+static void meadow_interrupt_test_test_mem_leak_fix_free_5(void)
 {
   // Setup a GPIO
   int ret;

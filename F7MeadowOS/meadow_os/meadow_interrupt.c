@@ -112,8 +112,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
-
 static mqd_t _mint_mqd;
 static bool _firstTimeConfig = true;
 
@@ -187,7 +185,7 @@ struct interruptPinMap_s
   uint8_t LastKnownGpioState;    // 1 = high, 0 = low, 0xff = unknown
 
   // The number of debounce timer timeouts needed to satisfy user's config
-  int32_t DebounceConfiguredDuration;   // Supplied by configuration
+  uint32_t DebounceConfiguredDuration;   // Supplied by configuration
 
   // This counter counts the requested timeouts down to zero, this ends the
   // debounce period allowing new GPIO interrupts to be received and processing
@@ -293,7 +291,7 @@ void meadow_interrupt_shutdown(void)
 //=============================================================================
 // This ISR handles the case where a GPIO needs no delay, we notify Meadow.Core
 // of the interrupt immediately
-int mint_gpio_no_delay_isr(int irq, void *context, void *arg)
+static int mint_gpio_no_delay_isr(int irq, void *context, void *arg)
 {
   DEBUG_SET_HIGH(DEBUG_PIN_V2_A1);
 
@@ -345,8 +343,8 @@ int mint_gpio_no_delay_isr(int irq, void *context, void *arg)
 // This ISR is called for all GPIO state changes for GPIOs needing glitch or
 // debounce filtering and a transition of one of those GPIO pins has occurred.
 // GPIOs not needing glitch nor debounce filtering use a different ISR.
-int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
-{  
+static int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
+{
   struct interruptPinMap_s *gpioInfoAddr = (struct interruptPinMap_s *)arg;
 
   DEBUG_SET_HIGH(DEBUG_PIN_V2_A2);
@@ -439,7 +437,7 @@ int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
 //===============================================================
 // This ISR is called every 100 microseconds when the timer is running, which
 // is only when it needs to run to time reporting an interrupt.
-int mint_isr_periodic(int irq, void *context, void *arg)
+static int mint_isr_periodic(int irq, void *context, void *arg)
 {
   int result;
   struct interruptPinMap_s *gpioInfoAddr = (struct interruptPinMap_s *)arg;
@@ -517,7 +515,7 @@ int mint_isr_periodic(int irq, void *context, void *arg)
 
 //========================================================================
 // Process debounce here.  Called by periodic timeout.
-int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
+static int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
 {
   if(gpioInfoAddr->DebounceDownCounter == gpioInfoAddr->DebounceConfiguredDuration)
   {
@@ -561,7 +559,7 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
   uint32_t procTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
-  syslog(LOG_MDIAG, "mint-(debo)-0x%02x Debounce proccessing ended in %ld ms\n",
+  syslog(LOG_MDIAG, "mint-(debo)-0x%02x Debounce proccessing ended in %lu ms\n",
             gpioInfoAddr->PinId, procTime);
 #endif
 
@@ -585,7 +583,7 @@ int mint_process_gpio_debounce(struct interruptPinMap_s *gpioInfoAddr)
 
 //========================================================================
 // Glitch filtering is processed here. Called by periodic timeout.
-int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
+static int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
 {
   if(gpioInfoAddr->GlitchTimeoutsCounter == 0)
   {
@@ -649,7 +647,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
   // Finished checking, GPIO state stable for filter time.
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 1
   uint32_t totalTime = clock_systime_ticks() - gpioInfoAddr->TimeProcessingBegan;
-  syslog(LOG_MDIAG, "mint-(glitch)-0x%02x Glitch completed in %ld ms, timeouts:%ld\n",
+  syslog(LOG_MDIAG, "mint-(glitch)-0x%02x Glitch completed in %lu ms, timeouts:%lu\n",
           gpioInfoAddr->PinId, totalTime, gpioInfoAddr->GlitchTimeoutsCounter);
 #endif
 
@@ -758,7 +756,7 @@ int mint_process_gpio_glitch(struct interruptPinMap_s *gpioInfoAddr)
 
 //==================================================================
 // This code is only used for notifying Meadow.Core for debounce
-int mint_meadow_debounce_notification_logic(struct interruptPinMap_s *gpioInfoAddr)
+static int mint_meadow_debounce_notification_logic(struct interruptPinMap_s *gpioInfoAddr)
 {
   uint8_t newState;
   
@@ -826,7 +824,7 @@ int mint_meadow_debounce_notification_logic(struct interruptPinMap_s *gpioInfoAd
 // 2. State - 0 = false, 1 = true
 // 3. If MEADOW_INTERRUPT_INCLUDE_TIME_STAMP = 1, Tick count since OS started
 //    (Note: using Nuttx ticks is subject to change)
-int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
+static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
   uint8_t state)
 {
   int ret;
@@ -865,7 +863,7 @@ int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
 }
 
 //===============================================================
-uint8_t mint_read_current_gpio_state(struct interruptPinMap_s *gpioInfoAddr)
+static inline uint8_t mint_read_current_gpio_state(struct interruptPinMap_s *gpioInfoAddr)
 {
   uint8_t pinNumb = gpioInfoAddr->PinId & 0x0f;
   uint32_t idrRegisterValues = *(gpioInfoAddr->IDRAddress);
@@ -876,7 +874,7 @@ uint8_t mint_read_current_gpio_state(struct interruptPinMap_s *gpioInfoAddr)
 // When an interrupt occurs that must be monitored it is added to this
 // list. This list is used by the periodic ISR to time glitch and debounce
 // activity. Once the timing has completed it is removed from this list.
-void mint_add_to_timed_list_and_incr(struct interruptPinMap_s *gpioInfoAddr)
+static void mint_add_to_timed_list_and_incr(struct interruptPinMap_s *gpioInfoAddr)
 {
   // This is called from GPIO edge ISRs while mint_remove_from_timed_list_and_decr()
   // may be running concurrently from the TIM7 periodic ISR or from task
@@ -962,7 +960,7 @@ static struct interruptPinMap_s *mint_find_configured_gpio(uint8_t pinId)
 // concurrently with the TIM7 periodic ISR and with GPIO edge ISRs calling
 // mint_add_to_timed_list_and_incr() - protect the whole find/compact
 // sequence as one atomic operation.
-void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr)
+static void mint_remove_from_timed_list_and_decr(struct interruptPinMap_s *gpioInfoAddr)
 {
   int activeOffset;
 
@@ -1037,9 +1035,9 @@ static int mint_config_interrupt_prep_timer(int stm32_timer_numb)
   }
 
   // Clear interrupt bit
-  uint16_t timStatusReg = getreg16(STM32_TIM7_BASE + STM32_GTIM_SR_OFFSET);
+  uint16_t timStatusReg = getreg16(STM32_TIM7_BASE + STM32_BTIM_SR_OFFSET);
   timStatusReg &= ~BTIM_SR_UIF;
-  putreg16(timStatusReg, STM32_TIM7_BASE + STM32_GTIM_SR_OFFSET);
+  putreg16(timStatusReg, STM32_TIM7_BASE + STM32_BTIM_SR_OFFSET);
 
   up_enable_irq(STM32_IRQ_TIM7);
 
@@ -1050,18 +1048,18 @@ static int mint_config_interrupt_prep_timer(int stm32_timer_numb)
 
 //=============================================================
 // Enables the timer
-void meadow_timer_enable(uint32_t timerBase)
+static void meadow_timer_enable(uint32_t timerBase)
 {
   // Why this order? tryed to copy the NUTTX order
-  uint16_t cr1Val = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
-  cr1Val |= GTIM_CR1_CEN;
-  
-  uint16_t egrVal = getreg16(timerBase + STM32_GTIM_EGR_OFFSET);
-  egrVal |= GTIM_EGR_UG;
+  uint16_t cr1Val = getreg16(timerBase + STM32_BTIM_CR1_OFFSET);
+  cr1Val |= BTIM_CR1_CEN;
 
-  putreg16(egrVal, timerBase + STM32_GTIM_EGR_OFFSET);
+  uint16_t egrVal = getreg16(timerBase + STM32_BTIM_EGR_OFFSET);
+  egrVal |= BTIM_EGR_UG;
 
-  putreg16(cr1Val, timerBase + STM32_GTIM_CR1_OFFSET);
+  putreg16(egrVal, timerBase + STM32_BTIM_EGR_OFFSET);
+
+  putreg16(cr1Val, timerBase + STM32_BTIM_CR1_OFFSET);
 }
 
 //=====================================================================
@@ -1093,7 +1091,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt is NULL\n",
-       thisFile, __LINE__);
+       __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -1102,7 +1100,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   {
     syslog(LOG_ERR,
       "%s@%d-ERROR: mint_config_interrupt port/pin range error (port:0 - %u, pin:0 - %u)\n",
-       thisFile, __LINE__,
+       __FILE__, __LINE__,
        (unsigned int)(MEADOW_INTERRUPT_MAX_GPIO_PORT),
        (unsigned int)(MEADOW_INTERRUPT_MAX_GPIO_PIN));
     return -EINVAL;
@@ -1116,7 +1114,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     cfg->risingEdge == 0 && cfg->fallingEdge == 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt edge config type.\n",
-       thisFile, __LINE__);
+       __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -1126,7 +1124,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
      (cfg->debounceDuration != 0 || cfg->glitchDuration != 0))
   {
     syslog(LOG_ERR, "%s@%d-ERROR: Both glitch and debounce must be 0 for wakeup\n",
-       thisFile, __LINE__);
+       __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -1167,7 +1165,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     if(gpioInfoAddr == NULL)
     {
       syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is not configured\n",
-        thisFile, __LINE__, pinDesignation);
+        __FILE__, __LINE__, pinDesignation);
       return -ENODATA;
     }
 
@@ -1183,7 +1181,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   if(mint_find_configured_gpio(pinDesignation) != NULL)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is already configured\n",
-      thisFile, __LINE__, pinDesignation);
+      __FILE__, __LINE__, pinDesignation);
     return -ENOTEMPTY;
   }
 
@@ -1219,7 +1217,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
 
   default:
     syslog(LOG_ERR, "%s@%d-ERROR:Illegal configType:%lu\n",
-      thisFile, __LINE__, cfg->configType);
+      __FILE__, __LINE__, cfg->configType);
     free(gpioInfoAddr);
     ret = -EINVAL;
     break;
@@ -1230,7 +1228,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
 
 //========================================================================
 // Remove an existing interrupt entry
-int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
+static int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
           struct interruptPinMap_s *gpioInfoAddr)
 {
   int ret;
@@ -1238,7 +1236,7 @@ int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
   if(cfg == NULL)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: mint_config_interrupt is NULL\n",
-       thisFile, __LINE__);
+       __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -1278,7 +1276,7 @@ int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
 
 //========================================================================
 // Add a new interrupt entry
-int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
+static int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
           struct interruptPinMap_s *gpioInfoAddr, uint32_t cfgset)
 {
   int ret;
@@ -1330,13 +1328,13 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
       break;
     default:
       syslog(LOG_ERR, "%s@%d-ERROR:Illegal resistorMode:%lu\n",
-        thisFile, __LINE__, cfg->resistorMode);
+        __FILE__, __LINE__, cfg->resistorMode);
       break;
   }
 
 #if MEADOW_INTERRUPT_INCLUDE_DIAGNOSTIC_SYSLOG > 0
   syslog(LOG_MDIAG,
-    "mint-(cfg)- 0x%02x (P%c%d)-Cfg Enabled-LKS:%d, GLDuration:%ld, DBDuration:%ld, RiseFallValue:%d, cfgset:0x%08lx\n",
+    "mint-(cfg)- 0x%02x (P%c%d)-Cfg Enabled-LKS:%d, GLDuration:%lu, DBDuration:%lu, RiseFallValue:%d, cfgset:0x%08lx\n",
     gpioInfoAddr->PinId,
     ((gpioInfoAddr->PinId) >> 4) + 'A', gpioInfoAddr->PinId & 0x0f,
     gpioInfoAddr->LastKnownGpioState,
@@ -1438,7 +1436,7 @@ int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
     // registration made at the top of this function so this PinId isn't
     // left stuck claiming to be configured, and can be retried.
     syslog(LOG_ERR, "%s@%d-ERROR:0x%02x stm32_gpiosetevent failed, ret:%d\n",
-      thisFile, __LINE__, gpioInfoAddr->PinId, ret);
+      __FILE__, __LINE__, gpioInfoAddr->PinId, ret);
     mint_free_gpio_in_allocation_list(gpioInfoAddr->PinId);
   }
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * nuttx\configs\stm32f777zit6-meadow\src\meadow_interrupt.h
+ * F7MeadowOS/include/meadow/meadow_interrupt.h
  * 
  *   Copyright (C) 2024-2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -46,7 +46,7 @@
 // the current behavior and and yet do the needed refactoring.
 // ONLY SET THIS TO 1 IF MEADOW.CORE HAS BEEN MODIFIED TO EXPECT TIME
 // OR IF TESTING.
-// Remove this #define after Managed code has been updated to exoect timestamp
+// Remove this #define after Managed code has been updated to expect timestamp
 #define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (1)
 
 // This struct is populated in Meadow.Core to configure or remove an interrupt.
