@@ -1,25 +1,3 @@
-/****************************************************************************
- * libs/libc/elf/elf_globals.S
- *
- * SPDX-License-Identifier: Apache-2.0
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.  The
- * ASF licenses this file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
- *
- ****************************************************************************/
-
 #ifdef __CYGWIN__
 #  define SYMBOL(s) _##s
 #  define GLOBAL .global
@@ -38,11 +16,7 @@
 	.type	SYMBOL(\ep), "object"
 	.endm
 	.macro SIZE ep
-#  if defined(__ghs__)
-	.size	SYMBOL(ep), . - SYMBOL(ep)
-#  else
 	.size	SYMBOL(\ep), . - SYMBOL(\ep)
-#  endif
 	.endm
 #else
 #  define SYMBOL(s) _##s
@@ -55,7 +29,7 @@
 	.endm
 #endif
 
-#if defined(__SIZEOF_POINTER__ ) && __SIZEOF_POINTER__ == 8
+#if __SIZEOF_POINTER__ == 8
 	.macro globalEntry index, ep
 	.quad	.l\index
 	.quad	\ep
@@ -81,18 +55,1248 @@
 #endif
 	.data
 	.align	ALIGN
-	GLOBAL	globalNames 
+	GLOBAL	globalNames
 
 SYMBOL(globalNames):
-	SIZE	globalNames 
+.l0:	.string	"__adddf3"
+.l1:	.string	"__aeabi_d2ulz"
+.l2:	.string	"__aeabi_dadd"
+.l3:	.string	"__aeabi_drsub"
+.l4:	.string	"__aeabi_dsub"
+.l5:	.string	"__aeabi_f2d"
+.l6:	.string	"__aeabi_i2d"
+.l7:	.string	"__aeabi_idiv0"
+.l8:	.string	"__aeabi_l2d"
+.l9:	.string	"__aeabi_ldiv0"
+.l10:	.string	"__aeabi_ldivmod"
+.l11:	.string	"__aeabi_ui2d"
+.l12:	.string	"__aeabi_ul2d"
+.l13:	.string	"__aeabi_uldivmod"
+.l14:	.string	"__assert"
+.l15:	.string	"__atomic_fetch_add_8"
+.l16:	.string	"__dtoa_engine"
+.l17:	.string	"__errno"
+.l18:	.string	"__exidx_end"
+.l19:	.string	"__exidx_start"
+.l20:	.string	"__extendsfdf2"
+.l21:	.string	"__fixunsdfdi"
+.l22:	.string	"__floatdidf"
+.l23:	.string	"__floatsidf"
+.l24:	.string	"__floatundidf"
+.l25:	.string	"__floatunsidf"
+.l26:	.string	"__popcountsi2"
+.l27:	.string	"__subdf3"
+.l28:	.string	"__udivmoddi4"
+.l29:	.string	"__ultoa_invert"
+.l30:	.string	"_assert"
+.l31:	.string	"_dmaAdcBuf"
+.l32:	.string	"_dmaHandle"
+.l33:	.string	"_ebss"
+.l34:	.string	"_edata"
+.l35:	.string	"_einit"
+.l36:	.string	"_elapsedCount"
+.l37:	.string	"_eronly"
+.l38:	.string	"_etext"
+.l39:	.string	"_exit"
+.l40:	.string	"_hardware_version_names"
+.l41:	.string	"_okayToUseWaitOps"
+.l42:	.string	"_prevISRCount"
+.l43:	.string	"_sbss"
+.l44:	.string	"_sdata"
+.l45:	.string	"_sinit"
+.l46:	.string	"_stext"
+.l47:	.string	"_userVoltageResultBuf"
+.l48:	.string	"abort"
+.l49:	.string	"accept4"
+.l50:	.string	"addroute"
+.l51:	.string	"arc4random_buf"
+.l52:	.string	"atoi"
+.l53:	.string	"atol"
+.l54:	.string	"basename"
+.l55:	.string	"bind"
+.l56:	.string	"board_app_initialize"
+.l57:	.string	"board_late_initialize"
+.l58:	.string	"board_reset"
+.l59:	.string	"board_usbdev_serialstr"
+.l60:	.string	"boardctl"
+.l61:	.string	"bsearch"
+.l62:	.string	"calloc"
+.l63:	.string	"cfgetspeed"
+.l64:	.string	"cfsetspeed"
+.l65:	.string	"checksum"
+.l66:	.string	"chmod"
+.l67:	.string	"chown"
+.l68:	.string	"circbuf_init"
+.l69:	.string	"circbuf_is_empty"
+.l70:	.string	"circbuf_is_full"
+.l71:	.string	"circbuf_is_init"
+.l72:	.string	"circbuf_peek"
+.l73:	.string	"circbuf_peekat"
+.l74:	.string	"circbuf_read"
+.l75:	.string	"circbuf_resize"
+.l76:	.string	"circbuf_skip"
+.l77:	.string	"circbuf_space"
+.l78:	.string	"circbuf_uninit"
+.l79:	.string	"circbuf_used"
+.l80:	.string	"circbuf_write"
+.l81:	.string	"clearenv"
+.l82:	.string	"clock"
+.l83:	.string	"close"
+.l84:	.string	"cmsg_append"
+.l85:	.string	"connect"
+.l86:	.string	"convert_hostent"
+.l87:	.string	"crc64full"
+.l88:	.string	"crc64part"
+.l89:	.string	"cyaml_config"
+.l90:	.string	"cyaml_free"
+.l91:	.string	"cyaml_load_file"
+.l92:	.string	"cyaml_mem"
+.l93:	.string	"cyaml_utf8_casecmp"
+.l94:	.string	"cyaml_utf8_get_codepoint"
+.l95:	.string	"delroute"
+.l96:	.string	"devrandom_register"
+.l97:	.string	"dhcpc_cancel"
+.l98:	.string	"dhcpc_close"
+.l99:	.string	"dhcpc_open"
+.l100:	.string	"dhcpc_request"
+.l101:	.string	"dir_allocate"
+.l102:	.string	"dns_add_nameserver"
+.l103:	.string	"dns_bind"
+.l104:	.string	"dns_breaklock"
+.l105:	.string	"dns_clear_answer"
+.l106:	.string	"dns_find_answer"
+.l107:	.string	"dns_foreach_nameserver"
+.l108:	.string	"dns_is_queryfamily"
+.l109:	.string	"dns_lock"
+.l110:	.string	"dns_notify_nameserver"
+.l111:	.string	"dns_query"
+.l112:	.string	"dns_restorelock"
+.l113:	.string	"dns_save_answer"
+.l114:	.string	"dns_unlock"
+.l115:	.string	"down_read"
+.l116:	.string	"down_write"
+.l117:	.string	"drivers_early_initialize"
+.l118:	.string	"drivers_initialize"
+.l119:	.string	"dup"
+.l120:	.string	"dup2"
+.l121:	.string	"exception_common"
+.l122:	.string	"exception_direct"
+.l123:	.string	"exec"
+.l124:	.string	"exec_module"
+.l125:	.string	"explicit_bzero"
+.l126:	.string	"f7_micro_v2_pin_mappings"
+.l127:	.string	"fat_allocatedirentry"
+.l128:	.string	"fat_checkmount"
+.l129:	.string	"fat_cluster2sector"
+.l130:	.string	"fat_computefreeclusters"
+.l131:	.string	"fat_currentsector"
+.l132:	.string	"fat_dircreate"
+.l133:	.string	"fat_dirextend"
+.l134:	.string	"fat_dirname2path"
+.l135:	.string	"fat_dirnamewrite"
+.l136:	.string	"fat_dirshrink"
+.l137:	.string	"fat_dirtruncate"
+.l138:	.string	"fat_dirwrite"
+.l139:	.string	"fat_extendchain"
+.l140:	.string	"fat_fattime2systime"
+.l141:	.string	"fat_ffcacheflush"
+.l142:	.string	"fat_ffcacheinvalidate"
+.l143:	.string	"fat_ffcacheread"
+.l144:	.string	"fat_finddirentry"
+.l145:	.string	"fat_freedirentry"
+.l146:	.string	"fat_fscacheflush"
+.l147:	.string	"fat_fscacheread"
+.l148:	.string	"fat_getcluster"
+.l149:	.string	"fat_getuint16"
+.l150:	.string	"fat_getuint32"
+.l151:	.string	"fat_hwread"
+.l152:	.string	"fat_hwwrite"
+.l153:	.string	"fat_mount"
+.l154:	.string	"fat_nextdirentry"
+.l155:	.string	"fat_nfreeclusters"
+.l156:	.string	"fat_putcluster"
+.l157:	.string	"fat_putuint16"
+.l158:	.string	"fat_remove"
+.l159:	.string	"fat_removechain"
+.l160:	.string	"fat_systime2fattime"
+.l161:	.string	"fat_updatefsinfo"
+.l162:	.string	"fchmod"
+.l163:	.string	"fchown"
+.l164:	.string	"fclose"
+.l165:	.string	"fcntl"
+.l166:	.string	"fdlist_allocate"
+.l167:	.string	"fdlist_close"
+.l168:	.string	"fdlist_dup2"
+.l169:	.string	"fdlist_dup3"
+.l170:	.string	"fdlist_dupfile"
+.l171:	.string	"fdlist_free"
+.l172:	.string	"fdlist_get2"
+.l173:	.string	"fdlist_init"
+.l174:	.string	"fdopen"
+.l175:	.string	"ferror"
+.l176:	.string	"fflush"
+.l177:	.string	"fgetc"
+.l178:	.string	"fgetc_unlocked"
+.l179:	.string	"fgets"
+.l180:	.string	"fgets_unlocked"
+.l181:	.string	"find_blockdriver"
+.l182:	.string	"find_driver"
+.l183:	.string	"find_mtddriver"
+.l184:	.string	"flash_file"
+.l185:	.string	"flockfile"
+.l186:	.string	"fopen"
+.l187:	.string	"fprintf"
+.l188:	.string	"fputc"
+.l189:	.string	"fputc_unlocked"
+.l190:	.string	"fputs"
+.l191:	.string	"fputs_unlocked"
+.l192:	.string	"fread"
+.l193:	.string	"fread_unlocked"
+.l194:	.string	"free"
+.l195:	.string	"fseek"
+.l196:	.string	"fseeko"
+.l197:	.string	"fstat"
+.l198:	.string	"fstatfs"
+.l199:	.string	"fsync"
+.l200:	.string	"ftell"
+.l201:	.string	"ftello"
+.l202:	.string	"ftruncate"
+.l203:	.string	"funlockfile"
+.l204:	.string	"futimens"
+.l205:	.string	"fwrite"
+.l206:	.string	"fwrite_unlocked"
+.l207:	.string	"getenv"
+.l208:	.string	"gethostbyname"
+.l209:	.string	"gethostbyname2"
+.l210:	.string	"gethostbyname2_r"
+.l211:	.string	"gethostentbyname_r"
+.l212:	.string	"gethostname"
+.l213:	.string	"getitimer"
+.l214:	.string	"getpeername"
+.l215:	.string	"getpid"
+.l216:	.string	"getrandom"
+.l217:	.string	"getsockname"
+.l218:	.string	"getsockopt"
+.l219:	.string	"gettimeofday"
+.l220:	.string	"getumask"
+.l221:	.string	"gl_add_item_to_head"
+.l222:	.string	"gl_add_item_to_tail"
+.l223:	.string	"gl_create_empty_linked_list"
+.l224:	.string	"gl_find_item"
+.l225:	.string	"gl_remove_item"
+.l226:	.string	"gmtime"
+.l227:	.string	"gmtime_r"
+.l228:	.string	"h_errno"
+.l229:	.string	"htons"
+.l230:	.string	"icmp_alloc"
+.l231:	.string	"icmp_chksum_iob"
+.l232:	.string	"icmp_foreach"
+.l233:	.string	"icmp_free"
+.l234:	.string	"icmp_input"
+.l235:	.string	"icmp_ioctl"
+.l236:	.string	"icmp_nextconn"
+.l237:	.string	"icmp_poll"
+.l238:	.string	"icmp_pollsetup"
+.l239:	.string	"icmp_pollteardown"
+.l240:	.string	"icmp_recvmsg"
+.l241:	.string	"icmp_reply"
+.l242:	.string	"icmp_sendmsg"
+.l243:	.string	"igmp_addmcastmac"
+.l244:	.string	"igmp_cmptimer"
+.l245:	.string	"igmp_devinit"
+.l246:	.string	"igmp_grpalloc"
+.l247:	.string	"igmp_grpallocfind"
+.l248:	.string	"igmp_grpfind"
+.l249:	.string	"igmp_grpfree"
+.l250:	.string	"igmp_input"
+.l251:	.string	"igmp_joingroup"
+.l252:	.string	"igmp_leavegroup"
+.l253:	.string	"igmp_poll"
+.l254:	.string	"igmp_removemcastmac"
+.l255:	.string	"igmp_schedmsg"
+.l256:	.string	"igmp_send"
+.l257:	.string	"igmp_startticks"
+.l258:	.string	"igmp_starttimer"
+.l259:	.string	"igmp_waitmsg"
+.l260:	.string	"inet_close"
+.l261:	.string	"inet_ntoa"
+.l262:	.string	"inet_ntoa_r"
+.l263:	.string	"inet_ntop"
+.l264:	.string	"inet_pton"
+.l265:	.string	"inet_sockif"
+.l266:	.string	"instrument_initialize"
+.l267:	.string	"ioctl"
+.l268:	.string	"ipv4_build_header"
+.l269:	.string	"ipv4_chksum"
+.l270:	.string	"ipv4_getpeername"
+.l271:	.string	"ipv4_getsockname"
+.l272:	.string	"ipv4_getsockopt"
+.l273:	.string	"ipv4_input"
+.l274:	.string	"ipv4_setsockopt"
+.l275:	.string	"ipv4_upperlayer_chksum"
+.l276:	.string	"ipv4_upperlayer_header_chksum"
+.l277:	.string	"ipv4_upperlayer_payload_chksum"
+.l278:	.string	"isalnum"
+.l279:	.string	"isalpha"
+.l280:	.string	"iscntrl"
+.l281:	.string	"isgraph"
+.l282:	.string	"islower"
+.l283:	.string	"isprint"
+.l284:	.string	"isspace"
+.l285:	.string	"isupper"
+.l286:	.string	"isxdigit"
+.l287:	.string	"kill"
+.l288:	.string	"kthread_create"
+.l289:	.string	"kthread_create_with_stack"
+.l290:	.string	"lchmod"
+.l291:	.string	"lchown"
+.l292:	.string	"libelf_allocbuffer"
+.l293:	.string	"libelf_bind"
+.l294:	.string	"libelf_depend"
+.l295:	.string	"libelf_findglobal"
+.l296:	.string	"libelf_findsection"
+.l297:	.string	"libelf_findsymtab"
+.l298:	.string	"libelf_freebuffers"
+.l299:	.string	"libelf_freesymtab"
+.l300:	.string	"libelf_initialize"
+.l301:	.string	"libelf_load"
+.l302:	.string	"libelf_loadhdrs"
+.l303:	.string	"libelf_read"
+.l304:	.string	"libelf_readsym"
+.l305:	.string	"libelf_reallocbuffer"
+.l306:	.string	"libelf_registry_foreach"
+.l307:	.string	"libelf_registry_lock"
+.l308:	.string	"libelf_registry_unlock"
+.l309:	.string	"libelf_sectname"
+.l310:	.string	"libelf_symvalue"
+.l311:	.string	"libelf_undepend"
+.l312:	.string	"libelf_uninit"
+.l313:	.string	"libelf_uninitialize"
+.l314:	.string	"libelf_unload"
+.l315:	.string	"libelf_verifyheader"
+.l316:	.string	"listen"
+.l317:	.string	"load_module"
+.l318:	.string	"localhost_initialize"
+.l319:	.string	"localtime"
+.l320:	.string	"lseek"
+.l321:	.string	"lstat"
+.l322:	.string	"lutimens"
+.l323:	.string	"mallinfo"
+.l324:	.string	"malloc"
+.l325:	.string	"map_anonymous"
+.l326:	.string	"meadow_adc_configure"
+.l327:	.string	"meadow_adc_read_temp_vbat"
+.l328:	.string	"meadow_adc_read_values"
+.l329:	.string	"meadow_client_cert_initialize"
+.l330:	.string	"meadow_cloud_provision"
+.l331:	.string	"meadow_cloud_release_private_key"
+.l332:	.string	"meadow_cloud_retrieve_private_key"
+.l333:	.string	"meadow_eth_conn_link_status_changed"
+.l334:	.string	"meadow_eth_conn_startup"
+.l335:	.string	"meadow_eth_dhcp_get_dhcp_info"
+.l336:	.string	"meadow_eth_mngr_startup"
+.l337:	.string	"meadow_eth_mon_config_lan9355_irq"
+.l338:	.string	"meadow_eth_utils_exec_ifdown"
+.l339:	.string	"meadow_eth_utils_exec_ifup"
+.l340:	.string	"meadow_eth_utils_get_hw_mac"
+.l341:	.string	"meadow_eth_utils_get_ipv4"
+.l342:	.string	"meadow_eth_utils_get_mac"
+.l343:	.string	"meadow_eth_utils_set_dns"
+.l344:	.string	"meadow_eth_utils_set_ipv4"
+.l345:	.string	"meadow_eth_utils_set_ipv4_mask"
+.l346:	.string	"meadow_eth_utils_set_mac"
+.l347:	.string	"meadow_eth_utils_set_router"
+.l348:	.string	"meadow_eth_utils_syslog_ip_mac"
+.l349:	.string	"meadow_eth_utils_verify_lan9355"
+.l350:	.string	"meadow_hw_version_ethernet_supported"
+.l351:	.string	"meadow_hw_version_find_device_ver"
+.l352:	.string	"meadow_hw_version_find_gpio_ver"
+.l353:	.string	"meadow_hw_version_flash_size"
+.l354:	.string	"meadow_hw_version_get"
+.l355:	.string	"meadow_hw_version_string_return"
+.l356:	.string	"meadow_idle_mon_entering_idle_mode"
+.l357:	.string	"meadow_idle_monitor_setup"
+.l358:	.string	"meadow_interrupt_setup"
+.l359:	.string	"meadow_lan9355_phyread_16"
+.l360:	.string	"meadow_lan9355_phyread_32"
+.l361:	.string	"meadow_lan9355_phywrite_16"
+.l362:	.string	"meadow_lan9355_phywrite_32"
+.l363:	.string	"meadow_logging_clear_os_logfile"
+.l364:	.string	"meadow_logging_init_os_logging"
+.l365:	.string	"meadow_logging_write"
+.l366:	.string	"meadow_logging_write_to_file"
+.l367:	.string	"meadow_measure_freq_configure"
+.l368:	.string	"meadow_measure_freq_return_freq_info"
+.l369:	.string	"meadow_os_bbd_clear_sram"
+.l370:	.string	"meadow_os_bbd_register_clear_bits"
+.l371:	.string	"meadow_os_bbd_register_get_value"
+.l372:	.string	"meadow_os_bbd_register_set_bits"
+.l373:	.string	"meadow_os_bbd_register_set_value"
+.l374:	.string	"meadow_os_bbd_strdup_from_sram"
+.l375:	.string	"meadow_os_bbd_strdup_to_sram"
+.l376:	.string	"meadow_os_config_free_resources"
+.l377:	.string	"meadow_os_coprocessor_deep_sleep"
+.l378:	.string	"meadow_os_copy_string"
+.l379:	.string	"meadow_os_deep_copy_config"
+.l380:	.string	"meadow_os_espcp_enter_programming_mode"
+.l381:	.string	"meadow_os_espcp_monitor_process_line"
+.l382:	.string	"meadow_os_espcp_reset"
+.l383:	.string	"meadow_os_fault_handler_check_fault_code"
+.l384:	.string	"meadow_os_get_gateway_address"
+.l385:	.string	"meadow_os_hardware_version"
+.l386:	.string	"meadow_os_native_protocol_version"
+.l387:	.string	"meadow_os_power_cycle_count"
+.l388:	.string	"meadow_os_raise_simple_exception"
+.l389:	.string	"meadow_os_reset_board"
+.l390:	.string	"meadow_os_reset_cycle_count"
+.l391:	.string	"meadow_os_reset_reason"
+.l392:	.string	"meadow_os_reset_update_counters"
+.l393:	.string	"meadow_parse_iso8601_date_time"
+.l394:	.string	"meadow_parse_iso8601_utc_offset"
+.l395:	.string	"meadow_power_mgmt_initialize"
+.l396:	.string	"meadow_qspi_hw_reinitialize"
+.l397:	.string	"meadow_watchdog_activate"
+.l398:	.string	"meadow_watchdog_deactivate"
+.l399:	.string	"meadow_watchdog_reset_system"
+.l400:	.string	"memchr"
+.l401:	.string	"memcmp"
+.l402:	.string	"memcpy"
+.l403:	.string	"memmove"
+.l404:	.string	"memset"
+.l405:	.string	"mkdir"
+.l406:	.string	"mkfifo"
+.l407:	.string	"mktime"
+.l408:	.string	"mmap"
+.l409:	.string	"mmcsd_slotinitialize"
+.l410:	.string	"modifyreg16"
+.l411:	.string	"modifyreg32"
+.l412:	.string	"mount"
+.l413:	.string	"msync"
+.l414:	.string	"mtd_partition"
+.l415:	.string	"mtd_proxy"
+.l416:	.string	"munmap"
+.l417:	.string	"nanosleep"
+.l418:	.string	"ntohs"
+.l419:	.string	"ntpc_connect_to_server"
+.l420:	.string	"ntpc_raise_time_changed_event"
+.l421:	.string	"ntpc_start"
+.l422:	.string	"ntpc_stop"
+.l423:	.string	"open"
+.l424:	.string	"open_blockdriver"
+.l425:	.string	"panic_notifier_call_chain"
+.l426:	.string	"parse_hostfile"
+.l427:	.string	"partMtdBRead"
+.l428:	.string	"partMtdBWrite"
+.l429:	.string	"partMtdErase"
+.l430:	.string	"perf_init"
+.l431:	.string	"perror"
+.l432:	.string	"pipe2"
+.l433:	.string	"poll"
+.l434:	.string	"poll_default_cb"
+.l435:	.string	"poll_notify"
+.l436:	.string	"posix_spawnattr_destroy"
+.l437:	.string	"posix_spawnattr_init"
+.l438:	.string	"ppoll"
+.l439:	.string	"prctl"
+.l440:	.string	"pread"
+.l441:	.string	"pselect"
+.l442:	.string	"pthread_cancel"
+.l443:	.string	"pthread_completejoin"
+.l444:	.string	"pthread_cond_broadcast"
+.l445:	.string	"pthread_cond_clockwait"
+.l446:	.string	"pthread_cond_signal"
+.l447:	.string	"pthread_cond_wait"
+.l448:	.string	"pthread_destroyjoin"
+.l449:	.string	"pthread_detach"
+.l450:	.string	"pthread_exit"
+.l451:	.string	"pthread_findjoininfo"
+.l452:	.string	"pthread_getschedparam"
+.l453:	.string	"pthread_join"
+.l454:	.string	"pthread_kill"
+.l455:	.string	"pthread_mutex_breaklock"
+.l456:	.string	"pthread_mutex_consistent"
+.l457:	.string	"pthread_mutex_destroy"
+.l458:	.string	"pthread_mutex_give"
+.l459:	.string	"pthread_mutex_inconsistent"
+.l460:	.string	"pthread_mutex_init"
+.l461:	.string	"pthread_mutex_restorelock"
+.l462:	.string	"pthread_mutex_take"
+.l463:	.string	"pthread_mutex_timedlock"
+.l464:	.string	"pthread_mutex_trylock"
+.l465:	.string	"pthread_mutex_trytake"
+.l466:	.string	"pthread_mutex_unlock"
+.l467:	.string	"pthread_release"
+.l468:	.string	"pthread_setschedparam"
+.l469:	.string	"pthread_setschedprio"
+.l470:	.string	"pthread_setup_scheduler"
+.l471:	.string	"pthread_sigmask"
+.l472:	.string	"ptmx_minor_free"
+.l473:	.string	"ptmx_register"
+.l474:	.string	"pty_register2"
+.l475:	.string	"putenv"
+.l476:	.string	"pwm_register"
+.l477:	.string	"pwrite"
+.l478:	.string	"pwrmgmt_init_lsi_calib"
+.l479:	.string	"pwrmgmt_init_rtc_clk_switch"
+.l480:	.string	"pwrmgmt_mono_cmd_time_read_clock"
+.l481:	.string	"pwrmgmt_mono_cmd_time_set_clock"
+.l482:	.string	"pwrmgmt_rtc_enterinit"
+.l483:	.string	"pwrmgmt_rtc_exitinit"
+.l484:	.string	"pwrmgmt_rtc_wprlock"
+.l485:	.string	"pwrmgmt_rtc_wprunlock"
+.l486:	.string	"pwrmgmt_subscribe_for_low_pwr_notifications"
+.l487:	.string	"ramroute_ipv4_addlast"
+.l488:	.string	"ramroute_ipv4_remafter"
+.l489:	.string	"ramroute_ipv4_remfirst"
+.l490:	.string	"read"
+.l491:	.string	"readv"
+.l492:	.string	"realloc"
+.l493:	.string	"reboot_notifier_call_chain"
+.l494:	.string	"recv"
+.l495:	.string	"recvfrom"
+.l496:	.string	"recvmsg"
+.l497:	.string	"reldata"
+.l498:	.string	"remove"
+.l499:	.string	"rename"
+.l500:	.string	"rewind"
+.l501:	.string	"rmdir"
+.l502:	.string	"sdio_initialize"
+.l503:	.string	"sdio_mediachange"
+.l504:	.string	"select"
+.l505:	.string	"sem_clockwait"
+.l506:	.string	"sem_destroy"
+.l507:	.string	"sem_init"
+.l508:	.string	"sem_post"
+.l509:	.string	"sem_setprotocol"
+.l510:	.string	"sem_timedwait"
+.l511:	.string	"sem_wait"
+.l512:	.string	"send"
+.l513:	.string	"sendfile"
+.l514:	.string	"sendmsg"
+.l515:	.string	"sendto"
+.l516:	.string	"setenv"
+.l517:	.string	"sethostname"
+.l518:	.string	"setitimer"
+.l519:	.string	"setlogmask"
+.l520:	.string	"setsockopt"
+.l521:	.string	"settimeofday"
+.l522:	.string	"shutdown"
+.l523:	.string	"sigaction"
+.l524:	.string	"sigaddset"
+.l525:	.string	"sigandset"
+.l526:	.string	"sigemptyset"
+.l527:	.string	"sigfillset"
+.l528:	.string	"sigisemptyset"
+.l529:	.string	"signal"
+.l530:	.string	"sigorset"
+.l531:	.string	"sigpending"
+.l532:	.string	"sigprocmask"
+.l533:	.string	"sigqueue"
+.l534:	.string	"sigsuspend"
+.l535:	.string	"sigtimedwait"
+.l536:	.string	"sigwaitinfo"
+.l537:	.string	"sleep"
+.l538:	.string	"snprintf"
+.l539:	.string	"socket"
+.l540:	.string	"socketpair"
+.l541:	.string	"sprintf"
+.l542:	.string	"sscanf"
+.l543:	.string	"stat"
+.l544:	.string	"statfs"
+.l545:	.string	"strcasecmp"
+.l546:	.string	"strchr"
+.l547:	.string	"strcmp"
+.l548:	.string	"strcpy"
+.l549:	.string	"strcspn"
+.l550:	.string	"strerror"
+.l551:	.string	"strftime"
+.l552:	.string	"strlcat"
+.l553:	.string	"strlcpy"
+.l554:	.string	"strlen"
+.l555:	.string	"strncmp"
+.l556:	.string	"strncpy"
+.l557:	.string	"strnlen"
+.l558:	.string	"strpbrk"
+.l559:	.string	"strrchr"
+.l560:	.string	"strspn"
+.l561:	.string	"strtod"
+.l562:	.string	"strtof"
+.l563:	.string	"strtok_r"
+.l564:	.string	"strtol"
+.l565:	.string	"strtoll"
+.l566:	.string	"strtoul"
+.l567:	.string	"strtoull"
+.l568:	.string	"sync"
+.l569:	.string	"sysinfo"
+.l570:	.string	"syslog"
+.l571:	.string	"tcpip_hdrsize"
+.l572:	.string	"tgkill"
+.l573:	.string	"time"
+.l574:	.string	"timegm"
+.l575:	.string	"tls_cleanup_pop"
+.l576:	.string	"tls_cleanup_popall"
+.l577:	.string	"tls_cleanup_push"
+.l578:	.string	"tls_destruct"
+.l579:	.string	"tls_dup_info"
+.l580:	.string	"tls_get_info"
+.l581:	.string	"tls_init_info"
+.l582:	.string	"tolower"
+.l583:	.string	"toupper"
+.l584:	.string	"tun_initialize"
+.l585:	.string	"udpip_hdrsize"
+.l586:	.string	"uio_advance"
+.l587:	.string	"uio_calc_resid"
+.l588:	.string	"uio_copyfrom"
+.l589:	.string	"uio_copyto"
+.l590:	.string	"uio_init"
+.l591:	.string	"uname"
+.l592:	.string	"unlink"
+.l593:	.string	"unsetenv"
+.l594:	.string	"usleep"
+.l595:	.string	"utimens"
+.l596:	.string	"valid_esp_log_destinations"
+.l597:	.string	"validStm32F7GpioArray"
+.l598:	.string	"vasprintf"
+.l599:	.string	"vfprintf"
+.l600:	.string	"vsnprintf"
+.l601:	.string	"vsscanf"
+.l602:	.string	"vsyslog"
+.l603:	.string	"w25qxxxjv_initialize"
+.l604:	.string	"waitpid"
+.l605:	.string	"work_cancel"
+.l606:	.string	"work_cancel_sync"
+.l607:	.string	"work_queue"
+.l608:	.string	"work_queue_wq"
+.l609:	.string	"work_start_highpri"
+.l610:	.string	"work_start_lowpri"
+.l611:	.string	"work_timer_expired"
+.l612:	.string	"write"
+.l613:	.string	"writev"
+.l614:	.string	"zalloc"
+	SIZE	globalNames
 
 	.align	ALIGN
 	GLOBAL	nglobals
-SYMBOL(nglobals):	
-	.word	0
+SYMBOL(nglobals):
+	.word	615
 	SIZE	nglobals
 
 	.align	ALIGN
 	GLOBAL	global_table
 SYMBOL(global_table):
+	globalEntry 0, __adddf3
+	globalEntry 1, __aeabi_d2ulz
+	globalEntry 2, __aeabi_dadd
+	globalEntry 3, __aeabi_drsub
+	globalEntry 4, __aeabi_dsub
+	globalEntry 5, __aeabi_f2d
+	globalEntry 6, __aeabi_i2d
+	globalEntry 7, __aeabi_idiv0
+	globalEntry 8, __aeabi_l2d
+	globalEntry 9, __aeabi_ldiv0
+	globalEntry 10, __aeabi_ldivmod
+	globalEntry 11, __aeabi_ui2d
+	globalEntry 12, __aeabi_ul2d
+	globalEntry 13, __aeabi_uldivmod
+	globalEntry 14, __assert
+	globalEntry 15, __atomic_fetch_add_8
+	globalEntry 16, __dtoa_engine
+	globalEntry 17, __errno
+	globalEntry 18, __exidx_end
+	globalEntry 19, __exidx_start
+	globalEntry 20, __extendsfdf2
+	globalEntry 21, __fixunsdfdi
+	globalEntry 22, __floatdidf
+	globalEntry 23, __floatsidf
+	globalEntry 24, __floatundidf
+	globalEntry 25, __floatunsidf
+	globalEntry 26, __popcountsi2
+	globalEntry 27, __subdf3
+	globalEntry 28, __udivmoddi4
+	globalEntry 29, __ultoa_invert
+	globalEntry 30, _assert
+	globalEntry 31, _dmaAdcBuf
+	globalEntry 32, _dmaHandle
+	globalEntry 33, _ebss
+	globalEntry 34, _edata
+	globalEntry 35, _einit
+	globalEntry 36, _elapsedCount
+	globalEntry 37, _eronly
+	globalEntry 38, _etext
+	globalEntry 39, _exit
+	globalEntry 40, _hardware_version_names
+	globalEntry 41, _okayToUseWaitOps
+	globalEntry 42, _prevISRCount
+	globalEntry 43, _sbss
+	globalEntry 44, _sdata
+	globalEntry 45, _sinit
+	globalEntry 46, _stext
+	globalEntry 47, _userVoltageResultBuf
+	globalEntry 48, abort
+	globalEntry 49, accept4
+	globalEntry 50, addroute
+	globalEntry 51, arc4random_buf
+	globalEntry 52, atoi
+	globalEntry 53, atol
+	globalEntry 54, basename
+	globalEntry 55, bind
+	globalEntry 56, board_app_initialize
+	globalEntry 57, board_late_initialize
+	globalEntry 58, board_reset
+	globalEntry 59, board_usbdev_serialstr
+	globalEntry 60, boardctl
+	globalEntry 61, bsearch
+	globalEntry 62, calloc
+	globalEntry 63, cfgetspeed
+	globalEntry 64, cfsetspeed
+	globalEntry 65, checksum
+	globalEntry 66, chmod
+	globalEntry 67, chown
+	globalEntry 68, circbuf_init
+	globalEntry 69, circbuf_is_empty
+	globalEntry 70, circbuf_is_full
+	globalEntry 71, circbuf_is_init
+	globalEntry 72, circbuf_peek
+	globalEntry 73, circbuf_peekat
+	globalEntry 74, circbuf_read
+	globalEntry 75, circbuf_resize
+	globalEntry 76, circbuf_skip
+	globalEntry 77, circbuf_space
+	globalEntry 78, circbuf_uninit
+	globalEntry 79, circbuf_used
+	globalEntry 80, circbuf_write
+	globalEntry 81, clearenv
+	globalEntry 82, clock
+	globalEntry 83, close
+	globalEntry 84, cmsg_append
+	globalEntry 85, connect
+	globalEntry 86, convert_hostent
+	globalEntry 87, crc64full
+	globalEntry 88, crc64part
+	globalEntry 89, cyaml_config
+	globalEntry 90, cyaml_free
+	globalEntry 91, cyaml_load_file
+	globalEntry 92, cyaml_mem
+	globalEntry 93, cyaml_utf8_casecmp
+	globalEntry 94, cyaml_utf8_get_codepoint
+	globalEntry 95, delroute
+	globalEntry 96, devrandom_register
+	globalEntry 97, dhcpc_cancel
+	globalEntry 98, dhcpc_close
+	globalEntry 99, dhcpc_open
+	globalEntry 100, dhcpc_request
+	globalEntry 101, dir_allocate
+	globalEntry 102, dns_add_nameserver
+	globalEntry 103, dns_bind
+	globalEntry 104, dns_breaklock
+	globalEntry 105, dns_clear_answer
+	globalEntry 106, dns_find_answer
+	globalEntry 107, dns_foreach_nameserver
+	globalEntry 108, dns_is_queryfamily
+	globalEntry 109, dns_lock
+	globalEntry 110, dns_notify_nameserver
+	globalEntry 111, dns_query
+	globalEntry 112, dns_restorelock
+	globalEntry 113, dns_save_answer
+	globalEntry 114, dns_unlock
+	globalEntry 115, down_read
+	globalEntry 116, down_write
+	globalEntry 117, drivers_early_initialize
+	globalEntry 118, drivers_initialize
+	globalEntry 119, dup
+	globalEntry 120, dup2
+	globalEntry 121, exception_common
+	globalEntry 122, exception_direct
+	globalEntry 123, exec
+	globalEntry 124, exec_module
+	globalEntry 125, explicit_bzero
+	globalEntry 126, f7_micro_v2_pin_mappings
+	globalEntry 127, fat_allocatedirentry
+	globalEntry 128, fat_checkmount
+	globalEntry 129, fat_cluster2sector
+	globalEntry 130, fat_computefreeclusters
+	globalEntry 131, fat_currentsector
+	globalEntry 132, fat_dircreate
+	globalEntry 133, fat_dirextend
+	globalEntry 134, fat_dirname2path
+	globalEntry 135, fat_dirnamewrite
+	globalEntry 136, fat_dirshrink
+	globalEntry 137, fat_dirtruncate
+	globalEntry 138, fat_dirwrite
+	globalEntry 139, fat_extendchain
+	globalEntry 140, fat_fattime2systime
+	globalEntry 141, fat_ffcacheflush
+	globalEntry 142, fat_ffcacheinvalidate
+	globalEntry 143, fat_ffcacheread
+	globalEntry 144, fat_finddirentry
+	globalEntry 145, fat_freedirentry
+	globalEntry 146, fat_fscacheflush
+	globalEntry 147, fat_fscacheread
+	globalEntry 148, fat_getcluster
+	globalEntry 149, fat_getuint16
+	globalEntry 150, fat_getuint32
+	globalEntry 151, fat_hwread
+	globalEntry 152, fat_hwwrite
+	globalEntry 153, fat_mount
+	globalEntry 154, fat_nextdirentry
+	globalEntry 155, fat_nfreeclusters
+	globalEntry 156, fat_putcluster
+	globalEntry 157, fat_putuint16
+	globalEntry 158, fat_remove
+	globalEntry 159, fat_removechain
+	globalEntry 160, fat_systime2fattime
+	globalEntry 161, fat_updatefsinfo
+	globalEntry 162, fchmod
+	globalEntry 163, fchown
+	globalEntry 164, fclose
+	globalEntry 165, fcntl
+	globalEntry 166, fdlist_allocate
+	globalEntry 167, fdlist_close
+	globalEntry 168, fdlist_dup2
+	globalEntry 169, fdlist_dup3
+	globalEntry 170, fdlist_dupfile
+	globalEntry 171, fdlist_free
+	globalEntry 172, fdlist_get2
+	globalEntry 173, fdlist_init
+	globalEntry 174, fdopen
+	globalEntry 175, ferror
+	globalEntry 176, fflush
+	globalEntry 177, fgetc
+	globalEntry 178, fgetc_unlocked
+	globalEntry 179, fgets
+	globalEntry 180, fgets_unlocked
+	globalEntry 181, find_blockdriver
+	globalEntry 182, find_driver
+	globalEntry 183, find_mtddriver
+	globalEntry 184, flash_file
+	globalEntry 185, flockfile
+	globalEntry 186, fopen
+	globalEntry 187, fprintf
+	globalEntry 188, fputc
+	globalEntry 189, fputc_unlocked
+	globalEntry 190, fputs
+	globalEntry 191, fputs_unlocked
+	globalEntry 192, fread
+	globalEntry 193, fread_unlocked
+	globalEntry 194, free
+	globalEntry 195, fseek
+	globalEntry 196, fseeko
+	globalEntry 197, fstat
+	globalEntry 198, fstatfs
+	globalEntry 199, fsync
+	globalEntry 200, ftell
+	globalEntry 201, ftello
+	globalEntry 202, ftruncate
+	globalEntry 203, funlockfile
+	globalEntry 204, futimens
+	globalEntry 205, fwrite
+	globalEntry 206, fwrite_unlocked
+	globalEntry 207, getenv
+	globalEntry 208, gethostbyname
+	globalEntry 209, gethostbyname2
+	globalEntry 210, gethostbyname2_r
+	globalEntry 211, gethostentbyname_r
+	globalEntry 212, gethostname
+	globalEntry 213, getitimer
+	globalEntry 214, getpeername
+	globalEntry 215, getpid
+	globalEntry 216, getrandom
+	globalEntry 217, getsockname
+	globalEntry 218, getsockopt
+	globalEntry 219, gettimeofday
+	globalEntry 220, getumask
+	globalEntry 221, gl_add_item_to_head
+	globalEntry 222, gl_add_item_to_tail
+	globalEntry 223, gl_create_empty_linked_list
+	globalEntry 224, gl_find_item
+	globalEntry 225, gl_remove_item
+	globalEntry 226, gmtime
+	globalEntry 227, gmtime_r
+	globalEntry 228, h_errno
+	globalEntry 229, htons
+	globalEntry 230, icmp_alloc
+	globalEntry 231, icmp_chksum_iob
+	globalEntry 232, icmp_foreach
+	globalEntry 233, icmp_free
+	globalEntry 234, icmp_input
+	globalEntry 235, icmp_ioctl
+	globalEntry 236, icmp_nextconn
+	globalEntry 237, icmp_poll
+	globalEntry 238, icmp_pollsetup
+	globalEntry 239, icmp_pollteardown
+	globalEntry 240, icmp_recvmsg
+	globalEntry 241, icmp_reply
+	globalEntry 242, icmp_sendmsg
+	globalEntry 243, igmp_addmcastmac
+	globalEntry 244, igmp_cmptimer
+	globalEntry 245, igmp_devinit
+	globalEntry 246, igmp_grpalloc
+	globalEntry 247, igmp_grpallocfind
+	globalEntry 248, igmp_grpfind
+	globalEntry 249, igmp_grpfree
+	globalEntry 250, igmp_input
+	globalEntry 251, igmp_joingroup
+	globalEntry 252, igmp_leavegroup
+	globalEntry 253, igmp_poll
+	globalEntry 254, igmp_removemcastmac
+	globalEntry 255, igmp_schedmsg
+	globalEntry 256, igmp_send
+	globalEntry 257, igmp_startticks
+	globalEntry 258, igmp_starttimer
+	globalEntry 259, igmp_waitmsg
+	globalEntry 260, inet_close
+	globalEntry 261, inet_ntoa
+	globalEntry 262, inet_ntoa_r
+	globalEntry 263, inet_ntop
+	globalEntry 264, inet_pton
+	globalEntry 265, inet_sockif
+	globalEntry 266, instrument_initialize
+	globalEntry 267, ioctl
+	globalEntry 268, ipv4_build_header
+	globalEntry 269, ipv4_chksum
+	globalEntry 270, ipv4_getpeername
+	globalEntry 271, ipv4_getsockname
+	globalEntry 272, ipv4_getsockopt
+	globalEntry 273, ipv4_input
+	globalEntry 274, ipv4_setsockopt
+	globalEntry 275, ipv4_upperlayer_chksum
+	globalEntry 276, ipv4_upperlayer_header_chksum
+	globalEntry 277, ipv4_upperlayer_payload_chksum
+	globalEntry 278, isalnum
+	globalEntry 279, isalpha
+	globalEntry 280, iscntrl
+	globalEntry 281, isgraph
+	globalEntry 282, islower
+	globalEntry 283, isprint
+	globalEntry 284, isspace
+	globalEntry 285, isupper
+	globalEntry 286, isxdigit
+	globalEntry 287, kill
+	globalEntry 288, kthread_create
+	globalEntry 289, kthread_create_with_stack
+	globalEntry 290, lchmod
+	globalEntry 291, lchown
+	globalEntry 292, libelf_allocbuffer
+	globalEntry 293, libelf_bind
+	globalEntry 294, libelf_depend
+	globalEntry 295, libelf_findglobal
+	globalEntry 296, libelf_findsection
+	globalEntry 297, libelf_findsymtab
+	globalEntry 298, libelf_freebuffers
+	globalEntry 299, libelf_freesymtab
+	globalEntry 300, libelf_initialize
+	globalEntry 301, libelf_load
+	globalEntry 302, libelf_loadhdrs
+	globalEntry 303, libelf_read
+	globalEntry 304, libelf_readsym
+	globalEntry 305, libelf_reallocbuffer
+	globalEntry 306, libelf_registry_foreach
+	globalEntry 307, libelf_registry_lock
+	globalEntry 308, libelf_registry_unlock
+	globalEntry 309, libelf_sectname
+	globalEntry 310, libelf_symvalue
+	globalEntry 311, libelf_undepend
+	globalEntry 312, libelf_uninit
+	globalEntry 313, libelf_uninitialize
+	globalEntry 314, libelf_unload
+	globalEntry 315, libelf_verifyheader
+	globalEntry 316, listen
+	globalEntry 317, load_module
+	globalEntry 318, localhost_initialize
+	globalEntry 319, localtime
+	globalEntry 320, lseek
+	globalEntry 321, lstat
+	globalEntry 322, lutimens
+	globalEntry 323, mallinfo
+	globalEntry 324, malloc
+	globalEntry 325, map_anonymous
+	globalEntry 326, meadow_adc_configure
+	globalEntry 327, meadow_adc_read_temp_vbat
+	globalEntry 328, meadow_adc_read_values
+	globalEntry 329, meadow_client_cert_initialize
+	globalEntry 330, meadow_cloud_provision
+	globalEntry 331, meadow_cloud_release_private_key
+	globalEntry 332, meadow_cloud_retrieve_private_key
+	globalEntry 333, meadow_eth_conn_link_status_changed
+	globalEntry 334, meadow_eth_conn_startup
+	globalEntry 335, meadow_eth_dhcp_get_dhcp_info
+	globalEntry 336, meadow_eth_mngr_startup
+	globalEntry 337, meadow_eth_mon_config_lan9355_irq
+	globalEntry 338, meadow_eth_utils_exec_ifdown
+	globalEntry 339, meadow_eth_utils_exec_ifup
+	globalEntry 340, meadow_eth_utils_get_hw_mac
+	globalEntry 341, meadow_eth_utils_get_ipv4
+	globalEntry 342, meadow_eth_utils_get_mac
+	globalEntry 343, meadow_eth_utils_set_dns
+	globalEntry 344, meadow_eth_utils_set_ipv4
+	globalEntry 345, meadow_eth_utils_set_ipv4_mask
+	globalEntry 346, meadow_eth_utils_set_mac
+	globalEntry 347, meadow_eth_utils_set_router
+	globalEntry 348, meadow_eth_utils_syslog_ip_mac
+	globalEntry 349, meadow_eth_utils_verify_lan9355
+	globalEntry 350, meadow_hw_version_ethernet_supported
+	globalEntry 351, meadow_hw_version_find_device_ver
+	globalEntry 352, meadow_hw_version_find_gpio_ver
+	globalEntry 353, meadow_hw_version_flash_size
+	globalEntry 354, meadow_hw_version_get
+	globalEntry 355, meadow_hw_version_string_return
+	globalEntry 356, meadow_idle_mon_entering_idle_mode
+	globalEntry 357, meadow_idle_monitor_setup
+	globalEntry 358, meadow_interrupt_setup
+	globalEntry 359, meadow_lan9355_phyread_16
+	globalEntry 360, meadow_lan9355_phyread_32
+	globalEntry 361, meadow_lan9355_phywrite_16
+	globalEntry 362, meadow_lan9355_phywrite_32
+	globalEntry 363, meadow_logging_clear_os_logfile
+	globalEntry 364, meadow_logging_init_os_logging
+	globalEntry 365, meadow_logging_write
+	globalEntry 366, meadow_logging_write_to_file
+	globalEntry 367, meadow_measure_freq_configure
+	globalEntry 368, meadow_measure_freq_return_freq_info
+	globalEntry 369, meadow_os_bbd_clear_sram
+	globalEntry 370, meadow_os_bbd_register_clear_bits
+	globalEntry 371, meadow_os_bbd_register_get_value
+	globalEntry 372, meadow_os_bbd_register_set_bits
+	globalEntry 373, meadow_os_bbd_register_set_value
+	globalEntry 374, meadow_os_bbd_strdup_from_sram
+	globalEntry 375, meadow_os_bbd_strdup_to_sram
+	globalEntry 376, meadow_os_config_free_resources
+	globalEntry 377, meadow_os_coprocessor_deep_sleep
+	globalEntry 378, meadow_os_copy_string
+	globalEntry 379, meadow_os_deep_copy_config
+	globalEntry 380, meadow_os_espcp_enter_programming_mode
+	globalEntry 381, meadow_os_espcp_monitor_process_line
+	globalEntry 382, meadow_os_espcp_reset
+	globalEntry 383, meadow_os_fault_handler_check_fault_code
+	globalEntry 384, meadow_os_get_gateway_address
+	globalEntry 385, meadow_os_hardware_version
+	globalEntry 386, meadow_os_native_protocol_version
+	globalEntry 387, meadow_os_power_cycle_count
+	globalEntry 388, meadow_os_raise_simple_exception
+	globalEntry 389, meadow_os_reset_board
+	globalEntry 390, meadow_os_reset_cycle_count
+	globalEntry 391, meadow_os_reset_reason
+	globalEntry 392, meadow_os_reset_update_counters
+	globalEntry 393, meadow_parse_iso8601_date_time
+	globalEntry 394, meadow_parse_iso8601_utc_offset
+	globalEntry 395, meadow_power_mgmt_initialize
+	globalEntry 396, meadow_qspi_hw_reinitialize
+	globalEntry 397, meadow_watchdog_activate
+	globalEntry 398, meadow_watchdog_deactivate
+	globalEntry 399, meadow_watchdog_reset_system
+	globalEntry 400, memchr
+	globalEntry 401, memcmp
+	globalEntry 402, memcpy
+	globalEntry 403, memmove
+	globalEntry 404, memset
+	globalEntry 405, mkdir
+	globalEntry 406, mkfifo
+	globalEntry 407, mktime
+	globalEntry 408, mmap
+	globalEntry 409, mmcsd_slotinitialize
+	globalEntry 410, modifyreg16
+	globalEntry 411, modifyreg32
+	globalEntry 412, mount
+	globalEntry 413, msync
+	globalEntry 414, mtd_partition
+	globalEntry 415, mtd_proxy
+	globalEntry 416, munmap
+	globalEntry 417, nanosleep
+	globalEntry 418, ntohs
+	globalEntry 419, ntpc_connect_to_server
+	globalEntry 420, ntpc_raise_time_changed_event
+	globalEntry 421, ntpc_start
+	globalEntry 422, ntpc_stop
+	globalEntry 423, open
+	globalEntry 424, open_blockdriver
+	globalEntry 425, panic_notifier_call_chain
+	globalEntry 426, parse_hostfile
+	globalEntry 427, partMtdBRead
+	globalEntry 428, partMtdBWrite
+	globalEntry 429, partMtdErase
+	globalEntry 430, perf_init
+	globalEntry 431, perror
+	globalEntry 432, pipe2
+	globalEntry 433, poll
+	globalEntry 434, poll_default_cb
+	globalEntry 435, poll_notify
+	globalEntry 436, posix_spawnattr_destroy
+	globalEntry 437, posix_spawnattr_init
+	globalEntry 438, ppoll
+	globalEntry 439, prctl
+	globalEntry 440, pread
+	globalEntry 441, pselect
+	globalEntry 442, pthread_cancel
+	globalEntry 443, pthread_completejoin
+	globalEntry 444, pthread_cond_broadcast
+	globalEntry 445, pthread_cond_clockwait
+	globalEntry 446, pthread_cond_signal
+	globalEntry 447, pthread_cond_wait
+	globalEntry 448, pthread_destroyjoin
+	globalEntry 449, pthread_detach
+	globalEntry 450, pthread_exit
+	globalEntry 451, pthread_findjoininfo
+	globalEntry 452, pthread_getschedparam
+	globalEntry 453, pthread_join
+	globalEntry 454, pthread_kill
+	globalEntry 455, pthread_mutex_breaklock
+	globalEntry 456, pthread_mutex_consistent
+	globalEntry 457, pthread_mutex_destroy
+	globalEntry 458, pthread_mutex_give
+	globalEntry 459, pthread_mutex_inconsistent
+	globalEntry 460, pthread_mutex_init
+	globalEntry 461, pthread_mutex_restorelock
+	globalEntry 462, pthread_mutex_take
+	globalEntry 463, pthread_mutex_timedlock
+	globalEntry 464, pthread_mutex_trylock
+	globalEntry 465, pthread_mutex_trytake
+	globalEntry 466, pthread_mutex_unlock
+	globalEntry 467, pthread_release
+	globalEntry 468, pthread_setschedparam
+	globalEntry 469, pthread_setschedprio
+	globalEntry 470, pthread_setup_scheduler
+	globalEntry 471, pthread_sigmask
+	globalEntry 472, ptmx_minor_free
+	globalEntry 473, ptmx_register
+	globalEntry 474, pty_register2
+	globalEntry 475, putenv
+	globalEntry 476, pwm_register
+	globalEntry 477, pwrite
+	globalEntry 478, pwrmgmt_init_lsi_calib
+	globalEntry 479, pwrmgmt_init_rtc_clk_switch
+	globalEntry 480, pwrmgmt_mono_cmd_time_read_clock
+	globalEntry 481, pwrmgmt_mono_cmd_time_set_clock
+	globalEntry 482, pwrmgmt_rtc_enterinit
+	globalEntry 483, pwrmgmt_rtc_exitinit
+	globalEntry 484, pwrmgmt_rtc_wprlock
+	globalEntry 485, pwrmgmt_rtc_wprunlock
+	globalEntry 486, pwrmgmt_subscribe_for_low_pwr_notifications
+	globalEntry 487, ramroute_ipv4_addlast
+	globalEntry 488, ramroute_ipv4_remafter
+	globalEntry 489, ramroute_ipv4_remfirst
+	globalEntry 490, read
+	globalEntry 491, readv
+	globalEntry 492, realloc
+	globalEntry 493, reboot_notifier_call_chain
+	globalEntry 494, recv
+	globalEntry 495, recvfrom
+	globalEntry 496, recvmsg
+	globalEntry 497, reldata
+	globalEntry 498, remove
+	globalEntry 499, rename
+	globalEntry 500, rewind
+	globalEntry 501, rmdir
+	globalEntry 502, sdio_initialize
+	globalEntry 503, sdio_mediachange
+	globalEntry 504, select
+	globalEntry 505, sem_clockwait
+	globalEntry 506, sem_destroy
+	globalEntry 507, sem_init
+	globalEntry 508, sem_post
+	globalEntry 509, sem_setprotocol
+	globalEntry 510, sem_timedwait
+	globalEntry 511, sem_wait
+	globalEntry 512, send
+	globalEntry 513, sendfile
+	globalEntry 514, sendmsg
+	globalEntry 515, sendto
+	globalEntry 516, setenv
+	globalEntry 517, sethostname
+	globalEntry 518, setitimer
+	globalEntry 519, setlogmask
+	globalEntry 520, setsockopt
+	globalEntry 521, settimeofday
+	globalEntry 522, shutdown
+	globalEntry 523, sigaction
+	globalEntry 524, sigaddset
+	globalEntry 525, sigandset
+	globalEntry 526, sigemptyset
+	globalEntry 527, sigfillset
+	globalEntry 528, sigisemptyset
+	globalEntry 529, signal
+	globalEntry 530, sigorset
+	globalEntry 531, sigpending
+	globalEntry 532, sigprocmask
+	globalEntry 533, sigqueue
+	globalEntry 534, sigsuspend
+	globalEntry 535, sigtimedwait
+	globalEntry 536, sigwaitinfo
+	globalEntry 537, sleep
+	globalEntry 538, snprintf
+	globalEntry 539, socket
+	globalEntry 540, socketpair
+	globalEntry 541, sprintf
+	globalEntry 542, sscanf
+	globalEntry 543, stat
+	globalEntry 544, statfs
+	globalEntry 545, strcasecmp
+	globalEntry 546, strchr
+	globalEntry 547, strcmp
+	globalEntry 548, strcpy
+	globalEntry 549, strcspn
+	globalEntry 550, strerror
+	globalEntry 551, strftime
+	globalEntry 552, strlcat
+	globalEntry 553, strlcpy
+	globalEntry 554, strlen
+	globalEntry 555, strncmp
+	globalEntry 556, strncpy
+	globalEntry 557, strnlen
+	globalEntry 558, strpbrk
+	globalEntry 559, strrchr
+	globalEntry 560, strspn
+	globalEntry 561, strtod
+	globalEntry 562, strtof
+	globalEntry 563, strtok_r
+	globalEntry 564, strtol
+	globalEntry 565, strtoll
+	globalEntry 566, strtoul
+	globalEntry 567, strtoull
+	globalEntry 568, sync
+	globalEntry 569, sysinfo
+	globalEntry 570, syslog
+	globalEntry 571, tcpip_hdrsize
+	globalEntry 572, tgkill
+	globalEntry 573, time
+	globalEntry 574, timegm
+	globalEntry 575, tls_cleanup_pop
+	globalEntry 576, tls_cleanup_popall
+	globalEntry 577, tls_cleanup_push
+	globalEntry 578, tls_destruct
+	globalEntry 579, tls_dup_info
+	globalEntry 580, tls_get_info
+	globalEntry 581, tls_init_info
+	globalEntry 582, tolower
+	globalEntry 583, toupper
+	globalEntry 584, tun_initialize
+	globalEntry 585, udpip_hdrsize
+	globalEntry 586, uio_advance
+	globalEntry 587, uio_calc_resid
+	globalEntry 588, uio_copyfrom
+	globalEntry 589, uio_copyto
+	globalEntry 590, uio_init
+	globalEntry 591, uname
+	globalEntry 592, unlink
+	globalEntry 593, unsetenv
+	globalEntry 594, usleep
+	globalEntry 595, utimens
+	globalEntry 596, valid_esp_log_destinations
+	globalEntry 597, validStm32F7GpioArray
+	globalEntry 598, vasprintf
+	globalEntry 599, vfprintf
+	globalEntry 600, vsnprintf
+	globalEntry 601, vsscanf
+	globalEntry 602, vsyslog
+	globalEntry 603, w25qxxxjv_initialize
+	globalEntry 604, waitpid
+	globalEntry 605, work_cancel
+	globalEntry 606, work_cancel_sync
+	globalEntry 607, work_queue
+	globalEntry 608, work_queue_wq
+	globalEntry 609, work_start_highpri
+	globalEntry 610, work_start_lowpri
+	globalEntry 611, work_timer_expired
+	globalEntry 612, write
+	globalEntry 613, writev
+	globalEntry 614, zalloc
 	SIZE	global_table
