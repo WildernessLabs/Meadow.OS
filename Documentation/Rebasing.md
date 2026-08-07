@@ -79,9 +79,16 @@ There are certain directories that we rarely (if ever) change.  For these direct
 ```bash
 git checkout --theirs nuttx/Documentation
 git add nuttx/Documentation
-git checkout --theirs nuttx/tools
-git add nuttx/tools
 ```
+
+`nuttx/tools` is **not** one of these directories any more.  It now contains Wilderness Labs
+additions and modifications (`build-globals.sh`, `Config.mk`, `nxstyle.c`,
+`pynuttx/nxgdb/macros.py`, `pynuttx/nxgdb/debug.py`, and possibly others by the time you read
+this) that must be preserved.  Blindly running `git checkout --theirs nuttx/tools` will silently
+discard our changes.  Treat conflicts under `nuttx/tools` the same as any other manually-merged
+directory: inspect each conflicting file and merge in the upstream changes by hand, keeping our
+customizations. Run `git log -- nuttx/tools` in the current `Rebase` tree before merging to
+confirm which files carry local changes, since this list will grow over time.
 
 ## Anomalies
 
