@@ -170,7 +170,7 @@ static void *espcp_thread(void *parameters)
     {
         espcp_message_t *retrieved_message;
         MEADOW_TRACE_INFORMATION("Retrieving message to send to ESP32.\n");
-        int number_of_bytes = mq_receive(configuration->request_queue, (void *)&retrieved_message, sizeof(retrieved_message), NULL);
+        ssize_t number_of_bytes = file_mq_receive(&configuration->request_queue, (char *)&retrieved_message, sizeof(retrieved_message), NULL);
         if (number_of_bytes == sizeof(espcp_message_t *))
         {
             if (retrieved_message != NULL)
@@ -279,14 +279,19 @@ int espcp_thread_start(espcp_configuration_t *configuration)
     }
 #endif
 
-    mqd_t queue_id = mq_open(ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR);
-    if ((int) queue_id < 0)
+    //
+    //  espcp_create_message_queues() opened this queue during
+    //  espcp_early_init(), which always runs first.  It used to be re-opened
+    //  here, leaking the original handle; it cannot be re-opened now because
+    //  the thread started above holds a pointer to this same struct file.
+    //
+    espcp_config_lock();
+    if (configuration->request_queue.f_inode == NULL)
     {
+        syslog(LOG_ERR, "%s@%d-request queue not open\n", __FILE__, __LINE__);
         result = -1;
     }
 
-    espcp_config_lock();
-    configuration->request_queue = queue_id;
     configuration->thread = thread_id;
     configuration->exit_code = result;
     espcp_config_unlock();
@@ -316,16 +321,20 @@ int espcp_thread_stop(espcp_configuration_t *configuration)
 {
     int result = OK;
 
-    espcp_queue_kill_nuttx_thread_message(configuration->request_queue);
+    espcp_queue_kill_nuttx_thread_message(&configuration->request_queue);
 #ifdef CONFIG_BUILD_PROTECTED
     result = kthread_delete(configuration->thread);
 #else
     result = kthread_delete(configuration->thread, NULL);
 #endif
-    mq_close(configuration->request_queue);
 
     espcp_config_lock();
-    configuration->request_queue = (mqd_t) -1;
+    //
+    //  file_mq_close() clears f_inode, which is what marks the handle closed;
+    //  there is no descriptor sentinel to reset.  Closing an already-closed
+    //  struct file is a harmless no-op.
+    //
+    file_mq_close(&configuration->request_queue);
     configuration->thread = 0;
     espcp_config_unlock();
 

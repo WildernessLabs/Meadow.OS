@@ -35,6 +35,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <inttypes.h>
 
 #include <nuttx/kstring.h>
 
@@ -164,7 +165,7 @@ static void *espcp_event_handler_thread(void *parameters)
 #else
     espcp_configuration_t *configuration = parameters;
 #endif
-    mqd_t queue_id = configuration->incoming_event_queue;
+    struct file *queue = &configuration->incoming_event_queue;
     configuration->incoming_event_handler_thread_running = true;
 #ifdef CONFIG_BUILD_PROTECTED
     espcp_config_unlock();
@@ -172,15 +173,18 @@ static void *espcp_event_handler_thread(void *parameters)
     while (true)
     {
         espcp_message_t *retrieved_message;
-        int number_of_bytes = mq_receive(queue_id, (void *) &retrieved_message, sizeof(retrieved_message), NULL);
+        ssize_t number_of_bytes = file_mq_receive(queue, (char *) &retrieved_message, sizeof(retrieved_message), NULL);
         if ((number_of_bytes == sizeof(espcp_message_t *)) && (retrieved_message != NULL))
         {
             espcp_dispatch_event(retrieved_message);
         }
         else
         {
-            syslog(LOG_CRIT, "Errno: %d", errno);
-            syslog(LOG_CRIT, "%s@%d ESP thread received %d bytes, %d expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t));
+            //
+            //  file_mq_receive() returns a negated errno rather than setting
+            //  the errno of this thread, so report the return value directly.
+            //
+            syslog(LOG_CRIT, "%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t *));
         }
     }
 
@@ -258,15 +262,23 @@ int espcp_event_handlers_thread_start(void)
     }
 #endif
 
-    mqd_t queue_id = mq_open(ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, O_RDWR);
-    if ((int) queue_id < 0)
+    //
+    //  The incoming event queue was already opened by
+    //  espcp_create_message_queues() during espcp_early_init(), which always
+    //  runs before this function.  It used to be re-opened here, which leaked
+    //  the original handle; more importantly it cannot be re-opened now,
+    //  because the thread started above holds a pointer to this same struct
+    //  file and closing it under the thread would be a use-after-free.  Just
+    //  check that it is open.
+    //
+    espcp_config_lock();
+    if (configuration->incoming_event_queue.f_inode == NULL)
     {
+        syslog(LOG_ERR, "%s@%d-incoming event queue is not open\n", __FILE__, __LINE__);
         result = -1;
     }
 
-    espcp_config_lock();
     configuration->incoming_event_handler_thread_running = true;
-    configuration->incoming_event_queue = queue_id;
     configuration->incoming_event_thread = thread_id;
     espcp_config_unlock();
 
@@ -731,10 +743,17 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                 espcp_encode_event_data(&eventData, encodedData);
 
                 espcp_configuration_t *config = espcp_get_configuration();
-                int result = mq_send(config->managed_event_queue, (const char *) encodedData, encodedEventDataSize, ESPCP_DEFAULT_MESSAGE_PRIORITY);
+                //
+                //  file_mq_send() returns a negated errno and does not modify
+                //  the errno of the calling thread.  This matters here because
+                //  this path is reachable from a watchdog expiry running in
+                //  the timer interrupt, where the "calling thread" is whatever
+                //  thread happened to be interrupted.
+                //
+                int result = file_mq_send(&config->managed_event_queue, (const char *) encodedData, encodedEventDataSize, ESPCP_DEFAULT_MESSAGE_PRIORITY);
                 if (result < 0)
                 {
-                    MEADOW_TRACE_INFORMATION("Error adding event to the message queue, result %d, error code %d.\n", result, get_errno());
+                    MEADOW_TRACE_INFORMATION("Error adding event to the message queue, result %d.\n", result);
                     delete_message = true;
                 }
                 else

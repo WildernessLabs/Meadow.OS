@@ -100,7 +100,7 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
         message->semaphore = NULL;
     }
     espcp_configuration_t *configuration = espcp_get_configuration();
-    if (espcp_add_message_to_queue(configuration->request_queue, message) == espcp_status_codes_completed_ok)
+    if (espcp_add_message_to_queue(&configuration->request_queue, message) == espcp_status_codes_completed_ok)
     {
         if (block)
         {
@@ -137,7 +137,7 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
 {
     espcp_config_lock();
     espcp_configuration_t *config = espcp_get_configuration();
-    mqd_t queue_id = config->incoming_event_queue;
+    struct file *queue = &config->incoming_event_queue;
     espcp_config_unlock();
 
     espcp_message_t *connection_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
@@ -178,6 +178,6 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
         connection_message->function = espcp_wi_fi_function_network_disconnected_event;
     }
 
-    espcp_add_message_to_queue(queue_id, connection_message);
+    espcp_add_message_to_queue(queue, connection_message);
 }
 
