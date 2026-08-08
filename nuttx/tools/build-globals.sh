@@ -28,16 +28,31 @@
 #
 # Symbols to ignore within the NuttX libraries
 #
-FILTER="^lib_low|^FUNCTION|^STUB|^__start|^_vect|^arm_|^arp_|^bch|^binfmt|^blake|^block_|^cdcacm|^chksum|^clock_|^close_|^crypto_|^devif_|^devnull|^devuran|^devzero|^emerg|^epoll_|^elf_|^_dbgR|^dq_|^env_|^file_|^files_|^fs_|^ftl_|^g_|^get_|^group_|^global|^hcom|^i2c_|^inode_|^iob_|^irq_|^kmm_|^lfs_|^lib_|^local_|^mm_|^elf_|^mpu_|^mq_|^nglobals|^net_|^netdev_|^nx|^pipecommon|^posix_spawn_file|^psock_|^ramlog|^rammap|^readline_|^register_|^sched_|^sockfd|^spawn_|^sq_|^stm32|^symtab_|^syslog_|^syslogstream|^task_|^tcp_|^timer_|^uart_|^ub[12]|^udp_|^umm_|^umount|^unload_|^unregister|^up_|^usb|^usrsock_|^watchdog|^wd_|globalNames$|nglobals$|global_table$|^\.l|^espcp_|^yaml_"
+FILTER="^lib_low|^FUNCTION|^STUB|^__start|^_vect|^arm_|^arp_|^bch|^binfmt|^blake|^block_|^cdcacm|^chksum|^clock_|^close_|^crypto_|^devif_|^devnull|^devuran|^devzero|^emerg|^epoll_|^elf_|^_dbgR|^dq_|^env_|^file_|^files_|^fs_|^ftl_|^g_|^get_|^group_|^global|^hcom|^i2c_|^inode_|^iob_|^irq_|^kmm_|^lfs_|^lib_|^local_|^mm_|^elf_|^mpu_|^mq_|^nglobals|^net_|^netdev_|^nx|^pipecommon|^posix_spawn_file|^psock_|^ramlog|^rammap|^readline_|^register_|^sched_|^sockfd|^spawn_|^sq_|^stm32|^symtab_|^syslog_|^syslogstream|^task_|^tcp_|^timer_|^uart_|^ub[12]|^udp_|^umm_|^umount|^unload_|^unregister|^up_|^usb|^usrsock_|^watchdog|^wd_|globalNames$|nglobals$|global_table$|^\.l"
 
 if [ -z "${NM}" ]; then
 	NM="nm"
 fi
 
+USER_ELF="nuttx_user.elf"
+
 #
-# Extract symbols from the runtime
+# Extract candidate symbols from the kernel runtime map
 #
-SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort | grep -Ev ${FILTER}`
+SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort -u | grep -Ev ${FILTER}`
+
+#
+# Restrict candidates to symbols actually defined in the user-space binary.
+# elf_globals.o is linked into any user-space consumer of the ELF dynamic
+# loader (dlopen'd modules, AoT-compiled TensorFlow models, etc.), so a
+# kernel-only global that slips past the name-based FILTER above (e.g. a
+# board/driver global that doesn't follow the g_/up_/stm32_ naming
+# conventions the filter targets) would otherwise end up in the table and
+# fail with an undefined reference the moment something outside the kernel
+# link needs to resolve the table's symbols.
+#
+USER_SYMS=`${NM} --defined-only ${USER_ELF} | awk '{print $3}' | sort -u`
+SYMS=`comm -12 <(printf '%s\n' "${SYMS}") <(printf '%s\n' "${USER_SYMS}")`
 SYM=(${SYMS})
 GLOBALS="libs/libc/elf/elf_globals.S"
 
