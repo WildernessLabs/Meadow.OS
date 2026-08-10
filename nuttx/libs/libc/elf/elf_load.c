@@ -496,8 +496,8 @@ skipload:
 
   /* Update GOT table */
 
-  if (loadinfo->gotindex >= 0)
-    {
+  if (loadinfo->ehdr.e_type != ET_DYN && loadinfo->gotindex >= 0) 
+  {
       FAR Elf_Shdr *gotshdr = &loadinfo->shdr[loadinfo->gotindex];
       FAR uintptr_t *got = (FAR uintptr_t *)gotshdr->sh_addr;
       FAR uintptr_t *end = got + gotshdr->sh_size / sizeof(uintptr_t);
