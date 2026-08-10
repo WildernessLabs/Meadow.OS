@@ -113,6 +113,21 @@
  * Private Data
  ****************************************************************************/
 static mqd_t _mint_mqd;
+
+// Resolved once, in meadow_interrupt_setup(), from _mint_mqd via file_get()
+// while running on the task that opened it. mint_forward_interrupt_to_core()
+// sends through this cached struct file* (via file_mq_send()) instead of
+// _mint_mqd (via mq_send()) because mq_send()/nxmq_send() resolve a mqd_t
+// against the CALLING task's file descriptor table (see
+// nxsched_get_fdlist()/this_task()), and this is sent from GPIO/timer ISR
+// context - i.e. whatever task happened to be running when the interrupt
+// fired, which is frequently a different task (and thus a different, unrelated
+// fd table) than the one that originally opened the queue. That mismatch
+// causes mq_send() to intermittently fail with EBADF. file_mq_send() operates
+// directly on the resolved struct file*, bypassing that per-task lookup
+// entirely, so it works correctly regardless of which task is current.
+static struct file *_mint_mq_filep;
+
 static bool _firstTimeConfig = true;
 
 // Current GPIO interrupt state
@@ -275,6 +290,20 @@ int meadow_interrupt_setup(void)
     return -errcode;
   }
 
+  // Resolve _mint_mqd to its underlying struct file* now, while running on
+  // the task that just opened it, so mint_forward_interrupt_to_core() can
+  // send through the resolved file object (via file_mq_send()) from ISR
+  // context later, instead of re-resolving the mqd_t against whatever task's
+  // file descriptor table happens to be current when the interrupt fires.
+  int ret = file_get(_mint_mqd, &_mint_mq_filep);
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-file_get failed: %d\n", __FILE__, __LINE__, ret);
+    mq_close(_mint_mqd);
+    _mint_mqd = (mqd_t)-1;
+    return ret;
+  }
+
   return OK;
 }
 
@@ -285,6 +314,7 @@ void meadow_interrupt_shutdown(void)
   {
     mq_close(_mint_mqd);
     _mint_mqd = (mqd_t)-1;
+    _mint_mq_filep = NULL;
   }
 }
 
@@ -824,6 +854,7 @@ static int mint_meadow_debounce_notification_logic(struct interruptPinMap_s *gpi
 // 2. State - 0 = false, 1 = true
 // 3. If MEADOW_INTERRUPT_INCLUDE_TIME_STAMP = 1, Tick count since OS started
 //    (Note: using Nuttx ticks is subject to change)
+// Note:This function is called directly from the ISR
 static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioInfoAddr,
   uint8_t state)
 {
@@ -842,11 +873,16 @@ static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioI
   mint_send_msg.mintSysTicks = clock_systime_ticks();
 #endif
 
-  ret = mq_send(_mint_mqd, (char *) &mint_send_msg,
+  // file_mq_send() sends through the struct file* resolved once in
+  // meadow_interrupt_setup(), instead of re-resolving _mint_mqd against
+  // whichever task's file descriptor table happens to be current when this
+  // ISR runs (see the comment on _mint_mq_filep). Unlike mq_send(), it
+  // returns 0 or a negated errno directly - it does not set errno.
+  ret = file_mq_send(_mint_mq_filep, (char *) &mint_send_msg,
     MEADOW_INTERRUPT_MQ_MSG_SIZE, 0);
   if(ret < 0)
   {
-    if(errno == ENOMEM)
+    if(ret == -ENOMEM)
     {
       // This message will be output if there is no MQ reader after the
       // MEADOW_INTERRUPT_MQ_MSG_SIZE number of interrupts.
@@ -854,8 +890,8 @@ static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioI
     }
     else
     {
-      syslog(LOG_ERR, "%s@%d-0x%02x mq_send failed:%d, errno:%d\n", __FILE__, __LINE__, 
-          gpioInfoAddr->PinId, ret, get_errno());
+      syslog(LOG_ERR, "%s@%d-0x%02x file_mq_send failed, ret:%d\n", __FILE__, __LINE__,
+          gpioInfoAddr->PinId, ret);
     }
   }
 

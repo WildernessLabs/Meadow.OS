@@ -88,9 +88,13 @@ static sem_t g_messages_waiting_for_a_response_mutex;
 static espcp_message_t *g_request_response_message = NULL;
 
 /**
- *  ID of the message queue that will receive any messages for processing.
+ *  Handle for the message queue that will receive any messages for
+ *  processing.  This is a second, independent handle on the request queue -
+ *  espcp_create_message_queues() owns the one in the configuration structure.
+ *  A kernel-internal struct file is used rather than an mqd_t so that the
+ *  handle is valid in every context; see espcp_coprocessor.h.
  */
-static mqd_t g_message_queue = 0;
+static struct file g_message_queue;
 
 /****************************************************************************
  * Private (static) Function Prototypes
@@ -159,10 +163,10 @@ int espcp_setup_message_dispatcher(void)
     g_request_response_message->function = espcp_transport_function_send_response;
     g_request_response_message->semaphore = NULL;
 
-    g_message_queue = mq_open(ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_WRONLY);
-    if ((int)g_message_queue < 0)
+    result = file_mq_open(&g_message_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_WRONLY);
+    if (result < 0)
     {
-        return ((int)g_message_queue);
+        return (result);
     }
 
     result = sem_init(&g_message_id_mutex, 0, 1);
@@ -219,11 +223,11 @@ int espcp_teardown_message_dispatcher(void)
 {
     int result = OK;
 
-    if (g_message_queue > 0)
-    {
-        result = mq_close(g_message_queue);
-    }
-    g_message_queue = 0;
+    //
+    //  file_mq_close() clears f_inode, which is what marks the handle closed,
+    //  and is a harmless no-op if it was never opened.
+    //
+    result = file_mq_close(&g_message_queue);
 
     if (g_request_response_message != NULL)
     {
@@ -262,7 +266,7 @@ void espcp_queue_send_response_message(void)
     }
     espcp_config_unlock();
 
-    espcp_add_message_to_queue(g_message_queue, g_request_response_message);
+    espcp_add_message_to_queue(&g_message_queue, g_request_response_message);
 }
 
 /****************************************************************************
@@ -659,7 +663,7 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
 
         if (message->message_type == espcp_message_types_event)
         {
-            espcp_add_message_to_queue(configuration->incoming_event_queue, message);
+            espcp_add_message_to_queue(&configuration->incoming_event_queue, message);
         }
         else
         {
@@ -890,7 +894,7 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
         //
         //  Something went wrong so requeue a send response request.
         //
-        espcp_add_message_to_queue(g_message_queue, g_request_response_message);
+        espcp_add_message_to_queue(&g_message_queue, g_request_response_message);
     }
 
     #if defined(USE_MEADOW_DEBUG_HELPERS)
