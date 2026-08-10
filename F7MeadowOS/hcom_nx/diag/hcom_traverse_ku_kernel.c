@@ -40,6 +40,21 @@
  * first call, by which time the user side will have already opened the
  * read end (so the open does not block).  Subsequent write() calls are
  * atomic and block naturally on back-pressure.
+ *
+ * The write end is opened via file_open()/file_write()/file_close()
+ * (a struct file*, not a plain fd) rather than open()/write()/close().
+ * This channel has two independent senders that can each be first to
+ * open it: the ramlog-reader kernel thread (hcom_nx_trace_msg_proc.c,
+ * a kthread, TCB_FLAG_TTYPE_KERNEL) and the traverse_ku kernel tests
+ * (meadow_kt_traverse_ku_tests.c, reached via a syscall so it runs on
+ * whatever regular task issued it, e.g. hcom_main - TCB_FLAG_TTYPE_TASK).
+ * A plain fd is resolved against the CALLING task's file descriptor
+ * table (see nxsched_get_fdlist()/this_task()), and kernel threads vs.
+ * regular tasks have separate tables - so whichever of these two opens
+ * the fd first, the other's write() would resolve it against the wrong
+ * table and fail with EBADF. file_write() operates directly on the
+ * resolved struct file*, bypassing that per-task lookup, so it works
+ * regardless of which context opened it or which is calling now.
  */
 
 /****************************************************************************
@@ -51,6 +66,7 @@
 #include <meadow/hcom_traverse_ku.h>
 
 #include <sys/stat.h>
+#include <nuttx/fs/fs.h>
 
 // Diagnostics
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -64,7 +80,10 @@
  * Private Data
  ****************************************************************************/
 
-static int _send_pipe_fd = -1;
+// Zero-initialized (static): f_inode == NULL means "not open", matching
+// the state after a successful file_close() too - see struct file in
+// nuttx/include/nuttx/fs/fs.h.
+static struct file _send_pipe_filep;
 
 /****************************************************************************
  * Private Functions
@@ -75,40 +94,39 @@ static int _send_pipe_fd = -1;
  *
  * Description:
  *   Open the write end of the FIFO with O_NONBLOCK so the kernel does not
- *   stall if the user side is not yet open.  On success, O_NONBLOCK is
- *   cleared immediately so that subsequent write() calls block on
- *   back-pressure as designed.
+ *   stall if the user side is not yet open. O_NONBLOCK is deliberately
+ *   kept afterward - see the comment below.
  *
  * Returned Value:
- *   Open file descriptor on success, -1 with errno set on failure.
+ *   0 (OK) on success, -errno on failure.
  *
  ****************************************************************************/
 
 static int traverse_ku_open_write_end(void)
 {
-  int fd = -1;
+  int ret;
 
   do
   {
-    fd = open(HCOM_TRAVERSE_KU_PIPE_PATH, O_WRONLY | O_NONBLOCK);
-    if(fd < 0)
+    ret = file_open(&_send_pipe_filep, HCOM_TRAVERSE_KU_PIPE_PATH,
+                     O_WRONLY | O_NONBLOCK);
+    if(ret < 0)
     {
-      syslog(LOG_MDIAG, "open Error:%d (%s)\n", errno, strerror(errno));
-      if(errno == ENXIO)
+      syslog(LOG_MDIAG, "file_open Error:%d\n", ret);
+      if(ret == -ENXIO)
       {
         // Wait for reader to open named pipe and unblock writer
         usleep(10 * 1000);
-        fd = -1;
         continue;
       }
       else
       {
-        syslog(LOG_MDIAG, "-->Error: Failed to get file open:%d\n", errno);
+        syslog(LOG_MDIAG, "-->Error: Failed to get file open:%d\n", ret);
         usleep(10 * 1000);
-        return -1;
+        return ret;
       }
     }
-  } while(fd < 0);
+  } while(ret < 0);
 
   /* Keep O_NONBLOCK on the write end.  NuttX's blocking write can split
    * a message across two circbuf_write() calls when the ring buffer is
@@ -117,7 +135,7 @@ static int traverse_ku_open_write_end(void)
    * either places the entire envelope atomically or returns EAGAIN with
    * nothing written; the EAGAIN handler above retries after a short sleep.
    */
-  return fd;
+  return OK;
 }
 
 /****************************************************************************
@@ -150,7 +168,10 @@ int hcom_traverse_ku_kernel_setup(void)
     return -errno;
   }
 
-  _send_pipe_fd = -1;
+  if (_send_pipe_filep.f_inode != NULL)
+  {
+    file_close(&_send_pipe_filep);
+  }
 
   return OK;
 }
@@ -166,7 +187,10 @@ int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen)
     HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
   if(ret < 0)
   {
-    return -errno;
+    // ret is already a negated errno from hcom_traverse_ku_send()/
+    // hcom_traverse_ku_send_string() - errno itself is not set by the
+    // file_open()/file_write() calls underneath, and may be stale here.
+    return ret;
   }
   return OK;
 }
@@ -183,7 +207,10 @@ int hcom_traverse_ku_text_to_host(uint16_t requestType,
     requestType, textMsg, textLen);
   if(ret < 0)
   {
-    return -errno;
+    // ret is already a negated errno from hcom_traverse_ku_send()/
+    // hcom_traverse_ku_send_string() - errno itself is not set by the
+    // file_open()/file_write() calls underneath, and may be stale here.
+    return ret;
   }
   return OK;
 }
@@ -200,7 +227,10 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
     requestType, stringMsg);
   if(ret < 0)
   {
-    return -errno;
+    // ret is already a negated errno from hcom_traverse_ku_send()/
+    // hcom_traverse_ku_send_string() - errno itself is not set by the
+    // file_open()/file_write() calls underneath, and may be stale here.
+    return ret;
   }
   
   return OK;
@@ -266,14 +296,14 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     /* Lazy open: attempt to connect to the read end opened by the user side.
     * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
     */
-    if (_send_pipe_fd < 0)
+    if (_send_pipe_filep.f_inode == NULL)
     {
-      _send_pipe_fd = traverse_ku_open_write_end();
-      if (_send_pipe_fd < 0)
+      int openRet = traverse_ku_open_write_end();
+      if (openRet < 0)
       {
-        syslog(LOG_ERR, "%s@%d-_send_pipe_fd: errno%d\n",
-                __FILE__, __LINE__, errno);
-        return -errno;
+        syslog(LOG_ERR, "%s@%d-_send_pipe_filep: ret:%d\n",
+                __FILE__, __LINE__, openRet);
+        return openRet;
       }
     }
 
@@ -290,7 +320,7 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     size_t total_written = 0;
     while(total_written < sizeof(msg))
     {
-      written = write(_send_pipe_fd,
+      written = file_write(&_send_pipe_filep,
                       (const uint8_t *)&msg + total_written,
                       sizeof(msg) - total_written);
       if (written > 0)
@@ -308,33 +338,32 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
         continue;
       }
 
-      if(errno == EPIPE)            // 32 Broken pipe
+      if(written == -EPIPE)         // Broken pipe
       {
         // Will spin here waiting for User side to start, creating the other
         // end of the pipe.
-        close(_send_pipe_fd);
-        _send_pipe_fd = -1;
+        file_close(&_send_pipe_filep);
         usleep(20 * 1000);
         break;            // Break out of inner loop
       }
-      else if(errno == EAGAIN)      // 11 EAGAIN
+      else if(written == -EAGAIN)   // EAGAIN
       {
         usleep(1 * 1000);
       }
-      else if(errno == EINTR)       // 4 Interrupted
+      else if(written == -EINTR)    // Interrupted
       {
         /* Signal interrupted the call — retry immediately. */
       }
       else
       {
-        syslog(LOG_ERR, "%s@%d: write failed, written:%zd errno:%d\n",
-                __FILE__, __LINE__, written, errno);
-        return -errno;
+        syslog(LOG_ERR, "%s@%d: write failed, ret:%zd\n",
+                __FILE__, __LINE__, written);
+        return (int)written;
       }
     }
 
-    // Only loop if file descriptor closed
-  } while(_send_pipe_fd < 0);
+    // Only loop if the write end got closed above
+  } while(_send_pipe_filep.f_inode == NULL);
 
   // One message written
   return OK;
