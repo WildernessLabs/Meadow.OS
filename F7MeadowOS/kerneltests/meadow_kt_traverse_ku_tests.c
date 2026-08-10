@@ -50,6 +50,17 @@
  *               Both must appear at the host.
  *
  *   value == 4  Run all three cases above in sequence.
+ *
+ *   value == 8  Cross-context regression test: a throwaway kthread opens
+ *               the write end and sends first (TCB_FLAG_TTYPE_KERNEL,
+ *               shares g_kthread_group), then this test itself sends
+ *               again from its own syscall-driven task context
+ *               (TCB_FLAG_TTYPE_TASK, its own private fd table) reusing
+ *               the same already-open handle. Before the file_open()/
+ *               file_write() fix in hcom_traverse_ku_kernel.c, the second
+ *               send would fail with EBADF because a plain fd/write() is
+ *               resolved against the CALLING task's fd table, not the
+ *               table of whichever context originally opened it.
  */
 
 /****************************************************************************
@@ -68,6 +79,9 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
+#include <semaphore.h>
+#include <time.h>
+#include <nuttx/kthread.h>
 
 // #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
@@ -200,6 +214,118 @@ static void kt_traverse_ku_test_multi_type(void)
 }
 
 /****************************************************************************
+ * Name: kt_traverse_ku_test_opener_kthread
+ *
+ * Description:
+ *   Entry point for the throwaway kthread used by
+ *   kt_traverse_ku_test_cross_context(). Sends exactly one message (which,
+ *   if the write end is not already open, opens it from THIS kthread's
+ *   task group - g_kthread_group) and posts _kt_traverse_ku_opener_done
+ *   when finished, whether the send succeeded or not.
+ *
+ ****************************************************************************/
+
+static sem_t _kt_traverse_ku_opener_done;
+
+static void *kt_traverse_ku_test_opener_kthread(int argc, char *argv[])
+{
+  static const char msg[] = KUT_TAG ":cross-context/opened-by-kthread\n";
+  int ret;
+
+  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+    0, msg, (uint16_t)strlen(msg));
+  if (ret != OK)
+  {
+    syslog(LOG_ERR,
+      "KU Traverse test 8: opener kthread send FAIL (ret %d)\n", ret);
+  }
+
+  sem_post(&_kt_traverse_ku_opener_done);
+  return NULL;
+}
+
+/****************************************************************************
+ * Name: kt_traverse_ku_test_cross_context
+ *
+ * Description:
+ *   Force the write end closed, then have a throwaway kthread open it and
+ *   send first (TCB_FLAG_TTYPE_KERNEL, shares g_kthread_group with every
+ *   other kthread). Once that completes, send again from THIS function's
+ *   own context - this test is reached via the meadow_kt_dispatcher
+ *   syscall, so it runs on whatever regular task issued the developer
+ *   command (TCB_FLAG_TTYPE_TASK, its own private file descriptor table).
+ *   The second send is the one that matters: it reuses the handle the
+ *   kthread opened, from a different task group than the one that opened
+ *   it - exactly the condition that used to fail with EBADF.
+ *
+ ****************************************************************************/
+
+static void kt_traverse_ku_test_cross_context(void)
+{
+  static const char msg[] = KUT_TAG ":cross-context/sent-by-this-task\n";
+  int ret;
+  int pid;
+  struct timespec abstime;
+
+  syslog(LOG_INFO,
+    "KU Traverse test 8: cross-context (kthread opens+sends first, "
+    "this task sends second)\n");
+
+  // Force a clean slate so the kthread below is guaranteed to be the one
+  // that (re)opens the write end, regardless of what earlier tests in this
+  // boot session may have left open.
+  ret = hcom_traverse_ku_kernel_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR,
+      "KU Traverse test 8: FAIL (kernel_setup returned %d)\n", ret);
+    return;
+  }
+
+  sem_init(&_kt_traverse_ku_opener_done, 0, 0);
+
+  pid = kthread_create("KUTraverseOpener", 100, 2048,
+    (main_t) kt_traverse_ku_test_opener_kthread, (char * const *)NULL);
+  if (pid < 0)
+  {
+    syslog(LOG_ERR,
+      "KU Traverse test 8: FAIL (kthread_create returned %d)\n", pid);
+    sem_destroy(&_kt_traverse_ku_opener_done);
+    return;
+  }
+
+  // Reader must already be connected for either send to complete at all
+  // (same precondition as every other test in this file) - this timeout
+  // is just to keep the test from hanging forever if that's not true.
+  clock_gettime(CLOCK_REALTIME, &abstime);
+  abstime.tv_sec += 5;
+  ret = sem_timedwait(&_kt_traverse_ku_opener_done, &abstime);
+  sem_destroy(&_kt_traverse_ku_opener_done);
+  if (ret < 0)
+  {
+    syslog(LOG_ERR,
+      "KU Traverse test 8: FAIL (opener kthread did not finish in time - "
+      "is a host reader connected?)\n");
+    return;
+  }
+
+  // The write end is now open, opened by the kthread's task group above.
+  // Send again from this (different) task group.
+  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
+    0, msg, (uint16_t)strlen(msg));
+  if (ret == OK)
+  {
+    syslog(LOG_INFO,
+      "KU Traverse test 8: PASS (cross-context send returned OK)\n");
+  }
+  else
+  {
+    syslog(LOG_ERR,
+      "KU Traverse test 8: FAIL (cross-context send returned %d)\n", ret);
+  }
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -210,7 +336,7 @@ static void kt_traverse_ku_test_multi_type(void)
  *   Entry point for the KU traverse on-target test suite.
  *
  * Input Parameters:
- *   value - 1 (run all), 2 (round-trip), 3 (ordering), 4 (multi-type)
+ *   value - see the test case list in the file header comment.
  *
  ****************************************************************************/
 
@@ -262,6 +388,11 @@ void hcom_kt_traverse_ku_tests(uint32_t userData)
           "This is a string from Unit Test #7");
         break;
 
+      // Cross-context regression test - see the file header comment.
+      case 8:
+        kt_traverse_ku_test_cross_context();
+        break;
+
       default:
         syslog(LOG_MTEST, "Undefined test for hcom_kt_traverse_ku_tests, userData:%lu\n",
             userData);
@@ -270,9 +401,9 @@ void hcom_kt_traverse_ku_tests(uint32_t userData)
 
     if(ret < 0)
     {
-      // Must have been an error
-      syslog(LOG_MDIAG, "KU Traverse tests, error:ret:%d errno:%d\n",
-        ret, errno);
+      // ret is already a negated errno from the hcom_traverse_ku_*
+      // wrappers - errno itself is not set underneath and may be stale.
+      syslog(LOG_MDIAG, "KU Traverse tests, error:ret:%d\n", ret);
     }
 
   syslog(LOG_INFO, "KU Traverse tests complete\n");
