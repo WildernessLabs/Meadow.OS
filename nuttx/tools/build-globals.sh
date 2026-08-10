@@ -28,16 +28,53 @@
 #
 # Symbols to ignore within the NuttX libraries
 #
-FILTER="^lib_low|^FUNCTION|^STUB|^__start|^_vect|^arm_|^arp_|^bch|^binfmt|^blake|^block_|^cdcacm|^chksum|^clock_|^close_|^crypto_|^devif_|^devnull|^devuran|^devzero|^emerg|^epoll_|^elf_|^_dbgR|^dq_|^env_|^file_|^files_|^fs_|^ftl_|^g_|^get_|^group_|^global|^hcom|^i2c_|^inode_|^iob_|^irq_|^kmm_|^lfs_|^lib_|^local_|^mm_|^elf_|^mpu_|^mq_|^nglobals|^net_|^netdev_|^nx|^pipecommon|^posix_spawn_file|^psock_|^ramlog|^rammap|^readline_|^register_|^sched_|^sockfd|^spawn_|^sq_|^stm32|^symtab_|^syslog_|^syslogstream|^task_|^tcp_|^timer_|^uart_|^ub[12]|^udp_|^umm_|^umount|^unload_|^unregister|^up_|^usb|^usrsock_|^watchdog|^wd_|globalNames$|nglobals$|global_table$|^\.l|^espcp_|^yaml_"
+FILTER="^lib_low|^FUNCTION|^STUB|^__start|^_vect|^arm_|^arp_|^bch|^binfmt|^blake|^block_|^cdcacm|^chksum|^clock_|^close_|^crypto_|^devif_|^devnull|^devuran|^devzero|^emerg|^epoll_|^elf_|^_dbgR|^dq_|^env_|^file_|^files_|^fs_|^ftl_|^g_|^get_|^group_|^global|^hcom|^i2c_|^inode_|^iob_|^irq_|^kmm_|^lfs_|^lib_|^local_|^mm_|^elf_|^mpu_|^mq_|^nglobals|^net_|^netdev_|^nx|^pipecommon|^posix_spawn_file|^psock_|^ramlog|^rammap|^readline_|^register_|^sched_|^sockfd|^spawn_|^sq_|^stm32|^symtab_|^syslog_|^syslogstream|^task_|^tcp_|^timer_|^uart_|^ub[12]|^udp_|^umm_|^umount|^unload_|^unregister|^up_|^usb|^usrsock_|^watchdog|^wd_|globalNames$|nglobals$|global_table$|^\.l"
 
 if [ -z "${NM}" ]; then
 	NM="nm"
 fi
 
+USER_ELF="nuttx_user.elf"
+
 #
-# Extract symbols from the runtime
+# Extract candidate symbols from the kernel runtime map
 #
-SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort | grep -Ev ${FILTER}`
+KERNEL_SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort -u | grep -Ev ${FILTER}`
+
+#
+# Also extract candidates directly from the user-space binary. Libraries
+# such as libm are never referenced by kernel-space code, so functions like
+# fmodf never show up in System.map even though they are perfectly valid,
+# linkable symbols in user space - without this, the whole math library
+# (and anything else kernel-space never touches) can never be exported,
+# regardless of how often this script is regenerated.
+#
+USER_CANDIDATE_SYMS=`${NM} --defined-only ${USER_ELF} | awk '$2 ~ /[A-Z]/ {print $3}' | sort -u | grep -Ev ${FILTER}`
+
+#
+# A few symbols dlopen'd code needs are caught by the FILTER exclusion
+# above for unrelated reasons (get_errno matches the "^get_" pattern meant
+# to exclude kernel accessor functions like get_task_group). Add them back
+# explicitly rather than loosening FILTER itself, which would also let
+# through whatever "^get_"-style kernel names FILTER was written to keep
+# out.
+#
+ALWAYS_INCLUDE="get_errno"
+
+CANDIDATE_SYMS=`printf '%s\n%s\n%s\n' "${KERNEL_SYMS}" "${USER_CANDIDATE_SYMS}" "${ALWAYS_INCLUDE}" | sort -u`
+
+#
+# Restrict candidates to symbols actually defined in the user-space binary.
+# elf_globals.o is linked into any user-space consumer of the ELF dynamic
+# loader (dlopen'd modules, AoT-compiled TensorFlow models, etc.), so a
+# kernel-only global that slips past the name-based FILTER above (e.g. a
+# board/driver global that doesn't follow the g_/up_/stm32_ naming
+# conventions the filter targets) would otherwise end up in the table and
+# fail with an undefined reference the moment something outside the kernel
+# link needs to resolve the table's symbols.
+#
+USER_SYMS=`${NM} --defined-only ${USER_ELF} | awk '{print $3}' | sort -u`
+SYMS=`comm -12 <(printf '%s\n' "${CANDIDATE_SYMS}") <(printf '%s\n' "${USER_SYMS}")`
 SYM=(${SYMS})
 GLOBALS="libs/libc/elf/elf_globals.S"
 
@@ -105,6 +142,16 @@ cat >${GLOBALS} <<__EOF__
 	GLOBAL	globalNames
 
 SYMBOL(globalNames):
+/* This table only makes sense in user space: it exists to let dlopen()'d
+ * code (e.g. an AoT-compiled TensorFlow model) resolve external references
+ * against nuttx_user.elf. elf_globals.S is compiled into both the kernel
+ * and user passes, but the candidate symbols above may only exist in the
+ * user-space binary (a kernel build never references libm, for example),
+ * so this content is kernel-build-unsafe - __KERNEL__ (set via KDEFINE for
+ * the kernel-context compile) gates it out and the kernel gets an empty
+ * table instead.
+ */
+#ifndef __KERNEL__
 __EOF__
 
 for ((i = 0; i < ${#SYM[@]}; i++))
@@ -113,17 +160,23 @@ do
 done
 
 cat >>${GLOBALS} <<__EOF__
+#endif
 	SIZE	globalNames
 
 	.align	ALIGN
 	GLOBAL	nglobals
 SYMBOL(nglobals):
+#ifndef __KERNEL__
 	.word	${#SYM[@]}
+#else
+	.word	0
+#endif
 	SIZE	nglobals
 
 	.align	ALIGN
 	GLOBAL	global_table
 SYMBOL(global_table):
+#ifndef __KERNEL__
 __EOF__
 
 for ((i = 0; i < ${#SYM[@]}; i++))
@@ -131,7 +184,8 @@ do
 	echo "	globalEntry ${i}, ${SYM[$i]}" >>${GLOBALS}
 done
 
-cat >>${GLOBALS} <<__EOF__ 
+cat >>${GLOBALS} <<__EOF__
+#endif
 	SIZE	global_table
 __EOF__
 

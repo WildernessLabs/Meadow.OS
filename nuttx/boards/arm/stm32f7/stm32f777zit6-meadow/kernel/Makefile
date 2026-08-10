@@ -58,8 +58,31 @@ USER_SRECFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.srec)
 USER_BINFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.bin)
 
 USER_LDFLAGS = --undefined=$(ENTRYPT) --entry=$(ENTRYPT) $(USER_LDSCRIPT) --undefined=sqlite3_libversion
-USER_LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(USERLIBS))))
+USER_LDFLAGS += --undefined=get_errno --undefined=set_errno
 USER_LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
+
+# Force the whole math library into the final link, even for symbols
+# nothing in the statically-linked code references directly. Code
+# dlopen()'d at runtime (e.g. an AoT-compiled TensorFlow model) resolves its
+# external references against nuttx_user.elf's own symbol table, exported
+# via elf_globals.S - which only ever lists symbols that already made it
+# into this link. Without this, a libm function such as fmodf that nothing
+# in the static image happens to call would never be present to export,
+# however many times elf_globals.S is regenerated.
+#
+# This build uses CONFIG_LIBM_TOOLCHAIN=y, so libm.a is never a NuttX-built
+# staging/libm.a in USERLIBS - it is the ARM toolchain's own libm for the
+# active multilib variant, discovered the same way USER_LIBGCC discovers
+# libgcc.a below.
+#
+# libc.a is deliberately NOT whole-archived: it mixes user-safe code with
+# kernel-only helpers (e.g. lib_fileinstream.c's file_read/file_open,
+# lib_blkoutstream.c's open_blockdriver/close_blockdriver) that don't exist
+# in the user-space link at all - whole-archiving it pulls those in and the
+# link fails outright. get_errno/set_errno (also in libc.a, added above)
+# are pulled in individually via --undefined= instead.
+USER_LIBM = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libm$(LIBEXT)}"
+USER_LDLIBS = $(patsubst lib%,-l%,$(basename $(notdir $(USERLIBS))))
 
 # Source files
 
@@ -78,7 +101,7 @@ $(COBJS): %$(OBJEXT): %.c
 # Create the nuttx_user.elf file containing all of the user-mode code
 
 nuttx_user.elf: $(OBJS)
-	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS) $(MBEDTLS_AOBJS) --start-group $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC)
+	$(Q) $(LD) -o $@ $(USER_LDFLAGS) $(USER_LIBPATHS) $(OBJS) $(MBEDTLS_AOBJS) --start-group --whole-archive $(USER_LIBM) --no-whole-archive $(USER_LDLIBS) $(MONO_AOBJS) $(MONO_LIBM) --end-group $(USER_LIBGCC)
 
 
 $(TOPDIR)$(DELIM)nuttx_user.elf: nuttx_user.elf

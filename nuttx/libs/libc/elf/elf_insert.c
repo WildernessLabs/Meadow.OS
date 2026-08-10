@@ -247,9 +247,32 @@ static int libelf_loadsymtab(FAR struct module_s *modp,
       if (sym[i].st_shndx != SHN_UNDEF &&
           sym[i].st_shndx < loadinfo->ehdr.e_shnum)
         {
-          FAR Elf_Shdr *s = &loadinfo->shdr[sym[i].st_shndx];
+          if (loadinfo->ehdr.e_type == ET_DYN)
+            {
+              /* For ET_DYN, st_value is already an absolute address within
+               * the module's own (pre-relocation) address space, and the
+               * containing section's sh_addr is never remapped to the real
+               * allocated address (unlike ET_REL/ET_EXEC) - translate the
+               * same way libelf_relocatedyn() translates relocation
+               * targets instead of offsetting by the stale sh_addr.
+               */
 
-          sym[i].st_value = sym[i].st_value + s->sh_addr;
+              if (sym[i].st_value < loadinfo->datasec)
+                {
+                  sym[i].st_value += loadinfo->textalloc;
+                }
+              else
+                {
+                  sym[i].st_value = sym[i].st_value -
+                                     loadinfo->datasec + loadinfo->datastart;
+                }
+            }
+          else
+            {
+              FAR Elf_Shdr *s = &loadinfo->shdr[sym[i].st_shndx];
+
+              sym[i].st_value = sym[i].st_value + s->sh_addr;
+            }
         }
     }
 

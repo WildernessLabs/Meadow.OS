@@ -40,7 +40,7 @@
 
 #include <math.h>
 
-#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #include <dlfcn.h>
 
@@ -174,6 +174,7 @@ static void *tensorflow_tests_load_tensorflow_dll(char *name)
 
     syslog(LOG_MTEST, "    Opening %s DLL\n", name);
     snprintf(path, 128, "%s/%s", MONO_MEADOW_EXECUTABLE_PARTITION_NAME, name);
+    syslog(LOG_MTEST, "    Path: %s\n", path);
     void *handle = dlopen(path, RTLD_NOW);
     syslog(LOG_MTEST, "    Handle: %p\n", handle);
 
@@ -214,7 +215,7 @@ void tensorflow_tests_hello_world(uint32_t value)
             syslog(LOG_MTEST, "    tensorflow_hello_world_test_loop: %p\n", testloop); 
             if (testloop != 0)
             {
-                for (int pass = 0; pass < 2; pass++)
+                for (int current_pass = 0; current_pass < 2; current_pass++)
                 {
                     for (int index = 0; index < 20; index++)
                     {
