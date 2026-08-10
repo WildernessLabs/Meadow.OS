@@ -58,393 +58,4346 @@
 	GLOBAL	globalNames
 
 SYMBOL(globalNames):
-.l0:	.string	"__adddf3"
-.l1:	.string	"__aeabi_d2ulz"
-.l2:	.string	"__aeabi_dadd"
-.l3:	.string	"__aeabi_drsub"
-.l4:	.string	"__aeabi_dsub"
-.l5:	.string	"__aeabi_f2d"
-.l6:	.string	"__aeabi_i2d"
-.l7:	.string	"__aeabi_idiv0"
-.l8:	.string	"__aeabi_l2d"
-.l9:	.string	"__aeabi_ldiv0"
-.l10:	.string	"__aeabi_ldivmod"
-.l11:	.string	"__aeabi_ui2d"
-.l12:	.string	"__aeabi_ul2d"
-.l13:	.string	"__aeabi_uldivmod"
-.l14:	.string	"__assert"
-.l15:	.string	"__dtoa_engine"
-.l16:	.string	"__errno"
-.l17:	.string	"__exidx_end"
-.l18:	.string	"__exidx_start"
-.l19:	.string	"__extendsfdf2"
-.l20:	.string	"__fixunsdfdi"
-.l21:	.string	"__floatdidf"
-.l22:	.string	"__floatsidf"
-.l23:	.string	"__floatundidf"
-.l24:	.string	"__floatunsidf"
-.l25:	.string	"__subdf3"
-.l26:	.string	"__udivmoddi4"
-.l27:	.string	"__ultoa_invert"
-.l28:	.string	"_assert"
-.l29:	.string	"_ebss"
-.l30:	.string	"_edata"
-.l31:	.string	"_einit"
-.l32:	.string	"_eronly"
-.l33:	.string	"_etext"
-.l34:	.string	"_exit"
-.l35:	.string	"_sbss"
-.l36:	.string	"_sdata"
-.l37:	.string	"_sinit"
-.l38:	.string	"_stext"
-.l39:	.string	"abort"
-.l40:	.string	"accept4"
-.l41:	.string	"atoi"
-.l42:	.string	"bind"
-.l43:	.string	"calloc"
-.l44:	.string	"clock"
-.l45:	.string	"close"
-.l46:	.string	"connect"
-.l47:	.string	"dns_bind"
-.l48:	.string	"dns_breaklock"
-.l49:	.string	"dns_clear_answer"
-.l50:	.string	"dns_find_answer"
-.l51:	.string	"dns_foreach_nameserver"
-.l52:	.string	"dns_is_queryfamily"
-.l53:	.string	"dns_lock"
-.l54:	.string	"dns_query"
-.l55:	.string	"dns_restorelock"
-.l56:	.string	"dns_save_answer"
-.l57:	.string	"dns_unlock"
-.l58:	.string	"espcp_encode_event_data"
-.l59:	.string	"espcp_encode_uint32"
-.l60:	.string	"fclose"
-.l61:	.string	"fcntl"
-.l62:	.string	"fdopen"
-.l63:	.string	"ferror"
-.l64:	.string	"fflush"
-.l65:	.string	"fgetc"
-.l66:	.string	"fgetc_unlocked"
-.l67:	.string	"fgets"
-.l68:	.string	"fgets_unlocked"
-.l69:	.string	"flockfile"
-.l70:	.string	"fopen"
-.l71:	.string	"fprintf"
-.l72:	.string	"fputc"
-.l73:	.string	"fputc_unlocked"
-.l74:	.string	"fputs"
-.l75:	.string	"fputs_unlocked"
-.l76:	.string	"fread"
-.l77:	.string	"fread_unlocked"
-.l78:	.string	"free"
-.l79:	.string	"fseek"
-.l80:	.string	"fseeko"
-.l81:	.string	"fstat"
-.l82:	.string	"fsync"
-.l83:	.string	"ftell"
-.l84:	.string	"ftello"
-.l85:	.string	"funlockfile"
-.l86:	.string	"fwrite"
-.l87:	.string	"fwrite_unlocked"
-.l88:	.string	"getenv"
-.l89:	.string	"gethostentbyname_r"
-.l90:	.string	"getpid"
-.l91:	.string	"getrandom"
-.l92:	.string	"getsockname"
-.l93:	.string	"getsockopt"
-.l94:	.string	"gettimeofday"
-.l95:	.string	"gmtime_r"
-.l96:	.string	"inet_ntop"
-.l97:	.string	"inet_pton"
-.l98:	.string	"ioctl"
-.l99:	.string	"isprint"
-.l100:	.string	"isspace"
-.l101:	.string	"listen"
-.l102:	.string	"lseek"
-.l103:	.string	"malloc"
-.l104:	.string	"meadow_cloud_provision"
-.l105:	.string	"meadow_cloud_release_private_key"
-.l106:	.string	"meadow_cloud_retrieve_private_key"
-.l107:	.string	"meadow_hw_version_get"
-.l108:	.string	"meadow_os_config_free_resources"
-.l109:	.string	"meadow_os_deep_copy_config"
-.l110:	.string	"meadow_os_espcp_enter_programming_mode"
-.l111:	.string	"meadow_os_espcp_monitor_process_line"
-.l112:	.string	"meadow_os_espcp_reset"
-.l113:	.string	"meadow_os_reset_board"
-.l114:	.string	"memchr"
-.l115:	.string	"memcmp"
-.l116:	.string	"memcpy"
-.l117:	.string	"memmove"
-.l118:	.string	"memset"
-.l119:	.string	"mkdir"
-.l120:	.string	"mount"
-.l121:	.string	"open"
-.l122:	.string	"parse_hostfile"
-.l123:	.string	"perror"
-.l124:	.string	"pipe2"
-.l125:	.string	"poll"
-.l126:	.string	"pthread_cancel"
-.l127:	.string	"pthread_exit"
-.l128:	.string	"pthread_join"
-.l129:	.string	"read"
-.l130:	.string	"realloc"
-.l131:	.string	"recv"
-.l132:	.string	"recvfrom"
-.l133:	.string	"remove"
-.l134:	.string	"rename"
-.l135:	.string	"rmdir"
-.l136:	.string	"select"
-.l137:	.string	"sem_destroy"
-.l138:	.string	"sem_init"
-.l139:	.string	"sem_post"
-.l140:	.string	"sem_setprotocol"
-.l141:	.string	"sem_wait"
-.l142:	.string	"send"
-.l143:	.string	"setlogmask"
-.l144:	.string	"setsockopt"
-.l145:	.string	"shutdown"
-.l146:	.string	"sigaddset"
-.l147:	.string	"sigemptyset"
-.l148:	.string	"signal"
-.l149:	.string	"sigprocmask"
-.l150:	.string	"sleep"
-.l151:	.string	"snprintf"
-.l152:	.string	"socket"
-.l153:	.string	"stat"
-.l154:	.string	"statfs"
-.l155:	.string	"strchr"
-.l156:	.string	"strcmp"
-.l157:	.string	"strcpy"
-.l158:	.string	"strcspn"
-.l159:	.string	"strerror"
-.l160:	.string	"strlcat"
-.l161:	.string	"strlcpy"
-.l162:	.string	"strlen"
-.l163:	.string	"strncmp"
-.l164:	.string	"strncpy"
-.l165:	.string	"strnlen"
-.l166:	.string	"strrchr"
-.l167:	.string	"strspn"
-.l168:	.string	"strtok_r"
-.l169:	.string	"strtol"
-.l170:	.string	"strtoul"
-.l171:	.string	"syslog"
-.l172:	.string	"time"
-.l173:	.string	"tls_cleanup_pop"
-.l174:	.string	"tls_cleanup_popall"
-.l175:	.string	"tls_cleanup_push"
-.l176:	.string	"tls_destruct"
-.l177:	.string	"tls_get_info"
-.l178:	.string	"tolower"
-.l179:	.string	"unlink"
-.l180:	.string	"usleep"
-.l181:	.string	"vfprintf"
-.l182:	.string	"vsnprintf"
-.l183:	.string	"vsyslog"
-.l184:	.string	"waitpid"
-.l185:	.string	"work_cancel"
-.l186:	.string	"work_queue"
-.l187:	.string	"write"
-.l188:	.string	"zalloc"
+/* This table only makes sense in user space: it exists to let dlopen()'d
+ * code (e.g. an AoT-compiled TensorFlow model) resolve external references
+ * against nuttx_user.elf. elf_globals.S is compiled into both the kernel
+ * and user passes, but the candidate symbols above may only exist in the
+ * user-space binary (a kernel build never references libm, for example),
+ * so this content is kernel-build-unsafe - __KERNEL__ (set via KDEFINE for
+ * the kernel-context compile) gates it out and the kernel gets an empty
+ * table instead.
+ */
+#ifndef __KERNEL__
+.l0:	.string	"_Exit"
+.l1:	.string	"__adddf3"
+.l2:	.string	"__aeabi_d2lz"
+.l3:	.string	"__aeabi_d2ulz"
+.l4:	.string	"__aeabi_dadd"
+.l5:	.string	"__aeabi_drsub"
+.l6:	.string	"__aeabi_dsub"
+.l7:	.string	"__aeabi_f2d"
+.l8:	.string	"__aeabi_f2lz"
+.l9:	.string	"__aeabi_f2ulz"
+.l10:	.string	"__aeabi_i2d"
+.l11:	.string	"__aeabi_idiv0"
+.l12:	.string	"__aeabi_l2d"
+.l13:	.string	"__aeabi_ldiv0"
+.l14:	.string	"__aeabi_ldivmod"
+.l15:	.string	"__aeabi_ui2d"
+.l16:	.string	"__aeabi_ul2d"
+.l17:	.string	"__aeabi_uldivmod"
+.l18:	.string	"__assert"
+.l19:	.string	"__dso_handle"
+.l20:	.string	"__dtoa_engine"
+.l21:	.string	"__errno"
+.l22:	.string	"__exidx_end"
+.l23:	.string	"__exidx_start"
+.l24:	.string	"__exp2f_data"
+.l25:	.string	"__exp_data"
+.l26:	.string	"__extendsfdf2"
+.l27:	.string	"__fe_dfl_env"
+.l28:	.string	"__fixdfdi"
+.l29:	.string	"__fixsfdi"
+.l30:	.string	"__fixunsdfdi"
+.l31:	.string	"__fixunssfdi"
+.l32:	.string	"__floatdidf"
+.l33:	.string	"__floatsidf"
+.l34:	.string	"__floatundidf"
+.l35:	.string	"__floatunsidf"
+.l36:	.string	"__fpclassifyd"
+.l37:	.string	"__fpclassifyf"
+.l38:	.string	"__ieee754_acos"
+.l39:	.string	"__ieee754_acosf"
+.l40:	.string	"__ieee754_acosh"
+.l41:	.string	"__ieee754_acoshf"
+.l42:	.string	"__ieee754_asin"
+.l43:	.string	"__ieee754_asinf"
+.l44:	.string	"__ieee754_atan2"
+.l45:	.string	"__ieee754_atan2f"
+.l46:	.string	"__ieee754_atanh"
+.l47:	.string	"__ieee754_atanhf"
+.l48:	.string	"__ieee754_cosh"
+.l49:	.string	"__ieee754_coshf"
+.l50:	.string	"__ieee754_fmod"
+.l51:	.string	"__ieee754_fmodf"
+.l52:	.string	"__ieee754_hypot"
+.l53:	.string	"__ieee754_hypotf"
+.l54:	.string	"__ieee754_hypotl"
+.l55:	.string	"__ieee754_j0"
+.l56:	.string	"__ieee754_j0f"
+.l57:	.string	"__ieee754_j1"
+.l58:	.string	"__ieee754_j1f"
+.l59:	.string	"__ieee754_jn"
+.l60:	.string	"__ieee754_jnf"
+.l61:	.string	"__ieee754_lgamma_r"
+.l62:	.string	"__ieee754_lgammaf_r"
+.l63:	.string	"__ieee754_log10"
+.l64:	.string	"__ieee754_log10f"
+.l65:	.string	"__ieee754_rem_pio2"
+.l66:	.string	"__ieee754_rem_pio2f"
+.l67:	.string	"__ieee754_remainder"
+.l68:	.string	"__ieee754_remainderf"
+.l69:	.string	"__ieee754_scalb"
+.l70:	.string	"__ieee754_scalbf"
+.l71:	.string	"__ieee754_sinh"
+.l72:	.string	"__ieee754_sinhf"
+.l73:	.string	"__ieee754_sqrt"
+.l74:	.string	"__ieee754_sqrtf"
+.l75:	.string	"__ieee754_tgamma"
+.l76:	.string	"__ieee754_tgammaf"
+.l77:	.string	"__ieee754_y0"
+.l78:	.string	"__ieee754_y0f"
+.l79:	.string	"__ieee754_y1"
+.l80:	.string	"__ieee754_y1f"
+.l81:	.string	"__ieee754_yn"
+.l82:	.string	"__ieee754_ynf"
+.l83:	.string	"__inv_pio4"
+.l84:	.string	"__isinfd"
+.l85:	.string	"__isinff"
+.l86:	.string	"__isnand"
+.l87:	.string	"__isnanf"
+.l88:	.string	"__kernel_cos"
+.l89:	.string	"__kernel_cosf"
+.l90:	.string	"__kernel_rem_pio2"
+.l91:	.string	"__kernel_rem_pio2f"
+.l92:	.string	"__kernel_sin"
+.l93:	.string	"__kernel_sinf"
+.l94:	.string	"__kernel_standard"
+.l95:	.string	"__kernel_tan"
+.l96:	.string	"__kernel_tanf"
+.l97:	.string	"__log2_data"
+.l98:	.string	"__log2f_data"
+.l99:	.string	"__log_data"
+.l100:	.string	"__logf_data"
+.l101:	.string	"__math_check_oflow"
+.l102:	.string	"__math_check_uflow"
+.l103:	.string	"__math_divzero"
+.l104:	.string	"__math_divzerof"
+.l105:	.string	"__math_invalid"
+.l106:	.string	"__math_invalidf"
+.l107:	.string	"__math_may_uflow"
+.l108:	.string	"__math_may_uflowf"
+.l109:	.string	"__math_oflow"
+.l110:	.string	"__math_oflowf"
+.l111:	.string	"__math_uflow"
+.l112:	.string	"__math_uflowf"
+.l113:	.string	"__muldc3"
+.l114:	.string	"__mulsc3"
+.l115:	.string	"__pow_log_data"
+.l116:	.string	"__powf_log2_data"
+.l117:	.string	"__signbitd"
+.l118:	.string	"__signbitf"
+.l119:	.string	"__signgam"
+.l120:	.string	"__sincosf_table"
+.l121:	.string	"__subdf3"
+.l122:	.string	"__udivmoddi4"
+.l123:	.string	"__ultoa_invert"
+.l124:	.string	"_assert"
+.l125:	.string	"_cchsh"
+.l126:	.string	"_cchshf"
+.l127:	.string	"_cchshl"
+.l128:	.string	"_ctans"
+.l129:	.string	"_ctansf"
+.l130:	.string	"_ctansl"
+.l131:	.string	"_e_mono_signature"
+.l132:	.string	"_ebss"
+.l133:	.string	"_edata"
+.l134:	.string	"_einit"
+.l135:	.string	"_eronly"
+.l136:	.string	"_etext"
+.l137:	.string	"_euserspace"
+.l138:	.string	"_exit"
+.l139:	.string	"_fe_dfl_env"
+.l140:	.string	"_global_impure_ptr"
+.l141:	.string	"_impure_ptr"
+.l142:	.string	"_pipe_handles"
+.l143:	.string	"_redupi"
+.l144:	.string	"_redupif"
+.l145:	.string	"_redupil"
+.l146:	.string	"_s_mono_signature"
+.l147:	.string	"_sbss"
+.l148:	.string	"_sdata"
+.l149:	.string	"_send_log_to_uart"
+.l150:	.string	"_sinit"
+.l151:	.string	"_stext"
+.l152:	.string	"_suserspace"
+.l153:	.string	"_uart_thread_handle"
+.l154:	.string	"abort"
+.l155:	.string	"accept"
+.l156:	.string	"accept4"
+.l157:	.string	"access"
+.l158:	.string	"acos"
+.l159:	.string	"acosf"
+.l160:	.string	"acosh"
+.l161:	.string	"acoshf"
+.l162:	.string	"acoshl"
+.l163:	.string	"acosl"
+.l164:	.string	"app_update"
+.l165:	.string	"asin"
+.l166:	.string	"asinf"
+.l167:	.string	"asinh"
+.l168:	.string	"asinhf"
+.l169:	.string	"asinhl"
+.l170:	.string	"asinl"
+.l171:	.string	"atan"
+.l172:	.string	"atan2"
+.l173:	.string	"atan2f"
+.l174:	.string	"atan2l"
+.l175:	.string	"atanf"
+.l176:	.string	"atanh"
+.l177:	.string	"atanhf"
+.l178:	.string	"atanhl"
+.l179:	.string	"atanl"
+.l180:	.string	"atoi"
+.l181:	.string	"basename"
+.l182:	.string	"bind"
+.l183:	.string	"bsearch"
+.l184:	.string	"cabs"
+.l185:	.string	"cabsf"
+.l186:	.string	"cabsl"
+.l187:	.string	"cacos"
+.l188:	.string	"cacosf"
+.l189:	.string	"cacosh"
+.l190:	.string	"cacoshf"
+.l191:	.string	"cacoshl"
+.l192:	.string	"cacosl"
+.l193:	.string	"calloc"
+.l194:	.string	"carg"
+.l195:	.string	"cargf"
+.l196:	.string	"cargl"
+.l197:	.string	"casin"
+.l198:	.string	"casinf"
+.l199:	.string	"casinh"
+.l200:	.string	"casinhf"
+.l201:	.string	"casinhl"
+.l202:	.string	"casinl"
+.l203:	.string	"catan"
+.l204:	.string	"catanf"
+.l205:	.string	"catanh"
+.l206:	.string	"catanhf"
+.l207:	.string	"catanhl"
+.l208:	.string	"catanl"
+.l209:	.string	"cbrt"
+.l210:	.string	"cbrtf"
+.l211:	.string	"cbrtl"
+.l212:	.string	"ccos"
+.l213:	.string	"ccosf"
+.l214:	.string	"ccosh"
+.l215:	.string	"ccoshf"
+.l216:	.string	"ccoshl"
+.l217:	.string	"ccosl"
+.l218:	.string	"ceil"
+.l219:	.string	"ceilf"
+.l220:	.string	"ceill"
+.l221:	.string	"cexp"
+.l222:	.string	"cexpf"
+.l223:	.string	"cexpl"
+.l224:	.string	"cimag"
+.l225:	.string	"cimagf"
+.l226:	.string	"cimagl"
+.l227:	.string	"clock"
+.l228:	.string	"clog"
+.l229:	.string	"clog10"
+.l230:	.string	"clog10f"
+.l231:	.string	"clogf"
+.l232:	.string	"clogl"
+.l233:	.string	"close"
+.l234:	.string	"closedir"
+.l235:	.string	"conj"
+.l236:	.string	"conjf"
+.l237:	.string	"conjl"
+.l238:	.string	"connect"
+.l239:	.string	"copysign"
+.l240:	.string	"copysignf"
+.l241:	.string	"copysignl"
+.l242:	.string	"cos"
+.l243:	.string	"cosf"
+.l244:	.string	"cosh"
+.l245:	.string	"coshf"
+.l246:	.string	"coshl"
+.l247:	.string	"cosl"
+.l248:	.string	"cpow"
+.l249:	.string	"cpowf"
+.l250:	.string	"cpowl"
+.l251:	.string	"cproj"
+.l252:	.string	"cprojf"
+.l253:	.string	"cprojl"
+.l254:	.string	"crc32full"
+.l255:	.string	"crc32part"
+.l256:	.string	"creal"
+.l257:	.string	"crealf"
+.l258:	.string	"creall"
+.l259:	.string	"csin"
+.l260:	.string	"csinf"
+.l261:	.string	"csinh"
+.l262:	.string	"csinhf"
+.l263:	.string	"csinhl"
+.l264:	.string	"csinl"
+.l265:	.string	"csqrt"
+.l266:	.string	"csqrtf"
+.l267:	.string	"csqrtl"
+.l268:	.string	"ctan"
+.l269:	.string	"ctanf"
+.l270:	.string	"ctanh"
+.l271:	.string	"ctanhf"
+.l272:	.string	"ctanhl"
+.l273:	.string	"ctanl"
+.l274:	.string	"dlclose"
+.l275:	.string	"dlopen"
+.l276:	.string	"dlsym"
+.l277:	.string	"dns_bind"
+.l278:	.string	"dns_breaklock"
+.l279:	.string	"dns_clear_answer"
+.l280:	.string	"dns_find_answer"
+.l281:	.string	"dns_foreach_nameserver"
+.l282:	.string	"dns_is_queryfamily"
+.l283:	.string	"dns_lock"
+.l284:	.string	"dns_query"
+.l285:	.string	"dns_restorelock"
+.l286:	.string	"dns_save_answer"
+.l287:	.string	"dns_set_queryfamily"
+.l288:	.string	"dns_unlock"
+.l289:	.string	"drem"
+.l290:	.string	"dremf"
+.l291:	.string	"erf"
+.l292:	.string	"erfc"
+.l293:	.string	"erfcf"
+.l294:	.string	"erfcl"
+.l295:	.string	"erff"
+.l296:	.string	"erfl"
+.l297:	.string	"espcp_encode_event_data"
+.l298:	.string	"espcp_encode_uint32"
+.l299:	.string	"espcp_open_esp32_events_message_queue"
+.l300:	.string	"espcp_queue_event_messages"
+.l301:	.string	"exit"
+.l302:	.string	"exp"
+.l303:	.string	"exp10"
+.l304:	.string	"exp10f"
+.l305:	.string	"exp2"
+.l306:	.string	"exp2f"
+.l307:	.string	"exp2l"
+.l308:	.string	"expf"
+.l309:	.string	"expl"
+.l310:	.string	"expm1"
+.l311:	.string	"expm1f"
+.l312:	.string	"expm1l"
+.l313:	.string	"fabs"
+.l314:	.string	"fabsf"
+.l315:	.string	"fabsl"
+.l316:	.string	"faccessat"
+.l317:	.string	"fclose"
+.l318:	.string	"fcntl"
+.l319:	.string	"fdim"
+.l320:	.string	"fdimf"
+.l321:	.string	"fdiml"
+.l322:	.string	"fdopen"
+.l323:	.string	"feclearexcept"
+.l324:	.string	"fedisableexcept"
+.l325:	.string	"feenableexcept"
+.l326:	.string	"fegetenv"
+.l327:	.string	"fegetexcept"
+.l328:	.string	"fegetexceptflag"
+.l329:	.string	"fegetround"
+.l330:	.string	"feholdexcept"
+.l331:	.string	"feraiseexcept"
+.l332:	.string	"ferror"
+.l333:	.string	"fesetenv"
+.l334:	.string	"fesetexceptflag"
+.l335:	.string	"fesetround"
+.l336:	.string	"fetestexcept"
+.l337:	.string	"feupdateenv"
+.l338:	.string	"fflush"
+.l339:	.string	"fflush_unlocked"
+.l340:	.string	"fgetc"
+.l341:	.string	"fgetc_unlocked"
+.l342:	.string	"fgets"
+.l343:	.string	"fgets_unlocked"
+.l344:	.string	"finite"
+.l345:	.string	"finitef"
+.l346:	.string	"finitel"
+.l347:	.string	"firmware_update"
+.l348:	.string	"flockfile"
+.l349:	.string	"floor"
+.l350:	.string	"floorf"
+.l351:	.string	"floorl"
+.l352:	.string	"fma"
+.l353:	.string	"fmaf"
+.l354:	.string	"fmal"
+.l355:	.string	"fmax"
+.l356:	.string	"fmaxf"
+.l357:	.string	"fmaxl"
+.l358:	.string	"fmin"
+.l359:	.string	"fminf"
+.l360:	.string	"fminl"
+.l361:	.string	"fmod"
+.l362:	.string	"fmodf"
+.l363:	.string	"fmodl"
+.l364:	.string	"fopen"
+.l365:	.string	"fprintf"
+.l366:	.string	"fputc"
+.l367:	.string	"fputc_unlocked"
+.l368:	.string	"fputs"
+.l369:	.string	"fputs_unlocked"
+.l370:	.string	"fread"
+.l371:	.string	"fread_unlocked"
+.l372:	.string	"free"
+.l373:	.string	"freeaddrinfo"
+.l374:	.string	"frexp"
+.l375:	.string	"frexpf"
+.l376:	.string	"frexpl"
+.l377:	.string	"fseek"
+.l378:	.string	"fseeko"
+.l379:	.string	"fstat"
+.l380:	.string	"fsync"
+.l381:	.string	"ftell"
+.l382:	.string	"ftello"
+.l383:	.string	"ftrylockfile"
+.l384:	.string	"funlockfile"
+.l385:	.string	"fwrite"
+.l386:	.string	"fwrite_unlocked"
+.l387:	.string	"gamma"
+.l388:	.string	"gamma_r"
+.l389:	.string	"gammaf"
+.l390:	.string	"gammaf_r"
+.l391:	.string	"get_errno"
+.l392:	.string	"getaddrinfo"
+.l393:	.string	"getcwd"
+.l394:	.string	"getenv"
+.l395:	.string	"gethostentbyname_r"
+.l396:	.string	"getpid"
+.l397:	.string	"getrandom"
+.l398:	.string	"getservbyname_r"
+.l399:	.string	"getsockname"
+.l400:	.string	"getsockopt"
+.l401:	.string	"gettid"
+.l402:	.string	"gettimeofday"
+.l403:	.string	"gmtime_r"
+.l404:	.string	"hello_world_results"
+.l405:	.string	"hypot"
+.l406:	.string	"hypotf"
+.l407:	.string	"hypotl"
+.l408:	.string	"ilogb"
+.l409:	.string	"ilogbf"
+.l410:	.string	"ilogbl"
+.l411:	.string	"inet_ntop"
+.l412:	.string	"inet_pton"
+.l413:	.string	"infinity"
+.l414:	.string	"infinityf"
+.l415:	.string	"ioctl"
+.l416:	.string	"isinf"
+.l417:	.string	"isinff"
+.l418:	.string	"isnan"
+.l419:	.string	"isnanf"
+.l420:	.string	"isprint"
+.l421:	.string	"isprint_l"
+.l422:	.string	"isspace"
+.l423:	.string	"isspace_l"
+.l424:	.string	"j0"
+.l425:	.string	"j0f"
+.l426:	.string	"j1"
+.l427:	.string	"j1f"
+.l428:	.string	"jn"
+.l429:	.string	"jnf"
+.l430:	.string	"ldexp"
+.l431:	.string	"ldexpf"
+.l432:	.string	"ldexpl"
+.l433:	.string	"lgamma"
+.l434:	.string	"lgamma_r"
+.l435:	.string	"lgammaf"
+.l436:	.string	"lgammaf_r"
+.l437:	.string	"lgammal"
+.l438:	.string	"libelf_allocbuffer"
+.l439:	.string	"libelf_bind"
+.l440:	.string	"libelf_depend"
+.l441:	.string	"libelf_findglobal"
+.l442:	.string	"libelf_findsection"
+.l443:	.string	"libelf_findsymtab"
+.l444:	.string	"libelf_freebuffers"
+.l445:	.string	"libelf_freesymtab"
+.l446:	.string	"libelf_getsymbol"
+.l447:	.string	"libelf_getsymtab"
+.l448:	.string	"libelf_initialize"
+.l449:	.string	"libelf_insert"
+.l450:	.string	"libelf_insertsymtab"
+.l451:	.string	"libelf_load"
+.l452:	.string	"libelf_loadhdrs"
+.l453:	.string	"libelf_read"
+.l454:	.string	"libelf_readsym"
+.l455:	.string	"libelf_reallocbuffer"
+.l456:	.string	"libelf_registry_add"
+.l457:	.string	"libelf_registry_del"
+.l458:	.string	"libelf_registry_foreach"
+.l459:	.string	"libelf_registry_lock"
+.l460:	.string	"libelf_registry_unlock"
+.l461:	.string	"libelf_registry_verify"
+.l462:	.string	"libelf_remove"
+.l463:	.string	"libelf_sectname"
+.l464:	.string	"libelf_setsymtab"
+.l465:	.string	"libelf_symvalue"
+.l466:	.string	"libelf_undepend"
+.l467:	.string	"libelf_uninit"
+.l468:	.string	"libelf_uninitialize"
+.l469:	.string	"libelf_unload"
+.l470:	.string	"libelf_verifyheader"
+.l471:	.string	"listen"
+.l472:	.string	"llrint"
+.l473:	.string	"llrintf"
+.l474:	.string	"llrintl"
+.l475:	.string	"llround"
+.l476:	.string	"llroundf"
+.l477:	.string	"llroundl"
+.l478:	.string	"localtime_r"
+.l479:	.string	"log"
+.l480:	.string	"log10"
+.l481:	.string	"log10f"
+.l482:	.string	"log10l"
+.l483:	.string	"log1p"
+.l484:	.string	"log1pf"
+.l485:	.string	"log1pl"
+.l486:	.string	"log2"
+.l487:	.string	"log2f"
+.l488:	.string	"log2l"
+.l489:	.string	"logb"
+.l490:	.string	"logbf"
+.l491:	.string	"logbl"
+.l492:	.string	"logf"
+.l493:	.string	"logl"
+.l494:	.string	"lrint"
+.l495:	.string	"lrintf"
+.l496:	.string	"lrintl"
+.l497:	.string	"lround"
+.l498:	.string	"lroundf"
+.l499:	.string	"lroundl"
+.l500:	.string	"lseek"
+.l501:	.string	"malloc"
+.l502:	.string	"mbedtls_aes_cmac_prf_128"
+.l503:	.string	"mbedtls_aes_crypt_cbc"
+.l504:	.string	"mbedtls_aes_crypt_cfb128"
+.l505:	.string	"mbedtls_aes_crypt_cfb8"
+.l506:	.string	"mbedtls_aes_crypt_ctr"
+.l507:	.string	"mbedtls_aes_crypt_ecb"
+.l508:	.string	"mbedtls_aes_crypt_ofb"
+.l509:	.string	"mbedtls_aes_crypt_xts"
+.l510:	.string	"mbedtls_aes_free"
+.l511:	.string	"mbedtls_aes_init"
+.l512:	.string	"mbedtls_aes_setkey_dec"
+.l513:	.string	"mbedtls_aes_setkey_enc"
+.l514:	.string	"mbedtls_aes_xts_free"
+.l515:	.string	"mbedtls_aes_xts_init"
+.l516:	.string	"mbedtls_aes_xts_setkey_dec"
+.l517:	.string	"mbedtls_aes_xts_setkey_enc"
+.l518:	.string	"mbedtls_aria_crypt_cbc"
+.l519:	.string	"mbedtls_aria_crypt_cfb128"
+.l520:	.string	"mbedtls_aria_crypt_ctr"
+.l521:	.string	"mbedtls_aria_crypt_ecb"
+.l522:	.string	"mbedtls_aria_free"
+.l523:	.string	"mbedtls_aria_init"
+.l524:	.string	"mbedtls_aria_setkey_dec"
+.l525:	.string	"mbedtls_aria_setkey_enc"
+.l526:	.string	"mbedtls_asn1_find_named_data"
+.l527:	.string	"mbedtls_asn1_free_named_data"
+.l528:	.string	"mbedtls_asn1_free_named_data_list"
+.l529:	.string	"mbedtls_asn1_free_named_data_list_shallow"
+.l530:	.string	"mbedtls_asn1_get_alg"
+.l531:	.string	"mbedtls_asn1_get_alg_null"
+.l532:	.string	"mbedtls_asn1_get_bitstring"
+.l533:	.string	"mbedtls_asn1_get_bitstring_null"
+.l534:	.string	"mbedtls_asn1_get_bool"
+.l535:	.string	"mbedtls_asn1_get_enum"
+.l536:	.string	"mbedtls_asn1_get_int"
+.l537:	.string	"mbedtls_asn1_get_len"
+.l538:	.string	"mbedtls_asn1_get_mpi"
+.l539:	.string	"mbedtls_asn1_get_sequence_of"
+.l540:	.string	"mbedtls_asn1_get_tag"
+.l541:	.string	"mbedtls_asn1_sequence_free"
+.l542:	.string	"mbedtls_asn1_store_named_data"
+.l543:	.string	"mbedtls_asn1_traverse_sequence_of"
+.l544:	.string	"mbedtls_asn1_write_algorithm_identifier"
+.l545:	.string	"mbedtls_asn1_write_algorithm_identifier_ext"
+.l546:	.string	"mbedtls_asn1_write_bitstring"
+.l547:	.string	"mbedtls_asn1_write_bool"
+.l548:	.string	"mbedtls_asn1_write_enum"
+.l549:	.string	"mbedtls_asn1_write_ia5_string"
+.l550:	.string	"mbedtls_asn1_write_int"
+.l551:	.string	"mbedtls_asn1_write_len"
+.l552:	.string	"mbedtls_asn1_write_mpi"
+.l553:	.string	"mbedtls_asn1_write_named_bitstring"
+.l554:	.string	"mbedtls_asn1_write_null"
+.l555:	.string	"mbedtls_asn1_write_octet_string"
+.l556:	.string	"mbedtls_asn1_write_oid"
+.l557:	.string	"mbedtls_asn1_write_printable_string"
+.l558:	.string	"mbedtls_asn1_write_raw_buffer"
+.l559:	.string	"mbedtls_asn1_write_tag"
+.l560:	.string	"mbedtls_asn1_write_tagged_string"
+.l561:	.string	"mbedtls_asn1_write_utf8_string"
+.l562:	.string	"mbedtls_base64_decode"
+.l563:	.string	"mbedtls_base64_encode"
+.l564:	.string	"mbedtls_camellia_crypt_cbc"
+.l565:	.string	"mbedtls_camellia_crypt_cfb128"
+.l566:	.string	"mbedtls_camellia_crypt_ctr"
+.l567:	.string	"mbedtls_camellia_crypt_ecb"
+.l568:	.string	"mbedtls_camellia_free"
+.l569:	.string	"mbedtls_camellia_init"
+.l570:	.string	"mbedtls_camellia_setkey_dec"
+.l571:	.string	"mbedtls_camellia_setkey_enc"
+.l572:	.string	"mbedtls_ccm_auth_decrypt"
+.l573:	.string	"mbedtls_ccm_encrypt_and_tag"
+.l574:	.string	"mbedtls_ccm_finish"
+.l575:	.string	"mbedtls_ccm_free"
+.l576:	.string	"mbedtls_ccm_init"
+.l577:	.string	"mbedtls_ccm_set_lengths"
+.l578:	.string	"mbedtls_ccm_setkey"
+.l579:	.string	"mbedtls_ccm_star_auth_decrypt"
+.l580:	.string	"mbedtls_ccm_star_encrypt_and_tag"
+.l581:	.string	"mbedtls_ccm_starts"
+.l582:	.string	"mbedtls_ccm_update"
+.l583:	.string	"mbedtls_ccm_update_ad"
+.l584:	.string	"mbedtls_chacha20_crypt"
+.l585:	.string	"mbedtls_chacha20_free"
+.l586:	.string	"mbedtls_chacha20_init"
+.l587:	.string	"mbedtls_chacha20_setkey"
+.l588:	.string	"mbedtls_chacha20_starts"
+.l589:	.string	"mbedtls_chacha20_update"
+.l590:	.string	"mbedtls_chachapoly_auth_decrypt"
+.l591:	.string	"mbedtls_chachapoly_encrypt_and_tag"
+.l592:	.string	"mbedtls_chachapoly_finish"
+.l593:	.string	"mbedtls_chachapoly_free"
+.l594:	.string	"mbedtls_chachapoly_init"
+.l595:	.string	"mbedtls_chachapoly_setkey"
+.l596:	.string	"mbedtls_chachapoly_starts"
+.l597:	.string	"mbedtls_chachapoly_update"
+.l598:	.string	"mbedtls_chachapoly_update_aad"
+.l599:	.string	"mbedtls_cipher_auth_decrypt_ext"
+.l600:	.string	"mbedtls_cipher_auth_encrypt_ext"
+.l601:	.string	"mbedtls_cipher_base_lookup_table"
+.l602:	.string	"mbedtls_cipher_check_tag"
+.l603:	.string	"mbedtls_cipher_cmac"
+.l604:	.string	"mbedtls_cipher_cmac_finish"
+.l605:	.string	"mbedtls_cipher_cmac_reset"
+.l606:	.string	"mbedtls_cipher_cmac_starts"
+.l607:	.string	"mbedtls_cipher_cmac_update"
+.l608:	.string	"mbedtls_cipher_crypt"
+.l609:	.string	"mbedtls_cipher_definitions"
+.l610:	.string	"mbedtls_cipher_finish"
+.l611:	.string	"mbedtls_cipher_free"
+.l612:	.string	"mbedtls_cipher_info_from_psa"
+.l613:	.string	"mbedtls_cipher_info_from_string"
+.l614:	.string	"mbedtls_cipher_info_from_type"
+.l615:	.string	"mbedtls_cipher_info_from_values"
+.l616:	.string	"mbedtls_cipher_init"
+.l617:	.string	"mbedtls_cipher_list"
+.l618:	.string	"mbedtls_cipher_reset"
+.l619:	.string	"mbedtls_cipher_set_iv"
+.l620:	.string	"mbedtls_cipher_set_padding_mode"
+.l621:	.string	"mbedtls_cipher_setkey"
+.l622:	.string	"mbedtls_cipher_setup"
+.l623:	.string	"mbedtls_cipher_supported"
+.l624:	.string	"mbedtls_cipher_update"
+.l625:	.string	"mbedtls_cipher_update_ad"
+.l626:	.string	"mbedtls_cipher_values_from_psa"
+.l627:	.string	"mbedtls_cipher_write_tag"
+.l628:	.string	"mbedtls_ct_memcmp"
+.l629:	.string	"mbedtls_ct_memcmp_partial"
+.l630:	.string	"mbedtls_ct_memcpy_if"
+.l631:	.string	"mbedtls_ct_memcpy_offset"
+.l632:	.string	"mbedtls_ct_memmove_left"
+.l633:	.string	"mbedtls_ct_zeroize_if"
+.l634:	.string	"mbedtls_ctr_drbg_free"
+.l635:	.string	"mbedtls_ctr_drbg_init"
+.l636:	.string	"mbedtls_ctr_drbg_random"
+.l637:	.string	"mbedtls_ctr_drbg_random_with_add"
+.l638:	.string	"mbedtls_ctr_drbg_reseed"
+.l639:	.string	"mbedtls_ctr_drbg_seed"
+.l640:	.string	"mbedtls_ctr_drbg_set_entropy_len"
+.l641:	.string	"mbedtls_ctr_drbg_set_nonce_len"
+.l642:	.string	"mbedtls_ctr_drbg_set_prediction_resistance"
+.l643:	.string	"mbedtls_ctr_drbg_set_reseed_interval"
+.l644:	.string	"mbedtls_ctr_drbg_update"
+.l645:	.string	"mbedtls_ctr_drbg_update_seed_file"
+.l646:	.string	"mbedtls_ctr_drbg_write_seed_file"
+.l647:	.string	"mbedtls_des3_crypt_cbc"
+.l648:	.string	"mbedtls_des3_crypt_ecb"
+.l649:	.string	"mbedtls_des3_free"
+.l650:	.string	"mbedtls_des3_init"
+.l651:	.string	"mbedtls_des3_set2key_dec"
+.l652:	.string	"mbedtls_des3_set2key_enc"
+.l653:	.string	"mbedtls_des3_set3key_dec"
+.l654:	.string	"mbedtls_des3_set3key_enc"
+.l655:	.string	"mbedtls_des_crypt_cbc"
+.l656:	.string	"mbedtls_des_crypt_ecb"
+.l657:	.string	"mbedtls_des_free"
+.l658:	.string	"mbedtls_des_init"
+.l659:	.string	"mbedtls_des_key_check_key_parity"
+.l660:	.string	"mbedtls_des_key_check_weak"
+.l661:	.string	"mbedtls_des_key_set_parity"
+.l662:	.string	"mbedtls_des_setkey"
+.l663:	.string	"mbedtls_des_setkey_dec"
+.l664:	.string	"mbedtls_des_setkey_enc"
+.l665:	.string	"mbedtls_dhm_calc_secret"
+.l666:	.string	"mbedtls_dhm_free"
+.l667:	.string	"mbedtls_dhm_get_bitlen"
+.l668:	.string	"mbedtls_dhm_get_len"
+.l669:	.string	"mbedtls_dhm_get_value"
+.l670:	.string	"mbedtls_dhm_init"
+.l671:	.string	"mbedtls_dhm_make_params"
+.l672:	.string	"mbedtls_dhm_make_public"
+.l673:	.string	"mbedtls_dhm_parse_dhm"
+.l674:	.string	"mbedtls_dhm_parse_dhmfile"
+.l675:	.string	"mbedtls_dhm_read_params"
+.l676:	.string	"mbedtls_dhm_read_public"
+.l677:	.string	"mbedtls_dhm_set_group"
+.l678:	.string	"mbedtls_ecc_group_from_psa"
+.l679:	.string	"mbedtls_ecc_group_to_psa"
+.l680:	.string	"mbedtls_ecdh_calc_secret"
+.l681:	.string	"mbedtls_ecdh_can_do"
+.l682:	.string	"mbedtls_ecdh_compute_shared"
+.l683:	.string	"mbedtls_ecdh_free"
+.l684:	.string	"mbedtls_ecdh_gen_public"
+.l685:	.string	"mbedtls_ecdh_get_grp_id"
+.l686:	.string	"mbedtls_ecdh_get_params"
+.l687:	.string	"mbedtls_ecdh_init"
+.l688:	.string	"mbedtls_ecdh_make_params"
+.l689:	.string	"mbedtls_ecdh_make_public"
+.l690:	.string	"mbedtls_ecdh_read_params"
+.l691:	.string	"mbedtls_ecdh_read_public"
+.l692:	.string	"mbedtls_ecdh_setup"
+.l693:	.string	"mbedtls_ecdsa_can_do"
+.l694:	.string	"mbedtls_ecdsa_der_to_raw"
+.l695:	.string	"mbedtls_ecdsa_free"
+.l696:	.string	"mbedtls_ecdsa_from_keypair"
+.l697:	.string	"mbedtls_ecdsa_genkey"
+.l698:	.string	"mbedtls_ecdsa_info"
+.l699:	.string	"mbedtls_ecdsa_init"
+.l700:	.string	"mbedtls_ecdsa_raw_to_der"
+.l701:	.string	"mbedtls_ecdsa_read_signature"
+.l702:	.string	"mbedtls_ecdsa_read_signature_restartable"
+.l703:	.string	"mbedtls_ecdsa_sign"
+.l704:	.string	"mbedtls_ecdsa_sign_det_ext"
+.l705:	.string	"mbedtls_ecdsa_sign_det_restartable"
+.l706:	.string	"mbedtls_ecdsa_sign_restartable"
+.l707:	.string	"mbedtls_ecdsa_verify"
+.l708:	.string	"mbedtls_ecdsa_verify_restartable"
+.l709:	.string	"mbedtls_ecdsa_write_signature"
+.l710:	.string	"mbedtls_ecdsa_write_signature_restartable"
+.l711:	.string	"mbedtls_ecjpake_check"
+.l712:	.string	"mbedtls_ecjpake_derive_secret"
+.l713:	.string	"mbedtls_ecjpake_free"
+.l714:	.string	"mbedtls_ecjpake_init"
+.l715:	.string	"mbedtls_ecjpake_read_round_one"
+.l716:	.string	"mbedtls_ecjpake_read_round_two"
+.l717:	.string	"mbedtls_ecjpake_set_point_format"
+.l718:	.string	"mbedtls_ecjpake_setup"
+.l719:	.string	"mbedtls_ecjpake_write_round_one"
+.l720:	.string	"mbedtls_ecjpake_write_round_two"
+.l721:	.string	"mbedtls_ecjpake_write_shared_key"
+.l722:	.string	"mbedtls_eckey_info"
+.l723:	.string	"mbedtls_eckeydh_info"
+.l724:	.string	"mbedtls_ecp_check_privkey"
+.l725:	.string	"mbedtls_ecp_check_pub_priv"
+.l726:	.string	"mbedtls_ecp_check_pubkey"
+.l727:	.string	"mbedtls_ecp_copy"
+.l728:	.string	"mbedtls_ecp_curve_info_from_grp_id"
+.l729:	.string	"mbedtls_ecp_curve_info_from_name"
+.l730:	.string	"mbedtls_ecp_curve_info_from_tls_id"
+.l731:	.string	"mbedtls_ecp_curve_list"
+.l732:	.string	"mbedtls_ecp_export"
+.l733:	.string	"mbedtls_ecp_gen_key"
+.l734:	.string	"mbedtls_ecp_gen_keypair"
+.l735:	.string	"mbedtls_ecp_gen_keypair_base"
+.l736:	.string	"mbedtls_ecp_gen_privkey"
+.l737:	.string	"mbedtls_ecp_get_type"
+.l738:	.string	"mbedtls_ecp_group_copy"
+.l739:	.string	"mbedtls_ecp_group_free"
+.l740:	.string	"mbedtls_ecp_group_init"
+.l741:	.string	"mbedtls_ecp_group_load"
+.l742:	.string	"mbedtls_ecp_grp_id_list"
+.l743:	.string	"mbedtls_ecp_is_zero"
+.l744:	.string	"mbedtls_ecp_keypair_calc_public"
+.l745:	.string	"mbedtls_ecp_keypair_free"
+.l746:	.string	"mbedtls_ecp_keypair_get_group_id"
+.l747:	.string	"mbedtls_ecp_keypair_init"
+.l748:	.string	"mbedtls_ecp_mul"
+.l749:	.string	"mbedtls_ecp_mul_restartable"
+.l750:	.string	"mbedtls_ecp_muladd"
+.l751:	.string	"mbedtls_ecp_muladd_restartable"
+.l752:	.string	"mbedtls_ecp_point_cmp"
+.l753:	.string	"mbedtls_ecp_point_free"
+.l754:	.string	"mbedtls_ecp_point_init"
+.l755:	.string	"mbedtls_ecp_point_read_binary"
+.l756:	.string	"mbedtls_ecp_point_read_string"
+.l757:	.string	"mbedtls_ecp_point_write_binary"
+.l758:	.string	"mbedtls_ecp_read_key"
+.l759:	.string	"mbedtls_ecp_set_public_key"
+.l760:	.string	"mbedtls_ecp_set_zero"
+.l761:	.string	"mbedtls_ecp_tls_read_group"
+.l762:	.string	"mbedtls_ecp_tls_read_group_id"
+.l763:	.string	"mbedtls_ecp_tls_read_point"
+.l764:	.string	"mbedtls_ecp_tls_write_group"
+.l765:	.string	"mbedtls_ecp_tls_write_point"
+.l766:	.string	"mbedtls_ecp_write_key"
+.l767:	.string	"mbedtls_ecp_write_key_ext"
+.l768:	.string	"mbedtls_ecp_write_public_key"
+.l769:	.string	"mbedtls_entropy_add_source"
+.l770:	.string	"mbedtls_entropy_free"
+.l771:	.string	"mbedtls_entropy_func"
+.l772:	.string	"mbedtls_entropy_gather"
+.l773:	.string	"mbedtls_entropy_init"
+.l774:	.string	"mbedtls_entropy_update_manual"
+.l775:	.string	"mbedtls_entropy_update_seed_file"
+.l776:	.string	"mbedtls_entropy_write_seed_file"
+.l777:	.string	"mbedtls_gcm_auth_decrypt"
+.l778:	.string	"mbedtls_gcm_crypt_and_tag"
+.l779:	.string	"mbedtls_gcm_finish"
+.l780:	.string	"mbedtls_gcm_free"
+.l781:	.string	"mbedtls_gcm_init"
+.l782:	.string	"mbedtls_gcm_setkey"
+.l783:	.string	"mbedtls_gcm_starts"
+.l784:	.string	"mbedtls_gcm_update"
+.l785:	.string	"mbedtls_gcm_update_ad"
+.l786:	.string	"mbedtls_high_level_strerr"
+.l787:	.string	"mbedtls_hkdf"
+.l788:	.string	"mbedtls_hkdf_expand"
+.l789:	.string	"mbedtls_hkdf_extract"
+.l790:	.string	"mbedtls_hmac_drbg_free"
+.l791:	.string	"mbedtls_hmac_drbg_init"
+.l792:	.string	"mbedtls_hmac_drbg_random"
+.l793:	.string	"mbedtls_hmac_drbg_random_with_add"
+.l794:	.string	"mbedtls_hmac_drbg_reseed"
+.l795:	.string	"mbedtls_hmac_drbg_seed"
+.l796:	.string	"mbedtls_hmac_drbg_seed_buf"
+.l797:	.string	"mbedtls_hmac_drbg_set_entropy_len"
+.l798:	.string	"mbedtls_hmac_drbg_set_prediction_resistance"
+.l799:	.string	"mbedtls_hmac_drbg_set_reseed_interval"
+.l800:	.string	"mbedtls_hmac_drbg_update"
+.l801:	.string	"mbedtls_hmac_drbg_update_seed_file"
+.l802:	.string	"mbedtls_hmac_drbg_write_seed_file"
+.l803:	.string	"mbedtls_internal_aes_decrypt"
+.l804:	.string	"mbedtls_internal_aes_encrypt"
+.l805:	.string	"mbedtls_internal_md5_process"
+.l806:	.string	"mbedtls_internal_ripemd160_process"
+.l807:	.string	"mbedtls_internal_sha1_process"
+.l808:	.string	"mbedtls_internal_sha256_process"
+.l809:	.string	"mbedtls_internal_sha512_process"
+.l810:	.string	"mbedtls_lmots_calculate_public_key_candidate"
+.l811:	.string	"mbedtls_lmots_export_public_key"
+.l812:	.string	"mbedtls_lmots_import_public_key"
+.l813:	.string	"mbedtls_lmots_public_free"
+.l814:	.string	"mbedtls_lmots_public_init"
+.l815:	.string	"mbedtls_lmots_verify"
+.l816:	.string	"mbedtls_lms_error_from_psa"
+.l817:	.string	"mbedtls_lms_export_public_key"
+.l818:	.string	"mbedtls_lms_import_public_key"
+.l819:	.string	"mbedtls_lms_public_free"
+.l820:	.string	"mbedtls_lms_public_init"
+.l821:	.string	"mbedtls_lms_verify"
+.l822:	.string	"mbedtls_low_level_strerr"
+.l823:	.string	"mbedtls_md"
+.l824:	.string	"mbedtls_md5"
+.l825:	.string	"mbedtls_md5_clone"
+.l826:	.string	"mbedtls_md5_finish"
+.l827:	.string	"mbedtls_md5_free"
+.l828:	.string	"mbedtls_md5_init"
+.l829:	.string	"mbedtls_md5_starts"
+.l830:	.string	"mbedtls_md5_update"
+.l831:	.string	"mbedtls_md_clone"
+.l832:	.string	"mbedtls_md_error_from_psa"
+.l833:	.string	"mbedtls_md_file"
+.l834:	.string	"mbedtls_md_finish"
+.l835:	.string	"mbedtls_md_free"
+.l836:	.string	"mbedtls_md_get_name"
+.l837:	.string	"mbedtls_md_get_size"
+.l838:	.string	"mbedtls_md_get_type"
+.l839:	.string	"mbedtls_md_hmac"
+.l840:	.string	"mbedtls_md_hmac_finish"
+.l841:	.string	"mbedtls_md_hmac_reset"
+.l842:	.string	"mbedtls_md_hmac_starts"
+.l843:	.string	"mbedtls_md_hmac_update"
+.l844:	.string	"mbedtls_md_info_from_ctx"
+.l845:	.string	"mbedtls_md_info_from_string"
+.l846:	.string	"mbedtls_md_info_from_type"
+.l847:	.string	"mbedtls_md_init"
+.l848:	.string	"mbedtls_md_list"
+.l849:	.string	"mbedtls_md_setup"
+.l850:	.string	"mbedtls_md_starts"
+.l851:	.string	"mbedtls_md_update"
+.l852:	.string	"mbedtls_mpi_add_abs"
+.l853:	.string	"mbedtls_mpi_add_int"
+.l854:	.string	"mbedtls_mpi_add_mpi"
+.l855:	.string	"mbedtls_mpi_bitlen"
+.l856:	.string	"mbedtls_mpi_cmp_abs"
+.l857:	.string	"mbedtls_mpi_cmp_int"
+.l858:	.string	"mbedtls_mpi_cmp_mpi"
+.l859:	.string	"mbedtls_mpi_copy"
+.l860:	.string	"mbedtls_mpi_core_add"
+.l861:	.string	"mbedtls_mpi_core_add_if"
+.l862:	.string	"mbedtls_mpi_core_bigendian_to_host"
+.l863:	.string	"mbedtls_mpi_core_bitlen"
+.l864:	.string	"mbedtls_mpi_core_check_zero_ct"
+.l865:	.string	"mbedtls_mpi_core_clz"
+.l866:	.string	"mbedtls_mpi_core_cond_assign"
+.l867:	.string	"mbedtls_mpi_core_cond_swap"
+.l868:	.string	"mbedtls_mpi_core_exp_mod"
+.l869:	.string	"mbedtls_mpi_core_exp_mod_unsafe"
+.l870:	.string	"mbedtls_mpi_core_exp_mod_working_limbs"
+.l871:	.string	"mbedtls_mpi_core_fill_random"
+.l872:	.string	"mbedtls_mpi_core_from_mont_rep"
+.l873:	.string	"mbedtls_mpi_core_get_mont_r2_unsafe"
+.l874:	.string	"mbedtls_mpi_core_lt_ct"
+.l875:	.string	"mbedtls_mpi_core_mla"
+.l876:	.string	"mbedtls_mpi_core_montmul"
+.l877:	.string	"mbedtls_mpi_core_montmul_init"
+.l878:	.string	"mbedtls_mpi_core_mul"
+.l879:	.string	"mbedtls_mpi_core_random"
+.l880:	.string	"mbedtls_mpi_core_read_be"
+.l881:	.string	"mbedtls_mpi_core_read_le"
+.l882:	.string	"mbedtls_mpi_core_shift_l"
+.l883:	.string	"mbedtls_mpi_core_shift_r"
+.l884:	.string	"mbedtls_mpi_core_sub"
+.l885:	.string	"mbedtls_mpi_core_sub_int"
+.l886:	.string	"mbedtls_mpi_core_to_mont_rep"
+.l887:	.string	"mbedtls_mpi_core_uint_le_mpi"
+.l888:	.string	"mbedtls_mpi_core_write_be"
+.l889:	.string	"mbedtls_mpi_core_write_le"
+.l890:	.string	"mbedtls_mpi_div_int"
+.l891:	.string	"mbedtls_mpi_div_mpi"
+.l892:	.string	"mbedtls_mpi_exp_mod"
+.l893:	.string	"mbedtls_mpi_exp_mod_unsafe"
+.l894:	.string	"mbedtls_mpi_fill_random"
+.l895:	.string	"mbedtls_mpi_free"
+.l896:	.string	"mbedtls_mpi_gcd"
+.l897:	.string	"mbedtls_mpi_gen_prime"
+.l898:	.string	"mbedtls_mpi_get_bit"
+.l899:	.string	"mbedtls_mpi_grow"
+.l900:	.string	"mbedtls_mpi_init"
+.l901:	.string	"mbedtls_mpi_inv_mod"
+.l902:	.string	"mbedtls_mpi_is_prime_ext"
+.l903:	.string	"mbedtls_mpi_lsb"
+.l904:	.string	"mbedtls_mpi_lset"
+.l905:	.string	"mbedtls_mpi_lt_mpi_ct"
+.l906:	.string	"mbedtls_mpi_mod_int"
+.l907:	.string	"mbedtls_mpi_mod_mpi"
+.l908:	.string	"mbedtls_mpi_mul_int"
+.l909:	.string	"mbedtls_mpi_mul_mpi"
+.l910:	.string	"mbedtls_mpi_random"
+.l911:	.string	"mbedtls_mpi_read_binary"
+.l912:	.string	"mbedtls_mpi_read_binary_le"
+.l913:	.string	"mbedtls_mpi_read_file"
+.l914:	.string	"mbedtls_mpi_read_string"
+.l915:	.string	"mbedtls_mpi_safe_cond_assign"
+.l916:	.string	"mbedtls_mpi_safe_cond_swap"
+.l917:	.string	"mbedtls_mpi_set_bit"
+.l918:	.string	"mbedtls_mpi_shift_l"
+.l919:	.string	"mbedtls_mpi_shift_r"
+.l920:	.string	"mbedtls_mpi_shrink"
+.l921:	.string	"mbedtls_mpi_size"
+.l922:	.string	"mbedtls_mpi_sub_abs"
+.l923:	.string	"mbedtls_mpi_sub_int"
+.l924:	.string	"mbedtls_mpi_sub_mpi"
+.l925:	.string	"mbedtls_mpi_swap"
+.l926:	.string	"mbedtls_mpi_write_binary"
+.l927:	.string	"mbedtls_mpi_write_binary_le"
+.l928:	.string	"mbedtls_mpi_write_file"
+.l929:	.string	"mbedtls_mpi_write_string"
+.l930:	.string	"mbedtls_mps_reader_commit"
+.l931:	.string	"mbedtls_mps_reader_feed"
+.l932:	.string	"mbedtls_mps_reader_free"
+.l933:	.string	"mbedtls_mps_reader_get"
+.l934:	.string	"mbedtls_mps_reader_init"
+.l935:	.string	"mbedtls_mps_reader_reclaim"
+.l936:	.string	"mbedtls_ms_time"
+.l937:	.string	"mbedtls_net_accept"
+.l938:	.string	"mbedtls_net_bind"
+.l939:	.string	"mbedtls_net_close"
+.l940:	.string	"mbedtls_net_connect"
+.l941:	.string	"mbedtls_net_free"
+.l942:	.string	"mbedtls_net_init"
+.l943:	.string	"mbedtls_net_poll"
+.l944:	.string	"mbedtls_net_recv"
+.l945:	.string	"mbedtls_net_recv_timeout"
+.l946:	.string	"mbedtls_net_send"
+.l947:	.string	"mbedtls_net_set_block"
+.l948:	.string	"mbedtls_net_set_nonblock"
+.l949:	.string	"mbedtls_net_usleep"
+.l950:	.string	"mbedtls_nist_kw_free"
+.l951:	.string	"mbedtls_nist_kw_init"
+.l952:	.string	"mbedtls_nist_kw_setkey"
+.l953:	.string	"mbedtls_nist_kw_unwrap"
+.l954:	.string	"mbedtls_nist_kw_wrap"
+.l955:	.string	"mbedtls_oid_from_numeric_string"
+.l956:	.string	"mbedtls_oid_get_attr_short_name"
+.l957:	.string	"mbedtls_oid_get_certificate_policies"
+.l958:	.string	"mbedtls_oid_get_cipher_alg"
+.l959:	.string	"mbedtls_oid_get_ec_grp"
+.l960:	.string	"mbedtls_oid_get_ec_grp_algid"
+.l961:	.string	"mbedtls_oid_get_extended_key_usage"
+.l962:	.string	"mbedtls_oid_get_md_alg"
+.l963:	.string	"mbedtls_oid_get_md_hmac"
+.l964:	.string	"mbedtls_oid_get_numeric_string"
+.l965:	.string	"mbedtls_oid_get_oid_by_ec_grp"
+.l966:	.string	"mbedtls_oid_get_oid_by_ec_grp_algid"
+.l967:	.string	"mbedtls_oid_get_oid_by_md"
+.l968:	.string	"mbedtls_oid_get_oid_by_pk_alg"
+.l969:	.string	"mbedtls_oid_get_oid_by_sig_alg"
+.l970:	.string	"mbedtls_oid_get_pk_alg"
+.l971:	.string	"mbedtls_oid_get_pkcs12_pbe_alg"
+.l972:	.string	"mbedtls_oid_get_sig_alg"
+.l973:	.string	"mbedtls_oid_get_sig_alg_desc"
+.l974:	.string	"mbedtls_oid_get_x509_ext_type"
+.l975:	.string	"mbedtls_pem_free"
+.l976:	.string	"mbedtls_pem_init"
+.l977:	.string	"mbedtls_pem_read_buffer"
+.l978:	.string	"mbedtls_pem_write_buffer"
+.l979:	.string	"mbedtls_pk_can_do"
+.l980:	.string	"mbedtls_pk_check_pair"
+.l981:	.string	"mbedtls_pk_copy_from_psa"
+.l982:	.string	"mbedtls_pk_copy_public_from_psa"
+.l983:	.string	"mbedtls_pk_debug"
+.l984:	.string	"mbedtls_pk_decrypt"
+.l985:	.string	"mbedtls_pk_ecc_set_group"
+.l986:	.string	"mbedtls_pk_ecc_set_key"
+.l987:	.string	"mbedtls_pk_ecc_set_pubkey"
+.l988:	.string	"mbedtls_pk_ecc_set_pubkey_from_prv"
+.l989:	.string	"mbedtls_pk_encrypt"
+.l990:	.string	"mbedtls_pk_free"
+.l991:	.string	"mbedtls_pk_get_bitlen"
+.l992:	.string	"mbedtls_pk_get_name"
+.l993:	.string	"mbedtls_pk_get_psa_attributes"
+.l994:	.string	"mbedtls_pk_get_type"
+.l995:	.string	"mbedtls_pk_import_into_psa"
+.l996:	.string	"mbedtls_pk_info_from_type"
+.l997:	.string	"mbedtls_pk_init"
+.l998:	.string	"mbedtls_pk_load_file"
+.l999:	.string	"mbedtls_pk_parse_key"
+.l1000:	.string	"mbedtls_pk_parse_keyfile"
+.l1001:	.string	"mbedtls_pk_parse_public_key"
+.l1002:	.string	"mbedtls_pk_parse_public_keyfile"
+.l1003:	.string	"mbedtls_pk_parse_subpubkey"
+.l1004:	.string	"mbedtls_pk_setup"
+.l1005:	.string	"mbedtls_pk_setup_rsa_alt"
+.l1006:	.string	"mbedtls_pk_sign"
+.l1007:	.string	"mbedtls_pk_sign_ext"
+.l1008:	.string	"mbedtls_pk_sign_restartable"
+.l1009:	.string	"mbedtls_pk_verify"
+.l1010:	.string	"mbedtls_pk_verify_ext"
+.l1011:	.string	"mbedtls_pk_verify_restartable"
+.l1012:	.string	"mbedtls_pk_write_key_der"
+.l1013:	.string	"mbedtls_pk_write_key_pem"
+.l1014:	.string	"mbedtls_pk_write_pubkey"
+.l1015:	.string	"mbedtls_pk_write_pubkey_der"
+.l1016:	.string	"mbedtls_pk_write_pubkey_pem"
+.l1017:	.string	"mbedtls_pkcs12_derivation"
+.l1018:	.string	"mbedtls_pkcs12_pbe"
+.l1019:	.string	"mbedtls_pkcs12_pbe_ext"
+.l1020:	.string	"mbedtls_pkcs5_pbes2"
+.l1021:	.string	"mbedtls_pkcs5_pbes2_ext"
+.l1022:	.string	"mbedtls_pkcs5_pbkdf2_hmac"
+.l1023:	.string	"mbedtls_pkcs5_pbkdf2_hmac_ext"
+.l1024:	.string	"mbedtls_pkcs7_free"
+.l1025:	.string	"mbedtls_pkcs7_init"
+.l1026:	.string	"mbedtls_pkcs7_parse_der"
+.l1027:	.string	"mbedtls_pkcs7_signed_data_verify"
+.l1028:	.string	"mbedtls_pkcs7_signed_hash_verify"
+.l1029:	.string	"mbedtls_platform_entropy_poll"
+.l1030:	.string	"mbedtls_platform_gmtime_r"
+.l1031:	.string	"mbedtls_platform_setup"
+.l1032:	.string	"mbedtls_platform_teardown"
+.l1033:	.string	"mbedtls_platform_zeroize"
+.l1034:	.string	"mbedtls_poly1305_finish"
+.l1035:	.string	"mbedtls_poly1305_free"
+.l1036:	.string	"mbedtls_poly1305_init"
+.l1037:	.string	"mbedtls_poly1305_mac"
+.l1038:	.string	"mbedtls_poly1305_starts"
+.l1039:	.string	"mbedtls_poly1305_update"
+.l1040:	.string	"mbedtls_psa_aead_abort"
+.l1041:	.string	"mbedtls_psa_aead_decrypt"
+.l1042:	.string	"mbedtls_psa_aead_decrypt_setup"
+.l1043:	.string	"mbedtls_psa_aead_encrypt"
+.l1044:	.string	"mbedtls_psa_aead_encrypt_setup"
+.l1045:	.string	"mbedtls_psa_aead_finish"
+.l1046:	.string	"mbedtls_psa_aead_set_lengths"
+.l1047:	.string	"mbedtls_psa_aead_set_nonce"
+.l1048:	.string	"mbedtls_psa_aead_update"
+.l1049:	.string	"mbedtls_psa_aead_update_ad"
+.l1050:	.string	"mbedtls_psa_asymmetric_decrypt"
+.l1051:	.string	"mbedtls_psa_asymmetric_encrypt"
+.l1052:	.string	"mbedtls_psa_cipher_abort"
+.l1053:	.string	"mbedtls_psa_cipher_decrypt"
+.l1054:	.string	"mbedtls_psa_cipher_decrypt_setup"
+.l1055:	.string	"mbedtls_psa_cipher_encrypt"
+.l1056:	.string	"mbedtls_psa_cipher_encrypt_setup"
+.l1057:	.string	"mbedtls_psa_cipher_finish"
+.l1058:	.string	"mbedtls_psa_cipher_set_iv"
+.l1059:	.string	"mbedtls_psa_cipher_update"
+.l1060:	.string	"mbedtls_psa_crypto_configure_entropy_sources"
+.l1061:	.string	"mbedtls_psa_crypto_free"
+.l1062:	.string	"mbedtls_psa_ecdsa_sign_hash"
+.l1063:	.string	"mbedtls_psa_ecdsa_verify_hash"
+.l1064:	.string	"mbedtls_psa_ecp_export_key"
+.l1065:	.string	"mbedtls_psa_ecp_export_public_key"
+.l1066:	.string	"mbedtls_psa_ecp_generate_key"
+.l1067:	.string	"mbedtls_psa_ecp_import_key"
+.l1068:	.string	"mbedtls_psa_ecp_load_public_part"
+.l1069:	.string	"mbedtls_psa_ecp_load_representation"
+.l1070:	.string	"mbedtls_psa_ffdh_export_public_key"
+.l1071:	.string	"mbedtls_psa_ffdh_generate_key"
+.l1072:	.string	"mbedtls_psa_ffdh_import_key"
+.l1073:	.string	"mbedtls_psa_ffdh_key_agreement"
+.l1074:	.string	"mbedtls_psa_get_random"
+.l1075:	.string	"mbedtls_psa_get_stats"
+.l1076:	.string	"mbedtls_psa_hash_abort"
+.l1077:	.string	"mbedtls_psa_hash_clone"
+.l1078:	.string	"mbedtls_psa_hash_compute"
+.l1079:	.string	"mbedtls_psa_hash_finish"
+.l1080:	.string	"mbedtls_psa_hash_setup"
+.l1081:	.string	"mbedtls_psa_hash_update"
+.l1082:	.string	"mbedtls_psa_interruptible_set_max_ops"
+.l1083:	.string	"mbedtls_psa_key_agreement_ecdh"
+.l1084:	.string	"mbedtls_psa_mac_abort"
+.l1085:	.string	"mbedtls_psa_mac_compute"
+.l1086:	.string	"mbedtls_psa_mac_sign_finish"
+.l1087:	.string	"mbedtls_psa_mac_sign_setup"
+.l1088:	.string	"mbedtls_psa_mac_update"
+.l1089:	.string	"mbedtls_psa_mac_verify_finish"
+.l1090:	.string	"mbedtls_psa_mac_verify_setup"
+.l1091:	.string	"mbedtls_psa_pake_abort"
+.l1092:	.string	"mbedtls_psa_pake_get_implicit_key"
+.l1093:	.string	"mbedtls_psa_pake_input"
+.l1094:	.string	"mbedtls_psa_pake_output"
+.l1095:	.string	"mbedtls_psa_pake_setup"
+.l1096:	.string	"mbedtls_psa_rsa_export_key"
+.l1097:	.string	"mbedtls_psa_rsa_export_public_key"
+.l1098:	.string	"mbedtls_psa_rsa_generate_key"
+.l1099:	.string	"mbedtls_psa_rsa_import_key"
+.l1100:	.string	"mbedtls_psa_rsa_load_representation"
+.l1101:	.string	"mbedtls_psa_rsa_sign_hash"
+.l1102:	.string	"mbedtls_psa_rsa_verify_hash"
+.l1103:	.string	"mbedtls_psa_sign_hash_abort"
+.l1104:	.string	"mbedtls_psa_sign_hash_complete"
+.l1105:	.string	"mbedtls_psa_sign_hash_get_num_ops"
+.l1106:	.string	"mbedtls_psa_sign_hash_start"
+.l1107:	.string	"mbedtls_psa_verify_hash_abort"
+.l1108:	.string	"mbedtls_psa_verify_hash_complete"
+.l1109:	.string	"mbedtls_psa_verify_hash_get_num_ops"
+.l1110:	.string	"mbedtls_psa_verify_hash_start"
+.l1111:	.string	"mbedtls_ripemd160"
+.l1112:	.string	"mbedtls_ripemd160_clone"
+.l1113:	.string	"mbedtls_ripemd160_finish"
+.l1114:	.string	"mbedtls_ripemd160_free"
+.l1115:	.string	"mbedtls_ripemd160_init"
+.l1116:	.string	"mbedtls_ripemd160_starts"
+.l1117:	.string	"mbedtls_ripemd160_update"
+.l1118:	.string	"mbedtls_rsa_alt_info"
+.l1119:	.string	"mbedtls_rsa_check_privkey"
+.l1120:	.string	"mbedtls_rsa_check_pub_priv"
+.l1121:	.string	"mbedtls_rsa_check_pubkey"
+.l1122:	.string	"mbedtls_rsa_complete"
+.l1123:	.string	"mbedtls_rsa_copy"
+.l1124:	.string	"mbedtls_rsa_deduce_crt"
+.l1125:	.string	"mbedtls_rsa_deduce_primes"
+.l1126:	.string	"mbedtls_rsa_deduce_private_exponent"
+.l1127:	.string	"mbedtls_rsa_export"
+.l1128:	.string	"mbedtls_rsa_export_crt"
+.l1129:	.string	"mbedtls_rsa_export_raw"
+.l1130:	.string	"mbedtls_rsa_free"
+.l1131:	.string	"mbedtls_rsa_gen_key"
+.l1132:	.string	"mbedtls_rsa_get_bitlen"
+.l1133:	.string	"mbedtls_rsa_get_len"
+.l1134:	.string	"mbedtls_rsa_get_md_alg"
+.l1135:	.string	"mbedtls_rsa_get_padding_mode"
+.l1136:	.string	"mbedtls_rsa_import"
+.l1137:	.string	"mbedtls_rsa_import_raw"
+.l1138:	.string	"mbedtls_rsa_info"
+.l1139:	.string	"mbedtls_rsa_init"
+.l1140:	.string	"mbedtls_rsa_parse_key"
+.l1141:	.string	"mbedtls_rsa_parse_pubkey"
+.l1142:	.string	"mbedtls_rsa_pkcs1_decrypt"
+.l1143:	.string	"mbedtls_rsa_pkcs1_encrypt"
+.l1144:	.string	"mbedtls_rsa_pkcs1_sign"
+.l1145:	.string	"mbedtls_rsa_pkcs1_verify"
+.l1146:	.string	"mbedtls_rsa_private"
+.l1147:	.string	"mbedtls_rsa_public"
+.l1148:	.string	"mbedtls_rsa_rsaes_oaep_decrypt"
+.l1149:	.string	"mbedtls_rsa_rsaes_oaep_encrypt"
+.l1150:	.string	"mbedtls_rsa_rsaes_pkcs1_v15_decrypt"
+.l1151:	.string	"mbedtls_rsa_rsaes_pkcs1_v15_encrypt"
+.l1152:	.string	"mbedtls_rsa_rsassa_pkcs1_v15_sign"
+.l1153:	.string	"mbedtls_rsa_rsassa_pkcs1_v15_verify"
+.l1154:	.string	"mbedtls_rsa_rsassa_pss_sign"
+.l1155:	.string	"mbedtls_rsa_rsassa_pss_sign_ext"
+.l1156:	.string	"mbedtls_rsa_rsassa_pss_sign_no_mode_check"
+.l1157:	.string	"mbedtls_rsa_rsassa_pss_verify"
+.l1158:	.string	"mbedtls_rsa_rsassa_pss_verify_ext"
+.l1159:	.string	"mbedtls_rsa_set_padding"
+.l1160:	.string	"mbedtls_rsa_validate_crt"
+.l1161:	.string	"mbedtls_rsa_validate_params"
+.l1162:	.string	"mbedtls_rsa_write_key"
+.l1163:	.string	"mbedtls_rsa_write_pubkey"
+.l1164:	.string	"mbedtls_sha1"
+.l1165:	.string	"mbedtls_sha1_clone"
+.l1166:	.string	"mbedtls_sha1_finish"
+.l1167:	.string	"mbedtls_sha1_free"
+.l1168:	.string	"mbedtls_sha1_init"
+.l1169:	.string	"mbedtls_sha1_starts"
+.l1170:	.string	"mbedtls_sha1_update"
+.l1171:	.string	"mbedtls_sha256"
+.l1172:	.string	"mbedtls_sha256_clone"
+.l1173:	.string	"mbedtls_sha256_finish"
+.l1174:	.string	"mbedtls_sha256_free"
+.l1175:	.string	"mbedtls_sha256_init"
+.l1176:	.string	"mbedtls_sha256_starts"
+.l1177:	.string	"mbedtls_sha256_update"
+.l1178:	.string	"mbedtls_sha3"
+.l1179:	.string	"mbedtls_sha3_clone"
+.l1180:	.string	"mbedtls_sha3_finish"
+.l1181:	.string	"mbedtls_sha3_free"
+.l1182:	.string	"mbedtls_sha3_init"
+.l1183:	.string	"mbedtls_sha3_starts"
+.l1184:	.string	"mbedtls_sha3_update"
+.l1185:	.string	"mbedtls_sha512"
+.l1186:	.string	"mbedtls_sha512_clone"
+.l1187:	.string	"mbedtls_sha512_finish"
+.l1188:	.string	"mbedtls_sha512_free"
+.l1189:	.string	"mbedtls_sha512_init"
+.l1190:	.string	"mbedtls_sha512_starts"
+.l1191:	.string	"mbedtls_sha512_update"
+.l1192:	.string	"mbedtls_ssl_add_hs_hdr_to_checksum"
+.l1193:	.string	"mbedtls_ssl_add_hs_msg_to_checksum"
+.l1194:	.string	"mbedtls_ssl_buffering_free"
+.l1195:	.string	"mbedtls_ssl_cache_free"
+.l1196:	.string	"mbedtls_ssl_cache_get"
+.l1197:	.string	"mbedtls_ssl_cache_init"
+.l1198:	.string	"mbedtls_ssl_cache_remove"
+.l1199:	.string	"mbedtls_ssl_cache_set"
+.l1200:	.string	"mbedtls_ssl_cache_set_max_entries"
+.l1201:	.string	"mbedtls_ssl_cache_set_timeout"
+.l1202:	.string	"mbedtls_ssl_check_cert_usage"
+.l1203:	.string	"mbedtls_ssl_check_curve"
+.l1204:	.string	"mbedtls_ssl_check_curve_tls_id"
+.l1205:	.string	"mbedtls_ssl_check_pending"
+.l1206:	.string	"mbedtls_ssl_check_record"
+.l1207:	.string	"mbedtls_ssl_check_timer"
+.l1208:	.string	"mbedtls_ssl_cipher_to_psa"
+.l1209:	.string	"mbedtls_ssl_ciphersuite_from_id"
+.l1210:	.string	"mbedtls_ssl_ciphersuite_from_string"
+.l1211:	.string	"mbedtls_ssl_ciphersuite_get_cipher_key_bitlen"
+.l1212:	.string	"mbedtls_ssl_ciphersuite_uses_ec"
+.l1213:	.string	"mbedtls_ssl_ciphersuite_uses_psk"
+.l1214:	.string	"mbedtls_ssl_close_notify"
+.l1215:	.string	"mbedtls_ssl_conf_alpn_protocols"
+.l1216:	.string	"mbedtls_ssl_conf_authmode"
+.l1217:	.string	"mbedtls_ssl_conf_ca_chain"
+.l1218:	.string	"mbedtls_ssl_conf_cert_profile"
+.l1219:	.string	"mbedtls_ssl_conf_cert_req_ca_list"
+.l1220:	.string	"mbedtls_ssl_conf_cid"
+.l1221:	.string	"mbedtls_ssl_conf_ciphersuites"
+.l1222:	.string	"mbedtls_ssl_conf_curves"
+.l1223:	.string	"mbedtls_ssl_conf_dbg"
+.l1224:	.string	"mbedtls_ssl_conf_dh_param_bin"
+.l1225:	.string	"mbedtls_ssl_conf_dh_param_ctx"
+.l1226:	.string	"mbedtls_ssl_conf_dhm_min_bitlen"
+.l1227:	.string	"mbedtls_ssl_conf_dtls_anti_replay"
+.l1228:	.string	"mbedtls_ssl_conf_dtls_badmac_limit"
+.l1229:	.string	"mbedtls_ssl_conf_dtls_cookies"
+.l1230:	.string	"mbedtls_ssl_conf_encrypt_then_mac"
+.l1231:	.string	"mbedtls_ssl_conf_endpoint"
+.l1232:	.string	"mbedtls_ssl_conf_extended_master_secret"
+.l1233:	.string	"mbedtls_ssl_conf_groups"
+.l1234:	.string	"mbedtls_ssl_conf_handshake_timeout"
+.l1235:	.string	"mbedtls_ssl_conf_has_static_psk"
+.l1236:	.string	"mbedtls_ssl_conf_legacy_renegotiation"
+.l1237:	.string	"mbedtls_ssl_conf_max_frag_len"
+.l1238:	.string	"mbedtls_ssl_conf_max_version"
+.l1239:	.string	"mbedtls_ssl_conf_min_version"
+.l1240:	.string	"mbedtls_ssl_conf_new_session_tickets"
+.l1241:	.string	"mbedtls_ssl_conf_own_cert"
+.l1242:	.string	"mbedtls_ssl_conf_preference_order"
+.l1243:	.string	"mbedtls_ssl_conf_psk"
+.l1244:	.string	"mbedtls_ssl_conf_psk_cb"
+.l1245:	.string	"mbedtls_ssl_conf_read_timeout"
+.l1246:	.string	"mbedtls_ssl_conf_renegotiation"
+.l1247:	.string	"mbedtls_ssl_conf_renegotiation_enforced"
+.l1248:	.string	"mbedtls_ssl_conf_renegotiation_period"
+.l1249:	.string	"mbedtls_ssl_conf_rng"
+.l1250:	.string	"mbedtls_ssl_conf_session_cache"
+.l1251:	.string	"mbedtls_ssl_conf_session_tickets"
+.l1252:	.string	"mbedtls_ssl_conf_session_tickets_cb"
+.l1253:	.string	"mbedtls_ssl_conf_sig_algs"
+.l1254:	.string	"mbedtls_ssl_conf_sig_hashes"
+.l1255:	.string	"mbedtls_ssl_conf_sni"
+.l1256:	.string	"mbedtls_ssl_conf_tls13_enable_signal_new_session_tickets"
+.l1257:	.string	"mbedtls_ssl_conf_tls13_key_exchange_modes"
+.l1258:	.string	"mbedtls_ssl_conf_transport"
+.l1259:	.string	"mbedtls_ssl_conf_verify"
+.l1260:	.string	"mbedtls_ssl_config_defaults"
+.l1261:	.string	"mbedtls_ssl_config_free"
+.l1262:	.string	"mbedtls_ssl_config_init"
+.l1263:	.string	"mbedtls_ssl_context_load"
+.l1264:	.string	"mbedtls_ssl_context_save"
+.l1265:	.string	"mbedtls_ssl_cookie_check"
+.l1266:	.string	"mbedtls_ssl_cookie_free"
+.l1267:	.string	"mbedtls_ssl_cookie_init"
+.l1268:	.string	"mbedtls_ssl_cookie_set_timeout"
+.l1269:	.string	"mbedtls_ssl_cookie_setup"
+.l1270:	.string	"mbedtls_ssl_cookie_write"
+.l1271:	.string	"mbedtls_ssl_decrypt_buf"
+.l1272:	.string	"mbedtls_ssl_derive_keys"
+.l1273:	.string	"mbedtls_ssl_dtls_replay_check"
+.l1274:	.string	"mbedtls_ssl_dtls_replay_reset"
+.l1275:	.string	"mbedtls_ssl_dtls_replay_update"
+.l1276:	.string	"mbedtls_ssl_encrypt_buf"
+.l1277:	.string	"mbedtls_ssl_fetch_input"
+.l1278:	.string	"mbedtls_ssl_finish_handshake_msg"
+.l1279:	.string	"mbedtls_ssl_flight_free"
+.l1280:	.string	"mbedtls_ssl_flight_transmit"
+.l1281:	.string	"mbedtls_ssl_flush_output"
+.l1282:	.string	"mbedtls_ssl_free"
+.l1283:	.string	"mbedtls_ssl_get_alpn_protocol"
+.l1284:	.string	"mbedtls_ssl_get_bytes_avail"
+.l1285:	.string	"mbedtls_ssl_get_ciphersuite"
+.l1286:	.string	"mbedtls_ssl_get_ciphersuite_id"
+.l1287:	.string	"mbedtls_ssl_get_ciphersuite_id_from_ssl"
+.l1288:	.string	"mbedtls_ssl_get_ciphersuite_name"
+.l1289:	.string	"mbedtls_ssl_get_ciphersuite_sig_alg"
+.l1290:	.string	"mbedtls_ssl_get_ciphersuite_sig_pk_alg"
+.l1291:	.string	"mbedtls_ssl_get_current_mtu"
+.l1292:	.string	"mbedtls_ssl_get_ecp_group_id_from_tls_id"
+.l1293:	.string	"mbedtls_ssl_get_extension_id"
+.l1294:	.string	"mbedtls_ssl_get_extension_mask"
+.l1295:	.string	"mbedtls_ssl_get_handshake_transcript"
+.l1296:	.string	"mbedtls_ssl_get_hs_sni"
+.l1297:	.string	"mbedtls_ssl_get_input_max_frag_len"
+.l1298:	.string	"mbedtls_ssl_get_key_exchange_md_tls1_2"
+.l1299:	.string	"mbedtls_ssl_get_max_in_record_payload"
+.l1300:	.string	"mbedtls_ssl_get_max_out_record_payload"
+.l1301:	.string	"mbedtls_ssl_get_mode_from_ciphersuite"
+.l1302:	.string	"mbedtls_ssl_get_mode_from_transform"
+.l1303:	.string	"mbedtls_ssl_get_output_max_frag_len"
+.l1304:	.string	"mbedtls_ssl_get_own_cid"
+.l1305:	.string	"mbedtls_ssl_get_peer_cert"
+.l1306:	.string	"mbedtls_ssl_get_peer_cid"
+.l1307:	.string	"mbedtls_ssl_get_psa_curve_info_from_tls_id"
+.l1308:	.string	"mbedtls_ssl_get_record_expansion"
+.l1309:	.string	"mbedtls_ssl_get_session"
+.l1310:	.string	"mbedtls_ssl_get_tls_id_from_ecp_group_id"
+.l1311:	.string	"mbedtls_ssl_get_verify_result"
+.l1312:	.string	"mbedtls_ssl_get_version"
+.l1313:	.string	"mbedtls_ssl_handle_message_type"
+.l1314:	.string	"mbedtls_ssl_handle_pending_alert"
+.l1315:	.string	"mbedtls_ssl_handshake"
+.l1316:	.string	"mbedtls_ssl_handshake_client_step"
+.l1317:	.string	"mbedtls_ssl_handshake_free"
+.l1318:	.string	"mbedtls_ssl_handshake_server_step"
+.l1319:	.string	"mbedtls_ssl_handshake_step"
+.l1320:	.string	"mbedtls_ssl_handshake_wrapup"
+.l1321:	.string	"mbedtls_ssl_handshake_wrapup_free_hs_transform"
+.l1322:	.string	"mbedtls_ssl_hash_from_md_alg"
+.l1323:	.string	"mbedtls_ssl_init"
+.l1324:	.string	"mbedtls_ssl_list_ciphersuites"
+.l1325:	.string	"mbedtls_ssl_md_alg_from_hash"
+.l1326:	.string	"mbedtls_ssl_optimize_checksum"
+.l1327:	.string	"mbedtls_ssl_parse_alpn_ext"
+.l1328:	.string	"mbedtls_ssl_parse_certificate"
+.l1329:	.string	"mbedtls_ssl_parse_change_cipher_spec"
+.l1330:	.string	"mbedtls_ssl_parse_finished"
+.l1331:	.string	"mbedtls_ssl_parse_server_name_ext"
+.l1332:	.string	"mbedtls_ssl_parse_sig_alg_ext"
+.l1333:	.string	"mbedtls_ssl_pend_fatal_alert"
+.l1334:	.string	"mbedtls_ssl_pk_alg_from_sig"
+.l1335:	.string	"mbedtls_ssl_prepare_handshake_record"
+.l1336:	.string	"mbedtls_ssl_psk_derive_premaster"
+.l1337:	.string	"mbedtls_ssl_read"
+.l1338:	.string	"mbedtls_ssl_read_record"
+.l1339:	.string	"mbedtls_ssl_read_version"
+.l1340:	.string	"mbedtls_ssl_recv_flight_completed"
+.l1341:	.string	"mbedtls_ssl_renegotiate"
+.l1342:	.string	"mbedtls_ssl_resend"
+.l1343:	.string	"mbedtls_ssl_resend_hello_request"
+.l1344:	.string	"mbedtls_ssl_reset_checksum"
+.l1345:	.string	"mbedtls_ssl_reset_in_out_pointers"
+.l1346:	.string	"mbedtls_ssl_reset_transcript_for_hrr"
+.l1347:	.string	"mbedtls_ssl_send_alert_message"
+.l1348:	.string	"mbedtls_ssl_send_fatal_handshake_failure"
+.l1349:	.string	"mbedtls_ssl_send_flight_completed"
+.l1350:	.string	"mbedtls_ssl_session_copy"
+.l1351:	.string	"mbedtls_ssl_session_free"
+.l1352:	.string	"mbedtls_ssl_session_init"
+.l1353:	.string	"mbedtls_ssl_session_load"
+.l1354:	.string	"mbedtls_ssl_session_reset"
+.l1355:	.string	"mbedtls_ssl_session_reset_int"
+.l1356:	.string	"mbedtls_ssl_session_reset_msg_layer"
+.l1357:	.string	"mbedtls_ssl_session_save"
+.l1358:	.string	"mbedtls_ssl_session_set_hostname"
+.l1359:	.string	"mbedtls_ssl_set_bio"
+.l1360:	.string	"mbedtls_ssl_set_calc_verify_md"
+.l1361:	.string	"mbedtls_ssl_set_cid"
+.l1362:	.string	"mbedtls_ssl_set_client_transport_id"
+.l1363:	.string	"mbedtls_ssl_set_datagram_packing"
+.l1364:	.string	"mbedtls_ssl_set_export_keys_cb"
+.l1365:	.string	"mbedtls_ssl_set_hostname"
+.l1366:	.string	"mbedtls_ssl_set_hs_authmode"
+.l1367:	.string	"mbedtls_ssl_set_hs_ca_chain"
+.l1368:	.string	"mbedtls_ssl_set_hs_dn_hints"
+.l1369:	.string	"mbedtls_ssl_set_hs_own_cert"
+.l1370:	.string	"mbedtls_ssl_set_hs_psk"
+.l1371:	.string	"mbedtls_ssl_set_inbound_transform"
+.l1372:	.string	"mbedtls_ssl_set_mtu"
+.l1373:	.string	"mbedtls_ssl_set_outbound_transform"
+.l1374:	.string	"mbedtls_ssl_set_session"
+.l1375:	.string	"mbedtls_ssl_set_timer"
+.l1376:	.string	"mbedtls_ssl_set_timer_cb"
+.l1377:	.string	"mbedtls_ssl_set_verify"
+.l1378:	.string	"mbedtls_ssl_setup"
+.l1379:	.string	"mbedtls_ssl_sig_from_pk"
+.l1380:	.string	"mbedtls_ssl_sig_from_pk_alg"
+.l1381:	.string	"mbedtls_ssl_start_handshake_msg"
+.l1382:	.string	"mbedtls_ssl_start_renegotiation"
+.l1383:	.string	"mbedtls_ssl_tls12_get_preferred_hash_for_sig_alg"
+.l1384:	.string	"mbedtls_ssl_tls12_write_client_hello_exts"
+.l1385:	.string	"mbedtls_ssl_tls13_calculate_verify_data"
+.l1386:	.string	"mbedtls_ssl_tls13_check_received_extension"
+.l1387:	.string	"mbedtls_ssl_tls13_check_sig_alg_cert_key_match"
+.l1388:	.string	"mbedtls_ssl_tls13_compute_application_transform"
+.l1389:	.string	"mbedtls_ssl_tls13_compute_handshake_transform"
+.l1390:	.string	"mbedtls_ssl_tls13_compute_resumption_master_secret"
+.l1391:	.string	"mbedtls_ssl_tls13_create_psk_binder"
+.l1392:	.string	"mbedtls_ssl_tls13_crypto_init"
+.l1393:	.string	"mbedtls_ssl_tls13_derive_application_secrets"
+.l1394:	.string	"mbedtls_ssl_tls13_derive_early_secrets"
+.l1395:	.string	"mbedtls_ssl_tls13_derive_handshake_secrets"
+.l1396:	.string	"mbedtls_ssl_tls13_derive_resumption_master_secret"
+.l1397:	.string	"mbedtls_ssl_tls13_derive_secret"
+.l1398:	.string	"mbedtls_ssl_tls13_evolve_secret"
+.l1399:	.string	"mbedtls_ssl_tls13_export_handshake_psk"
+.l1400:	.string	"mbedtls_ssl_tls13_fetch_handshake_msg"
+.l1401:	.string	"mbedtls_ssl_tls13_finalize_client_hello"
+.l1402:	.string	"mbedtls_ssl_tls13_generate_and_write_xxdh_key_exchange"
+.l1403:	.string	"mbedtls_ssl_tls13_handshake_client_step"
+.l1404:	.string	"mbedtls_ssl_tls13_handshake_server_step"
+.l1405:	.string	"mbedtls_ssl_tls13_handshake_wrapup"
+.l1406:	.string	"mbedtls_ssl_tls13_hello_retry_request_magic"
+.l1407:	.string	"mbedtls_ssl_tls13_hkdf_expand_label"
+.l1408:	.string	"mbedtls_ssl_tls13_is_supported_versions_ext_present_in_exts"
+.l1409:	.string	"mbedtls_ssl_tls13_key_schedule_stage_early"
+.l1410:	.string	"mbedtls_ssl_tls13_labels"
+.l1411:	.string	"mbedtls_ssl_tls13_make_traffic_keys"
+.l1412:	.string	"mbedtls_ssl_tls13_populate_transform"
+.l1413:	.string	"mbedtls_ssl_tls13_process_certificate"
+.l1414:	.string	"mbedtls_ssl_tls13_process_certificate_verify"
+.l1415:	.string	"mbedtls_ssl_tls13_process_finished_message"
+.l1416:	.string	"mbedtls_ssl_tls13_read_public_xxdhe_share"
+.l1417:	.string	"mbedtls_ssl_tls13_write_binders_of_pre_shared_key_ext"
+.l1418:	.string	"mbedtls_ssl_tls13_write_certificate"
+.l1419:	.string	"mbedtls_ssl_tls13_write_certificate_verify"
+.l1420:	.string	"mbedtls_ssl_tls13_write_change_cipher_spec"
+.l1421:	.string	"mbedtls_ssl_tls13_write_client_hello_exts"
+.l1422:	.string	"mbedtls_ssl_tls13_write_finished_message"
+.l1423:	.string	"mbedtls_ssl_tls13_write_identities_of_pre_shared_key_ext"
+.l1424:	.string	"mbedtls_ssl_tls_prf"
+.l1425:	.string	"mbedtls_ssl_transform_free"
+.l1426:	.string	"mbedtls_ssl_transform_init"
+.l1427:	.string	"mbedtls_ssl_update_handshake_status"
+.l1428:	.string	"mbedtls_ssl_update_in_pointers"
+.l1429:	.string	"mbedtls_ssl_update_out_pointers"
+.l1430:	.string	"mbedtls_ssl_validate_ciphersuite"
+.l1431:	.string	"mbedtls_ssl_verify_certificate"
+.l1432:	.string	"mbedtls_ssl_write"
+.l1433:	.string	"mbedtls_ssl_write_alpn_ext"
+.l1434:	.string	"mbedtls_ssl_write_certificate"
+.l1435:	.string	"mbedtls_ssl_write_change_cipher_spec"
+.l1436:	.string	"mbedtls_ssl_write_client_hello"
+.l1437:	.string	"mbedtls_ssl_write_finished"
+.l1438:	.string	"mbedtls_ssl_write_handshake_msg_ext"
+.l1439:	.string	"mbedtls_ssl_write_record"
+.l1440:	.string	"mbedtls_ssl_write_sig_alg_ext"
+.l1441:	.string	"mbedtls_ssl_write_version"
+.l1442:	.string	"mbedtls_strerror"
+.l1443:	.string	"mbedtls_timing_get_delay"
+.l1444:	.string	"mbedtls_timing_get_final_delay"
+.l1445:	.string	"mbedtls_timing_get_timer"
+.l1446:	.string	"mbedtls_timing_set_delay"
+.l1447:	.string	"mbedtls_to_psa_error"
+.l1448:	.string	"mbedtls_version_check_feature"
+.l1449:	.string	"mbedtls_version_get_number"
+.l1450:	.string	"mbedtls_version_get_string"
+.l1451:	.string	"mbedtls_version_get_string_full"
+.l1452:	.string	"mbedtls_x509_crl_free"
+.l1453:	.string	"mbedtls_x509_crl_info"
+.l1454:	.string	"mbedtls_x509_crl_init"
+.l1455:	.string	"mbedtls_x509_crl_parse"
+.l1456:	.string	"mbedtls_x509_crl_parse_der"
+.l1457:	.string	"mbedtls_x509_crl_parse_file"
+.l1458:	.string	"mbedtls_x509_crt_check_extended_key_usage"
+.l1459:	.string	"mbedtls_x509_crt_check_key_usage"
+.l1460:	.string	"mbedtls_x509_crt_free"
+.l1461:	.string	"mbedtls_x509_crt_get_ca_istrue"
+.l1462:	.string	"mbedtls_x509_crt_info"
+.l1463:	.string	"mbedtls_x509_crt_init"
+.l1464:	.string	"mbedtls_x509_crt_is_revoked"
+.l1465:	.string	"mbedtls_x509_crt_parse"
+.l1466:	.string	"mbedtls_x509_crt_parse_cn_inet_pton"
+.l1467:	.string	"mbedtls_x509_crt_parse_der"
+.l1468:	.string	"mbedtls_x509_crt_parse_der_nocopy"
+.l1469:	.string	"mbedtls_x509_crt_parse_der_with_ext_cb"
+.l1470:	.string	"mbedtls_x509_crt_parse_file"
+.l1471:	.string	"mbedtls_x509_crt_parse_path"
+.l1472:	.string	"mbedtls_x509_crt_profile_default"
+.l1473:	.string	"mbedtls_x509_crt_profile_next"
+.l1474:	.string	"mbedtls_x509_crt_profile_none"
+.l1475:	.string	"mbedtls_x509_crt_profile_suiteb"
+.l1476:	.string	"mbedtls_x509_crt_verify"
+.l1477:	.string	"mbedtls_x509_crt_verify_info"
+.l1478:	.string	"mbedtls_x509_crt_verify_restartable"
+.l1479:	.string	"mbedtls_x509_crt_verify_with_profile"
+.l1480:	.string	"mbedtls_x509_csr_free"
+.l1481:	.string	"mbedtls_x509_csr_info"
+.l1482:	.string	"mbedtls_x509_csr_init"
+.l1483:	.string	"mbedtls_x509_csr_parse"
+.l1484:	.string	"mbedtls_x509_csr_parse_der"
+.l1485:	.string	"mbedtls_x509_csr_parse_der_with_ext_cb"
+.l1486:	.string	"mbedtls_x509_csr_parse_file"
+.l1487:	.string	"mbedtls_x509_dn_gets"
+.l1488:	.string	"mbedtls_x509_free_subject_alt_name"
+.l1489:	.string	"mbedtls_x509_get_alg"
+.l1490:	.string	"mbedtls_x509_get_alg_null"
+.l1491:	.string	"mbedtls_x509_get_ext"
+.l1492:	.string	"mbedtls_x509_get_key_usage"
+.l1493:	.string	"mbedtls_x509_get_name"
+.l1494:	.string	"mbedtls_x509_get_ns_cert_type"
+.l1495:	.string	"mbedtls_x509_get_rsassa_pss_params"
+.l1496:	.string	"mbedtls_x509_get_serial"
+.l1497:	.string	"mbedtls_x509_get_sig"
+.l1498:	.string	"mbedtls_x509_get_sig_alg"
+.l1499:	.string	"mbedtls_x509_get_subject_alt_name"
+.l1500:	.string	"mbedtls_x509_get_subject_alt_name_ext"
+.l1501:	.string	"mbedtls_x509_get_time"
+.l1502:	.string	"mbedtls_x509_info_cert_type"
+.l1503:	.string	"mbedtls_x509_info_key_usage"
+.l1504:	.string	"mbedtls_x509_info_subject_alt_name"
+.l1505:	.string	"mbedtls_x509_key_size_helper"
+.l1506:	.string	"mbedtls_x509_parse_subject_alt_name"
+.l1507:	.string	"mbedtls_x509_serial_gets"
+.l1508:	.string	"mbedtls_x509_set_extension"
+.l1509:	.string	"mbedtls_x509_sig_alg_gets"
+.l1510:	.string	"mbedtls_x509_string_to_names"
+.l1511:	.string	"mbedtls_x509_time_cmp"
+.l1512:	.string	"mbedtls_x509_time_gmtime"
+.l1513:	.string	"mbedtls_x509_time_is_future"
+.l1514:	.string	"mbedtls_x509_time_is_past"
+.l1515:	.string	"mbedtls_x509_write_extensions"
+.l1516:	.string	"mbedtls_x509_write_names"
+.l1517:	.string	"mbedtls_x509_write_set_san_common"
+.l1518:	.string	"mbedtls_x509_write_sig"
+.l1519:	.string	"mbedtls_x509write_crt_der"
+.l1520:	.string	"mbedtls_x509write_crt_free"
+.l1521:	.string	"mbedtls_x509write_crt_init"
+.l1522:	.string	"mbedtls_x509write_crt_pem"
+.l1523:	.string	"mbedtls_x509write_crt_set_authority_key_identifier"
+.l1524:	.string	"mbedtls_x509write_crt_set_basic_constraints"
+.l1525:	.string	"mbedtls_x509write_crt_set_ext_key_usage"
+.l1526:	.string	"mbedtls_x509write_crt_set_extension"
+.l1527:	.string	"mbedtls_x509write_crt_set_issuer_key"
+.l1528:	.string	"mbedtls_x509write_crt_set_issuer_name"
+.l1529:	.string	"mbedtls_x509write_crt_set_key_usage"
+.l1530:	.string	"mbedtls_x509write_crt_set_md_alg"
+.l1531:	.string	"mbedtls_x509write_crt_set_ns_cert_type"
+.l1532:	.string	"mbedtls_x509write_crt_set_serial"
+.l1533:	.string	"mbedtls_x509write_crt_set_serial_raw"
+.l1534:	.string	"mbedtls_x509write_crt_set_subject_alternative_name"
+.l1535:	.string	"mbedtls_x509write_crt_set_subject_key"
+.l1536:	.string	"mbedtls_x509write_crt_set_subject_key_identifier"
+.l1537:	.string	"mbedtls_x509write_crt_set_subject_name"
+.l1538:	.string	"mbedtls_x509write_crt_set_validity"
+.l1539:	.string	"mbedtls_x509write_crt_set_version"
+.l1540:	.string	"mbedtls_x509write_csr_der"
+.l1541:	.string	"mbedtls_x509write_csr_free"
+.l1542:	.string	"mbedtls_x509write_csr_init"
+.l1543:	.string	"mbedtls_x509write_csr_pem"
+.l1544:	.string	"mbedtls_x509write_csr_set_extension"
+.l1545:	.string	"mbedtls_x509write_csr_set_key"
+.l1546:	.string	"mbedtls_x509write_csr_set_key_usage"
+.l1547:	.string	"mbedtls_x509write_csr_set_md_alg"
+.l1548:	.string	"mbedtls_x509write_csr_set_ns_cert_type"
+.l1549:	.string	"mbedtls_x509write_csr_set_subject_alternative_name"
+.l1550:	.string	"mbedtls_x509write_csr_set_subject_name"
+.l1551:	.string	"mbedtls_zeroize_and_free"
+.l1552:	.string	"meadow_cloud_decrypt_buf"
+.l1553:	.string	"meadow_cloud_decrypt_buf_aes"
+.l1554:	.string	"meadow_cloud_provision"
+.l1555:	.string	"meadow_cloud_release_private_key"
+.l1556:	.string	"meadow_cloud_retrieve_private_key"
+.l1557:	.string	"meadow_esp32_firmware"
+.l1558:	.string	"meadow_hw_version_get"
+.l1559:	.string	"meadow_kt_dispatcher"
+.l1560:	.string	"meadow_os_config_free_resources"
+.l1561:	.string	"meadow_os_deep_copy_config"
+.l1562:	.string	"meadow_os_espcp_enter_programming_mode"
+.l1563:	.string	"meadow_os_espcp_monitor_process_line"
+.l1564:	.string	"meadow_os_espcp_reset"
+.l1565:	.string	"meadow_os_reset_board"
+.l1566:	.string	"meadow_read_file_total_free_flash_size"
+.l1567:	.string	"memalign"
+.l1568:	.string	"memchr"
+.l1569:	.string	"memcmp"
+.l1570:	.string	"memcpy"
+.l1571:	.string	"memmove"
+.l1572:	.string	"memset"
+.l1573:	.string	"mkdir"
+.l1574:	.string	"modf"
+.l1575:	.string	"modff"
+.l1576:	.string	"modfl"
+.l1577:	.string	"mount"
+.l1578:	.string	"nan"
+.l1579:	.string	"nanf"
+.l1580:	.string	"nanl"
+.l1581:	.string	"nearbyint"
+.l1582:	.string	"nearbyintf"
+.l1583:	.string	"nearbyintl"
+.l1584:	.string	"nextafter"
+.l1585:	.string	"nextafterf"
+.l1586:	.string	"nextafterl"
+.l1587:	.string	"nexttoward"
+.l1588:	.string	"nexttowardf"
+.l1589:	.string	"nexttowardl"
+.l1590:	.string	"open"
+.l1591:	.string	"opendir"
+.l1592:	.string	"os_update"
+.l1593:	.string	"parse_hostfile"
+.l1594:	.string	"perror"
+.l1595:	.string	"pipe"
+.l1596:	.string	"pipe2"
+.l1597:	.string	"poll"
+.l1598:	.string	"pow"
+.l1599:	.string	"pow10"
+.l1600:	.string	"pow10f"
+.l1601:	.string	"powf"
+.l1602:	.string	"powl"
+.l1603:	.string	"printf"
+.l1604:	.string	"psa_aead_abort"
+.l1605:	.string	"psa_aead_decrypt"
+.l1606:	.string	"psa_aead_decrypt_setup"
+.l1607:	.string	"psa_aead_encrypt"
+.l1608:	.string	"psa_aead_encrypt_setup"
+.l1609:	.string	"psa_aead_finish"
+.l1610:	.string	"psa_aead_generate_nonce"
+.l1611:	.string	"psa_aead_set_lengths"
+.l1612:	.string	"psa_aead_set_nonce"
+.l1613:	.string	"psa_aead_update"
+.l1614:	.string	"psa_aead_update_ad"
+.l1615:	.string	"psa_aead_verify"
+.l1616:	.string	"psa_allocate_buffer_to_slot"
+.l1617:	.string	"psa_asymmetric_decrypt"
+.l1618:	.string	"psa_asymmetric_encrypt"
+.l1619:	.string	"psa_can_do_cipher"
+.l1620:	.string	"psa_can_do_hash"
+.l1621:	.string	"psa_cipher_abort"
+.l1622:	.string	"psa_cipher_decrypt"
+.l1623:	.string	"psa_cipher_decrypt_setup"
+.l1624:	.string	"psa_cipher_encrypt"
+.l1625:	.string	"psa_cipher_encrypt_setup"
+.l1626:	.string	"psa_cipher_finish"
+.l1627:	.string	"psa_cipher_generate_iv"
+.l1628:	.string	"psa_cipher_set_iv"
+.l1629:	.string	"psa_cipher_update"
+.l1630:	.string	"psa_close_key"
+.l1631:	.string	"psa_copy_key"
+.l1632:	.string	"psa_copy_key_material_into_slot"
+.l1633:	.string	"psa_crypto_driver_pake_get_cipher_suite"
+.l1634:	.string	"psa_crypto_driver_pake_get_password"
+.l1635:	.string	"psa_crypto_driver_pake_get_password_len"
+.l1636:	.string	"psa_crypto_driver_pake_get_peer"
+.l1637:	.string	"psa_crypto_driver_pake_get_peer_len"
+.l1638:	.string	"psa_crypto_driver_pake_get_user"
+.l1639:	.string	"psa_crypto_driver_pake_get_user_len"
+.l1640:	.string	"psa_crypto_init"
+.l1641:	.string	"psa_crypto_local_input_alloc"
+.l1642:	.string	"psa_crypto_local_input_free"
+.l1643:	.string	"psa_crypto_local_output_alloc"
+.l1644:	.string	"psa_crypto_local_output_free"
+.l1645:	.string	"psa_custom_key_parameters_are_default"
+.l1646:	.string	"psa_destroy_key"
+.l1647:	.string	"psa_destroy_persistent_key"
+.l1648:	.string	"psa_driver_wrapper_export_public_key"
+.l1649:	.string	"psa_driver_wrapper_get_builtin_key"
+.l1650:	.string	"psa_driver_wrapper_get_key_buffer_size"
+.l1651:	.string	"psa_export_key"
+.l1652:	.string	"psa_export_key_internal"
+.l1653:	.string	"psa_export_public_key"
+.l1654:	.string	"psa_export_public_key_internal"
+.l1655:	.string	"psa_format_key_data_for_storage"
+.l1656:	.string	"psa_free_key_slot"
+.l1657:	.string	"psa_free_persistent_key_data"
+.l1658:	.string	"psa_generate_key"
+.l1659:	.string	"psa_generate_key_custom"
+.l1660:	.string	"psa_generate_key_ext"
+.l1661:	.string	"psa_generate_key_internal"
+.l1662:	.string	"psa_generate_random"
+.l1663:	.string	"psa_generic_status_to_mbedtls"
+.l1664:	.string	"psa_get_and_lock_key_slot"
+.l1665:	.string	"psa_get_key_attributes"
+.l1666:	.string	"psa_hash_abort"
+.l1667:	.string	"psa_hash_clone"
+.l1668:	.string	"psa_hash_compare"
+.l1669:	.string	"psa_hash_compute"
+.l1670:	.string	"psa_hash_finish"
+.l1671:	.string	"psa_hash_setup"
+.l1672:	.string	"psa_hash_update"
+.l1673:	.string	"psa_hash_verify"
+.l1674:	.string	"psa_import_key"
+.l1675:	.string	"psa_import_key_into_slot"
+.l1676:	.string	"psa_initialize_key_slots"
+.l1677:	.string	"psa_interruptible_get_max_ops"
+.l1678:	.string	"psa_interruptible_set_max_ops"
+.l1679:	.string	"psa_is_key_present_in_storage"
+.l1680:	.string	"psa_is_valid_key_id"
+.l1681:	.string	"psa_its_get"
+.l1682:	.string	"psa_its_get_info"
+.l1683:	.string	"psa_its_remove"
+.l1684:	.string	"psa_its_set"
+.l1685:	.string	"psa_key_agreement_raw_builtin"
+.l1686:	.string	"psa_key_derivation_abort"
+.l1687:	.string	"psa_key_derivation_get_capacity"
+.l1688:	.string	"psa_key_derivation_input_bytes"
+.l1689:	.string	"psa_key_derivation_input_integer"
+.l1690:	.string	"psa_key_derivation_input_key"
+.l1691:	.string	"psa_key_derivation_key_agreement"
+.l1692:	.string	"psa_key_derivation_output_bytes"
+.l1693:	.string	"psa_key_derivation_output_key"
+.l1694:	.string	"psa_key_derivation_output_key_custom"
+.l1695:	.string	"psa_key_derivation_output_key_ext"
+.l1696:	.string	"psa_key_derivation_set_capacity"
+.l1697:	.string	"psa_key_derivation_setup"
+.l1698:	.string	"psa_load_persistent_key"
+.l1699:	.string	"psa_mac_abort"
+.l1700:	.string	"psa_mac_compute"
+.l1701:	.string	"psa_mac_sign_finish"
+.l1702:	.string	"psa_mac_sign_setup"
+.l1703:	.string	"psa_mac_update"
+.l1704:	.string	"psa_mac_verify"
+.l1705:	.string	"psa_mac_verify_finish"
+.l1706:	.string	"psa_mac_verify_setup"
+.l1707:	.string	"psa_open_key"
+.l1708:	.string	"psa_pake_abort"
+.l1709:	.string	"psa_pake_get_implicit_key"
+.l1710:	.string	"psa_pake_input"
+.l1711:	.string	"psa_pake_output"
+.l1712:	.string	"psa_pake_set_password_key"
+.l1713:	.string	"psa_pake_set_peer"
+.l1714:	.string	"psa_pake_set_role"
+.l1715:	.string	"psa_pake_set_user"
+.l1716:	.string	"psa_pake_setup"
+.l1717:	.string	"psa_parse_key_data_from_storage"
+.l1718:	.string	"psa_pk_status_to_mbedtls"
+.l1719:	.string	"psa_purge_key"
+.l1720:	.string	"psa_raw_key_agreement"
+.l1721:	.string	"psa_remove_key_data_from_memory"
+.l1722:	.string	"psa_reserve_free_key_slot"
+.l1723:	.string	"psa_reset_key_attributes"
+.l1724:	.string	"psa_save_persistent_key"
+.l1725:	.string	"psa_sign_hash"
+.l1726:	.string	"psa_sign_hash_abort"
+.l1727:	.string	"psa_sign_hash_builtin"
+.l1728:	.string	"psa_sign_hash_complete"
+.l1729:	.string	"psa_sign_hash_get_num_ops"
+.l1730:	.string	"psa_sign_hash_start"
+.l1731:	.string	"psa_sign_message"
+.l1732:	.string	"psa_sign_message_builtin"
+.l1733:	.string	"psa_status_to_mbedtls"
+.l1734:	.string	"psa_to_lms_errors"
+.l1735:	.string	"psa_to_md_errors"
+.l1736:	.string	"psa_to_pk_rsa_errors"
+.l1737:	.string	"psa_to_ssl_errors"
+.l1738:	.string	"psa_unregister_read"
+.l1739:	.string	"psa_unregister_read_under_mutex"
+.l1740:	.string	"psa_validate_key_location"
+.l1741:	.string	"psa_validate_key_persistence"
+.l1742:	.string	"psa_validate_unstructured_key_bit_size"
+.l1743:	.string	"psa_verify_hash"
+.l1744:	.string	"psa_verify_hash_abort"
+.l1745:	.string	"psa_verify_hash_builtin"
+.l1746:	.string	"psa_verify_hash_complete"
+.l1747:	.string	"psa_verify_hash_get_num_ops"
+.l1748:	.string	"psa_verify_hash_start"
+.l1749:	.string	"psa_verify_message"
+.l1750:	.string	"psa_verify_message_builtin"
+.l1751:	.string	"psa_wipe_all_key_slots"
+.l1752:	.string	"psa_wipe_key_slot"
+.l1753:	.string	"pthread_attr_init"
+.l1754:	.string	"pthread_attr_setschedparam"
+.l1755:	.string	"pthread_attr_setstacksize"
+.l1756:	.string	"pthread_cancel"
+.l1757:	.string	"pthread_create"
+.l1758:	.string	"pthread_exit"
+.l1759:	.string	"pthread_join"
+.l1760:	.string	"quick_exit"
+.l1761:	.string	"read"
+.l1762:	.string	"readdir"
+.l1763:	.string	"realloc"
+.l1764:	.string	"recv"
+.l1765:	.string	"recvfrom"
+.l1766:	.string	"reldata"
+.l1767:	.string	"remainder"
+.l1768:	.string	"remainderf"
+.l1769:	.string	"remainderl"
+.l1770:	.string	"remove"
+.l1771:	.string	"remquo"
+.l1772:	.string	"remquof"
+.l1773:	.string	"remquol"
+.l1774:	.string	"rename"
+.l1775:	.string	"rint"
+.l1776:	.string	"rintf"
+.l1777:	.string	"rintl"
+.l1778:	.string	"rmdir"
+.l1779:	.string	"round"
+.l1780:	.string	"roundf"
+.l1781:	.string	"roundl"
+.l1782:	.string	"scalb"
+.l1783:	.string	"scalbf"
+.l1784:	.string	"scalbln"
+.l1785:	.string	"scalblnf"
+.l1786:	.string	"scalblnl"
+.l1787:	.string	"scalbn"
+.l1788:	.string	"scalbnf"
+.l1789:	.string	"scalbnl"
+.l1790:	.string	"select"
+.l1791:	.string	"sem_destroy"
+.l1792:	.string	"sem_getvalue"
+.l1793:	.string	"sem_init"
+.l1794:	.string	"sem_post"
+.l1795:	.string	"sem_setprotocol"
+.l1796:	.string	"sem_trywait"
+.l1797:	.string	"sem_wait"
+.l1798:	.string	"send"
+.l1799:	.string	"set_errno"
+.l1800:	.string	"setbuf"
+.l1801:	.string	"setlogmask"
+.l1802:	.string	"setsockopt"
+.l1803:	.string	"setvbuf"
+.l1804:	.string	"shutdown"
+.l1805:	.string	"sigaddset"
+.l1806:	.string	"sigemptyset"
+.l1807:	.string	"signal"
+.l1808:	.string	"significand"
+.l1809:	.string	"significandf"
+.l1810:	.string	"sigprocmask"
+.l1811:	.string	"sin"
+.l1812:	.string	"sincos"
+.l1813:	.string	"sincosf"
+.l1814:	.string	"sinf"
+.l1815:	.string	"sinh"
+.l1816:	.string	"sinhf"
+.l1817:	.string	"sinhl"
+.l1818:	.string	"sinl"
+.l1819:	.string	"sleep"
+.l1820:	.string	"snprintf"
+.l1821:	.string	"socket"
+.l1822:	.string	"sqlite3_aggregate_context"
+.l1823:	.string	"sqlite3_aggregate_count"
+.l1824:	.string	"sqlite3_auto_extension"
+.l1825:	.string	"sqlite3_autovacuum_pages"
+.l1826:	.string	"sqlite3_backup_finish"
+.l1827:	.string	"sqlite3_backup_init"
+.l1828:	.string	"sqlite3_backup_pagecount"
+.l1829:	.string	"sqlite3_backup_remaining"
+.l1830:	.string	"sqlite3_backup_step"
+.l1831:	.string	"sqlite3_bind_blob"
+.l1832:	.string	"sqlite3_bind_blob64"
+.l1833:	.string	"sqlite3_bind_double"
+.l1834:	.string	"sqlite3_bind_int"
+.l1835:	.string	"sqlite3_bind_int64"
+.l1836:	.string	"sqlite3_bind_null"
+.l1837:	.string	"sqlite3_bind_parameter_count"
+.l1838:	.string	"sqlite3_bind_parameter_index"
+.l1839:	.string	"sqlite3_bind_parameter_name"
+.l1840:	.string	"sqlite3_bind_pointer"
+.l1841:	.string	"sqlite3_bind_text"
+.l1842:	.string	"sqlite3_bind_text16"
+.l1843:	.string	"sqlite3_bind_text64"
+.l1844:	.string	"sqlite3_bind_value"
+.l1845:	.string	"sqlite3_bind_zeroblob"
+.l1846:	.string	"sqlite3_bind_zeroblob64"
+.l1847:	.string	"sqlite3_blob_bytes"
+.l1848:	.string	"sqlite3_blob_close"
+.l1849:	.string	"sqlite3_blob_open"
+.l1850:	.string	"sqlite3_blob_read"
+.l1851:	.string	"sqlite3_blob_reopen"
+.l1852:	.string	"sqlite3_blob_write"
+.l1853:	.string	"sqlite3_busy_handler"
+.l1854:	.string	"sqlite3_busy_timeout"
+.l1855:	.string	"sqlite3_cancel_auto_extension"
+.l1856:	.string	"sqlite3_changes"
+.l1857:	.string	"sqlite3_changes64"
+.l1858:	.string	"sqlite3_clear_bindings"
+.l1859:	.string	"sqlite3_close"
+.l1860:	.string	"sqlite3_close_v2"
+.l1861:	.string	"sqlite3_collation_needed"
+.l1862:	.string	"sqlite3_collation_needed16"
+.l1863:	.string	"sqlite3_column_blob"
+.l1864:	.string	"sqlite3_column_bytes"
+.l1865:	.string	"sqlite3_column_bytes16"
+.l1866:	.string	"sqlite3_column_count"
+.l1867:	.string	"sqlite3_column_decltype"
+.l1868:	.string	"sqlite3_column_decltype16"
+.l1869:	.string	"sqlite3_column_double"
+.l1870:	.string	"sqlite3_column_int"
+.l1871:	.string	"sqlite3_column_int64"
+.l1872:	.string	"sqlite3_column_name"
+.l1873:	.string	"sqlite3_column_name16"
+.l1874:	.string	"sqlite3_column_text"
+.l1875:	.string	"sqlite3_column_text16"
+.l1876:	.string	"sqlite3_column_type"
+.l1877:	.string	"sqlite3_column_value"
+.l1878:	.string	"sqlite3_commit_hook"
+.l1879:	.string	"sqlite3_compileoption_get"
+.l1880:	.string	"sqlite3_compileoption_used"
+.l1881:	.string	"sqlite3_complete"
+.l1882:	.string	"sqlite3_complete16"
+.l1883:	.string	"sqlite3_config"
+.l1884:	.string	"sqlite3_context_db_handle"
+.l1885:	.string	"sqlite3_create_collation"
+.l1886:	.string	"sqlite3_create_collation16"
+.l1887:	.string	"sqlite3_create_collation_v2"
+.l1888:	.string	"sqlite3_create_filename"
+.l1889:	.string	"sqlite3_create_function"
+.l1890:	.string	"sqlite3_create_function16"
+.l1891:	.string	"sqlite3_create_function_v2"
+.l1892:	.string	"sqlite3_create_module"
+.l1893:	.string	"sqlite3_create_module_v2"
+.l1894:	.string	"sqlite3_create_window_function"
+.l1895:	.string	"sqlite3_data_count"
+.l1896:	.string	"sqlite3_data_directory"
+.l1897:	.string	"sqlite3_database_file_object"
+.l1898:	.string	"sqlite3_db_cacheflush"
+.l1899:	.string	"sqlite3_db_config"
+.l1900:	.string	"sqlite3_db_filename"
+.l1901:	.string	"sqlite3_db_handle"
+.l1902:	.string	"sqlite3_db_mutex"
+.l1903:	.string	"sqlite3_db_name"
+.l1904:	.string	"sqlite3_db_readonly"
+.l1905:	.string	"sqlite3_db_release_memory"
+.l1906:	.string	"sqlite3_db_status"
+.l1907:	.string	"sqlite3_declare_vtab"
+.l1908:	.string	"sqlite3_demovfs"
+.l1909:	.string	"sqlite3_deserialize"
+.l1910:	.string	"sqlite3_drop_modules"
+.l1911:	.string	"sqlite3_enable_load_extension"
+.l1912:	.string	"sqlite3_enable_shared_cache"
+.l1913:	.string	"sqlite3_errcode"
+.l1914:	.string	"sqlite3_errmsg"
+.l1915:	.string	"sqlite3_errmsg16"
+.l1916:	.string	"sqlite3_error_offset"
+.l1917:	.string	"sqlite3_errstr"
+.l1918:	.string	"sqlite3_exec"
+.l1919:	.string	"sqlite3_expanded_sql"
+.l1920:	.string	"sqlite3_expired"
+.l1921:	.string	"sqlite3_extended_errcode"
+.l1922:	.string	"sqlite3_extended_result_codes"
+.l1923:	.string	"sqlite3_file_control"
+.l1924:	.string	"sqlite3_filename_database"
+.l1925:	.string	"sqlite3_filename_journal"
+.l1926:	.string	"sqlite3_filename_wal"
+.l1927:	.string	"sqlite3_finalize"
+.l1928:	.string	"sqlite3_free"
+.l1929:	.string	"sqlite3_free_filename"
+.l1930:	.string	"sqlite3_free_table"
+.l1931:	.string	"sqlite3_get_autocommit"
+.l1932:	.string	"sqlite3_get_auxdata"
+.l1933:	.string	"sqlite3_get_clientdata"
+.l1934:	.string	"sqlite3_get_table"
+.l1935:	.string	"sqlite3_global_recover"
+.l1936:	.string	"sqlite3_hard_heap_limit64"
+.l1937:	.string	"sqlite3_initialize"
+.l1938:	.string	"sqlite3_interrupt"
+.l1939:	.string	"sqlite3_is_interrupted"
+.l1940:	.string	"sqlite3_keyword_check"
+.l1941:	.string	"sqlite3_keyword_count"
+.l1942:	.string	"sqlite3_keyword_name"
+.l1943:	.string	"sqlite3_last_insert_rowid"
+.l1944:	.string	"sqlite3_libversion"
+.l1945:	.string	"sqlite3_libversion_number"
+.l1946:	.string	"sqlite3_limit"
+.l1947:	.string	"sqlite3_load_extension"
+.l1948:	.string	"sqlite3_log"
+.l1949:	.string	"sqlite3_malloc"
+.l1950:	.string	"sqlite3_malloc64"
+.l1951:	.string	"sqlite3_memory_alarm"
+.l1952:	.string	"sqlite3_memory_highwater"
+.l1953:	.string	"sqlite3_memory_used"
+.l1954:	.string	"sqlite3_mprintf"
+.l1955:	.string	"sqlite3_msize"
+.l1956:	.string	"sqlite3_next_stmt"
+.l1957:	.string	"sqlite3_open"
+.l1958:	.string	"sqlite3_open16"
+.l1959:	.string	"sqlite3_open_v2"
+.l1960:	.string	"sqlite3_os_end"
+.l1961:	.string	"sqlite3_os_init"
+.l1962:	.string	"sqlite3_overload_function"
+.l1963:	.string	"sqlite3_prepare"
+.l1964:	.string	"sqlite3_prepare16"
+.l1965:	.string	"sqlite3_prepare16_v2"
+.l1966:	.string	"sqlite3_prepare16_v3"
+.l1967:	.string	"sqlite3_prepare_v2"
+.l1968:	.string	"sqlite3_prepare_v3"
+.l1969:	.string	"sqlite3_profile"
+.l1970:	.string	"sqlite3_progress_handler"
+.l1971:	.string	"sqlite3_randomness"
+.l1972:	.string	"sqlite3_realloc"
+.l1973:	.string	"sqlite3_realloc64"
+.l1974:	.string	"sqlite3_release_memory"
+.l1975:	.string	"sqlite3_reset"
+.l1976:	.string	"sqlite3_reset_auto_extension"
+.l1977:	.string	"sqlite3_result_blob"
+.l1978:	.string	"sqlite3_result_blob64"
+.l1979:	.string	"sqlite3_result_double"
+.l1980:	.string	"sqlite3_result_error"
+.l1981:	.string	"sqlite3_result_error16"
+.l1982:	.string	"sqlite3_result_error_code"
+.l1983:	.string	"sqlite3_result_error_nomem"
+.l1984:	.string	"sqlite3_result_error_toobig"
+.l1985:	.string	"sqlite3_result_int"
+.l1986:	.string	"sqlite3_result_int64"
+.l1987:	.string	"sqlite3_result_null"
+.l1988:	.string	"sqlite3_result_pointer"
+.l1989:	.string	"sqlite3_result_subtype"
+.l1990:	.string	"sqlite3_result_text"
+.l1991:	.string	"sqlite3_result_text16"
+.l1992:	.string	"sqlite3_result_text16be"
+.l1993:	.string	"sqlite3_result_text16le"
+.l1994:	.string	"sqlite3_result_text64"
+.l1995:	.string	"sqlite3_result_value"
+.l1996:	.string	"sqlite3_result_zeroblob"
+.l1997:	.string	"sqlite3_result_zeroblob64"
+.l1998:	.string	"sqlite3_rollback_hook"
+.l1999:	.string	"sqlite3_serialize"
+.l2000:	.string	"sqlite3_set_authorizer"
+.l2001:	.string	"sqlite3_set_auxdata"
+.l2002:	.string	"sqlite3_set_clientdata"
+.l2003:	.string	"sqlite3_set_last_insert_rowid"
+.l2004:	.string	"sqlite3_shutdown"
+.l2005:	.string	"sqlite3_sleep"
+.l2006:	.string	"sqlite3_snprintf"
+.l2007:	.string	"sqlite3_soft_heap_limit"
+.l2008:	.string	"sqlite3_soft_heap_limit64"
+.l2009:	.string	"sqlite3_sourceid"
+.l2010:	.string	"sqlite3_sql"
+.l2011:	.string	"sqlite3_status"
+.l2012:	.string	"sqlite3_status64"
+.l2013:	.string	"sqlite3_step"
+.l2014:	.string	"sqlite3_stmt_busy"
+.l2015:	.string	"sqlite3_stmt_explain"
+.l2016:	.string	"sqlite3_stmt_isexplain"
+.l2017:	.string	"sqlite3_stmt_readonly"
+.l2018:	.string	"sqlite3_stmt_status"
+.l2019:	.string	"sqlite3_str_append"
+.l2020:	.string	"sqlite3_str_appendall"
+.l2021:	.string	"sqlite3_str_appendchar"
+.l2022:	.string	"sqlite3_str_appendf"
+.l2023:	.string	"sqlite3_str_errcode"
+.l2024:	.string	"sqlite3_str_finish"
+.l2025:	.string	"sqlite3_str_length"
+.l2026:	.string	"sqlite3_str_new"
+.l2027:	.string	"sqlite3_str_reset"
+.l2028:	.string	"sqlite3_str_value"
+.l2029:	.string	"sqlite3_str_vappendf"
+.l2030:	.string	"sqlite3_strglob"
+.l2031:	.string	"sqlite3_stricmp"
+.l2032:	.string	"sqlite3_strlike"
+.l2033:	.string	"sqlite3_strnicmp"
+.l2034:	.string	"sqlite3_system_errno"
+.l2035:	.string	"sqlite3_table_column_metadata"
+.l2036:	.string	"sqlite3_temp_directory"
+.l2037:	.string	"sqlite3_test_control"
+.l2038:	.string	"sqlite3_thread_cleanup"
+.l2039:	.string	"sqlite3_threadsafe"
+.l2040:	.string	"sqlite3_total_changes"
+.l2041:	.string	"sqlite3_total_changes64"
+.l2042:	.string	"sqlite3_trace"
+.l2043:	.string	"sqlite3_trace_v2"
+.l2044:	.string	"sqlite3_transfer_bindings"
+.l2045:	.string	"sqlite3_txn_state"
+.l2046:	.string	"sqlite3_update_hook"
+.l2047:	.string	"sqlite3_uri_boolean"
+.l2048:	.string	"sqlite3_uri_int64"
+.l2049:	.string	"sqlite3_uri_key"
+.l2050:	.string	"sqlite3_uri_parameter"
+.l2051:	.string	"sqlite3_user_data"
+.l2052:	.string	"sqlite3_value_blob"
+.l2053:	.string	"sqlite3_value_bytes"
+.l2054:	.string	"sqlite3_value_bytes16"
+.l2055:	.string	"sqlite3_value_double"
+.l2056:	.string	"sqlite3_value_dup"
+.l2057:	.string	"sqlite3_value_encoding"
+.l2058:	.string	"sqlite3_value_free"
+.l2059:	.string	"sqlite3_value_frombind"
+.l2060:	.string	"sqlite3_value_int"
+.l2061:	.string	"sqlite3_value_int64"
+.l2062:	.string	"sqlite3_value_nochange"
+.l2063:	.string	"sqlite3_value_numeric_type"
+.l2064:	.string	"sqlite3_value_pointer"
+.l2065:	.string	"sqlite3_value_subtype"
+.l2066:	.string	"sqlite3_value_text"
+.l2067:	.string	"sqlite3_value_text16"
+.l2068:	.string	"sqlite3_value_text16be"
+.l2069:	.string	"sqlite3_value_text16le"
+.l2070:	.string	"sqlite3_value_type"
+.l2071:	.string	"sqlite3_version"
+.l2072:	.string	"sqlite3_vfs_find"
+.l2073:	.string	"sqlite3_vfs_register"
+.l2074:	.string	"sqlite3_vfs_unregister"
+.l2075:	.string	"sqlite3_vmprintf"
+.l2076:	.string	"sqlite3_vsnprintf"
+.l2077:	.string	"sqlite3_vtab_collation"
+.l2078:	.string	"sqlite3_vtab_config"
+.l2079:	.string	"sqlite3_vtab_distinct"
+.l2080:	.string	"sqlite3_vtab_in"
+.l2081:	.string	"sqlite3_vtab_in_first"
+.l2082:	.string	"sqlite3_vtab_in_next"
+.l2083:	.string	"sqlite3_vtab_nochange"
+.l2084:	.string	"sqlite3_vtab_on_conflict"
+.l2085:	.string	"sqlite3_vtab_rhs_value"
+.l2086:	.string	"sqlite3_wal_autocheckpoint"
+.l2087:	.string	"sqlite3_wal_checkpoint"
+.l2088:	.string	"sqlite3_wal_checkpoint_v2"
+.l2089:	.string	"sqlite3_wal_hook"
+.l2090:	.string	"sqrt"
+.l2091:	.string	"sqrtf"
+.l2092:	.string	"sqrtl"
+.l2093:	.string	"stat"
+.l2094:	.string	"statfs"
+.l2095:	.string	"strcat"
+.l2096:	.string	"strchr"
+.l2097:	.string	"strchrnul"
+.l2098:	.string	"strcmp"
+.l2099:	.string	"strcpy"
+.l2100:	.string	"strcspn"
+.l2101:	.string	"strdup"
+.l2102:	.string	"strerror"
+.l2103:	.string	"strlcat"
+.l2104:	.string	"strlcpy"
+.l2105:	.string	"strlen"
+.l2106:	.string	"strncat"
+.l2107:	.string	"strncmp"
+.l2108:	.string	"strncpy"
+.l2109:	.string	"strnicmp"
+.l2110:	.string	"strnlen"
+.l2111:	.string	"strrchr"
+.l2112:	.string	"strspn"
+.l2113:	.string	"strstr"
+.l2114:	.string	"strtok_r"
+.l2115:	.string	"strtol"
+.l2116:	.string	"strtoul"
+.l2117:	.string	"syslog"
+.l2118:	.string	"tan"
+.l2119:	.string	"tanf"
+.l2120:	.string	"tanh"
+.l2121:	.string	"tanhf"
+.l2122:	.string	"tanhl"
+.l2123:	.string	"tanl"
+.l2124:	.string	"tensorflow_tests_hello_world"
+.l2125:	.string	"tgamma"
+.l2126:	.string	"tgammaf"
+.l2127:	.string	"tgammal"
+.l2128:	.string	"time"
+.l2129:	.string	"tls_cleanup_pop"
+.l2130:	.string	"tls_cleanup_popall"
+.l2131:	.string	"tls_cleanup_push"
+.l2132:	.string	"tls_destruct"
+.l2133:	.string	"tls_get_info"
+.l2134:	.string	"tolower"
+.l2135:	.string	"tolower_l"
+.l2136:	.string	"trunc"
+.l2137:	.string	"truncf"
+.l2138:	.string	"truncl"
+.l2139:	.string	"unlink"
+.l2140:	.string	"userspace"
+.l2141:	.string	"usleep"
+.l2142:	.string	"vfprintf"
+.l2143:	.string	"vsnprintf"
+.l2144:	.string	"vsyslog"
+.l2145:	.string	"waitpid"
+.l2146:	.string	"work_cancel"
+.l2147:	.string	"work_queue"
+.l2148:	.string	"work_usrstart"
+.l2149:	.string	"write"
+.l2150:	.string	"y0"
+.l2151:	.string	"y0f"
+.l2152:	.string	"y1"
+.l2153:	.string	"y1f"
+.l2154:	.string	"yn"
+.l2155:	.string	"ynf"
+.l2156:	.string	"zalloc"
+#endif
 	SIZE	globalNames
 
 	.align	ALIGN
 	GLOBAL	nglobals
 SYMBOL(nglobals):
-	.word	189
+#ifndef __KERNEL__
+	.word	2157
+#else
+	.word	0
+#endif
 	SIZE	nglobals
 
 	.align	ALIGN
 	GLOBAL	global_table
 SYMBOL(global_table):
-	globalEntry 0, __adddf3
-	globalEntry 1, __aeabi_d2ulz
-	globalEntry 2, __aeabi_dadd
-	globalEntry 3, __aeabi_drsub
-	globalEntry 4, __aeabi_dsub
-	globalEntry 5, __aeabi_f2d
-	globalEntry 6, __aeabi_i2d
-	globalEntry 7, __aeabi_idiv0
-	globalEntry 8, __aeabi_l2d
-	globalEntry 9, __aeabi_ldiv0
-	globalEntry 10, __aeabi_ldivmod
-	globalEntry 11, __aeabi_ui2d
-	globalEntry 12, __aeabi_ul2d
-	globalEntry 13, __aeabi_uldivmod
-	globalEntry 14, __assert
-	globalEntry 15, __dtoa_engine
-	globalEntry 16, __errno
-	globalEntry 17, __exidx_end
-	globalEntry 18, __exidx_start
-	globalEntry 19, __extendsfdf2
-	globalEntry 20, __fixunsdfdi
-	globalEntry 21, __floatdidf
-	globalEntry 22, __floatsidf
-	globalEntry 23, __floatundidf
-	globalEntry 24, __floatunsidf
-	globalEntry 25, __subdf3
-	globalEntry 26, __udivmoddi4
-	globalEntry 27, __ultoa_invert
-	globalEntry 28, _assert
-	globalEntry 29, _ebss
-	globalEntry 30, _edata
-	globalEntry 31, _einit
-	globalEntry 32, _eronly
-	globalEntry 33, _etext
-	globalEntry 34, _exit
-	globalEntry 35, _sbss
-	globalEntry 36, _sdata
-	globalEntry 37, _sinit
-	globalEntry 38, _stext
-	globalEntry 39, abort
-	globalEntry 40, accept4
-	globalEntry 41, atoi
-	globalEntry 42, bind
-	globalEntry 43, calloc
-	globalEntry 44, clock
-	globalEntry 45, close
-	globalEntry 46, connect
-	globalEntry 47, dns_bind
-	globalEntry 48, dns_breaklock
-	globalEntry 49, dns_clear_answer
-	globalEntry 50, dns_find_answer
-	globalEntry 51, dns_foreach_nameserver
-	globalEntry 52, dns_is_queryfamily
-	globalEntry 53, dns_lock
-	globalEntry 54, dns_query
-	globalEntry 55, dns_restorelock
-	globalEntry 56, dns_save_answer
-	globalEntry 57, dns_unlock
-	globalEntry 58, espcp_encode_event_data
-	globalEntry 59, espcp_encode_uint32
-	globalEntry 60, fclose
-	globalEntry 61, fcntl
-	globalEntry 62, fdopen
-	globalEntry 63, ferror
-	globalEntry 64, fflush
-	globalEntry 65, fgetc
-	globalEntry 66, fgetc_unlocked
-	globalEntry 67, fgets
-	globalEntry 68, fgets_unlocked
-	globalEntry 69, flockfile
-	globalEntry 70, fopen
-	globalEntry 71, fprintf
-	globalEntry 72, fputc
-	globalEntry 73, fputc_unlocked
-	globalEntry 74, fputs
-	globalEntry 75, fputs_unlocked
-	globalEntry 76, fread
-	globalEntry 77, fread_unlocked
-	globalEntry 78, free
-	globalEntry 79, fseek
-	globalEntry 80, fseeko
-	globalEntry 81, fstat
-	globalEntry 82, fsync
-	globalEntry 83, ftell
-	globalEntry 84, ftello
-	globalEntry 85, funlockfile
-	globalEntry 86, fwrite
-	globalEntry 87, fwrite_unlocked
-	globalEntry 88, getenv
-	globalEntry 89, gethostentbyname_r
-	globalEntry 90, getpid
-	globalEntry 91, getrandom
-	globalEntry 92, getsockname
-	globalEntry 93, getsockopt
-	globalEntry 94, gettimeofday
-	globalEntry 95, gmtime_r
-	globalEntry 96, inet_ntop
-	globalEntry 97, inet_pton
-	globalEntry 98, ioctl
-	globalEntry 99, isprint
-	globalEntry 100, isspace
-	globalEntry 101, listen
-	globalEntry 102, lseek
-	globalEntry 103, malloc
-	globalEntry 104, meadow_cloud_provision
-	globalEntry 105, meadow_cloud_release_private_key
-	globalEntry 106, meadow_cloud_retrieve_private_key
-	globalEntry 107, meadow_hw_version_get
-	globalEntry 108, meadow_os_config_free_resources
-	globalEntry 109, meadow_os_deep_copy_config
-	globalEntry 110, meadow_os_espcp_enter_programming_mode
-	globalEntry 111, meadow_os_espcp_monitor_process_line
-	globalEntry 112, meadow_os_espcp_reset
-	globalEntry 113, meadow_os_reset_board
-	globalEntry 114, memchr
-	globalEntry 115, memcmp
-	globalEntry 116, memcpy
-	globalEntry 117, memmove
-	globalEntry 118, memset
-	globalEntry 119, mkdir
-	globalEntry 120, mount
-	globalEntry 121, open
-	globalEntry 122, parse_hostfile
-	globalEntry 123, perror
-	globalEntry 124, pipe2
-	globalEntry 125, poll
-	globalEntry 126, pthread_cancel
-	globalEntry 127, pthread_exit
-	globalEntry 128, pthread_join
-	globalEntry 129, read
-	globalEntry 130, realloc
-	globalEntry 131, recv
-	globalEntry 132, recvfrom
-	globalEntry 133, remove
-	globalEntry 134, rename
-	globalEntry 135, rmdir
-	globalEntry 136, select
-	globalEntry 137, sem_destroy
-	globalEntry 138, sem_init
-	globalEntry 139, sem_post
-	globalEntry 140, sem_setprotocol
-	globalEntry 141, sem_wait
-	globalEntry 142, send
-	globalEntry 143, setlogmask
-	globalEntry 144, setsockopt
-	globalEntry 145, shutdown
-	globalEntry 146, sigaddset
-	globalEntry 147, sigemptyset
-	globalEntry 148, signal
-	globalEntry 149, sigprocmask
-	globalEntry 150, sleep
-	globalEntry 151, snprintf
-	globalEntry 152, socket
-	globalEntry 153, stat
-	globalEntry 154, statfs
-	globalEntry 155, strchr
-	globalEntry 156, strcmp
-	globalEntry 157, strcpy
-	globalEntry 158, strcspn
-	globalEntry 159, strerror
-	globalEntry 160, strlcat
-	globalEntry 161, strlcpy
-	globalEntry 162, strlen
-	globalEntry 163, strncmp
-	globalEntry 164, strncpy
-	globalEntry 165, strnlen
-	globalEntry 166, strrchr
-	globalEntry 167, strspn
-	globalEntry 168, strtok_r
-	globalEntry 169, strtol
-	globalEntry 170, strtoul
-	globalEntry 171, syslog
-	globalEntry 172, time
-	globalEntry 173, tls_cleanup_pop
-	globalEntry 174, tls_cleanup_popall
-	globalEntry 175, tls_cleanup_push
-	globalEntry 176, tls_destruct
-	globalEntry 177, tls_get_info
-	globalEntry 178, tolower
-	globalEntry 179, unlink
-	globalEntry 180, usleep
-	globalEntry 181, vfprintf
-	globalEntry 182, vsnprintf
-	globalEntry 183, vsyslog
-	globalEntry 184, waitpid
-	globalEntry 185, work_cancel
-	globalEntry 186, work_queue
-	globalEntry 187, write
-	globalEntry 188, zalloc
+#ifndef __KERNEL__
+	globalEntry 0, _Exit
+	globalEntry 1, __adddf3
+	globalEntry 2, __aeabi_d2lz
+	globalEntry 3, __aeabi_d2ulz
+	globalEntry 4, __aeabi_dadd
+	globalEntry 5, __aeabi_drsub
+	globalEntry 6, __aeabi_dsub
+	globalEntry 7, __aeabi_f2d
+	globalEntry 8, __aeabi_f2lz
+	globalEntry 9, __aeabi_f2ulz
+	globalEntry 10, __aeabi_i2d
+	globalEntry 11, __aeabi_idiv0
+	globalEntry 12, __aeabi_l2d
+	globalEntry 13, __aeabi_ldiv0
+	globalEntry 14, __aeabi_ldivmod
+	globalEntry 15, __aeabi_ui2d
+	globalEntry 16, __aeabi_ul2d
+	globalEntry 17, __aeabi_uldivmod
+	globalEntry 18, __assert
+	globalEntry 19, __dso_handle
+	globalEntry 20, __dtoa_engine
+	globalEntry 21, __errno
+	globalEntry 22, __exidx_end
+	globalEntry 23, __exidx_start
+	globalEntry 24, __exp2f_data
+	globalEntry 25, __exp_data
+	globalEntry 26, __extendsfdf2
+	globalEntry 27, __fe_dfl_env
+	globalEntry 28, __fixdfdi
+	globalEntry 29, __fixsfdi
+	globalEntry 30, __fixunsdfdi
+	globalEntry 31, __fixunssfdi
+	globalEntry 32, __floatdidf
+	globalEntry 33, __floatsidf
+	globalEntry 34, __floatundidf
+	globalEntry 35, __floatunsidf
+	globalEntry 36, __fpclassifyd
+	globalEntry 37, __fpclassifyf
+	globalEntry 38, __ieee754_acos
+	globalEntry 39, __ieee754_acosf
+	globalEntry 40, __ieee754_acosh
+	globalEntry 41, __ieee754_acoshf
+	globalEntry 42, __ieee754_asin
+	globalEntry 43, __ieee754_asinf
+	globalEntry 44, __ieee754_atan2
+	globalEntry 45, __ieee754_atan2f
+	globalEntry 46, __ieee754_atanh
+	globalEntry 47, __ieee754_atanhf
+	globalEntry 48, __ieee754_cosh
+	globalEntry 49, __ieee754_coshf
+	globalEntry 50, __ieee754_fmod
+	globalEntry 51, __ieee754_fmodf
+	globalEntry 52, __ieee754_hypot
+	globalEntry 53, __ieee754_hypotf
+	globalEntry 54, __ieee754_hypotl
+	globalEntry 55, __ieee754_j0
+	globalEntry 56, __ieee754_j0f
+	globalEntry 57, __ieee754_j1
+	globalEntry 58, __ieee754_j1f
+	globalEntry 59, __ieee754_jn
+	globalEntry 60, __ieee754_jnf
+	globalEntry 61, __ieee754_lgamma_r
+	globalEntry 62, __ieee754_lgammaf_r
+	globalEntry 63, __ieee754_log10
+	globalEntry 64, __ieee754_log10f
+	globalEntry 65, __ieee754_rem_pio2
+	globalEntry 66, __ieee754_rem_pio2f
+	globalEntry 67, __ieee754_remainder
+	globalEntry 68, __ieee754_remainderf
+	globalEntry 69, __ieee754_scalb
+	globalEntry 70, __ieee754_scalbf
+	globalEntry 71, __ieee754_sinh
+	globalEntry 72, __ieee754_sinhf
+	globalEntry 73, __ieee754_sqrt
+	globalEntry 74, __ieee754_sqrtf
+	globalEntry 75, __ieee754_tgamma
+	globalEntry 76, __ieee754_tgammaf
+	globalEntry 77, __ieee754_y0
+	globalEntry 78, __ieee754_y0f
+	globalEntry 79, __ieee754_y1
+	globalEntry 80, __ieee754_y1f
+	globalEntry 81, __ieee754_yn
+	globalEntry 82, __ieee754_ynf
+	globalEntry 83, __inv_pio4
+	globalEntry 84, __isinfd
+	globalEntry 85, __isinff
+	globalEntry 86, __isnand
+	globalEntry 87, __isnanf
+	globalEntry 88, __kernel_cos
+	globalEntry 89, __kernel_cosf
+	globalEntry 90, __kernel_rem_pio2
+	globalEntry 91, __kernel_rem_pio2f
+	globalEntry 92, __kernel_sin
+	globalEntry 93, __kernel_sinf
+	globalEntry 94, __kernel_standard
+	globalEntry 95, __kernel_tan
+	globalEntry 96, __kernel_tanf
+	globalEntry 97, __log2_data
+	globalEntry 98, __log2f_data
+	globalEntry 99, __log_data
+	globalEntry 100, __logf_data
+	globalEntry 101, __math_check_oflow
+	globalEntry 102, __math_check_uflow
+	globalEntry 103, __math_divzero
+	globalEntry 104, __math_divzerof
+	globalEntry 105, __math_invalid
+	globalEntry 106, __math_invalidf
+	globalEntry 107, __math_may_uflow
+	globalEntry 108, __math_may_uflowf
+	globalEntry 109, __math_oflow
+	globalEntry 110, __math_oflowf
+	globalEntry 111, __math_uflow
+	globalEntry 112, __math_uflowf
+	globalEntry 113, __muldc3
+	globalEntry 114, __mulsc3
+	globalEntry 115, __pow_log_data
+	globalEntry 116, __powf_log2_data
+	globalEntry 117, __signbitd
+	globalEntry 118, __signbitf
+	globalEntry 119, __signgam
+	globalEntry 120, __sincosf_table
+	globalEntry 121, __subdf3
+	globalEntry 122, __udivmoddi4
+	globalEntry 123, __ultoa_invert
+	globalEntry 124, _assert
+	globalEntry 125, _cchsh
+	globalEntry 126, _cchshf
+	globalEntry 127, _cchshl
+	globalEntry 128, _ctans
+	globalEntry 129, _ctansf
+	globalEntry 130, _ctansl
+	globalEntry 131, _e_mono_signature
+	globalEntry 132, _ebss
+	globalEntry 133, _edata
+	globalEntry 134, _einit
+	globalEntry 135, _eronly
+	globalEntry 136, _etext
+	globalEntry 137, _euserspace
+	globalEntry 138, _exit
+	globalEntry 139, _fe_dfl_env
+	globalEntry 140, _global_impure_ptr
+	globalEntry 141, _impure_ptr
+	globalEntry 142, _pipe_handles
+	globalEntry 143, _redupi
+	globalEntry 144, _redupif
+	globalEntry 145, _redupil
+	globalEntry 146, _s_mono_signature
+	globalEntry 147, _sbss
+	globalEntry 148, _sdata
+	globalEntry 149, _send_log_to_uart
+	globalEntry 150, _sinit
+	globalEntry 151, _stext
+	globalEntry 152, _suserspace
+	globalEntry 153, _uart_thread_handle
+	globalEntry 154, abort
+	globalEntry 155, accept
+	globalEntry 156, accept4
+	globalEntry 157, access
+	globalEntry 158, acos
+	globalEntry 159, acosf
+	globalEntry 160, acosh
+	globalEntry 161, acoshf
+	globalEntry 162, acoshl
+	globalEntry 163, acosl
+	globalEntry 164, app_update
+	globalEntry 165, asin
+	globalEntry 166, asinf
+	globalEntry 167, asinh
+	globalEntry 168, asinhf
+	globalEntry 169, asinhl
+	globalEntry 170, asinl
+	globalEntry 171, atan
+	globalEntry 172, atan2
+	globalEntry 173, atan2f
+	globalEntry 174, atan2l
+	globalEntry 175, atanf
+	globalEntry 176, atanh
+	globalEntry 177, atanhf
+	globalEntry 178, atanhl
+	globalEntry 179, atanl
+	globalEntry 180, atoi
+	globalEntry 181, basename
+	globalEntry 182, bind
+	globalEntry 183, bsearch
+	globalEntry 184, cabs
+	globalEntry 185, cabsf
+	globalEntry 186, cabsl
+	globalEntry 187, cacos
+	globalEntry 188, cacosf
+	globalEntry 189, cacosh
+	globalEntry 190, cacoshf
+	globalEntry 191, cacoshl
+	globalEntry 192, cacosl
+	globalEntry 193, calloc
+	globalEntry 194, carg
+	globalEntry 195, cargf
+	globalEntry 196, cargl
+	globalEntry 197, casin
+	globalEntry 198, casinf
+	globalEntry 199, casinh
+	globalEntry 200, casinhf
+	globalEntry 201, casinhl
+	globalEntry 202, casinl
+	globalEntry 203, catan
+	globalEntry 204, catanf
+	globalEntry 205, catanh
+	globalEntry 206, catanhf
+	globalEntry 207, catanhl
+	globalEntry 208, catanl
+	globalEntry 209, cbrt
+	globalEntry 210, cbrtf
+	globalEntry 211, cbrtl
+	globalEntry 212, ccos
+	globalEntry 213, ccosf
+	globalEntry 214, ccosh
+	globalEntry 215, ccoshf
+	globalEntry 216, ccoshl
+	globalEntry 217, ccosl
+	globalEntry 218, ceil
+	globalEntry 219, ceilf
+	globalEntry 220, ceill
+	globalEntry 221, cexp
+	globalEntry 222, cexpf
+	globalEntry 223, cexpl
+	globalEntry 224, cimag
+	globalEntry 225, cimagf
+	globalEntry 226, cimagl
+	globalEntry 227, clock
+	globalEntry 228, clog
+	globalEntry 229, clog10
+	globalEntry 230, clog10f
+	globalEntry 231, clogf
+	globalEntry 232, clogl
+	globalEntry 233, close
+	globalEntry 234, closedir
+	globalEntry 235, conj
+	globalEntry 236, conjf
+	globalEntry 237, conjl
+	globalEntry 238, connect
+	globalEntry 239, copysign
+	globalEntry 240, copysignf
+	globalEntry 241, copysignl
+	globalEntry 242, cos
+	globalEntry 243, cosf
+	globalEntry 244, cosh
+	globalEntry 245, coshf
+	globalEntry 246, coshl
+	globalEntry 247, cosl
+	globalEntry 248, cpow
+	globalEntry 249, cpowf
+	globalEntry 250, cpowl
+	globalEntry 251, cproj
+	globalEntry 252, cprojf
+	globalEntry 253, cprojl
+	globalEntry 254, crc32full
+	globalEntry 255, crc32part
+	globalEntry 256, creal
+	globalEntry 257, crealf
+	globalEntry 258, creall
+	globalEntry 259, csin
+	globalEntry 260, csinf
+	globalEntry 261, csinh
+	globalEntry 262, csinhf
+	globalEntry 263, csinhl
+	globalEntry 264, csinl
+	globalEntry 265, csqrt
+	globalEntry 266, csqrtf
+	globalEntry 267, csqrtl
+	globalEntry 268, ctan
+	globalEntry 269, ctanf
+	globalEntry 270, ctanh
+	globalEntry 271, ctanhf
+	globalEntry 272, ctanhl
+	globalEntry 273, ctanl
+	globalEntry 274, dlclose
+	globalEntry 275, dlopen
+	globalEntry 276, dlsym
+	globalEntry 277, dns_bind
+	globalEntry 278, dns_breaklock
+	globalEntry 279, dns_clear_answer
+	globalEntry 280, dns_find_answer
+	globalEntry 281, dns_foreach_nameserver
+	globalEntry 282, dns_is_queryfamily
+	globalEntry 283, dns_lock
+	globalEntry 284, dns_query
+	globalEntry 285, dns_restorelock
+	globalEntry 286, dns_save_answer
+	globalEntry 287, dns_set_queryfamily
+	globalEntry 288, dns_unlock
+	globalEntry 289, drem
+	globalEntry 290, dremf
+	globalEntry 291, erf
+	globalEntry 292, erfc
+	globalEntry 293, erfcf
+	globalEntry 294, erfcl
+	globalEntry 295, erff
+	globalEntry 296, erfl
+	globalEntry 297, espcp_encode_event_data
+	globalEntry 298, espcp_encode_uint32
+	globalEntry 299, espcp_open_esp32_events_message_queue
+	globalEntry 300, espcp_queue_event_messages
+	globalEntry 301, exit
+	globalEntry 302, exp
+	globalEntry 303, exp10
+	globalEntry 304, exp10f
+	globalEntry 305, exp2
+	globalEntry 306, exp2f
+	globalEntry 307, exp2l
+	globalEntry 308, expf
+	globalEntry 309, expl
+	globalEntry 310, expm1
+	globalEntry 311, expm1f
+	globalEntry 312, expm1l
+	globalEntry 313, fabs
+	globalEntry 314, fabsf
+	globalEntry 315, fabsl
+	globalEntry 316, faccessat
+	globalEntry 317, fclose
+	globalEntry 318, fcntl
+	globalEntry 319, fdim
+	globalEntry 320, fdimf
+	globalEntry 321, fdiml
+	globalEntry 322, fdopen
+	globalEntry 323, feclearexcept
+	globalEntry 324, fedisableexcept
+	globalEntry 325, feenableexcept
+	globalEntry 326, fegetenv
+	globalEntry 327, fegetexcept
+	globalEntry 328, fegetexceptflag
+	globalEntry 329, fegetround
+	globalEntry 330, feholdexcept
+	globalEntry 331, feraiseexcept
+	globalEntry 332, ferror
+	globalEntry 333, fesetenv
+	globalEntry 334, fesetexceptflag
+	globalEntry 335, fesetround
+	globalEntry 336, fetestexcept
+	globalEntry 337, feupdateenv
+	globalEntry 338, fflush
+	globalEntry 339, fflush_unlocked
+	globalEntry 340, fgetc
+	globalEntry 341, fgetc_unlocked
+	globalEntry 342, fgets
+	globalEntry 343, fgets_unlocked
+	globalEntry 344, finite
+	globalEntry 345, finitef
+	globalEntry 346, finitel
+	globalEntry 347, firmware_update
+	globalEntry 348, flockfile
+	globalEntry 349, floor
+	globalEntry 350, floorf
+	globalEntry 351, floorl
+	globalEntry 352, fma
+	globalEntry 353, fmaf
+	globalEntry 354, fmal
+	globalEntry 355, fmax
+	globalEntry 356, fmaxf
+	globalEntry 357, fmaxl
+	globalEntry 358, fmin
+	globalEntry 359, fminf
+	globalEntry 360, fminl
+	globalEntry 361, fmod
+	globalEntry 362, fmodf
+	globalEntry 363, fmodl
+	globalEntry 364, fopen
+	globalEntry 365, fprintf
+	globalEntry 366, fputc
+	globalEntry 367, fputc_unlocked
+	globalEntry 368, fputs
+	globalEntry 369, fputs_unlocked
+	globalEntry 370, fread
+	globalEntry 371, fread_unlocked
+	globalEntry 372, free
+	globalEntry 373, freeaddrinfo
+	globalEntry 374, frexp
+	globalEntry 375, frexpf
+	globalEntry 376, frexpl
+	globalEntry 377, fseek
+	globalEntry 378, fseeko
+	globalEntry 379, fstat
+	globalEntry 380, fsync
+	globalEntry 381, ftell
+	globalEntry 382, ftello
+	globalEntry 383, ftrylockfile
+	globalEntry 384, funlockfile
+	globalEntry 385, fwrite
+	globalEntry 386, fwrite_unlocked
+	globalEntry 387, gamma
+	globalEntry 388, gamma_r
+	globalEntry 389, gammaf
+	globalEntry 390, gammaf_r
+	globalEntry 391, get_errno
+	globalEntry 392, getaddrinfo
+	globalEntry 393, getcwd
+	globalEntry 394, getenv
+	globalEntry 395, gethostentbyname_r
+	globalEntry 396, getpid
+	globalEntry 397, getrandom
+	globalEntry 398, getservbyname_r
+	globalEntry 399, getsockname
+	globalEntry 400, getsockopt
+	globalEntry 401, gettid
+	globalEntry 402, gettimeofday
+	globalEntry 403, gmtime_r
+	globalEntry 404, hello_world_results
+	globalEntry 405, hypot
+	globalEntry 406, hypotf
+	globalEntry 407, hypotl
+	globalEntry 408, ilogb
+	globalEntry 409, ilogbf
+	globalEntry 410, ilogbl
+	globalEntry 411, inet_ntop
+	globalEntry 412, inet_pton
+	globalEntry 413, infinity
+	globalEntry 414, infinityf
+	globalEntry 415, ioctl
+	globalEntry 416, isinf
+	globalEntry 417, isinff
+	globalEntry 418, isnan
+	globalEntry 419, isnanf
+	globalEntry 420, isprint
+	globalEntry 421, isprint_l
+	globalEntry 422, isspace
+	globalEntry 423, isspace_l
+	globalEntry 424, j0
+	globalEntry 425, j0f
+	globalEntry 426, j1
+	globalEntry 427, j1f
+	globalEntry 428, jn
+	globalEntry 429, jnf
+	globalEntry 430, ldexp
+	globalEntry 431, ldexpf
+	globalEntry 432, ldexpl
+	globalEntry 433, lgamma
+	globalEntry 434, lgamma_r
+	globalEntry 435, lgammaf
+	globalEntry 436, lgammaf_r
+	globalEntry 437, lgammal
+	globalEntry 438, libelf_allocbuffer
+	globalEntry 439, libelf_bind
+	globalEntry 440, libelf_depend
+	globalEntry 441, libelf_findglobal
+	globalEntry 442, libelf_findsection
+	globalEntry 443, libelf_findsymtab
+	globalEntry 444, libelf_freebuffers
+	globalEntry 445, libelf_freesymtab
+	globalEntry 446, libelf_getsymbol
+	globalEntry 447, libelf_getsymtab
+	globalEntry 448, libelf_initialize
+	globalEntry 449, libelf_insert
+	globalEntry 450, libelf_insertsymtab
+	globalEntry 451, libelf_load
+	globalEntry 452, libelf_loadhdrs
+	globalEntry 453, libelf_read
+	globalEntry 454, libelf_readsym
+	globalEntry 455, libelf_reallocbuffer
+	globalEntry 456, libelf_registry_add
+	globalEntry 457, libelf_registry_del
+	globalEntry 458, libelf_registry_foreach
+	globalEntry 459, libelf_registry_lock
+	globalEntry 460, libelf_registry_unlock
+	globalEntry 461, libelf_registry_verify
+	globalEntry 462, libelf_remove
+	globalEntry 463, libelf_sectname
+	globalEntry 464, libelf_setsymtab
+	globalEntry 465, libelf_symvalue
+	globalEntry 466, libelf_undepend
+	globalEntry 467, libelf_uninit
+	globalEntry 468, libelf_uninitialize
+	globalEntry 469, libelf_unload
+	globalEntry 470, libelf_verifyheader
+	globalEntry 471, listen
+	globalEntry 472, llrint
+	globalEntry 473, llrintf
+	globalEntry 474, llrintl
+	globalEntry 475, llround
+	globalEntry 476, llroundf
+	globalEntry 477, llroundl
+	globalEntry 478, localtime_r
+	globalEntry 479, log
+	globalEntry 480, log10
+	globalEntry 481, log10f
+	globalEntry 482, log10l
+	globalEntry 483, log1p
+	globalEntry 484, log1pf
+	globalEntry 485, log1pl
+	globalEntry 486, log2
+	globalEntry 487, log2f
+	globalEntry 488, log2l
+	globalEntry 489, logb
+	globalEntry 490, logbf
+	globalEntry 491, logbl
+	globalEntry 492, logf
+	globalEntry 493, logl
+	globalEntry 494, lrint
+	globalEntry 495, lrintf
+	globalEntry 496, lrintl
+	globalEntry 497, lround
+	globalEntry 498, lroundf
+	globalEntry 499, lroundl
+	globalEntry 500, lseek
+	globalEntry 501, malloc
+	globalEntry 502, mbedtls_aes_cmac_prf_128
+	globalEntry 503, mbedtls_aes_crypt_cbc
+	globalEntry 504, mbedtls_aes_crypt_cfb128
+	globalEntry 505, mbedtls_aes_crypt_cfb8
+	globalEntry 506, mbedtls_aes_crypt_ctr
+	globalEntry 507, mbedtls_aes_crypt_ecb
+	globalEntry 508, mbedtls_aes_crypt_ofb
+	globalEntry 509, mbedtls_aes_crypt_xts
+	globalEntry 510, mbedtls_aes_free
+	globalEntry 511, mbedtls_aes_init
+	globalEntry 512, mbedtls_aes_setkey_dec
+	globalEntry 513, mbedtls_aes_setkey_enc
+	globalEntry 514, mbedtls_aes_xts_free
+	globalEntry 515, mbedtls_aes_xts_init
+	globalEntry 516, mbedtls_aes_xts_setkey_dec
+	globalEntry 517, mbedtls_aes_xts_setkey_enc
+	globalEntry 518, mbedtls_aria_crypt_cbc
+	globalEntry 519, mbedtls_aria_crypt_cfb128
+	globalEntry 520, mbedtls_aria_crypt_ctr
+	globalEntry 521, mbedtls_aria_crypt_ecb
+	globalEntry 522, mbedtls_aria_free
+	globalEntry 523, mbedtls_aria_init
+	globalEntry 524, mbedtls_aria_setkey_dec
+	globalEntry 525, mbedtls_aria_setkey_enc
+	globalEntry 526, mbedtls_asn1_find_named_data
+	globalEntry 527, mbedtls_asn1_free_named_data
+	globalEntry 528, mbedtls_asn1_free_named_data_list
+	globalEntry 529, mbedtls_asn1_free_named_data_list_shallow
+	globalEntry 530, mbedtls_asn1_get_alg
+	globalEntry 531, mbedtls_asn1_get_alg_null
+	globalEntry 532, mbedtls_asn1_get_bitstring
+	globalEntry 533, mbedtls_asn1_get_bitstring_null
+	globalEntry 534, mbedtls_asn1_get_bool
+	globalEntry 535, mbedtls_asn1_get_enum
+	globalEntry 536, mbedtls_asn1_get_int
+	globalEntry 537, mbedtls_asn1_get_len
+	globalEntry 538, mbedtls_asn1_get_mpi
+	globalEntry 539, mbedtls_asn1_get_sequence_of
+	globalEntry 540, mbedtls_asn1_get_tag
+	globalEntry 541, mbedtls_asn1_sequence_free
+	globalEntry 542, mbedtls_asn1_store_named_data
+	globalEntry 543, mbedtls_asn1_traverse_sequence_of
+	globalEntry 544, mbedtls_asn1_write_algorithm_identifier
+	globalEntry 545, mbedtls_asn1_write_algorithm_identifier_ext
+	globalEntry 546, mbedtls_asn1_write_bitstring
+	globalEntry 547, mbedtls_asn1_write_bool
+	globalEntry 548, mbedtls_asn1_write_enum
+	globalEntry 549, mbedtls_asn1_write_ia5_string
+	globalEntry 550, mbedtls_asn1_write_int
+	globalEntry 551, mbedtls_asn1_write_len
+	globalEntry 552, mbedtls_asn1_write_mpi
+	globalEntry 553, mbedtls_asn1_write_named_bitstring
+	globalEntry 554, mbedtls_asn1_write_null
+	globalEntry 555, mbedtls_asn1_write_octet_string
+	globalEntry 556, mbedtls_asn1_write_oid
+	globalEntry 557, mbedtls_asn1_write_printable_string
+	globalEntry 558, mbedtls_asn1_write_raw_buffer
+	globalEntry 559, mbedtls_asn1_write_tag
+	globalEntry 560, mbedtls_asn1_write_tagged_string
+	globalEntry 561, mbedtls_asn1_write_utf8_string
+	globalEntry 562, mbedtls_base64_decode
+	globalEntry 563, mbedtls_base64_encode
+	globalEntry 564, mbedtls_camellia_crypt_cbc
+	globalEntry 565, mbedtls_camellia_crypt_cfb128
+	globalEntry 566, mbedtls_camellia_crypt_ctr
+	globalEntry 567, mbedtls_camellia_crypt_ecb
+	globalEntry 568, mbedtls_camellia_free
+	globalEntry 569, mbedtls_camellia_init
+	globalEntry 570, mbedtls_camellia_setkey_dec
+	globalEntry 571, mbedtls_camellia_setkey_enc
+	globalEntry 572, mbedtls_ccm_auth_decrypt
+	globalEntry 573, mbedtls_ccm_encrypt_and_tag
+	globalEntry 574, mbedtls_ccm_finish
+	globalEntry 575, mbedtls_ccm_free
+	globalEntry 576, mbedtls_ccm_init
+	globalEntry 577, mbedtls_ccm_set_lengths
+	globalEntry 578, mbedtls_ccm_setkey
+	globalEntry 579, mbedtls_ccm_star_auth_decrypt
+	globalEntry 580, mbedtls_ccm_star_encrypt_and_tag
+	globalEntry 581, mbedtls_ccm_starts
+	globalEntry 582, mbedtls_ccm_update
+	globalEntry 583, mbedtls_ccm_update_ad
+	globalEntry 584, mbedtls_chacha20_crypt
+	globalEntry 585, mbedtls_chacha20_free
+	globalEntry 586, mbedtls_chacha20_init
+	globalEntry 587, mbedtls_chacha20_setkey
+	globalEntry 588, mbedtls_chacha20_starts
+	globalEntry 589, mbedtls_chacha20_update
+	globalEntry 590, mbedtls_chachapoly_auth_decrypt
+	globalEntry 591, mbedtls_chachapoly_encrypt_and_tag
+	globalEntry 592, mbedtls_chachapoly_finish
+	globalEntry 593, mbedtls_chachapoly_free
+	globalEntry 594, mbedtls_chachapoly_init
+	globalEntry 595, mbedtls_chachapoly_setkey
+	globalEntry 596, mbedtls_chachapoly_starts
+	globalEntry 597, mbedtls_chachapoly_update
+	globalEntry 598, mbedtls_chachapoly_update_aad
+	globalEntry 599, mbedtls_cipher_auth_decrypt_ext
+	globalEntry 600, mbedtls_cipher_auth_encrypt_ext
+	globalEntry 601, mbedtls_cipher_base_lookup_table
+	globalEntry 602, mbedtls_cipher_check_tag
+	globalEntry 603, mbedtls_cipher_cmac
+	globalEntry 604, mbedtls_cipher_cmac_finish
+	globalEntry 605, mbedtls_cipher_cmac_reset
+	globalEntry 606, mbedtls_cipher_cmac_starts
+	globalEntry 607, mbedtls_cipher_cmac_update
+	globalEntry 608, mbedtls_cipher_crypt
+	globalEntry 609, mbedtls_cipher_definitions
+	globalEntry 610, mbedtls_cipher_finish
+	globalEntry 611, mbedtls_cipher_free
+	globalEntry 612, mbedtls_cipher_info_from_psa
+	globalEntry 613, mbedtls_cipher_info_from_string
+	globalEntry 614, mbedtls_cipher_info_from_type
+	globalEntry 615, mbedtls_cipher_info_from_values
+	globalEntry 616, mbedtls_cipher_init
+	globalEntry 617, mbedtls_cipher_list
+	globalEntry 618, mbedtls_cipher_reset
+	globalEntry 619, mbedtls_cipher_set_iv
+	globalEntry 620, mbedtls_cipher_set_padding_mode
+	globalEntry 621, mbedtls_cipher_setkey
+	globalEntry 622, mbedtls_cipher_setup
+	globalEntry 623, mbedtls_cipher_supported
+	globalEntry 624, mbedtls_cipher_update
+	globalEntry 625, mbedtls_cipher_update_ad
+	globalEntry 626, mbedtls_cipher_values_from_psa
+	globalEntry 627, mbedtls_cipher_write_tag
+	globalEntry 628, mbedtls_ct_memcmp
+	globalEntry 629, mbedtls_ct_memcmp_partial
+	globalEntry 630, mbedtls_ct_memcpy_if
+	globalEntry 631, mbedtls_ct_memcpy_offset
+	globalEntry 632, mbedtls_ct_memmove_left
+	globalEntry 633, mbedtls_ct_zeroize_if
+	globalEntry 634, mbedtls_ctr_drbg_free
+	globalEntry 635, mbedtls_ctr_drbg_init
+	globalEntry 636, mbedtls_ctr_drbg_random
+	globalEntry 637, mbedtls_ctr_drbg_random_with_add
+	globalEntry 638, mbedtls_ctr_drbg_reseed
+	globalEntry 639, mbedtls_ctr_drbg_seed
+	globalEntry 640, mbedtls_ctr_drbg_set_entropy_len
+	globalEntry 641, mbedtls_ctr_drbg_set_nonce_len
+	globalEntry 642, mbedtls_ctr_drbg_set_prediction_resistance
+	globalEntry 643, mbedtls_ctr_drbg_set_reseed_interval
+	globalEntry 644, mbedtls_ctr_drbg_update
+	globalEntry 645, mbedtls_ctr_drbg_update_seed_file
+	globalEntry 646, mbedtls_ctr_drbg_write_seed_file
+	globalEntry 647, mbedtls_des3_crypt_cbc
+	globalEntry 648, mbedtls_des3_crypt_ecb
+	globalEntry 649, mbedtls_des3_free
+	globalEntry 650, mbedtls_des3_init
+	globalEntry 651, mbedtls_des3_set2key_dec
+	globalEntry 652, mbedtls_des3_set2key_enc
+	globalEntry 653, mbedtls_des3_set3key_dec
+	globalEntry 654, mbedtls_des3_set3key_enc
+	globalEntry 655, mbedtls_des_crypt_cbc
+	globalEntry 656, mbedtls_des_crypt_ecb
+	globalEntry 657, mbedtls_des_free
+	globalEntry 658, mbedtls_des_init
+	globalEntry 659, mbedtls_des_key_check_key_parity
+	globalEntry 660, mbedtls_des_key_check_weak
+	globalEntry 661, mbedtls_des_key_set_parity
+	globalEntry 662, mbedtls_des_setkey
+	globalEntry 663, mbedtls_des_setkey_dec
+	globalEntry 664, mbedtls_des_setkey_enc
+	globalEntry 665, mbedtls_dhm_calc_secret
+	globalEntry 666, mbedtls_dhm_free
+	globalEntry 667, mbedtls_dhm_get_bitlen
+	globalEntry 668, mbedtls_dhm_get_len
+	globalEntry 669, mbedtls_dhm_get_value
+	globalEntry 670, mbedtls_dhm_init
+	globalEntry 671, mbedtls_dhm_make_params
+	globalEntry 672, mbedtls_dhm_make_public
+	globalEntry 673, mbedtls_dhm_parse_dhm
+	globalEntry 674, mbedtls_dhm_parse_dhmfile
+	globalEntry 675, mbedtls_dhm_read_params
+	globalEntry 676, mbedtls_dhm_read_public
+	globalEntry 677, mbedtls_dhm_set_group
+	globalEntry 678, mbedtls_ecc_group_from_psa
+	globalEntry 679, mbedtls_ecc_group_to_psa
+	globalEntry 680, mbedtls_ecdh_calc_secret
+	globalEntry 681, mbedtls_ecdh_can_do
+	globalEntry 682, mbedtls_ecdh_compute_shared
+	globalEntry 683, mbedtls_ecdh_free
+	globalEntry 684, mbedtls_ecdh_gen_public
+	globalEntry 685, mbedtls_ecdh_get_grp_id
+	globalEntry 686, mbedtls_ecdh_get_params
+	globalEntry 687, mbedtls_ecdh_init
+	globalEntry 688, mbedtls_ecdh_make_params
+	globalEntry 689, mbedtls_ecdh_make_public
+	globalEntry 690, mbedtls_ecdh_read_params
+	globalEntry 691, mbedtls_ecdh_read_public
+	globalEntry 692, mbedtls_ecdh_setup
+	globalEntry 693, mbedtls_ecdsa_can_do
+	globalEntry 694, mbedtls_ecdsa_der_to_raw
+	globalEntry 695, mbedtls_ecdsa_free
+	globalEntry 696, mbedtls_ecdsa_from_keypair
+	globalEntry 697, mbedtls_ecdsa_genkey
+	globalEntry 698, mbedtls_ecdsa_info
+	globalEntry 699, mbedtls_ecdsa_init
+	globalEntry 700, mbedtls_ecdsa_raw_to_der
+	globalEntry 701, mbedtls_ecdsa_read_signature
+	globalEntry 702, mbedtls_ecdsa_read_signature_restartable
+	globalEntry 703, mbedtls_ecdsa_sign
+	globalEntry 704, mbedtls_ecdsa_sign_det_ext
+	globalEntry 705, mbedtls_ecdsa_sign_det_restartable
+	globalEntry 706, mbedtls_ecdsa_sign_restartable
+	globalEntry 707, mbedtls_ecdsa_verify
+	globalEntry 708, mbedtls_ecdsa_verify_restartable
+	globalEntry 709, mbedtls_ecdsa_write_signature
+	globalEntry 710, mbedtls_ecdsa_write_signature_restartable
+	globalEntry 711, mbedtls_ecjpake_check
+	globalEntry 712, mbedtls_ecjpake_derive_secret
+	globalEntry 713, mbedtls_ecjpake_free
+	globalEntry 714, mbedtls_ecjpake_init
+	globalEntry 715, mbedtls_ecjpake_read_round_one
+	globalEntry 716, mbedtls_ecjpake_read_round_two
+	globalEntry 717, mbedtls_ecjpake_set_point_format
+	globalEntry 718, mbedtls_ecjpake_setup
+	globalEntry 719, mbedtls_ecjpake_write_round_one
+	globalEntry 720, mbedtls_ecjpake_write_round_two
+	globalEntry 721, mbedtls_ecjpake_write_shared_key
+	globalEntry 722, mbedtls_eckey_info
+	globalEntry 723, mbedtls_eckeydh_info
+	globalEntry 724, mbedtls_ecp_check_privkey
+	globalEntry 725, mbedtls_ecp_check_pub_priv
+	globalEntry 726, mbedtls_ecp_check_pubkey
+	globalEntry 727, mbedtls_ecp_copy
+	globalEntry 728, mbedtls_ecp_curve_info_from_grp_id
+	globalEntry 729, mbedtls_ecp_curve_info_from_name
+	globalEntry 730, mbedtls_ecp_curve_info_from_tls_id
+	globalEntry 731, mbedtls_ecp_curve_list
+	globalEntry 732, mbedtls_ecp_export
+	globalEntry 733, mbedtls_ecp_gen_key
+	globalEntry 734, mbedtls_ecp_gen_keypair
+	globalEntry 735, mbedtls_ecp_gen_keypair_base
+	globalEntry 736, mbedtls_ecp_gen_privkey
+	globalEntry 737, mbedtls_ecp_get_type
+	globalEntry 738, mbedtls_ecp_group_copy
+	globalEntry 739, mbedtls_ecp_group_free
+	globalEntry 740, mbedtls_ecp_group_init
+	globalEntry 741, mbedtls_ecp_group_load
+	globalEntry 742, mbedtls_ecp_grp_id_list
+	globalEntry 743, mbedtls_ecp_is_zero
+	globalEntry 744, mbedtls_ecp_keypair_calc_public
+	globalEntry 745, mbedtls_ecp_keypair_free
+	globalEntry 746, mbedtls_ecp_keypair_get_group_id
+	globalEntry 747, mbedtls_ecp_keypair_init
+	globalEntry 748, mbedtls_ecp_mul
+	globalEntry 749, mbedtls_ecp_mul_restartable
+	globalEntry 750, mbedtls_ecp_muladd
+	globalEntry 751, mbedtls_ecp_muladd_restartable
+	globalEntry 752, mbedtls_ecp_point_cmp
+	globalEntry 753, mbedtls_ecp_point_free
+	globalEntry 754, mbedtls_ecp_point_init
+	globalEntry 755, mbedtls_ecp_point_read_binary
+	globalEntry 756, mbedtls_ecp_point_read_string
+	globalEntry 757, mbedtls_ecp_point_write_binary
+	globalEntry 758, mbedtls_ecp_read_key
+	globalEntry 759, mbedtls_ecp_set_public_key
+	globalEntry 760, mbedtls_ecp_set_zero
+	globalEntry 761, mbedtls_ecp_tls_read_group
+	globalEntry 762, mbedtls_ecp_tls_read_group_id
+	globalEntry 763, mbedtls_ecp_tls_read_point
+	globalEntry 764, mbedtls_ecp_tls_write_group
+	globalEntry 765, mbedtls_ecp_tls_write_point
+	globalEntry 766, mbedtls_ecp_write_key
+	globalEntry 767, mbedtls_ecp_write_key_ext
+	globalEntry 768, mbedtls_ecp_write_public_key
+	globalEntry 769, mbedtls_entropy_add_source
+	globalEntry 770, mbedtls_entropy_free
+	globalEntry 771, mbedtls_entropy_func
+	globalEntry 772, mbedtls_entropy_gather
+	globalEntry 773, mbedtls_entropy_init
+	globalEntry 774, mbedtls_entropy_update_manual
+	globalEntry 775, mbedtls_entropy_update_seed_file
+	globalEntry 776, mbedtls_entropy_write_seed_file
+	globalEntry 777, mbedtls_gcm_auth_decrypt
+	globalEntry 778, mbedtls_gcm_crypt_and_tag
+	globalEntry 779, mbedtls_gcm_finish
+	globalEntry 780, mbedtls_gcm_free
+	globalEntry 781, mbedtls_gcm_init
+	globalEntry 782, mbedtls_gcm_setkey
+	globalEntry 783, mbedtls_gcm_starts
+	globalEntry 784, mbedtls_gcm_update
+	globalEntry 785, mbedtls_gcm_update_ad
+	globalEntry 786, mbedtls_high_level_strerr
+	globalEntry 787, mbedtls_hkdf
+	globalEntry 788, mbedtls_hkdf_expand
+	globalEntry 789, mbedtls_hkdf_extract
+	globalEntry 790, mbedtls_hmac_drbg_free
+	globalEntry 791, mbedtls_hmac_drbg_init
+	globalEntry 792, mbedtls_hmac_drbg_random
+	globalEntry 793, mbedtls_hmac_drbg_random_with_add
+	globalEntry 794, mbedtls_hmac_drbg_reseed
+	globalEntry 795, mbedtls_hmac_drbg_seed
+	globalEntry 796, mbedtls_hmac_drbg_seed_buf
+	globalEntry 797, mbedtls_hmac_drbg_set_entropy_len
+	globalEntry 798, mbedtls_hmac_drbg_set_prediction_resistance
+	globalEntry 799, mbedtls_hmac_drbg_set_reseed_interval
+	globalEntry 800, mbedtls_hmac_drbg_update
+	globalEntry 801, mbedtls_hmac_drbg_update_seed_file
+	globalEntry 802, mbedtls_hmac_drbg_write_seed_file
+	globalEntry 803, mbedtls_internal_aes_decrypt
+	globalEntry 804, mbedtls_internal_aes_encrypt
+	globalEntry 805, mbedtls_internal_md5_process
+	globalEntry 806, mbedtls_internal_ripemd160_process
+	globalEntry 807, mbedtls_internal_sha1_process
+	globalEntry 808, mbedtls_internal_sha256_process
+	globalEntry 809, mbedtls_internal_sha512_process
+	globalEntry 810, mbedtls_lmots_calculate_public_key_candidate
+	globalEntry 811, mbedtls_lmots_export_public_key
+	globalEntry 812, mbedtls_lmots_import_public_key
+	globalEntry 813, mbedtls_lmots_public_free
+	globalEntry 814, mbedtls_lmots_public_init
+	globalEntry 815, mbedtls_lmots_verify
+	globalEntry 816, mbedtls_lms_error_from_psa
+	globalEntry 817, mbedtls_lms_export_public_key
+	globalEntry 818, mbedtls_lms_import_public_key
+	globalEntry 819, mbedtls_lms_public_free
+	globalEntry 820, mbedtls_lms_public_init
+	globalEntry 821, mbedtls_lms_verify
+	globalEntry 822, mbedtls_low_level_strerr
+	globalEntry 823, mbedtls_md
+	globalEntry 824, mbedtls_md5
+	globalEntry 825, mbedtls_md5_clone
+	globalEntry 826, mbedtls_md5_finish
+	globalEntry 827, mbedtls_md5_free
+	globalEntry 828, mbedtls_md5_init
+	globalEntry 829, mbedtls_md5_starts
+	globalEntry 830, mbedtls_md5_update
+	globalEntry 831, mbedtls_md_clone
+	globalEntry 832, mbedtls_md_error_from_psa
+	globalEntry 833, mbedtls_md_file
+	globalEntry 834, mbedtls_md_finish
+	globalEntry 835, mbedtls_md_free
+	globalEntry 836, mbedtls_md_get_name
+	globalEntry 837, mbedtls_md_get_size
+	globalEntry 838, mbedtls_md_get_type
+	globalEntry 839, mbedtls_md_hmac
+	globalEntry 840, mbedtls_md_hmac_finish
+	globalEntry 841, mbedtls_md_hmac_reset
+	globalEntry 842, mbedtls_md_hmac_starts
+	globalEntry 843, mbedtls_md_hmac_update
+	globalEntry 844, mbedtls_md_info_from_ctx
+	globalEntry 845, mbedtls_md_info_from_string
+	globalEntry 846, mbedtls_md_info_from_type
+	globalEntry 847, mbedtls_md_init
+	globalEntry 848, mbedtls_md_list
+	globalEntry 849, mbedtls_md_setup
+	globalEntry 850, mbedtls_md_starts
+	globalEntry 851, mbedtls_md_update
+	globalEntry 852, mbedtls_mpi_add_abs
+	globalEntry 853, mbedtls_mpi_add_int
+	globalEntry 854, mbedtls_mpi_add_mpi
+	globalEntry 855, mbedtls_mpi_bitlen
+	globalEntry 856, mbedtls_mpi_cmp_abs
+	globalEntry 857, mbedtls_mpi_cmp_int
+	globalEntry 858, mbedtls_mpi_cmp_mpi
+	globalEntry 859, mbedtls_mpi_copy
+	globalEntry 860, mbedtls_mpi_core_add
+	globalEntry 861, mbedtls_mpi_core_add_if
+	globalEntry 862, mbedtls_mpi_core_bigendian_to_host
+	globalEntry 863, mbedtls_mpi_core_bitlen
+	globalEntry 864, mbedtls_mpi_core_check_zero_ct
+	globalEntry 865, mbedtls_mpi_core_clz
+	globalEntry 866, mbedtls_mpi_core_cond_assign
+	globalEntry 867, mbedtls_mpi_core_cond_swap
+	globalEntry 868, mbedtls_mpi_core_exp_mod
+	globalEntry 869, mbedtls_mpi_core_exp_mod_unsafe
+	globalEntry 870, mbedtls_mpi_core_exp_mod_working_limbs
+	globalEntry 871, mbedtls_mpi_core_fill_random
+	globalEntry 872, mbedtls_mpi_core_from_mont_rep
+	globalEntry 873, mbedtls_mpi_core_get_mont_r2_unsafe
+	globalEntry 874, mbedtls_mpi_core_lt_ct
+	globalEntry 875, mbedtls_mpi_core_mla
+	globalEntry 876, mbedtls_mpi_core_montmul
+	globalEntry 877, mbedtls_mpi_core_montmul_init
+	globalEntry 878, mbedtls_mpi_core_mul
+	globalEntry 879, mbedtls_mpi_core_random
+	globalEntry 880, mbedtls_mpi_core_read_be
+	globalEntry 881, mbedtls_mpi_core_read_le
+	globalEntry 882, mbedtls_mpi_core_shift_l
+	globalEntry 883, mbedtls_mpi_core_shift_r
+	globalEntry 884, mbedtls_mpi_core_sub
+	globalEntry 885, mbedtls_mpi_core_sub_int
+	globalEntry 886, mbedtls_mpi_core_to_mont_rep
+	globalEntry 887, mbedtls_mpi_core_uint_le_mpi
+	globalEntry 888, mbedtls_mpi_core_write_be
+	globalEntry 889, mbedtls_mpi_core_write_le
+	globalEntry 890, mbedtls_mpi_div_int
+	globalEntry 891, mbedtls_mpi_div_mpi
+	globalEntry 892, mbedtls_mpi_exp_mod
+	globalEntry 893, mbedtls_mpi_exp_mod_unsafe
+	globalEntry 894, mbedtls_mpi_fill_random
+	globalEntry 895, mbedtls_mpi_free
+	globalEntry 896, mbedtls_mpi_gcd
+	globalEntry 897, mbedtls_mpi_gen_prime
+	globalEntry 898, mbedtls_mpi_get_bit
+	globalEntry 899, mbedtls_mpi_grow
+	globalEntry 900, mbedtls_mpi_init
+	globalEntry 901, mbedtls_mpi_inv_mod
+	globalEntry 902, mbedtls_mpi_is_prime_ext
+	globalEntry 903, mbedtls_mpi_lsb
+	globalEntry 904, mbedtls_mpi_lset
+	globalEntry 905, mbedtls_mpi_lt_mpi_ct
+	globalEntry 906, mbedtls_mpi_mod_int
+	globalEntry 907, mbedtls_mpi_mod_mpi
+	globalEntry 908, mbedtls_mpi_mul_int
+	globalEntry 909, mbedtls_mpi_mul_mpi
+	globalEntry 910, mbedtls_mpi_random
+	globalEntry 911, mbedtls_mpi_read_binary
+	globalEntry 912, mbedtls_mpi_read_binary_le
+	globalEntry 913, mbedtls_mpi_read_file
+	globalEntry 914, mbedtls_mpi_read_string
+	globalEntry 915, mbedtls_mpi_safe_cond_assign
+	globalEntry 916, mbedtls_mpi_safe_cond_swap
+	globalEntry 917, mbedtls_mpi_set_bit
+	globalEntry 918, mbedtls_mpi_shift_l
+	globalEntry 919, mbedtls_mpi_shift_r
+	globalEntry 920, mbedtls_mpi_shrink
+	globalEntry 921, mbedtls_mpi_size
+	globalEntry 922, mbedtls_mpi_sub_abs
+	globalEntry 923, mbedtls_mpi_sub_int
+	globalEntry 924, mbedtls_mpi_sub_mpi
+	globalEntry 925, mbedtls_mpi_swap
+	globalEntry 926, mbedtls_mpi_write_binary
+	globalEntry 927, mbedtls_mpi_write_binary_le
+	globalEntry 928, mbedtls_mpi_write_file
+	globalEntry 929, mbedtls_mpi_write_string
+	globalEntry 930, mbedtls_mps_reader_commit
+	globalEntry 931, mbedtls_mps_reader_feed
+	globalEntry 932, mbedtls_mps_reader_free
+	globalEntry 933, mbedtls_mps_reader_get
+	globalEntry 934, mbedtls_mps_reader_init
+	globalEntry 935, mbedtls_mps_reader_reclaim
+	globalEntry 936, mbedtls_ms_time
+	globalEntry 937, mbedtls_net_accept
+	globalEntry 938, mbedtls_net_bind
+	globalEntry 939, mbedtls_net_close
+	globalEntry 940, mbedtls_net_connect
+	globalEntry 941, mbedtls_net_free
+	globalEntry 942, mbedtls_net_init
+	globalEntry 943, mbedtls_net_poll
+	globalEntry 944, mbedtls_net_recv
+	globalEntry 945, mbedtls_net_recv_timeout
+	globalEntry 946, mbedtls_net_send
+	globalEntry 947, mbedtls_net_set_block
+	globalEntry 948, mbedtls_net_set_nonblock
+	globalEntry 949, mbedtls_net_usleep
+	globalEntry 950, mbedtls_nist_kw_free
+	globalEntry 951, mbedtls_nist_kw_init
+	globalEntry 952, mbedtls_nist_kw_setkey
+	globalEntry 953, mbedtls_nist_kw_unwrap
+	globalEntry 954, mbedtls_nist_kw_wrap
+	globalEntry 955, mbedtls_oid_from_numeric_string
+	globalEntry 956, mbedtls_oid_get_attr_short_name
+	globalEntry 957, mbedtls_oid_get_certificate_policies
+	globalEntry 958, mbedtls_oid_get_cipher_alg
+	globalEntry 959, mbedtls_oid_get_ec_grp
+	globalEntry 960, mbedtls_oid_get_ec_grp_algid
+	globalEntry 961, mbedtls_oid_get_extended_key_usage
+	globalEntry 962, mbedtls_oid_get_md_alg
+	globalEntry 963, mbedtls_oid_get_md_hmac
+	globalEntry 964, mbedtls_oid_get_numeric_string
+	globalEntry 965, mbedtls_oid_get_oid_by_ec_grp
+	globalEntry 966, mbedtls_oid_get_oid_by_ec_grp_algid
+	globalEntry 967, mbedtls_oid_get_oid_by_md
+	globalEntry 968, mbedtls_oid_get_oid_by_pk_alg
+	globalEntry 969, mbedtls_oid_get_oid_by_sig_alg
+	globalEntry 970, mbedtls_oid_get_pk_alg
+	globalEntry 971, mbedtls_oid_get_pkcs12_pbe_alg
+	globalEntry 972, mbedtls_oid_get_sig_alg
+	globalEntry 973, mbedtls_oid_get_sig_alg_desc
+	globalEntry 974, mbedtls_oid_get_x509_ext_type
+	globalEntry 975, mbedtls_pem_free
+	globalEntry 976, mbedtls_pem_init
+	globalEntry 977, mbedtls_pem_read_buffer
+	globalEntry 978, mbedtls_pem_write_buffer
+	globalEntry 979, mbedtls_pk_can_do
+	globalEntry 980, mbedtls_pk_check_pair
+	globalEntry 981, mbedtls_pk_copy_from_psa
+	globalEntry 982, mbedtls_pk_copy_public_from_psa
+	globalEntry 983, mbedtls_pk_debug
+	globalEntry 984, mbedtls_pk_decrypt
+	globalEntry 985, mbedtls_pk_ecc_set_group
+	globalEntry 986, mbedtls_pk_ecc_set_key
+	globalEntry 987, mbedtls_pk_ecc_set_pubkey
+	globalEntry 988, mbedtls_pk_ecc_set_pubkey_from_prv
+	globalEntry 989, mbedtls_pk_encrypt
+	globalEntry 990, mbedtls_pk_free
+	globalEntry 991, mbedtls_pk_get_bitlen
+	globalEntry 992, mbedtls_pk_get_name
+	globalEntry 993, mbedtls_pk_get_psa_attributes
+	globalEntry 994, mbedtls_pk_get_type
+	globalEntry 995, mbedtls_pk_import_into_psa
+	globalEntry 996, mbedtls_pk_info_from_type
+	globalEntry 997, mbedtls_pk_init
+	globalEntry 998, mbedtls_pk_load_file
+	globalEntry 999, mbedtls_pk_parse_key
+	globalEntry 1000, mbedtls_pk_parse_keyfile
+	globalEntry 1001, mbedtls_pk_parse_public_key
+	globalEntry 1002, mbedtls_pk_parse_public_keyfile
+	globalEntry 1003, mbedtls_pk_parse_subpubkey
+	globalEntry 1004, mbedtls_pk_setup
+	globalEntry 1005, mbedtls_pk_setup_rsa_alt
+	globalEntry 1006, mbedtls_pk_sign
+	globalEntry 1007, mbedtls_pk_sign_ext
+	globalEntry 1008, mbedtls_pk_sign_restartable
+	globalEntry 1009, mbedtls_pk_verify
+	globalEntry 1010, mbedtls_pk_verify_ext
+	globalEntry 1011, mbedtls_pk_verify_restartable
+	globalEntry 1012, mbedtls_pk_write_key_der
+	globalEntry 1013, mbedtls_pk_write_key_pem
+	globalEntry 1014, mbedtls_pk_write_pubkey
+	globalEntry 1015, mbedtls_pk_write_pubkey_der
+	globalEntry 1016, mbedtls_pk_write_pubkey_pem
+	globalEntry 1017, mbedtls_pkcs12_derivation
+	globalEntry 1018, mbedtls_pkcs12_pbe
+	globalEntry 1019, mbedtls_pkcs12_pbe_ext
+	globalEntry 1020, mbedtls_pkcs5_pbes2
+	globalEntry 1021, mbedtls_pkcs5_pbes2_ext
+	globalEntry 1022, mbedtls_pkcs5_pbkdf2_hmac
+	globalEntry 1023, mbedtls_pkcs5_pbkdf2_hmac_ext
+	globalEntry 1024, mbedtls_pkcs7_free
+	globalEntry 1025, mbedtls_pkcs7_init
+	globalEntry 1026, mbedtls_pkcs7_parse_der
+	globalEntry 1027, mbedtls_pkcs7_signed_data_verify
+	globalEntry 1028, mbedtls_pkcs7_signed_hash_verify
+	globalEntry 1029, mbedtls_platform_entropy_poll
+	globalEntry 1030, mbedtls_platform_gmtime_r
+	globalEntry 1031, mbedtls_platform_setup
+	globalEntry 1032, mbedtls_platform_teardown
+	globalEntry 1033, mbedtls_platform_zeroize
+	globalEntry 1034, mbedtls_poly1305_finish
+	globalEntry 1035, mbedtls_poly1305_free
+	globalEntry 1036, mbedtls_poly1305_init
+	globalEntry 1037, mbedtls_poly1305_mac
+	globalEntry 1038, mbedtls_poly1305_starts
+	globalEntry 1039, mbedtls_poly1305_update
+	globalEntry 1040, mbedtls_psa_aead_abort
+	globalEntry 1041, mbedtls_psa_aead_decrypt
+	globalEntry 1042, mbedtls_psa_aead_decrypt_setup
+	globalEntry 1043, mbedtls_psa_aead_encrypt
+	globalEntry 1044, mbedtls_psa_aead_encrypt_setup
+	globalEntry 1045, mbedtls_psa_aead_finish
+	globalEntry 1046, mbedtls_psa_aead_set_lengths
+	globalEntry 1047, mbedtls_psa_aead_set_nonce
+	globalEntry 1048, mbedtls_psa_aead_update
+	globalEntry 1049, mbedtls_psa_aead_update_ad
+	globalEntry 1050, mbedtls_psa_asymmetric_decrypt
+	globalEntry 1051, mbedtls_psa_asymmetric_encrypt
+	globalEntry 1052, mbedtls_psa_cipher_abort
+	globalEntry 1053, mbedtls_psa_cipher_decrypt
+	globalEntry 1054, mbedtls_psa_cipher_decrypt_setup
+	globalEntry 1055, mbedtls_psa_cipher_encrypt
+	globalEntry 1056, mbedtls_psa_cipher_encrypt_setup
+	globalEntry 1057, mbedtls_psa_cipher_finish
+	globalEntry 1058, mbedtls_psa_cipher_set_iv
+	globalEntry 1059, mbedtls_psa_cipher_update
+	globalEntry 1060, mbedtls_psa_crypto_configure_entropy_sources
+	globalEntry 1061, mbedtls_psa_crypto_free
+	globalEntry 1062, mbedtls_psa_ecdsa_sign_hash
+	globalEntry 1063, mbedtls_psa_ecdsa_verify_hash
+	globalEntry 1064, mbedtls_psa_ecp_export_key
+	globalEntry 1065, mbedtls_psa_ecp_export_public_key
+	globalEntry 1066, mbedtls_psa_ecp_generate_key
+	globalEntry 1067, mbedtls_psa_ecp_import_key
+	globalEntry 1068, mbedtls_psa_ecp_load_public_part
+	globalEntry 1069, mbedtls_psa_ecp_load_representation
+	globalEntry 1070, mbedtls_psa_ffdh_export_public_key
+	globalEntry 1071, mbedtls_psa_ffdh_generate_key
+	globalEntry 1072, mbedtls_psa_ffdh_import_key
+	globalEntry 1073, mbedtls_psa_ffdh_key_agreement
+	globalEntry 1074, mbedtls_psa_get_random
+	globalEntry 1075, mbedtls_psa_get_stats
+	globalEntry 1076, mbedtls_psa_hash_abort
+	globalEntry 1077, mbedtls_psa_hash_clone
+	globalEntry 1078, mbedtls_psa_hash_compute
+	globalEntry 1079, mbedtls_psa_hash_finish
+	globalEntry 1080, mbedtls_psa_hash_setup
+	globalEntry 1081, mbedtls_psa_hash_update
+	globalEntry 1082, mbedtls_psa_interruptible_set_max_ops
+	globalEntry 1083, mbedtls_psa_key_agreement_ecdh
+	globalEntry 1084, mbedtls_psa_mac_abort
+	globalEntry 1085, mbedtls_psa_mac_compute
+	globalEntry 1086, mbedtls_psa_mac_sign_finish
+	globalEntry 1087, mbedtls_psa_mac_sign_setup
+	globalEntry 1088, mbedtls_psa_mac_update
+	globalEntry 1089, mbedtls_psa_mac_verify_finish
+	globalEntry 1090, mbedtls_psa_mac_verify_setup
+	globalEntry 1091, mbedtls_psa_pake_abort
+	globalEntry 1092, mbedtls_psa_pake_get_implicit_key
+	globalEntry 1093, mbedtls_psa_pake_input
+	globalEntry 1094, mbedtls_psa_pake_output
+	globalEntry 1095, mbedtls_psa_pake_setup
+	globalEntry 1096, mbedtls_psa_rsa_export_key
+	globalEntry 1097, mbedtls_psa_rsa_export_public_key
+	globalEntry 1098, mbedtls_psa_rsa_generate_key
+	globalEntry 1099, mbedtls_psa_rsa_import_key
+	globalEntry 1100, mbedtls_psa_rsa_load_representation
+	globalEntry 1101, mbedtls_psa_rsa_sign_hash
+	globalEntry 1102, mbedtls_psa_rsa_verify_hash
+	globalEntry 1103, mbedtls_psa_sign_hash_abort
+	globalEntry 1104, mbedtls_psa_sign_hash_complete
+	globalEntry 1105, mbedtls_psa_sign_hash_get_num_ops
+	globalEntry 1106, mbedtls_psa_sign_hash_start
+	globalEntry 1107, mbedtls_psa_verify_hash_abort
+	globalEntry 1108, mbedtls_psa_verify_hash_complete
+	globalEntry 1109, mbedtls_psa_verify_hash_get_num_ops
+	globalEntry 1110, mbedtls_psa_verify_hash_start
+	globalEntry 1111, mbedtls_ripemd160
+	globalEntry 1112, mbedtls_ripemd160_clone
+	globalEntry 1113, mbedtls_ripemd160_finish
+	globalEntry 1114, mbedtls_ripemd160_free
+	globalEntry 1115, mbedtls_ripemd160_init
+	globalEntry 1116, mbedtls_ripemd160_starts
+	globalEntry 1117, mbedtls_ripemd160_update
+	globalEntry 1118, mbedtls_rsa_alt_info
+	globalEntry 1119, mbedtls_rsa_check_privkey
+	globalEntry 1120, mbedtls_rsa_check_pub_priv
+	globalEntry 1121, mbedtls_rsa_check_pubkey
+	globalEntry 1122, mbedtls_rsa_complete
+	globalEntry 1123, mbedtls_rsa_copy
+	globalEntry 1124, mbedtls_rsa_deduce_crt
+	globalEntry 1125, mbedtls_rsa_deduce_primes
+	globalEntry 1126, mbedtls_rsa_deduce_private_exponent
+	globalEntry 1127, mbedtls_rsa_export
+	globalEntry 1128, mbedtls_rsa_export_crt
+	globalEntry 1129, mbedtls_rsa_export_raw
+	globalEntry 1130, mbedtls_rsa_free
+	globalEntry 1131, mbedtls_rsa_gen_key
+	globalEntry 1132, mbedtls_rsa_get_bitlen
+	globalEntry 1133, mbedtls_rsa_get_len
+	globalEntry 1134, mbedtls_rsa_get_md_alg
+	globalEntry 1135, mbedtls_rsa_get_padding_mode
+	globalEntry 1136, mbedtls_rsa_import
+	globalEntry 1137, mbedtls_rsa_import_raw
+	globalEntry 1138, mbedtls_rsa_info
+	globalEntry 1139, mbedtls_rsa_init
+	globalEntry 1140, mbedtls_rsa_parse_key
+	globalEntry 1141, mbedtls_rsa_parse_pubkey
+	globalEntry 1142, mbedtls_rsa_pkcs1_decrypt
+	globalEntry 1143, mbedtls_rsa_pkcs1_encrypt
+	globalEntry 1144, mbedtls_rsa_pkcs1_sign
+	globalEntry 1145, mbedtls_rsa_pkcs1_verify
+	globalEntry 1146, mbedtls_rsa_private
+	globalEntry 1147, mbedtls_rsa_public
+	globalEntry 1148, mbedtls_rsa_rsaes_oaep_decrypt
+	globalEntry 1149, mbedtls_rsa_rsaes_oaep_encrypt
+	globalEntry 1150, mbedtls_rsa_rsaes_pkcs1_v15_decrypt
+	globalEntry 1151, mbedtls_rsa_rsaes_pkcs1_v15_encrypt
+	globalEntry 1152, mbedtls_rsa_rsassa_pkcs1_v15_sign
+	globalEntry 1153, mbedtls_rsa_rsassa_pkcs1_v15_verify
+	globalEntry 1154, mbedtls_rsa_rsassa_pss_sign
+	globalEntry 1155, mbedtls_rsa_rsassa_pss_sign_ext
+	globalEntry 1156, mbedtls_rsa_rsassa_pss_sign_no_mode_check
+	globalEntry 1157, mbedtls_rsa_rsassa_pss_verify
+	globalEntry 1158, mbedtls_rsa_rsassa_pss_verify_ext
+	globalEntry 1159, mbedtls_rsa_set_padding
+	globalEntry 1160, mbedtls_rsa_validate_crt
+	globalEntry 1161, mbedtls_rsa_validate_params
+	globalEntry 1162, mbedtls_rsa_write_key
+	globalEntry 1163, mbedtls_rsa_write_pubkey
+	globalEntry 1164, mbedtls_sha1
+	globalEntry 1165, mbedtls_sha1_clone
+	globalEntry 1166, mbedtls_sha1_finish
+	globalEntry 1167, mbedtls_sha1_free
+	globalEntry 1168, mbedtls_sha1_init
+	globalEntry 1169, mbedtls_sha1_starts
+	globalEntry 1170, mbedtls_sha1_update
+	globalEntry 1171, mbedtls_sha256
+	globalEntry 1172, mbedtls_sha256_clone
+	globalEntry 1173, mbedtls_sha256_finish
+	globalEntry 1174, mbedtls_sha256_free
+	globalEntry 1175, mbedtls_sha256_init
+	globalEntry 1176, mbedtls_sha256_starts
+	globalEntry 1177, mbedtls_sha256_update
+	globalEntry 1178, mbedtls_sha3
+	globalEntry 1179, mbedtls_sha3_clone
+	globalEntry 1180, mbedtls_sha3_finish
+	globalEntry 1181, mbedtls_sha3_free
+	globalEntry 1182, mbedtls_sha3_init
+	globalEntry 1183, mbedtls_sha3_starts
+	globalEntry 1184, mbedtls_sha3_update
+	globalEntry 1185, mbedtls_sha512
+	globalEntry 1186, mbedtls_sha512_clone
+	globalEntry 1187, mbedtls_sha512_finish
+	globalEntry 1188, mbedtls_sha512_free
+	globalEntry 1189, mbedtls_sha512_init
+	globalEntry 1190, mbedtls_sha512_starts
+	globalEntry 1191, mbedtls_sha512_update
+	globalEntry 1192, mbedtls_ssl_add_hs_hdr_to_checksum
+	globalEntry 1193, mbedtls_ssl_add_hs_msg_to_checksum
+	globalEntry 1194, mbedtls_ssl_buffering_free
+	globalEntry 1195, mbedtls_ssl_cache_free
+	globalEntry 1196, mbedtls_ssl_cache_get
+	globalEntry 1197, mbedtls_ssl_cache_init
+	globalEntry 1198, mbedtls_ssl_cache_remove
+	globalEntry 1199, mbedtls_ssl_cache_set
+	globalEntry 1200, mbedtls_ssl_cache_set_max_entries
+	globalEntry 1201, mbedtls_ssl_cache_set_timeout
+	globalEntry 1202, mbedtls_ssl_check_cert_usage
+	globalEntry 1203, mbedtls_ssl_check_curve
+	globalEntry 1204, mbedtls_ssl_check_curve_tls_id
+	globalEntry 1205, mbedtls_ssl_check_pending
+	globalEntry 1206, mbedtls_ssl_check_record
+	globalEntry 1207, mbedtls_ssl_check_timer
+	globalEntry 1208, mbedtls_ssl_cipher_to_psa
+	globalEntry 1209, mbedtls_ssl_ciphersuite_from_id
+	globalEntry 1210, mbedtls_ssl_ciphersuite_from_string
+	globalEntry 1211, mbedtls_ssl_ciphersuite_get_cipher_key_bitlen
+	globalEntry 1212, mbedtls_ssl_ciphersuite_uses_ec
+	globalEntry 1213, mbedtls_ssl_ciphersuite_uses_psk
+	globalEntry 1214, mbedtls_ssl_close_notify
+	globalEntry 1215, mbedtls_ssl_conf_alpn_protocols
+	globalEntry 1216, mbedtls_ssl_conf_authmode
+	globalEntry 1217, mbedtls_ssl_conf_ca_chain
+	globalEntry 1218, mbedtls_ssl_conf_cert_profile
+	globalEntry 1219, mbedtls_ssl_conf_cert_req_ca_list
+	globalEntry 1220, mbedtls_ssl_conf_cid
+	globalEntry 1221, mbedtls_ssl_conf_ciphersuites
+	globalEntry 1222, mbedtls_ssl_conf_curves
+	globalEntry 1223, mbedtls_ssl_conf_dbg
+	globalEntry 1224, mbedtls_ssl_conf_dh_param_bin
+	globalEntry 1225, mbedtls_ssl_conf_dh_param_ctx
+	globalEntry 1226, mbedtls_ssl_conf_dhm_min_bitlen
+	globalEntry 1227, mbedtls_ssl_conf_dtls_anti_replay
+	globalEntry 1228, mbedtls_ssl_conf_dtls_badmac_limit
+	globalEntry 1229, mbedtls_ssl_conf_dtls_cookies
+	globalEntry 1230, mbedtls_ssl_conf_encrypt_then_mac
+	globalEntry 1231, mbedtls_ssl_conf_endpoint
+	globalEntry 1232, mbedtls_ssl_conf_extended_master_secret
+	globalEntry 1233, mbedtls_ssl_conf_groups
+	globalEntry 1234, mbedtls_ssl_conf_handshake_timeout
+	globalEntry 1235, mbedtls_ssl_conf_has_static_psk
+	globalEntry 1236, mbedtls_ssl_conf_legacy_renegotiation
+	globalEntry 1237, mbedtls_ssl_conf_max_frag_len
+	globalEntry 1238, mbedtls_ssl_conf_max_version
+	globalEntry 1239, mbedtls_ssl_conf_min_version
+	globalEntry 1240, mbedtls_ssl_conf_new_session_tickets
+	globalEntry 1241, mbedtls_ssl_conf_own_cert
+	globalEntry 1242, mbedtls_ssl_conf_preference_order
+	globalEntry 1243, mbedtls_ssl_conf_psk
+	globalEntry 1244, mbedtls_ssl_conf_psk_cb
+	globalEntry 1245, mbedtls_ssl_conf_read_timeout
+	globalEntry 1246, mbedtls_ssl_conf_renegotiation
+	globalEntry 1247, mbedtls_ssl_conf_renegotiation_enforced
+	globalEntry 1248, mbedtls_ssl_conf_renegotiation_period
+	globalEntry 1249, mbedtls_ssl_conf_rng
+	globalEntry 1250, mbedtls_ssl_conf_session_cache
+	globalEntry 1251, mbedtls_ssl_conf_session_tickets
+	globalEntry 1252, mbedtls_ssl_conf_session_tickets_cb
+	globalEntry 1253, mbedtls_ssl_conf_sig_algs
+	globalEntry 1254, mbedtls_ssl_conf_sig_hashes
+	globalEntry 1255, mbedtls_ssl_conf_sni
+	globalEntry 1256, mbedtls_ssl_conf_tls13_enable_signal_new_session_tickets
+	globalEntry 1257, mbedtls_ssl_conf_tls13_key_exchange_modes
+	globalEntry 1258, mbedtls_ssl_conf_transport
+	globalEntry 1259, mbedtls_ssl_conf_verify
+	globalEntry 1260, mbedtls_ssl_config_defaults
+	globalEntry 1261, mbedtls_ssl_config_free
+	globalEntry 1262, mbedtls_ssl_config_init
+	globalEntry 1263, mbedtls_ssl_context_load
+	globalEntry 1264, mbedtls_ssl_context_save
+	globalEntry 1265, mbedtls_ssl_cookie_check
+	globalEntry 1266, mbedtls_ssl_cookie_free
+	globalEntry 1267, mbedtls_ssl_cookie_init
+	globalEntry 1268, mbedtls_ssl_cookie_set_timeout
+	globalEntry 1269, mbedtls_ssl_cookie_setup
+	globalEntry 1270, mbedtls_ssl_cookie_write
+	globalEntry 1271, mbedtls_ssl_decrypt_buf
+	globalEntry 1272, mbedtls_ssl_derive_keys
+	globalEntry 1273, mbedtls_ssl_dtls_replay_check
+	globalEntry 1274, mbedtls_ssl_dtls_replay_reset
+	globalEntry 1275, mbedtls_ssl_dtls_replay_update
+	globalEntry 1276, mbedtls_ssl_encrypt_buf
+	globalEntry 1277, mbedtls_ssl_fetch_input
+	globalEntry 1278, mbedtls_ssl_finish_handshake_msg
+	globalEntry 1279, mbedtls_ssl_flight_free
+	globalEntry 1280, mbedtls_ssl_flight_transmit
+	globalEntry 1281, mbedtls_ssl_flush_output
+	globalEntry 1282, mbedtls_ssl_free
+	globalEntry 1283, mbedtls_ssl_get_alpn_protocol
+	globalEntry 1284, mbedtls_ssl_get_bytes_avail
+	globalEntry 1285, mbedtls_ssl_get_ciphersuite
+	globalEntry 1286, mbedtls_ssl_get_ciphersuite_id
+	globalEntry 1287, mbedtls_ssl_get_ciphersuite_id_from_ssl
+	globalEntry 1288, mbedtls_ssl_get_ciphersuite_name
+	globalEntry 1289, mbedtls_ssl_get_ciphersuite_sig_alg
+	globalEntry 1290, mbedtls_ssl_get_ciphersuite_sig_pk_alg
+	globalEntry 1291, mbedtls_ssl_get_current_mtu
+	globalEntry 1292, mbedtls_ssl_get_ecp_group_id_from_tls_id
+	globalEntry 1293, mbedtls_ssl_get_extension_id
+	globalEntry 1294, mbedtls_ssl_get_extension_mask
+	globalEntry 1295, mbedtls_ssl_get_handshake_transcript
+	globalEntry 1296, mbedtls_ssl_get_hs_sni
+	globalEntry 1297, mbedtls_ssl_get_input_max_frag_len
+	globalEntry 1298, mbedtls_ssl_get_key_exchange_md_tls1_2
+	globalEntry 1299, mbedtls_ssl_get_max_in_record_payload
+	globalEntry 1300, mbedtls_ssl_get_max_out_record_payload
+	globalEntry 1301, mbedtls_ssl_get_mode_from_ciphersuite
+	globalEntry 1302, mbedtls_ssl_get_mode_from_transform
+	globalEntry 1303, mbedtls_ssl_get_output_max_frag_len
+	globalEntry 1304, mbedtls_ssl_get_own_cid
+	globalEntry 1305, mbedtls_ssl_get_peer_cert
+	globalEntry 1306, mbedtls_ssl_get_peer_cid
+	globalEntry 1307, mbedtls_ssl_get_psa_curve_info_from_tls_id
+	globalEntry 1308, mbedtls_ssl_get_record_expansion
+	globalEntry 1309, mbedtls_ssl_get_session
+	globalEntry 1310, mbedtls_ssl_get_tls_id_from_ecp_group_id
+	globalEntry 1311, mbedtls_ssl_get_verify_result
+	globalEntry 1312, mbedtls_ssl_get_version
+	globalEntry 1313, mbedtls_ssl_handle_message_type
+	globalEntry 1314, mbedtls_ssl_handle_pending_alert
+	globalEntry 1315, mbedtls_ssl_handshake
+	globalEntry 1316, mbedtls_ssl_handshake_client_step
+	globalEntry 1317, mbedtls_ssl_handshake_free
+	globalEntry 1318, mbedtls_ssl_handshake_server_step
+	globalEntry 1319, mbedtls_ssl_handshake_step
+	globalEntry 1320, mbedtls_ssl_handshake_wrapup
+	globalEntry 1321, mbedtls_ssl_handshake_wrapup_free_hs_transform
+	globalEntry 1322, mbedtls_ssl_hash_from_md_alg
+	globalEntry 1323, mbedtls_ssl_init
+	globalEntry 1324, mbedtls_ssl_list_ciphersuites
+	globalEntry 1325, mbedtls_ssl_md_alg_from_hash
+	globalEntry 1326, mbedtls_ssl_optimize_checksum
+	globalEntry 1327, mbedtls_ssl_parse_alpn_ext
+	globalEntry 1328, mbedtls_ssl_parse_certificate
+	globalEntry 1329, mbedtls_ssl_parse_change_cipher_spec
+	globalEntry 1330, mbedtls_ssl_parse_finished
+	globalEntry 1331, mbedtls_ssl_parse_server_name_ext
+	globalEntry 1332, mbedtls_ssl_parse_sig_alg_ext
+	globalEntry 1333, mbedtls_ssl_pend_fatal_alert
+	globalEntry 1334, mbedtls_ssl_pk_alg_from_sig
+	globalEntry 1335, mbedtls_ssl_prepare_handshake_record
+	globalEntry 1336, mbedtls_ssl_psk_derive_premaster
+	globalEntry 1337, mbedtls_ssl_read
+	globalEntry 1338, mbedtls_ssl_read_record
+	globalEntry 1339, mbedtls_ssl_read_version
+	globalEntry 1340, mbedtls_ssl_recv_flight_completed
+	globalEntry 1341, mbedtls_ssl_renegotiate
+	globalEntry 1342, mbedtls_ssl_resend
+	globalEntry 1343, mbedtls_ssl_resend_hello_request
+	globalEntry 1344, mbedtls_ssl_reset_checksum
+	globalEntry 1345, mbedtls_ssl_reset_in_out_pointers
+	globalEntry 1346, mbedtls_ssl_reset_transcript_for_hrr
+	globalEntry 1347, mbedtls_ssl_send_alert_message
+	globalEntry 1348, mbedtls_ssl_send_fatal_handshake_failure
+	globalEntry 1349, mbedtls_ssl_send_flight_completed
+	globalEntry 1350, mbedtls_ssl_session_copy
+	globalEntry 1351, mbedtls_ssl_session_free
+	globalEntry 1352, mbedtls_ssl_session_init
+	globalEntry 1353, mbedtls_ssl_session_load
+	globalEntry 1354, mbedtls_ssl_session_reset
+	globalEntry 1355, mbedtls_ssl_session_reset_int
+	globalEntry 1356, mbedtls_ssl_session_reset_msg_layer
+	globalEntry 1357, mbedtls_ssl_session_save
+	globalEntry 1358, mbedtls_ssl_session_set_hostname
+	globalEntry 1359, mbedtls_ssl_set_bio
+	globalEntry 1360, mbedtls_ssl_set_calc_verify_md
+	globalEntry 1361, mbedtls_ssl_set_cid
+	globalEntry 1362, mbedtls_ssl_set_client_transport_id
+	globalEntry 1363, mbedtls_ssl_set_datagram_packing
+	globalEntry 1364, mbedtls_ssl_set_export_keys_cb
+	globalEntry 1365, mbedtls_ssl_set_hostname
+	globalEntry 1366, mbedtls_ssl_set_hs_authmode
+	globalEntry 1367, mbedtls_ssl_set_hs_ca_chain
+	globalEntry 1368, mbedtls_ssl_set_hs_dn_hints
+	globalEntry 1369, mbedtls_ssl_set_hs_own_cert
+	globalEntry 1370, mbedtls_ssl_set_hs_psk
+	globalEntry 1371, mbedtls_ssl_set_inbound_transform
+	globalEntry 1372, mbedtls_ssl_set_mtu
+	globalEntry 1373, mbedtls_ssl_set_outbound_transform
+	globalEntry 1374, mbedtls_ssl_set_session
+	globalEntry 1375, mbedtls_ssl_set_timer
+	globalEntry 1376, mbedtls_ssl_set_timer_cb
+	globalEntry 1377, mbedtls_ssl_set_verify
+	globalEntry 1378, mbedtls_ssl_setup
+	globalEntry 1379, mbedtls_ssl_sig_from_pk
+	globalEntry 1380, mbedtls_ssl_sig_from_pk_alg
+	globalEntry 1381, mbedtls_ssl_start_handshake_msg
+	globalEntry 1382, mbedtls_ssl_start_renegotiation
+	globalEntry 1383, mbedtls_ssl_tls12_get_preferred_hash_for_sig_alg
+	globalEntry 1384, mbedtls_ssl_tls12_write_client_hello_exts
+	globalEntry 1385, mbedtls_ssl_tls13_calculate_verify_data
+	globalEntry 1386, mbedtls_ssl_tls13_check_received_extension
+	globalEntry 1387, mbedtls_ssl_tls13_check_sig_alg_cert_key_match
+	globalEntry 1388, mbedtls_ssl_tls13_compute_application_transform
+	globalEntry 1389, mbedtls_ssl_tls13_compute_handshake_transform
+	globalEntry 1390, mbedtls_ssl_tls13_compute_resumption_master_secret
+	globalEntry 1391, mbedtls_ssl_tls13_create_psk_binder
+	globalEntry 1392, mbedtls_ssl_tls13_crypto_init
+	globalEntry 1393, mbedtls_ssl_tls13_derive_application_secrets
+	globalEntry 1394, mbedtls_ssl_tls13_derive_early_secrets
+	globalEntry 1395, mbedtls_ssl_tls13_derive_handshake_secrets
+	globalEntry 1396, mbedtls_ssl_tls13_derive_resumption_master_secret
+	globalEntry 1397, mbedtls_ssl_tls13_derive_secret
+	globalEntry 1398, mbedtls_ssl_tls13_evolve_secret
+	globalEntry 1399, mbedtls_ssl_tls13_export_handshake_psk
+	globalEntry 1400, mbedtls_ssl_tls13_fetch_handshake_msg
+	globalEntry 1401, mbedtls_ssl_tls13_finalize_client_hello
+	globalEntry 1402, mbedtls_ssl_tls13_generate_and_write_xxdh_key_exchange
+	globalEntry 1403, mbedtls_ssl_tls13_handshake_client_step
+	globalEntry 1404, mbedtls_ssl_tls13_handshake_server_step
+	globalEntry 1405, mbedtls_ssl_tls13_handshake_wrapup
+	globalEntry 1406, mbedtls_ssl_tls13_hello_retry_request_magic
+	globalEntry 1407, mbedtls_ssl_tls13_hkdf_expand_label
+	globalEntry 1408, mbedtls_ssl_tls13_is_supported_versions_ext_present_in_exts
+	globalEntry 1409, mbedtls_ssl_tls13_key_schedule_stage_early
+	globalEntry 1410, mbedtls_ssl_tls13_labels
+	globalEntry 1411, mbedtls_ssl_tls13_make_traffic_keys
+	globalEntry 1412, mbedtls_ssl_tls13_populate_transform
+	globalEntry 1413, mbedtls_ssl_tls13_process_certificate
+	globalEntry 1414, mbedtls_ssl_tls13_process_certificate_verify
+	globalEntry 1415, mbedtls_ssl_tls13_process_finished_message
+	globalEntry 1416, mbedtls_ssl_tls13_read_public_xxdhe_share
+	globalEntry 1417, mbedtls_ssl_tls13_write_binders_of_pre_shared_key_ext
+	globalEntry 1418, mbedtls_ssl_tls13_write_certificate
+	globalEntry 1419, mbedtls_ssl_tls13_write_certificate_verify
+	globalEntry 1420, mbedtls_ssl_tls13_write_change_cipher_spec
+	globalEntry 1421, mbedtls_ssl_tls13_write_client_hello_exts
+	globalEntry 1422, mbedtls_ssl_tls13_write_finished_message
+	globalEntry 1423, mbedtls_ssl_tls13_write_identities_of_pre_shared_key_ext
+	globalEntry 1424, mbedtls_ssl_tls_prf
+	globalEntry 1425, mbedtls_ssl_transform_free
+	globalEntry 1426, mbedtls_ssl_transform_init
+	globalEntry 1427, mbedtls_ssl_update_handshake_status
+	globalEntry 1428, mbedtls_ssl_update_in_pointers
+	globalEntry 1429, mbedtls_ssl_update_out_pointers
+	globalEntry 1430, mbedtls_ssl_validate_ciphersuite
+	globalEntry 1431, mbedtls_ssl_verify_certificate
+	globalEntry 1432, mbedtls_ssl_write
+	globalEntry 1433, mbedtls_ssl_write_alpn_ext
+	globalEntry 1434, mbedtls_ssl_write_certificate
+	globalEntry 1435, mbedtls_ssl_write_change_cipher_spec
+	globalEntry 1436, mbedtls_ssl_write_client_hello
+	globalEntry 1437, mbedtls_ssl_write_finished
+	globalEntry 1438, mbedtls_ssl_write_handshake_msg_ext
+	globalEntry 1439, mbedtls_ssl_write_record
+	globalEntry 1440, mbedtls_ssl_write_sig_alg_ext
+	globalEntry 1441, mbedtls_ssl_write_version
+	globalEntry 1442, mbedtls_strerror
+	globalEntry 1443, mbedtls_timing_get_delay
+	globalEntry 1444, mbedtls_timing_get_final_delay
+	globalEntry 1445, mbedtls_timing_get_timer
+	globalEntry 1446, mbedtls_timing_set_delay
+	globalEntry 1447, mbedtls_to_psa_error
+	globalEntry 1448, mbedtls_version_check_feature
+	globalEntry 1449, mbedtls_version_get_number
+	globalEntry 1450, mbedtls_version_get_string
+	globalEntry 1451, mbedtls_version_get_string_full
+	globalEntry 1452, mbedtls_x509_crl_free
+	globalEntry 1453, mbedtls_x509_crl_info
+	globalEntry 1454, mbedtls_x509_crl_init
+	globalEntry 1455, mbedtls_x509_crl_parse
+	globalEntry 1456, mbedtls_x509_crl_parse_der
+	globalEntry 1457, mbedtls_x509_crl_parse_file
+	globalEntry 1458, mbedtls_x509_crt_check_extended_key_usage
+	globalEntry 1459, mbedtls_x509_crt_check_key_usage
+	globalEntry 1460, mbedtls_x509_crt_free
+	globalEntry 1461, mbedtls_x509_crt_get_ca_istrue
+	globalEntry 1462, mbedtls_x509_crt_info
+	globalEntry 1463, mbedtls_x509_crt_init
+	globalEntry 1464, mbedtls_x509_crt_is_revoked
+	globalEntry 1465, mbedtls_x509_crt_parse
+	globalEntry 1466, mbedtls_x509_crt_parse_cn_inet_pton
+	globalEntry 1467, mbedtls_x509_crt_parse_der
+	globalEntry 1468, mbedtls_x509_crt_parse_der_nocopy
+	globalEntry 1469, mbedtls_x509_crt_parse_der_with_ext_cb
+	globalEntry 1470, mbedtls_x509_crt_parse_file
+	globalEntry 1471, mbedtls_x509_crt_parse_path
+	globalEntry 1472, mbedtls_x509_crt_profile_default
+	globalEntry 1473, mbedtls_x509_crt_profile_next
+	globalEntry 1474, mbedtls_x509_crt_profile_none
+	globalEntry 1475, mbedtls_x509_crt_profile_suiteb
+	globalEntry 1476, mbedtls_x509_crt_verify
+	globalEntry 1477, mbedtls_x509_crt_verify_info
+	globalEntry 1478, mbedtls_x509_crt_verify_restartable
+	globalEntry 1479, mbedtls_x509_crt_verify_with_profile
+	globalEntry 1480, mbedtls_x509_csr_free
+	globalEntry 1481, mbedtls_x509_csr_info
+	globalEntry 1482, mbedtls_x509_csr_init
+	globalEntry 1483, mbedtls_x509_csr_parse
+	globalEntry 1484, mbedtls_x509_csr_parse_der
+	globalEntry 1485, mbedtls_x509_csr_parse_der_with_ext_cb
+	globalEntry 1486, mbedtls_x509_csr_parse_file
+	globalEntry 1487, mbedtls_x509_dn_gets
+	globalEntry 1488, mbedtls_x509_free_subject_alt_name
+	globalEntry 1489, mbedtls_x509_get_alg
+	globalEntry 1490, mbedtls_x509_get_alg_null
+	globalEntry 1491, mbedtls_x509_get_ext
+	globalEntry 1492, mbedtls_x509_get_key_usage
+	globalEntry 1493, mbedtls_x509_get_name
+	globalEntry 1494, mbedtls_x509_get_ns_cert_type
+	globalEntry 1495, mbedtls_x509_get_rsassa_pss_params
+	globalEntry 1496, mbedtls_x509_get_serial
+	globalEntry 1497, mbedtls_x509_get_sig
+	globalEntry 1498, mbedtls_x509_get_sig_alg
+	globalEntry 1499, mbedtls_x509_get_subject_alt_name
+	globalEntry 1500, mbedtls_x509_get_subject_alt_name_ext
+	globalEntry 1501, mbedtls_x509_get_time
+	globalEntry 1502, mbedtls_x509_info_cert_type
+	globalEntry 1503, mbedtls_x509_info_key_usage
+	globalEntry 1504, mbedtls_x509_info_subject_alt_name
+	globalEntry 1505, mbedtls_x509_key_size_helper
+	globalEntry 1506, mbedtls_x509_parse_subject_alt_name
+	globalEntry 1507, mbedtls_x509_serial_gets
+	globalEntry 1508, mbedtls_x509_set_extension
+	globalEntry 1509, mbedtls_x509_sig_alg_gets
+	globalEntry 1510, mbedtls_x509_string_to_names
+	globalEntry 1511, mbedtls_x509_time_cmp
+	globalEntry 1512, mbedtls_x509_time_gmtime
+	globalEntry 1513, mbedtls_x509_time_is_future
+	globalEntry 1514, mbedtls_x509_time_is_past
+	globalEntry 1515, mbedtls_x509_write_extensions
+	globalEntry 1516, mbedtls_x509_write_names
+	globalEntry 1517, mbedtls_x509_write_set_san_common
+	globalEntry 1518, mbedtls_x509_write_sig
+	globalEntry 1519, mbedtls_x509write_crt_der
+	globalEntry 1520, mbedtls_x509write_crt_free
+	globalEntry 1521, mbedtls_x509write_crt_init
+	globalEntry 1522, mbedtls_x509write_crt_pem
+	globalEntry 1523, mbedtls_x509write_crt_set_authority_key_identifier
+	globalEntry 1524, mbedtls_x509write_crt_set_basic_constraints
+	globalEntry 1525, mbedtls_x509write_crt_set_ext_key_usage
+	globalEntry 1526, mbedtls_x509write_crt_set_extension
+	globalEntry 1527, mbedtls_x509write_crt_set_issuer_key
+	globalEntry 1528, mbedtls_x509write_crt_set_issuer_name
+	globalEntry 1529, mbedtls_x509write_crt_set_key_usage
+	globalEntry 1530, mbedtls_x509write_crt_set_md_alg
+	globalEntry 1531, mbedtls_x509write_crt_set_ns_cert_type
+	globalEntry 1532, mbedtls_x509write_crt_set_serial
+	globalEntry 1533, mbedtls_x509write_crt_set_serial_raw
+	globalEntry 1534, mbedtls_x509write_crt_set_subject_alternative_name
+	globalEntry 1535, mbedtls_x509write_crt_set_subject_key
+	globalEntry 1536, mbedtls_x509write_crt_set_subject_key_identifier
+	globalEntry 1537, mbedtls_x509write_crt_set_subject_name
+	globalEntry 1538, mbedtls_x509write_crt_set_validity
+	globalEntry 1539, mbedtls_x509write_crt_set_version
+	globalEntry 1540, mbedtls_x509write_csr_der
+	globalEntry 1541, mbedtls_x509write_csr_free
+	globalEntry 1542, mbedtls_x509write_csr_init
+	globalEntry 1543, mbedtls_x509write_csr_pem
+	globalEntry 1544, mbedtls_x509write_csr_set_extension
+	globalEntry 1545, mbedtls_x509write_csr_set_key
+	globalEntry 1546, mbedtls_x509write_csr_set_key_usage
+	globalEntry 1547, mbedtls_x509write_csr_set_md_alg
+	globalEntry 1548, mbedtls_x509write_csr_set_ns_cert_type
+	globalEntry 1549, mbedtls_x509write_csr_set_subject_alternative_name
+	globalEntry 1550, mbedtls_x509write_csr_set_subject_name
+	globalEntry 1551, mbedtls_zeroize_and_free
+	globalEntry 1552, meadow_cloud_decrypt_buf
+	globalEntry 1553, meadow_cloud_decrypt_buf_aes
+	globalEntry 1554, meadow_cloud_provision
+	globalEntry 1555, meadow_cloud_release_private_key
+	globalEntry 1556, meadow_cloud_retrieve_private_key
+	globalEntry 1557, meadow_esp32_firmware
+	globalEntry 1558, meadow_hw_version_get
+	globalEntry 1559, meadow_kt_dispatcher
+	globalEntry 1560, meadow_os_config_free_resources
+	globalEntry 1561, meadow_os_deep_copy_config
+	globalEntry 1562, meadow_os_espcp_enter_programming_mode
+	globalEntry 1563, meadow_os_espcp_monitor_process_line
+	globalEntry 1564, meadow_os_espcp_reset
+	globalEntry 1565, meadow_os_reset_board
+	globalEntry 1566, meadow_read_file_total_free_flash_size
+	globalEntry 1567, memalign
+	globalEntry 1568, memchr
+	globalEntry 1569, memcmp
+	globalEntry 1570, memcpy
+	globalEntry 1571, memmove
+	globalEntry 1572, memset
+	globalEntry 1573, mkdir
+	globalEntry 1574, modf
+	globalEntry 1575, modff
+	globalEntry 1576, modfl
+	globalEntry 1577, mount
+	globalEntry 1578, nan
+	globalEntry 1579, nanf
+	globalEntry 1580, nanl
+	globalEntry 1581, nearbyint
+	globalEntry 1582, nearbyintf
+	globalEntry 1583, nearbyintl
+	globalEntry 1584, nextafter
+	globalEntry 1585, nextafterf
+	globalEntry 1586, nextafterl
+	globalEntry 1587, nexttoward
+	globalEntry 1588, nexttowardf
+	globalEntry 1589, nexttowardl
+	globalEntry 1590, open
+	globalEntry 1591, opendir
+	globalEntry 1592, os_update
+	globalEntry 1593, parse_hostfile
+	globalEntry 1594, perror
+	globalEntry 1595, pipe
+	globalEntry 1596, pipe2
+	globalEntry 1597, poll
+	globalEntry 1598, pow
+	globalEntry 1599, pow10
+	globalEntry 1600, pow10f
+	globalEntry 1601, powf
+	globalEntry 1602, powl
+	globalEntry 1603, printf
+	globalEntry 1604, psa_aead_abort
+	globalEntry 1605, psa_aead_decrypt
+	globalEntry 1606, psa_aead_decrypt_setup
+	globalEntry 1607, psa_aead_encrypt
+	globalEntry 1608, psa_aead_encrypt_setup
+	globalEntry 1609, psa_aead_finish
+	globalEntry 1610, psa_aead_generate_nonce
+	globalEntry 1611, psa_aead_set_lengths
+	globalEntry 1612, psa_aead_set_nonce
+	globalEntry 1613, psa_aead_update
+	globalEntry 1614, psa_aead_update_ad
+	globalEntry 1615, psa_aead_verify
+	globalEntry 1616, psa_allocate_buffer_to_slot
+	globalEntry 1617, psa_asymmetric_decrypt
+	globalEntry 1618, psa_asymmetric_encrypt
+	globalEntry 1619, psa_can_do_cipher
+	globalEntry 1620, psa_can_do_hash
+	globalEntry 1621, psa_cipher_abort
+	globalEntry 1622, psa_cipher_decrypt
+	globalEntry 1623, psa_cipher_decrypt_setup
+	globalEntry 1624, psa_cipher_encrypt
+	globalEntry 1625, psa_cipher_encrypt_setup
+	globalEntry 1626, psa_cipher_finish
+	globalEntry 1627, psa_cipher_generate_iv
+	globalEntry 1628, psa_cipher_set_iv
+	globalEntry 1629, psa_cipher_update
+	globalEntry 1630, psa_close_key
+	globalEntry 1631, psa_copy_key
+	globalEntry 1632, psa_copy_key_material_into_slot
+	globalEntry 1633, psa_crypto_driver_pake_get_cipher_suite
+	globalEntry 1634, psa_crypto_driver_pake_get_password
+	globalEntry 1635, psa_crypto_driver_pake_get_password_len
+	globalEntry 1636, psa_crypto_driver_pake_get_peer
+	globalEntry 1637, psa_crypto_driver_pake_get_peer_len
+	globalEntry 1638, psa_crypto_driver_pake_get_user
+	globalEntry 1639, psa_crypto_driver_pake_get_user_len
+	globalEntry 1640, psa_crypto_init
+	globalEntry 1641, psa_crypto_local_input_alloc
+	globalEntry 1642, psa_crypto_local_input_free
+	globalEntry 1643, psa_crypto_local_output_alloc
+	globalEntry 1644, psa_crypto_local_output_free
+	globalEntry 1645, psa_custom_key_parameters_are_default
+	globalEntry 1646, psa_destroy_key
+	globalEntry 1647, psa_destroy_persistent_key
+	globalEntry 1648, psa_driver_wrapper_export_public_key
+	globalEntry 1649, psa_driver_wrapper_get_builtin_key
+	globalEntry 1650, psa_driver_wrapper_get_key_buffer_size
+	globalEntry 1651, psa_export_key
+	globalEntry 1652, psa_export_key_internal
+	globalEntry 1653, psa_export_public_key
+	globalEntry 1654, psa_export_public_key_internal
+	globalEntry 1655, psa_format_key_data_for_storage
+	globalEntry 1656, psa_free_key_slot
+	globalEntry 1657, psa_free_persistent_key_data
+	globalEntry 1658, psa_generate_key
+	globalEntry 1659, psa_generate_key_custom
+	globalEntry 1660, psa_generate_key_ext
+	globalEntry 1661, psa_generate_key_internal
+	globalEntry 1662, psa_generate_random
+	globalEntry 1663, psa_generic_status_to_mbedtls
+	globalEntry 1664, psa_get_and_lock_key_slot
+	globalEntry 1665, psa_get_key_attributes
+	globalEntry 1666, psa_hash_abort
+	globalEntry 1667, psa_hash_clone
+	globalEntry 1668, psa_hash_compare
+	globalEntry 1669, psa_hash_compute
+	globalEntry 1670, psa_hash_finish
+	globalEntry 1671, psa_hash_setup
+	globalEntry 1672, psa_hash_update
+	globalEntry 1673, psa_hash_verify
+	globalEntry 1674, psa_import_key
+	globalEntry 1675, psa_import_key_into_slot
+	globalEntry 1676, psa_initialize_key_slots
+	globalEntry 1677, psa_interruptible_get_max_ops
+	globalEntry 1678, psa_interruptible_set_max_ops
+	globalEntry 1679, psa_is_key_present_in_storage
+	globalEntry 1680, psa_is_valid_key_id
+	globalEntry 1681, psa_its_get
+	globalEntry 1682, psa_its_get_info
+	globalEntry 1683, psa_its_remove
+	globalEntry 1684, psa_its_set
+	globalEntry 1685, psa_key_agreement_raw_builtin
+	globalEntry 1686, psa_key_derivation_abort
+	globalEntry 1687, psa_key_derivation_get_capacity
+	globalEntry 1688, psa_key_derivation_input_bytes
+	globalEntry 1689, psa_key_derivation_input_integer
+	globalEntry 1690, psa_key_derivation_input_key
+	globalEntry 1691, psa_key_derivation_key_agreement
+	globalEntry 1692, psa_key_derivation_output_bytes
+	globalEntry 1693, psa_key_derivation_output_key
+	globalEntry 1694, psa_key_derivation_output_key_custom
+	globalEntry 1695, psa_key_derivation_output_key_ext
+	globalEntry 1696, psa_key_derivation_set_capacity
+	globalEntry 1697, psa_key_derivation_setup
+	globalEntry 1698, psa_load_persistent_key
+	globalEntry 1699, psa_mac_abort
+	globalEntry 1700, psa_mac_compute
+	globalEntry 1701, psa_mac_sign_finish
+	globalEntry 1702, psa_mac_sign_setup
+	globalEntry 1703, psa_mac_update
+	globalEntry 1704, psa_mac_verify
+	globalEntry 1705, psa_mac_verify_finish
+	globalEntry 1706, psa_mac_verify_setup
+	globalEntry 1707, psa_open_key
+	globalEntry 1708, psa_pake_abort
+	globalEntry 1709, psa_pake_get_implicit_key
+	globalEntry 1710, psa_pake_input
+	globalEntry 1711, psa_pake_output
+	globalEntry 1712, psa_pake_set_password_key
+	globalEntry 1713, psa_pake_set_peer
+	globalEntry 1714, psa_pake_set_role
+	globalEntry 1715, psa_pake_set_user
+	globalEntry 1716, psa_pake_setup
+	globalEntry 1717, psa_parse_key_data_from_storage
+	globalEntry 1718, psa_pk_status_to_mbedtls
+	globalEntry 1719, psa_purge_key
+	globalEntry 1720, psa_raw_key_agreement
+	globalEntry 1721, psa_remove_key_data_from_memory
+	globalEntry 1722, psa_reserve_free_key_slot
+	globalEntry 1723, psa_reset_key_attributes
+	globalEntry 1724, psa_save_persistent_key
+	globalEntry 1725, psa_sign_hash
+	globalEntry 1726, psa_sign_hash_abort
+	globalEntry 1727, psa_sign_hash_builtin
+	globalEntry 1728, psa_sign_hash_complete
+	globalEntry 1729, psa_sign_hash_get_num_ops
+	globalEntry 1730, psa_sign_hash_start
+	globalEntry 1731, psa_sign_message
+	globalEntry 1732, psa_sign_message_builtin
+	globalEntry 1733, psa_status_to_mbedtls
+	globalEntry 1734, psa_to_lms_errors
+	globalEntry 1735, psa_to_md_errors
+	globalEntry 1736, psa_to_pk_rsa_errors
+	globalEntry 1737, psa_to_ssl_errors
+	globalEntry 1738, psa_unregister_read
+	globalEntry 1739, psa_unregister_read_under_mutex
+	globalEntry 1740, psa_validate_key_location
+	globalEntry 1741, psa_validate_key_persistence
+	globalEntry 1742, psa_validate_unstructured_key_bit_size
+	globalEntry 1743, psa_verify_hash
+	globalEntry 1744, psa_verify_hash_abort
+	globalEntry 1745, psa_verify_hash_builtin
+	globalEntry 1746, psa_verify_hash_complete
+	globalEntry 1747, psa_verify_hash_get_num_ops
+	globalEntry 1748, psa_verify_hash_start
+	globalEntry 1749, psa_verify_message
+	globalEntry 1750, psa_verify_message_builtin
+	globalEntry 1751, psa_wipe_all_key_slots
+	globalEntry 1752, psa_wipe_key_slot
+	globalEntry 1753, pthread_attr_init
+	globalEntry 1754, pthread_attr_setschedparam
+	globalEntry 1755, pthread_attr_setstacksize
+	globalEntry 1756, pthread_cancel
+	globalEntry 1757, pthread_create
+	globalEntry 1758, pthread_exit
+	globalEntry 1759, pthread_join
+	globalEntry 1760, quick_exit
+	globalEntry 1761, read
+	globalEntry 1762, readdir
+	globalEntry 1763, realloc
+	globalEntry 1764, recv
+	globalEntry 1765, recvfrom
+	globalEntry 1766, reldata
+	globalEntry 1767, remainder
+	globalEntry 1768, remainderf
+	globalEntry 1769, remainderl
+	globalEntry 1770, remove
+	globalEntry 1771, remquo
+	globalEntry 1772, remquof
+	globalEntry 1773, remquol
+	globalEntry 1774, rename
+	globalEntry 1775, rint
+	globalEntry 1776, rintf
+	globalEntry 1777, rintl
+	globalEntry 1778, rmdir
+	globalEntry 1779, round
+	globalEntry 1780, roundf
+	globalEntry 1781, roundl
+	globalEntry 1782, scalb
+	globalEntry 1783, scalbf
+	globalEntry 1784, scalbln
+	globalEntry 1785, scalblnf
+	globalEntry 1786, scalblnl
+	globalEntry 1787, scalbn
+	globalEntry 1788, scalbnf
+	globalEntry 1789, scalbnl
+	globalEntry 1790, select
+	globalEntry 1791, sem_destroy
+	globalEntry 1792, sem_getvalue
+	globalEntry 1793, sem_init
+	globalEntry 1794, sem_post
+	globalEntry 1795, sem_setprotocol
+	globalEntry 1796, sem_trywait
+	globalEntry 1797, sem_wait
+	globalEntry 1798, send
+	globalEntry 1799, set_errno
+	globalEntry 1800, setbuf
+	globalEntry 1801, setlogmask
+	globalEntry 1802, setsockopt
+	globalEntry 1803, setvbuf
+	globalEntry 1804, shutdown
+	globalEntry 1805, sigaddset
+	globalEntry 1806, sigemptyset
+	globalEntry 1807, signal
+	globalEntry 1808, significand
+	globalEntry 1809, significandf
+	globalEntry 1810, sigprocmask
+	globalEntry 1811, sin
+	globalEntry 1812, sincos
+	globalEntry 1813, sincosf
+	globalEntry 1814, sinf
+	globalEntry 1815, sinh
+	globalEntry 1816, sinhf
+	globalEntry 1817, sinhl
+	globalEntry 1818, sinl
+	globalEntry 1819, sleep
+	globalEntry 1820, snprintf
+	globalEntry 1821, socket
+	globalEntry 1822, sqlite3_aggregate_context
+	globalEntry 1823, sqlite3_aggregate_count
+	globalEntry 1824, sqlite3_auto_extension
+	globalEntry 1825, sqlite3_autovacuum_pages
+	globalEntry 1826, sqlite3_backup_finish
+	globalEntry 1827, sqlite3_backup_init
+	globalEntry 1828, sqlite3_backup_pagecount
+	globalEntry 1829, sqlite3_backup_remaining
+	globalEntry 1830, sqlite3_backup_step
+	globalEntry 1831, sqlite3_bind_blob
+	globalEntry 1832, sqlite3_bind_blob64
+	globalEntry 1833, sqlite3_bind_double
+	globalEntry 1834, sqlite3_bind_int
+	globalEntry 1835, sqlite3_bind_int64
+	globalEntry 1836, sqlite3_bind_null
+	globalEntry 1837, sqlite3_bind_parameter_count
+	globalEntry 1838, sqlite3_bind_parameter_index
+	globalEntry 1839, sqlite3_bind_parameter_name
+	globalEntry 1840, sqlite3_bind_pointer
+	globalEntry 1841, sqlite3_bind_text
+	globalEntry 1842, sqlite3_bind_text16
+	globalEntry 1843, sqlite3_bind_text64
+	globalEntry 1844, sqlite3_bind_value
+	globalEntry 1845, sqlite3_bind_zeroblob
+	globalEntry 1846, sqlite3_bind_zeroblob64
+	globalEntry 1847, sqlite3_blob_bytes
+	globalEntry 1848, sqlite3_blob_close
+	globalEntry 1849, sqlite3_blob_open
+	globalEntry 1850, sqlite3_blob_read
+	globalEntry 1851, sqlite3_blob_reopen
+	globalEntry 1852, sqlite3_blob_write
+	globalEntry 1853, sqlite3_busy_handler
+	globalEntry 1854, sqlite3_busy_timeout
+	globalEntry 1855, sqlite3_cancel_auto_extension
+	globalEntry 1856, sqlite3_changes
+	globalEntry 1857, sqlite3_changes64
+	globalEntry 1858, sqlite3_clear_bindings
+	globalEntry 1859, sqlite3_close
+	globalEntry 1860, sqlite3_close_v2
+	globalEntry 1861, sqlite3_collation_needed
+	globalEntry 1862, sqlite3_collation_needed16
+	globalEntry 1863, sqlite3_column_blob
+	globalEntry 1864, sqlite3_column_bytes
+	globalEntry 1865, sqlite3_column_bytes16
+	globalEntry 1866, sqlite3_column_count
+	globalEntry 1867, sqlite3_column_decltype
+	globalEntry 1868, sqlite3_column_decltype16
+	globalEntry 1869, sqlite3_column_double
+	globalEntry 1870, sqlite3_column_int
+	globalEntry 1871, sqlite3_column_int64
+	globalEntry 1872, sqlite3_column_name
+	globalEntry 1873, sqlite3_column_name16
+	globalEntry 1874, sqlite3_column_text
+	globalEntry 1875, sqlite3_column_text16
+	globalEntry 1876, sqlite3_column_type
+	globalEntry 1877, sqlite3_column_value
+	globalEntry 1878, sqlite3_commit_hook
+	globalEntry 1879, sqlite3_compileoption_get
+	globalEntry 1880, sqlite3_compileoption_used
+	globalEntry 1881, sqlite3_complete
+	globalEntry 1882, sqlite3_complete16
+	globalEntry 1883, sqlite3_config
+	globalEntry 1884, sqlite3_context_db_handle
+	globalEntry 1885, sqlite3_create_collation
+	globalEntry 1886, sqlite3_create_collation16
+	globalEntry 1887, sqlite3_create_collation_v2
+	globalEntry 1888, sqlite3_create_filename
+	globalEntry 1889, sqlite3_create_function
+	globalEntry 1890, sqlite3_create_function16
+	globalEntry 1891, sqlite3_create_function_v2
+	globalEntry 1892, sqlite3_create_module
+	globalEntry 1893, sqlite3_create_module_v2
+	globalEntry 1894, sqlite3_create_window_function
+	globalEntry 1895, sqlite3_data_count
+	globalEntry 1896, sqlite3_data_directory
+	globalEntry 1897, sqlite3_database_file_object
+	globalEntry 1898, sqlite3_db_cacheflush
+	globalEntry 1899, sqlite3_db_config
+	globalEntry 1900, sqlite3_db_filename
+	globalEntry 1901, sqlite3_db_handle
+	globalEntry 1902, sqlite3_db_mutex
+	globalEntry 1903, sqlite3_db_name
+	globalEntry 1904, sqlite3_db_readonly
+	globalEntry 1905, sqlite3_db_release_memory
+	globalEntry 1906, sqlite3_db_status
+	globalEntry 1907, sqlite3_declare_vtab
+	globalEntry 1908, sqlite3_demovfs
+	globalEntry 1909, sqlite3_deserialize
+	globalEntry 1910, sqlite3_drop_modules
+	globalEntry 1911, sqlite3_enable_load_extension
+	globalEntry 1912, sqlite3_enable_shared_cache
+	globalEntry 1913, sqlite3_errcode
+	globalEntry 1914, sqlite3_errmsg
+	globalEntry 1915, sqlite3_errmsg16
+	globalEntry 1916, sqlite3_error_offset
+	globalEntry 1917, sqlite3_errstr
+	globalEntry 1918, sqlite3_exec
+	globalEntry 1919, sqlite3_expanded_sql
+	globalEntry 1920, sqlite3_expired
+	globalEntry 1921, sqlite3_extended_errcode
+	globalEntry 1922, sqlite3_extended_result_codes
+	globalEntry 1923, sqlite3_file_control
+	globalEntry 1924, sqlite3_filename_database
+	globalEntry 1925, sqlite3_filename_journal
+	globalEntry 1926, sqlite3_filename_wal
+	globalEntry 1927, sqlite3_finalize
+	globalEntry 1928, sqlite3_free
+	globalEntry 1929, sqlite3_free_filename
+	globalEntry 1930, sqlite3_free_table
+	globalEntry 1931, sqlite3_get_autocommit
+	globalEntry 1932, sqlite3_get_auxdata
+	globalEntry 1933, sqlite3_get_clientdata
+	globalEntry 1934, sqlite3_get_table
+	globalEntry 1935, sqlite3_global_recover
+	globalEntry 1936, sqlite3_hard_heap_limit64
+	globalEntry 1937, sqlite3_initialize
+	globalEntry 1938, sqlite3_interrupt
+	globalEntry 1939, sqlite3_is_interrupted
+	globalEntry 1940, sqlite3_keyword_check
+	globalEntry 1941, sqlite3_keyword_count
+	globalEntry 1942, sqlite3_keyword_name
+	globalEntry 1943, sqlite3_last_insert_rowid
+	globalEntry 1944, sqlite3_libversion
+	globalEntry 1945, sqlite3_libversion_number
+	globalEntry 1946, sqlite3_limit
+	globalEntry 1947, sqlite3_load_extension
+	globalEntry 1948, sqlite3_log
+	globalEntry 1949, sqlite3_malloc
+	globalEntry 1950, sqlite3_malloc64
+	globalEntry 1951, sqlite3_memory_alarm
+	globalEntry 1952, sqlite3_memory_highwater
+	globalEntry 1953, sqlite3_memory_used
+	globalEntry 1954, sqlite3_mprintf
+	globalEntry 1955, sqlite3_msize
+	globalEntry 1956, sqlite3_next_stmt
+	globalEntry 1957, sqlite3_open
+	globalEntry 1958, sqlite3_open16
+	globalEntry 1959, sqlite3_open_v2
+	globalEntry 1960, sqlite3_os_end
+	globalEntry 1961, sqlite3_os_init
+	globalEntry 1962, sqlite3_overload_function
+	globalEntry 1963, sqlite3_prepare
+	globalEntry 1964, sqlite3_prepare16
+	globalEntry 1965, sqlite3_prepare16_v2
+	globalEntry 1966, sqlite3_prepare16_v3
+	globalEntry 1967, sqlite3_prepare_v2
+	globalEntry 1968, sqlite3_prepare_v3
+	globalEntry 1969, sqlite3_profile
+	globalEntry 1970, sqlite3_progress_handler
+	globalEntry 1971, sqlite3_randomness
+	globalEntry 1972, sqlite3_realloc
+	globalEntry 1973, sqlite3_realloc64
+	globalEntry 1974, sqlite3_release_memory
+	globalEntry 1975, sqlite3_reset
+	globalEntry 1976, sqlite3_reset_auto_extension
+	globalEntry 1977, sqlite3_result_blob
+	globalEntry 1978, sqlite3_result_blob64
+	globalEntry 1979, sqlite3_result_double
+	globalEntry 1980, sqlite3_result_error
+	globalEntry 1981, sqlite3_result_error16
+	globalEntry 1982, sqlite3_result_error_code
+	globalEntry 1983, sqlite3_result_error_nomem
+	globalEntry 1984, sqlite3_result_error_toobig
+	globalEntry 1985, sqlite3_result_int
+	globalEntry 1986, sqlite3_result_int64
+	globalEntry 1987, sqlite3_result_null
+	globalEntry 1988, sqlite3_result_pointer
+	globalEntry 1989, sqlite3_result_subtype
+	globalEntry 1990, sqlite3_result_text
+	globalEntry 1991, sqlite3_result_text16
+	globalEntry 1992, sqlite3_result_text16be
+	globalEntry 1993, sqlite3_result_text16le
+	globalEntry 1994, sqlite3_result_text64
+	globalEntry 1995, sqlite3_result_value
+	globalEntry 1996, sqlite3_result_zeroblob
+	globalEntry 1997, sqlite3_result_zeroblob64
+	globalEntry 1998, sqlite3_rollback_hook
+	globalEntry 1999, sqlite3_serialize
+	globalEntry 2000, sqlite3_set_authorizer
+	globalEntry 2001, sqlite3_set_auxdata
+	globalEntry 2002, sqlite3_set_clientdata
+	globalEntry 2003, sqlite3_set_last_insert_rowid
+	globalEntry 2004, sqlite3_shutdown
+	globalEntry 2005, sqlite3_sleep
+	globalEntry 2006, sqlite3_snprintf
+	globalEntry 2007, sqlite3_soft_heap_limit
+	globalEntry 2008, sqlite3_soft_heap_limit64
+	globalEntry 2009, sqlite3_sourceid
+	globalEntry 2010, sqlite3_sql
+	globalEntry 2011, sqlite3_status
+	globalEntry 2012, sqlite3_status64
+	globalEntry 2013, sqlite3_step
+	globalEntry 2014, sqlite3_stmt_busy
+	globalEntry 2015, sqlite3_stmt_explain
+	globalEntry 2016, sqlite3_stmt_isexplain
+	globalEntry 2017, sqlite3_stmt_readonly
+	globalEntry 2018, sqlite3_stmt_status
+	globalEntry 2019, sqlite3_str_append
+	globalEntry 2020, sqlite3_str_appendall
+	globalEntry 2021, sqlite3_str_appendchar
+	globalEntry 2022, sqlite3_str_appendf
+	globalEntry 2023, sqlite3_str_errcode
+	globalEntry 2024, sqlite3_str_finish
+	globalEntry 2025, sqlite3_str_length
+	globalEntry 2026, sqlite3_str_new
+	globalEntry 2027, sqlite3_str_reset
+	globalEntry 2028, sqlite3_str_value
+	globalEntry 2029, sqlite3_str_vappendf
+	globalEntry 2030, sqlite3_strglob
+	globalEntry 2031, sqlite3_stricmp
+	globalEntry 2032, sqlite3_strlike
+	globalEntry 2033, sqlite3_strnicmp
+	globalEntry 2034, sqlite3_system_errno
+	globalEntry 2035, sqlite3_table_column_metadata
+	globalEntry 2036, sqlite3_temp_directory
+	globalEntry 2037, sqlite3_test_control
+	globalEntry 2038, sqlite3_thread_cleanup
+	globalEntry 2039, sqlite3_threadsafe
+	globalEntry 2040, sqlite3_total_changes
+	globalEntry 2041, sqlite3_total_changes64
+	globalEntry 2042, sqlite3_trace
+	globalEntry 2043, sqlite3_trace_v2
+	globalEntry 2044, sqlite3_transfer_bindings
+	globalEntry 2045, sqlite3_txn_state
+	globalEntry 2046, sqlite3_update_hook
+	globalEntry 2047, sqlite3_uri_boolean
+	globalEntry 2048, sqlite3_uri_int64
+	globalEntry 2049, sqlite3_uri_key
+	globalEntry 2050, sqlite3_uri_parameter
+	globalEntry 2051, sqlite3_user_data
+	globalEntry 2052, sqlite3_value_blob
+	globalEntry 2053, sqlite3_value_bytes
+	globalEntry 2054, sqlite3_value_bytes16
+	globalEntry 2055, sqlite3_value_double
+	globalEntry 2056, sqlite3_value_dup
+	globalEntry 2057, sqlite3_value_encoding
+	globalEntry 2058, sqlite3_value_free
+	globalEntry 2059, sqlite3_value_frombind
+	globalEntry 2060, sqlite3_value_int
+	globalEntry 2061, sqlite3_value_int64
+	globalEntry 2062, sqlite3_value_nochange
+	globalEntry 2063, sqlite3_value_numeric_type
+	globalEntry 2064, sqlite3_value_pointer
+	globalEntry 2065, sqlite3_value_subtype
+	globalEntry 2066, sqlite3_value_text
+	globalEntry 2067, sqlite3_value_text16
+	globalEntry 2068, sqlite3_value_text16be
+	globalEntry 2069, sqlite3_value_text16le
+	globalEntry 2070, sqlite3_value_type
+	globalEntry 2071, sqlite3_version
+	globalEntry 2072, sqlite3_vfs_find
+	globalEntry 2073, sqlite3_vfs_register
+	globalEntry 2074, sqlite3_vfs_unregister
+	globalEntry 2075, sqlite3_vmprintf
+	globalEntry 2076, sqlite3_vsnprintf
+	globalEntry 2077, sqlite3_vtab_collation
+	globalEntry 2078, sqlite3_vtab_config
+	globalEntry 2079, sqlite3_vtab_distinct
+	globalEntry 2080, sqlite3_vtab_in
+	globalEntry 2081, sqlite3_vtab_in_first
+	globalEntry 2082, sqlite3_vtab_in_next
+	globalEntry 2083, sqlite3_vtab_nochange
+	globalEntry 2084, sqlite3_vtab_on_conflict
+	globalEntry 2085, sqlite3_vtab_rhs_value
+	globalEntry 2086, sqlite3_wal_autocheckpoint
+	globalEntry 2087, sqlite3_wal_checkpoint
+	globalEntry 2088, sqlite3_wal_checkpoint_v2
+	globalEntry 2089, sqlite3_wal_hook
+	globalEntry 2090, sqrt
+	globalEntry 2091, sqrtf
+	globalEntry 2092, sqrtl
+	globalEntry 2093, stat
+	globalEntry 2094, statfs
+	globalEntry 2095, strcat
+	globalEntry 2096, strchr
+	globalEntry 2097, strchrnul
+	globalEntry 2098, strcmp
+	globalEntry 2099, strcpy
+	globalEntry 2100, strcspn
+	globalEntry 2101, strdup
+	globalEntry 2102, strerror
+	globalEntry 2103, strlcat
+	globalEntry 2104, strlcpy
+	globalEntry 2105, strlen
+	globalEntry 2106, strncat
+	globalEntry 2107, strncmp
+	globalEntry 2108, strncpy
+	globalEntry 2109, strnicmp
+	globalEntry 2110, strnlen
+	globalEntry 2111, strrchr
+	globalEntry 2112, strspn
+	globalEntry 2113, strstr
+	globalEntry 2114, strtok_r
+	globalEntry 2115, strtol
+	globalEntry 2116, strtoul
+	globalEntry 2117, syslog
+	globalEntry 2118, tan
+	globalEntry 2119, tanf
+	globalEntry 2120, tanh
+	globalEntry 2121, tanhf
+	globalEntry 2122, tanhl
+	globalEntry 2123, tanl
+	globalEntry 2124, tensorflow_tests_hello_world
+	globalEntry 2125, tgamma
+	globalEntry 2126, tgammaf
+	globalEntry 2127, tgammal
+	globalEntry 2128, time
+	globalEntry 2129, tls_cleanup_pop
+	globalEntry 2130, tls_cleanup_popall
+	globalEntry 2131, tls_cleanup_push
+	globalEntry 2132, tls_destruct
+	globalEntry 2133, tls_get_info
+	globalEntry 2134, tolower
+	globalEntry 2135, tolower_l
+	globalEntry 2136, trunc
+	globalEntry 2137, truncf
+	globalEntry 2138, truncl
+	globalEntry 2139, unlink
+	globalEntry 2140, userspace
+	globalEntry 2141, usleep
+	globalEntry 2142, vfprintf
+	globalEntry 2143, vsnprintf
+	globalEntry 2144, vsyslog
+	globalEntry 2145, waitpid
+	globalEntry 2146, work_cancel
+	globalEntry 2147, work_queue
+	globalEntry 2148, work_usrstart
+	globalEntry 2149, write
+	globalEntry 2150, y0
+	globalEntry 2151, y0f
+	globalEntry 2152, y1
+	globalEntry 2153, y1f
+	globalEntry 2154, yn
+	globalEntry 2155, ynf
+	globalEntry 2156, zalloc
+#endif
 	SIZE	global_table
