@@ -105,36 +105,46 @@
  ****************************************************************************/
 bool espcp_create_message_queues(espcp_configuration_t *config)
 {
-    mqd_t request_queue_id = 0;
+    int request_queue_result;
+    int event_queue_result;
+    int incoming_event_queue_result;
 
     struct mq_attr queue_attributes;
     memset(&queue_attributes, 0, sizeof(queue_attributes));
     mode_t mode;
     memset(&mode, 0, sizeof(mode));
+
+    //
+    //  file_mq_open() is used rather than mq_open() because the handle has to
+    //  be usable from any context - see the queue members in
+    //  espcp_coprocessor.h.  It clears the struct file before use, so the
+    //  members need no initialisation here.
+    //
+    espcp_config_lock();
+
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
     queue_attributes.mq_msgsize = sizeof(struct message_and_semaphore_s *);
     queue_attributes.mq_flags = 0;
-    request_queue_id = mq_open(ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
+    request_queue_result = file_mq_open(&config->request_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
-    mqd_t event_queue_id = 0;
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
     queue_attributes.mq_msgsize = sizeof(espcp_event_data_t);
     queue_attributes.mq_flags = 0;
-    event_queue_id = mq_open(ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
+    event_queue_result = file_mq_open(&config->managed_event_queue, ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
-    mqd_t incoming_event_queue_id = 0;
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
     queue_attributes.mq_msgsize = sizeof(espcp_message_t *);
     queue_attributes.mq_flags = 0;
-    incoming_event_queue_id = mq_open(ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
+    incoming_event_queue_result = file_mq_open(&config->incoming_event_queue, ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
-    espcp_config_lock();
-    config->request_queue = request_queue_id;
-    config->managed_event_queue = event_queue_id;
-    config->incoming_event_queue = incoming_event_queue_id;
     espcp_config_unlock();
 
-    return ((request_queue_id >= 0) && (event_queue_id >= 0));
+    if (incoming_event_queue_result < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-file_mq_open(%s) failed:%d\n", __FILE__, __LINE__, ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, incoming_event_queue_result);
+    }
+
+    return ((request_queue_result == OK) && (event_queue_result == OK));
 }
 
 /****************************************************************************
@@ -159,13 +169,13 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
  *  None.
  *
  ****************************************************************************/
-int espcp_delete_message_queue(mqd_t queue_id)
+int espcp_delete_message_queue(struct file *queue)
 {
-    if (mq_close(queue_id) < 0)
+    if (file_mq_close(queue) < 0)
     {
         return (-1);
     }
-    return (mq_unlink(ESPCP_REQUEST_MESSAGE_QUEUE_NAME));
+    return (file_mq_unlink(ESPCP_REQUEST_MESSAGE_QUEUE_NAME));
 }
 
 /****************************************************************************
@@ -187,11 +197,15 @@ int espcp_delete_message_queue(mqd_t queue_id)
  *  None
  *
  ****************************************************************************/
-int espcp_add_message_to_queue(mqd_t queue_id, espcp_message_t *message)
+int espcp_add_message_to_queue(struct file *queue, espcp_message_t *message)
 {
     int result = OK;
 
-    result = mq_send(queue_id, (const void *) &message, sizeof(message), ESPCP_DEFAULT_MESSAGE_PRIORITY);
+    //
+    //  file_mq_send() returns a negated errno and does not touch the errno of
+    //  the calling thread, so callers must test the return value.
+    //
+    result = file_mq_send(queue, (const char *) &message, sizeof(message), ESPCP_DEFAULT_MESSAGE_PRIORITY);
 
     return (result);
 }
@@ -253,11 +267,11 @@ int espcp_queue_add_nonblocking_message(uint8_t message_type, uint8_t interface,
  *  None
  *
  ****************************************************************************/
-void *espcp_get_message_from_queue(mqd_t queue_id)
+void *espcp_get_message_from_queue(struct file *queue)
 {
     void *message = NULL;
 
-    int number_of_bytes = mq_receive(queue_id, (void *) &message, sizeof(message), NULL);
+    ssize_t number_of_bytes = file_mq_receive(queue, (char *) &message, sizeof(message), NULL);
     if (number_of_bytes != sizeof(message))
     {
         message = NULL;
@@ -288,7 +302,7 @@ void *espcp_get_message_from_queue(mqd_t queue_id)
  *  None
  *
  ****************************************************************************/
-void espcp_queue_kill_nuttx_thread_message(mqd_t queue_id)
+void espcp_queue_kill_nuttx_thread_message(struct file *queue)
 {
     espcp_message_t *kill_thread_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
     kill_thread_message->message_type = espcp_message_types_transport;
@@ -296,5 +310,5 @@ void espcp_queue_kill_nuttx_thread_message(mqd_t queue_id)
     kill_thread_message->function = espcp_transport_function_kill_nuttx_thread;
     kill_thread_message->semaphore = NULL;
 
-    espcp_add_message_to_queue(queue_id, kill_thread_message);
+    espcp_add_message_to_queue(queue, kill_thread_message);
 }
