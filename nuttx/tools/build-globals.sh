@@ -39,7 +39,29 @@ USER_ELF="nuttx_user.elf"
 #
 # Extract candidate symbols from the kernel runtime map
 #
-SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort -u | grep -Ev ${FILTER}`
+KERNEL_SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort -u | grep -Ev ${FILTER}`
+
+#
+# Also extract candidates directly from the user-space binary. Libraries
+# such as libm are never referenced by kernel-space code, so functions like
+# fmodf never show up in System.map even though they are perfectly valid,
+# linkable symbols in user space - without this, the whole math library
+# (and anything else kernel-space never touches) can never be exported,
+# regardless of how often this script is regenerated.
+#
+USER_CANDIDATE_SYMS=`${NM} --defined-only ${USER_ELF} | awk '$2 ~ /[A-Z]/ {print $3}' | sort -u | grep -Ev ${FILTER}`
+
+#
+# A few symbols dlopen'd code needs are caught by the FILTER exclusion
+# above for unrelated reasons (get_errno matches the "^get_" pattern meant
+# to exclude kernel accessor functions like get_task_group). Add them back
+# explicitly rather than loosening FILTER itself, which would also let
+# through whatever "^get_"-style kernel names FILTER was written to keep
+# out.
+#
+ALWAYS_INCLUDE="get_errno"
+
+CANDIDATE_SYMS=`printf '%s\n%s\n%s\n' "${KERNEL_SYMS}" "${USER_CANDIDATE_SYMS}" "${ALWAYS_INCLUDE}" | sort -u`
 
 #
 # Restrict candidates to symbols actually defined in the user-space binary.
@@ -52,7 +74,7 @@ SYMS=`awk '$2 ~ /[A-Z]/ {print $3}' System.map | sort -u | grep -Ev ${FILTER}`
 # link needs to resolve the table's symbols.
 #
 USER_SYMS=`${NM} --defined-only ${USER_ELF} | awk '{print $3}' | sort -u`
-SYMS=`comm -12 <(printf '%s\n' "${SYMS}") <(printf '%s\n' "${USER_SYMS}")`
+SYMS=`comm -12 <(printf '%s\n' "${CANDIDATE_SYMS}") <(printf '%s\n' "${USER_SYMS}")`
 SYM=(${SYMS})
 GLOBALS="libs/libc/elf/elf_globals.S"
 
@@ -120,6 +142,16 @@ cat >${GLOBALS} <<__EOF__
 	GLOBAL	globalNames
 
 SYMBOL(globalNames):
+/* This table only makes sense in user space: it exists to let dlopen()'d
+ * code (e.g. an AoT-compiled TensorFlow model) resolve external references
+ * against nuttx_user.elf. elf_globals.S is compiled into both the kernel
+ * and user passes, but the candidate symbols above may only exist in the
+ * user-space binary (a kernel build never references libm, for example),
+ * so this content is kernel-build-unsafe - __KERNEL__ (set via KDEFINE for
+ * the kernel-context compile) gates it out and the kernel gets an empty
+ * table instead.
+ */
+#ifndef __KERNEL__
 __EOF__
 
 for ((i = 0; i < ${#SYM[@]}; i++))
@@ -128,17 +160,23 @@ do
 done
 
 cat >>${GLOBALS} <<__EOF__
+#endif
 	SIZE	globalNames
 
 	.align	ALIGN
 	GLOBAL	nglobals
 SYMBOL(nglobals):
+#ifndef __KERNEL__
 	.word	${#SYM[@]}
+#else
+	.word	0
+#endif
 	SIZE	nglobals
 
 	.align	ALIGN
 	GLOBAL	global_table
 SYMBOL(global_table):
+#ifndef __KERNEL__
 __EOF__
 
 for ((i = 0; i < ${#SYM[@]}; i++))
@@ -146,7 +184,8 @@ do
 	echo "	globalEntry ${i}, ${SYM[$i]}" >>${GLOBALS}
 done
 
-cat >>${GLOBALS} <<__EOF__ 
+cat >>${GLOBALS} <<__EOF__
+#endif
 	SIZE	global_table
 __EOF__
 
