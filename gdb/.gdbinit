@@ -104,6 +104,28 @@ eval "monitor nuttx.state_offset %d", &((struct tcb_s *)(0))->task_state
 eval "monitor nuttx.name_offset %d", &((struct tcb_s *)(0))->name
 eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
 
+#
+# Useful breakpoints for catching common reset scenarios.
+#
+# b arm_hardfault
+# b __assert
+# b up_systemreset
+#
+# The following command causes the debugger to stop on a reset.
+#
+# monitor cortex_m vector_catch all
+#
+# This prints the following information so it looks like it will
+# common fault conditions.
+#
+# hard_err: catch
+#   int_err: catch
+#   bus_err: catch
+# state_err: catch
+#   chk_err: catch
+#  nocp_err: catch
+#    mm_err: catch
+#     reset: catch
 
 #
 #   Commands specific to your debug scenario should be placed here.  The following
