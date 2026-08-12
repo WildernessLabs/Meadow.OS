@@ -193,6 +193,11 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 //
 // Note: with ECHO enabled here, the terminal program's own local echo (e.g.
 // PuTTY's "Local echo") must be off, or typed characters will double up.
+//
+// ISIG is also needed so Ctrl+C is delivered as SIGINT instead of just
+// another byte - without it, commands like "top" that rely on Ctrl+C to
+// exit their loop can't be interrupted. ISIG only takes effect if
+// CONFIG_TTY_SIGINT is also enabled in the board's defconfig.
 static void nsh_configure_terminal_mode(int fd)
 {
   struct termios cfg;
@@ -201,7 +206,7 @@ static void nsh_configure_terminal_mode(int fd)
   {
     cfg.c_iflag |= ICRNL;
     cfg.c_oflag |= OPOST | ONLCR;
-    cfg.c_lflag |= ECHO;
+    cfg.c_lflag |= ECHO | ISIG;
     tcsetattr(fd, TCSANOW, &cfg);
   }
 }
