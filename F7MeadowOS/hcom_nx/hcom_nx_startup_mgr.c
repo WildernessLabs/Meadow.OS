@@ -51,6 +51,7 @@
 #include <meadow/meadow_os_fault_handling.h>
 #include <meadow/meadow_interrupt.h>
 #include <meadow/hcom_traverse_ku.h>
+#include <meadow/stm32f777zit6-meadow.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 #include <meadow/meadow_hw_version.h>

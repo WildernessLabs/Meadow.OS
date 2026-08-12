@@ -39,6 +39,7 @@
 
 #include "../hcom_common.h"
 #include <meadow/hcom_protocol.h>
+#include <termios.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -62,6 +63,7 @@ static bool _nsh_enabled;
 
 int nsh_main(int argc, char *argv[]);
 static int nsh_main_proxy(int argcx, char *argvx[]);
+static void nsh_configure_terminal_mode(int fd);
 
 /****************************************************************************
  * Public Functions
@@ -179,6 +181,31 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 // a different task and therefore doesn't have the same file descriptors
 // as the hcom task's threads.
 //
+// NSH's line editor (readline) only recognizes '\n' as end-of-line and does
+// not echo typed characters itself - both are expected to come from the
+// serial driver's termios layer (ICRNL/OPOST/ONLCR/ECHO). NuttX's serial
+// driver (uart_register) only sets those flags automatically for the device
+// marked as the system console (USART1 here). HCOM_DIAG_NSH_SERIAL_DEVICE is
+// a non-console UART, so without this: a bare CR from the terminal (what
+// Enter actually sends) is never turned into the '\n' NSH is waiting for,
+// typed characters are never echoed back, and NSH's own output isn't
+// translated into CRLF for the terminal.
+//
+// Note: with ECHO enabled here, the terminal program's own local echo (e.g.
+// PuTTY's "Local echo") must be off, or typed characters will double up.
+static void nsh_configure_terminal_mode(int fd)
+{
+  struct termios cfg;
+
+  if (tcgetattr(fd, &cfg) == 0)
+  {
+    cfg.c_iflag |= ICRNL;
+    cfg.c_oflag |= OPOST | ONLCR;
+    cfg.c_lflag |= ECHO;
+    tcsetattr(fd, TCSANOW, &cfg);
+  }
+}
+
 int nsh_main_proxy(int argcx, char *argvx[])
 {
   int ret;
@@ -216,6 +243,9 @@ int nsh_main_proxy(int argcx, char *argvx[])
                 thisFile, __LINE__, ret, errno);
       return -errno;
     }
+
+    nsh_configure_terminal_mode(stdout_fd);
+
     close(stdout_fd);
   }
 
