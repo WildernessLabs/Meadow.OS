@@ -3,7 +3,7 @@
 ## Overview
 
 NSH (NuttShell) is NuttX's built-in command-line shell. On Meadow F7 boards it runs
-over a dedicated UART (USART6) rather than the normal debug console, so it can be
+over a dedicated UART (e.g. USART6) rather than the normal debug console, so it can be
 enabled independently without disturbing the main console/HCOM traffic. This guide
 covers the two things needed to get it working: the `defconfig` entries, and how to
 set up a terminal program to talk to it.
@@ -25,6 +25,9 @@ below.
 CONFIG_FS_PROCFS=y
 CONFIG_FS_PROCFS_REGISTER=y
 # CONFIG_FS_PROCFS_EXCLUDE_PROCESS is not set
+CONFIG_SCHED_CPULOAD_SYSCLK=y
+# CONFIG_FS_PROCFS_EXCLUDE_CPULOAD is not set
+CONFIG_TTY_SIGINT=y
 CONFIG_NSH_ALTCONDEV=y
 CONFIG_NSH_ALTSTDERR="/dev/ttyS3"
 CONFIG_NSH_ALTSTDIN="/dev/ttyS3"
@@ -117,10 +120,21 @@ Notes:
 - `CONFIG_FS_PROCFS_EXCLUDE_PROCESS` must be off for `ps`/`wait` to work — without
   it, those two commands silently disappear regardless of their own `NSH_DISABLE_*`
   setting.
+- `top` needs `CONFIG_SCHED_CPULOAD_SYSCLK` (CPU load tracking, off by default)
+  and `CONFIG_FS_PROCFS_EXCLUDE_CPULOAD` cleared, on top of its own
+  `NSH_DISABLE_TOP` setting.
+- `CONFIG_TTY_SIGINT` is required for Ctrl+C to work at all in NSH (e.g. to exit
+  `top`) — it's only auto-enabled for console devices, and USART6 here is not
+  the console.
 - `/dev/ttyS3` is what USART6 currently resolves to in this board's serial
   configuration. If you change which UARTs are enabled elsewhere in the defconfig,
   re-check this — the `/dev/ttySx` numbering is assigned in UART-enable order, not
   fixed per peripheral.
+- TX/RX pin assignment depends on the Meadow hardware platform and which UART is
+  selected — it isn't fixed. For example, on a Meadow F7FeatherV2 using USART6,
+  the board's TX is pin D09 and its RX is pin D10. Wire these crossed to your
+  USB-to-serial adapter (board TX → adapter RX, board RX → adapter TX). Only
+  TX, RX, and ground are needed — no flow control lines.
 
 After editing, regenerate `.config` from the defconfig (don't hand-edit `.config`
 directly) and rebuild:
