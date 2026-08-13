@@ -77,6 +77,7 @@ int hcom_diag_nsh_support_setup()
 
 //=======================================================================================
 // Below is the needed configuration changes to support NSH while running Meadow
+//
 // Background
 // Mono routes all Console.Write() calls to stdout. To get Console.Write() calls
 // to output on CLI, stdout need to be redirected. However, normally this would
@@ -85,13 +86,17 @@ int hcom_diag_nsh_support_setup()
 // new tasks. This has the side effect of preventing NSH to function since it
 // normally depends on the stdio for input and output. The code in this file as
 // well as certain Nuttx configuration changes resolved this problem.
+//
 // Information
-// Any of the Meadow UARTs can be used based on the #define HCOM_DIAG_NSH_SERIAL_DEVICE.
-// The CLI command --NshEnable will automatically set userData to the needed value of 1.
-// NSH can only be enabled once from the CLI. After this the _nsh_enable flag will be set
-// true and prevents nsh from being re-started.
-// A nice, but not needed, feature would be to find a different method to determine
-// if nsh is running (e.g. pthread_join, waitpid(),  waitid() or atexit()).
+// Any of the Meadow UARTs can be used based on the #define
+// HCOM_DIAG_NSH_SERIAL_DEVICE, defined in apps/system/hcom/hcom_common.h
+// The CLI command --NshEnable will automatically set userData to the needed
+// value of 1. NSH can only be enabled once from the CLI. After this the
+// _nsh_enable flag will be set true and prevents nsh from being re-started.
+// A nice, but not needed, feature would be to find a different method to
+// determine if nsh is running (e.g. pthread_join, waitpid(),  waitid()
+// or atexit()).
+//
 // NSH Configuration
 // 'Application Configuration'->'NSH Library'->'Console Configuration'->
 //  '[*] Use Console', '[*] Alternate Console Device' and set all three
@@ -101,6 +106,9 @@ int hcom_diag_nsh_support_setup()
 // 'Application Configuration'->'System Libraries and NSH Add-Ons'->
 //  '[*] NuttShell (NSH) example
 // This is enough to get NSH working. Other features can be added as required.
+
+// This is the public entry point to start NSH, userData must be set to '1'
+// to launch NSH.
 void hcom_diag_misc_launch_nsh(uint32_t userData)
 {
   int _nsh_pid;
@@ -174,7 +182,8 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 // By design Nuttx builds NSH expecting to using stdin, stdout and stderr for
 // interactions with the serial port. This is resolved here in that the proper
 // serial port is assigned to stdout and stderr by this new task that runs NSH.
-// And the nuttx configuration assignee the alternate console for the proper port.
+// And the nuttx configuration assignee the alternate console for the proper
+// port.
 //
 // Note: cannot use the hcom_via_nx_xxx() calls without calling
 // hcom_via_nx_upd_driver_open() to obtain a proper handle. Because this is
