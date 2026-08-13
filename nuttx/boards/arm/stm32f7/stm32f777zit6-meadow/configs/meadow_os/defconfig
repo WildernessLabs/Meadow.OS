@@ -314,7 +314,7 @@ CONFIG_NFILE_DESCRIPTORS_PER_BLOCK=32
 #   Need investigation.
 #
 # CONFIG_LIBC_ENVPATH=y
-# CONFIG_BOARDCTL_IOCTL=y
+CONFIG_BOARDCTL_IOCTL=y
 
 #
 #   Leaving here as a reference for when Mono is integrated.
