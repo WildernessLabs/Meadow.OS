@@ -149,13 +149,14 @@ static struct mtd_dev_s * board_init_mtd_w25qxxxjv(FAR struct qspi_dev_s *qspi)
 
 void stm32_boardinitialize(void)
 {
-#ifdef CONFIG_DEBUG_FEATURES
-// If debug features defined Nuttx has output 'A' and after this will output
-// 'BCDE'
-  syslog(LOG_MDIAG, "\n%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
-#else
-  // syslog(LOG_MDIAG, "%s@%d-Entered stm32_boardinitialize\n", __FILE__, __LINE__);
-#endif
+// NOTE: Do NOT call syslog() here, even under CONFIG_DEBUG_FEATURES. This
+// function runs before nx_start() has initialized g_readytorun, and the
+// RAMLOG syslog backend (ramlog_addbuf() in vendored nuttx/drivers/syslog/
+// ramlog.c) unconditionally calls sched_lock(), which dereferences a NULL
+// this_task() this early -> silent HardFault (DEBUGASSERT is compiled out
+// unless CONFIG_DEBUG_ASSERTIONS is also set). This is why enabling
+// CONFIG_DEBUG_FEATURES alone used to hang the board right after showprogress
+// prints 'A' and before it prints 'B'.
 
 #if defined(CONFIG_STM32F7_SPI1) || defined(CONFIG_STM32F7_SPI2) || \
     defined(CONFIG_STM32F7_SPI3) || defined(CONFIG_STM32F7_SPI4) || \
