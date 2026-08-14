@@ -79,6 +79,12 @@ static const char *deviceName;
 static bool _lowPowerSoon;
 static sem_t _hcomRecvLPSem;
 
+// Guards _comms_read_fd against concurrent close()/open()/assignment from the
+// receive pthread and the power-management callback, which runs on a
+// different thread/context. Held only briefly around each fd mutation, never
+// across a blocking wait, so it can't stall a low-power transition.
+static sem_t _hcomRecvFdSem;
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -134,6 +140,10 @@ int hcom_host_recv_setup()
   sem_init(&_hcomRecvLPSem, 0, 0);
   sem_setprotocol(&_hcomRecvLPSem, SEM_PRIO_NONE);
 
+  // Mutex guarding _comms_read_fd (initial value 1 -- unlocked)
+  sem_init(&_hcomRecvFdSem, 0, 1);
+  sem_setprotocol(&_hcomRecvFdSem, SEM_PRIO_NONE);
+
   // Create the hcom receive thread
   param.sched_priority = HCOM_THREAD_PRIORITY_HCOM_RECEIVE;
   (void)pthread_attr_init(&attr);
@@ -167,7 +177,19 @@ int hcom_host_recv_low_power_notification(bool lpStart)
     // becareful. The only thing I know of is that the fd must still be closed
     // by a member of this "Task Group." If this is not done the fd will be
     // orphaned and unuseable again.
-    close(_comms_read_fd);
+    //
+    // Guarded against the receive pthread concurrently closing/reopening the
+    // same fd (see hcom_host_recv_pthread() and hcom_host_recv_open_connection()).
+    // Only close a still-valid descriptor -- if the receive thread already
+    // closed and reset it to -1, there's nothing to do here, and closing again
+    // would risk closing an unrelated fd that got the same number reassigned.
+    hcom_host_receive_takesem(&_hcomRecvFdSem);
+    if(_comms_read_fd >= 0)
+    {
+      close(_comms_read_fd);
+      _comms_read_fd = -1;
+    }
+    sem_post(&_hcomRecvFdSem);
   }
   else
   {
@@ -264,8 +286,16 @@ FAR void *hcom_host_recv_pthread(FAR void *arg)
     // Whatever the reason for receive failure, close the connection and
     // attempt to re-connect. We'll close here if informed of an imminent
     // low-power event.
-    close(_comms_read_fd);
-    _comms_read_fd = -1;
+    //
+    // Guarded: the power-management callback may have already closed and
+    // reset this fd concurrently (see hcom_host_recv_low_power_notification()).
+    hcom_host_receive_takesem(&_hcomRecvFdSem);
+    if(_comms_read_fd >= 0)
+    {
+      close(_comms_read_fd);
+      _comms_read_fd = -1;
+    }
+    sem_post(&_hcomRecvFdSem);
 
     // Should we wait a bit before attempting to reconnect?
     if(delayBeforeRetry)
@@ -311,7 +341,15 @@ void hcom_host_recv_open_connection()
     if(_lowPowerSoon)
       break;      // Exit here and go to top of receive loop
 
-    _comms_read_fd = open(deviceName, O_RDONLY);
+    // open() itself isn't guarded -- only the assignment to the shared fd is,
+    // since open() can block for a while and this loop must not hold
+    // _hcomRecvFdSem across a wait (that would stall a concurrent low-power
+    // close for as long as this retry loop runs, which can be indefinite).
+    int newFd = open(deviceName, O_RDONLY);
+    hcom_host_receive_takesem(&_hcomRecvFdSem);
+    _comms_read_fd = newFd;
+    sem_post(&_hcomRecvFdSem);
+
     if(_comms_read_fd >= 0)
     {
       MEADOW_TRACE_INFORMATION("%s@%d-open returned descriptor:%d\n", __FILE__, __LINE__, _comms_read_fd);
