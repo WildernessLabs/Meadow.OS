@@ -110,6 +110,14 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 {
   int ret;
 
+  // dnldOrigPathName is NULL whenever no download is active. The enqueue/
+  // dequeue fast-path fix should prevent this cleanup from firing while idle,
+  // but guard the %s formatting below regardless, since NULL there would be
+  // a crash risk on a path that's meant to be reporting a problem, not
+  // causing a new one.
+  const char *dnldFileName = (_dnldShared->dnldOrigPathName != NULL) ?
+      _dnldShared->dnldOrigPathName : "(none)";
+
   syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
 
   // Delete the download wdog timer that got us here
@@ -120,7 +128,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, _dnldShared->dnldOrigPathName,
+             thisFile, __LINE__, dnldFileName,
              ret, get_errno());
   }
 
@@ -129,7 +137,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, _dnldShared->dnldOrigPathName,
+             thisFile, __LINE__, dnldFileName,
              ret, get_errno());
   }
 
@@ -137,13 +145,13 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if(! hcom_host_enq_deq_clear_buffer())
   {
     syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n",
-             thisFile, __LINE__, _dnldShared->dnldOrigPathName);
+             thisFile, __LINE__, dnldFileName);
   }
 
   // Tell CLI to restart the download
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-        "File '%s' download failed, resend", _dnldShared->dnldOrigPathName);
+        "File '%s' download failed, resend", dnldFileName);
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
         thisFile, __LINE__);
 

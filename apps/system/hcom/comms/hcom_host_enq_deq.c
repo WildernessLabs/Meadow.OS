@@ -203,6 +203,16 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
     {
       case HCOM_CIR_BUF_GET_FOUND_MSG:
           sem_post(&_runRecvSem);       // Allow recv to retry to add
+
+          // This fast path bypasses hcom_host_enq_deq_wait_for_work(), so it
+          // must do that function's bookkeeping itself: drain one accumulated
+          // wake-credit from _runProcSem (posted by whichever enqueue produced
+          // this message) and clear a stale watchdog flag. We just proved data
+          // is flowing, so any pending watchdog notification is moot -- if the
+          // download is still genuinely stalled, its timer keeps getting reset
+          // per-packet and will fire again on its own.
+          sem_trywait(&_runProcSem);
+          _hcom_host_enq_deq_wdog_wakeup = false;
         return OK;                      // Return to process message
 
       case HCOM_CIR_BUF_GET_NONE_FOUND:
