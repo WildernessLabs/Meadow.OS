@@ -45,6 +45,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_extended_errno.h>
 #include <meadow/hcom_bbreg_defn.h>
+#include <poll.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
 
@@ -680,7 +681,17 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
       if(blockedCount < waitCount)
       {
         blockedCount++;
-        usleep(HCOM_XMIT_MAX_BLOCKED_TIME_DELAY);
+
+        // Wait for the fd to become writable instead of unconditionally
+        // sleeping the full interval -- reacts immediately once the driver
+        // has room again. A poll() timeout (nothing became writable in time)
+        // is treated the same as the old plain sleep: just another blocked
+        // iteration, so the overall worst-case wait budget
+        // (waitCount * HCOM_XMIT_MAX_BLOCKED_TIME_DELAY) is unchanged. Any
+        // poll() outcome -- ready, timeout, or error -- just falls through to
+        // retry the write above, which is the real source of truth.
+        struct pollfd pfd = { .fd = _comms_write_fd, .events = POLLOUT };
+        poll(&pfd, 1, HCOM_XMIT_MAX_BLOCKED_TIME_DELAY / 1000);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
         hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
