@@ -124,9 +124,16 @@ size_t hcom_host_cobs_decoder(uint8_t encoded[], size_t length, uint8_t decoded[
 
     encodedOffset++; // Point to next source
 
-    // Copy all unchanged bytes (use memcpy?)
-    for (int i = 1; i < replacement; i++)
-      decoded[decodedOffset++] = encoded[encodedOffset++];
+    // Copy all unchanged bytes. Guard replacement > 1 (rather than computing
+    // replacement - 1 unconditionally) so replacement == 0 can't underflow
+    // into a huge unsigned byte count -- matches the original loop's
+    // behavior of copying nothing for replacement == 0 or 1.
+    if (replacement > 1)
+    {
+      memcpy(&decoded[decodedOffset], &encoded[encodedOffset], replacement - 1);
+      decodedOffset += replacement - 1;
+      encodedOffset += replacement - 1;
+    }
 
     // Sometimes don't need a trailing delimiter added
     if (replacement < 0xff && encodedOffset != length)
