@@ -63,8 +63,6 @@
  ****************************************************************************/
 void meadow_watchdog_reset_system(int argc, wdparm_t arg)
 {
-#ifdef ENABLE_MEADOW_WATCHDOGS
-
     int watchdog_method = (int)arg;
     syslog(LOG_ERR, "Detected a network deadlock in method %d. Propagating OS exception to the managed environment...\n", watchdog_method);
 
@@ -82,8 +80,6 @@ void meadow_watchdog_reset_system(int argc, wdparm_t arg)
         default:
             meadow_os_raise_simple_exception(espcp_status_codes_network_deadlock);
     }
-
-#endif /* ENABLE_MEADOW_WATCHDOGS */
 }
 
 /****************************************************************************
@@ -103,8 +99,6 @@ void meadow_watchdog_reset_system(int argc, wdparm_t arg)
  ****************************************************************************/
 void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_watchdog_methods_e watchdog_method)
 {
-#ifdef ENABLE_MEADOW_WATCHDOGS
-    // Clear the wdog struct to ensure it starts in an inactive state.
     memset(watchdog, 0, sizeof(*watchdog));
 
     int ret = wd_start(watchdog, timeout, (wdentry_t)meadow_watchdog_reset_system, (wdparm_t)watchdog_method);
@@ -112,7 +106,6 @@ void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_
     {
         syslog(LOG_ERR, "Failed to activate watchdog: %d\n", ret);
     }
-#endif /* ENABLE_MEADOW_WATCHDOGS */
 }
 
 /****************************************************************************
@@ -130,11 +123,9 @@ void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_
  ****************************************************************************/
 void meadow_watchdog_deactivate(struct wdog_s *watchdog)
 {
-#ifdef ENABLE_MEADOW_WATCHDOGS
     int ret = wd_cancel(watchdog);
     if (ret < 0)
     {
         syslog(LOG_ERR, "Failed to deactivate watchdog: %d\n", ret);
     }
-#endif /* ENABLE_MEADOW_WATCHDOGS */
 }

@@ -33,12 +33,13 @@
  *
  ****************************************************************************/
 
-#ifndef __MEADOW_WATCHDOGS_H
-#define __MEADOW_WATCHDOGS_H
+#pragma once
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
+ #include <nuttx/config.h>
 
 #include <unistd.h>
 #include <syslog.h>
@@ -54,8 +55,6 @@
 /****************************************************************************
  * Preprocessor Definitions
  ****************************************************************************/
-
-#define ENABLE_MEADOW_WATCHDOGS
 
 #define WATCHDOG_POLL_TIMEOUT_MILLISECONDS    (300 * 1000)
 #define WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS   (300 * 1000)
@@ -81,5 +80,3 @@ typedef enum
 void meadow_watchdog_reset_system(int argc, wdparm_t arg);
 void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_watchdog_methods_e watchdog_method);
 void meadow_watchdog_deactivate(struct wdog_s *watchdog);
-
-#endif /* __MEADOW_WATCHDOGS_H */
