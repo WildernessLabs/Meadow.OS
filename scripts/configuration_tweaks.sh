@@ -3,6 +3,39 @@
 #
 
 #
+# Apply a single kconfig-tweak to the NuttX configuration named by
+# NUTTX_CONFIG_FILE.  Every function in this file goes through here.
+#
+# Both guards below exist because kconfig-tweak handles these two cases badly:
+#
+#   - Called with an empty --file it dumps its entire usage text and exits 1,
+#     which stops the build but says nothing about what actually went wrong.
+#   - Called with a --file that does not exist it writes a warning to stderr,
+#     CREATES that file containing just the one symbol, and exits 0.  A build.sh
+#     that ran these tweaks before NuttX was configured would therefore build up
+#     a bogus .config a line at a time, and - because .config now exists -
+#     configure.sh would never run to replace it.
+#
+# The second case is silent and destructive, so check up front instead.
+#
+ktweak() {
+    if [ -z "$NUTTX_CONFIG_FILE" ]; then
+        printf "ktweak: NUTTX_CONFIG_FILE is not set, cannot apply '%s'.\n" "$*" >&2
+        printf "ktweak: it must be assigned before any configuration tweak runs.\n" >&2
+        exit 1
+    fi
+
+    if [ ! -f "$NUTTX_CONFIG_FILE" ]; then
+        printf "ktweak: '%s' does not exist, cannot apply '%s'.\n" \
+               "$NUTTX_CONFIG_FILE" "$*" >&2
+        printf "ktweak: NuttX must be configured before any configuration tweak runs.\n" >&2
+        exit 1
+    fi
+
+    kconfig-tweak --file "$NUTTX_CONFIG_FILE" "$@"
+}
+
+#
 # Enable NSH (NuttX Shell) on USART6 (COM6).
 #
 # This applies the same set of options that Documentation/SettingupMeadowNSH.md
@@ -15,10 +48,6 @@
 # NSH_DISABLE_* and FS_PROCFS_EXCLUDE_* symbol default to 'y'; those are disabled
 # explicitly below so the shell keeps its commands and /proc keeps its contents.
 #
-ktweak() {
-    kconfig-tweak --file "$NUTTX_CONFIG_FILE" "$@"
-}
-
 enable_nsh() {
     printf "\n\n********** Enabling NSH (NuttX Shell) on USART6 (COM6). **********\n\n"
 
@@ -218,4 +247,15 @@ enable_stack_dump() {
     ktweak --undefine RAMLOG_SYSLOG
 
     ktweak --enable STACK_COLORATION
+}
+
+#
+#   Enable the dlopen/dlsym tests built into NuttX.
+#
+enable_sotests() {
+    printf "\n\n********** Enabling dlopen/dlsym tests. **********\n\n"
+
+    ktweak --enable SOTEST_TESTS
+    ktweak --enable EXAMPLES_SOTEST
+    ktweak --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
 }

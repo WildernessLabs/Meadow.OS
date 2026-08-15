@@ -147,7 +147,7 @@ esac
 
 ###############################################################################
 #
-#   First step, configure the systemand make any changes by tweaking the
+#   First step, configure the system and make any changes by tweaking the
 #   configuration.
 #
 
@@ -226,19 +226,19 @@ fi
 BUILD_YEAR=$(date +%Y)
 BUILD_MONTH=$(date +%-m)
 BUILD_DAY=$(date +%-d)
-CURRENT_START_YEAR=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_YEAR)
-CURRENT_START_MONTH=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_MONTH)
-CURRENT_START_DAY=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_DAY)
+CURRENT_START_YEAR=$(ktweak --state START_YEAR)
+CURRENT_START_MONTH=$(ktweak --state START_MONTH)
+CURRENT_START_DAY=$(ktweak --state START_DAY)
 if [ "$CURRENT_START_YEAR" != "$BUILD_YEAR" ]; then 
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
+    ktweak --set-val START_YEAR $BUILD_YEAR
 fi
 
 if [ "$CURRENT_START_MONTH" != "$BUILD_MONTH" ]; then 
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
+    ktweak --set-val START_MONTH $BUILD_MONTH
 fi
 
 if [ "$CURRENT_START_DAY" != "$BUILD_DAY" ]; then
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
+    ktweak --set-val START_DAY $BUILD_DAY
 fi
 
 #
@@ -252,157 +252,153 @@ if [ ! -z "$UNIT_TESTS" ]; then
         case $test in
             esp)
             echo "ESP tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ESP_TESTS
+            ktweak --enable ESP_TESTS
             BUILD_TESTS=true
             ;;
             bt)
             echo "Bluetooth tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BLUETOOTH_TESTS
+            ktweak --enable BLUETOOTH_TESTS
             BUILD_TESTS=true
             ;;
             sqlite)
             echo "SQLite tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
+            ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
             snprintf)
             echo "snprintf tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SNPRINTF_TESTS
+            ktweak --enable SNPRINTF_TESTS
             BUILD_TESTS=true
             ;;
             gpio)
             echo "GPIO tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_TESTS
+            ktweak --enable GPIO_TESTS
             BUILD_TESTS=true
             ;;
             overload)
             echo "MCU Overload tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MCU_OVERLOAD_TESTS
+            ktweak --enable MCU_OVERLOAD_TESTS
             BUILD_TESTS=true
             ;;
             bbr)
             echo "Battery Backed Register tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BBR_TESTS
+            ktweak --enable BBR_TESTS
             BUILD_TESTS=true
             ;;
             chat)
             echo "Chat tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable CHAT_TESTS
+            ktweak --enable CHAT_TESTS
             BUILD_TESTS=true
             ;;
             ethernet)
             echo "Ethernet tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ETHERNET_TESTS
+            ktweak --enable ETHERNET_TESTS
             BUILD_TESTS=true
             ;;
             bg77)
             echo "BG77 modem tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BG77_TESTS
+            ktweak --enable BG77_TESTS
             BUILD_TESTS=true
             ;;
             iso8601)
             echo "ISO8601 parsing tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ISO8601_TESTS
+            ktweak --enable ISO8601_TESTS
             BUILD_TESTS=true
             ;;
             power)
             echo "Power management tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable POWER_MANAGEMENT_TESTS
+            ktweak --enable POWER_MANAGEMENT_TESTS
             BUILD_TESTS=true
             ;;
             sdcard)
             echo "SD card tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SD_CARD_TESTS
+            ktweak --enable SD_CARD_TESTS
             BUILD_TESTS=true
             ;;
             tensorflow)
             echo "Tensorflow tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TENSORFLOW_TESTS
+            ktweak --enable TENSORFLOW_TESTS
             BUILD_TESTS=true
             ;;
             misc)
             echo "Miscellaneous tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable QUICK_MISC_TESTS
+            ktweak --enable QUICK_MISC_TESTS
             BUILD_TESTS=true
             ;;
             dirmgmt)
             echo "Directory management tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DIR_MGMT_TESTS
+            ktweak --enable DIR_MGMT_TESTS
             BUILD_TESTS=true
             ;;
             adc)
             echo "Analog to Digital conversion tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ADC_TESTS
+            ktweak --enable ADC_TESTS
             BUILD_TESTS=true
             ;;
             dac)
             echo "Digital to Analog conversion tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DAC_TESTS
+            ktweak --enable DAC_TESTS
             BUILD_TESTS=true
             ;;
             spidma)
             echo "SPI DMA tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SPI_DMA_TESTS
+            ktweak --enable SPI_DMA_TESTS
             BUILD_TESTS=true
             ;;
             pwm)
             echo "PWM tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable PWM_TESTS
+            ktweak --enable PWM_TESTS
             BUILD_TESTS=true
             ;;
             i2c)
             echo "I2C bus scan tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable I2C_TESTS
+            ktweak --enable I2C_TESTS
             BUILD_TESTS=true
             ;;
             rotenc)
             echo "Rotary Encoder tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS
+            ktweak --enable ROTARY_ENCODER_TESTS
             BUILD_TESTS=true
             ;;
             gpiocount)
             echo "GPIO Counter tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
+            ktweak --enable GPIO_COUNTER_TESTS
             BUILD_TESTS=true
             ;;
             sotest)
             echo "sotest dlopen/dlsym tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SOTEST_TESTS
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
+            enable_sotests
             BUILD_TESTS=true
             ;;
             os)
             echo "Operating system tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS
+            ktweak --enable MEADOW_OS_TESTS
             BUILD_TESTS=true
             ;;
             usrwork)
             echo "Verify USRWORK functions as expected on apps side."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable USR_WORK_TESTS
+            ktweak --enable USR_WORK_TESTS
             BUILD_TESTS=true
             ;;
             traverse_ku)
             echo "KU traverse channel tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TRAVERSE_KU_TESTS
+            ktweak --enable TRAVERSE_KU_TESTS
             BUILD_TESTS=true
             ;;
             measfreq)
             echo "Measure Frequency tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEASURE_FREQUENCY_TESTS
+            ktweak --enable MEASURE_FREQUENCY_TESTS
             BUILD_TESTS=true
             ;;
             mint)
             echo "Meadow interrupt tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_INTERRUPT_TESTS
+            ktweak --enable MEADOW_INTERRUPT_TESTS
             BUILD_TESTS=true
             ;;
             all)
             echo "All tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
+            enable_sotests
+            ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
             *)
@@ -413,7 +409,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
     done
 fi
 if $BUILD_TESTS; then
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable KERNEL_TESTS_SYSCALL
+  ktweak --enable KERNEL_TESTS_SYSCALL
 fi
 
 if $ENABLE_STACK_DUMP; then
