@@ -486,6 +486,10 @@ int hcom_main(int argc, char *argv[])
   syslog(LOG_MDIAG, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);
 #endif
 
+#if defined (CONFIG_SYSTEM_NSH)
+  hcom_diag_misc_launch_nsh(1);
+#endif
+
   // This startup thread was created by Nuttx. It will now be used to run the
   // task of processing CLI messages. So, it won't return from this call.
   ret = hcom_host_process_setup();
