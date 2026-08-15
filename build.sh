@@ -170,6 +170,32 @@ enable_nsh() {
 }
 
 #
+# Enable the NuttX debug features (debug output to SYSLOG).
+#
+# DEBUG_FEATURES is the master switch; the ERROR/WARN/INFO options select how
+# much gets emitted.  The per-subsystem options (DEBUG_FS, DEBUG_NET, DEBUG_MM
+# ../flashand ~30 more) all default to 'n' and are left alone - add them here if you need
+# one.
+#
+enable_debug_features() {
+    printf "\n\n********** Enabling debug features. **********\n\n"
+
+    ktweak --enable DEBUG_FEATURES
+    ktweak --enable DEBUG_ERROR
+    ktweak --enable DEBUG_WARN
+    ktweak --enable DEBUG_INFO
+
+    #
+    # Binary loader debug output, used when debugging dynamically loaded
+    # libraries such as Tensorflow.  Very noisy, so left off by default -
+    # uncomment when you need it.
+    #
+    # ktweak --enable DEBUG_BINFMT
+    # ktweak --enable DEBUG_BINFMT_ERROR
+    # ktweak --enable DEBUG_BINFMT_WARN
+}
+
+#
 # Setup some of the variables used by this script.
 #
 VERBOSE=true
@@ -200,7 +226,7 @@ case $i in
     -v|--verbose)
     VERBOSE=true
     NUTTX_VERBOSE="V=1"
-    BOOTLOADER_OPTION+="--verbose "
+    BOOTLOADER_OPTIONS+="--verbose "
     ;;
     -f|--force)
     FORCE=true
@@ -208,11 +234,11 @@ case $i in
     ;;
     -c|--clean)
     CLEAN=true
-    BOOTLOADER_OPTIONs+="--clean "
+    BOOTLOADER_OPTIONS+="--clean "
     ;;
     --wlclean)
     WLCLEAN=true
-    BOOTLOADER_OPTIONs+="--wlclean "
+    BOOTLOADER_OPTIONS+="--wlclean "
     ;;
     -m|--mono)
     MONO=true
@@ -225,11 +251,11 @@ case $i in
     ;;
     --debug)
     DEBUG=true
-    BOOTLOADER_OPTIONs+="--debug "
+    BOOTLOADER_OPTIONS+="--debug "
     ;;
     -mfd|--makefiledebugging)
     MAKE_OPTIONS="--debug VERBOSE=1"
-    BOOTLOADER_OPTIONs+="--makefiledebugging "
+    BOOTLOADER_OPTIONS+="--makefiledebugging "
     ;;
     --esd)
     ENABLE_STACK_DUMP=true
@@ -268,7 +294,7 @@ if [ "$HELP" = true ]; then
   echo "  -m|--mono                    Build with Mono"
   echo "  --netcore                    Build with .NET Core"
   echo "  --configure                  Configure the build"
-  echo "  --debug                      Build with debug symbols"
+  echo "  --debug                      Enable the NuttX debug features (debug output to SYSLOG)"
   echo "  --esd                        Enable stack dumps to be sent to USART1 (COM1)"
   echo "  --config=mono|netcore        Select Mono or .NET Core builds (default Mono)"
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
@@ -599,6 +625,10 @@ fi
 
 if $ENABLE_NSH; then
   enable_nsh
+fi
+
+if $DEBUG; then
+  enable_debug_features
 fi
 
 if $CONFIGURE_ONLY; then
