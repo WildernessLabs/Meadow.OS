@@ -367,7 +367,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
             ;;
             sotest)
             echo "sotest dlopen/dlsym tests requested."
-            enable_sotests
+            enable_sotests --tests
             BUILD_TESTS=true
             ;;
             os)
@@ -398,6 +398,13 @@ if [ ! -z "$UNIT_TESTS" ]; then
             all)
             echo "All tests requested."
             ktweak --enable ALL_MEADOW_TESTS
+            #
+            # The sotest .so is built, but SOTEST_TESTS itself is left off - it
+            # is one of the tests whose "|| CONFIG_ALL_MEADOW_TESTS" is
+            # deliberately commented out in developer_tests.c, and enabling it
+            # here pulls the ELF export table into the link (see
+            # enable_sotests).  Use "-u=sotest" to run it.
+            #
             enable_sotests
             ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true

@@ -250,12 +250,28 @@ enable_stack_dump() {
 }
 
 #
-#   Enable the dlopen/dlsym tests built into NuttX.
+#   Enable the sotest shared object, and optionally the test that loads it.
+#
+#     enable_sotests            - build the .so into the image only
+#     enable_sotests --tests    - also enable the dlopen/dlsym test itself
+#
+#   The two are separable because only the second one costs anything.  Building
+#   the module just adds a standalone .so; SOTEST_TESTS is what compiles the
+#   test's entry in developer_tests.c, and that is what drags the whole ELF
+#   dynamic loader into the user-space link: the table entry pulls in
+#   sotest_tests.o, which calls dlopen, which pulls in elf_symbols.o, which
+#   needs elf_globals.o - the generated table of every symbol exported to
+#   dlopen'd modules.  At that point every symbol that table names has to
+#   resolve, including toolchain libm internals that only exist in some
+#   arm-none-eabi builds, so "-u=all" asks for the module without the test.
 #
 enable_sotests() {
-    printf "\n\n********** Enabling dlopen/dlsym tests. **********\n\n"
+    printf "\n\n********** Enabling sotest dlopen/dlsym module. **********\n\n"
 
-    ktweak --enable SOTEST_TESTS
     ktweak --enable EXAMPLES_SOTEST
     ktweak --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
+
+    if [ "$1" = "--tests" ]; then
+        ktweak --enable SOTEST_TESTS
+    fi
 }
