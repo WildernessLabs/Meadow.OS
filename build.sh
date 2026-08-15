@@ -397,6 +397,7 @@ if [ ! -z "$UNIT_TESTS" ]; then
             ;;
             all)
             echo "All tests requested."
+            ktweak --enable ALL_MEADOW_TESTS
             enable_sotests
             ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
