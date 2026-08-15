@@ -41,8 +41,7 @@
 
 #include <nuttx/config.h>
 
-// #if defined (CONFIG_DAC_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-#if defined (CONFIG_DAC_TESTS)
+#if defined (CONFIG_DAC_TESTS) //|| defined (CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) Hacking dig_to_ana_conv_tests.c"
 
 #include <stdio.h>

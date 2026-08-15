@@ -399,11 +399,25 @@ if [ ! -z "$UNIT_TESTS" ]; then
             echo "All tests requested."
             ktweak --enable ALL_MEADOW_TESTS
             #
-            # The sotest .so is built, but SOTEST_TESTS itself is left off - it
-            # is one of the tests whose "|| CONFIG_ALL_MEADOW_TESTS" is
-            # deliberately commented out in developer_tests.c, and enabling it
-            # here pulls the ELF export table into the link (see
-            # enable_sotests).  Use "-u=sotest" to run it.
+            # ALL_MEADOW_TESTS does not cover quite everything.  A handful of
+            # tests have their "|| CONFIG_ALL_MEADOW_TESTS" clause deliberately
+            # commented out and so are only reachable through their own "-u="
+            # flag:
+            #
+            #   snprintf, overload, usrwork  - developer_tests.c
+            #   dac                          - meadow_kt_dispatcher.c and
+            #                                  dig_to_ana_conv_tests.c
+            #
+            # The DAC test needs a board wired for analogue output, so it stays
+            # out of the "all" sweep; use "-u=dac" for it.  Both the kernel
+            # dispatcher entry and the user-side name table entry are gated the
+            # same way - keep them in step or the test shows up in the menu with
+            # no handler behind it.
+            #
+            # sotest builds its .so module here.  The dlopen/dlsym test entry
+            # itself is now compiled by ALL_MEADOW_TESTS, so the module has to
+            # be present alongside it; see enable_sotests for why the module and
+            # the test are separable at all.
             #
             enable_sotests
             ktweak --enable EXAMPLES_SQLITE_TESTS
