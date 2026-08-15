@@ -335,11 +335,6 @@ CONFIG_BOARDCTL_IOCTL=y
 # CONFIG_FS_RAMMAP=y
 
 #
-#   I don't think we need this as it is a command line editor.
-#
-# CONFIG_SYSTEM_CLE=y
-
-#
 #   Described as a client to fetch files from a web server.
 #   I think this would all be done from managed code and so is not needed.
 #
