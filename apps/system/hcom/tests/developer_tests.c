@@ -67,7 +67,7 @@ static meadow_test_names_t _testNames[] =
     //
     //  Miscellaneous tests 1 - 999
     //
-#if defined(CONFIG_SNPRINTF_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_SNPRINTF_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SNPRINTF, "sprintf_chk tests" },
 #endif
 
@@ -79,7 +79,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_SQLITE, "NuttX SQLite tests" },
 #endif
 
-#if defined(CONFIG_MCU_OVERLOAD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_MCU_OVERLOAD_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_MCU_OVERLOAD, "MCU Overload tests" },
 #endif
 
@@ -107,7 +107,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_MISC, "Quick and Misc tests" },
 #endif
 
-#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TENSORFLOW, "Tensorflow tests" },
 #endif
 
@@ -119,7 +119,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_ADC, "Analog to Digital tests" },
 #endif
 
-#if defined(CONFIG_DAC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_DAC_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_DAC, "Digital to Analog tests" },
 #endif
 
@@ -139,7 +139,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_GPIO_COUNTER, "GPIO Counter tests" },
 #endif
 
-#if defined(CONFIG_SOTEST_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_SOTEST_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SOTEST, "sotest dlopen/dlsym tests" },
 #endif
 
@@ -151,7 +151,7 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_CELL_TESTS, "Cell tests" },
 #endif
 
-#if defined(CONFIG_USR_WORK_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, "USRWORK tests" },
 #endif
 
@@ -303,7 +303,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_GPIO, hcom_meadow_diag_gpio_tests },
 #endif
 
-#if defined(CONFIG_EXAMPLES_SQLITE_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_EXAMPLES_SQLITE_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SQLITE, hcom_meadow_sqlite_tests },
 #endif
 
@@ -319,11 +319,11 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_BBR, hcom_bbr_tests },
 #endif
 
-#if defined(CONFIG_TENSORFLOW_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TENSORFLOW, tensorflow_tests_hello_world },
 #endif
 
-#if defined(CONFIG_SOTEST_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_SOTEST_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SOTEST, meadow_sotest_tests },
 #endif
 
@@ -331,7 +331,7 @@ static meadow_test_methods_t _userspaceTests[] =
     { MEADOW_TEST_DIRECTORY_MANAGEMENT, meadow_dir_mgmt_tests },
 #endif
 
-#if defined(CONFIG_USR_WORK_TESTS) // || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_USR_WORK_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, diag_misc_tests_verify_usrwork },
 #endif
 
