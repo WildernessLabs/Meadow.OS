@@ -535,6 +535,17 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   // syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
   //           thisFile, __LINE__, hcomDataMsg->seqNumber, decodedSize);
 
+  // decodedPacket points into a long-lived, reused buffer that's never
+  // cleared between packets. A short/garbled packet must not be cast to a
+  // struct larger than decodedSize -- doing so would read stale bytes left
+  // over from the previous real packet instead of failing cleanly.
+  if (decodedSize < HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF)
+  {
+    syslog(LOG_ERR, "%s@%d-Received undersized packet of %u bytes, ignoring it.\n",
+              thisFile, __LINE__, decodedSize);
+    return -EBADMSG;
+  }
+
   // All messages contain a sequence number field. The sequence number
   // determines if the packet is a command (0) or data (1-n).
   // Assume data type for determination.
@@ -583,7 +594,16 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   // Process Command packet
   //----------------------------------------------------------------------
   // Since sequence number is '0', must be a command (non-data packet)
-  // message. And these always have the full HCOM header.
+  // message. And these always have the full HCOM header -- verify enough
+  // bytes were actually decoded before reading the rest of it, for the same
+  // reason as the length check above.
+  if (decodedSize < HCOM_PROTOCOL_HEADER_MSG_LENGTH)
+  {
+    syslog(LOG_ERR, "%s@%d-Received undersized command packet of %u bytes, ignoring it.\n",
+              thisFile, __LINE__, decodedSize);
+    return -EBADMSG;
+  }
+
   const HcomProtoHdrMsg_t *hdrMsg = (HcomProtoHdrMsg_t *) decodedPacket;
 
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0

@@ -5,10 +5,10 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 
 . $scriptdir/scripts/common_methods.sh
 . $scriptdir/scripts/version_methods.sh
+. $scriptdir/scripts/configuration_tweaks.sh
 
 set_os_name
 check_if_interactive
-
 #
 # Setup some of the variables used by this script.
 #
@@ -29,6 +29,7 @@ MAKE_OPTIONS="MEADOW_OS=1"
 UNIT_TESTS=
 BOOTLOADER_OPTIONS=
 NUTTX_VERBOSE=
+ENABLE_NSH=false
 
 for i in "$@"
 do
@@ -39,7 +40,7 @@ case $i in
     -v|--verbose)
     VERBOSE=true
     NUTTX_VERBOSE="V=1"
-    BOOTLOADER_OPTION+="--verbose "
+    BOOTLOADER_OPTIONS+="--verbose "
     ;;
     -f|--force)
     FORCE=true
@@ -47,11 +48,11 @@ case $i in
     ;;
     -c|--clean)
     CLEAN=true
-    BOOTLOADER_OPTIONs+="--clean "
+    BOOTLOADER_OPTIONS+="--clean "
     ;;
     --wlclean)
     WLCLEAN=true
-    BOOTLOADER_OPTIONs+="--wlclean "
+    BOOTLOADER_OPTIONS+="--wlclean "
     ;;
     -m|--mono)
     MONO=true
@@ -64,14 +65,17 @@ case $i in
     ;;
     --debug)
     DEBUG=true
-    BOOTLOADER_OPTIONs+="--debug "
+    BOOTLOADER_OPTIONS+="--debug "
     ;;
     -mfd|--makefiledebugging)
     MAKE_OPTIONS="--debug VERBOSE=1"
-    BOOTLOADER_OPTIONs+="--makefiledebugging "
+    BOOTLOADER_OPTIONS+="--makefiledebugging "
     ;;
     --esd)
     ENABLE_STACK_DUMP=true
+    ;;
+    --nsh)
+    ENABLE_NSH=true
     ;;
     --dbc|--debug-bl-cdc)
     DEBUG_BL_CDC=true
@@ -104,11 +108,12 @@ if [ "$HELP" = true ]; then
   echo "  -m|--mono                    Build with Mono"
   echo "  --netcore                    Build with .NET Core"
   echo "  --configure                  Configure the build"
-  echo "  --debug                      Build with debug symbols"
+  echo "  --debug                      Enable the NuttX debug features (debug output to SYSLOG)"
   echo "  --esd                        Enable stack dumps to be sent to USART1 (COM1)"
   echo "  --config=mono|netcore        Select Mono or .NET Core builds (default Mono)"
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
+  echo "  --nsh                        Enable NSH (NuttX Shell) on USART6 (COM6)"
   exit 0
 fi
 
@@ -142,7 +147,7 @@ esac
 
 ###############################################################################
 #
-#   First step, configure the systemand make any changes by tweaking the
+#   First step, configure the system and make any changes by tweaking the
 #   configuration.
 #
 
@@ -221,19 +226,19 @@ fi
 BUILD_YEAR=$(date +%Y)
 BUILD_MONTH=$(date +%-m)
 BUILD_DAY=$(date +%-d)
-CURRENT_START_YEAR=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_YEAR)
-CURRENT_START_MONTH=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_MONTH)
-CURRENT_START_DAY=$(kconfig-tweak --file $NUTTX_CONFIG_FILE --state START_DAY)
+CURRENT_START_YEAR=$(ktweak --state START_YEAR)
+CURRENT_START_MONTH=$(ktweak --state START_MONTH)
+CURRENT_START_DAY=$(ktweak --state START_DAY)
 if [ "$CURRENT_START_YEAR" != "$BUILD_YEAR" ]; then 
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_YEAR $BUILD_YEAR
+    ktweak --set-val START_YEAR $BUILD_YEAR
 fi
 
 if [ "$CURRENT_START_MONTH" != "$BUILD_MONTH" ]; then 
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_MONTH $BUILD_MONTH
+    ktweak --set-val START_MONTH $BUILD_MONTH
 fi
 
 if [ "$CURRENT_START_DAY" != "$BUILD_DAY" ]; then
-    kconfig-tweak --file $NUTTX_CONFIG_FILE --set-val START_DAY $BUILD_DAY
+    ktweak --set-val START_DAY $BUILD_DAY
 fi
 
 #
@@ -247,157 +252,175 @@ if [ ! -z "$UNIT_TESTS" ]; then
         case $test in
             esp)
             echo "ESP tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ESP_TESTS
+            ktweak --enable ESP_TESTS
             BUILD_TESTS=true
             ;;
             bt)
             echo "Bluetooth tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BLUETOOTH_TESTS
+            ktweak --enable BLUETOOTH_TESTS
             BUILD_TESTS=true
             ;;
             sqlite)
             echo "SQLite tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
+            ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
             snprintf)
             echo "snprintf tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SNPRINTF_TESTS
+            ktweak --enable SNPRINTF_TESTS
             BUILD_TESTS=true
             ;;
             gpio)
             echo "GPIO tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_TESTS
+            ktweak --enable GPIO_TESTS
             BUILD_TESTS=true
             ;;
             overload)
             echo "MCU Overload tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MCU_OVERLOAD_TESTS
+            ktweak --enable MCU_OVERLOAD_TESTS
             BUILD_TESTS=true
             ;;
             bbr)
             echo "Battery Backed Register tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BBR_TESTS
+            ktweak --enable BBR_TESTS
             BUILD_TESTS=true
             ;;
             chat)
             echo "Chat tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable CHAT_TESTS
+            ktweak --enable CHAT_TESTS
             BUILD_TESTS=true
             ;;
             ethernet)
             echo "Ethernet tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ETHERNET_TESTS
+            ktweak --enable ETHERNET_TESTS
             BUILD_TESTS=true
             ;;
             bg77)
             echo "BG77 modem tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable BG77_TESTS
+            ktweak --enable BG77_TESTS
             BUILD_TESTS=true
             ;;
             iso8601)
             echo "ISO8601 parsing tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ISO8601_TESTS
+            ktweak --enable ISO8601_TESTS
             BUILD_TESTS=true
             ;;
             power)
             echo "Power management tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable POWER_MANAGEMENT_TESTS
+            ktweak --enable POWER_MANAGEMENT_TESTS
             BUILD_TESTS=true
             ;;
             sdcard)
             echo "SD card tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SD_CARD_TESTS
+            ktweak --enable SD_CARD_TESTS
             BUILD_TESTS=true
             ;;
             tensorflow)
             echo "Tensorflow tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TENSORFLOW_TESTS
+            ktweak --enable TENSORFLOW_TESTS
             BUILD_TESTS=true
             ;;
             misc)
             echo "Miscellaneous tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable QUICK_MISC_TESTS
+            ktweak --enable QUICK_MISC_TESTS
             BUILD_TESTS=true
             ;;
             dirmgmt)
             echo "Directory management tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DIR_MGMT_TESTS
+            ktweak --enable DIR_MGMT_TESTS
             BUILD_TESTS=true
             ;;
             adc)
             echo "Analog to Digital conversion tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ADC_TESTS
+            ktweak --enable ADC_TESTS
             BUILD_TESTS=true
             ;;
             dac)
             echo "Digital to Analog conversion tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DAC_TESTS
+            ktweak --enable DAC_TESTS
             BUILD_TESTS=true
             ;;
             spidma)
             echo "SPI DMA tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SPI_DMA_TESTS
+            ktweak --enable SPI_DMA_TESTS
             BUILD_TESTS=true
             ;;
             pwm)
             echo "PWM tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable PWM_TESTS
+            ktweak --enable PWM_TESTS
             BUILD_TESTS=true
             ;;
             i2c)
             echo "I2C bus scan tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable I2C_TESTS
+            ktweak --enable I2C_TESTS
             BUILD_TESTS=true
             ;;
             rotenc)
             echo "Rotary Encoder tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ROTARY_ENCODER_TESTS
+            ktweak --enable ROTARY_ENCODER_TESTS
             BUILD_TESTS=true
             ;;
             gpiocount)
             echo "GPIO Counter tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable GPIO_COUNTER_TESTS
+            ktweak --enable GPIO_COUNTER_TESTS
             BUILD_TESTS=true
             ;;
             sotest)
             echo "sotest dlopen/dlsym tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SOTEST_TESTS
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
+            enable_sotests --tests
             BUILD_TESTS=true
             ;;
             os)
             echo "Operating system tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_OS_TESTS
+            ktweak --enable MEADOW_OS_TESTS
             BUILD_TESTS=true
             ;;
             usrwork)
             echo "Verify USRWORK functions as expected on apps side."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable USR_WORK_TESTS
+            ktweak --enable USR_WORK_TESTS
             BUILD_TESTS=true
             ;;
             traverse_ku)
             echo "KU traverse channel tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable TRAVERSE_KU_TESTS
+            ktweak --enable TRAVERSE_KU_TESTS
             BUILD_TESTS=true
             ;;
             measfreq)
             echo "Measure Frequency tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEASURE_FREQUENCY_TESTS
+            ktweak --enable MEASURE_FREQUENCY_TESTS
             BUILD_TESTS=true
             ;;
             mint)
             echo "Meadow interrupt tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable MEADOW_INTERRUPT_TESTS
+            ktweak --enable MEADOW_INTERRUPT_TESTS
             BUILD_TESTS=true
             ;;
             all)
             echo "All tests requested."
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable ALL_MEADOW_TESTS
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SOTEST
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --set-str EXAMPLES_SOTEST_BINDIR "/meadow0"
-            kconfig-tweak --file $NUTTX_CONFIG_FILE --enable EXAMPLES_SQLITE_TESTS
+            ktweak --enable ALL_MEADOW_TESTS
+            #
+            # ALL_MEADOW_TESTS does not cover quite everything.  A handful of
+            # tests have their "|| CONFIG_ALL_MEADOW_TESTS" clause deliberately
+            # commented out and so are only reachable through their own "-u="
+            # flag:
+            #
+            #   snprintf, overload, usrwork  - developer_tests.c
+            #   dac                          - meadow_kt_dispatcher.c and
+            #                                  dig_to_ana_conv_tests.c
+            #
+            # The DAC test needs a board wired for analogue output, so it stays
+            # out of the "all" sweep; use "-u=dac" for it.  Both the kernel
+            # dispatcher entry and the user-side name table entry are gated the
+            # same way - keep them in step or the test shows up in the menu with
+            # no handler behind it.
+            #
+            # sotest builds its .so module here.  The dlopen/dlsym test entry
+            # itself is now compiled by ALL_MEADOW_TESTS, so the module has to
+            # be present alongside it; see enable_sotests for why the module and
+            # the test are separable at all.
+            #
+            enable_sotests
+            ktweak --enable EXAMPLES_SQLITE_TESTS
             BUILD_TESTS=true
             ;;
             *)
@@ -408,28 +431,19 @@ if [ ! -z "$UNIT_TESTS" ]; then
     done
 fi
 if $BUILD_TESTS; then
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable KERNEL_TESTS_SYSCALL
+  ktweak --enable KERNEL_TESTS_SYSCALL
 fi
 
 if $ENABLE_STACK_DUMP; then
-  #
-  # This is used to turn off RAMLOG and enables stack dumps to be sent to USART1 (COM1).
-  #
-  printf "\n\n********** Enabling stack dump to USART1 (COM1).  This will disable RAMLOG. **********\n\n"
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable DEV_CONSOLE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SERIAL_CONSOLE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable USART1_SERIAL_CONSOLE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SYSLOG_WRITE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SYSLOG_SERIAL_CONSOLE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable SYSLOG_CONSOLE
+  enable_stack_dump
+fi
 
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --undefine NO_SERIAL_CONSOLE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --undefine RAMLOG
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --undefine RAMLOG_BUFSIZE
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --undefine RAMLOG_NPOLLWAITERS
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --undefine RAMLOG_SYSLOG
+if $ENABLE_NSH; then
+  enable_nsh
+fi
 
-  kconfig-tweak --file $NUTTX_CONFIG_FILE --enable STACK_COLORATION
+if $DEBUG; then
+  enable_debug_features
 fi
 
 if $CONFIGURE_ONLY; then

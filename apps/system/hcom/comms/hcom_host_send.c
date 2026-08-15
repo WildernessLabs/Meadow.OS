@@ -45,6 +45,7 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_extended_errno.h>
 #include <meadow/hcom_bbreg_defn.h>
+#include <poll.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
 
@@ -74,6 +75,18 @@ static bool _shutting_down;
 static pid_t _hcomTaskGroup;
 static int _comms_write_fd;
 static uint8_t *_encodedXmitBuff;
+
+// Scratch buffer for hcom_host_send_buffered_msg(), lazily allocated on
+// first use rather than at setup(). This comms path only matters while
+// Meadow.CLI is connected -- almost always a brief window during initial
+// site provisioning -- so most deployed devices never send a buffered
+// message and never pay this cost at all. Once allocated it's kept for the
+// life of the process (freed on shutdown; the memory is returned to the
+// system on the next reboot regardless), avoiding malloc/free churn on every
+// subsequent call within the same session. Access is already serialized by
+// _hostXmitSem, so no new locking is needed for the lazy-init check either.
+static uint8_t *_bufferedMsgXmitBuff;
+
 static sem_t _hostXmitSem;    // Implements event waiting
 static bool _lastXmitBlocked;
 static bool _notInitialized = true;
@@ -131,6 +144,9 @@ int hcom_host_send_setup()
     return -ENOMEM;
   }
 
+  // _bufferedMsgXmitBuff is intentionally NOT allocated here -- see its
+  // declaration and hcom_host_send_buffered_msg() for why.
+
   sem_init(&_hostXmitSem, 0, 1);
 
   // Register with power management so we can properly shutdown before entering
@@ -157,6 +173,7 @@ void hcom_host_send_shutdown()
   _lastXmitBlocked = true;
 
   free(_encodedXmitBuff);
+  free(_bufferedMsgXmitBuff);
 
   // use sem_destroy
   sem_destroy(&_hostXmitSem);
@@ -453,24 +470,30 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
   // Is this a header only message or a message with a body
   if(msgLength > 0)
   {
-    // Buffer for the header + data message
-    uint8_t *xmitBuffer = malloc(fullMsgLen);
-    if(xmitBuffer == NULL)
+    // Lazily allocate _bufferedMsgXmitBuff on first use (see its
+    // declaration for why), then keep reusing it instead of malloc/free per
+    // call. Safe without new locking: this function already holds
+    // _hostXmitSem for its whole duration.
+    if(_bufferedMsgXmitBuff == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-      return -ENOMEM;
+      _bufferedMsgXmitBuff = malloc(HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE);
+      if(_bufferedMsgXmitBuff == NULL)
+      {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+        sem_post(&_hostXmitSem);
+        return -ENOMEM;
+      }
     }
 
     // Uses the first part of message buffer for header
-    hcom_host_send_build_msg_header(requestType, extraData, userData, xmitBuffer);
+    hcom_host_send_build_msg_header(requestType, extraData, userData, _bufferedMsgXmitBuff);
 
     // Copy the body of the message
-    memcpy(xmitBuffer + HCOM_PROTOCOL_HEADER_MSG_LENGTH, origMsg, msgLength);
-    
+    memcpy(_bufferedMsgXmitBuff + HCOM_PROTOCOL_HEADER_MSG_LENGTH, origMsg, msgLength);
+
     // Send the header and the body
-    ret = hcom_host_send_transmit_to_host(xmitBuffer, fullMsgLen,
+    ret = hcom_host_send_transmit_to_host(_bufferedMsgXmitBuff, fullMsgLen,
       HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL);
-    free(xmitBuffer);
   }
   else
   {
@@ -680,7 +703,17 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
       if(blockedCount < waitCount)
       {
         blockedCount++;
-        usleep(HCOM_XMIT_MAX_BLOCKED_TIME_DELAY);
+
+        // Wait for the fd to become writable instead of unconditionally
+        // sleeping the full interval -- reacts immediately once the driver
+        // has room again. A poll() timeout (nothing became writable in time)
+        // is treated the same as the old plain sleep: just another blocked
+        // iteration, so the overall worst-case wait budget
+        // (waitCount * HCOM_XMIT_MAX_BLOCKED_TIME_DELAY) is unchanged. Any
+        // poll() outcome -- ready, timeout, or error -- just falls through to
+        // retry the write above, which is the real source of truth.
+        struct pollfd pfd = { .fd = _comms_write_fd, .events = POLLOUT };
+        poll(&pfd, 1, HCOM_XMIT_MAX_BLOCKED_TIME_DELAY / 1000);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
         hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
