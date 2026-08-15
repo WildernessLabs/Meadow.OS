@@ -37,8 +37,7 @@ RUN apt-get update && apt-get install -y \
         zip \
         tcl \
         kconfig-frontends \
-        gcc-arm-none-eabi \
-        binutils-arm-none-eabi \
+        xz-utils \
         python3 \
         python3-distutils \
         python3-pip \
@@ -49,6 +48,30 @@ RUN apt-get update && apt-get install -y \
         srecord || true
 
 RUN pip3 install jinja2
+
+# Install the Arm GNU Toolchain rather than Ubuntu's gcc-arm-none-eabi package.
+#
+# The apt package is pinned to whatever the distribution shipped (10.3.1 on
+# 22.04), which is years behind what developers install locally.  That matters
+# beyond compiler version drift: nuttx/libs/libc/elf/elf_globals.S is a
+# generated, committed table of every symbol exported to dlopen'd modules, and
+# it is produced by running tools/build-globals.sh against a developer's own
+# build.  Any symbol in that table has to exist in whatever libm the build
+# links, so a toolchain older than the one that generated the table fails the
+# user-space link on newlib internals such as __ieee754_tgamma and the GNU
+# fenv extensions (feenableexcept and friends).
+#
+# Keep ARM_TOOLCHAIN_VERSION in step with the version developers install; if
+# you bump one, bump the other and regenerate elf_globals.S.
+ARG ARM_TOOLCHAIN_VERSION=15.3.rel1
+RUN set -eux; \
+        ARM_BASE="https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain"; \
+        ARM_FILE="arm-gnu-toolchain-${ARM_TOOLCHAIN_VERSION}-x86_64-arm-none-eabi.tar.xz"; \
+        mkdir -p /opt/arm-gnu-toolchain; \
+        curl -fsSL "${ARM_BASE}/${ARM_TOOLCHAIN_VERSION}/${ARM_FILE}" | tar -xJ -C /opt/arm-gnu-toolchain --strip-components=1; \
+        /opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc --version
+
+ENV PATH="/opt/arm-gnu-toolchain/bin:${PATH}"
 
 RUN groupadd -g 1000 dev \
         && useradd -u 1000 -g dev -d /home/dev dev \
