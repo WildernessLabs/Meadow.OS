@@ -223,7 +223,4 @@ similar) device, and on Linux typically `/dev/ttyUSB0` or `/dev/ttyACM0`.
 
 ## Step 3: Enable and use NSH
 
-NSH doesn't start automatically -- it's enabled at runtime from the Meadow CLI (the
-`nsh enable` diagnostic command). Once enabled, switch to your terminal session and
-press Enter -- you should see the `nsh>` prompt. Try `help` for the full command
-list.
+NSH is started automatically on USART6 when the `--nsh` flag is used in the build.
