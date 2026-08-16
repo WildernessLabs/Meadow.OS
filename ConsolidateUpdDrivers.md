@@ -602,20 +602,30 @@ Build commands used below: `./build.sh --clean --force` for a full build, plain
 
 ### 8.1 Commit sequence
 
-The order matters: the renumber has to land before the move, or `upd_ioctl()`'s single
-switch will not compile (section 3).
+Two ordering constraints:
 
-1. **Renumber `HCOM_NX_UPD_*` into the `0x7000` block** (step 4.4). Header-only, no
-   behaviour change, no user-space edits. Builds and boots identically.
-2. **Delete the unreachable register commands** and the dead `hcom_via_nx_set_any_reg()`
-   wrapper (step 4.4.1). Removal only.
-3. **Move the HCOM commands into `meadow-upd.c` and delete `hcom_nx_upd.c`** (steps 4.1 and
-   4.2), including the two fall-through fixes. This is the large commit; it is the only one
-   where a reviewer needs to compare against the deleted file.
-4. **Register unconditionally and drop the second registration** (step 4.3), and point the
-   user-space client at `/dev/upd` (step 4.5). This is the commit that changes which node
-   HCOM talks to, so it is the one to bisect to if host communication breaks.
-5. **Documentation and review-tracking updates** (step 4.6).
+- The renumber has to land before the move, or `upd_ioctl()`'s single switch will not
+  compile (section 3).
+- Unconditional registration has to land before the move, not after. Deleting `/dev/nxupd`
+  while `/dev/upd` is still behind `CONFIG_EXAMPLES_MONO` leaves a commit that compiles but
+  gives HCOM no node to open - the board would build and boot but not talk to the host.
+
+1. **Renumber `HCOM_NX_UPD_*` into the `0x7000` block, and delete the unreachable register
+   commands and dead `hcom_via_nx_set_any_reg()` wrapper** (steps 4.4 and 4.4.1). These
+   cannot be separated: removing `HCOM_NX_UPD_SET_REGISTER` while its wrapper still
+   references it does not compile. Header and removals only, no behaviour change, and no
+   user-space call site changes because every one uses a symbolic name.
+2. **Register `/dev/upd` unconditionally** (step 4.3, `stm32_boot.c` half only).
+   `/dev/nxupd` is untouched and HCOM still uses it, so this stands alone safely.
+3. **Move the HCOM commands into `meadow-upd.c`, delete `hcom_nx_upd.c`, drop the second
+   registration, and point the user-space client at `/dev/upd`** (steps 4.1, 4.2, the
+   startup-manager half of 4.3, and 4.5), including the two fall-through fixes. This is the
+   large commit and the one that changes which node HCOM talks to, so it is the one to
+   bisect to if host communication breaks.
+4. **Documentation and review-tracking updates** (step 4.6).
+
+The steps in section 4 are grouped by subject rather than by commit; the mapping above is
+the one to follow.
 
 ## 9. Follow-on work (out of scope, stated for direction)
 
@@ -627,3 +637,117 @@ the `nuttx-add-syscall` skill for the mechanics), starting with the HCOM set - i
 external ABI constraint - and leaving the `MUPD_*` set on the ioctl path until the external
 clients can be moved. Each converted group deletes its `case` from `upd_ioctl()`, so the
 switch shrinks steadily toward the point where the driver can be removed altogether.
+
+---
+
+# Implementation Results
+
+Implemented on branch `ConsolidateUpdDrivers`, in the five commits below plus a sixth
+carrying this results section. All local - nothing pushed.
+
+| Commit | Subject |
+|---|---|
+| `ecc3b89` | Add implementation plan for consolidating the UPD drivers |
+| `5151b41` | Renumber the HCOM UPD ioctl commands into their own range |
+| `4bfbbfc` | Register the Meadow UPD driver unconditionally |
+| `d567d70` | Merge the HCOM UPD driver into the Meadow UPD driver |
+| `2c9065a` | Update documentation for the consolidated UPD driver |
+
+## What landed
+
+- `hcom_nx/hcom_nx_upd.c` deleted (348 lines). `/dev/nxupd` no longer exists.
+- All 23 HCOM commands moved into `upd_ioctl()` in `meadow_os/meadow-upd.c` (+229 lines),
+  behind `#if defined (CONFIG_MEADOW_HCOM)`, in a banner-delimited block after the `MUPD_*`
+  cases. The two moved helpers are now `static` and use `__FILE__` directly.
+- `HCOM_NX_UPD_*` renumbered into the `0x7000` block, grouped by function. Six commands
+  removed: the three unreachable register duplicates and the three defined-but-unhandled
+  dead entries. 29 commands became 23.
+- `HCOM_NX_UPD_DRIVER_NAME` is now an alias for `MEADOW_UPD_DRIVER_NAME`, which is defined
+  once in `hcom_shared_common.h`. No user-space call site changed.
+- `/dev/upd` registration moved out of `#ifdef CONFIG_EXAMPLES_MONO`, promoted to
+  `LOG_CRIT` with an early return on failure. `hcom_nx_setup_mgr()` no longer registers a
+  driver.
+- Both switch fall-through defects from finding 2.4 fixed during the move.
+- `read` handler added to `g_driver_operations`.
+- `Kernelspace.md`, `Architecture.md` and `CodeReviewTracking.md` updated.
+
+## Deviations from the plan
+
+1. **Steps 4.4 and 4.4.1 became one commit.** They cannot be separated - removing
+   `HCOM_NX_UPD_SET_REGISTER` while `hcom_via_nx_set_any_reg()` still references it does
+   not compile. Section 8.1 has been corrected.
+2. **Unconditional registration moved ahead of the move, not after it.** The original
+   sequence put step 4.3 last, which would have produced a commit where `/dev/nxupd` was
+   gone but `/dev/upd` was still behind `CONFIG_EXAMPLES_MONO`: it compiles, but HCOM has
+   no node to open, so the board boots without host communication. Section 8.1 has been
+   corrected.
+3. **`CodeReviewTracking.md` needed no status resets.** Step 4.6 anticipated resetting
+   C123, C066 and the `hcom_upd_shared.h` row; all affected rows were still "Not started".
+   Only row C053 (deleted file) and the file counts changed - 169 to 168 for `F7MeadowOS/`,
+   255 to 254 overall.
+
+## Defect found during implementation
+
+`meadow_upd_initialize()` had **no prototype anywhere in the tree**. Making the call
+unconditional turned it into an implicit declaration, which `-Werror` rejects. Nothing had
+ever caught it because the sole call site was inside the disabled `#ifdef` - so this would
+have been a hard build failure for whoever next enabled `CONFIG_EXAMPLES_MONO` to integrate
+Mono. Declared in `include/meadow/stm32f777zit6-meadow.h` alongside the other board
+initialisation entry points, in the same commit that exposed it.
+
+## Verification performed
+
+| Check | Result |
+|---|---|
+| `./build.sh --clean --force` | Passes. Exit 0, zero errors |
+| Warnings in touched files | None. The 21 remaining warnings are all vendored `mbedtls`, plus one Kconfig dependency warning - all pre-existing |
+| Each code commit builds standalone | Verified by checking out `5151b41`, `4bfbbfc` and `d567d70` in turn and building each. All three clean |
+| Command-number collisions | Scripted check across both headers: 23 `MUPD_*` + 23 `HCOM_NX_UPD_*` = 46 distinct values, no duplicates |
+| Dangling references | No remaining references to `hcom_nx_upd_initialize`, `g_hcom_nx_operations` or `/dev/nxupd` outside intentional historical comments |
+| `register_driver` for the node | Appears exactly once in the tree |
+| Artifacts | `nuttx.bin`, `nuttx_user.bin`, `Meadow.OS.bin`, `Meadow.OS.Update.bin` all produced |
+
+### On the checkpatch gate
+
+Section 7 step 2 called for `checkpatch.sh -f` on every touched file with pre-existing lint
+fixed, per `CLAUDE.md`. That is not achievable on these files: they use `//` comments and
+camelCase throughout, which NuttX's checkpatch rejects wholesale, so the baseline error
+counts run from 256 to 1970 per file. Fixing them would mean rewriting the files and would
+bury the actual change.
+
+The standard applied instead was **introduce no new errors**, measured by running checkpatch
+against the `HEAD` version and the modified version of each file:
+
+| File | Before | After |
+|---|---|---|
+| `hcom_upd_shared.h` | 110 | 70 |
+| `hcom_via_nx_access.c` | 1970 | 1900 |
+| `hcom_common.h` | 354 | 354 |
+| `meadow-upd.c` | 256 | 638 |
+
+`meadow-upd.c` rising is the ~230 lines moved in from `hcom_nx_upd.c` bringing their
+existing style with them; `hcom_nx_upd.c`'s own count disappears at the same time. Every
+other file went down or stayed level. Worth a separate decision on whether this codebase
+should adopt a checkpatch configuration that matches its actual house style, since the
+gate as documented cannot currently be met by any change.
+
+## Not done - still open
+
+- **On-target verification.** Section 7 steps 3 to 7 need real hardware: node presence,
+  the `O_RDONLY` open path, one command per group over the real transport, the `MUPD_*`
+  regression check against a real .NET application, and `./build.sh -u=all` with the
+  on-target suite. Step 6 is the one that must not be skipped - a wrong renumber shows up
+  there as a plausible-looking wrong action rather than an error.
+- **Confirm no out-of-repo consumer opens `/dev/nxupd`** (section 8 risk row). The node is
+  now gone.
+- **Confirm Meadow.Core's ioctl constants match `meadow-upd.h`** (section 8 risk row).
+  Untouched by this work, but the assumption underpins the whole renumbering decision.
+- **The four live-but-unhandled ioctls** from finding 2.3 - `EXECUTE_ESPCP_TESTS`,
+  `DIAG_APP_CMD`, `GET_UPDATE_FLAG`, `SET_UPDATE_FLAG`. Still called from user space, still
+  no kernel handler, still silently failing. Deliberately out of scope per section 6;
+  needs a decision from the owner on whether these regressed during the rebase.
+- **`CONFIG_MEADOW_HCOM=n` build** (section 7 step 8) not attempted. `meadow-upd.c` still
+  calls `hcom_nx_config_get_set_config_value()` unconditionally, so that configuration was
+  most likely already broken before this change.
+- **The other pre-existing defects** listed in section 6: `upd_handle_dir_enum()`'s
+  non-advancing `len`, the unreachable `return EINVAL;`, and `MUPD_GET_DEVICE_INFO`.
