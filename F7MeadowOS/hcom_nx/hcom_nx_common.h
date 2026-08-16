@@ -128,7 +128,6 @@ extern "C"
 /****************************************************************************************************
  * Public Functions
  ****************************************************************************************************/
-  int hcom_nx_upd_initialize(void);
   int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd);
   int hcom_nx_utils_startup_handling_of_trace_level(void);
 

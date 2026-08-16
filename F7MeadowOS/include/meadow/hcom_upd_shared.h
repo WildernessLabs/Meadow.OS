@@ -49,7 +49,9 @@
 // This header file contains those items that must be shared by apps/hcom
 // #include <string.h>
 
-#define HCOM_NX_UPD_DRIVER_NAME "/dev/nxupd"
+// The HCOM commands below are served by the Meadow UPD driver, which
+// registers this node in meadow_os/meadow-upd.c.
+#define HCOM_NX_UPD_DRIVER_NAME MEADOW_UPD_DRIVER_NAME
 
 // Defining buffer sizes
 #define HCOM_NX_CMD_HOST_MSG_SIZE     128
