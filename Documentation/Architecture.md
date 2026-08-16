@@ -133,9 +133,13 @@ The kernel half of the host communication system. Key modules:
 |------|---------------|
 | `hcom_nx_startup_mgr.c` | Called during NuttX startup; initialises hardware, config, networking |
 | `hcom_nx_config_manager.c` | Parses YAML config for system configuration |
-| `hcom_nx_upd.c` | Universal Platform Driver - provides the kernel-side syscall endpoint for user space code (HCOM / .NET applications) |
 | `hcom_nx_bbreg_access.c` | Read/write RTC battery-backed registers |
 | `hcom_nx_upd_route_cmd.c` | Routes update commands between user space and the kernel |
+
+The kernel-side entry point for user space is the Universal Platform Driver,
+`meadow_os/meadow-upd.c` (`/dev/upd`). It serves both the `MUPD_*` commands used by the
+.NET runtime and the `HCOM_NX_UPD_*` commands used by HCOM; the latter had their own
+driver on `/dev/nxupd` until the two were consolidated.
 
 ### `meadow_os` - Core OS Services
 
