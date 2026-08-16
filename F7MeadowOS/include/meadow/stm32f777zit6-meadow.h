@@ -116,6 +116,17 @@ int stm32_pwm_setup(void);
 #endif
 
 /****************************************************************************
+ * Name: meadow_upd_initialize
+ *
+ * Description:
+ *   Register the Meadow UPD driver (/dev/upd), the single kernel-side entry
+ *   point for user space. Called from board_late_initialize().
+ *
+ ****************************************************************************/
+
+int meadow_upd_initialize(void);
+
+/****************************************************************************
  * Name: stm32_usbinitialize
  *
  * Description:
