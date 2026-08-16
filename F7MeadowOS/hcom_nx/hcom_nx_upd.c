@@ -136,8 +136,6 @@ int hcom_upd_nx_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
 static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   int ret = -1;
-  struct hcom_nx_upd_register_value *register_val;
-  struct hcom_nx_upd_register_update *register_update;
   struct hcom_nx_upd_bbr_value *bbr_val;
   struct hcom_nx_upd_bbr_update *bbr_update;
   struct hcom_nx_cmd_data *cmdData;
@@ -154,21 +152,6 @@ static int hcom_upd_nx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   switch (cmd)
   {
-  case HCOM_NX_UPD_SET_REGISTER:
-    // This works with any register
-    register_val = (struct hcom_nx_upd_register_value *)arg;
-    putreg32(register_val->value, register_val->address);
-    return OK;
-  case HCOM_NX_UPD_GET_REGISTER:
-    register_val = (struct hcom_nx_upd_register_value *)arg;
-    register_val->value = getreg32(register_val->address);
-    return OK;
-  case HCOM_NX_UPD_UPDATE_REGISTER:
-    // this does an atomic read/set/write of a register
-    register_update = (struct hcom_nx_upd_register_update *)arg;
-    modifyreg32(register_update->address, register_update->clearBits, register_update->setBits);
-    return OK;
-
     // This only works with Battery Backed Registers via 0-31 id value
   case HCOM_NX_UPD_SET_BBR_VALUE:
     bbr_val = (struct hcom_nx_upd_bbr_value *)arg;
