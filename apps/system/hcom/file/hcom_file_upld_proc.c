@@ -54,6 +54,10 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+#define HCOM_FILE_READ_F7_DEBUG_TIMING        (0)
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+#include "../hcom_common.h"
+#endif
 
 #define HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG (0)
 #define HCOM_FILE_INITIAL_BYTES_LENGTH (256)
@@ -73,6 +77,10 @@ enum hcom_upload_data_packet_action
 static char *thisFile = __FILE__;
 static int _uploadAction;
 
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+static uint64_t _dbgSendingBeganAt;
+static uint64_t _dbgSendingEndedAt;
+#endif
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -252,6 +260,10 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
   syslog(LOG_MDIAG, "%s@%d-CLI request to read '%s'.\n",
     __FILE__, __LINE__, dnldShared->dnldFullPathName);
+#endif
+
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+  _dbgSendingBeganAt = hcom_utils_get_current_time64_ns();
 #endif
 
   _uploadAction = HcomUpldActionNone;
@@ -524,6 +536,14 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 
   // ---------------------------------------------------------------
   // Send the end message to CLI
+
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+  _dbgSendingEndedAt = hcom_utils_get_current_time64_ns();
+  syslog(LOG_INFO, "%s@%d-File read, took %llu mSec\n",
+    __FILE__, __LINE__,
+    ((_dbgSendingEndedAt - _dbgSendingBeganAt) / 1000000));
+#endif
+
   uint8_t msgBuf[HCOM_PROTOCOL_HEADER_MSG_LENGTH];
   HcomProtoHdrMsg_t *endHdrMsg = (HcomProtoHdrMsg_t *)msgBuf;
   endHdrMsg->stdHeader.rqstType = HCOM_HOST_REQUEST_UPLOAD_FILE_COMPLETED;
