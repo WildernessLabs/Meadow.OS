@@ -122,6 +122,13 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
         continue;          // Interrupted, try again
       }
 
+      // Not expected to be reachable in practice (the only realistic
+      // read() failures on this fd are EINTR, handled above, and
+      // ECANCELED, which would require pthread_cancel() -- never called
+      // on this thread) -- logged so a persistent fault here is visible
+      // rather than silently retrying forever.
+      syslog(LOG_ERR, "%s@%d: read failed, errno:%d\n",
+              __FILE__, __LINE__, errno);
       usleep(5 * 1000);
       continue;
     }
