@@ -127,11 +127,18 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
     }
     else  /* nread == 0 */
     {
-      /* EOF: no writer is currently attached (kernel lazy-open has
-        * not yet happened).  Yield briefly and retry; the thread
-        * must not exit here or subsequent kernel writes will block
-        * permanently.
-        */
+      /* EOF: no writer is currently attached. This can be the initial
+       * kernel lazy-open not having happened yet, or the kernel-side
+       * writer closing and later reopening its end (it does this, e.g.
+       * on an EPIPE-recovery reconnect). Either way, any bytes already
+       * accumulated belong to a writer session that's now gone -- a
+       * reconnecting writer always starts a fresh envelope from its own
+       * byte 0, so resuming into a stale mid-struct offset would splice
+       * the old partial envelope with the new one. Discard it and start
+       * over. Yield briefly and retry; the thread must not exit here or
+       * subsequent kernel writes will block permanently.
+       */
+      total = 0;
       usleep(5 * 1000);
       continue;
     }
