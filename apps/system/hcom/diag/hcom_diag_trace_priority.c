@@ -80,6 +80,11 @@ int hcom_diag_trace_priority_level_init()
 {
   bool isPowerOnRestart;
 
+  // Needed unconditionally for the startup info banner below (os_version,
+  // hardware_version_text, mono_version), not just the CONFIG_STM32F7_PWR
+  // path -- fetched here so it's always in scope, regardless of that config.
+  meadow_configuration_t *config = meadow_os_deep_copy_config();
+
 #if defined(CONFIG_STM32F7_PWR)
   // This BBR was set by hcom nx since it starts first
   _traceLevel = hcom_bbreg_read_bbr_and_right_justify(
@@ -87,7 +92,6 @@ int hcom_diag_trace_priority_level_init()
 
   // Check the configuration file value stored in the config structure.
   int iniValue = 0;
-  meadow_configuration_t *config = meadow_os_deep_copy_config();
   if (config != NULL)
   {
     // Read any configuration trace level
