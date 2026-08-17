@@ -112,7 +112,7 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
         continue;  /* Need more bytes to complete the envelope */
       }
 
-      /* Complete envelope received — reset accumulator and dispatch. */
+      /* Complete envelope received -- reset accumulator and dispatch. */
       total = 0;
     }
     else if (nread < 0)
