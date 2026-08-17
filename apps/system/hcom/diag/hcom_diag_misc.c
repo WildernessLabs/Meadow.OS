@@ -147,13 +147,13 @@ void hcom_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8_t 
 
       // Save the ascii value
       if (nextByte == 0) // Make it easier to spot '0' and '0xff'
-        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - hexOffset, "-");
+        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - asciiOffset, "-");
       else if (nextByte == 0xff)
-        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - hexOffset, "*");
+        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - asciiOffset, "*");
       else if (nextByte < 0x20 || nextByte > 0x7e)  //isprint()
-        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - hexOffset, ".");
+        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - asciiOffset, ".");
       else
-        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - hexOffset, "%c", nextByte);
+        snprintf(&lineBuff[asciiOffset], HCOM_UTIL_DISPLAY_LENGTH - asciiOffset, "%c", nextByte);
 
       asciiOffset++;
       if(asciiOffset >= HCOM_UTIL_DISPLAY_LENGTH)
