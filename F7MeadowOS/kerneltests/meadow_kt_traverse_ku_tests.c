@@ -114,7 +114,7 @@ static void kt_traverse_ku_test_round_trip(void)
   syslog(LOG_INFO, "KU Traverse test 1: round-trip\n");
 
   ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    0, msg, (uint16_t)strlen(msg));
+    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
   if (ret == OK)
   {
     syslog(LOG_INFO, "KU Traverse test 1: PASS (send returned OK)\n");
@@ -150,7 +150,7 @@ static void kt_traverse_ku_test_ordering(void)
       i, KUT_NORDER - 1);
 
     if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-        0, msg, (uint16_t)len) != OK)
+        HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)len) != OK)
       {
         failures++;
         syslog(LOG_ERR, "KU Traverse test 2: send[%d] FAIL\n", i);
@@ -188,7 +188,7 @@ static void kt_traverse_ku_test_multi_type(void)
   syslog(LOG_INFO, "KU Traverse test 3: multi-type\n");
 
   if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    0,
+    HCOM_HOST_REQUEST_TEXT_INFORMATION,
     trace_msg,
     (uint16_t)strlen(trace_msg)) != OK)
   {
@@ -197,7 +197,7 @@ static void kt_traverse_ku_test_multi_type(void)
   }
 
   if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,
-      0,
+      HCOM_HOST_REQUEST_TEXT_INFORMATION,
       ramlog_msg,
       (uint16_t)strlen(ramlog_msg)) != OK)
   {
@@ -233,7 +233,7 @@ static void *kt_traverse_ku_test_opener_kthread(int argc, char *argv[])
   int ret;
 
   ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    0, msg, (uint16_t)strlen(msg));
+    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
   if (ret != OK)
   {
     syslog(LOG_ERR,
@@ -312,7 +312,7 @@ static void kt_traverse_ku_test_cross_context(void)
   // The write end is now open, opened by the kthread's task group above.
   // Send again from this (different) task group.
   ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    0, msg, (uint16_t)strlen(msg));
+    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
   if (ret == OK)
   {
     syslog(LOG_INFO,
