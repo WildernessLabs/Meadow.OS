@@ -94,8 +94,10 @@ static FAR void *traverse_ku_recv_pthread(FAR void *arg)
     gettid(), getpid(), HCOM_THREAD_NAME_RECV_TRAVERSE);
 #endif
 
-  _thread_running = true;
-  
+  // _thread_running is set by hcom_traverse_ku_init_user_setup() itself,
+  // before it calls pthread_create() -- not here -- so it's already true
+  // by the time this thread runs its very first statement, and a second
+  // caller of the setup function can't race in behind it either.
   while (_thread_running)
   {
     /* Accumulate bytes into msg until a complete envelope is assembled.
@@ -212,12 +214,30 @@ int hcom_traverse_ku_init_user_setup(void)
     return OK;
   }
 
+  // Set synchronously here, before spawning the thread, rather than letting
+  // the spawned thread set it on its own first line. Two things this must
+  // get right:
+  //  1. A second caller reaching the guard above must see this as true
+  //     immediately -- not after some window where the thread is still
+  //     starting up -- or the "safe to call multiple times" guarantee this
+  //     function documents doesn't actually hold.
+  //  2. The new thread's own `while (_thread_running)` loop must already
+  //     see true the moment it first runs -- if that thread happens to get
+  //     scheduled before a subsequent statement here could set the flag,
+  //     the loop would see false and the thread would exit immediately
+  //     without ever doing anything. Setting it before pthread_create()
+  //     avoids that race entirely.
+  // Every early-return failure path below resets this back to false so a
+  // later retry can still attempt initialization from scratch.
+  _thread_running = true;
+
   /* Open O_NONBLOCK so we do not stall waiting for the kernel write end. */
   _recv_pipe_fd = open(HCOM_TRAVERSE_KU_PIPE_PATH, O_RDONLY | O_NONBLOCK);
   if (_recv_pipe_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d: open failed, errno:%d\n",
             __FILE__, __LINE__, errno);
+    _thread_running = false;
     return -errno;
   }
 
@@ -230,6 +250,7 @@ int hcom_traverse_ku_init_user_setup(void)
     syslog(LOG_MDIAG, "Error: Failed to get file flags: %s\n",
             strerror(errno));
     close(_recv_pipe_fd);
+    _thread_running = false;
     return -EINVAL;
   }
 
@@ -239,6 +260,7 @@ int hcom_traverse_ku_init_user_setup(void)
     syslog(LOG_MDIAG, "Error: Failed to set blocking mode: %s\n",
             strerror(errno));
     close(_recv_pipe_fd);
+    _thread_running = false;
     return -EINVAL;
   }
 
@@ -257,6 +279,7 @@ int hcom_traverse_ku_init_user_setup(void)
             __FILE__, __LINE__, ret, errno);
     close(_recv_pipe_fd);
     _recv_pipe_fd = -1;
+    _thread_running = false;
     return -ret;
   }
 
