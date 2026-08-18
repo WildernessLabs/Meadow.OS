@@ -86,7 +86,9 @@ int hcom_diag_trace_priority_level_init()
   meadow_configuration_t *config = meadow_os_deep_copy_config();
 
 #if defined(CONFIG_STM32F7_PWR)
-  // This BBR was set by hcom nx since it starts first
+  // This BBR was set by hcom nx since it starts first -- hcom_nx already
+  // establishes a sane default mask here on a true power-on restart (and
+  // persists it), so this can always just read back whatever is there.
   _traceLevel = hcom_bbreg_read_bbr_and_right_justify(
     HCOM_BBREG_RESTART_SYSLOG_CONFIG_VALUE_MASK);
 
@@ -118,11 +120,27 @@ int hcom_diag_trace_priority_level_init()
       break;
   }
 
+  // This only sets user-space's own syslog mask -- kernel-space has an
+  // entirely separate g_syslog_mask instance in a protected build (see the
+  // REVISIT comment in nuttx/libs/libc/syslog/lib_setlogmask.c), set once
+  // by hcom_nx from the BBR alone, before this config-driven iniValue
+  // augmentation above was even available (hcom_nx runs before
+  // meadow.config.yaml is parsed). So a config-file trace_level override
+  // only ever affects syslog() calls made from user-space code; kernel-
+  // space syslog() calls stay gated by the BBR-only default regardless.
   setlogmask(_traceLevel);
 
-  // Check if this is a reboot or a power-on restart. The MCU on Power-on
-  // clears all 32 battery backed registers to 0.
-  if(hcom_bbreg_read_bbr() == 0)
+  // Check if this is a reboot or a power-on restart. hcom_nx already OR's
+  // the syslog mask bits above into this same register on every boot
+  // (power-on or not), so by the time this runs the whole register can
+  // never read back as 0 even on a true power-on -- read the dedicated
+  // marker bit instead. hcom_nx sets it only once it has determined, from
+  // the register's pristine pre-write state, that this is a reboot; it is
+  // left at its power-on-cleared value of 0 on a true power-on, and stays
+  // 1 across any number of further warm reboots since nothing but a true
+  // power-on ever clears it.
+  if(hcom_bbreg_read_bbr_and_right_justify(
+       HCOM_BBREG_LAST_START_WAS_REBOOT_BIT) == 0)
   {
     // Power-on restart
     isPowerOnRestart = true;
@@ -154,7 +172,7 @@ int hcom_diag_trace_priority_level_init()
   // Provide some information that may be useful on startup
   syslog(LOG_NOTICE, "Meadow %s %s, H/W:%s, Mono:%s, Trace level:0x%02x, to:%s (%s)\n",
         config == NULL ? "" : config->os_version.long_string,
-        isPowerOnRestart ? "restarted" :"rebooted",
+        isPowerOnRestart ? "powered-on" :"rebooted",
         config != NULL ? config->hardware_version_text : "Unknown",
         hcom_mono_ctrl_is_mono_enabled() ? "Enabled" : "Disabled",
         _traceLevel, traceDest,

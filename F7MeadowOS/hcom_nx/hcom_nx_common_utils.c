@@ -96,10 +96,25 @@ void hcom_nx_common_utils_only_restart_meadow()
 
 //============================================================================
 // This call must be before any trace handling, it detects power cycle.
+//
+// Called early (hcom_nx_setup_mgr(), well before hcom_nx_config_init()
+// parses meadow.config.yaml), so the mask established/persisted here is
+// necessarily BBR-only -- it can't yet reflect the yaml file's
+// InternalDebug.TraceLevel setting, since that file hasn't been read yet.
+// That setting is only ever applied later, by user-space's
+// hcom_diag_trace_priority_level_init() (apps/system/hcom/diag/
+// hcom_diag_trace_priority.c), which augments its OWN copy of the mask
+// with it. hcom_nx's _syslogMask (and the kernel-space g_syslog_mask that
+// setlogmask() below sets) never gets that augmentation -- kernel-side
+// syslog() calls stay gated by this BBR-only mask for the life of the
+// boot, regardless of what TraceLevel the config file requests. Kernel-
+// space and user-space each have their own independent syslog mask in a
+// protected build (see the REVISIT comment in lib_setlogmask.c), so there
+// is no single setlogmask() call that could cover both sides anyway.
 int hcom_nx_utils_startup_handling_of_trace_level()
 {
 #if defined(CONFIG_STM32F7_PWR)
-  // Check if this is a reboot or a power-on restart. The MCU at 
+  // Check if this is a reboot or a power-on restart. The MCU at
   // Power-on (unless there's a coin cell) clears all 32 battery
   // backed registers to 0.
   uint32_t bbrValue = getreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
@@ -128,6 +143,13 @@ int hcom_nx_utils_startup_handling_of_trace_level()
     // Rebooted - it's safe to use the battery backed registers values
     _syslogMask = getreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
     _syslogMask &= 0x000000ff;   // LS 8 bits are syslog mask
+
+    // Mark that this start is a reboot, not a power-on restart, so any
+    // later code -- including user-space, which always runs after this --
+    // can still tell the two apart even after the syslog mask write above
+    // (or the one just above in the power-on branch) makes the whole
+    // register read back as non-zero either way.
+    hcom_nx_bbreg_set_bbr_bits(HCOM_BBREG_LAST_START_WAS_REBOOT_BIT);
   }
 
 #if HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART > 0
