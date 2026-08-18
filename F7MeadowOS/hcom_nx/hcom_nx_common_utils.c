@@ -101,16 +101,15 @@ void hcom_nx_common_utils_only_restart_meadow()
 // parses meadow.config.yaml), so the mask established/persisted here is
 // necessarily BBR-only -- it can't yet reflect the yaml file's
 // InternalDebug.TraceLevel setting, since that file hasn't been read yet.
-// That setting is only ever applied later, by user-space's
-// hcom_diag_trace_priority_level_init() (apps/system/hcom/diag/
-// hcom_diag_trace_priority.c), which augments its OWN copy of the mask
-// with it. hcom_nx's _syslogMask (and the kernel-space g_syslog_mask that
-// setlogmask() below sets) never gets that augmentation -- kernel-side
-// syslog() calls stay gated by this BBR-only mask for the life of the
-// boot, regardless of what TraceLevel the config file requests. Kernel-
-// space and user-space each have their own independent syslog mask in a
-// protected build (see the REVISIT comment in lib_setlogmask.c), so there
-// is no single setlogmask() call that could cover both sides anyway.
+// hcom_nx_utils_apply_config_trace_level() augments _syslogMask with that
+// setting later, once config parsing has completed (called from
+// hcom_nx_setup_mgr(), after hcom_nx_config_init()) -- mirroring what
+// user-space's hcom_diag_trace_priority_level_init() (apps/system/hcom/
+// diag/hcom_diag_trace_priority.c) already does for its own, separate
+// copy of the mask. Kernel-space and user-space each have their own
+// independent syslog mask in a protected build (see the REVISIT comment
+// in lib_setlogmask.c), so each side augments its own via its own
+// setlogmask() call; there's no single call that could cover both.
 int hcom_nx_utils_startup_handling_of_trace_level()
 {
 #if defined(CONFIG_STM32F7_PWR)
@@ -183,6 +182,45 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   }
 #endif
   return OK;
+}
+
+//============================================================================
+// Applies meadow.config.yaml's InternalDebug.TraceLevel setting to the
+// kernel-space syslog mask -- the yaml-driven counterpart to the BBR-only
+// default hcom_nx_utils_startup_handling_of_trace_level() establishes
+// above. Must be called after that function (so _syslogMask already holds
+// the BBR-derived base) and after hcom_nx_config_init() has parsed the
+// config file (so configTraceLevel is meaningful). Mirrors the identical
+// switch in user-space's hcom_diag_trace_priority_level_init()
+// (apps/system/hcom/diag/hcom_diag_trace_priority.c) exactly, so kernel-
+// space syslog() calls get the same config-driven verbosity user-space
+// calls already do. Not persisted back to BBR -- like user-space, this is
+// re-derived fresh from the config file every boot, so there's nothing to
+// save.
+void hcom_nx_utils_apply_config_trace_level(int configTraceLevel)
+{
+  switch(configTraceLevel)
+  {
+    case 0:
+      break;
+    case 1:
+      _syslogMask |= LOG_MASK(LOG_NOTICE);
+      break;
+    case 2:
+      _syslogMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO);
+      break;
+    case 3:
+      _syslogMask |= LOG_MASK(LOG_NOTICE) | LOG_MASK(LOG_INFO) |
+          LOG_MASK(LOG_DEBUG);
+      break;
+    default:
+      syslog(LOG_WARNING,
+        "%s@%d-Unsupported config trace level of %d ignored\n",
+         thisFile, __LINE__, configTraceLevel);
+      break;
+  }
+
+  setlogmask(_syslogMask);
 }
 
 //============================================================================
