@@ -662,8 +662,6 @@ carrying this results section. All local - nothing pushed.
 - `HCOM_NX_UPD_*` renumbered into the `0x7000` block, grouped by function. Six commands
   removed: the three unreachable register duplicates and the three defined-but-unhandled
   dead entries. 29 commands became 23.
-- `HCOM_NX_UPD_DRIVER_NAME` is now an alias for `MEADOW_UPD_DRIVER_NAME`, which is defined
-  once in `hcom_shared_common.h`. No user-space call site changed.
 - `/dev/upd` registration moved out of `#ifdef CONFIG_EXAMPLES_MONO`, promoted to
   `LOG_CRIT` with an early return on failure. `hcom_nx_setup_mgr()` no longer registers a
   driver.
