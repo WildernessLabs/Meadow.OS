@@ -823,12 +823,11 @@ int espcp_usrsock_close(struct socket *psock)
 {
     MEADOW_TRACE_INFORMATION("close(%d)\n", espcp_sockfd(psock));
 
-    struct wdog_s g_watchdog_close;
-    meadow_watchdog_activate(&g_watchdog_close, WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
+    meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
     if (espcp_get_configuration()->esp_not_responding)
     {
-        meadow_watchdog_deactivate(&g_watchdog_close);
+        meadow_watchdog_deactivate(watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -839,7 +838,7 @@ int espcp_usrsock_close(struct socket *psock)
     espcp_close_request_t *request = (espcp_close_request_t *) zalloc(sizeof(espcp_close_request_t));
     if (request == NULL)
     {
-        meadow_watchdog_deactivate(&g_watchdog_close);
+        meadow_watchdog_deactivate(watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENOMEM\n");
         return(-ENOMEM);
     }
@@ -901,7 +900,7 @@ int espcp_usrsock_close(struct socket *psock)
     }
 
     espcp_delete_message_and_payload(message);
-    meadow_watchdog_deactivate(&g_watchdog_close);
+    meadow_watchdog_deactivate(watchdog_close);
 
     MEADOW_TRACE_INFORMATION("close - socket %d, result %d\n", espcp_sockfd(psock), result);
 
@@ -1834,12 +1833,11 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
 {
     MEADOW_TRACE_INFORMATION("poll(%d, 0x%08x, %d)\n", espcp_sockfd(psock), (uint32_t) fds, setup ? 1 : 0);
 
-    struct wdog_s g_watchdog_poll;
-    meadow_watchdog_activate(&g_watchdog_poll, WATCHDOG_POLL_TIMEOUT_MILLISECONDS, POLL_WATCHDOG);
+    meadow_watchdog_t watchdog_poll = meadow_watchdog_activate(WATCHDOG_POLL_TIMEOUT_MILLISECONDS, POLL_WATCHDOG);
 
     if (espcp_get_configuration()->esp_not_responding)
     {
-        meadow_watchdog_deactivate(&g_watchdog_poll);
+        meadow_watchdog_deactivate(watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -1855,7 +1853,7 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
         MEADOW_TRACE_INFORMATION("poll - teardown returned %d\n", result);
     }
 
-    meadow_watchdog_deactivate(&g_watchdog_poll);
+    meadow_watchdog_deactivate(watchdog_poll);
     MEADOW_TRACE_INFORMATION("poll - socket %d, result %d\n", espcp_sockfd(psock), result);
 
     return (result);
@@ -2853,12 +2851,11 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
 int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psock)
 {
     MEADOW_TRACE_INFORMATION("socket(%d, %d, %d)\n", domain, type, protocol);
-    struct wdog_s g_watchdog_socket;
-    meadow_watchdog_activate(&g_watchdog_socket, WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS, SOCKET_WATCHDOG);
+    meadow_watchdog_t watchdog_socket = meadow_watchdog_activate(WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS, SOCKET_WATCHDOG);
 
     if (espcp_get_configuration()->esp_not_responding)
     {
-        meadow_watchdog_deactivate(&g_watchdog_socket);
+        meadow_watchdog_deactivate(watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENETDOWN\n");
         return(-ENETDOWN);
     }
@@ -2868,7 +2865,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     espcp_socket_request_t *request = (espcp_socket_request_t *) zalloc(sizeof(espcp_socket_request_t));
     if (request == NULL)
     {
-        meadow_watchdog_deactivate(&g_watchdog_socket);
+        meadow_watchdog_deactivate(watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENOMEM\n");
         return (-ENOMEM);
     }
@@ -2881,7 +2878,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     if (payload == NULL)
     {
         free(request);
-        meadow_watchdog_deactivate(&g_watchdog_socket);
+        meadow_watchdog_deactivate(watchdog_socket);
         return (-ENOMEM);
     }
     espcp_encode_socket_request(request, payload);
@@ -2894,7 +2891,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     if (message == NULL)
     {
         free(payload);
-        meadow_watchdog_deactivate(&g_watchdog_socket);
+        meadow_watchdog_deactivate(watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENOMEM\n");
         return (-ENOMEM);
     }
@@ -2952,7 +2949,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     }
 
     espcp_delete_message_and_payload(message);
-    meadow_watchdog_deactivate(&g_watchdog_socket);
+    meadow_watchdog_deactivate(watchdog_socket);
 
     MEADOW_TRACE_INFORMATION("socket - socket %d, result %d\n",
                              psock->s_conn ? espcp_sockfd(psock) : -1, result);

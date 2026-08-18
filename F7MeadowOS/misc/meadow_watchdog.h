@@ -1,5 +1,5 @@
 /****************************************************************************
- * meadow_watchdogs.h
+ * meadow_watchdog.h
  *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -33,50 +33,91 @@
  *
  ****************************************************************************/
 
+/* Interface to the software watchdog timers used to detect a wedged ESP32
+ * coprocessor.  See meadow_watchdog.c for the implementation notes.
+ */
+
 #pragma once
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
- #include <nuttx/config.h>
-
-#include <unistd.h>
-#include <syslog.h>
-
 #include <nuttx/config.h>
-#include <nuttx/timers/watchdog.h>
+
+#include <stdint.h>
+#include <syslog.h>
+#include <unistd.h>
+
+#include <nuttx/compiler.h>
+#include <nuttx/wdog.h>
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os.h>
 
-#include <nuttx/wdog.h>
-
 /****************************************************************************
- * Preprocessor Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
+
+/* Watchdog timeouts, in milliseconds.  meadow_watchdog_activate() converts
+ * these to clock ticks.
+ */
 
 #define WATCHDOG_POLL_TIMEOUT_MILLISECONDS    (300 * 1000)
 #define WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS   (300 * 1000)
 #define WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS  (300 * 1000)
-#define WATCHDOG_RECV_TIMEOUT_MILLISECONDS    (300 * 1000)
-#define WATCHDOG_SEND_TIMEOUT_MILLISECONDS    (300 * 1000)
-#define WATCHDOG_SENDTO_TIMEOUT_MILLISECONDS  (300 * 1000)
+
+/* Returned by meadow_watchdog_activate() when no watchdog could be armed.
+ * Passing it to meadow_watchdog_deactivate() is harmless, so callers do not
+ * need to special case it.
+ */
+
+#define MEADOW_WATCHDOG_NO_SLOT  (-1)
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/* Opaque handle to an armed watchdog. */
+
+typedef int meadow_watchdog_t;
+
+/* The operation being guarded.  The value is passed to the expiry callback
+ * and selects the exception raised into the managed environment.
+ */
 
 typedef enum
 {
-    POLL_WATCHDOG = 0,
-    CLOSE_WATCHDOG,
-    SOCKET_WATCHDOG,
-    RECV_WATCHDOG, 
-    SEND_WATCHDOG,
-    SENDTO_WATCHDOG
+  POLL_WATCHDOG = 0,
+  CLOSE_WATCHDOG,
+  SOCKET_WATCHDOG,
+  MEADOW_WATCHDOG_METHOD_COUNT
 } meadow_watchdog_methods_e;
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-void meadow_watchdog_reset_system(int argc, wdparm_t arg);
-void meadow_watchdog_activate(struct wdog_s *watchdog, uint32_t timeout, meadow_watchdog_methods_e watchdog_method);
-void meadow_watchdog_deactivate(struct wdog_s *watchdog);
+#ifdef CONFIG_MEADOW_WATCHDOGS
+
+meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout,
+                                    meadow_watchdog_methods_e method);
+
+void meadow_watchdog_deactivate(meadow_watchdog_t watchdog);
+
+#else
+
+static inline meadow_watchdog_t
+meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_methods_e method)
+{
+  UNUSED(timeout);
+  UNUSED(method);
+  return MEADOW_WATCHDOG_NO_SLOT;
+}
+
+static inline void meadow_watchdog_deactivate(meadow_watchdog_t watchdog)
+{
+  UNUSED(watchdog);
+}
+
+#endif /* CONFIG_MEADOW_WATCHDOGS */

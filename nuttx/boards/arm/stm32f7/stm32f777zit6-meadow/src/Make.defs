@@ -162,8 +162,11 @@ $(MEADOW_OS_DIR)/espcp/espcp_usrsock_sockif.c \
 $(MEADOW_OS_DIR)/espcp/espcp_uart_monitor.c \
 $(MEADOW_OS_DIR)/espcp/espcp_event_handlers.c \
 $(MEADOW_OS_DIR)/espcp/espcp_file_system.c \
-$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c \
-$(MEADOW_OS_DIR)/misc/meadow_watchdog.c
+$(MEADOW_OS_DIR)/meadow_os/meadow_os_espcp.c
+endif
+
+ifeq ($(CONFIG_MEADOW_WATCHDOGS),y)
+CSRCS += $(MEADOW_OS_DIR)/misc/meadow_watchdog.c
 endif
 
 CSRCS += $(MEADOW_OS_DIR)/kerneltests/meadow_kt_dispatcher.c \
