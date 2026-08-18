@@ -206,9 +206,9 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   hcom_nx_upd_rtc_set_time_t *rtcSetTime;
+#endif
 #if HCOM_INCLUDE_ISO8601_SUPPORT > 0
   hcom_nx_upd_rtc_wakeup_time_t *rtcWakeupTime;
-#endif
 #endif
 #endif  // defined (CONFIG_MEADOW_HCOM)
 
@@ -350,6 +350,7 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       ret = pwrmgmt_mono_cmd_time_set_clock(rtcSetTime->hdrMsg,
                 rtcSetTime->msgLen);
       return ret;
+#endif  // defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
 #if HCOM_INCLUDE_ISO8601_SUPPORT > 0
     case HCOM_NX_UPD_RTC_WAKEUP_TIME:
@@ -359,8 +360,6 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 rtcWakeupTime->msgLen);
       return ret;
 #endif  // HCOM_INCLUDE_ISO8601_SUPPORT > 0
-
-#endif  // defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
     case HCOM_NX_UPD_UPDATE_OS1:
       // Stage a updated OS bin

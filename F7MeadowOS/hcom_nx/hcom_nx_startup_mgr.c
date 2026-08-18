@@ -296,10 +296,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
 #endif
 
-  // The HCOM kernel-side commands are served by the Meadow UPD driver
-  // (/dev/upd), which board_late_initialize() has already registered via
-  // meadow_upd_initialize(). There is no separate driver to set up here.
-
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
 #endif
