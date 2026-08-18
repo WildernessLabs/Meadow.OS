@@ -110,5 +110,14 @@
 #define HCOM_BBREG_MONO_DEBUGGING_START_BIT 0x00002000
 // This bit indicates if we are to send profiler output binaries (.mlpd) to the uart1
 #define HCOM_BBREG_ROUTE_PROFILER_BINS_TO_UART_BIT 0x00004000
+// Set by hcom_nx once it determines (from this register's pristine,
+// pre-write state) that this start is a reboot, not a power-on restart.
+// Power-on hardware-clears it to 0 along with the rest of the register, and
+// nothing else ever clears it, so it stays 1 across any number of further
+// warm reboots. Exists because hcom_nx unconditionally OR's the syslog mask
+// bits above into this same register on every boot, which destroys the
+// "whole register reads as 0" signal for any code -- e.g. user-space, which
+// always runs after hcom_nx -- that runs after that write.
+#define HCOM_BBREG_LAST_START_WAS_REBOOT_BIT 0x00008000
 
 #endif  //__INCLUDE_MEADOW_HCOM_BBREG_DEFN__H
