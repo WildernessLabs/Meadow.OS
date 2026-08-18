@@ -259,13 +259,16 @@ void board_late_initialize(void)
  #endif
 #endif
 
-#ifdef CONFIG_EXAMPLES_MONO
+  // Register the Meadow UPD driver (/dev/upd). This is the only path user
+  // space has into the kernel - both the MUPD_* commands used by the .NET
+  // runtime and the HCOM_NX_UPD_* commands used by hcom go through it - so
+  // it must not be made conditional on any configuration option.
   ret = meadow_upd_initialize();
   if (ret < 0)
   {
-    syslog(LOG_ERR, "ERROR: meadow_upd_initialize() failed: %d\n", ret);
+    syslog(LOG_CRIT, "ERROR: meadow_upd_initialize() failed: %d\n", ret);
+    return;
   }
-#endif
 
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information

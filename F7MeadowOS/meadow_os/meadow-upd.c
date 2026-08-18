@@ -43,6 +43,17 @@
 #include "espcp/espcp_encoders.h"
 #include "hcom_nx/hcom_nx_config_manager.h"
 
+#if defined (CONFIG_MEADOW_HCOM)
+// Needed by the HCOM_NX_UPD_* commands merged in from hcom_nx_upd.c
+#include <inttypes.h>
+#include "stm32_gpio.h"
+#include <meadow/hcom_upd_shared.h>
+#include <meadow/hcom_bbreg_defn.h>
+#include <meadow/meadow_hw_version.h>
+#include <meadow/meadow_apps_core_share.h>
+#include <meadow/hcom_dfu_mode_entry.h>
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -123,6 +134,12 @@ struct upd_device_info
 static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 static int upd_open(struct file *filep);
 static int upd_close(struct file *filep);
+static int upd_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
+
+#if defined (CONFIG_MEADOW_HCOM)
+static int upd_hcom_get_mcu_ser_numb(unsigned long arg);
+static int upd_hcom_restore_uart_reconfig(unsigned long arg);
+#endif
 
 // static int upd_gpio_interrupt(int irq, void *context, void *arg);
 
@@ -148,6 +165,7 @@ static const struct file_operations g_driver_operations =
 {
   .open  = upd_open,
   .close = upd_close,
+  .read  = upd_read,
   .ioctl = upd_ioctl
 };
 
@@ -169,11 +187,30 @@ static struct spi_dev_s *g_spi2 = NULL; // to ESP32
 
 // static int s_wd_fd = -1;
 
+// Note ioctl calls put any returned value into errno and the returned int
+// is set to -1
 static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   struct upd_register_value *register_val;
   struct upd_register_update *register_update;
   struct mint_gpio_int_config *interrupt_cfg;
+
+#if defined (CONFIG_MEADOW_HCOM)
+  int ret = -1;
+  struct hcom_nx_upd_bbr_value *bbr_val;
+  struct hcom_nx_upd_bbr_update *bbr_update;
+  struct hcom_nx_cmd_data *cmdData;
+  struct hcom_nx_upd_is_part_mounted *is_mounted;
+
+  hcom_nx_upd_get_hw_ver_t *hardwareVer;
+
+#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+  hcom_nx_upd_rtc_set_time_t *rtcSetTime;
+#endif
+#if HCOM_INCLUDE_ISO8601_SUPPORT > 0
+  hcom_nx_upd_rtc_wakeup_time_t *rtcWakeupTime;
+#endif
+#endif  // defined (CONFIG_MEADOW_HCOM)
 
   switch(cmd)
   {
@@ -237,6 +274,129 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     case MUPD_PWR_SLEEP2:
       return upd_handle_sleep_command((struct upd_sleep_cmd *)arg);
       return EINVAL;
+
+#if defined (CONFIG_MEADOW_HCOM)
+  //=========================================================================
+  // HCOM command set. These were the ioctl commands of the separate HCOM UPD
+  // driver (/dev/nxupd, hcom_nx/hcom_nx_upd.c) before the two drivers were
+  // consolidated onto this one. They are numbered from HCOM_NX_UPD_BASE
+  // (0x7000) so they cannot collide with the MUPD_* commands above.
+  //=========================================================================
+
+    // This only works with Battery Backed Registers via 0-31 id value
+    case HCOM_NX_UPD_SET_BBR_VALUE:
+      bbr_val = (struct hcom_nx_upd_bbr_value *)arg;
+      putreg32(bbr_val->value, HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
+      return OK;
+    case HCOM_NX_UPD_GET_BBR_VALUE:
+      bbr_val = (struct hcom_nx_upd_bbr_value *)arg;
+      bbr_val->value = getreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
+      return OK;
+    case HCOM_NX_UPD_UPDATE_BBR_VALUE:
+      bbr_update = (struct hcom_nx_upd_bbr_update *)arg;
+      modifyreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER,
+                bbr_update->clearBits, bbr_update->setBits);
+      return OK;
+
+    case HCOM_NX_UPD_CLI_COMMAND:
+      cmdData = (struct hcom_nx_cmd_data *)arg;
+      ret = hcom_nx_route_in_bound_cli_command(cmdData);
+      return ret;
+
+    case HCOM_NX_UPD_GET_MCU_ID:
+      stm32_get_uniqueid((uint8_t *)arg);
+      return OK;
+
+    case HCOM_NX_UPD_GET_MCU_SER_NUMB:
+      return upd_hcom_get_mcu_ser_numb(arg);
+
+    case HCOM_NX_UPD_IS_PART_MOUNTED:
+      is_mounted = (struct hcom_nx_upd_is_part_mounted *)arg;
+      is_mounted->isMounted = hcom_nx_fs_is_mounted(is_mounted->partitionId);
+      return OK;
+
+    case HCOM_NX_UPD_MONO_HAS_STARTED:
+#if defined (CONFIG_RAMLOG_SYSLOG)
+      return hcom_nx_trace_msg_mono_started();
+#else
+      return OK;
+#endif
+
+    case HCOM_NX_UPD_RESTORE_UART_CONFIG:
+      return upd_hcom_restore_uart_reconfig(arg);
+
+    case HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU:
+      hcom_nx_common_utils_host_restart_meadow();
+      return OK;
+
+    case HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU:
+      hcom_nx_common_utils_only_restart_meadow();
+      return OK;
+
+    case HCOM_NX_UPD_GET_HW_VERSION:
+      hardwareVer = (hcom_nx_upd_get_hw_ver_t*)arg;
+      hardwareVer->hwVer = meadow_hw_version_get();
+      return OK;
+
+    case HCOM_NX_UPD_ENTER_INTO_DFU_MODE:
+      *((unsigned long *)MEADOW_ENTER_DFU_MODE_MEMORY_ADDR) =
+                MEADOW_ENTER_DFU_MODE_MAGIC_NUMB;
+      return OK;
+
+#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+    case HCOM_NX_UPD_RTC_SET_TIME:
+      // Set the time in the RTC hardware from mono
+      rtcSetTime = (hcom_nx_upd_rtc_set_time_t*)arg;
+      ret = pwrmgmt_mono_cmd_time_set_clock(rtcSetTime->hdrMsg,
+                rtcSetTime->msgLen);
+      return ret;
+#endif  // defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+
+#if HCOM_INCLUDE_ISO8601_SUPPORT > 0
+    case HCOM_NX_UPD_RTC_WAKEUP_TIME:
+      // Set the wakeup time in the RTC hardware
+      rtcWakeupTime = (hcom_nx_upd_rtc_wakeup_time_t*)arg;
+      ret = pwrmgmt_mono_cmd_time_wakeup_period(rtcWakeupTime->hdrMsg,
+                rtcWakeupTime->msgLen);
+      return ret;
+#endif  // HCOM_INCLUDE_ISO8601_SUPPORT > 0
+
+    case HCOM_NX_UPD_UPDATE_OS1:
+      // Stage a updated OS bin
+#if (MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH == 0)
+      // Don't do this if testing
+      ret = hcom_nx_exec_ex_flash_OS_update_flash1();
+#endif
+      return ret;
+
+    case HCOM_NX_UPD_UPDATE_OS2:
+      // Stage a updated external flash OS bin
+      ret = hcom_nx_exec_ex_flash_OS_update_flash2();
+      return ret;
+
+    case HCOM_NX_UPD_COPY_RUNTIME_TO_RAM:
+      {
+        uint32_t block_size = hcom_nx_exec_ex_flash_get_block_size();
+        uint32_t number_of_blocks =
+                  HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / block_size;
+        return hcom_nx_exec_ex_flash_copy_blocks_to_memory(0,
+                  (void *) CONFIG_HEAP2_BASE, number_of_blocks);
+      }
+
+#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+    case HCOM_NX_UPD_REG_PWR_MGMT_CB:
+      {
+        pwr_mgmt_notify_callback *callback = (pwr_mgmt_notify_callback*) arg;
+        return pwrmgmt_subscribe_for_low_pwr_notifications(*callback);
+      }
+#endif
+
+#endif  // defined (CONFIG_MEADOW_HCOM)
+
+    default:
+      syslog(LOG_ERR, "%s@%d-unknown upd command:%d\n",
+                __FILE__, __LINE__, cmd);
+      return ERROR;
   }
   return ERROR;
 }
@@ -563,6 +723,71 @@ static int upd_close(struct file *filep)
   return OK;
 }
 
+// The driver is opened O_RDONLY by hcom (hcom_via_nx_upd_driver_open()).
+// This stub keeps such opens valid independently of the ioctl method, which
+// is what currently satisfies the VFS access check in fs/vfs/fs_open.c.
+static int upd_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+{
+  return OK;
+}
+
+#if defined (CONFIG_MEADOW_HCOM)
+// ====================================================================
+// This is also called to add serial number to USB
+static int upd_hcom_get_mcu_ser_numb(unsigned long arg)
+{
+  char strMcuSn[16];
+  struct hcom_nx_upd_mcu_ser_numb_s *mcu_ser;
+  mcu_ser = (struct hcom_nx_upd_mcu_ser_numb_s *)arg;
+
+  hcom_nx_common_utils_calc_f7_sn(NULL, strMcuSn);
+  strcpy(mcu_ser->ser_numb, strMcuSn);
+  return OK;
+}
+
+// ====================================================================
+// For a UART that has been configured to output etc. reconfig to be
+// Tx or Rx as needed for the following UARTs
+static int upd_hcom_restore_uart_reconfig(unsigned long arg)
+{
+  struct hcom_nx_upd_uart_reconfig_s *uartReconfig;
+  uartReconfig = (struct hcom_nx_upd_uart_reconfig_s *)arg;
+
+  switch (uartReconfig->uart_id)
+  {
+  case MEADOW_RECONFIG_MISCONFIGURED_UART1:
+    stm32_configgpio(GPIO_USART1_TX); // PB14
+    stm32_configgpio(GPIO_USART1_RX); // PH13
+    break;
+
+  case MEADOW_RECONFIG_MISCONFIGURED_UART4:
+    stm32_configgpio(GPIO_UART4_TX); // PH13
+    stm32_configgpio(GPIO_UART4_RX); // PI9
+    break;
+
+  case MEADOW_RECONFIG_MISCONFIGURED_UART5:
+    // F7v2 and CCMv2 use the same user GPIO pins
+    if(meadow_hw_version_get() == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+      stm32_configgpio(GPIO_UART5_TX_V1); // PB13
+    else
+      stm32_configgpio(GPIO_UART5_TX_V2); // PC12
+    stm32_configgpio(GPIO_UART5_RX); // PD2
+    break;
+
+  case MEADOW_RECONFIG_MISCONFIGURED_UART6:
+    stm32_configgpio(GPIO_USART6_TX); // PC6
+    stm32_configgpio(GPIO_USART6_RX); // PC7
+    break;
+
+  default:
+    syslog(LOG_ERR, "%s@%d-restore uart reconfig, invalid uart:%" PRId32 "\n",
+           __FILE__, __LINE__, uartReconfig->uart_id);
+    return -1;
+  }
+  return OK;
+}
+#endif  // defined (CONFIG_MEADOW_HCOM)
+
 /****************************************************************************
  * Name: upd_handle_esp32_command
  *
@@ -767,7 +992,8 @@ int meadow_upd_initialize(void)
   syslog(LOG_INFO, "meadow_upd_initialize\n");
   
   // register the driver, passing in our entry points
-  int ret = register_driver("/dev/upd", &g_driver_operations, 0666, NULL);
+  int ret = register_driver(MEADOW_UPD_DRIVER_NAME, &g_driver_operations,
+              0666, NULL);
   if (ret)
   {
     return ERROR;

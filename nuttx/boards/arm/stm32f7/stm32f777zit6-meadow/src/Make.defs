@@ -101,8 +101,7 @@ MEADOW_OS_DIR=F7MeadowOSLink
 CFLAGS += -DMEADOW_OS -I $(MEADOW_OS_DIR) -I $(TOPDIR) -I $(TOPDIR)/fs
 
 ifeq ($(CONFIG_MEADOW_HCOM),y)
-CSRCS += $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_upd.c \
-$(MEADOW_OS_DIR)/hcom_nx/hcom_nx_startup_mgr.c \
+CSRCS += $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_startup_mgr.c \
 $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_common_utils.c \
 $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_bbreg_access.c \
 $(MEADOW_OS_DIR)/hcom_nx/hcom_nx_upd_route_cmd.c \

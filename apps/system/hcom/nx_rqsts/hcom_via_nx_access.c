@@ -88,38 +88,18 @@ int hcom_via_nx_upd_driver_open()
   int nx_access_fd;
 
   // Open the nx upd driver
-  nx_access_fd = open(HCOM_NX_UPD_DRIVER_NAME, O_RDONLY);
+  nx_access_fd = open(MEADOW_UPD_DRIVER_NAME, O_RDONLY);
   if(nx_access_fd == -1)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to open, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
 
   // syslog(LOG_INFO, "%s@%d-SUCCESS %s opened\n",
-  //         thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME);
+  //         thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME);
 
   return nx_access_fd;
-}
-
-//=============================================================
-// NEVER TESTED
-int hcom_via_nx_set_any_reg(uint32_t address, uint32_t value)
-{
-  int ret;
-  struct hcom_nx_upd_register_value ret_value;
-
-  ret_value.value = value;
-  ret_value.address = address;
-
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_REGISTER, (unsigned long)&ret_value);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s)@%d-%s Failed to set reg, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
 }
 
 //=============================================================
@@ -134,7 +114,7 @@ int hcom_via_nx_set_bbr(uint32_t value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s)@%d-%s Failed to set reg, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -150,7 +130,7 @@ int hcom_via_nx_get_bbr(uint32_t *value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to get reg, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
 
@@ -171,7 +151,7 @@ int hcom_via_nx_update_bbr(uint32_t clearBits, uint32_t setBits)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -191,7 +171,7 @@ int hcom_via_nx_update_bbr_alt(int alt_access_fd, uint32_t clearBits, uint32_t s
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -207,7 +187,7 @@ int hcom_via_nx_get_mcu_id(uint8_t uniqueId[12])
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
     return -errno;      // ioctl puts returned int into errno
   }
 
@@ -227,7 +207,7 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -246,7 +226,7 @@ bool hcom_via_nx_is_mounted(uint32_t partitionId)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed nx mount, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
     return -errno;      // ioctl puts returned int into errno
   }
 
@@ -265,7 +245,7 @@ int hcom_via_nx_host_restart_meadow()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed host restart meadow, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -283,7 +263,7 @@ int hcom_via_nx_only_restart_meadow()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed only restart meadow, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -299,7 +279,7 @@ int hcom_via_nx_put_meadow_into_dfu_mode()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to enter dfu mode, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno;      // ioctl puts returned int into errno
   }
   return OK;
@@ -315,7 +295,7 @@ void hcom_via_nx_mono_has_started_alt(int alt_access_fd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Mono has started ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
   }
 }
 
@@ -334,7 +314,7 @@ void hcom_via_nx_restore_uart_reconfig(uint32_t uartId)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s reconfig uart%ld, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, uartId, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, uartId, ret, errno);
   }
 }
 
@@ -387,7 +367,7 @@ void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed diag app cmd, ret:%d, errno:%d\n",
-            thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, ret, errno);
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
   }
 }
 
@@ -434,7 +414,7 @@ void hcom_via_nx_forward_cli_cmd_to_nx(uint16_t hcomCmd, uint32_t userData)
     else
     {
       syslog(LOG_ERR, "%s:%s()@%d-%s Error detected, errno:%d, hcomCmd:0x%04x\n",
-              thisFile, __func__, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno, hcomCmd);
+              thisFile, __func__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno, hcomCmd);
       return;
     }
   }
@@ -460,7 +440,7 @@ int hcom_via_nx_copy_mono_runtime_to_ram(void)
 {
     int result = OK;
 
-    int fd = open(HCOM_NX_UPD_DRIVER_NAME, O_RDONLY);
+    int fd = open(MEADOW_UPD_DRIVER_NAME, O_RDONLY);
     if (fd < 0)
     {
         result = -1;
@@ -554,7 +534,7 @@ int hcom_via_nx_update_OS1()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 1), errno:%d\n",
-                        thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+                        thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno; // ioctl puts returned int into errno
   }
   return OK;
@@ -569,7 +549,7 @@ int hcom_via_nx_update_OS2()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 2), errno:%d\n",
-                        thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+                        thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno; // ioctl puts returned int into errno
   }
   return OK;
@@ -585,7 +565,7 @@ int hcom_via_nx_get_update_state(uint8_t flag)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to get update state, errno:%d\n",
-                        thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+                        thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno; // ioctl puts returned int into errno
   }
   return OK;
@@ -601,7 +581,7 @@ int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to set update state, errno:%d\n",
-                        thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+                        thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno; // ioctl puts returned int into errno
   }
   return OK;
@@ -620,7 +600,7 @@ int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed to set pwr mgmt callback, errno:%d\n",
-                        thisFile, __LINE__, HCOM_NX_UPD_DRIVER_NAME, errno);
+                        thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
     return -errno; // ioctl puts returned int into errno
   }
   

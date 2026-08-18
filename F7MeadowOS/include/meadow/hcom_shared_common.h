@@ -77,6 +77,11 @@
 #define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow0"
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow0/Meadow.dll"
 
+// The Meadow UPD driver. This single node serves both the MUPD_* commands
+// (meadow-upd.h, used by the .NET runtime) and the HCOM_NX_UPD_* commands
+// (hcom_upd_shared.h, used by hcom). Registered in meadow_os/meadow-upd.c.
+#define MEADOW_UPD_DRIVER_NAME  "/dev/upd"
+
 #define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
 #define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
 #define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"

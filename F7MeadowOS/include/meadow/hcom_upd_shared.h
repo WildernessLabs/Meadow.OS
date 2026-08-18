@@ -49,8 +49,6 @@
 // This header file contains those items that must be shared by apps/hcom
 // #include <string.h>
 
-#define HCOM_NX_UPD_DRIVER_NAME "/dev/nxupd"
-
 // Defining buffer sizes
 #define HCOM_NX_CMD_HOST_MSG_SIZE     128
 #define HCOM_NX_CMD_LOG_MSG_SIZE      128
@@ -71,19 +69,6 @@ struct hcom_nx_upd_update_flag
 {
   uint8_t offset;
   uint8_t value;
-};
-
-struct hcom_nx_upd_register_value
-{
-  uint32_t address;
-  uint32_t value;
-};
-
-struct hcom_nx_upd_register_update
-{
-  uint32_t address;
-  uint32_t clearBits;
-  uint32_t setBits;
 };
 
 struct hcom_nx_upd_is_part_mounted
@@ -200,41 +185,64 @@ typedef struct hcom_nx_upd_host_send_cb_s
 } hcom_nx_upd_host_send_cb_t;
 
 
-//==================================================
-// hcom nx upd ioctl commands
-#define HCOM_NX_UPD_SET_REGISTER                1
-#define HCOM_NX_UPD_GET_REGISTER                2
-#define HCOM_NX_UPD_UPDATE_REGISTER             3
-#define HCOM_NX_UPD_SET_BBR_VALUE               4
-#define HCOM_NX_UPD_GET_BBR_VALUE               5
-#define HCOM_NX_UPD_UPDATE_BBR_VALUE            6
-#define HCOM_NX_UPD_CLI_COMMAND                 7
-#define HCOM_NX_UPD_GET_MCU_ID                  8
-#define HCOM_NX_UPD_IS_PART_MOUNTED             9
-#define HCOM_NX_UPD_RESTORE_UART_CONFIG         11
-// 12-15 have been deleted
-#define HCOM_NX_UPD_GET_MCU_SER_NUMB            16
-#define HCOM_NX_UPD_EXECUTE_ESPCP_TESTS         18
-#define HCOM_NX_UPD_ENTER_INTO_DFU_MODE         19
-#define HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU     20
-#define HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU     21
-// 22 has been deleted
-#define HCOM_NX_UPD_GET_STRING                  23
-#define HCOM_NX_UPD_MONO_HAS_STARTED            24
-// 25 has been deleted
-// 26 has been deleted
-#define HCOM_NX_UPD_GET_HW_VERSION              27
-#define HCOM_NX_UPD_FLASH_OS_UPDATE             28
-#define HCOM_NX_UPD_DIAG_APP_CMD                29
-#define HCOM_NX_UPD_RTC_SET_TIME                30
-#define HCOM_NX_UPD_RTC_READ_TIME               31
-#define HCOM_NX_UPD_RTC_WAKEUP_TIME             32
-#define HCOM_NX_UPD_UPDATE_OS1                  33
-#define HCOM_NX_UPD_UPDATE_OS2                  34
-#define HCOM_NX_UPD_GET_UPDATE_FLAG             35
-#define HCOM_NX_UPD_SET_UPDATE_FLAG             36
-#define HCOM_NX_UPD_COPY_RUNTIME_TO_RAM         37
-// 38 has been deleted
-#define HCOM_NX_UPD_REG_PWR_MGMT_CB             39
+/****************************************************************************
+ * ioctl command number allocation for /dev/upd
+ *
+ *   0x0000 - 0x00ff   MUPD_*          Meadow UPD commands (meadow-upd.h).
+ *                                     Frozen - external .NET dependency.
+ *   0x7000 - 0x70ff   HCOM_NX_UPD_*   HCOM kernel-side commands (below).
+ *
+ * Both command sets are handled by the single switch in upd_ioctl()
+ * (meadow_os/meadow-upd.c), so their numbers must not overlap.
+ *
+ * 0x7000 is chosen to sit clear of the ioctl command blocks NuttX reserves
+ * in nuttx/include/nuttx/fs/ioctl.h (currently 0x0100 - 0x4600, plus 0x8b00
+ * and 0xff00). Some of those - FIONBIO, FIOC_*, BIOC_* - are handled by the
+ * VFS in fs_ioctl.c and never reach this driver, so overlapping them would
+ * fail in a very confusing way. Re-check this constant on a NuttX rebase.
+ ****************************************************************************/
+
+#define HCOM_NX_UPD_BASE                        0x7000
+
+// Battery-backed register access
+#define HCOM_NX_UPD_SET_BBR_VALUE               (HCOM_NX_UPD_BASE + 0x00)
+#define HCOM_NX_UPD_GET_BBR_VALUE               (HCOM_NX_UPD_BASE + 0x01)
+#define HCOM_NX_UPD_UPDATE_BBR_VALUE            (HCOM_NX_UPD_BASE + 0x02)
+
+// Device identity and hardware information
+#define HCOM_NX_UPD_GET_MCU_ID                  (HCOM_NX_UPD_BASE + 0x10)
+#define HCOM_NX_UPD_GET_MCU_SER_NUMB            (HCOM_NX_UPD_BASE + 0x11)
+#define HCOM_NX_UPD_GET_HW_VERSION              (HCOM_NX_UPD_BASE + 0x12)
+
+// File system
+#define HCOM_NX_UPD_IS_PART_MOUNTED             (HCOM_NX_UPD_BASE + 0x20)
+
+// Host / CLI command routing
+#define HCOM_NX_UPD_CLI_COMMAND                 (HCOM_NX_UPD_BASE + 0x30)
+#define HCOM_NX_UPD_DIAG_APP_CMD                (HCOM_NX_UPD_BASE + 0x31)
+
+// Restart, DFU and power management
+#define HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU     (HCOM_NX_UPD_BASE + 0x40)
+#define HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU     (HCOM_NX_UPD_BASE + 0x41)
+#define HCOM_NX_UPD_ENTER_INTO_DFU_MODE         (HCOM_NX_UPD_BASE + 0x42)
+#define HCOM_NX_UPD_REG_PWR_MGMT_CB             (HCOM_NX_UPD_BASE + 0x43)
+
+// Real-time clock
+#define HCOM_NX_UPD_RTC_SET_TIME                (HCOM_NX_UPD_BASE + 0x50)
+#define HCOM_NX_UPD_RTC_WAKEUP_TIME             (HCOM_NX_UPD_BASE + 0x51)
+
+// OS update / OTA
+#define HCOM_NX_UPD_UPDATE_OS1                  (HCOM_NX_UPD_BASE + 0x60)
+#define HCOM_NX_UPD_UPDATE_OS2                  (HCOM_NX_UPD_BASE + 0x61)
+#define HCOM_NX_UPD_GET_UPDATE_FLAG             (HCOM_NX_UPD_BASE + 0x62)
+#define HCOM_NX_UPD_SET_UPDATE_FLAG             (HCOM_NX_UPD_BASE + 0x63)
+#define HCOM_NX_UPD_COPY_RUNTIME_TO_RAM         (HCOM_NX_UPD_BASE + 0x64)
+
+// Mono runtime and UART restoration
+#define HCOM_NX_UPD_MONO_HAS_STARTED            (HCOM_NX_UPD_BASE + 0x70)
+#define HCOM_NX_UPD_RESTORE_UART_CONFIG         (HCOM_NX_UPD_BASE + 0x71)
+
+// Kernel-side test hooks
+#define HCOM_NX_UPD_EXECUTE_ESPCP_TESTS         (HCOM_NX_UPD_BASE + 0x80)
 
 #endif  // __INCLUDE_MEADOW_HCOM_NX_SHARED__H

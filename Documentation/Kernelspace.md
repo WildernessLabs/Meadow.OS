@@ -41,8 +41,10 @@ Reset
 1. Initialises GPIOs and board interrupt routing
 2. Reads the YAML configuration from QSPI flash via `hcom_nx_config_manager`
 3. Selects and starts the network interface (ESP32 WiFi or Ethernet)
-4. Registers the Universal Platform Driver (`hcom_nx_upd`) syscall endpoint
-5. Starts the ESP32 coprocessor threads (`espcp`)
+4. Starts the ESP32 coprocessor threads (`espcp`)
+
+The Universal Platform Driver is not registered here - `board_late_initialize()`
+registers it earlier via `meadow_upd_initialize()` (see below).
 
 ## `hcom_nx` - Kernel-Side Host Communication
 
@@ -63,15 +65,35 @@ The default network interface falls back to `MEADOW_IFT_ESP32` if no config is f
 
 ### Startup Manager (`hcom_nx_startup_mgr.c`)
 
-Called once during NuttX bring-up. Orchestrates the full kernel-side initialisation sequence: GPIO setup, config load, ESP32 coprocessor start, Ethernet bring-up, and registration of the platform driver.
+Called once during NuttX bring-up. Orchestrates the full kernel-side initialisation sequence: GPIO setup, config load, ESP32 coprocessor start, and Ethernet bring-up.
 
-### Universal Platform Driver (`hcom_nx_upd.c`)
+### Universal Platform Driver (`meadow_os/meadow-upd.c`)
 
-Implements the kernel-side endpoint for the Meadow UPD (Universal Platform Driver). User-space code calls kernel functions through this interface via NuttX syscalls. Key responsibilities:
+The single kernel-side endpoint for user space, registered as `/dev/upd` by
+`meadow_upd_initialize()` from `board_late_initialize()`. Everything user space can ask the
+kernel to do arrives as an `ioctl` on this node. Key responsibilities:
 
 - Exposes board control operations to user space (reset, sleep, version query)
-- Relays OTA update requests to `hcom_nx_upd_route_cmd.c`
+- Exposes peripherals the protected build puts out of user space's reach (I2C, SPI, PWM,
+  GPIO interrupts, ESP32 coprocessor messaging)
+- Relays OTA and CLI requests to `hcom_nx/hcom_nx_upd_route_cmd.c`
 - Ensures user-space cannot directly manipulate privileged hardware
+
+It serves two command sets, distinguished by number:
+
+| Prefix | Range | Used by | Defined in |
+|--------|-------|---------|------------|
+| `MUPD_*` | 1 - 82 (block `0x0000`) | Meadow.Core / the .NET runtime | `include/meadow/meadow-upd.h` |
+| `HCOM_NX_UPD_*` | `0x7000` + offset | `apps/system/hcom` | `include/meadow/hcom_upd_shared.h` |
+
+The `MUPD_*` values are a frozen external ABI and must not be renumbered. The
+`HCOM_NX_UPD_*` values are internal and sit in a block of their own chosen to avoid both
+the `MUPD_*` range and the ioctl blocks NuttX reserves in `nuttx/include/nuttx/fs/ioctl.h`;
+the header explains the constraint. The HCOM command block is compiled only when
+`CONFIG_MEADOW_HCOM` is set, but the driver itself is always registered.
+
+Until recently the HCOM commands lived in a second driver, `hcom_nx/hcom_nx_upd.c`, on a
+separate node (`/dev/nxupd`). That driver has been removed and its commands merged here.
 
 ### OTA Update Router (`hcom_nx_upd_route_cmd.c`)
 

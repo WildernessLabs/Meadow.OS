@@ -9,11 +9,11 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
   not vendored NuttX core.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
-- `F7MeadowOS/` (169 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
+- `F7MeadowOS/` (168 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
   `Claude.md` marks "do not modify", so reviewing them for fixes here isn't useful.
 
-Total in scope: 255 files.
+Total in scope: 254 files.
 
 ## Status legend
 
@@ -208,7 +208,6 @@ the record of what's been decided.
 | C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Not started | | |
 | C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started | | |
 | C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started | | |
-| C053 | F7MeadowOS/hcom_nx/hcom_nx_upd.c | Not started | | |
 | C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started | | |
 | C055 | F7MeadowOS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c | Not started | | |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started | | |
