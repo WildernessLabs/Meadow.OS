@@ -245,6 +245,7 @@ int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
   if(errorCause == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    free(hostMsg);
     return -ENOMEM;
   }
   
