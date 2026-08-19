@@ -432,7 +432,7 @@ int hcom_nx_exec_ex_update_ESP32()
     while (bytes_read < file_size)
     {
       int n = fread(file_ptr, sizeof(uint8_t), file_size - bytes_read, firmware);
-      if (n < 0) {
+      if (n <= 0) {
         result = FIRMWARE_READ_ERROR;
         goto cleanup;
       }
@@ -470,7 +470,7 @@ int hcom_nx_exec_ex_update_ESP32()
     while (bytes_read < md5_file_size)
     {
       int n = fread(file_ptr, sizeof(uint8_t), md5_file_size - bytes_read, firmware_md5);
-      if (n < 0) {
+      if (n <= 0) {
         result =  MD5_READ_ERROR;
         goto cleanup;
       }
