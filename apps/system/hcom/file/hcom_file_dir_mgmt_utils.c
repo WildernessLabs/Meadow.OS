@@ -646,12 +646,12 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
   char *delimiterOffset;
   uint32_t tokenCount;
   int dirLevel;
-  int dirOffset[dnldShared->dnldPathNameEleCount];
+  int dirOffset[dnldShared->dnldPathNameEleCount + 1];
 
   pStatBuf = &statBuf;
 
   // Allocate a modifiable version of the string
-  char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName));
+  char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName) + 1);
   if(fullFileNamePath == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
