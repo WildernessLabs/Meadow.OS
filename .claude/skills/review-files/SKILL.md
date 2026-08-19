@@ -126,6 +126,9 @@ rather than reviewing everything in one pass.
 - Don't fix anything as part of this skill -- it only finds and records findings. Fixing
   is a deliberate, one-at-a-time follow-up activity against the Open Findings table, not
   something this skill does automatically.
+- When applying a fix as that follow-up activity, don't commit it. Leave the change
+  (and its tracking-doc update) uncommitted so the user can review, build, and test
+  first. Only commit if the user explicitly asks you to.
 - To review the next batch, just invoke this skill again with the next set of files --
   each run is independent.
 - `Documentation/CodeReviewTracking.md` is the source of truth for what's been reviewed,
