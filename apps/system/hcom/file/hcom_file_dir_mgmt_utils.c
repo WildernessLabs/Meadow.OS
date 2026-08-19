@@ -252,7 +252,6 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
       syslog(LOG_MTEST, "SDCard not configured for use\n");
-    }
 #endif
       return pathnameSdcardNoConfig;
     }
