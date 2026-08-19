@@ -132,28 +132,28 @@ static void espcp_usrsock_sockif_addref(struct socket *psock);
  */
 const struct sock_intf_s g_usrsock_sockif =
 {
-    espcp_usrsock_sockif_setup,       /* si_setup */
-    espcp_usrsock_sockif_sockcaps,    /* si_sockcaps */
-    espcp_usrsock_sockif_addref,      /* si_addref */
-    espcp_usrsock_bind,               /* si_bind */
-    espcp_usrsock_getsockname,        /* si_getsockname */
-    espcp_usrsock_getpeername,        /* si_getpeername */
-    espcp_usrsock_listen,             /* si_listen */
-    espcp_usrsock_connect,            /* si_connect */
-    espcp_usrsock_accept,             /* si_accept */
-    espcp_usrsock_poll,               /* si_poll */
-    espcp_usrsock_sendmsg,            /* si_sendmsg */
-    espcp_usrsock_recvmsg,            /* si_recvmsg */
-    espcp_usrsock_close,              /* si_close */
-    espcp_usrsock_ioctl,              /* si_ioctl */
-    NULL,                             /* si_socketpair (not implemented) */
-    espcp_usrsock_shutdown,           /* si_shutdown */
+    .si_setup = espcp_usrsock_sockif_setup,
+    .si_sockcaps = espcp_usrsock_sockif_sockcaps,
+    .si_addref = espcp_usrsock_sockif_addref,
+    .si_bind = espcp_usrsock_bind,
+    .si_getsockname = espcp_usrsock_getsockname,
+    .si_getpeername = espcp_usrsock_getpeername,
+    .si_listen = espcp_usrsock_listen,
+    .si_connect= espcp_usrsock_connect,
+    .si_accept = espcp_usrsock_accept,
+    .si_poll = espcp_usrsock_poll,
+    .si_sendmsg = espcp_usrsock_sendmsg,
+    .si_recvmsg = espcp_usrsock_recvmsg,
+    .si_close = espcp_usrsock_close,
+    .si_ioctl = espcp_usrsock_ioctl,
+    .si_socketpair = NULL,                    /* Not implemented */
+    .si_shutdown = espcp_usrsock_shutdown,
 #ifdef CONFIG_NET_SOCKOPTS
-    espcp_usrsock_getsockopt,         /* si_getsockopt */
-    espcp_usrsock_setsockopt,         /* si_setsockopt */
+    .si_getsockopt = espcp_usrsock_getsockopt,
+    .si_setsockopt = espcp_usrsock_setsockopt,
 #endif
 #ifdef CONFIG_NET_SENDFILE
-    NULL,                             /* si_sendfile (not implemented) */
+    .si_sendfile = NULL,                    /* Not implemented */
 #endif
 };
 
