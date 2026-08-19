@@ -271,7 +271,7 @@ int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
     break;
 
     default:  // different error
-    snprintf_chk(errorCause, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+    snprintf_chk(errorCause, HCOM_TINY_HOST_STRING_BUFF_LENGTH,
               "Unexpected error:%d", ret);
     break;
   }
