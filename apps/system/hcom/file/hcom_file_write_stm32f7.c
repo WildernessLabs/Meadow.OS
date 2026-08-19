@@ -183,7 +183,7 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
              thisFile, __LINE__, dnldShared->dnldFullPathName,
              dnldShared->dnldFileFD, errno);
 
-    if(dnldShared->dnldFileFD > 0)
+    if(dnldShared->dnldFileFD >= 0)
     {
       close(dnldShared->dnldFileFD);
       dnldShared->dnldFileFD = -1;
