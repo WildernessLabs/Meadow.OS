@@ -251,8 +251,10 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
   }
   else
   {
-    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "Expecting %u bytes, received %u", 
-            _endAddress, _nextStorageAddress + binDataLen);
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+      "Expecting %u bytes, received %u",
+      (unsigned int)(_endAddress - _esp32FileBuffer),
+      (unsigned int)((_nextStorageAddress - _esp32FileBuffer) + binDataLen));
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
             _thisFile, __LINE__);
 
