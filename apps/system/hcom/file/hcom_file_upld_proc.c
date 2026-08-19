@@ -349,7 +349,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    syslog(LOG_ERR, hostMsg);
+    syslog(LOG_ERR, "%s", hostMsg);
 
     // This message will notify the user
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
@@ -410,7 +410,7 @@ int hcom_file_upld_proc_begin_file_uploading(hcom_dnld_shared_t *dnldShared)
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%s@%d-Must initialize upload before each upload.\n",
               thisFile, __LINE__);
-    syslog(LOG_ERR, hostMsg, thisFile, __LINE__);
+    syslog(LOG_ERR, "%s", hostMsg);
 
     // This message will notify the user
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
