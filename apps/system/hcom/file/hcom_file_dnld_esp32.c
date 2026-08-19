@@ -277,6 +277,7 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
 void hcom_file_dnld_esp32_file_end(uint32_t userData)
 {
   int ret;
+  int flashEndResult = 0;
   char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
   bool lastFile = userData == 1 ? true : false;
 
@@ -299,11 +300,11 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   if(lastFile)
   {
     // Tell ESP32 download complete and restart ESP32 since all files have been flashed
-    ret = hcom_esp32_exec_add_flash_end();
-    if (ret < 0)
+    flashEndResult = hcom_esp32_exec_add_flash_end();
+    if (flashEndResult < 0)
     {
       syslog(LOG_ERR, "%s@%d-ESP32 File end error:%d\n",
-                _thisFile, __LINE__, ret);
+                _thisFile, __LINE__, flashEndResult);
     }
   }
 
@@ -312,7 +313,7 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
   //         "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s'",
   //         _md5FileHash, _md5FileHash);
   // snprintf(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "File transfer complete.");
-  if (ret == 0)
+  if (ret == 0 && flashEndResult == 0)
   {
     snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
             "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s')",
