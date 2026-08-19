@@ -110,6 +110,11 @@ static uint32_t find_pathname_element_count(const char *pathName, size_t strLen)
 {
   // Allocate a modifiable version of the string for tokenizing
   char *pathNameTemp = malloc(strLen + 1);
+  if(pathNameTemp == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    return 0;
+  }
   strcpy(pathNameTemp, pathName);
 
   // Count the number of '/' characters to give an indication of the subdir
