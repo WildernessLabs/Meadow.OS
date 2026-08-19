@@ -246,6 +246,14 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
 #endif
 
+  // Give kernel-space syslog() calls the benefit of the config file's
+  // InternalDebug.TraceLevel setting too -- user-space's
+  // hcom_diag_trace_priority_level_init() already applies this to its own
+  // (separate) syslog mask; this is unconditional (unlike the
+  // CONFIG_RAMLOG_SYSLOG-gated block below) since g_syslog_mask filtering
+  // in vsyslog() applies regardless of which syslog channel is compiled in.
+  hcom_nx_utils_apply_config_trace_level(config->trace_level);
+
 #if defined (CONFIG_RAMLOG_SYSLOG)
   // Start trace messaging if so configured
   hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false),

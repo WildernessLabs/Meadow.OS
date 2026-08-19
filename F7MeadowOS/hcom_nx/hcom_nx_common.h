@@ -130,6 +130,8 @@ extern "C"
  ****************************************************************************************************/
   int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd);
   int hcom_nx_utils_startup_handling_of_trace_level(void);
+  void hcom_nx_utils_apply_config_trace_level(int configTraceLevel);
+  void hcom_nx_utils_set_syslog_mask_now(uint32_t newMask);
 
   // Common Utils
   void hcom_nx_common_utils_host_restart_meadow(void);

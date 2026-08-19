@@ -158,6 +158,27 @@ int hcom_via_nx_update_bbr(uint32_t clearBits, uint32_t setBits)
 }
 
 //=============================================================
+// Immediately applies a fully-formed syslog mask to kernel-space, so a live
+// CLI trace-level change takes effect on kernel-space syslog() calls right
+// away instead of only on the next reboot.
+int hcom_via_nx_set_syslog_mask(uint32_t newMask)
+{
+  int ret;
+  struct hcom_nx_upd_syslog_mask syslog_mask;
+
+  syslog_mask.value = newMask;
+
+  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_SYSLOG_MASK, (unsigned long)&syslog_mask);
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-%s Failed to set kernel syslog mask, errno:%d\n",
+            thisFile, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+    return -errno;      // ioctl puts returned int into errno
+  }
+  return OK;
+}
+
+//=============================================================
 // Special version that is called from mono thread
 int hcom_via_nx_update_bbr_alt(int alt_access_fd, uint32_t clearBits, uint32_t setBits)
 {
