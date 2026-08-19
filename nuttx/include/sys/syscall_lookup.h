@@ -416,6 +416,17 @@ SYSCALL_LOOKUP(meadow_adc_read_values, 0)
 SYSCALL_LOOKUP(meadow_adc_read_temp_vbat, 2)
 SYSCALL_LOOKUP(meadow_measure_freq_configure, 1)
 SYSCALL_LOOKUP(meadow_measure_freq_return_freq_info, 1)
+SYSCALL_LOOKUP(meadow_rotary_encoder_config, 1)
+SYSCALL_LOOKUP(meadow_rotary_encoder_read_data, 1)
+SYSCALL_LOOKUP(meadow_rotary_encoder_set_count, 2)
+#endif
+
+#if defined(CONFIG_MEADOW_HCOM) && defined(CONFIG_ARCH_IDLE_CUSTOM)
+SYSCALL_LOOKUP(meadow_idle_monitor_get_value, 0)
+#endif
+
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+SYSCALL_LOOKUP(pwrmgmt_most_recent_wakeup_reason, 0)
 #endif
 
 #if defined(CONFIG_MEADOW_CLOUD)

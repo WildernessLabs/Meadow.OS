@@ -59,6 +59,21 @@ USER_BINFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.bin)
 
 USER_LDFLAGS = --undefined=$(ENTRYPT) --entry=$(ENTRYPT) $(USER_LDSCRIPT) --undefined=sqlite3_libversion
 USER_LDFLAGS += --undefined=get_errno --undefined=set_errno
+
+# Force the syscall proxies for kernel-space functions that only the Mono/.NET
+# runtime calls into the user-space link. libproxies.a is an archive, so a proxy
+# that no statically-linked user code references is never pulled in, and the
+# runtime resolves these by name at load time - invisible to the linker. Each
+# one therefore has to be named explicitly here to be present in
+# nuttx_user.elf.
+MONO_PROXY_SYMS  = meadow_idle_monitor_get_value
+MONO_PROXY_SYMS += meadow_rotary_encoder_config
+MONO_PROXY_SYMS += meadow_rotary_encoder_read_data
+MONO_PROXY_SYMS += meadow_rotary_encoder_set_count
+MONO_PROXY_SYMS += pwrmgmt_most_recent_wakeup_reason
+
+USER_LDFLAGS += $(addprefix --undefined=,$(MONO_PROXY_SYMS))
+
 USER_LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 
 # Force the whole math library into the final link, even for symbols
