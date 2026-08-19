@@ -264,6 +264,8 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
     free(_esp32FileBuffer);
     _esp32FileBuffer = NULL;
     _nextStorageAddress = NULL;
+    _endAddress = NULL;
+    hcom_file_dnld_esp32_set_to_inactive();
   }
 }
 
