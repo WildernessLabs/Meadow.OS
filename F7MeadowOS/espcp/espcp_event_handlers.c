@@ -746,9 +746,9 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                 //
                 //  file_mq_send() returns a negated errno and does not modify
                 //  the errno of the calling thread.  This matters here because
-                //  this path is reachable from a watchdog expiry running in
-                //  the timer interrupt, where the "calling thread" is whatever
-                //  thread happened to be interrupted.
+                //  this path is reachable from threads that did not ask for
+                //  it, such as the LPWORK worker that raises the exception
+                //  for an expired network watchdog.
                 //
                 int result = file_mq_send(&config->managed_event_queue, (const char *) encodedData, encodedEventDataSize, ESPCP_DEFAULT_MESSAGE_PRIORITY);
                 if (result < 0)

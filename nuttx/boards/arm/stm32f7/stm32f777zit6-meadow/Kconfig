@@ -40,6 +40,28 @@ config HCOM_ESP32_COMMS
     bool "Enables HCOM file download to the ESP32"
     default y
 
+config MEADOW_WATCHDOGS
+    bool "Enables the Meadow network deadlock watchdogs"
+    default y
+    depends on SCHED_LPWORK
+    ---help---
+    Arms a software watchdog around the usrsock socket, close and poll
+    operations, all of which can block indefinitely if the ESP32
+    coprocessor stops responding.  On expiry an exception is raised into
+    the managed environment.  The expiry callback runs in interrupt
+    context and defers its work to the low priority work queue, hence the
+    dependency on SCHED_LPWORK.
+
+config MEADOW_WATCHDOG_SLOTS
+    int "Number of concurrently armed Meadow watchdogs"
+    default 8
+    depends on MEADOW_WATCHDOGS
+    ---help---
+    One watchdog timer is allocated from this pool for each guarded
+    operation that is in flight.  When the pool is exhausted the operation
+    runs unguarded, so this needs to cover the number of threads that can
+    be inside those operations at the same time.
+
 menu "ESP32 Coprocessor Configuration"
 source "boards/arm/stm32f7/stm32f777zit6-meadow/Kconfig-ESP32"
 endmenu
