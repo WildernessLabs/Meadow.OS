@@ -118,7 +118,7 @@ monitor cortex_m vector_catch all
 # This prints the following information so it looks like it will
 # common fault conditions.
 #
-# hard_err: catch
+#  hard_err: catch
 #   int_err: catch
 #   bus_err: catch
 # state_err: catch
@@ -129,7 +129,7 @@ monitor cortex_m vector_catch all
 
 #
 #   Commands specific to your debug scenario should be placed here.  The following
-#   may be useful for debugging sessions and so have been left as commants with
+#   may be useful for debugging sessions and so have been left as commands with
 #   instructions for use / what they do.
 #
 
