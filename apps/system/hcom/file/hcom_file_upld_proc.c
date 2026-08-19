@@ -274,33 +274,35 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
   dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDONLY);
   if (dnldShared->dnldFileFD == -1)
   {
-    if(errno == ENOENT)
+    int savedErrno = errno;
+
+    if(savedErrno == ENOENT)
     {
-      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
+      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
             "File '%s' could not be found in Meadow file system.",
             dnldShared->dnldFullPathName);
     }
     else
     {
-      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
+      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
             "File '%s' could not be opened, error:%d",
-            dnldShared->dnldFullPathName, errno);
+            dnldShared->dnldFullPathName, savedErrno);
     }
 
     syslog(LOG_ERR, "%s@%d-Failed to open '%s', errno:%d\n",
-                thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
+                thisFile, __LINE__, dnldShared->dnldFullPathName, savedErrno);
 
     // This message will notify the user
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
               0, hostMsg, thisFile, __LINE__);
-    
+
     // This message will stop upload
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
               thisFile, __LINE__);
 
     hcom_dir_mgmt_free_file_info(dnldShared);
 
-    return -errno;
+    return -savedErrno;
   }
 
   // Calculate the CRC checksum
@@ -330,7 +332,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 
     hcom_dir_mgmt_free_file_info(dnldShared);
 
-    return -errno;
+    return detectError;
   }
 
 #if HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG > 0
@@ -359,7 +361,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 
     hcom_dir_mgmt_free_file_info(dnldShared);
 
-    return -errno;
+    return -ENOMEM;
   }
 
   fileMsg->fileInfo.fileSize = fileSize;
