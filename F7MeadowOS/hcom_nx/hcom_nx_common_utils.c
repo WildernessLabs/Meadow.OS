@@ -224,6 +224,21 @@ void hcom_nx_utils_apply_config_trace_level(int configTraceLevel)
 }
 
 //============================================================================
+// Immediately applies a fully-formed syslog mask to kernel-space, bypassing
+// the config-file-driven augmentation above. Called (via the /dev/upd
+// HCOM_NX_UPD_SET_SYSLOG_MASK ioctl) from user-space's
+// hcom_diag_trace_priority_change_trace_level() so a live CLI trace-level
+// change takes effect on kernel-space syslog() calls immediately, the same
+// way it already does for user-space's own mask -- instead of only taking
+// effect on kernel-space after the next reboot re-reads the BBR value that
+// CLI command also persists.
+void hcom_nx_utils_set_syslog_mask_now(uint32_t newMask)
+{
+  _syslogMask = newMask;
+  setlogmask(_syslogMask);
+}
+
+//============================================================================
 // This function provides the serial number to the CDCACM via a Nuttx definition
 FAR const char *board_usbdev_serialstr(void)
 {

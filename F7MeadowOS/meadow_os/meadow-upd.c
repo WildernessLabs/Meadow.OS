@@ -199,6 +199,7 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   int ret = -1;
   struct hcom_nx_upd_bbr_value *bbr_val;
   struct hcom_nx_upd_bbr_update *bbr_update;
+  struct hcom_nx_upd_syslog_mask *syslog_mask;
   struct hcom_nx_cmd_data *cmdData;
   struct hcom_nx_upd_is_part_mounted *is_mounted;
 
@@ -390,6 +391,15 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         return pwrmgmt_subscribe_for_low_pwr_notifications(*callback);
       }
 #endif
+
+    // Immediately applies a fully-formed syslog mask to kernel-space, so a
+    // live CLI trace-level change (user-space's
+    // hcom_diag_trace_priority_change_trace_level()) takes effect on
+    // kernel-space syslog() calls right away instead of only on next reboot.
+    case HCOM_NX_UPD_SET_SYSLOG_MASK:
+      syslog_mask = (struct hcom_nx_upd_syslog_mask *)arg;
+      hcom_nx_utils_set_syslog_mask_now(syslog_mask->value);
+      return OK;
 
 #endif  // defined (CONFIG_MEADOW_HCOM)
 

@@ -245,6 +245,11 @@ void hcom_diag_trace_priority_change_trace_level(uint32_t userData)
   int oldSyslogMask = setlogmask(newTraceLevelMask);
   _traceLevel = newTraceLevelMask;
 
+  // Give kernel-space syslog() calls the same immediate effect -- without
+  // this, kernel-space would only pick up the new mask on the next reboot,
+  // when it re-reads the BBR bits just persisted above.
+  hcom_via_nx_set_syslog_mask(newTraceLevelMask);
+
   switch (oldSyslogMask)
   {
     case HCOM_TRACE_MASK_NOTICE:

@@ -65,6 +65,12 @@ struct hcom_nx_upd_bbr_update
   uint32_t setBits;
 };
 
+// Kernel-space syslog mask
+struct hcom_nx_upd_syslog_mask
+{
+  uint32_t value;
+};
+
 struct hcom_nx_upd_update_flag
 {
   uint8_t offset;
@@ -244,5 +250,8 @@ typedef struct hcom_nx_upd_host_send_cb_s
 
 // Kernel-side test hooks
 #define HCOM_NX_UPD_EXECUTE_ESPCP_TESTS         (HCOM_NX_UPD_BASE + 0x80)
+
+// Kernel-space syslog mask
+#define HCOM_NX_UPD_SET_SYSLOG_MASK             (HCOM_NX_UPD_BASE + 0x90)
 
 #endif  // __INCLUDE_MEADOW_HCOM_NX_SHARED__H

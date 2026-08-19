@@ -333,6 +333,7 @@ int hcom_via_nx_set_bbr(uint32_t value);
 int hcom_via_nx_get_bbr(uint32_t *value);
 int hcom_via_nx_update_bbr(uint32_t clearBits, uint32_t setBits);
 int hcom_via_nx_update_bbr_alt(int alt_access_fd, uint32_t clearBits, uint32_t setBits);
+int hcom_via_nx_set_syslog_mask(uint32_t newMask);
 int hcom_via_nx_host_restart_meadow(void);
 int hcom_via_nx_only_restart_meadow(void);
 int hcom_via_nx_put_meadow_into_dfu_mode(void);
