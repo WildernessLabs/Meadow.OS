@@ -113,7 +113,7 @@ eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
 #
 # The following command causes the debugger to stop on a reset.
 #
-# monitor cortex_m vector_catch all
+monitor cortex_m vector_catch all
 #
 # This prints the following information so it looks like it will
 # common fault conditions.
