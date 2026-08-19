@@ -376,11 +376,14 @@ enum firmware_update_error
 };
 
 /*
-  Flashes a full set of firmware binaries staged for an update 
+  Flashes a full set of firmware binaries staged for an update
   Returns:
     0 when no update applied
     i > 0 when update applied, where i is the number of files flashed
-    (i * E) < 0 when an error occured, where i is index of the file and E is one of `firmware_update_error`
+    ((i + 1) * E) < 0 when an error occured, where i is index of the file and
+      E is one of `firmware_update_error` (the +1 keeps the encoding
+      distinguishable from the "no update applied" 0 case when the first
+      file, index 0, is the one that fails)
 */
 
 int hcom_nx_exec_ex_update_ESP32()
@@ -504,6 +507,6 @@ cleanup:
   }
   if (result > 0)
     hcom_esp32_exec_add_flash_end();
-  return result * i;
+  return (result < 0) ? (result * (i + 1)) : (result * i);
 }
 #endif
