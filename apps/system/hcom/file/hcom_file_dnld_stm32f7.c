@@ -705,9 +705,9 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
       else
       {
         snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
-                "Download of '%s' failed due to file size mismatch calculated:%d, sender:%d",
-                dnldShared->dnldOrigPathName, dnldShared->dnldRecvdFileSize,
-                dnldShared->dnldTotalFileSize);
+                "Download of '%s' failed due to checksum mismatch, received:0x%08X, sender:0x%08X, read-back:0x%08X",
+                dnldShared->dnldOrigPathName, dnldShared->dnldCalcFileCrc,
+                dnldShared->dnldInitFileCrc, actualFileCrc);
         msgToSend = hostMsg;
         requestType = HCOM_HOST_REQUEST_TEXT_ERROR;
       }
