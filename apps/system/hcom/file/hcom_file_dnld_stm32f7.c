@@ -366,7 +366,12 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   //           0, seqNumMsg, thisFile, __LINE__);
 
   // Compare _xferRecvFullFileSize with _xferCalcFullFileSize and send a message to host
-  int percentDone = (dnldShared->dnldRecvdFileSize  * 100) / dnldShared->dnldTotalFileSize;
+  int percentDone = 0;
+  if(dnldShared->dnldTotalFileSize != 0)
+  {
+    percentDone = ((uint64_t)dnldShared->dnldRecvdFileSize * 100) /
+              dnldShared->dnldTotalFileSize;
+  }
 
   if(percentDone / 10 != dnldShared->dnldPercentSent)
   {
