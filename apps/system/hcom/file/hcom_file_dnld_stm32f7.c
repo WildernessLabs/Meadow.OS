@@ -401,11 +401,10 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
     free(hostMsg);
   }
 
-  size_t binDataLen = packetSize - HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF;
-  if(binDataLen < 0)
+  if(packetSize < HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF)
   {
-    syslog(LOG_ERR, "%s@%d-binDataLen was out of range:%d\n",
-             thisFile, __LINE__, binDataLen);
+    syslog(LOG_ERR, "%s@%d-packetSize was out of range:%zu\n",
+             thisFile, __LINE__, packetSize);
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
       hcom_file_dnld_cleanup_cache_memory();
 #endif
@@ -413,6 +412,8 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
     return -EFAULT;   // Bad address
   }
+
+  size_t binDataLen = packetSize - HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF;
 
   // As received, calculate CRC checksum (without sequence number)
   dnldShared->dnldCalcFileCrc = crc32part(hcomDataMsg->binData, binDataLen,
