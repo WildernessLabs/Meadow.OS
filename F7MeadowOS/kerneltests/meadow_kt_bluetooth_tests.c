@@ -48,7 +48,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <malloc.h>
-#include <mqueue.h>
+#include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
 #include <time.h>
 #include <unistd.h>
 #include <syslog.h>
@@ -311,24 +311,30 @@ static const char *meadow_f7_json = R"({
  * Description:
  *  Open the ESP32 event message queue for reading.
  *
+ *  The queue is held as a struct file and driven through file_mq_*() rather
+ *  than as an mqd_t through mq_*(): this is kernel code, and the file_mq_*()
+ *  calls return a negated errno instead of writing errno in the current
+ *  task's TLS.
+ *
  * Input Parameters:
- *  None.
+ *  q - struct file to open the queue into.  Zeroed and populated by
+ *      file_mq_open().
  *
  * Returned Value:
- *  Valid mqd_t on success, (mqd_t)-1 on failure.
+ *  Zero on success, a negated errno on failure.
  *
  * Assumptions/Limitations:
  *   None
  *
  ****************************************************************************/
- static mqd_t meadow_kt_bluetooth_test_open_event_queue(void)
+ static int meadow_kt_bluetooth_test_open_event_queue(struct file *q)
 {
-    mqd_t q = mq_open(BT_EVENT_QUEUE_NAME, O_RDONLY | O_NONBLOCK);
-    if (q == (mqd_t)-1)
+    int ret = file_mq_open(q, BT_EVENT_QUEUE_NAME, O_RDONLY | O_NONBLOCK);
+    if (ret < 0)
     {
-        syslog(LOGGING_LEVEL, "    FAIL: Cannot open event queue: %d\n", errno);
+        syslog(LOGGING_LEVEL, "    FAIL: Cannot open event queue: %d\n", ret);
     }
-    return q;
+    return ret;
 }
 
 /****************************************************************************
@@ -373,7 +379,7 @@ static uint32_t meadow_kt_bluetooth_test_send_command(uint8_t interface, uint32_
  *  event queue and decode it into an espcp_event_data_t.
  *
  * Input Parameters:
- *  event_queue - open mqd_t for the event queue
+ *  event_queue - open struct file for the event queue
  *  timeout_ms  - maximum wait in milliseconds
  *  out_event   - set to a heap-allocated espcp_event_data_t on success;
  *                caller must free()
@@ -385,7 +391,7 @@ static uint32_t meadow_kt_bluetooth_test_send_command(uint8_t interface, uint32_
  *   None
  *
  ****************************************************************************/
-static int meadow_kt_bluetooth_test_receive_event(mqd_t event_queue, int timeout_ms, espcp_event_data_t **out_event)
+static int meadow_kt_bluetooth_test_receive_event(struct file *event_queue, int timeout_ms, espcp_event_data_t **out_event)
 {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
@@ -399,7 +405,7 @@ static int meadow_kt_bluetooth_test_receive_event(mqd_t event_queue, int timeout
 
     uint8_t encoded[BT_EVENT_ENCODED_SIZE];
     unsigned int priority = 0;
-    ssize_t result = mq_timedreceive(event_queue, (char *) encoded, sizeof(encoded), &priority, &ts);
+    ssize_t result = file_mq_timedreceive(event_queue, (char *) encoded, sizeof(encoded), &priority, &ts);
     if (result <= 0)
     {
         return -1;
@@ -465,7 +471,7 @@ static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint
  *  BluetoothStartingEvent, BluetoothStartedEvent, then a CompletedOk response.
  *
  * Input Parameters:
- *  event_queue - open mqd_t for the event queue
+ *  event_queue - open struct file for the event queue
  *  json_config - JSON configuration string for the BT stack
  *
  * Returned Value:
@@ -475,7 +481,7 @@ static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint
  *   None
  *
  ****************************************************************************/
-static bool meadow_kt_bluetooth_test_start_service(mqd_t event_queue, const char *json_config)
+static bool meadow_kt_bluetooth_test_start_service(struct file *event_queue, const char *json_config)
 {
     espcp_b_t_stack_config_t stack_config;
     stack_config.config = (char *) json_config;
@@ -537,7 +543,7 @@ static bool meadow_kt_bluetooth_test_start_service(mqd_t event_queue, const char
  *  BluetoothStoppingEvent, BluetoothStoppedEvent, then a CompletedOk response.
  *
  * Input Parameters:
- *  event_queue - open mqd_t for the event queue
+ *  event_queue - open struct file for the event queue
  *
  * Returned Value:
  *  true if stop succeeded (response status was CompletedOk), false otherwise.
@@ -546,7 +552,7 @@ static bool meadow_kt_bluetooth_test_start_service(mqd_t event_queue, const char
  *   None
  *
  ****************************************************************************/
-static bool meadow_kt_bluetooth_test_stop_bluetooth(mqd_t event_queue)
+static bool meadow_kt_bluetooth_test_stop_bluetooth(struct file *event_queue)
 {
     uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth,
                                            espcp_bluetooth_function_stop,
@@ -603,20 +609,21 @@ void meadow_kt_bluetooth_test_start_service_a(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: start meadow_a (Espressif company ID)\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_start_service(eq, meadow_a_json);
+    meadow_kt_bluetooth_test_start_service(&eq, meadow_a_json);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -639,20 +646,21 @@ void meadow_kt_bluetooth_test_start_service_b(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: start meadow_b (Baidu company ID)\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_start_service(eq, meadow_b_json);
+    meadow_kt_bluetooth_test_start_service(&eq, meadow_b_json);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -675,20 +683,21 @@ void meadow_kt_bluetooth_test_start_service_c(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: start meadow_c (No company ID)\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_start_service(eq, meadow_c_json);
+    meadow_kt_bluetooth_test_start_service(&eq, meadow_c_json);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -711,20 +720,21 @@ void meadow_kt_bluetooth_test_start_service_d(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: start meadow_d (Baidu company ID)\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_start_service(eq, meadow_d_json);
+    meadow_kt_bluetooth_test_start_service(&eq, meadow_d_json);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -747,20 +757,21 @@ void meadow_kt_bluetooth_test_start_service_meadow_f7(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: start meadow_f7 (Bluetooth_Basics config)\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_start_service(eq, meadow_f7_json);
+    meadow_kt_bluetooth_test_start_service(&eq, meadow_f7_json);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -783,20 +794,21 @@ void meadow_kt_bluetooth_test_stop_service(uint32_t value)
 {
     syslog(LOGGING_LEVEL, "********** BT: stop Bluetooth service\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    meadow_kt_bluetooth_test_stop_bluetooth(eq);
+    meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 
     usleep(BT_DELAY);
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -866,16 +878,17 @@ void meadow_kt_bluetooth_start_stop(void)
 {
     syslog(LOGGING_LEVEL, "********** BT: start/stop\n");
 
-    mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-    DEBUGASSERT(eq != (mqd_t)-1);
+    struct file eq;
+    int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+    DEBUGASSERT(eq_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    if (meadow_kt_bluetooth_test_start_service(eq, meadow_a_json))
+    if (meadow_kt_bluetooth_test_start_service(&eq, meadow_a_json))
     {
         usleep(BT_DELAY);
-        meadow_kt_bluetooth_test_stop_bluetooth(eq);
+        meadow_kt_bluetooth_test_stop_bluetooth(&eq);
     }
 
     usleep(BT_DELAY);
@@ -883,7 +896,7 @@ void meadow_kt_bluetooth_start_stop(void)
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(eq);
+    file_mq_close(&eq);
 }
 
 /****************************************************************************
@@ -906,18 +919,19 @@ void meadow_kt_bluetooth_start_stop(void)
 // {
 //     syslog(LOGGING_LEVEL, "********** BT: restart with different config\n");
 
-//     mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-//     DEBUGASSERT(eq != (mqd_t)-1);
+//     struct file eq;
+//     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+//     DEBUGASSERT(eq_result >= 0);
 
 //     ALLOCATE_HEAP_STRUCTURES;
 //     GET_INITIAL_HEAP_INFORMATION;
 
-//     if (meadow_kt_bluetooth_test_start_service(eq, meadow_a_json))
+//     if (meadow_kt_bluetooth_test_start_service(&eq, meadow_a_json))
 //     {
 //         usleep(BT_DELAY);
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         usleep(BT_DELAY);
-//         meadow_kt_bluetooth_test_start_service(eq, meadow_b_json);
+//         meadow_kt_bluetooth_test_start_service(&eq, meadow_b_json);
 //     }
 
 //     usleep(BT_DELAY);
@@ -925,7 +939,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     GET_FINAL_HEAP_INFORMATION;
 //     HEAP_USAGE_PASS_OR_FAIL;
 
-//     mq_close(eq);
+//     file_mq_close(&eq);
 // }
 
 /****************************************************************************
@@ -948,8 +962,9 @@ void meadow_kt_bluetooth_start_stop(void)
 // {
 //     syslog(LOGGING_LEVEL, "********** BT: restart 50 times\n");
 
-//     mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-//     DEBUGASSERT(eq != (mqd_t)-1);
+//     struct file eq;
+//     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+//     DEBUGASSERT(eq_result >= 0);
 
 //     ALLOCATE_HEAP_STRUCTURES;
 //     GET_INITIAL_HEAP_INFORMATION;
@@ -957,7 +972,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     for (int i = 0; i < 50; i++)
 //     {
 //         syslog(LOGGING_LEVEL, "    Iteration %d/50\n", i + 1);
-//         if (!meadow_kt_bluetooth_test_start_service(eq, meadow_a_json))
+//         if (!meadow_kt_bluetooth_test_start_service(&eq, meadow_a_json))
 //         {
 //             break;
 //         }
@@ -965,7 +980,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //         meadow_kt_bluetooth_stop_service(eq);
 //         usleep(500000);
 
-//         if (!meadow_kt_bluetooth_test_start_service(eq, meadow_b_json))
+//         if (!meadow_kt_bluetooth_test_start_service(&eq, meadow_b_json))
 //         {
 //             break;
 //         }
@@ -977,7 +992,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     GET_FINAL_HEAP_INFORMATION;
 //     HEAP_USAGE_PASS_OR_FAIL;
 
-//     mq_close(eq);
+//     file_mq_close(&eq);
 // }
 
 /****************************************************************************
@@ -1001,13 +1016,14 @@ void meadow_kt_bluetooth_start_stop(void)
 // {
 //     syslog(LOGGING_LEVEL, "********** BT: notify characteristic (interactive)\n");
 
-//     mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-//     DEBUGASSERT(eq != (mqd_t)-1);
+//     struct file eq;
+//     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+//     DEBUGASSERT(eq_result >= 0);
 
 //     ALLOCATE_HEAP_STRUCTURES;
 //     GET_INITIAL_HEAP_INFORMATION;
 
-//     if (!meadow_kt_bluetooth_test_start_service(eq, meadow_c_json))
+//     if (!meadow_kt_bluetooth_test_start_service(&eq, meadow_c_json))
 //     {
 //         goto done;
 //     }
@@ -1015,12 +1031,12 @@ void meadow_kt_bluetooth_start_stop(void)
 //     syslog(LOGGING_LEVEL, "    Waiting for client to connect...\n");
 
 //     espcp_event_data_t *event = NULL;
-//     int rc = meadow_kt_bluetooth_test_receive_event(eq, 60000, &event);
+//     int rc = meadow_kt_bluetooth_test_receive_event(&eq, 60000, &event);
 //     if (rc != 0)
 //     {
 //         syslog(LOGGING_LEVEL, "    FAIL: Timed out waiting for client connection\n");
 //         TEST_FAILED;
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         goto done;
 //     }
 
@@ -1046,7 +1062,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     {
 //         syslog(LOGGING_LEVEL, "    FAIL: malloc for ServerDataSet payload\n");
 //         TEST_FAILED;
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         goto done;
 //     }
 
@@ -1072,7 +1088,7 @@ void meadow_kt_bluetooth_start_stop(void)
 // done:
 //     GET_FINAL_HEAP_INFORMATION;
 //     HEAP_USAGE_PASS_OR_FAIL;
-//     mq_close(eq);
+//     file_mq_close(&eq);
 // }
 
 /****************************************************************************
@@ -1096,13 +1112,14 @@ void meadow_kt_bluetooth_start_stop(void)
 // {
 //     syslog(LOGGING_LEVEL, "********** BT: notify with descriptors (interactive)\n");
 
-//     mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-//     DEBUGASSERT(eq != (mqd_t)-1);
+//     struct file eq;
+//     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+//     DEBUGASSERT(eq_result >= 0);
 
 //     ALLOCATE_HEAP_STRUCTURES;
 //     GET_INITIAL_HEAP_INFORMATION;
 
-//     if (!meadow_kt_bluetooth_test_start_service(eq, meadow_d_json))
+//     if (!meadow_kt_bluetooth_test_start_service(&eq, meadow_d_json))
 //     {
 //         goto done;
 //     }
@@ -1110,12 +1127,12 @@ void meadow_kt_bluetooth_start_stop(void)
 //     syslog(LOGGING_LEVEL, "    Waiting for client to connect...\n");
 
 //     espcp_event_data_t *event = NULL;
-//     int rc = meadow_kt_bluetooth_test_receive_event(eq, 60000, &event);
+//     int rc = meadow_kt_bluetooth_test_receive_event(&eq, 60000, &event);
 //     if (rc != 0)
 //     {
 //         syslog(LOGGING_LEVEL, "    FAIL: Timed out waiting for client connection\n");
 //         TEST_FAILED;
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         goto done;
 //     }
 
@@ -1138,7 +1155,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     {
 //         syslog(LOGGING_LEVEL, "    FAIL: malloc for ServerDataSet payload\n");
 //         TEST_FAILED;
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         goto done;
 //     }
 
@@ -1159,12 +1176,12 @@ void meadow_kt_bluetooth_start_stop(void)
 //         TEST_FAILED;
 //     }
 
-//     meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//     meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 
 // done:
 //     GET_FINAL_HEAP_INFORMATION;
 //     HEAP_USAGE_PASS_OR_FAIL;
-//     mq_close(eq);
+//     file_mq_close(&eq);
 // }
 
 /****************************************************************************
@@ -1189,13 +1206,14 @@ void meadow_kt_bluetooth_start_stop(void)
 // {
 //     syslog(LOGGING_LEVEL, "********** BT: soak write characteristic (interactive)\n");
 
-//     mqd_t eq = meadow_kt_bluetooth_test_open_event_queue();
-//     DEBUGASSERT(eq != (mqd_t)-1);
+//     struct file eq;
+//     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
+//     DEBUGASSERT(eq_result >= 0);
 
 //     ALLOCATE_HEAP_STRUCTURES;
 //     GET_INITIAL_HEAP_INFORMATION;
 
-//     if (!meadow_kt_bluetooth_test_start_service(eq, meadow_f7_json))
+//     if (!meadow_kt_bluetooth_test_start_service(&eq, meadow_f7_json))
 //     {
 //         goto done;
 //     }
@@ -1209,7 +1227,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     {
 //         syslog(LOGGING_LEVEL, "    FAIL: GetHandles - status %u\n", (unsigned) status);
 //         TEST_FAILED;
-//         meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//         meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 //         goto done;
 //     }
 
@@ -1219,7 +1237,7 @@ void meadow_kt_bluetooth_start_stop(void)
 //     while (running)
 //     {
 //         espcp_event_data_t *event = NULL;
-//         if (meadow_kt_bluetooth_test_receive_event(eq, 60000, &event) != 0)
+//         if (meadow_kt_bluetooth_test_receive_event(&eq, 60000, &event) != 0)
 //         {
 //             syslog(LOGGING_LEVEL, "    Soak: timed out waiting for event\n");
 //             break;
@@ -1294,12 +1312,12 @@ void meadow_kt_bluetooth_start_stop(void)
 //         free(write_req);
 //     }
 
-//     meadow_kt_bluetooth_test_stop_bluetooth(eq);
+//     meadow_kt_bluetooth_test_stop_bluetooth(&eq);
 
 // done:
 //     GET_FINAL_HEAP_INFORMATION;
 //     HEAP_USAGE_PASS_OR_FAIL;
-//     mq_close(eq);
+//     file_mq_close(&eq);
 // }
 
 #endif  /* defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */
