@@ -55,6 +55,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
 #include <meadow/meadow-upd.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_kernel_tests.h>
@@ -391,8 +392,15 @@ static void espcp_test_start_wifi(void)
     //  once the network interface has started and one once the connection
     //  has completed.
     //
-    mqd_t event_queue = mq_open("/Esp32Events", O_RDONLY | O_NONBLOCK);
-    DEBUGASSERT(event_queue != -1);
+    //
+    //  Held as a struct file and driven through file_mq_*() rather than as an
+    //  mqd_t through mq_*(): this is kernel code, and the file_mq_*() calls
+    //  return a negated errno instead of writing errno in the current task's
+    //  TLS.
+    //
+    struct file event_queue;
+    int queue_result = file_mq_open(&event_queue, "/Esp32Events", O_RDONLY | O_NONBLOCK);
+    DEBUGASSERT(queue_result >= 0);
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -429,7 +437,7 @@ static void espcp_test_start_wifi(void)
         uint8_t encoded_event_header[22];
         memset(encoded_event_header, 0, sizeof(espcp_event_data_t));
         unsigned int priority;
-        int result = mq_receive(event_queue, (char *) &encoded_event_header, 22, &priority);
+        int result = file_mq_receive(&event_queue, (char *) &encoded_event_header, 22, &priority);
         DEBUGASSERT(result > 0);
         if (result > 0)
         {
@@ -461,7 +469,7 @@ static void espcp_test_start_wifi(void)
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    mq_close(event_queue);
+    file_mq_close(&event_queue);
 }
 /****************************************************************************
  * Name: espcp_test_configuration_items
