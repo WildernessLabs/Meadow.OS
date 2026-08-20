@@ -52,6 +52,7 @@
 /* USER CODE BEGIN PV */
 uint8_t board_version = 0;
 uint8_t bootloader_status = bootloader_no_op;
+uint32_t resetReason = 0x0a0a;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,6 +93,16 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  //
+  //	Grab the RCC clock control and status register contents and save
+  //	them for later.
+  //
+  resetReason = RCC->CSR;
+  //
+  //	Clear the reset status register as otherwise the bits can hang around.
+  //
+  __HAL_RCC_CLEAR_RESET_FLAGS();
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -116,12 +127,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   //	Turn off onboard LEDs
-    HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_SET);
+    // HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
+	// HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_SET);
+	// HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_SET);
 
-	//Turn on Green LED to indicate BL in operation
-	HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_RESET);
+	// //Turn on Green LED to indicate BL in operation
+	// HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_RESET);
 
 	LogConsole(INIT_MSG, SIZEOF(INIT_MSG));
 	//	CONFIG & VERIFY FMC
@@ -409,24 +420,24 @@ int main(void)
 			}
 			else
 			{
-				//Turn off Green LED and blink Red LED to indicate image check fail.
+				//Turn off Green LED and blink Blue LED to indicate image check fail.
 				LogConsole(PRIMARY_IMG_VERIFY_FAIL_MSG, SIZEOF(PRIMARY_IMG_VERIFY_FAIL_MSG));
-				HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
+				// HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
 				while(1)
 				{
-					HAL_GPIO_TogglePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin);
+					// HAL_GPIO_TogglePin(OnboardLedRed_GPIO_Port, OnboardLedBlue_Pin);
 					HAL_Delay(250);
 				}
 			}
 		}
 		else
 		{
-			//Turn off Green LED and blink Red LED to indicate image check fail.
-			HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
+			//Turn off Green LED and blink Blue LED to indicate image check fail.
+			// HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
 			while(1)
 			{
-				HAL_GPIO_TogglePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin);
-				HAL_Delay(250);
+				// HAL_GPIO_TogglePin(OnboardLedRed_GPIO_Port, OnboardLedBlue_Pin);
+				HAL_Delay(3000);
 			}
 		}
 	}
@@ -580,7 +591,7 @@ void BootMeadowOS(void)
 	HAL_QSPI_DeInit(&hqspi);
 
 	//Turn off Green LED to indicate exiting BL
-	HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
+	// HAL_GPIO_WritePin(OnboardLedGreen_GPIO_Port, OnboardLedGreen_Pin, GPIO_PIN_SET);
 
 	//	Reset RCC clock Config to default state
 	HAL_RCC_DeInit();
@@ -619,7 +630,14 @@ void BootMeadowOS(void)
 	SysTick->LOAD = 0;
 	SysTick->VAL  = 0;
 
-     HAL_DeInit();
+	//
+	//	Write the reset reason into battery backed register 30 ready
+	//	for the OS to pick up when it starts.
+	//
+	HAL_PWR_EnableBkUpAccess();
+	*((uint32_t *) 0x400028c8) = resetReason;
+
+    HAL_DeInit();
 
     // Perform Jump
 	JumpOS();
@@ -705,7 +723,7 @@ void PerformUpdate(void)
 {
 	bootloader_status = bootloader_update;
 	LogConsole(UPDATE_START_MSG, SIZEOF(UPDATE_START_MSG));
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_RESET);
 	SetOTAFlagState(update_flag, update_nuttx_in_progress);
 	SetOTAFlagState(update_failure_flag, update_fail_stage_one);
 	//	Stage 1 of 3: Copy nuttx kernel and user update from NUTTX_SEC_QSPI_LOC into SDRAM
@@ -742,7 +760,7 @@ void PerformUpdate(void)
 	//	This roughly takes 15s
 
 	//	Flash erase disables the blink interrupt. Keep Blue LED on to avoid user confusion
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_RESET);
 	LogConsole(UPDATE_STAGE_3_START_MSG, SIZEOF(UPDATE_STAGE_3_START_MSG));
 	SetOTAFlagState(update_failure_flag, update_fail_stage_three);
 	
@@ -755,7 +773,7 @@ void PerformUpdate(void)
 
 	SetOTAFlagState(update_flag, update_nuttx_complete);
 	SetOTAFlagState(update_failure_flag, update_fail_none);
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_SET);
+	// HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_SET);
 	LogConsole(UPDATE_COMPLETE_MSG, SIZEOF(UPDATE_COMPLETE_MSG));
 	bootloader_status = bootloader_no_op;
 }
@@ -765,7 +783,7 @@ void PerformRollback(void)
 	//!<TODO:	Set a ROLLBACK_INTERRUPTED flag that will be cleared at the end of the rollback progress (right before rollback_nuttx_pending is cleared)
 	bootloader_status = bootloader_rollback;
 	LogConsole(ROLLBACK_START_MSG, SIZEOF(ROLLBACK_START_MSG));
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_RESET);
 	SetOTAFlagState(rollback_flag, rollback_nuttx_in_progress);
 	SetOTAFlagState(rollback_failure_flag, rollback_fail);
 	//	Stage 1 of 1: Copy nuttx kernel and user previous from Secondary Location into Primary Location.
@@ -775,7 +793,7 @@ void PerformRollback(void)
 	data_buff = malloc(IO_BLOCK_SIZE);
 
 	//	Flash erase disables the blink interrupt. Keep Red LED on to avoid user confusion
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_RESET);
+	// HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_RESET);
 	ErasePrimaryNuttx();
 	for(uint8_t i = 0; i < (NUTTX_SIZE/IO_BLOCK_SIZE); i++)
 	{
@@ -790,7 +808,7 @@ void PerformRollback(void)
 	SetOTAFlagState(rollback_flag, rollback_nuttx_complete);
 	SetOTAFlagState(rollback_failure_flag, rollback_fail_none);
 	LogConsole(ROLLBACK_COMPLETE_MSG, SIZEOF(ROLLBACK_COMPLETE_MSG));
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_SET);
+	// HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_SET);
 	bootloader_status = bootloader_no_op;
 }
 
@@ -798,8 +816,6 @@ void BackupPrimaryImage(void)
 {
 	bootloader_status = bootloader_backup;
 	LogConsole(BACKUP_START_MSG, SIZEOF(BACKUP_START_MSG));
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_RESET);
 	SetOTAFlagState(backup_flag, backup_nuttx_in_progress);
 	SetOTAFlagState(backup_failure_flag, backup_fail);
 	//	Stage 1 of 1: Copy nuttx kernel and user current from Primary Location into NUTTX_SEC_QSPI_LOC	
@@ -809,8 +825,6 @@ void BackupPrimaryImage(void)
 	{
 		QSPI_Quad_Write_Page((NUTTX_SEC_QSPI_LOC) + (i * QSPI_PAGE_SIZE), (uint8_t*)(NUTTX_PRI_LOC + (QSPI_PAGE_SIZE * i)), QSPI_PAGE_SIZE);
 	}
-	HAL_GPIO_WritePin(OnboardLedBlue_GPIO_Port, OnboardLedBlue_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(OnboardLedRed_GPIO_Port, OnboardLedRed_Pin, GPIO_PIN_SET);
 	SetOTAFlagState(backup_flag, backup_nuttx_complete);
 	SetOTAFlagState(backup_failure_flag, backup_fail_none);
 	LogConsole(BACKUP_COMPLETE_MSG, SIZEOF(BACKUP_COMPLETE_MSG));
