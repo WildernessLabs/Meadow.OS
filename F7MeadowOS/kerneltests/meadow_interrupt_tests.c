@@ -50,6 +50,7 @@
 #include "arm_internal.h"           // putreg32
 #include "nvic.h"                   // NVIC access
 #include <nuttx/clock.h>
+#include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
 #include <nuttx/kthread.h>
 #include "meadow/meadow-upd.h"      // mint_config_interrupt(cfg);
 #include <meadow/meadow_interrupt.h>
@@ -278,15 +279,19 @@ static void meadow_interrupt_test_config_d05_add_debounce(uint32_t duration)
 static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
 {
   int ret;
-  mqd_t mint_test_mq_fd;
+  // Held as a struct file and driven through file_mq_*() rather than as an
+  // mqd_t through mq_*(): this is kernel code, and the file_mq_*() calls
+  // return a negated errno instead of writing errno in the current task's
+  // TLS. See the comment on _mint_mq in meadow_os/meadow_interrupt.c.
+  struct file mint_test_mq;
   mint_send_int_core_t mint_recvd_msg;
   ssize_t nbytes;
 
   // Open existing mq
-  mint_test_mq_fd = mq_open(MINT_MSG_QUEUE_NAME, O_RDONLY);
-  if (mint_test_mq_fd == (mqd_t)-1)
+  ret = file_mq_open(&mint_test_mq, MINT_MSG_QUEUE_NAME, O_RDONLY);
+  if (ret < 0)
   {
-    syslog(LOG_ERR, "Error:Mint test open mq:-1, errno:%d\n",errno);
+    syslog(LOG_ERR, "Error:Mint test open mq, ret:%d\n", ret);
     usleep(20 * 1000);
     _mqMonitorThreadCreated = false;
     return NULL;
@@ -295,22 +300,24 @@ static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
   // Read and display all interrupts, until we receive a command to stop
   while(true)
   {
-    // syslog(LOG_MTEST, "----> %s@%d-Calling mq_receive, waiting for message\n",
+    // syslog(LOG_MTEST, "----> %s@%d-Calling file_mq_receive, waiting\n",
     //   __FILE__, __LINE__);
     // usleep(20 * 1000);
 
-    nbytes = mq_receive(mint_test_mq_fd, (char *)&mint_recvd_msg,
+    nbytes = file_mq_receive(&mint_test_mq, (char *)&mint_recvd_msg,
       MEADOW_INTERRUPT_MQ_MSG_SIZE, NULL);
     if(nbytes < 0)
     {
-      // Signal
-      if(errno == EINTR)
+      // Signal. file_mq_receive() reports this in its return value, not in
+      // errno, so this tests nbytes - the mq_receive() form of this loop
+      // tested errno, which is not set by the file_mq_*() calls at all.
+      if(nbytes == -EINTR)
       {
         continue;
       }
 
-      syslog(LOG_ERR, "---->%s@%d-Mint test - Error:mq_receive, ret:%d, errno:%d\n",
-        __FILE__, __LINE__, nbytes, errno);
+      syslog(LOG_ERR, "---->%s@%d-Mint test - Error:file_mq_receive, ret:%d\n",
+        __FILE__, __LINE__, nbytes);
         usleep(20 * 1000);
       break;
     }
@@ -379,10 +386,10 @@ static void *meadow_interrupt_test_monitor_mint_mq(int argc, char *argv[])
   }   // while true
 
   // Close mq
-  ret = mq_close(mint_test_mq_fd);
+  ret = file_mq_close(&mint_test_mq);
   if (ret < 0)
   {
-    syslog(LOG_MTEST, "Mint test read mq, mq_close error, ret:%d\n", ret);
+    syslog(LOG_MTEST, "Mint test read mq, file_mq_close error, ret:%d\n", ret);
   }
 
   _mqMonitorThreadCreated = false;
