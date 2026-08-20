@@ -53,6 +53,26 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+// Initial capacity of the explicit directory-walk stack (see
+// hcom_file_lists_stack_frame_s below) used by
+// hcom_file_lists_all_dev_dir_and_files(). Grows via realloc() as needed --
+// this is just a starting point, not a depth limit.
+#define HCOM_FILE_LISTS_INITIAL_STACK_CAPACITY  (8)
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+// One entry per currently-open directory level of the iterative walk in
+// hcom_file_lists_all_dev_dir_and_files(). The array of these lives on the
+// heap, not the hcom task's own (small, fixed) stack, so directory nesting
+// depth is limited only by available heap, not by risking a task-stack
+// overflow (see Documentation/CodeReviewTracking.md F037).
+struct hcom_file_lists_stack_frame_s
+{
+  DIR *dir;
+  char path[256];
+  int indent;
+};
 
 /****************************************************************************
  * Private Data
@@ -81,43 +101,114 @@ int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData)
 }
 
 //----------------------------------------------
-// NOTE - Recursive function
+// Walks the directory tree rooted at 'name', listing every file and
+// subdirectory to the CLI. Iterative -- uses an explicit, heap-allocated
+// stack of open directory levels (growing via realloc() as needed) instead
+// of recursing, so it can walk directory trees of any depth without risking
+// the hcom task's own stack.
 int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t userData)
 {
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+  struct hcom_file_lists_stack_frame_s *stack;
+  int stackCapacity = HCOM_FILE_LISTS_INITIAL_STACK_CAPACITY;
+  int stackTop;
 
-  DIR *dir;
-  struct dirent *entry;
+  stack = malloc(stackCapacity * sizeof(*stack));
+  if(stack == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
 
-  if (!(dir = opendir(name)))
+  // Push the root directory to begin the walk.
+  stack[0].dir = opendir(name);
+  if(stack[0].dir == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
               thisFile, __LINE__, name);
+    free(stack);
     return -1;
   }
+  snprintf_chk(stack[0].path, sizeof(stack[0].path), "%s", name);
+  stack[0].indent = indent;
+  stackTop = 1;
 
-  while ((entry = readdir(dir)) != NULL)
+  while(stackTop > 0)
   {
-    if (DIRENT_ISDIRECTORY(entry->d_type))
+    struct hcom_file_lists_stack_frame_s *top = &stack[stackTop - 1];
+    struct dirent *entry = readdir(top->dir);
+
+    if(entry == NULL)
+    {
+      // Fully enumerated this level -- close it and resume the parent
+      // level (if any) right where its own readdir() left off.
+      closedir(top->dir);
+      stackTop--;
+      continue;
+    }
+
+    if(DIRENT_ISDIRECTORY(entry->d_type))
     {
       // Only show procfs information if userData == 1234
       if(userData != 1234 && strcmp(entry->d_name, "proc") == 0)
+      {
+        // Stop the whole walk here; close every level still open first.
+        while(stackTop > 0)
+        {
+          closedir(stack[stackTop - 1].dir);
+          stackTop--;
+        }
+        free(stack);
         return OK; // ignore procfs information
+      }
 
       // Don't display /. and /..
-      if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+      if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
         continue;
 
       snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-              "%*s%s/\n", indent, "", entry->d_name);
+              "%*s%s/\n", top->indent, "", entry->d_name);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
                 0, hostMsg, thisFile, __LINE__);
 
-      char path[256];
-      snprintf_chk(path, sizeof(path), "%s/%s", name, entry->d_name);
-      
-      // Recursion is here
-      hcom_file_lists_all_dev_dir_and_files(path, indent + 3, userData);
+      char childPath[256];
+      snprintf_chk(childPath, sizeof(childPath), "%s/%s", top->path, entry->d_name);
+      int childIndent = top->indent + 3;
+
+      DIR *childDir = opendir(childPath);
+      if(childDir == NULL)
+      {
+        syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
+                  thisFile, __LINE__, childPath);
+        continue; // Skip this subdirectory, keep listing siblings
+      }
+
+      // Grow the stack if the newly-discovered subdirectory doesn't fit.
+      if(stackTop == stackCapacity)
+      {
+        int newCapacity = stackCapacity * 2;
+        struct hcom_file_lists_stack_frame_s *newStack =
+            realloc(stack, newCapacity * sizeof(*stack));
+        if(newStack == NULL)
+        {
+          syslog(LOG_ERR, "%s@%d-realloc returned NULL\n", thisFile, __LINE__);
+          closedir(childDir);
+          while(stackTop > 0)
+          {
+            closedir(stack[stackTop - 1].dir);
+            stackTop--;
+          }
+          free(stack);
+          return -ENOMEM;
+        }
+        stack = newStack;
+        stackCapacity = newCapacity;
+      }
+
+      stack[stackTop].dir = childDir;
+      snprintf_chk(stack[stackTop].path, sizeof(stack[stackTop].path), "%s", childPath);
+      stack[stackTop].indent = childIndent;
+      stackTop++;
     }
     else
     {
@@ -127,14 +218,30 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
       else if(DIRENT_ISCHR(entry->d_type)) {entryType = "char";}
       else if(DIRENT_ISBLK(entry->d_type)) {entryType = "block";}
       else if(DIRENT_ISLINK(entry->d_type)) {entryType = "link";}
-      else {entryType = "????";}
-      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-              "%*s%s [%s]\n",indent, "", entry->d_name, entryType);
+      else if(DIRENT_ISFIFO(entry->d_type)) {entryType = "fifo";}
+      else if(DIRENT_ISSEM(entry->d_type)) {entryType = "sem";}
+      else if(DIRENT_ISMQ(entry->d_type)) {entryType = "mq";}
+      else if(DIRENT_ISSHM(entry->d_type)) {entryType = "shm";}
+      else if(DIRENT_ISMTD(entry->d_type)) {entryType = "mtd";}
+      else if(DIRENT_ISSOCK(entry->d_type)) {entryType = "sock";}
+      else if(DIRENT_ISUNKNOWN(entry->d_type)) {entryType = "unknown";}
+      else {entryType = "";}
+
+      if(strlen(entryType) > 0)
+      {
+        snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+                "%*s%s [%s]\n", top->indent, "", entry->d_name, entryType);
+      }
+      else
+      {
+        snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+                "%*s%s\n", top->indent, "", entry->d_name);
+      }
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
                 0, hostMsg, thisFile, __LINE__);
     }
   }
 
-  closedir(dir);
+  free(stack);
   return OK;
 }
