@@ -143,6 +143,25 @@ void hcom_file_dnld_esp32_set_to_inactive()
   _currentESP32DnldState = HcomESP32DnldStateNone;
 }
 
+//==========================================================================
+// Abort whatever ESP32 download is currently in progress: free its file
+// buffer and reset back to the inactive state. Called both when a data
+// packet overruns the expected file size, and from the shared watchdog
+// timeout cleanup path (hcom_host_watchdog.c) when a stalled host leaves
+// an ESP32 firmware transfer stuck mid-flight.
+void hcom_file_dnld_esp32_abort_active_download()
+{
+  if (_esp32FileBuffer != NULL)
+  {
+    free(_esp32FileBuffer);
+    _esp32FileBuffer = NULL;
+  }
+  _nextStorageAddress = NULL;
+  _endAddress = NULL;
+
+  hcom_file_dnld_esp32_set_to_inactive();
+}
+
 //============================================================================
 // Called from hcom_host_route()
 void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
@@ -261,11 +280,7 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer",
             _thisFile, __LINE__);
 
-    free(_esp32FileBuffer);
-    _esp32FileBuffer = NULL;
-    _nextStorageAddress = NULL;
-    _endAddress = NULL;
-    hcom_file_dnld_esp32_set_to_inactive();
+    hcom_file_dnld_esp32_abort_active_download();
   }
 }
 
