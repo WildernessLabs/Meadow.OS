@@ -862,9 +862,11 @@ static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioI
   {
     if(ret == -ENOMEM)
     {
-      // This message will be output if there is no MQ reader after the
-      // MEADOW_INTERRUPT_MQ_MSG_SIZE number of interrupts.
-      syslog(LOG_ERR, "Pin 0x%02x, MQ overflow\n", gpioInfoAddr->PinId);
+      // -ENOMEM, not -EAGAIN: the shared message pool ran dry, not this
+      // queue. Bodies come from CONFIG_PREALLOC_MQ_MSGS (8) +
+      // CONFIG_PREALLOC_MQ_IRQ_MSGS (8), system-wide. To carry deeper
+      // bursts raise CONFIG_PREALLOC_MQ_IRQ_MSGS, not MINT_MSG_QUEUE_MAX_MSGS.
+      syslog(LOG_ERR, "Pin 0x%02x, MQ message pool is empty\n", gpioInfoAddr->PinId);
     }
     else
     {
