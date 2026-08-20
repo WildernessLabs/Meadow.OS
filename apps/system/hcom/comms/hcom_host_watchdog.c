@@ -110,6 +110,34 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 {
   int ret;
 
+  // Delete the download wdog timer that got us here
+  hcom_host_watchdog_dnld_timer_cancel();
+
+  // This shared timer covers both the STM32F7 and ESP32 download paths, and
+  // each keeps its own, unrelated state -- so cleanup has to know which one
+  // was actually stalled rather than always assuming STM32F7.
+  if (hcom_file_dnld_esp32_is_active())
+  {
+    syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup (ESP32)\n", __FILE__, __LINE__);
+
+    hcom_file_dnld_esp32_abort_active_download();
+
+    // Clear the receive data buffer queue
+    if(! hcom_host_enq_deq_clear_buffer())
+    {
+      syslog(LOG_ERR, "%s@%d-ESP32 download failed, clearing buff failed\n",
+               thisFile, __LINE__);
+    }
+
+    // Tell CLI to restart the download
+    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+          "ESP32 firmware download failed, resend");
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
+          thisFile, __LINE__);
+    return;
+  }
+
   // dnldOrigPathName is NULL whenever no download is active. The enqueue/
   // dequeue fast-path fix should prevent this cleanup from firing while idle,
   // but guard the %s formatting below regardless, since NULL there would be
@@ -119,9 +147,6 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
       _dnldShared->dnldOrigPathName : "(none)";
 
   syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
-
-  // Delete the download wdog timer that got us here
-  hcom_host_watchdog_dnld_timer_cancel();
 
   // Close the partially downloaded file
   ret = hcom_file_write_close_active_file(_dnldShared);

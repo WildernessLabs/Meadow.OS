@@ -217,6 +217,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
 int hcom_file_dnld_esp32_setup(void);
 bool hcom_file_dnld_esp32_is_active(void);
 void hcom_file_dnld_esp32_set_to_inactive(void);
+void hcom_file_dnld_esp32_abort_active_download(void);
 void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg);
 void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *dataMsg,
       const size_t packetSize);
