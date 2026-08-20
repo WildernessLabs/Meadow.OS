@@ -112,21 +112,19 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static mqd_t _mint_mqd;
-
-// Resolved once, in meadow_interrupt_setup(), from _mint_mqd via file_get()
-// while running on the task that opened it. mint_forward_interrupt_to_core()
-// sends through this cached struct file* (via file_mq_send()) instead of
-// _mint_mqd (via mq_send()) because mq_send()/nxmq_send() resolve a mqd_t
-// against the CALLING task's file descriptor table (see
-// nxsched_get_fdlist()/this_task()), and this is sent from GPIO/timer ISR
-// context - i.e. whatever task happened to be running when the interrupt
-// fired, which is frequently a different task (and thus a different, unrelated
-// fd table) than the one that originally opened the queue. That mismatch
-// causes mq_send() to intermittently fail with EBADF. file_mq_send() operates
-// directly on the resolved struct file*, bypassing that per-task lookup
-// entirely, so it works correctly regardless of which task is current.
-static struct file *_mint_mq_filep;
+// The interrupt queue is held as a struct file and driven through the
+// file_mq_*() family rather than as an mqd_t through mq_*(), because
+// mq_send()/nxmq_send() resolve a mqd_t against the CALLING task's file
+// descriptor table (see nxsched_get_fdlist()/this_task()), and sends happen in
+// GPIO/timer ISR context - i.e. whatever task happened to be running when the
+// interrupt fired, which is frequently a different task (and thus a different,
+// unrelated fd table) than the one that opened the queue. That mismatch causes
+// mq_send() to intermittently fail with EBADF. The file_mq_*() calls operate
+// directly on this struct file, bypassing the per-task lookup entirely, so
+// they work correctly regardless of which task is current. They also return a
+// negated errno rather than setting errno, which matters because errno lives
+// in the current task's TLS - an unrelated user thread's, in an ISR.
+static struct file _mint_mq;
 
 static bool _firstTimeConfig = true;
 
@@ -282,25 +280,10 @@ int meadow_interrupt_setup(void)
   attr.mq_msgsize = MEADOW_INTERRUPT_MQ_MSG_SIZE;
   attr.mq_curmsgs = 0;
 
-  _mint_mqd = mq_open(MINT_MSG_QUEUE_NAME, O_WRONLY | O_CREAT, 0660, &attr);
-  if (_mint_mqd == (mqd_t)-1)
-  {
-    int errcode = get_errno();
-    syslog(LOG_ERR, "%s@%d-mq_open failed: %d\n", __FILE__, __LINE__, errcode);
-    return -errcode;
-  }
-
-  // Resolve _mint_mqd to its underlying struct file* now, while running on
-  // the task that just opened it, so mint_forward_interrupt_to_core() can
-  // send through the resolved file object (via file_mq_send()) from ISR
-  // context later, instead of re-resolving the mqd_t against whatever task's
-  // file descriptor table happens to be current when the interrupt fires.
-  int ret = file_get(_mint_mqd, &_mint_mq_filep);
+  int ret = file_mq_open(&_mint_mq, MINT_MSG_QUEUE_NAME, O_WRONLY | O_CREAT, 0660, &attr);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-file_get failed: %d\n", __FILE__, __LINE__, ret);
-    mq_close(_mint_mqd);
-    _mint_mqd = (mqd_t)-1;
+    syslog(LOG_ERR, "%s@%d-file_mq_open failed: %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -310,12 +293,7 @@ int meadow_interrupt_setup(void)
 //=============================================================================
 void meadow_interrupt_shutdown(void)
 {
-  if(_mint_mqd != (mqd_t)-1)
-  {
-    mq_close(_mint_mqd);
-    _mint_mqd = (mqd_t)-1;
-    _mint_mq_filep = NULL;
-  }
+  file_mq_close(&_mint_mq);
 }
 
 //=============================================================================
@@ -492,7 +470,7 @@ static int mint_isr_periodic(int irq, void *context, void *arg)
   // mint_add_to_timed_list_and_incr()/mint_remove_from_timed_list_and_decr(),
   // so a concurrent add/remove here can at most shift which entry lands in
   // which slot, causing one entry to be processed one 0.1ms tick early/late
-  // - not a corrupted read. Wrapping this scan (and the mq_send() calls it
+  // - not a corrupted read. Wrapping this scan (and the file_mq_send() calls it
   // can lead to) in a critical section too would be a much larger change,
   // not needed just to fix that.
   int offset = 0;
@@ -873,12 +851,12 @@ static inline int mint_forward_interrupt_to_core(struct interruptPinMap_s *gpioI
   mint_send_msg.mintSysTicks = clock_systime_ticks();
 #endif
 
-  // file_mq_send() sends through the struct file* resolved once in
-  // meadow_interrupt_setup(), instead of re-resolving _mint_mqd against
+  // file_mq_send() sends through the struct file opened in
+  // meadow_interrupt_setup(), rather than resolving a descriptor against
   // whichever task's file descriptor table happens to be current when this
-  // ISR runs (see the comment on _mint_mq_filep). Unlike mq_send(), it
-  // returns 0 or a negated errno directly - it does not set errno.
-  ret = file_mq_send(_mint_mq_filep, (char *) &mint_send_msg,
+  // ISR runs (see the comment on _mint_mq). Unlike mq_send(), it returns 0 or
+  // a negated errno directly - it does not set errno.
+  ret = file_mq_send(&_mint_mq, (char *) &mint_send_msg,
     MEADOW_INTERRUPT_MQ_MSG_SIZE, 0);
   if(ret < 0)
   {
