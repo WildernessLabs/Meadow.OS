@@ -62,4 +62,26 @@
 // what is true for this boot instead of what is pending for the next one.
 bool meadow_storage_mode_active(void);
 
+//---------------------------------------------------------------------------
+// Reports whether board-side writes to a path are allowed right now.
+//
+// In storage mode a host computer may have the Meadow file system mounted, and
+// the view it was given is a snapshot: the mapping from FAT clusters to files
+// was computed once, when the host first read from the volume. A board-side
+// write afterwards does not corrupt /meadow0, since the host's view is
+// read-only, but it does invalidate that mapping, so the host would go on
+// reading from cluster runs that no longer describe the files. USB mass storage
+// has no way to tell an already-mounted host that anything changed.
+//
+// Freezing the file system for the duration is therefore the point, not a side
+// effect. It is also what you want when the reason for entering storage mode
+// was to copy the log off in the first place.
+//
+// Log lines produced while writes are blocked are not lost outright; they still
+// reach syslog, they just do not reach the file.
+//
+// path - the file about to be written, so that only the Meadow file system is
+//        affected
+bool meadow_storage_mode_writes_permitted(const char *path);
+
 #endif  // __INCLUDE_MEADOWOS_MEADOW_STORAGE_MODE_H

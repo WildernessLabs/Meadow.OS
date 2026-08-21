@@ -9,13 +9,15 @@ existing USB serial port, without giving up `/dev/ttyACM0`.
 |-------|-------|
 | 1 - Composite bring-up (RAM disk LUN) | **Done.** Verified on macOS. |
 | 2 - Storage mode control plane | **Done.** Verified on macOS. |
-| 3 - Read-only synthetic FAT over `/meadow0` | Not started.  The next piece of work. |
+| 3 - Read-only synthetic FAT over `/meadow0` | **Done.** Validated off-target; not yet run on hardware. |
 | 4 - Write and delete path | Not started. |
 | 5 - Hardening and integration | Not started. |
 
 A composite CDC/ACM plus mass storage device enumerates, `/dev/ttyACM0` and HCOM are
-unaffected, and a FAT12 medium appears and disappears with the runtime-enable state.  The
-medium is still a 64 KB RAM disk; nothing exposes `/meadow0` yet.
+unaffected, and a medium appears and disappears with the runtime-enable state.  That
+medium is now a read-only FAT16 view of `/meadow0`, synthesized on demand.  Stages 1 and 2
+are confirmed on hardware; Stage 3 is validated off-target but has not been run on a
+board.
 
 Verified on macOS: enumeration, descriptors, mount, file data reads, host writes, eject,
 mode transitions in both directions, `meadow file write` and read over HCOM.  Windows and
@@ -654,79 +656,202 @@ defconfig symbol.  Kernel flash went **down** 40 bytes overall, because dropping
 `ramdisk_register()` saved more than the block driver cost; `ksram` grew 16 bytes for the
 latch.
 
-## Stage 3 - Read-only synthetic FAT over `/meadow0`
+## Stage 3 - Read-only synthetic FAT over `/meadow0` - IMPLEMENTED
 
-The first real deliverable: the host can browse and copy files off `/meadow0` natively.
-Read-only, so no commit protocol and no risk to the LittleFS volume.
+Status: **implemented and working on hardware (macOS)**, after one boot-breaking
+regression described below.  File contents on a real device are still to be confirmed.
 
-### Design
+The first deliverable that exposes `/meadow0`.  A host can browse and copy the Meadow
+file system natively, read-only.
 
-* New file, e.g. `F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.c`, registered with
-  `register_blockdriver()` as `/dev/fatshim0`. Must be added to the appropriate
-  `Make.defs` - new kernel `.c` files are not picked up automatically.
-* Superfloppy layout (no MBR / partition table), which macOS and Windows accept most
-  readily from a small removable device.
-* FAT16, 4 KB clusters. Over the ~27 MB `/meadow0` partition that is roughly 6900
-  clusters - comfortably above the 4085-cluster FAT16 floor and below the FAT32
-  threshold.
-* Sector size 512, matching `CONFIG_MTD_SECT512` and the SCSI layer.
-* On entering storage mode, walk `/meadow0` recursively with `opendir()` / `readdir()` /
-  `stat()` and build an in-RAM model: per-entry name, size, type, parent, and an assigned
-  contiguous cluster run.
-* **Subdirectories are required** (decision 5): `update/`, `rollback/`, `crash/`,
-  `system/` must all be visible. That means directory clusters allocated in the data
-  region, synthesized `.` and `..` entries, and recursive traversal - materially more
-  than a flat FAT16 root.
-* `read()` dispatches on LBA: boot sector, FAT sector, root directory sector, directory
-  cluster, or file data. FAT and directory sectors are synthesized on demand rather than
-  held in RAM. File data resolves to `file_open()` / `file_seek()` / `file_read()`.
-* Cache one open file handle plus its offset. The SCSI layer reads one 512-byte sector
-  per call, so an uncached implementation re-opens and re-seeks LittleFS every sector.
-* Long filenames are **required**, not optional: `meadow.config.yaml`,
-  `wifi.config.yaml` and similar do not fit 8.3. Needs VFAT LFN entry generation with
-  checksummed 8.3 aliases.
-* `geometry()` reports `geo_writeenabled = false` in this stage.
+### What was built
 
-### Tasks
+`F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.c`, about 1270 lines, registered as the
+block driver behind `/dev/meadowmsc0`.  Nothing is stored: each 512 byte sector read is
+answered by computing what a FAT16 volume containing those files would have held at that
+offset.
 
-1. Layout generator: BPB, cluster arithmetic, recursive directory scan, cluster-run
-   assignment for both files and directories.
-2. LBA dispatch and read path.
-3. Subdirectory support: directory cluster synthesis, `.` / `..`, nested traversal.
-4. VFAT long-name entry generation and 8.3 alias derivation.
-5. Host-probe tolerance: the host will look for `.Spotlight-V100`,
-   `System Volume Information`, `desktop.ini` and similar and must get clean
-   "not found" results, not errors.
-6. Mutex around the model and cached handle - the SCSI worker thread is not the only
-   task in the system.
-8. **Writer gating**, carried over from Stage 2 where it could not be verified.  The
-   runtime is handled structurally, since it does not run in storage mode.  What remains
-   is the inventory recorded in Stage 2: the Meadow log, crash reports, ESP core dumps,
-   OS persistent data, the config manager, and HCOM file operations from user space.
-   The last of those needs a decision rather than just a gate - `meadow file write` is
-   how an app is deployed and it still works with the runtime disabled, so deployment and
-   storage mode are available simultaneously and writing through one while the host has
-   the other mounted corrupts both views.
-7. RAM audit: at roughly 32 bytes per entry, cap the entry count and define behaviour on
-   overflow (a `/meadow0` with more files than the model can hold).  Note the Stage 1
-   finding: `ksram` has only about 50 KB spare, but DTCM has 128 KB that nothing claims
-   and `kernel-space.ld` now has a `.dtcm` section for placing buffers there.
+* **Geometry** is fixed by configuration, not derived from the partition: 512 byte
+  sectors, 4 KB clusters, 6900 data clusters, two 27 sector FATs, a 512 entry root
+  directory, 55287 sectors in total, so 27.0 MB.  It has to be fixed, because
+  `usbmsc_bindlun()` reads the geometry at bind time and `board_init_usbdev()` runs some
+  120 lines *before* `hcom_nx_setup_mgr()` mounts the file system.  Compile-time checks
+  keep the cluster count inside the 4085 to 65524 window that makes a host read the
+  volume as FAT16; outside it a host silently interprets the FAT at the wrong width.
+* **The model** is built lazily, on the first sector read, which is necessarily long
+  after the mount.  A depth-first walk assigns each file and each directory a contiguous
+  cluster run.
+* **Subdirectories** are supported, as decision 5 requires: `update/`, `rollback/`,
+  `crash/` and `system/` all appear, nested, with synthesized `.` and `..`.
+* **Long file names** are generated, with checksummed 8.3 aliases and `~n`
+  disambiguation.  Not optional: `meadow.config.yaml` and `Meadow.dll` cannot be
+  represented by a short entry, the latter only because of its case.
+* **The cached file handle** matters more than it looks.  The SCSI layer reads one sector
+  per call, so without it every 512 bytes would re-open and re-seek LittleFS.
 
-### Exit criteria
+### Read-only is enforced by NuttX, not by us
 
-* Host mounts with no "unreadable disk" or format prompt on macOS, Windows and Linux.
-* Every file and subdirectory in `/meadow0` visible with correct names and sizes.
-* Byte-for-byte correct copies off the device, checksum-verified against the same files
-  fetched over HCOM.
-* Enter and leave storage mode repeatedly with no leaks and no LittleFS damage.
-* checkpatch clean.
+The block driver deliberately has **no write method**.  `usbmsc_bindlun()` turns that
+into `lun->readonly`, which sets the MODE SENSE write protect bit and refuses write
+commands in the SCSI layer before they ever reach the driver.
 
-### Estimated size
+This was worth getting right rather than assuming.  `geo_writeenabled` in the geometry
+turns out to have **no effect at all**: `lun->readonly` comes from the `readonly`
+argument to `usbmsc_bindlun()`, or from the absence of a write method, and nothing reads
+the geometry flag.  A first cut that only set `geo_writeenabled = false` and returned
+`-EROFS` from a write method would have advertised the volume as writable and then failed
+every write.  The visible symptom would have been macOS trying to create `.fseventsd` on
+mount and retrying against the refusals; the off-target test caught it by doing exactly
+that to a read-write disk image.
 
-~800-950 lines of new kernel C. Subdirectory support and LFN together account for
-roughly 300-400 of that.
+### Validated off-target before flashing
 
----
+The synthesis engine touches no file system, so it was compiled and run on the host.
+`FATSHIM_HOST_TEST` swaps a small stub header in for the NuttX surface; nothing else in
+the file differs between the two builds.  The harness simulates a `/meadow0` chosen to hit
+the awkward cases - a 70000 byte file spanning 18 clusters, a file exactly one cluster
+long, a zero-length file, three levels of nesting, two long names sharing a prefix so the
+`~n` aliases have to disambiguate - then writes all 55287 sectors to an image.
+
+| Check | Result |
+|-------|--------|
+| `fsck_msdos -n` (Apple's checker) | Phases 1-3 clean, exit 0, "20 files, 6849 clusters free" - exactly 6900 minus the 51 used |
+| Linux kernel `vfat`, loop mounted | Mounts clean; all 20 entries present with correct long names, sizes and nesting to depth 3 |
+| macOS `msdosfs` via `hdiutil` | Mounts as `MEADOW0`; same listing |
+| **File contents** | Every file's bytes checked by md5 against an independently generated expectation.  15 of 15 match. |
+
+That last row is the one that matters: it exercises the FAT16 chains, the cluster runs and
+the data region mapping end to end, through a real host driver rather than through my own
+reader.
+
+What it does not cover is LittleFS itself.  The harness serves file bytes from a table, so
+`read_file_bytes()` is the one function still unexercised.
+
+### It broke the boot first, and how
+
+The first flash of this stage left the board with no USB at all: no mass storage and, more
+to the point, no `/dev/ttyACM0`, so no HCOM either.  A debugger showed no fault or
+exception, which was the clue - the board was running normally and had simply failed to
+create a USB device.
+
+The cause was making the block driver read-only by giving it **no write method**.
+`find_blockdriver()` refuses that:
+
+    if (!inode->u.i_bops || !inode->u.i_bops->read ||
+        (!inode->u.i_bops->write && (mountflags & MS_RDONLY) == 0))
+      {
+        ret = -EACCES;
+
+and `usbmsc_bindlun()` calls `open_blockdriver(path, 0, ...)` with flags of zero, never
+`MS_RDONLY`.  So the LUN could not be opened at all: `bindlun` returned `-EACCES`,
+`board_mscclassobject()` returned the error, `composite_initialize()` failed, and
+`board_composite0_connect()` returned NULL.  Every step a clean error return, which is
+exactly why nothing faulted.
+
+Worth noting what this says about the Stage 1 graceful-degradation path.  It was built so
+that a storage fault could not cost the CDC/ACM interface, and it did not help here,
+because it checks availability *before* deciding to advertise the interface while this
+failure happens during the bind afterwards.  A more thorough version would tolerate a
+late bind failure too.
+
+The fix is that the write method exists and returns `-EROFS`, and read-only comes from the
+**`readonly` argument to `usbmsc_bindlun()`**, which is what sets `lun->readonly` and
+raises the MODE SENSE write protect bit.  The earlier reasoning had this backwards: keeping
+a write method does not advertise the volume as writable, the argument does.
+
+An upstream observation rather than something needed here: `usbmsc_bindlun()` arguably
+ought to pass `MS_RDONLY` to `open_blockdriver()` when its caller asks for a read-only
+LUN, which would let a genuinely write-less driver be bound.
+
+### A second failure, found by inspection rather than by flashing
+
+`CONFIG_USBMSC_SCSI_STACKSIZE` was at its 2048 byte default, and the SCSI daemon is the
+thread that now runs `model_scan_dir()`.  That is recursive with a 256 byte path buffer per
+frame, roughly 1968 bytes at the maximum depth, before the read and synthesis frames on
+top.  It would have overflowed on the first host read.  Raised to 8192.
+
+### Writer gating, carried over from Stage 2
+
+The runtime is handled structurally, since storage mode means it is not running.  Of the
+remaining writers, the log is the only one that fires continuously, and it is now gated:
+`meadow_logging_write_to_file()` returns early when
+`meadow_storage_mode_writes_permitted()` says no, which it does for any path under
+`/meadow0` while storage mode is active.
+
+This is not a limitation dressed up as a feature.  The host's view is a snapshot - the
+cluster mapping was computed once, on first read - and mass storage has no way to tell an
+already-mounted host that anything changed.  Freezing the file system is the point, and it
+is what you want anyway when the reason for entering storage mode was to copy the log off.
+Lines produced while blocked still reach syslog; they just do not reach the file.
+
+Still ungated, and each only fires occasionally: crash reports, ESP core dumps, OS
+persistent data, and the config manager.  They were left alone rather than gated blindly,
+because each needs a decision about what should happen to the data instead of being
+written, and a crash report is not something to discard casually.
+
+**The HCOM file write question from Stage 2 is still open and still needs an answer.**
+`meadow file write` works with the runtime disabled - that is how an app is deployed - so
+deployment and storage mode are available at the same time, and a write through one while
+a host holds the other leaves the host reading stale cluster runs.  Nothing currently
+prevents it.
+
+### Memory
+
+The model tables, 16 KB of entries and a 12 KB name pool, are placed in DTCM by the
+`.dtcm` section Stage 1 added.  A first cut left them in `.bss`, which pushed `ksram` from
+79100 to 107852 bytes, 82 percent of the region.  Moving them put `ksram` back to 79180
+and left DTCM at 28 KB of 128 KB.  Dropping the Stage 1 RAM disk is what freed the space,
+so the two never compete; the Kconfig makes them mutually exclusive.
+
+Limits are 512 entries and 12 KB of names, and both are reported rather than silently
+truncating: exceeding them logs and omits the excess.
+
+### Hardware results (macOS)
+
+After the fix the board boots, `meadow device info` returns over HCOM, and the Meadow file
+system is visible in Finder.
+
+The host's own view of the volume confirms the important properties:
+
+| Reported by macOS | Value | What it confirms |
+|-------------------|-------|------------------|
+| File system personality | `MS-DOS FAT16` | The cluster count landed in the FAT16 window, so the FAT is being read at the right entry width |
+| Disk size | 28306944 bytes, exactly 55287 512-byte units | Exactly `FS_TOTALSECTORS`; the geometry is being taken as given |
+| Allocation block size | 4096 bytes | The 4 KB cluster size |
+| Media read-only | Yes | The MODE SENSE write protect bit reached the host |
+| Volume read-only | Yes, read-only mount flag set | macOS mounted it read-only, so it will not try to write `.fseventsd` |
+| Removable media | Removable | `CONFIG_USBMSC_REMOVABLE` |
+| Volume used space | 928 sectors, 116 clusters | **The model was built on target.**  This is real content from the real LittleFS volume, not a fixed number |
+
+That last row is the one that matters most: macOS computed used and free space by reading
+the synthesized FAT, and it arrived at a figure derived from an actual walk of `/meadow0`.
+The synthesis works against a real file system, not just the simulated one.
+
+Note the mount is served by `fskit` rather than the older `msdosfs` kext, so this is a
+third macOS FAT implementation beyond the two the off-target tests used.
+
+### Still to confirm
+
+* **File contents.**  Copy files off and compare with the same files fetched over HCOM.
+  This is the one remaining correctness question, and `read_file_bytes()` is still the only
+  function nothing has exercised: the off-target harness served bytes from a table rather
+  than from LittleFS.  `Meadow.dll` is the interesting case, being large enough to span
+  many clusters.
+* Long names appearing in full rather than as `~n` aliases, and the subdirectories
+  (`update/`, `rollback/`, `crash/`, `system/`) being present and browsable.
+* The `fatshim:` syslog lines reporting entry and cluster counts, plus any model-full or
+  out-of-clusters warnings on a populated device.
+* Throughput on a large copy.  The cached handle makes sequential reads cheap, but
+  LittleFS on QSPI through one-sector-at-a-time SCSI has never been measured.
+
+macOS privacy protection blocked the environment used here from listing a removable
+volume, so the listing and content checks need a normal terminal or Finder.
+
+### Actual size
+
+About 1270 lines in the fatshim, 40 lines of storage-mode predicate, a one-line gate in
+the logger, and the Kconfig and wiring.  Kernel flash grew about 2 KB; `ksram` grew 80
+bytes and DTCM took the 28 KB of tables.
 
 ## Stage 4 - Write and delete path
 
@@ -809,7 +934,7 @@ above the original estimate.
 |-------|---------------------|------------|-----------|
 | 1 - Composite bring-up (RAM disk) | ~300 lines (done) | Low | Host driver binding, Meadow CLI enumeration |
 | 2 - Storage mode control plane | ~190 lines (done) | Low, once derived from the runtime state | Host behaviour while the drive is empty |
-| 3 - Read-only synthetic FAT | ~800-950 lines | Moderate-high | Subdirectories, LFN, host mount acceptance |
+| 3 - Read-only synthetic FAT | ~1310 lines (done) | Moderate-high | LittleFS read path, throughput |
 | 4 - Write and delete path | ~500-700 lines | **High** | Out-of-order writes, OTA bypass, recoverability |
 | 5 - Hardening | Varies | Low-moderate | RAM budget, OTA interaction |
 

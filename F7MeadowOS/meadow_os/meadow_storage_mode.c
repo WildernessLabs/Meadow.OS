@@ -21,11 +21,13 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
 
 #include <meadow/hcom_bbreg_defn.h>
+#include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_storage_mode.h>
 
 //===========================================================================
@@ -61,4 +63,26 @@ bool meadow_storage_mode_active(void)
   }
 
   return _storageModeActive;
+}
+
+//===========================================================================
+// Reports whether board-side writes to a path are allowed right now. See the
+// header for why storage mode has to freeze the file system.
+bool meadow_storage_mode_writes_permitted(const char *path)
+{
+  if (path == NULL)
+  {
+    return true;
+  }
+
+  // Only the Meadow file system is handed to a host, so nothing else needs
+  // to be held still.
+
+  if (strncmp(path, MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
+              strlen(MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME)) != 0)
+  {
+    return true;
+  }
+
+  return !meadow_storage_mode_active();
 }

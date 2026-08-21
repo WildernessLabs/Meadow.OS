@@ -130,7 +130,7 @@ static int board_mscclassobject(int minor,
     {
       uinfo("Bind LUN=0 to %s\n", MEADOW_USBMSC_LUN0_DEVPATH);
       ret = usbmsc_bindlun(g_mschandle, MEADOW_USBMSC_LUN0_DEVPATH, 0, 0, 0,
-                           false);
+                           MEADOW_USBMSC_LUN0_READONLY);
       if (ret < 0)
         {
           uerr("ERROR: usbmsc_bindlun failed for LUN 0 at %s: %d\n",

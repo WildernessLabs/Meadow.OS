@@ -57,6 +57,10 @@
 
 #include <meadow/meadow_storage_mode.h>
 
+#ifdef CONFIG_MEADOW_USBMSC_FATSHIM
+#  include <meadow/hcom_nx_fatshim.h>
+#endif
+
 #include "stm32_usbmsc.h"
 
 #ifdef CONFIG_USBMSC
@@ -714,6 +718,21 @@ int board_usbmsc_initialize(int port)
 
 #ifdef CONFIG_MEADOW_USBMSC_RAMDISK
   int ret = meadow_usbmsc_ramdisk_initialize();
+
+  if (ret < 0)
+    {
+      return ret;
+    }
+#endif
+
+#ifdef CONFIG_MEADOW_USBMSC_FATSHIM
+  /* Registers the block device only.  The scan that builds the view is
+   * deferred until the first sector is read, because /meadow0 is not
+   * mounted yet at this point in the boot: board_init_usbdev() runs well
+   * before hcom_nx_setup_mgr() brings the file system up.
+   */
+
+  int ret = hcom_nx_fatshim_initialize(MEADOW_USBMSC_LUN0_DEVPATH);
 
   if (ret < 0)
     {

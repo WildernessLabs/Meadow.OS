@@ -224,6 +224,10 @@ $(MEADOW_OS_DIR)/meadow_os/meadow_os_fault_handling.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_os_battery_backed_domain.c \
 $(MEADOW_OS_DIR)/meadow_os/meadow_storage_mode.c
 
+ifeq ($(CONFIG_MEADOW_USBMSC_FATSHIM),y)
+CSRCS += $(MEADOW_OS_DIR)/hcom_nx/create_fs/hcom_nx_fatshim.c
+endif
+
 endif
 endif # MEADOW_OS
 

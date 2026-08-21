@@ -44,15 +44,23 @@
  * mass storage descriptors against a host that can already read the medium.
  * Without it the LUN falls back to the SD card, which is already vfat.
  *
- * Neither of these is the eventual target.  That is a synthetic FAT view of
- * the LittleFS volume on /meadow0, which will replace the read and write
- * bodies of the block driver behind /dev/meadowmsc0.
+ * CONFIG_MEADOW_USBMSC_FATSHIM is the real thing: a read-only FAT16 view of
+ * the LittleFS volume on /meadow0, synthesized sector by sector.  It is
+ * read-only, and MEADOW_USBMSC_LUN0_READONLY is what tells usbmsc_bindlun()
+ * to advertise the medium as write protected.  Getting that wrong matters: a
+ * host told the volume is writable will try to write to it on mount, macOS
+ * for instance creating .fseventsd, and then retry against the refusals.
  */
 
-#ifdef CONFIG_MEADOW_USBMSC_RAMDISK
+#if defined(CONFIG_MEADOW_USBMSC_FATSHIM)
 #  define MEADOW_USBMSC_LUN0_DEVPATH "/dev/meadowmsc0"
+#  define MEADOW_USBMSC_LUN0_READONLY true
+#elif defined(CONFIG_MEADOW_USBMSC_RAMDISK)
+#  define MEADOW_USBMSC_LUN0_DEVPATH "/dev/meadowmsc0"
+#  define MEADOW_USBMSC_LUN0_READONLY false
 #else
 #  define MEADOW_USBMSC_LUN0_DEVPATH "/dev/mmcsd0"
+#  define MEADOW_USBMSC_LUN0_READONLY false
 #endif
 
 /****************************************************************************

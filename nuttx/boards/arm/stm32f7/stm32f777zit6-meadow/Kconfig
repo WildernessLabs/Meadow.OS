@@ -93,36 +93,63 @@ config BOARD_DUAL_CDCACM
 		When this option is enabled the board will register two
 		USB CDC/ACM interfaces.
 
-config MEADOW_USBMSC_RAMDISK
-	bool "Back the USB MSC LUN with a RAM disk (bring-up only)"
-	default n
+choice
+	prompt "USB mass storage LUN backing"
+	default MEADOW_USBMSC_SDCARD
 	depends on USBMSC
 	---help---
-		Stage 1 bring-up vehicle for the USB composite device.  Creates a
-		small FAT12 formatted RAM disk and binds it to USB mass storage
-		LUN 0.  That allows the composite CDC/ACM plus mass storage
-		descriptors to be validated against a host which can already read
-		the medium, in isolation from any synthetic file system work.
+		What the USB mass storage LUN presents to a host computer.
 
-		The backing buffer is statically allocated in kernel .bss.  It has
+config MEADOW_USBMSC_SDCARD
+	bool "SD card"
+	---help---
+		Bind the LUN to /dev/mmcsd0. The card is already vfat formatted, so
+		a host can read it without any translation. Nothing is exposed if no
+		card is present.
+
+config MEADOW_USBMSC_RAMDISK
+	bool "FAT12 RAM disk (bring-up only)"
+	---help---
+		A small FAT12 formatted RAM disk, used to bring up and test the USB
+		composite device in isolation from any file system work. Contents are
+		recreated on every boot and lost at reset.
+
+		The backing buffer is statically allocated and placed in DTCM. It has
 		to be: in this PROTECTED build the additional heap regions, the
-		external SDRAM at CONFIG_HEAP2_BASE included, are given to the
-		user heap by kumm_addregion(), so kernel allocations can only draw
-		on the much smaller CONFIG_MM_KERNEL_HEAPSIZE.  The buffer is
-		therefore charged against internal SRAM for the lifetime of the
-		image.
+		external SDRAM at CONFIG_HEAP2_BASE included, are given to the user
+		heap by kumm_addregion(), so kernel allocations can only draw on the
+		much smaller CONFIG_MM_KERNEL_HEAPSIZE. ksram has only about 50 KB
+		spare, whereas DTCM is 128 KB that nothing else claims because
+		CONFIG_STM32F7_DTCMEXCLUDE keeps it out of every heap.
 
-		This is intended to be replaced by a synthetic FAT view of
-		/meadow0 and should not be enabled in a production configuration.
+		Keep this available for bisecting USB problems, but it is not what
+		ships.
+
+config MEADOW_USBMSC_FATSHIM
+	bool "Read-only FAT16 view of /meadow0"
+	---help---
+		Present the Meadow file system to a host computer as a FAT16 volume.
+
+		No host operating system can read LittleFS, and USB mass storage is a
+		block protocol in which the host runs the file system driver, so the
+		only way a host can browse /meadow0 is for the board to fabricate a
+		file system the host already understands. Nothing is stored: each
+		sector read is answered by computing what a FAT16 volume holding those
+		files would have contained at that offset.
+
+		Read-only. The block driver has no write method, which is how NuttX
+		is told to advertise the medium as write protected.
+
+endchoice
 
 config MEADOW_USBMSC_RAMDISK_SECTORS
 	int "Bring-up RAM disk size in 512 byte sectors"
 	default 128
 	depends on MEADOW_USBMSC_RAMDISK
 	---help---
-		Number of 512 byte sectors in the bring-up RAM disk.  The default
-		of 128 gives a 64 KB FAT12 volume, which keeps the static buffer
-		small.  Raise this if a host refuses to mount a volume that small.
+		Number of 512 byte sectors in the bring-up RAM disk. The default of
+		128 gives a 64 KB FAT12 volume, which keeps the static buffer small.
+		Raise this if a host refuses to mount a volume that small.
 
 choice
 	prompt "Select Main Board Model"
