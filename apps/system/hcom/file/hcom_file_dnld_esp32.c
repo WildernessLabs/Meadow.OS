@@ -310,6 +310,26 @@ void hcom_file_dnld_esp32_file_end(uint32_t userData)
     return;
   }
 
+  // Verify all of the expected file data actually arrived before flashing
+  // it -- an end-of-transfer message arriving early would otherwise flash
+  // the trailing, never-written portion of _esp32FileBuffer to hardware.
+  if(_nextStorageAddress != _endAddress)
+  {
+    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
+      "Expecting %u bytes, received %u",
+      (unsigned int)(_endAddress - _esp32FileBuffer),
+      (unsigned int)(_nextStorageAddress - _esp32FileBuffer));
+    syslog(LOG_ERR, "%s@%d-%s\n", _thisFile, __LINE__, hostMsg);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
+            _thisFile, __LINE__);
+
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer",
+            _thisFile, __LINE__);
+
+    hcom_file_dnld_esp32_abort_active_download();
+    return;
+  }
+
   ret = hcom_esp32_exec_flash_file(_esp32FileBuffer, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
 
   if(lastFile)
