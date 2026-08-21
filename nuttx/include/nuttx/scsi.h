@@ -788,6 +788,11 @@ struct scsicmd_startstopunit_s
 };
 #define SCSICMD_STARTSTOPUNIT_SIZEOF 6
 
+/* Bits of the START STOP UNIT 'pc' field that select a medium change */
+
+#define SCSICMD_STARTSTOPUNIT_START  (1 << 0) /* Bit 0: START */
+#define SCSICMD_STARTSTOPUNIT_LOEJ   (1 << 1) /* Bit 1: LOEJ */
+
 struct scsicmd_preventmediumremoval_s
 {
   uint8_t opcode;        /* 0: 0x1e */

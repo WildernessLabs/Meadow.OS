@@ -360,6 +360,13 @@ struct usbmsc_req_s
 struct usbmsc_lun_s
 {
   FAR struct inode    *inode;         /* Inode structure of open'ed block driver */
+#ifdef CONFIG_USBMSC_REMOVABLE
+  FAR struct inode *ejectedinode;     /* Holds the inode while the medium is
+                                       * ejected, so that every existing
+                                       * !lun->inode media check reports media
+                                       * not present without modification, and
+                                       * a later load can restore it. */
+#endif
   uint8_t          readonly:1;        /* Media is read-only */
   uint8_t          locked:1;          /* Media removal is prevented */
   uint16_t         sectorsize;        /* The size of one sector */
