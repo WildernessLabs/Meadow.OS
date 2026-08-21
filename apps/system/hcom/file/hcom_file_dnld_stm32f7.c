@@ -281,6 +281,11 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   // Allocate aligned buffer for SD-Card writes
   if(dnldShared->dnldRqstCat == pathnameSdcard)
   {
+    // We may have an old buffer left behind from a prior download that
+    // never reached a normal end/error path (e.g. a watchdog timeout).
+    // Free it before allocating a new one instead of leaking it.
+    hcom_file_dnld_cleanup_sdcard_buffer();
+
     // Allocate extra space for alignment
     _sdcardWriteBufferRaw = malloc(HCOM_FILE_DNLD_SDCARD_BLOCK_SIZE +
       HCOM_FILE_DNLD_SDCARD_ALIGNMENT - 1);
@@ -619,7 +624,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
                 thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
       hcom_file_dnld_cleanup_sdcard_buffer();
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
-    syslog(LOG_MDIAG, downloadFailure);
+      syslog(LOG_MDIAG, downloadFailure);
       return ret;
     }
 
