@@ -93,6 +93,37 @@ config BOARD_DUAL_CDCACM
 		When this option is enabled the board will register two
 		USB CDC/ACM interfaces.
 
+config MEADOW_USBMSC_RAMDISK
+	bool "Back the USB MSC LUN with a RAM disk (bring-up only)"
+	default n
+	depends on USBMSC
+	---help---
+		Stage 1 bring-up vehicle for the USB composite device.  Creates a
+		small FAT12 formatted RAM disk and binds it to USB mass storage
+		LUN 0.  That allows the composite CDC/ACM plus mass storage
+		descriptors to be validated against a host which can already read
+		the medium, in isolation from any synthetic file system work.
+
+		The backing buffer is statically allocated in kernel .bss.  It has
+		to be: in this PROTECTED build the additional heap regions, the
+		external SDRAM at CONFIG_HEAP2_BASE included, are given to the
+		user heap by kumm_addregion(), so kernel allocations can only draw
+		on the much smaller CONFIG_MM_KERNEL_HEAPSIZE.  The buffer is
+		therefore charged against internal SRAM for the lifetime of the
+		image.
+
+		This is intended to be replaced by a synthetic FAT view of
+		/meadow0 and should not be enabled in a production configuration.
+
+config MEADOW_USBMSC_RAMDISK_SECTORS
+	int "Bring-up RAM disk size in 512 byte sectors"
+	default 128
+	depends on MEADOW_USBMSC_RAMDISK
+	---help---
+		Number of 512 byte sectors in the bring-up RAM disk.  The default
+		of 128 gives a 64 KB FAT12 volume, which keeps the static buffer
+		small.  Raise this if a host refuses to mount a volume that small.
+
 choice
 	prompt "Select Main Board Model"
 	default BOARD_MEADOW_F7MICRO_DEFAULT

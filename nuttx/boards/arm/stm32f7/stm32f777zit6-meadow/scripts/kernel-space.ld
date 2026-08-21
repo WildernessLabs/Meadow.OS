@@ -85,6 +85,22 @@ SECTIONS
         _ebss = ABSOLUTE(.);
     } > ksram
 
+    /* Large kernel buffers that do not need to live in ksram.  DTCM is 128KB
+     * at 0x20000000 and is not part of any heap: CONFIG_STM32F7_DTCMEXCLUDE
+     * keeps stm32_allocateheap.c from claiming it, so the whole region is
+     * available for explicit placement.
+     *
+     * NOLOAD because nothing here is initialized by the startup code; any
+     * user of this section is responsible for initializing its own contents.
+     */
+
+    .dtcm (NOLOAD) : {
+        _sdtcm = ABSOLUTE(.);
+        *(.dtcm .dtcm.*)
+        . = ALIGN(4);
+        _edtcm = ABSOLUTE(.);
+    } > dtcm
+
     /* Stabs debugging sections */
 
     .stab 0 : { *(.stab) }
