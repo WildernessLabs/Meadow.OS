@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 // This module contains utilities to support adding subdirectories to Meadow.OS
-// This will resolve Meadow_Issues #320 Add HCOM support for “current directory”
+// This will resolve Meadow_Issues #320 Add HCOM support for "current directory"
 
 // The situation before adding subdirectories is that all files have been
 // placed in the '/meadow0' directory and the CLI just sends the bare file name
