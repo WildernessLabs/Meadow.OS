@@ -885,11 +885,17 @@ static void emit_entry_slot(int index, unsigned int sub, uint8_t *out)
 
   memcpy(&out[DIR_NAME], e->shortname, 11);
 
-  // Files are marked read only because this whole view is. Directories are
-  // not, since a read only directory bit confuses some hosts.
+  // Deliberately NOT setting ATTR_READONLY on files. That attribute describes
+  // the file rather than the volume, so it travels with a copy: a host that
+  // reads a file off this volume would land a locked copy on its own disk,
+  // which the user then has to unlock one file at a time.
+  //
+  // Nothing is lost by leaving it off. The volume is read-only because
+  // lun->readonly raises the MODE SENSE write protect bit, which is what makes
+  // the host mount read-only and refuse writes. Directory entry attributes
+  // have no part in that.
 
-  out[DIR_ATTR] = e->isdir ? ATTR_DIRECTORY
-                           : (ATTR_READONLY | ATTR_ARCHIVE);
+  out[DIR_ATTR] = e->isdir ? ATTR_DIRECTORY : ATTR_ARCHIVE;
   out[DIR_NTRES] = 0;
 
   put_le16(&out[DIR_CRTTIME], FS_FILETIME);

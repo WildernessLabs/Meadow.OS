@@ -9,7 +9,7 @@ existing USB serial port, without giving up `/dev/ttyACM0`.
 |-------|-------|
 | 1 - Composite bring-up (RAM disk LUN) | **Done.** Verified on macOS. |
 | 2 - Storage mode control plane | **Done.** Verified on macOS. |
-| 3 - Read-only synthetic FAT over `/meadow0` | **Done.** Validated off-target; not yet run on hardware. |
+| 3 - Read-only synthetic FAT over `/meadow0` | **Done.** Verified on macOS, contents byte-identical to HCOM. |
 | 4 - Write and delete path | Not started. |
 | 5 - Hardening and integration | Not started. |
 
@@ -658,8 +658,9 @@ latch.
 
 ## Stage 3 - Read-only synthetic FAT over `/meadow0` - IMPLEMENTED
 
-Status: **implemented and working on hardware (macOS)**, after one boot-breaking
-regression described below.  File contents on a real device are still to be confirmed.
+Status: **implemented and verified on hardware (macOS)**, after one boot-breaking
+regression described below.  A multi-cluster file read from a subdirectory compares
+identical to the same file fetched over HCOM.
 
 The first deliverable that exposes `/meadow0`.  A host can browse and copy the Meadow
 file system natively, read-only.
@@ -830,15 +831,67 @@ The synthesis works against a real file system, not just the simulated one.
 Note the mount is served by `fskit` rather than the older `msdosfs` kext, so this is a
 third macOS FAT implementation beyond the two the off-target tests used.
 
+A configuration YAML opened from the mounted volume in a text editor reads correctly.
+That closes the LittleFS read path, which was the one thing nothing had exercised: the
+directory entry pointed at the right cluster, and `read_file_bytes()` opened the real file,
+seeked and returned the right bytes.
+
+### Copies arriving locked on the host
+
+Files copied off the volume in Finder landed on the host locked, needing to be unlocked
+one at a time.
+
+The cause was setting `ATTR_READONLY` on every file's directory entry, on the reasoning
+that the whole view is read-only.  That reasoning was wrong.  The attribute describes the
+*file*, not the volume, so it travels with a copy; the volume being read-only is
+communicated entirely separately, by `lun->readonly` raising the MODE SENSE write protect
+bit.  Directory entry attributes play no part in it.
+
+Files now carry only `ATTR_ARCHIVE`.  The Linux `vfat` driver confirms the change, listing
+entries as `-rwxr-xr-x` where they were `-r-xr-xr-x`, while the mount itself is still `ro`
+and file contents are byte identical to before.  Nothing was given up.
+
+### Correctness confirmed end to end
+
+A 27 KB file from the `crash/` subdirectory was copied out twice, once through Finder and
+once with the Meadow CLI, and the two files compare identical.
+
+That single test closes both of the questions that were outstanding:
+
+* **Multi-cluster chain following.**  At the 4 KB cluster size a 27 KB file occupies seven
+  clusters, so the synthesized FAT had to link them correctly and each of the roughly 54
+  sector reads had to seek to the matching offset inside the file.  The configuration YAML
+  checked earlier was a few hundred bytes and only ever exercised the single-cluster path.
+* **Subdirectory access.**  Reading from inside `crash/` exercises directory clusters in
+  the data region, which are synthesized by a different path from the root directory's
+  fixed area.
+
+Comparing the Finder copy against the CLI copy is also the strongest available form of the
+check, rather than a convenience: the two routes are independent.  Finder reads through the
+synthesized FAT view, the CLI reads through HCOM and LittleFS directly, and they agree.
+
+Long file names display correctly in Finder, which confirms the long name generation on
+target: the sequence numbering, the reverse order the slots are stored in, and the
+checksum tying each slot set to its 8.3 alias.  A mismatch in any of those would have made
+the host discard the long names and show the `~n` aliases instead, which is the usual way
+long file names fail quietly.
+
+Copies now arrive unlocked, confirmed by being able to delete and rename them on the host
+with no error dialog.  That closes the `ATTR_READONLY` regression above.
+
+### Stage 3 is verified on macOS
+
+Everything this stage set out to do is confirmed on hardware: the volume enumerates and
+mounts as read-only FAT16, long file names display correctly, subdirectories are browsable,
+a multi-cluster file read from inside one compares byte identical to the same file fetched
+over HCOM, and copies arrive unlocked.  HCOM itself is unaffected throughout - `device
+info` and `file read` both work.
+
 ### Still to confirm
 
-* **File contents.**  Copy files off and compare with the same files fetched over HCOM.
-  This is the one remaining correctness question, and `read_file_bytes()` is still the only
-  function nothing has exercised: the off-target harness served bytes from a table rather
-  than from LittleFS.  `Meadow.dll` is the interesting case, being large enough to span
-  many clusters.
-* Long names appearing in full rather than as `~n` aliases, and the subdirectories
-  (`update/`, `rollback/`, `crash/`, `system/`) being present and browsable.
+* Throughput.  LittleFS on QSPI, read one sector at a time through SCSI, has never been
+  measured.  Worth timing a large copy before anyone relies on this for bulk retrieval.
+* Windows and Linux, still blocked on hardware.
 * The `fatshim:` syslog lines reporting entry and cluster counts, plus any model-full or
   out-of-clusters warnings on a populated device.
 * Throughput on a large copy.  The cached handle makes sequential reads cheap, but
