@@ -956,6 +956,15 @@ static inline int usbmsc_cmdstartstopunit(FAR struct usbmsc_dev_s *priv)
             {
               if (lun->inode != NULL)
                 {
+                  /* Last chance for a buffering driver to make the host's
+                   * writes durable, since after this the medium is gone.
+                   */
+
+                  if (lun->inode->u.i_bops->ioctl != NULL)
+                    {
+                      lun->inode->u.i_bops->ioctl(lun->inode, BIOC_FLUSH, 0);
+                    }
+
                   lun->ejectedinode = lun->inode;
                   lun->inode        = NULL;
                 }
@@ -1372,6 +1381,18 @@ static inline int usbmsc_cmdsynchronizecache10(FAR struct usbmsc_dev_s *priv)
     {
       ret = usbmsc_setupcmd(priv, SCSICMD_SYNCHRONIZECACHE10_SIZEOF,
                             USBMSC_FLAGS_DIRNONE);
+
+      /* SYNCHRONIZE CACHE is the host asking for what it has written to be
+       * made durable, and it is what a host issues before an eject.  Acking
+       * it without telling the block driver makes that promise hollow for a
+       * driver that buffers, so pass it down.  A driver with nothing to
+       * flush returns -ENOTTY, which is not a failure of this command.
+       */
+
+      if (ret == OK && priv->lun->inode->u.i_bops->ioctl != NULL)
+        {
+          priv->lun->inode->u.i_bops->ioctl(priv->lun->inode, BIOC_FLUSH, 0);
+        }
     }
 
   return ret;
