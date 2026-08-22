@@ -199,12 +199,11 @@ static const char g_readme[] =
   "it is lost at reset.\r\n"
   "\r\n"
   "The real Meadow file system is /meadow0, a LittleFS volume on the\r\n"
-  "QSPI flash. No host OS can read LittleFS, so exposing it as a\r\n"
-  "USB drive needs a synthetic FAT translation layer that does not exist\r\n"
-  "yet. See OTG.md in the repository root, stages 2 through 4.\r\n"
+  "QSPI flash. No host OS can read LittleFS, so it is presented as a\r\n"
+  "synthesized FAT16 volume instead. Select the fatshim rather than this\r\n"
+  "RAM disk to see it: CONFIG_MEADOW_USBMSC_FATSHIM.\r\n"
   "\r\n"
-  "Until then, use the Meadow CLI over the serial interface to read and\r\n"
-  "write files on /meadow0.\r\n";
+  "See Documentation/Plans/OTG-Plan.md.\r\n";
 
 /* Content length without the terminating NUL */
 
