@@ -37,7 +37,7 @@ board rather than merely compiled.
 
     F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.c   the synthesized FAT view, both directions
     F7MeadowOS/meadow_os/meadow_storage_mode.c       storage mode, derived from the runtime state
-    F7MeadowOS/hcom_nx/create_fs/test/               off-target harnesses, see its README
+    Testing/OTG-Harness/                             off-target harnesses, see its README
     nuttx/boards/.../src/stm32_composite.c           CDC/ACM plus mass storage
     nuttx/boards/.../src/stm32_usbmsc.c              the bring-up RAM disk, still selectable
     nuttx/drivers/usbdev/usbmsc*, nuttx/include/nuttx/scsi.h   local NuttX changes
@@ -1437,7 +1437,7 @@ and observing what they actually write. Plan on an iterate-and-observe loop with
 `usbmon`, `ioreg` and syslog capture for Stages 3 and 4.
 
 What partially substitutes for hardware now lives in the tree, at
-`F7MeadowOS/hcom_nx/create_fs/test/`, with its own README.  The read harness emits the
+`Testing/OTG-Harness/`, with its own README.  The read harness emits the
 synthesized volume to an image for `fsck_msdos` and the Linux `vfat` driver to judge; the
 write harness lets Linux be the host, modifying an image which is then replayed through the
 write path in shuffled order.

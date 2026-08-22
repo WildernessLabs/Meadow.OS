@@ -1,5 +1,10 @@
 # Off-target tests for the /meadow0 FAT view
 
+Tests for `F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.c`, which they compile
+directly rather than linking against.  `DRV` below is that directory:
+
+    DRV=../../../F7MeadowOS/hcom_nx/create_fs
+
 `hcom_nx_fatshim.c` synthesizes a FAT16 volume from the LittleFS contents of
 `/meadow0`, and the part of it that computes sector contents touches no file
 system at all. That part can therefore be compiled and run on a development
@@ -22,7 +27,8 @@ Builds the view of a simulated `/meadow0` and writes the whole volume to an
 image, which can then be checked with real FAT implementations.
 
     cd read
-    cc -std=c11 -Wall -DFATSHIM_HOST_TEST -I. -I../.. -o fatshim_test fatshim_test.c
+    DRV=../../../F7MeadowOS/hcom_nx/create_fs
+    cc -std=c11 -Wall -DFATSHIM_HOST_TEST -I. -I$DRV -o fatshim_test fatshim_test.c
     ./fatshim_test /tmp/meadow0.img
 
     fsck_msdos -n /tmp/meadow0.img          # Apple's checker, stricter than a mount
@@ -45,11 +51,12 @@ modifies it, and the sectors that differ are then replayed through
 `write_sector()` **in deliberately shuffled order** before the commit runs.
 
     cd write
+    DRV=../../../F7MeadowOS/hcom_nx/create_fs
     cc -std=c11 -g -fsanitize=address -DFATSHIM_HOST_TEST \
        -DCONFIG_MEADOW_USBMSC_FATSHIM_WRITE \
        -DCONFIG_MEADOW_USBMSC_FATSHIM_SETTLE_MS=2000 \
        -DCONFIG_MEADOW_USBMSC_FATSHIM_STAGE_KB=16384 \
-       -I. -I../.. -o fatshim_wtest fatshim_wtest.c
+       -I. -I$DRV -o fatshim_wtest fatshim_wtest.c
 
     ./fatshim_wtest emit   <root> <image>              # build the view of <root>
     ./fatshim_wtest apply  <root> <before> <after>     # replay a diff, then commit twice
