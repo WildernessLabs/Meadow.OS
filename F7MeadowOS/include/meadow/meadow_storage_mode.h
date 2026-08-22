@@ -84,4 +84,23 @@ bool meadow_storage_mode_active(void);
 //        affected
 bool meadow_storage_mode_writes_permitted(const char *path);
 
+//---------------------------------------------------------------------------
+// Whether a host computer is actually using the exposed file system.
+//
+// This is narrower than storage mode, and the distinction matters. Storage mode
+// is simply the runtime being disabled, which is also how an app is stopped
+// before a new one is deployed. Refusing writes for the whole of storage mode
+// would therefore break deployment, whereas what actually needs protecting is
+// the window in which a host holds a view of the volume.
+//
+// It becomes true when the synthesized view is first built, which only happens
+// when a host reads from the drive, and stays true for the rest of the boot.
+// Erring that way is deliberate: a host that has read once may read again at
+// any time, and there is no notification when it stops.
+bool meadow_storage_mode_host_engaged(void);
+
+//---------------------------------------------------------------------------
+// Called by the block driver when a host first reads the exposed volume.
+void meadow_storage_mode_set_host_engaged(void);
+
 #endif  // __INCLUDE_MEADOWOS_MEADOW_STORAGE_MODE_H

@@ -328,6 +328,7 @@ bool hcom_bbreg_is_bbr_bit_set(uint32_t value);
 // -----------------------------------------------
 // HCOM nx (nuttx) access allows low-level access to operating system resources
 int hcom_via_nx_upd_setup(void);
+bool hcom_via_nx_is_host_using_fs(void);
 int hcom_via_nx_upd_driver_open(void);
 int hcom_via_nx_set_bbr(uint32_t value);
 int hcom_via_nx_get_bbr(uint32_t *value);

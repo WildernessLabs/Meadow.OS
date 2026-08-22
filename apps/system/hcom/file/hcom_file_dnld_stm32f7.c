@@ -153,6 +153,26 @@ static void hcom_file_dnld_cleanup_sdcard_buffer(void)
 int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
           hcom_dnld_shared_t *dnldShared)
 {
+  // Refuse while a host computer is using the file system over USB mass
+  // storage. The view a host is given is a snapshot, and mass storage has no
+  // way to tell an already-mounted host that anything changed, so writing here
+  // would leave it reading cluster runs that no longer describe the files. With
+  // host writes enabled it could then write back based on them.
+  //
+  // Note this asks whether a host is actually using the drive, not merely
+  // whether the device is in storage mode. Storage mode is the runtime being
+  // disabled, which is also how an app is stopped before a new one is
+  // deployed, so gating on that would refuse the very writes a deployment is
+  // made of.
+  if (hcom_via_nx_is_host_using_fs())
+  {
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+          "A host computer has the file system mounted over USB. Eject it, or "
+          "re-enable the runtime, before writing files.",
+          thisFile, __LINE__);
+    return ERROR;
+  }
+
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
   _dnldCacheOffset = 0;
   _dnldCacheMemory = NULL;

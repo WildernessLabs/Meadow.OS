@@ -38,6 +38,7 @@
 // must not be re-read on every call.
 static bool _storageModeLatched = false;
 static bool _storageModeActive = false;
+static bool _hostEngaged = false;
 
 //===========================================================================
 // Public functions
@@ -85,4 +86,23 @@ bool meadow_storage_mode_writes_permitted(const char *path)
   }
 
   return !meadow_storage_mode_active();
+}
+
+//===========================================================================
+// Whether a host computer is actually using the exposed file system. See the
+// header for why this is deliberately narrower than storage mode itself.
+bool meadow_storage_mode_host_engaged(void)
+{
+  return _hostEngaged;
+}
+
+//===========================================================================
+// Called by the block driver the first time a host reads the exposed volume.
+void meadow_storage_mode_set_host_engaged(void)
+{
+  if (!_hostEngaged)
+  {
+    _hostEngaged = true;
+    syslog(LOG_NOTICE, "Storage mode: a host is using the file system\n");
+  }
 }

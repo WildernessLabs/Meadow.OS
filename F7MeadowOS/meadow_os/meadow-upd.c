@@ -49,6 +49,7 @@
 #include "stm32_gpio.h"
 #include <meadow/hcom_upd_shared.h>
 #include <meadow/hcom_bbreg_defn.h>
+#include <meadow/meadow_storage_mode.h>
 #include <meadow/meadow_hw_version.h>
 #include <meadow/meadow_apps_core_share.h>
 #include <meadow/hcom_dfu_mode_entry.h>
@@ -314,6 +315,10 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     case HCOM_NX_UPD_IS_PART_MOUNTED:
       is_mounted = (struct hcom_nx_upd_is_part_mounted *)arg;
       is_mounted->isMounted = hcom_nx_fs_is_mounted(is_mounted->partitionId);
+      return OK;
+
+    case HCOM_NX_UPD_IS_HOST_USING_FS:
+      *(bool *)arg = meadow_storage_mode_host_engaged();
       return OK;
 
     case HCOM_NX_UPD_MONO_HAS_STARTED:

@@ -10,8 +10,8 @@ existing USB serial port, without giving up `/dev/ttyACM0`.
 | 1 - Composite bring-up (RAM disk LUN) | **Done.** Verified on macOS. |
 | 2 - Storage mode control plane | **Done.** Verified on macOS. |
 | 3 - Read-only synthetic FAT over `/meadow0` | **Done.** Verified on macOS, contents byte-identical to HCOM. |
-| 4 - Write and delete path | Not started. |
-| 5 - Hardening and integration | Not started. |
+| 4 - Write and delete path | **Done.** Add, delete and rename all verified on macOS. |
+| 5 - Hardening and integration | Not started.  Where to pick this up. |
 
 A composite CDC/ACM plus mass storage device enumerates, `/dev/ttyACM0` and HCOM are
 unaffected, and a medium appears and disappears with the runtime-enable state.  That
@@ -24,8 +24,63 @@ mode transitions in both directions, `meadow file write` and read over HCOM.  Wi
 Linux USB testing is deferred on hardware availability; the FAT structure alone has been
 checked against the Linux `vfat` driver and Apple's `fsck_msdos`.
 
-Open items are listed per stage.  The ones that could still find a defect are the host's
-behaviour while the drive is empty, and concurrent HCOM plus mass storage load.
+Open items are listed per stage.  See **Picking this up again** below for the state of the
+tree, what is left, and the traps.
+
+## Picking this up again
+
+The work is on hold with stages 1 to 4 complete and verified on macOS.  Nothing is
+half-finished: the tree builds clean, and every behaviour listed as done was confirmed on a
+board rather than merely compiled.
+
+### What exists
+
+    F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.c   the synthesized FAT view, both directions
+    F7MeadowOS/meadow_os/meadow_storage_mode.c       storage mode, derived from the runtime state
+    F7MeadowOS/hcom_nx/create_fs/test/               off-target harnesses, see its README
+    nuttx/boards/.../src/stm32_composite.c           CDC/ACM plus mass storage
+    nuttx/boards/.../src/stm32_usbmsc.c              the bring-up RAM disk, still selectable
+    nuttx/drivers/usbdev/usbmsc*, nuttx/include/nuttx/scsi.h   local NuttX changes
+
+Build and flash as usual, `./build.sh` then `./flash.sh`.  Config lives under
+`MEADOW_USBMSC_*` in the board Kconfig; the LUN backing is a choice between the SD card, the
+bring-up RAM disk and the `/meadow0` view, and `MEADOW_USBMSC_FATSHIM_WRITE` turns the write
+direction on and off.  Turning it off is the quickest way to tell a write problem from a
+read one.
+
+### How to use it
+
+`meadow mono disable` enters storage mode and the drive appears; `meadow mono enable` leaves
+it.  Both restart the board, which is what makes the mode safe: the runtime never runs while
+a host holds the file system.  There is no separate storage-mode command and there does not
+need to be.
+
+### What is left
+
+Stage 5 is untouched.  Beyond that, four items on stage 4 are unconfirmed and none is
+blocking: a byte-exact `cmp` of a copied file, the HCOM write refusal, behaviour when a copy
+is interrupted, and the `host asked for a flush` line, which probably will not appear because
+the two second timer usually wins.
+
+Windows and Linux have never been tested at the USB level, only the FAT layout.  That is the
+largest gap by far, and stage 2 turning on `CONFIG_USBMSC_REMOVABLE` is why it was worth
+deferring rather than doing twice.
+
+### What to be careful of
+
+* **Every defect that reached hardware lived in an integration, not in the synthesis.**  The
+  boot regression was `find_blockdriver` refusing a driver with no write method; the double
+  write was a commit that did not update the model it diffs against; the rename rewrite was a
+  discriminator that could not tell "never staged" from "not staged this round".  The
+  off-target harnesses found none of these and structurally cannot.  Build, flash, read the
+  console.
+* **The console is the instrument.**  `fatshim:` lines report the model, each flush with its
+  byte count, and every applied change.  The flush pair brackets the LittleFS write closely
+  enough to measure throughput.
+* **Write throughput is erase-bound at about 57 KB/s** and is not a software problem.  See
+  the stage 4 notes before trying to optimize it.
+* **Do not run `make savedefconfig`.**  It rewrites `.config` as a side effect and silently
+  enabled NSH, PROCFS and more, adding 18 KB to two builds before it was noticed.
 
 ## Goal
 
@@ -906,65 +961,408 @@ About 1270 lines in the fatshim, 40 lines of storage-mode predicate, a one-line 
 the logger, and the Kconfig and wiring.  Kernel flash grew about 2 KB; `ksram` grew 80
 bytes and DTCM took the 28 KB of tables.
 
-## Stage 4 - Write and delete path
+## Stage 4 - Write and delete path - IMPLEMENTED
 
-Accept host writes and translate them into LittleFS operations. This is the hard stage
-and where the schedule risk lives.
+Status: **implemented and verified on hardware (macOS).**  Add, delete and rename are all
+confirmed on a board, including the two cases that first went wrong, and the write path was
+also validated off-target against Linux's own FAT driver.
 
-### Why it is hard
+### Decisions taken
 
-Host writes arrive in an order chosen by the host's FAT driver. Data clusters may land
-before the directory entry that names them; the FAT chain may be written last; writes may
-be partial. The driver cannot commit a file until it holds both a directory entry (name
-and size) and a resolvable cluster chain.
+| Question | Answer |
+|----------|--------|
+| How host writes become LittleFS operations | Deferred commit with a settling timer |
+| `update/` and `rollback/` writable | Yes, honouring decision 5 with no exceptions |
+| `meadow file write` while a host holds the drive | Refused, with a clear error |
 
-### Tasks
+On the OTA directories: the risk was raised and the decision reaffirmed, so they are
+writable.  To be precise about what that exposes, dropping a file into `update/` does not
+itself start an OTA.  What it means is that an unvalidated image can be sitting there when
+a later OTA trigger goes looking for one, bypassing the signature and CRC checks the HCOM
+route performs.
 
-1. Write buffering and a deferred-commit state machine: accumulate sectors, commit to
-   LittleFS only once the directory entry and cluster chain agree, with a settling timer
-   to decide the host has finished.
-2. Directory-entry diffing to detect create, overwrite, rename (entry rewrite), delete
-   (`0xE5` marker) and truncate.
-3. FAT-sector write interpretation to recover cluster chains for new files.
-4. Subdirectory mutation: create and delete directories, move entries between them.
-5. Host-junk write filtering. Discard rather than commit: `.DS_Store`, `._*`,
-   `.Spotlight-V100`, `.fseventsd`, `.Trashes`, `desktop.ini`,
-   `System Volume Information`, `$RECYCLE.BIN`, `indexerVolumeGuid`. The real list is
-   discovered empirically per host OS.
-6. Flip `geo_writeenabled` true; rebuild the model after each commit batch.
-7. **Recovery story.** Decision 5 grants unrestricted access, so a host can delete
-   `Meadow.dll` or corrupt `meadow.config.yaml`. Define what the device does on next
-   boot with a missing or invalid application, and confirm the HCOM re-upload path still
-   works from that state. The device must always be recoverable over USB serial.
-8. **OTA interaction.** A host writing directly into `update/` or `rollback/` bypasses
-   the OTA validation and state machine entirely. Decide whether those directories are
-   writable from the host, and if so, how the OTA state machine detects and validates
-   externally-placed files.
+### The trap in deferred commit
 
-   This task has a prerequisite outside its own scope: OTA is not yet fully tested in the
-   rebase. Granting the host unrestricted write access to the OTA staging directories,
-   which decision 5 implies, is not something to build on top of a path whose own
-   behaviour is still unconfirmed. Expect to need OTA verified first, or to carve those
-   directories out as the one exception to full filesystem access.
+The plan described streaming data to temp files and committing once the host goes quiet.
+It does not mention what happens *after* the commit, and that turns out to be the hard
+part.
 
-### Exit criteria
+Committing a new file to LittleFS says nothing about which clusters it would occupy if the
+view were rebuilt.  Rebuilding would therefore move the file out from under a host that is
+still reading from where it put it.  So the shadow state **persists for the rest of the
+session and serves reads as well as writes**: the host's own layout stays authoritative
+until the mode ends and a fresh view is built from scratch.
 
-* Drag a file onto the drive from macOS, Windows and Linux; it appears intact in
-  `/meadow0`, checksum-verified over HCOM.
-* Delete, rename, overwrite, and directory create/delete all behave correctly.
-* Host filesystem metadata noise never appears as real files in `/meadow0`.
-* Power loss mid-write leaves LittleFS consistent - a partial file is absent or
-  truncated, never a corrupted volume.
-* A device whose application files were deleted by the host recovers fully over HCOM.
+That single decision also removes the ordering problem the plan worried about.  Because
+every incoming cluster is recorded where it landed, it does not matter what order the host
+writes things in.
 
-### Estimated size
+### How it works
 
-~500-700 lines on top of Stage 3. Subdirectory mutation and the OTA question push this
-above the original estimate.
+* **The FAT is shadowed whole.**  The first write copies all 27 sectors of the synthesized
+  FAT into RAM, and the shadow is authoritative from then on.  Taking a complete copy is
+  what removes any need to reason about a half-written FAT.
+* **The root directory is shadowed** with a dirty bit per sector.  It needs its own store
+  because, unlike subdirectories, it is not part of the data region.
+* **Cluster payloads are staged in RAM**, with a cluster-to-slot map beside them.  The
+  buffer comes from the user heap via `kumm_malloc()`, which is where the external SDRAM
+  lives, and is allocated on the first write rather than up front.  See below.
+* **Commit** walks the directories the host now describes, reassembles long names from
+  their slot sets, and diffs against the model: creates, replaces, deletes, directory
+  creation and removal.
+* **Renames are detected rather than copied.**  A rename writes only a directory entry, so
+  the file's clusters are never staged.  Treating it as a create would read from staging,
+  find nothing, and write zeros.  A new entry whose clusters are absent from staging but
+  match an existing model entry is therefore renamed in place.  This is a correctness
+  requirement, not an optimization.
+* **Host bookkeeping is filtered** - `.fseventsd`, `.Spotlight-V100`, `._*`,
+  `System Volume Information` and the rest - so it is never written through.
 
----
+### Refusing HCOM writes, but not as literally as asked
+
+The decision was to refuse `meadow file write` during storage mode.  Implemented
+literally, that would have broken app deployment: storage mode *is* the runtime being
+disabled, and disabling the runtime is how an app is stopped before a new one is deployed.
+
+So the refusal is gated on whether a host is **actually using** the drive, which the kernel
+knows because the view is only built when a host reads from it.
+`meadow_storage_mode_host_engaged()` reports that, a new `/dev/upd` command
+`HCOM_NX_UPD_IS_HOST_USING_FS` exposes it, and `hcom_file_dnld_stm32f7_file_begin()`
+refuses with a message naming the cause.  Deployment works when no host is attached, and is
+refused when one is.
+
+The flag latches for the boot once set, deliberately: a host that has read once may read
+again at any moment, and nothing announces when it stops.
+
+### Validated against a real host FAT driver
+
+Rather than simulating what a host writes, Linux was made to be the host.  The harness
+emits the view of a real directory to an image; that image is loop-mounted read-write in a
+container where the Linux `vfat` driver adds a file, creates a directory with a file in it,
+adds a file inside an existing subdirectory, deletes a file and renames another; then the
+sectors that differ are replayed through `write_sector()` **in deliberately shuffled
+order** and the commit is run.
+
+Every operation came out right:
+
+    renamed /meadow0/RenameMe.bin to /meadow0/RenamedTo.bin
+    wrote /meadow0/NewlyAdded.dat, 6000 bytes
+    created directory /meadow0/newdir
+    wrote /meadow0/crash/added_in_subdir.log, 500 bytes
+    wrote /meadow0/newdir/inside.txt, 900 bytes
+    removed /meadow0/DeleteMe.txt
+
+All four created or renamed files are byte identical to what Linux wrote, both deletions
+were applied, the staging file was cleaned up, and AddressSanitizer reported no memory
+errors.  The shuffled replay is what demonstrates the order independence claimed above.
+
+Notably the one bug this found was in the harness, not the driver: a `#define rename`
+expanding inside the function that implemented it, recursing until the stack ran out.
+
+### Application files need no special handling
+
+`Meadow.dll` and the rest of the application are treated as ordinary files, with no
+protection and no recovery path in the firmware.  That is a decision rather than a gap: a
+host deleting them is covered by user documentation and by the external deployment tooling,
+which can put them back.
+
+This also completes decision 5 without exception.  Nothing on the volume is carved out,
+including the OTA staging directories.
+
+### Hardware results (macOS)
+
+`meadow mono disable`, the drive appeared, a file of roughly 9.5 KB was copied onto it and
+opened from Finder, and `meadow file list` then showed it on `/meadow0` with no
+`.fseventsd` alongside it.
+
+Four things follow from that, three of which the off-target test could not reach:
+
+* **The settling timer works.**  Nothing was done to trigger a commit, yet the file reached
+  LittleFS, which is what `meadow file list` reads.  The work queue path and the timing
+  both ran.
+* **The junk filter works, and on the platform it exists for.**  macOS had a writable
+  volume and will have tried to create `.fseventsd`; none of it reached `/meadow0`.  Linux
+  never exercised this.
+* **Multi-cluster staging and commit.**  At 4 KB clusters a 9.5 KB file spans three, so the
+  cluster-to-slot map, the chain walk and the reassembly all ran for real rather than for a
+  single cluster.
+* **Reads after the commit come back correctly.**  Opening the file from Finder is served by
+  the shadow, which is the part of the design that exists so a host is not shown a layout
+  different from the one it created.
+
+### Two problems the console output exposed
+
+**The commit was not idempotent.**  The log showed the same file written twice, twenty
+seconds apart:
+
+    [23.565] fatshim: wrote /meadow0/test_ft232h.py, 9488 bytes
+    [43.154] fatshim: wrote /meadow0/test_ft232h.py, 9488 bytes
+
+The commit updated `/meadow0` but never updated the model it diffs against, so a later
+commit re-diffed the same shadow against the same stale model and applied everything
+again.  Redundant flash writes were the mild consequence.  The serious one was renames: a
+repeat pass finds the old path gone, falls through to the create path, finds no staged
+clusters, reads through the stale model to a file that no longer exists, and writes a zero
+filled file.
+
+Each applied change is now recorded in the model in place, using the clusters the host
+chose - nothing is reassigned, so the host still sees its own layout.  Deleted entries are
+retired rather than removed, because parents are referenced by index.  A second commit
+over an unchanged shadow now reports zero changes, and the renamed file survives byte
+identical where it would previously have been zeroed.
+
+There is also a guard so a commit cannot run unless a write has arrived since the last
+one, which is what the `commit applied 0 changes` line at boot was.
+
+**Nothing was durable until the settling window expired.**  Host writes land in the RAM
+staging buffer, so a copy appears finished immediately while nothing has reached
+`/meadow0`.  For a 2.2 MB file the real delay is the 2 second window plus the LittleFS
+write, and unplugging inside it lost the copy silently.
+
+SYNCHRONIZE CACHE is the host asking for durability, and it is what an operating system
+issues before an eject.  `usbmsc` acknowledged it without telling the block driver, which
+makes that promise hollow for anything that buffers.  It now passes `BIOC_FLUSH` down, as
+does the eject path, and the driver commits synchronously in response.  Ejecting therefore
+means what a user expects it to mean.
+
+The commit runs on the SCSI thread in that case, so the host's command blocks until the
+flash write finishes.  That is the intent rather than a cost: it asked for durability.
+
+### The host guards the copy for us
+
+macOS refuses to eject while a copy is in flight.  That is worth recording rather than just
+noting: it means the flush-on-eject path only ever runs when nothing is in flight, so there
+is no need to defend against an eject arriving mid-transfer.
+
+It also makes the "delete then eject" sequence awkward to perform deliberately, because
+with flush-on-sync in place the delete has usually been applied before there is anything
+to click.  That is the intended behaviour making the test hard rather than a test failing.
+
+### Verifying by console rather than by timing
+
+The remaining behaviours are easier to confirm from the syslog than by trying to interleave
+host actions.  A single copy followed by a single delete should produce:
+
+* `fatshim: host asked for a flush` - the SYNCHRONIZE CACHE path is being exercised, which
+  also tells you the build includes it.
+* exactly one `fatshim: wrote ...` per copy, with **no repeat twenty seconds later** - the
+  idempotency fix holding.
+* `fatshim: removed ...` for the delete.
+* no `fatshim: commit applied 0 changes` churn between operations - the write-since-commit
+  guard doing its job.
+
+### Hardware results: the idempotency fix holds
+
+    [ 1.477] fatshim: 9 entries, 754 clusters used of 6900, 17 root slots
+    [ 1.477] Storage mode: a host is using the file system
+    [ 1.977] fatshim: staging 16384 KB, 4096 clusters
+    [ 4.137] fatshim: commit applied 0 changes
+    [74.558] fatshim: wrote /meadow0/Scan1.pdf, 3034136 bytes
+    [74.559] fatshim: commit applied 1 changes
+    [86.487] fatshim: removed /meadow0/Scan1.pdf
+    [86.487] fatshim: commit applied 1 changes
+
+* **One write, not two.**  `Scan1.pdf` was written once with no repeat twenty seconds
+  later, which is precisely what the earlier log showed going wrong.  The idempotency fix
+  is confirmed on hardware.
+* **A 3 MB file.**  3034136 bytes is about 741 clusters, so the cluster-to-slot map, the
+  chain walk and the reassembly all ran at scale rather than over a handful of clusters.
+* **Delete applied once**, and quickly.
+* The model was built from real content and host engagement latched immediately.
+
+The `commit applied 0 changes` at 4.137 is macOS writing something at mount.  A write did
+occur, so the write-since-commit guard correctly let a commit run; it simply found no net
+change.  Harmless, though it does mean a full directory walk each time a host touches the
+volume.
+
+Not shown, and therefore not yet exercised: `fatshim: host asked for a flush`.  That log
+sits inside the flush path, so the commit at 74.558 came from the settling timer.  The
+flush change post-dates the image this log came from.
+
+### Throughput measured, and it was my own fault
+
+The bracketing log lines gave the number:
+
+    [14.025] fatshim: flushing /meadow0/Scan1.pdf, 3034136 bytes
+    [66.231] fatshim: flushing /meadow0/Scan1.pdf complete
+
+3034136 bytes in 52.2 seconds, so about **57 KB/s**.  Dividing it up is what identified the
+cause: 5926 writes of 512 bytes each, at roughly 8.8 ms apiece.  That is a per-call cost
+rather than a bandwidth limit, and it was self-inflicted - `commit_write_file()` walked a
+cluster a sector at a time and issued a `file_write()` for each one.
+
+It now writes a whole 4 KB cluster per call, which is one eighth as many, and does it
+without a copy: a staged cluster is already contiguous in the staging buffer, so the
+pointer is handed straight to the file system.  Only a cluster the host did not write has
+to be gathered sector by sector, which is the uncommon case.
+
+Whether that translates into eight times the throughput depends on how much of the 8.8 ms
+is fixed per call and how much scales with the bytes, which the next measurement on
+hardware will show.
+
+Worth noting as a further avenue if it is still not enough: `CONFIG_FS_LITTLEFS_*` in the
+defconfig carries program, read and cache size factors.  Those affect the on-disk layout,
+so changing them on a populated volume is not something to do casually.
+
+### Rename was rewriting the file, and the discriminator was wrong
+
+On hardware a rename produced this:
+
+    [275.289] fatshim: flushing /meadow0/Scan.pdf, 3034136 bytes
+    [327.300] fatshim: flushing /meadow0/Scan.pdf complete
+    [327.376] fatshim: removed /meadow0/Scan1.pdf
+
+A copy and a delete, 52 seconds, where a rename should have been instant.
+
+The detector asked whether the file's clusters had **ever** been staged, on the reasoning
+that a rename rewrites only a directory entry and so leaves the data untouched.  That holds
+for a file that existed before the session, and fails for one created during it: `Scan1.pdf`
+had been copied on earlier, so its clusters were still sitting in the staging buffer and
+the test read them as fresh data.
+
+The question that actually distinguishes the two is whether the clusters were written
+**since the last commit**.  A bit per cluster is now set on write and cleared by each
+commit, so:
+
+| Case | Clusters written this round? | Treated as |
+|------|------------------------------|------------|
+| Rename of a file from before the session | no | rename |
+| Rename of a file created earlier in the session | no | rename |
+| New file that reuses a freed cluster run | yes | new data |
+
+That third row is why "ever staged" cannot simply be inverted: a genuinely new file landing
+on clusters a deleted file used to occupy has to be written, not renamed.
+
+Reproduced off-target first, in the sequence that failed: create a 1 MB file, commit, then
+rename it, commit again.  Round two now reports `renamed` and touches no data, and the
+diff shows why - exactly **one** sector differs between the two images, the directory entry.
+The file arrives byte identical under its new name.
+
+### Rename on hardware
+
+    [21.429] fatshim: renamed /meadow0/Scan1.pdf to /meadow0/Scan2.pdf
+    [21.430] fatshim: commit applied 1 changes
+
+One millisecond, against 52 seconds of rewriting before the fix.
+
+That first test was the pre-session variant, which would have worked before the fix too,
+because clusters never staged returned `-ENOENT` and satisfied the old test.  The variant
+that actually failed is the same-session one, and it is now confirmed as well:
+
+    [ 88.717] fatshim: flushing /meadow0/Scan1.pdf, 3034136 bytes
+    [140.910] fatshim: flushing /meadow0/Scan1.pdf complete
+    [140.911] fatshim: commit applied 1 changes
+    [161.776] fatshim: renamed /meadow0/Scan1.pdf to /meadow0/Scan3.pdf
+    [161.777] fatshim: commit applied 1 changes
+
+A 3 MB file copied on and committed, then renamed a moment later in the same session: one
+millisecond, where before the fix it was a second 52 second rewrite.  Clusters staged in an
+earlier round are correctly read as data already on the device rather than as something new.
+
+The renamed file opens correctly afterwards.  For a 3 MB PDF that is worth more than a
+glance at a directory listing: a truncated or zero filled file would not open at all, which
+is exactly what the earlier non-idempotent commit would have produced.
+
+### Throughput is erase-bound, not software-bound
+
+The cluster-at-a-time change made no measurable difference: 52.008 s against 52.011 s for
+the same 3 MB file, both about 57 KB/s.  So the 8.8 ms per 512 byte write was never a
+per-call cost, and inferring one from a per-call average was a mistake.
+
+The arithmetic points at the flash instead.  `W25Q*_SECTOR_SHIFT` is 12, so erases are 4 KB,
+and 3034136 bytes needs 741 of them.  At a typical 45 ms sector erase that is 33 seconds
+before a single byte is programmed; page programming adds about 5 more.  Some 38 of the 52
+seconds is the part therefore, with LittleFS metadata plausibly accounting for the rest.
+
+57 KB/s is close to the floor for this flash at a 4 KB erase granularity.  The
+cluster-at-a-time write is kept regardless, being fewer calls and no copy, but it was never
+going to move a number that erases dominate.
+
+The one lever with real headroom is erase size: W25Q parts support 32 KB and 64 KB block
+erase, which are markedly faster per byte, and 64 KB blocks would cut 741 erases to about
+47.  `CONFIG_FS_LITTLEFS_BLOCK_SIZE_FACTOR` controls it - but it changes the on-disk
+layout, so every existing device's `/meadow0` becomes unreadable.  That is a migration
+rather than a tuning change.
+
+### Ejecting during a flush is safe
+
+Ejecting mid-flush completed the write and committed once, with no corruption and no abort.
+
+There was again no `host asked for a flush` line, and that now looks correct rather than
+missing: the settling timer fires two seconds after the last host write, so it had already
+begun the commit.  The eject's `BIOC_FLUSH` then blocked on the mutex until that finished,
+found nothing left to do, and returned quietly.
+
+Which means flush-on-eject is largely redundant against a two second timer; it only matters
+if a host ejects inside that window.  The safety property holds either way.
+
+Worth knowing: the eject command blocked for the full 52 seconds of the commit.  macOS
+tolerated it, but that is long enough that another host might time the command out.
+
+### Still to confirm
+
+* **The flush path**, on a build that contains it.  A copy should log
+  `host asked for a flush` before the write, rather than waiting out the settling window.
+* **Byte-exact content.**  Files open and render correctly, including a 3 MB PDF after a
+  rename, which rules out truncation and zero filling.  Still short of a `cmp` against the
+  copied source, or a `meadow file read` back to the host, which would settle it exactly.
+* **The HCOM write refusal.**  A `meadow file write` while a host holds the drive should
+  fail with a message naming the cause.
+* **Partial writes.**  A copy interrupted, or the board unplugged before the commit, should
+  leave nothing behind.  That is the intent; it is not yet evidence.  Note macOS refuses to
+  eject mid-copy, which removes the most likely way of provoking this by accident.
+
+### Memory
+
+DTCM holds 76972 bytes of 131072: the model at 28 KB plus the shadow FAT, the root
+directory shadow and the cluster-to-slot map.  `ksram` is unchanged at 79244 bytes.
+`CONFIG_SCHED_LPWORKSTACKSIZE` was raised to 8192 because the commit runs on that queue.
+
+The 16 MB staging buffer does not appear in the link map at all, being a runtime allocation
+from the user heap.
+
+### Staging lives in RAM, taken from the user heap
+
+Staging began as a file, which meant every byte a host wrote reached flash twice, once to
+`.usbwrite.tmp` and once to its destination, with the wear and the time that implies.  It
+now goes to a `kumm_malloc()` buffer instead, sized by
+`CONFIG_MEADOW_USBMSC_FATSHIM_STAGE_KB` and defaulting to 16 MB.
+
+`CONFIG_HEAP2_SIZE` was deliberately **not** shrunk, so nothing is taken from the runtime
+permanently.  The chain that makes this work is worth recording, because the comment in
+`nuttx/include/nuttx/kmalloc.h` describes a userspace.h trampoline that does not exist in
+this tree and is misleading:
+
+* `kumm_malloc()` is `#define`d to `malloc()`.
+* The kernel image has its own `malloc`, from `mm/umm_heap/umm_malloc.c`, which calls
+  `mm_malloc(USR_HEAP, size)`.
+* In a protected build `USR_HEAP` is `(*USERSPACE->us_heap)`, so it resolves through the
+  user space blob header to the user heap.
+* That heap is where `arm_addregion()` put the 32 MB of SDRAM, via `kumm_addregion()`.
+
+So kernel code genuinely reaches the SDRAM, and the only dependency is that user space is
+up - which it is long before a host writes anything, since the buffer is allocated on the
+first write rather than at boot.
+
+The memory is held for the rest of the boot once allocated, because the shadow it belongs
+to keeps serving reads after the commit.  That is affordable precisely because storage mode
+means the runtime is not running.
+
+The cost is a ceiling.  A host writing more than the budget in one settling window gets a
+write error, where the file-based version could have used the whole partition.  Nothing is
+committed from a partial copy, so the failure is safe rather than corrupting, but 16 MB is
+a limit where there was none.  It is a Kconfig value if that turns out to matter.
+
+Removing the staging file also removed the handling that kept it hidden from the view.  A
+file left behind by earlier firmware is unlinked when the model is built.
 
 ## Stage 5 - Hardening and integration
+
+Not started.  The list below was written before stages 1 to 4 were built, so it is worth
+reading against what those stages actually turned out to need.  Two items are now more
+important than they looked: the RAM audit is largely answered, since DTCM is at 62 percent
+and the staging buffer comes from the user heap at runtime, whereas throughput turned out to
+be a flash property rather than something tuning will fix.
 
 1. Performance: measure throughput, tune the file-handle cache, consider a small sector
    cache for FAT and directory regions.
@@ -988,13 +1386,13 @@ above the original estimate.
 | 1 - Composite bring-up (RAM disk) | ~300 lines (done) | Low | Host driver binding, Meadow CLI enumeration |
 | 2 - Storage mode control plane | ~190 lines (done) | Low, once derived from the runtime state | Host behaviour while the drive is empty |
 | 3 - Read-only synthetic FAT | ~1310 lines (done) | Moderate-high | LittleFS read path, throughput |
-| 4 - Write and delete path | ~500-700 lines | **High** | Out-of-order writes, OTA bypass, recoverability |
+| 4 - Write and delete path | ~800 lines (done) | **High** | Settling timer, macOS as host, recoverability |
 | 5 - Hardening | Varies | Low-moderate | RAM budget, OTA interaction |
 
 Total for full read-write: roughly 1600-2000 lines of new kernel C. That is above the
 initial estimate, driven by decision 5 - full filesystem access makes subdirectory
-support mandatory in both the read and write paths, and it adds the recovery and OTA
-questions to Stage 4.
+support mandatory in both the read and write paths, and it adds the OTA question to
+Stage 4.
 
 The read-only milestone (Stages 1-3) is roughly 1100-1300 lines and carries almost none
 of the corruption risk.
@@ -1038,15 +1436,17 @@ than usual - the failure modes only surface by attaching a real Mac and Windows 
 and observing what they actually write. Plan on an iterate-and-observe loop with
 `usbmon`, `ioreg` and syslog capture for Stages 3 and 4.
 
-Two things partially substitute for hardware and are worth reusing in Stage 3, since the
-synthetic FAT layout can be checked without any USB involvement at all:
+What partially substitutes for hardware now lives in the tree, at
+`F7MeadowOS/hcom_nx/create_fs/test/`, with its own README.  The read harness emits the
+synthesized volume to an image for `fsck_msdos` and the Linux `vfat` driver to judge; the
+write harness lets Linux be the host, modifying an image which is then replayed through the
+write path in shuffled order.
 
-* Build the image bytes with an independent implementation of the same layout, then parse
-  them back with a *separate* reader.  This is what caught that the seeded `README.TXT`
-  spans two clusters rather than one.
-* Validate the result with `fsck_msdos -n` and by loop mounting it under the Linux `vfat`
-  driver in a privileged container.  Both accepted the Stage 1 layout, and both are
-  stricter than a permissive host mount.
+The record is worth stating honestly in both directions.  Off-target testing caught a
+write-protect mistake, a two-cluster file that a single-cluster shortcut would have
+truncated, and a rename that would have zero filled good data.  It caught none of the three
+defects that reached hardware, because all three lived in the integration - `usbmsc`,
+`find_blockdriver`, the composite bind, or the interaction between successive commits - and
+the harnesses touch none of that.
 
-Neither says anything about USB enumeration or mass storage transport, only about whether
-the file system this firmware generates is well formed.
+So: run them, and do not mistake a clean run for a working driver.

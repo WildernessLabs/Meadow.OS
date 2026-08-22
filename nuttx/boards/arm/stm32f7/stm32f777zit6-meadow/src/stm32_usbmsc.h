@@ -54,7 +54,11 @@
 
 #if defined(CONFIG_MEADOW_USBMSC_FATSHIM)
 #  define MEADOW_USBMSC_LUN0_DEVPATH "/dev/meadowmsc0"
-#  define MEADOW_USBMSC_LUN0_READONLY true
+#  ifdef CONFIG_MEADOW_USBMSC_FATSHIM_WRITE
+#    define MEADOW_USBMSC_LUN0_READONLY false
+#  else
+#    define MEADOW_USBMSC_LUN0_READONLY true
+#  endif
 #elif defined(CONFIG_MEADOW_USBMSC_RAMDISK)
 #  define MEADOW_USBMSC_LUN0_DEVPATH "/dev/meadowmsc0"
 #  define MEADOW_USBMSC_LUN0_READONLY false

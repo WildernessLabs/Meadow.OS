@@ -235,6 +235,27 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
 }
 
 //=============================================================
+// Is a host computer currently using the file system exposed over USB mass
+// storage? Deliberately narrower than storage mode: that is only the runtime
+// being disabled, which is also how an app is stopped before deploying a new
+// one, so gating on it would break deployment.
+bool hcom_via_nx_is_host_using_fs(void)
+{
+  bool inUse = false;
+  int ret;
+
+  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_IS_HOST_USING_FS,
+              (unsigned long) &inUse);
+  if (ret < 0)
+  {
+    // Cannot tell, so do not stand in the way of a write.
+    return false;
+  }
+
+  return inUse;
+}
+
+//=============================================================
 // Is this partition mounted in the file system?
 bool hcom_via_nx_is_mounted(uint32_t partitionId)
 {

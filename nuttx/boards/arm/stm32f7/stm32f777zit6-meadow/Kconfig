@@ -142,6 +142,55 @@ config MEADOW_USBMSC_FATSHIM
 
 endchoice
 
+config MEADOW_USBMSC_FATSHIM_WRITE
+	bool "Accept host writes to the /meadow0 view"
+	default n
+	depends on MEADOW_USBMSC_FATSHIM
+	---help---
+		Allow a host computer to add, replace, rename and delete files on the
+		synthesized view, translating those changes back into the LittleFS
+		volume.
+
+		A host writes data clusters, FAT sectors and directory entries in
+		whatever order it chooses, so nothing can be committed until it has
+		finished. Incoming clusters are staged in a temporary file and the
+		FAT and directory changes are shadowed in RAM; the whole set is
+		reconciled against /meadow0 once the host has been quiet for
+		CONFIG_MEADOW_USBMSC_FATSHIM_SETTLE_MS.
+
+		The shadow then keeps serving reads for the rest of the session,
+		because committing may place a file on different clusters than the
+		host chose and the host must go on seeing its own layout.
+
+		Turn this off to get the read-only view back, which is useful for
+		telling a write problem apart from a read one.
+
+config MEADOW_USBMSC_FATSHIM_STAGE_KB
+	int "Staging buffer for incoming host data, in KB"
+	default 16384
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		How much a host may write in one go before the changes are applied.
+
+		The buffer is taken from the user heap with kumm_malloc(), which is
+		where the external SDRAM lives. That memory is claimed by the .NET
+		runtime when it is running, but storage mode is by definition the
+		runtime being disabled, so it is idle exactly when this is needed.
+
+		It is allocated on the first host write and held for the rest of the
+		boot, because the shadow it belongs to goes on serving reads after the
+		commit. A host that writes more than this in a single settling window
+		gets a write error, which is honest but not graceful, so leave room.
+
+config MEADOW_USBMSC_FATSHIM_SETTLE_MS
+	int "Milliseconds of host silence before committing"
+	default 2000
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		How long the host has to stop writing before the changes are applied
+		to /meadow0. Too short risks committing a half-written file; too long
+		leaves a user waiting after a copy appears to have finished.
+
 config MEADOW_USBMSC_RAMDISK_SECTORS
 	int "Bring-up RAM disk size in 512 byte sectors"
 	default 128
