@@ -652,6 +652,8 @@ bool hcom_mono_ctrl_do_versions_matched()
     }
   }
 
+  meadow_os_config_free_resources(config);
+
   return osVersionMatch;
 }
 

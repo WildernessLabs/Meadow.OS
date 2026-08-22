@@ -228,7 +228,10 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
               pathName, MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN) == 0)
   {
     meadow_configuration_t *config = meadow_os_deep_copy_config();
-    if (config->sd_storage_supported)
+    bool sdcardSupported = (config != NULL) &&  (config->sd_storage_supported != 0);
+    meadow_os_config_free_resources(config);
+
+    if (sdcardSupported)
     {
       // '/sdcard/' found, If this is for file download it cannot end in '/',
       // it must end with a file name. However, if this being called for a file

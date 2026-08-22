@@ -161,7 +161,16 @@ void hcom_misc_rqst_get_device_name(uint32_t userData)
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
 
   meadow_configuration_t *config = meadow_os_deep_copy_config();
-  snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, config->device_name);
+  if ((config == NULL) || (config->device_name == NULL))
+  {
+    syslog(LOG_ERR, "%s@%d-Cannot obtain the device name\n",
+           thisFile, __LINE__);
+    meadow_os_config_free_resources(config);
+    return;
+  }
+
+  snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "%s",
+               config->device_name);
   meadow_os_config_free_resources(config);
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_DEVICE_INFO, 0,
           hostMsg, thisFile, __LINE__);
