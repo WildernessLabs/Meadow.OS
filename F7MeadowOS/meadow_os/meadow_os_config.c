@@ -217,6 +217,10 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
                     result->ntp_servers[index] = meadow_os_copy_string(config->ntp_servers[index]);
                 }
             }
+            else
+            {
+                result->ntp_servers_count = 0;
+            }
         }
 
         if (config->dns_servers_count > 0)
@@ -229,13 +233,31 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
                     result->dns_servers[index] = meadow_os_copy_string(config->dns_servers[index]);
                 }
             }
+            else
+            {
+                result->dns_servers_count = 0;
+            }
         }
         hcom_nx_config_unlock();
+        //
+        //  Now set the pointers we do not care about to NULL.  These are all
+        //  kernel space pointers brought across by the memcpy above and they
+        //  must never be exposed to (or released by) user space.
+        //
+        result->esp_log_components = NULL;
+        result->default_access_point = NULL;
+        result->country_code = NULL;
+
+        if (result->ntp_servers_count == 0)
+        {
+            result->ntp_servers = NULL;
+        }
+
+        if (result->dns_servers_count == 0)
+        {
+            result->dns_servers = NULL;
+        }
     }
-    //
-    //  Now set the strings we do not care about to NULL.
-    //
-    result->esp_log_components = NULL;
 
     return(result);
 }

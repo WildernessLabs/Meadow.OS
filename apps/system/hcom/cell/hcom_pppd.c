@@ -562,14 +562,14 @@ static void hcom_pppd_connected_event(void)
     cell_connected = true;
 
     meadow_configuration_t *config = meadow_os_deep_copy_config();
-    bool get_time = config->get_network_time_at_startup;
+    bool get_time = (config != NULL) && (config->get_network_time_at_startup != 0);
+
+    meadow_os_config_free_resources(config);
 
     if (get_time)
     {
         ntpc_start();
     }
-
-    meadow_os_config_free_resources(config);
 
     espcp_encode_event_data(&message, encodedData);
 
@@ -626,6 +626,7 @@ int hcom_pppd_start()
     {
         if (config->default_interface->interface_type != MEADOW_IFT_CELL)
         {
+            meadow_os_config_free_resources(config);
             return OK;
         }
 
@@ -645,8 +646,10 @@ int hcom_pppd_start()
         }
 
         cell_settings_t *cell_settings = malloc(sizeof(cell_settings_t));
-        if (cell_settings == NULL) {
+        if (cell_settings == NULL)
+        {
             syslog(LOG_ERR, "%s-%d-Failed to allocate cell settings struct\n", thisFile, __LINE__);
+            meadow_os_config_free_resources(config);
             return -ENOMEM;
         }
 
