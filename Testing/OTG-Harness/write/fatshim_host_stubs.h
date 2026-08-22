@@ -73,4 +73,20 @@ static inline void nxmutex_init(mutex_t *m)   { *m = 0; }
 static inline int  nxmutex_lock(mutex_t *m)   { UNUSED(m); return 0; }
 static inline void nxmutex_unlock(mutex_t *m) { UNUSED(m); }
 
+/* Clock and stall, for the instrumentation in the driver. The harness has no
+ * ticks, so a tick is a millisecond and TICK2MSEC is the identity; the stall is
+ * deliberately a no-op, since off-target there is no host to keep waiting.
+ */
+#include <time.h>
+#define TICK2MSEC(t) (t)
+static inline uint32_t clock_systime_ticks(void)
+{
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (uint32_t)((uint32_t)ts.tv_sec * 1000u +
+                    (uint32_t)(ts.tv_nsec / 1000000));
+}
+
+static inline int nxsig_usleep(unsigned int us) { UNUSED(us); return 0; }
+
 #endif

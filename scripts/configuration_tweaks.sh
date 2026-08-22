@@ -240,6 +240,14 @@ enable_stack_dump() {
     ktweak --enable SYSLOG_SERIAL_CONSOLE
     ktweak --enable SYSLOG_CONSOLE
 
+    #   SYSLOG_CONSOLE selects SYSLOG_REGISTER in drivers/syslog/Kconfig, but
+    #   kconfig-tweak writes symbols straight into .config without running the
+    #   Kconfig resolver, so a select never fires and has to be repeated here.
+    #   Without it syslog_channel.c omits syslog_channel_register(), which
+    #   syslog_consolechannel.c calls unconditionally, and the kernel fails to
+    #   link with "undefined reference to syslog_channel_register".
+    ktweak --enable SYSLOG_REGISTER
+
     ktweak --undefine NO_SERIAL_CONSOLE
     ktweak --undefine RAMLOG
     ktweak --undefine RAMLOG_BUFSIZE

@@ -11,7 +11,8 @@ existing USB serial port, without giving up `/dev/ttyACM0`.
 | 2 - Storage mode control plane | **Done.** Verified on macOS. |
 | 3 - Read-only synthetic FAT over `/meadow0` | **Done.** Verified on macOS, contents byte-identical to HCOM. |
 | 4 - Write and delete path | **Done.** Add, delete and rename all verified on macOS. |
-| 5 - Hardening and integration | Not started.  Where to pick this up. |
+| 5 - Hardening and integration | Not started. |
+| 6 - Removing the staging buffer | Measurements 1 and 2 done on macOS: streaming is viable.  Where to pick this up. |
 
 A composite CDC/ACM plus mass storage device enumerates, `/dev/ttyACM0` and HCOM are
 unaffected, and a medium appears and disappears with the runtime-enable state.  That
@@ -26,6 +27,18 @@ checked against the Linux `vfat` driver and Apple's `fsck_msdos`.
 
 Open items are listed per stage.  See **Picking this up again** below for the state of the
 tree, what is left, and the traps.
+
+Stage 6 is the live question: a host's copy dialog finishes at USB speed and the data then
+takes up to a minute to reach flash, with nothing on the host to say so.  Investigating that
+turned up a hazard that is not the staging buffer and is still present - a commit holds
+`_lock` for its whole duration while one SCSI thread serves every command, so the device goes
+silent for around 52 seconds on a 3 MB file.  That is the most likely cause of the original
+Finder crash, and it has to be fixed before the buffer can go.  Instrumentation to settle the
+remaining unknowns is built and off by default.  The first measurement is in: macOS writes
+the complete FAT chain and the directory entry before any file data, and sends the data as one
+contiguous ascending run, so streaming has everything it needs from the first sector.  A host
+also tolerates a single command blocking for at least five seconds, against the seventy
+milliseconds a cluster write costs, so the design has ample margin.
 
 ## Picking this up again
 
@@ -57,7 +70,7 @@ need to be.
 
 ### What is left
 
-Stage 5 is untouched.  Beyond that, four items on stage 4 are unconfirmed and none is
+Stage 5 is untouched, and stage 6 has instrumentation but no measurements.  Beyond that, four items on stage 4 are unconfirmed and none is
 blocking: a byte-exact `cmp` of a copied file, the HCOM write refusal, behaviour when a copy
 is interrupted, and the `host asked for a flush` line, which probably will not appear because
 the two second timer usually wins.
@@ -1376,6 +1389,442 @@ be a flash property rather than something tuning will fix.
    and `Documentation/Kernelspace.md`.
 6. Host-side: Meadow CLI awareness of the new composite descriptors and PID, plus a CLI
    verb to enter and leave storage mode.
+
+## Removing the staging buffer, so a host's copy progress means something
+
+Not started beyond instrumentation, which is built and in the tree.  This is the
+work that came out of asking why a copy appears instant and then takes a minute.
+
+### The problem as reported
+
+A small file copied to the volume worked.  A large one made Finder exit and the
+volume unmount.  RAM staging was introduced in response, and it removed that
+failure - but it replaced it with a copy that appears to finish at USB speed and
+then spends up to a minute reaching flash with nothing on the host to say so.
+CircuitPython and every other mass storage device manages without any of this.
+
+### Why CircuitPython does not need it
+
+Structural, not a matter of tuning.  CircuitPython exposes a real block device
+holding a real FAT file system: the host writes sector N, the device writes
+sector N.  No interpretation, uniform bounded work per command, and the device
+never has to know what a file is.
+
+This shim is doing something categorically harder on two counts.  The FAT is
+synthesized, so there is no backing store and a sector write has to be
+interpreted at all.  And the destination is LittleFS reached through a *file*
+API, so placing a byte needs a path and an offset within that file - which means
+the directory entry and the FAT chain, neither of which is guaranteed to have
+arrived.  That is the reason staging exists, and removing the buffer does not
+make it go away.
+
+### What the investigation actually found, and it was not the cache
+
+`settle_worker()` holds `_lock` across the whole of `commit_apply()`, and
+`fatshim_read()`, `fatshim_write()` and `fatshim_ioctl()` all take that same
+lock.  There is exactly one SCSI worker thread, and `USBMSC_DRVR_READ` and
+`USBMSC_DRVR_WRITE` are called from inside its state machine, so while a commit
+runs **no mass storage command of any kind is serviced** - not a read, not a
+write, not TEST UNIT READY.  For a 3 MB file that is around 52 seconds of a
+device that is not slow but silent.
+
+That explains the original failure exactly, including why it depended on size.
+With a small file the commit is quick and the lock is never held long enough to
+matter.  With a large one the host has a command outstanding into a 52 second
+hole, times it out, resets the device and detaches the volume; Finder exits
+because the volume vanished under an open copy.
+
+The consequence that matters for this work: **the hazard is still present.**  The
+staging buffer did not fix it, it moved it to a window in which macOS usually has
+nothing outstanding.  Stage 4 already recorded the same thing from the other
+side - "the eject command blocked for the full 52 seconds of the commit.  macOS
+tolerated it, but that is long enough that another host might time the command
+out."  Remove the buffer without fixing the lock and the crash returns, which is
+most likely what happened the first time.
+
+So the ordering is not a preference: honest progress requires flash writes while
+the host is actively transferring, which requires the lock problem solved first.
+
+### The design that looks right
+
+Stream to a provisional file and rename at commit.  Measurement 1 below has since
+shown the provisional name is only needed as a fallback on macOS, because the
+directory entry and the whole FAT chain arrive before any data does.
+
+* Keep a small table of open write streams, each `{ firstcluster, next expected
+  cluster, struct file, bytes written }`.
+* A data cluster that continues an open stream is buffered to the 4 KB boundary
+  and written straight through to a provisional path, `.usbstream-<cluster>` or
+  similar.
+* Anything that does not fit the append fast path falls back to the staging
+  buffer, which can then be a few hundred KB instead of 16 MB.
+* At settle, `commit_apply()` does what it already does for metadata: the
+  streamed files are renamed to their real names and their sizes fixed up, and
+  renames, deletions and directory creation are unchanged.
+
+Three things recommend it over the alternatives:
+
+* **The name is not needed while data flows.**  Rename in LittleFS is a metadata
+  operation, measured at 1 ms in stage 4 against 52 seconds for a rewrite, so the
+  provisional name costs essentially nothing.
+* **One write per byte, and appends.**  The file-staging version that crashed
+  wrote every host byte to flash *twice*, once to `.usbwrite.tmp` and once to the
+  destination, and inflated a nearly full 27 MB volume while doing it.  Streaming
+  is strictly cheaper than the thing that failed, not more expensive.
+* **It dissolves the lock problem instead of shortening it.**  Data writes happen
+  on the SCSI thread, which is serialized by construction, so there is no
+  cross-thread contention for the expensive part.  Only the short metadata commit
+  stays on the work queue.
+
+Throughput does not change and is not meant to: 57 KB/s is erase-bound, as stage
+4 established.  What changes is that the host sees 57 KB/s from the first second
+instead of seeing an instant copy followed by silence.
+
+### One config lever worth knowing about
+
+`CONFIG_USBMSC_WRMULTIPLE=y` with `CONFIG_USBMSC_NWRREQS=8` makes `usbmsc.c`
+size its I/O buffer at `sectorsize * NWRREQS` and hand `fatshim_write()` up to 8
+sectors per call - one 4 KB cluster, which is exactly the granularity the
+streaming path wants.  It costs 4 KB of the kernel heap.  It is `default n`
+upstream, so the multi-sector path is lightly travelled and wants reading before
+it is trusted.
+
+### The instrumentation, which is built
+
+Three Kconfig symbols under `MEADOW_USBMSC_FATSHIM_WRITE`, all default off, all
+compiling to nothing when off.  Each answers one question that the design above
+depends on and that nothing currently knows the answer to.
+
+| Symbol | Question |
+|--------|----------|
+| `MEADOW_USBMSC_FATSHIM_TRACE` | In what order does a host write? |
+| `MEADOW_USBMSC_FATSHIM_STALL_MS` | How long may a single command block? |
+| `MEADOW_USBMSC_FATSHIM_LOCKWARN_MS` | How long does a host wait on `_lock`? |
+
+**The trace** records every sector a host writes and dumps it at the top of
+`commit_apply()`, before any flash writing - the point at which the round is over
+and the console is not yet competing with a commit.  Ascending runs are coalesced
+into one record, so a host that writes a file in order costs a handful of records
+and one that scatters costs many; the size of the dump is part of the answer
+rather than just its contents.  Only the start of each run is timestamped,
+because logging as the write happens would perturb the timing being measured.
+
+This is the gating measurement.  Streaming needs the directory entry and the FAT
+chain to precede the data, and whether they do is a property of the host that has
+never been looked at.
+
+**The stall** blocks on the last sector of every cluster, once per cluster rather
+than once per sector, because one flash write per 4 KB cluster is the shape a
+streaming write would have.  It finds the host's tolerance for a slow command
+without needing the streaming path to exist first: set it to what a cluster write
+would cost and see whether the host copes.  This is the number that decides
+whether the design is viable at all, and nobody knows it.
+
+**The lock warning** logs when a host command waits longer than the threshold to
+acquire `_lock`.  It is the diagnosis above measured from the side that suffers,
+and it is cheap enough to leave on: one clock read per command, and silent until
+the threshold is crossed.
+
+### Cost, measured
+
+Built both ways with `--wlclean` in between:
+
+| | Off | On (512 runs) | Delta |
+|---|---|---|---|
+| kflash | 338236 | 339008 | +772 |
+| dtcm | 81932 | 88076 | +6144 |
+| ksram | 79228 | 79244 | +16 |
+
+The DTCM figure is exactly 512 records of 12 bytes.  DTCM sits at 62.5 percent
+with the instrumentation off and 67.2 percent with it on, so the ring can be made
+considerably larger if a trace turns out to be dropping runs.
+
+### How to turn it on
+
+`make menuconfig` under the board options works, or directly:
+
+    ./build.sh --configure
+    kconfig-tweak --file nuttx/.config --enable MEADOW_USBMSC_FATSHIM_TRACE
+    kconfig-tweak --file nuttx/.config --set-val MEADOW_USBMSC_FATSHIM_STALL_MS 40
+    kconfig-tweak --file nuttx/.config --set-val MEADOW_USBMSC_FATSHIM_LOCKWARN_MS 250
+    ./build.sh --wlclean
+
+**`--wlclean` is required and this is a trap.**  A bare `./build.sh` after a
+`.config` change regenerates `include/nuttx/config.h` but does *not* recompile
+the Meadow objects, so the build silently keeps the previous setting.  It cost
+two builds that reported identical section sizes with the trace supposedly
+toggled before the cause was found.  Confirm what was actually built rather than
+trusting the config:
+
+    grep FATSHIM nuttx/include/nuttx/config.h
+    arm-none-eabi-nm F7MeadowOS/hcom_nx/create_fs/hcom_nx_fatshim.o | grep trace
+
+Note also that `./build.sh --configure` regenerates `.config` from the defconfig,
+where all three symbols are off, so it silently undoes every tweak above.  Apply
+them after a configure, never before.
+
+**`flash.sh` leaves the board halted**, with no CDC/ACM port and no volume, which
+looks exactly like a board that failed to boot.  It needs a reset afterwards:
+
+    ${CUBE_APP} -c port=swd -hardRst
+
+`flash.sh --reset` does this as part of the run, but a bare `./flash.sh` does not.
+The volume comes back two or three seconds later.
+
+Start with the trace alone and `STALL_MS` at 0.  Stalling and tracing at once
+measures a host reacting to the stall rather than a host copying a file.
+
+### Measurement 1: the host write order, on hardware (macOS)
+
+Answered, and the answer is better than the design above assumed.  A 3 MB file
+copied onto the volume produced this, trimmed to the essentials:
+
+    fatshim: trace: 6207 sectors in 16 runs, 0 runs dropped
+    trace:        0 ms  fat   lba      1 x24
+    trace:       13 ms  fat   lba     28 x24
+    trace:       48 ms  root  lba     55 x32
+    trace:      179 ms  fat   lba      1 x24
+    trace:      191 ms  root  lba     55 x32
+    trace:      207 ms  fat   lba     28 x24
+    trace:      220 ms  data  lba    215 x5927   cluster 18
+    trace:     3378 ms  root  lba     55 x32
+    trace:     3445 ms  root  lba     55 x32
+    fatshim: flushing /meadow0/Scan1.pdf, 3034136 bytes
+    fatshim: flushing /meadow0/Scan1.pdf complete      (52.08 s later)
+
+**The whole file arrived as a single contiguous ascending run.**  5927 sectors,
+cluster aligned - `lba 215` is exactly cluster 18 - with no gaps and no
+out-of-order stragglers anywhere in the body.
+
+**And there is not one FAT write after 207 ms.**  macOS allocated the complete
+chain for all 741 clusters and committed it to both FAT copies before sending a
+single byte of data.  The root directory went down at 48 ms and again at 191 ms,
+also before the body.  So at the moment the first data sector arrives, the full
+cluster chain and the directory entry are both already in the shadow.
+
+Both prerequisites for streaming are therefore satisfied outright, with about 170
+ms to spare.  Nothing has to be deferred and nothing has to be guessed.
+
+The only data cluster written outside the big run was cluster 17, rewritten five
+times - macOS bookkeeping, already caught by `name_is_hostjunk()`.
+
+Two rates fall out of the same trace:
+
+| | Rate |
+|---|---|
+| Host over the wire | 5927 sectors in 3.1 s, about 976 KB/s - full speed USB doing what it can |
+| Flash on commit | 3034136 bytes in 52.08 s, 58.3 KB/s - the erase-bound figure from stage 4 |
+
+Which states the present defect precisely: the dialog shows three seconds and the
+data lands fifty-two seconds later.
+
+The mount also produces a round of its own, 233 sectors in 12 runs ending in
+`commit applied 0 changes`.  It is entirely repeated rewrites of the FAT and the
+whole root area - macOS housekeeping, harmless, and the thing the plan earlier
+noted as a full directory walk for nothing.
+
+#### What this changes in the design
+
+The provisional-name-and-rename step is no longer the main path.  It existed
+because the file's name might not be known when data began arriving; it is known
+170 ms early.  So:
+
+* Resolve `(path, offset)` on arrival from the shadow FAT and the shadow root,
+  open the real destination file and append as sectors come in.  One open serves
+  the whole body.
+* Keep the provisional name as the **fallback**, for a host that does not
+  preallocate.  Windows and Linux are still unmeasured and may well differ.
+* The fallback staging buffer can be small.  Nothing out of order arrived at all,
+  so **16 MB of SDRAM is replaceable by a few tens of KB**.
+
+Be explicit about the trade this buys.  Honest progress makes the copy dialog
+about seventeen times longer, because it stops lying; total time to durability
+improves slightly, because the writing overlaps the transfer instead of following
+it.
+
+#### The number measurement 2 has to clear
+
+741 clusters in 52.08 s is **about 70 ms per 4 KB cluster write**.  That is the
+per-command block streaming would impose, so the question is now narrow: does a
+host tolerate a 70 ms WRITE(10)?  The 50 ms step should pass; 200 ms passing
+would mean comfortable headroom.
+
+#### One gap in this evidence
+
+The trace records sector addresses, not contents, so it shows *that* the root
+directory was written at 48 ms and not that it already named `Scan1.pdf` at
+cluster 18.  The inference is strong - a complete FAT that is never touched again
+only makes sense for a fully allocated file - but it is an inference.  Logging the
+resolved name and first cluster when a root sector write lands would settle it,
+and is cheap.
+
+### Measurement 2: how long a host will let a command block
+
+Run on hardware against macOS, with `MEADOW_USBMSC_FATSHIM_STALL_MS` stepped up.
+Each row is one build, flash and copy; the stall applies once per 4 KB cluster,
+which is the shape a streaming write would have.
+
+| Stall per cluster | Clusters | Predicted | Elapsed | Result |
+|---|---|---|---|---|
+| 50 ms | 256 (1 MiB) | 12.8 s | 14.5 s | pass, byte identical |
+| 200 ms | 64 (256 KiB) | 12.8 s | 16.1 s | pass, byte identical |
+| 1000 ms | 16 (64 KiB) | 16.0 s | 27.9 s | pass, byte identical |
+| 5000 ms | 4 (16 KiB) | 20.0 s | 63.3 s | pass, byte identical |
+| 5000 ms | 8 (32 KiB) | 40.0 s | 63.0 s | **fail** - volume detached |
+| 200 ms | 512 (2 MiB) | 102.4 s | 107.6 s | pass, device copy byte identical |
+
+**The per-command answer is at least 5 seconds.**  Many 5000 ms writes completed
+before anything went wrong, so a host tolerates a single mass storage command
+blocking for five seconds.  A real cluster write costs about 70 ms, so streaming
+has roughly seventy times the margin it needs.  This was the question that
+decided whether the design was viable at all, and it is answered.
+
+**Total duration is not the limit either.**  A 2 MB copy took 107.6 s of steady
+200 ms commands and completed, so a long operation is not itself fatal.  That
+matters, because a streamed 3 MB file takes about 52 s and a larger one more.
+
+**Elapsed always exceeds prediction, and the excess scales with the stall** - 1.7
+s at 50 ms, 3.3 s at 200 ms, 11.9 s at 1000 ms, 43 s at 5000 ms.  The cause is
+macOS writing its own bookkeeping clusters, which measurement 1 already showed it
+doing five times to cluster 17; each of those pays a stall too.  A streaming
+implementation would not pay it, because those names are already filtered by
+`name_is_hostjunk()` and never reach flash.
+
+**Failure costs the volume, never the device.**  After the detach,
+`/dev/cu.usbmodem...` was still present and `meadow file list` still worked.  The
+CDC/ACM interface survived every failure in this whole exercise, so HCOM is not at
+risk from a storage fault.  This is what the stage 1 graceful-degradation work was
+aiming at, arrived at from the other direction.
+
+**Integrity held even across a detach.**  The 2 MB run reported a mismatch when
+compared through the host mount, which looked alarming until the same file was
+read back with `meadow file read` - the independent HCOM and LittleFS path - and
+compared byte for byte against the source.  All 2097152 bytes identical.  The
+mismatch was the host reading a mount that was going away, not a defect in the
+write path.  Worth recording as a method note: **compare through HCOM before
+believing a mismatch seen through the mount.**
+
+#### One thing this did not explain
+
+Both 5000 ms runs ended at almost exactly 63 s - one completed there, one died
+there - and the 2 MB run completed at 107.6 s but had lost the volume shortly
+afterwards.  So something detaches the volume at long elapsed times that is
+neither a per-command timeout nor total duration alone.
+
+A plausible explanation is command starvation rather than command latency: there
+is one SCSI thread, so a TEST UNIT READY or SYNCHRONIZE CACHE issued while a slow
+write is in progress waits behind it, and those commands may carry much shorter
+timeouts than a write.  That would make the hazard "any long operation starves
+everything else", which is precisely the shape of the `_lock` problem this stage
+exists to fix, and it would explain why the original crash looked like a host
+timeout without any single write being outrageous.
+
+It is a hypothesis.  Diagnosing it needs the console, and it does not block the
+design: at 70 ms per cluster nothing is starved for more than 70 ms.  It does say
+the 52 second commit must go, which was already the conclusion.
+
+### Reading the console at all: two pre-existing breakages fixed
+
+`CONFIG_RAMLOG_SYSLOG=y` puts the syslog in a RAM buffer at `/dev/kmsg`, so it
+reaches neither the CDC/ACM port nor the ST-Link VCP.  `meadow listen` shows
+application output and stays silent in storage mode, where the runtime is by
+definition not running.  Reading the trace therefore needs `./build.sh --esd`,
+which disables RAMLOG and routes the syslog to USART1.
+
+That configuration did not build, for two unrelated reasons, neither introduced
+by this work:
+
+* `apps/system/hcom/comms/hcom_host_send.c` defines
+  `hcom_trace_is_sending_to_cli()` unconditionally, but its only caller sits
+  inside `#if defined CONFIG_RAMLOG_SYSLOG`.  Without RAMLOG the function is
+  unused and `-Werror=unused-function` fails the build.  Now guarded on the same
+  symbol as its caller.
+* The kernel failed to link with `undefined reference to
+  syslog_channel_register`.  `SYSLOG_CONSOLE` does `select SYSLOG_REGISTER` in
+  `drivers/syslog/Kconfig`, but `enable_stack_dump()` in
+  `scripts/configuration_tweaks.sh` uses `kconfig-tweak`, which writes symbols
+  straight into `.config` **without running the Kconfig resolver**, so the select
+  never fires.  `enable_stack_dump()` is a hand-maintained list of exactly these
+  implications, so the missing one was added there.
+
+That second point is worth generalising: **every `select` in Kconfig has to be
+repeated by hand in these tweak functions.**  The symptom is a link failure for a
+function that plainly exists, and the same mechanism explains why tweaked symbols
+land in a block at the end of `.config` rather than in place.
+
+`--esd` also enables `DEV_CONSOLE` and `STACK_COLORATION` and drops `ksram` from
+79 KB to 46 KB by removing the RAMLOG buffer, so it is a diagnostic
+configuration, not a shipping one.
+
+#### Capturing it
+
+    ./build.sh --wlclean --esd
+
+then a terminal program on **USART1 / COM1 on the board header**, at **115200
+8-N-1**, no flow control, from `CONFIG_USART1_BAUD` and its neighbours in the
+defconfig.  Connect before resetting the board to catch the boot lines, and start
+capturing to a file before the copy.
+
+Two ports are the wrong ones and both look plausible:
+
+* `/dev/cu.usbmodem<serial>1` is the CDC/ACM interface.  That is HCOM, not the
+  console.
+* the ST-Link VCP, `/dev/cu.usbmodem1203` or similar, is silent - USART1 is not
+  wired to it on this board.  A separate USB to serial adapter on the header is
+  needed.
+
+`meadow listen` is also not it.  It shows *application* console output, so in
+storage mode, where the runtime by definition is not running, it connects and
+prints nothing at all.  That is easy to mistake for an absence of log lines.
+
+#### Measuring without a console
+
+Worth knowing, because it is how measurement 2 was actually run and it needs no
+`--esd` build.  For the question "did the host tolerate this", four mechanical
+signals are enough:
+
+* `cp` exit status, and its stderr - a detach reports `Device not configured`;
+* elapsed time against the predicted stall total, which is where the macOS
+  bookkeeping overhead showed up;
+* whether `/Volumes/MEADOW0` still exists afterwards;
+* `meadow file list`, which reads through HCOM and LittleFS and so says whether
+  the commit actually landed.
+
+The console adds why, not whether.
+
+### What the harnesses can and cannot do with this
+
+`Testing/OTG-Harness/write` gained an `applyseq` mode that replays in ascending
+order rather than shuffled, which is the only way to exercise the coalescing:
+`apply` shuffles on purpose, so every sector starts a new run.  A 70 KB file
+collapses 144 sectors into 7 runs ascending and into 144 shuffled, and the write
+path is byte identical and idempotent either way.
+
+That verifies the trace code.  It says nothing about the order a host writes in,
+because both replay orders are chosen by the harness.  Per the rule this document
+keeps having to restate: the answer is on a board.
+
+### Order of work
+
+1. **Done.**  Measurement 1: the directory entry and the whole FAT chain precede
+   the data, and the body arrives as one ascending run.
+2. **Done.**  Measurement 2: a command may block for at least five seconds,
+   against the seventy milliseconds a cluster write needs.
+3. **Next, and it needs the console.**  `LOCKWARN_MS` on during a large copy, to
+   confirm the 52 second stall lands where the diagnosis says it does, and to test
+   the starvation hypothesis from measurement 2 - whether what detaches the volume
+   at long elapsed times is a short-timeout command queued behind a slow one
+   rather than the slow one itself.  If it is, the fix is the same either way, but
+   knowing tells you whether anything beyond the lock needs attention.
+4. **Then the lock.**  Take the flash writing out from under `_lock`, or off the
+   work queue and onto the SCSI thread, which is what streaming does anyway.  This
+   is the part that must land before the staging buffer shrinks: it is the hazard
+   that is present today and the likely cause of the original crash.
+5. **Then the streaming path**, with the append fast path resolving `(path,
+   offset)` on arrival and the provisional-name route as the fallback.
+6. **Then shrink the staging buffer** and re-measure.  Nothing arrived out of
+   order on macOS, so a few tens of KB should do, but Windows and Linux are
+   unmeasured and this is the number they would move.
 
 ---
 

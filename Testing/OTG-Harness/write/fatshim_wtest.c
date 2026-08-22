@@ -4,6 +4,9 @@
  *   apply <root> <before> <after>   feed the sectors that differ between the
  *                                   two images through the write path, in
  *                                   shuffled order, then commit
+ *   applyseq <root> <before> <after>  the same, in ascending order, which is
+ *                                   what exercises the write trace's
+ *                                   coalescing of runs
  *
  * Between the two, Linux's own FAT driver is what modifies the image, so the
  * writes being replayed are those a real host produces rather than my guess at
@@ -145,7 +148,7 @@ static int apply2(const char *a, const char *b, const char *c)
   return 0;
 }
 
-static int apply(const char *before, const char *after)
+static int apply(const char *before, const char *after, int shuffle)
 {
   FILE *fa = fopen(before, "rb");
   FILE *fb = fopen(after, "rb");
@@ -172,11 +175,20 @@ static int apply(const char *before, const char *after)
 
   /* Shuffle, so the replay order is deliberately not the order a host used.
    * The design is meant to be order independent; this is where that is tested.
+   *
+   * Skipping the shuffle is what the applyseq mode is for. Replaying in
+   * ascending order is the only way this harness can exercise the coalescing
+   * in the write trace, which collapses ascending runs and so never fires on a
+   * shuffled replay. It is not a claim about what a host does: the order a real
+   * host chooses is only observable on a board.
    */
-  for (i = nchanged - 1; i > 0; i--)
+  if (shuffle)
     {
-      int j = (i * 7919 + 13) % (i + 1);
-      uint32_t t = changed[i]; changed[i] = changed[j]; changed[j] = t;
+      for (i = nchanged - 1; i > 0; i--)
+        {
+          int j = (i * 7919 + 13) % (i + 1);
+          uint32_t t = changed[i]; changed[i] = changed[j]; changed[j] = t;
+        }
     }
 
   for (i = 0; i < nchanged; i++)
@@ -188,7 +200,8 @@ static int apply(const char *before, const char *after)
     }
 
   fclose(fa); fclose(fb);
-  printf("replayed in shuffled order, committing\n");
+  printf("replayed in %s order, committing\n",
+         shuffle ? "shuffled" : "ascending");
   commit_apply();
 
   /* Commit again with nothing new. A second pass must be a no-op; before the
@@ -204,11 +217,19 @@ static int apply(const char *before, const char *after)
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) { fprintf(stderr, "usage: emit|apply ...\n"); return 2; }
+  if (argc < 3)
+    {
+      fprintf(stderr, "usage: emit|apply|applyseq|apply2 ...\n");
+      return 2;
+    }
+
   snprintf(g_root, sizeof(g_root), "%s", argv[2]);
 
   if (strcmp(argv[1], "emit") == 0 && argc == 4)  return emit(argv[3]);
-  if (strcmp(argv[1], "apply") == 0 && argc == 5) return apply(argv[3], argv[4]);
+  if (strcmp(argv[1], "apply") == 0 && argc == 5)
+    return apply(argv[3], argv[4], 1);
+  if (strcmp(argv[1], "applyseq") == 0 && argc == 5)
+    return apply(argv[3], argv[4], 0);
   if (strcmp(argv[1], "apply2") == 0 && argc == 6)
     {
       if (model_build() < 0) return 1;

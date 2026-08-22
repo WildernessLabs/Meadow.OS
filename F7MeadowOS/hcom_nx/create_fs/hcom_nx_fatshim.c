@@ -48,6 +48,7 @@
 #  include <nuttx/clock.h>
 #  include <nuttx/kmalloc.h>
 #  include <nuttx/mutex.h>
+#  include <nuttx/signal.h>
 #  include <nuttx/wqueue.h>
 
 #  include <meadow/hcom_shared_common.h>
@@ -306,6 +307,249 @@ static struct work_s _settlework;
 static void stage_release(void);
 
 #endif  // CONFIG_MEADOW_USBMSC_FATSHIM_WRITE
+
+//===========================================================================
+// Instrumentation
+//
+// Diagnostic only, and written to be lifted out again: nothing below this
+// heading is needed for the driver to work, and every piece of it compiles to
+// nothing when its Kconfig symbol is off.
+//
+// It exists to answer three questions that decide whether the RAM staging
+// buffer can be removed in favour of writing host data to /meadow0 as it
+// arrives, which is what would make a host's copy progress mean something.
+//
+//   1. In what order does a host write?  Streaming needs the path and the
+//      offset of each incoming cluster, so it needs the directory entry and
+//      the FAT chain to have arrived first.  Whether they do is a property of
+//      the host and has never been looked at.
+//   2. How long may a single mass storage command block?  Streaming means a
+//      command that waits for an erase.  Too long and the host resets the
+//      device and detaches the volume, which is the failure that put the
+//      staging buffer here in the first place.
+//   3. How long does a host actually wait on _lock?  The commit holds it
+//      across all of its flash writing while one SCSI thread serves every
+//      command, so a commit makes the device silent rather than slow.
+//===========================================================================
+
+// Question 3. Cheap enough to leave on: one clock read per command, and it
+// logs nothing until the threshold is crossed.
+
+// The Kconfig already makes all three depend on host writes being enabled.
+// These restate it, so that the file does not rely on the configuration having
+// been generated from that Kconfig to compile without unused-function warnings.
+
+#if defined(CONFIG_MEADOW_USBMSC_FATSHIM_LOCKWARN_MS) && \
+    CONFIG_MEADOW_USBMSC_FATSHIM_LOCKWARN_MS > 0
+#  define FATSHIM_LOCKWARN 1
+#endif
+
+#if defined(CONFIG_MEADOW_USBMSC_FATSHIM_WRITE) && \
+    defined(CONFIG_MEADOW_USBMSC_FATSHIM_STALL_MS) && \
+    CONFIG_MEADOW_USBMSC_FATSHIM_STALL_MS > 0
+#  define FATSHIM_STALL 1
+#endif
+
+#if defined(CONFIG_MEADOW_USBMSC_FATSHIM_WRITE) && \
+    defined(CONFIG_MEADOW_USBMSC_FATSHIM_TRACE)
+#  define FATSHIM_TRACE 1
+#endif
+
+#if defined(FATSHIM_TRACE) || defined(FATSHIM_LOCKWARN)
+static uint32_t fatshim_now_ms(void)
+{
+  return (uint32_t)TICK2MSEC(clock_systime_ticks());
+}
+#endif
+
+#ifdef FATSHIM_TRACE
+
+#define FS_TRACERUNS  CONFIG_MEADOW_USBMSC_FATSHIM_TRACE_RUNS
+
+#define FS_RGN_BOOT  0
+#define FS_RGN_FAT   1
+#define FS_RGN_ROOT  2
+#define FS_RGN_DATA  3
+
+// Ascending runs are coalesced, so a host that writes a file in order costs one
+// record and one that scatters costs many. That makes the size of the dump part
+// of the answer rather than just its contents, and it keeps the common case
+// inside a ring small enough to sit in DTCM.
+//
+// Only the first sector of a run is timestamped. That is what shows the arrival
+// pattern, and it is all that can be afforded: logging as the write happens
+// would perturb the timing being measured.
+
+struct fatshim_run_s
+{
+  uint32_t ms;        // Milliseconds since the first write of the round
+  uint32_t lba;       // First sector of the run
+  uint16_t count;     // Sectors in it
+  uint8_t  region;    // Derived here so a dump reads without arithmetic
+  uint8_t  pad;
+};
+
+static struct fatshim_run_s _traceruns[FS_TRACERUNS] locate_data(".dtcm");
+static uint16_t _tracecount;      // Runs held, never more than FS_TRACERUNS
+static uint32_t _tracesectors;    // Sectors seen, uncapped
+static uint32_t _tracedropped;    // Runs the ring had no room for
+static uint32_t _tracebasems;
+static bool _tracebased;
+
+static const char *trace_regionname(uint8_t region)
+{
+  switch (region)
+  {
+    case FS_RGN_BOOT:
+      return "boot";
+
+    case FS_RGN_FAT:
+      return "fat ";
+
+    case FS_RGN_ROOT:
+      return "root";
+
+    default:
+      return "data";
+  }
+}
+
+static uint8_t trace_region(uint32_t lba)
+{
+  if (lba < FS_FATSTART)
+  {
+    return FS_RGN_BOOT;
+  }
+
+  if (lba < FS_ROOTSTART)
+  {
+    return FS_RGN_FAT;
+  }
+
+  if (lba < FS_DATASTART)
+  {
+    return FS_RGN_ROOT;
+  }
+
+  return FS_RGN_DATA;
+}
+
+// Called for every sector a host writes, before anything is done with it.
+static void trace_note(uint32_t lba)
+{
+  uint8_t region = trace_region(lba);
+  uint32_t now;
+
+  if (!_tracebased)
+  {
+    _tracebasems = fatshim_now_ms();
+    _tracebased = true;
+  }
+
+  _tracesectors++;
+
+  // Extend the run in progress when this sector simply follows the last one.
+  // The count is 16 bits and the volume is smaller than that, so it cannot
+  // wrap, but the guard costs nothing and does not rely on that staying true.
+
+  if (_tracecount > 0)
+  {
+    struct fatshim_run_s *last = &_traceruns[_tracecount - 1];
+
+    if (last->region == region && last->count < UINT16_MAX &&
+        last->lba + last->count == lba)
+    {
+      last->count++;
+      return;
+    }
+  }
+
+  if (_tracecount >= FS_TRACERUNS)
+  {
+    _tracedropped++;
+    return;
+  }
+
+  now = fatshim_now_ms();
+
+  _traceruns[_tracecount].ms = now - _tracebasems;
+  _traceruns[_tracecount].lba = lba;
+  _traceruns[_tracecount].count = 1;
+  _traceruns[_tracecount].region = region;
+  _traceruns[_tracecount].pad = 0;
+  _tracecount++;
+}
+
+// Dumped once per commit and then reset, so each round reads on its own.
+//
+// This runs with _lock held, which means the console time it takes is time the
+// host is kept waiting. That is tolerable because a commit already holds the
+// lock far longer, but it is the reason the ring is sized in runs rather than
+// sectors, and it is worth allowing for when reading a stall result.
+static void trace_dump(void)
+{
+  uint16_t i;
+
+  if (_tracesectors == 0)
+  {
+    return;
+  }
+
+  syslog(LOG_NOTICE,
+         "fatshim: trace: %u sectors in %u runs, %u runs dropped\n",
+         (unsigned int)_tracesectors, (unsigned int)_tracecount,
+         (unsigned int)_tracedropped);
+
+  for (i = 0; i < _tracecount; i++)
+  {
+    struct fatshim_run_s *r = &_traceruns[i];
+
+    if (r->region == FS_RGN_DATA)
+    {
+      uint32_t cluster = FS_FIRSTCLUSTER +
+                         ((r->lba - FS_DATASTART) / FS_SECPERCLUS);
+
+      syslog(LOG_NOTICE,
+             "fatshim: trace: %8u ms  %s  lba %6u x%-5u  cluster %u\n",
+             (unsigned int)r->ms, trace_regionname(r->region),
+             (unsigned int)r->lba, (unsigned int)r->count,
+             (unsigned int)cluster);
+    }
+    else
+    {
+      syslog(LOG_NOTICE,
+             "fatshim: trace: %8u ms  %s  lba %6u x%-5u\n",
+             (unsigned int)r->ms, trace_regionname(r->region),
+             (unsigned int)r->lba, (unsigned int)r->count);
+    }
+  }
+
+  syslog(LOG_NOTICE, "fatshim: trace: end\n");
+
+  _tracecount = 0;
+  _tracesectors = 0;
+  _tracedropped = 0;
+  _tracebased = false;
+}
+
+#else
+#  define trace_note(lba) do { } while (0)
+#  define trace_dump()    do { } while (0)
+#endif  // FATSHIM_TRACE
+
+// Question 2. Blocks on the last sector of a cluster rather than on each of its
+// eight, because one flash write per 4 KB cluster is the shape a streaming
+// write would have, and it is the per-command latency that a host either
+// tolerates or does not.
+
+#ifdef FATSHIM_STALL
+static void fatshim_stall(void)
+{
+  nxsig_usleep(CONFIG_MEADOW_USBMSC_FATSHIM_STALL_MS * 1000);
+}
+#else
+#  define fatshim_stall() do { } while (0)
+#endif
 
 //===========================================================================
 // Small helpers
@@ -1712,6 +1956,11 @@ static int read_sector(uint32_t lba, uint8_t *buf)
 
 static int write_sector(uint32_t lba, const uint8_t *buf)
 {
+  // Noted before the boot sector is dropped, so the trace records what the host
+  // sent rather than what was acted on.
+
+  trace_note(lba);
+
   if (lba == 0)
   {
     // Nothing good can come of a host rewriting the boot sector, and the
@@ -1760,7 +2009,17 @@ static int write_sector(uint32_t lba, const uint8_t *buf)
 
     cluster_mark_written(cluster);
 
-    return stage_rw(offset + inclus, (uint8_t *)buf, FS_SECTORSIZE, true);
+    ret = stage_rw(offset + inclus, (uint8_t *)buf, FS_SECTORSIZE, true);
+
+    // Stand in for the flash write a streaming implementation would do here,
+    // once per cluster rather than once per sector.
+
+    if (ret >= 0 && inclus + FS_SECTORSIZE >= FS_CLUSTERSIZE)
+    {
+      fatshim_stall();
+    }
+
+    return ret;
   }
 }
 
@@ -2011,6 +2270,11 @@ static int commit_apply(void)
   int ret;
   int changes = 0;
 
+  // Before any flash writing, which is both the point at which the round is
+  // over and the last moment the console is not competing with a commit.
+
+  trace_dump();
+
   memset(_modelseen, 0, sizeof(_modelseen));
 
   _commitdirs[0].cluster = 0;
@@ -2246,6 +2510,37 @@ static void settle_schedule(void)
 
 #ifndef FATSHIM_HOST_TEST
 
+// Every host command comes through here, so this is where the wait for _lock
+// can be seen from the side that suffers it. The commit holds the lock across
+// all of its flash writing and there is a single SCSI thread serving every
+// command, so a commit in progress makes the device unresponsive rather than
+// slow: not one command is answered, TEST UNIT READY included.
+//
+// settle_worker() deliberately does not use this. It is the thread that holds
+// the lock for a long time, not one that waits on it, and a commit delayed
+// behind a host command is not the direction of interest.
+static int fatshim_lock(void)
+{
+#ifdef FATSHIM_LOCKWARN
+  uint32_t before = fatshim_now_ms();
+  uint32_t waited;
+  int ret;
+
+  ret = nxmutex_lock(&_lock);
+  waited = fatshim_now_ms() - before;
+
+  if (ret >= 0 && waited >= CONFIG_MEADOW_USBMSC_FATSHIM_LOCKWARN_MS)
+  {
+    syslog(LOG_WARNING, "fatshim: a host command waited %u ms for the lock\n",
+           (unsigned int)waited);
+  }
+
+  return ret;
+#else
+  return nxmutex_lock(&_lock);
+#endif
+}
+
 // Builds the model if it has not been built yet. Deferred to the first read
 // because the mass storage LUN is bound before /meadow0 is mounted, so there is
 // nothing to scan at bind time. A failure is retried rather than latched: the
@@ -2304,7 +2599,7 @@ static ssize_t fatshim_read(FAR struct inode *inode,
     return -EINVAL;
   }
 
-  ret = nxmutex_lock(&_lock);
+  ret = fatshim_lock();
   if (ret < 0)
   {
     return ret;
@@ -2465,7 +2760,7 @@ static int fatshim_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
 
   work_cancel(LPWORK, &_settlework);
 
-  ret = nxmutex_lock(&_lock);
+  ret = fatshim_lock();
   if (ret < 0)
   {
     return ret;

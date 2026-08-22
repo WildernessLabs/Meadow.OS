@@ -58,9 +58,10 @@ modifies it, and the sectors that differ are then replayed through
        -DCONFIG_MEADOW_USBMSC_FATSHIM_STAGE_KB=16384 \
        -I. -I$DRV -o fatshim_wtest fatshim_wtest.c
 
-    ./fatshim_wtest emit   <root> <image>              # build the view of <root>
-    ./fatshim_wtest apply  <root> <before> <after>     # replay a diff, then commit twice
-    ./fatshim_wtest apply2 <root> <a> <b> <c>          # two rounds in one session
+    ./fatshim_wtest emit     <root> <image>            # build the view of <root>
+    ./fatshim_wtest apply    <root> <before> <after>   # replay a diff, then commit twice
+    ./fatshim_wtest applyseq <root> <before> <after>   # the same, in ascending order
+    ./fatshim_wtest apply2   <root> <a> <b> <c>        # two rounds in one session
 
 `<root>` is a real directory standing in for `/meadow0`, and the commit writes
 to it, so its contents afterwards are the result to inspect.
@@ -84,3 +85,30 @@ deal of memory by cluster number.
 matches afterwards. Re-running against a stale image reports changes to files
 nobody touched, which looks alarming and is not real. Reset the directory
 between runs.
+
+## The write trace, and what these harnesses cannot tell you about it
+
+`CONFIG_MEADOW_USBMSC_FATSHIM_TRACE` records the order a host writes in, so that
+the question of whether host data could be written to `/meadow0` as it arrives -
+instead of being staged in RAM first - can be answered from evidence.  Add these
+to either build to compile it in:
+
+    -DCONFIG_MEADOW_USBMSC_FATSHIM_TRACE \
+    -DCONFIG_MEADOW_USBMSC_FATSHIM_TRACE_RUNS=512
+
+Ascending runs of sectors are coalesced, and `applyseq` exists because that is
+the only way to exercise the coalescing here: `apply` shuffles deliberately, so
+every sector starts a new run and the collapse never happens.  A 70 KB file
+replayed ascending collapses 144 sectors into 7 runs; shuffled, the same write
+produces 144.
+
+Be clear about what this can and cannot establish.  Running the trace here
+verifies that the recording, the coalescing and the dump work.  It says nothing
+whatever about the order a host actually writes in, because the order these
+harnesses replay is chosen by the harness - shuffled by `apply` on purpose,
+ascending by `applyseq` on purpose.  Neither is a host.
+
+**The order question can only be answered on a board.**  That is the whole
+reason the trace exists, and it is another instance of the rule stated at the
+top of this file: what matters lives in the integration, and these harnesses do
+not touch it.
