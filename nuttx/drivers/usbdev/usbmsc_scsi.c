@@ -413,6 +413,25 @@ static inline int usbmsc_cmdtestunitready(FAR struct usbmsc_dev_s *priv)
 
   priv->u.alloclen = 0;
   ret = usbmsc_setupcmd(priv, 6, USBMSC_FLAGS_DIRNONE);
+
+#ifdef CONFIG_USBMSC_REMOVABLE
+  /* With removable media, a LUN that exists but has no block driver bound is
+   * an empty drive, and TEST UNIT READY has to say so.  Reporting ready and
+   * then failing READ CAPACITY with MEDIUM NOT PRESENT is incoherent, and
+   * leads hosts that poll TEST UNIT READY to retry the capacity query
+   * indefinitely instead of concluding the drive is empty.
+   *
+   * This condition cannot arise for fixed media, where the LUN is bound for
+   * the lifetime of the device, which is why the check is conditional.
+   */
+
+  if (ret == OK && priv->lun != NULL && priv->lun->inode == NULL)
+    {
+      priv->lun->sd = SCSI_KCQNR_MEDIANOTPRESENT;
+      ret = -EINVAL;
+    }
+#endif
+
   return ret;
 }
 
@@ -915,6 +934,53 @@ static inline int usbmsc_cmdstartstopunit(FAR struct usbmsc_dev_s *priv)
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_NOTREMOVABLE), 0);
       lun->sd = SCSI_KCQIR_INVALIDCOMMAND;
       ret = -EINVAL;
+#else
+      FAR struct scsicmd_startstopunit_s *ssu =
+          (FAR struct scsicmd_startstopunit_s *)priv->cdb;
+      FAR struct usbmsc_lun_s *lun = priv->lun;
+
+      /* Removable media has to honour a medium change request, otherwise the
+       * command is accepted, nothing happens, and the host simply re-probes
+       * and re-mounts the medium it just asked to eject.
+       *
+       * LOEJ selects a medium change; START then says which way.  The inode
+       * is parked rather than closed, both because unbinding would need
+       * priv->thlock which this thread already holds, and because parking it
+       * lets a subsequent load bring the same medium back.  Every existing
+       * !lun->inode test then reports media not present for free.
+       */
+
+      if (lun != NULL && (ssu->pc & SCSICMD_STARTSTOPUNIT_LOEJ) != 0)
+        {
+          if ((ssu->pc & SCSICMD_STARTSTOPUNIT_START) == 0)
+            {
+              if (lun->inode != NULL)
+                {
+                  /* Last chance for a buffering driver to make the host's
+                   * writes durable, since after this the medium is gone.
+                   */
+
+                  if (lun->inode->u.i_bops->ioctl != NULL)
+                    {
+                      lun->inode->u.i_bops->ioctl(lun->inode, BIOC_FLUSH, 0);
+                    }
+
+                  lun->ejectedinode = lun->inode;
+                  lun->inode        = NULL;
+                }
+            }
+          else if (lun->inode == NULL && lun->ejectedinode != NULL)
+            {
+              lun->inode        = lun->ejectedinode;
+              lun->ejectedinode = NULL;
+
+              /* Tell the host the medium became ready, so that it re-reads
+               * the capacity instead of trusting what it cached before.
+               */
+
+              lun->uad = SCSI_KCQUA_NOTREADYTOTRANSITION;
+            }
+        }
 #endif
     }
 
@@ -1315,6 +1381,18 @@ static inline int usbmsc_cmdsynchronizecache10(FAR struct usbmsc_dev_s *priv)
     {
       ret = usbmsc_setupcmd(priv, SCSICMD_SYNCHRONIZECACHE10_SIZEOF,
                             USBMSC_FLAGS_DIRNONE);
+
+      /* SYNCHRONIZE CACHE is the host asking for what it has written to be
+       * made durable, and it is what a host issues before an eject.  Acking
+       * it without telling the block driver makes that promise hollow for a
+       * driver that buffers, so pass it down.  A driver with nothing to
+       * flush returns -ENOTTY, which is not a failure of this command.
+       */
+
+      if (ret == OK && priv->lun->inode->u.i_bops->ioctl != NULL)
+        {
+          priv->lun->inode->u.i_bops->ioctl(priv->lun->inode, BIOC_FLUSH, 0);
+        }
     }
 
   return ret;

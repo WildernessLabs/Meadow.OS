@@ -94,6 +94,187 @@ config BOARD_DUAL_CDCACM
 		USB CDC/ACM interfaces.
 
 choice
+	prompt "USB mass storage LUN backing"
+	default MEADOW_USBMSC_SDCARD
+	depends on USBMSC
+	---help---
+		What the USB mass storage LUN presents to a host computer.
+
+config MEADOW_USBMSC_SDCARD
+	bool "SD card"
+	---help---
+		Bind the LUN to /dev/mmcsd0. The card is already vfat formatted, so
+		a host can read it without any translation. Nothing is exposed if no
+		card is present.
+
+config MEADOW_USBMSC_RAMDISK
+	bool "FAT12 RAM disk (bring-up only)"
+	---help---
+		A small FAT12 formatted RAM disk, used to bring up and test the USB
+		composite device in isolation from any file system work. Contents are
+		recreated on every boot and lost at reset.
+
+		The backing buffer is statically allocated and placed in DTCM. It has
+		to be: in this PROTECTED build the additional heap regions, the
+		external SDRAM at CONFIG_HEAP2_BASE included, are given to the user
+		heap by kumm_addregion(), so kernel allocations can only draw on the
+		much smaller CONFIG_MM_KERNEL_HEAPSIZE. ksram has only about 50 KB
+		spare, whereas DTCM is 128 KB that nothing else claims because
+		CONFIG_STM32F7_DTCMEXCLUDE keeps it out of every heap.
+
+		Keep this available for bisecting USB problems, but it is not what
+		ships.
+
+config MEADOW_USBMSC_FATSHIM
+	bool "Read-only FAT16 view of /meadow0"
+	---help---
+		Present the Meadow file system to a host computer as a FAT16 volume.
+
+		No host operating system can read LittleFS, and USB mass storage is a
+		block protocol in which the host runs the file system driver, so the
+		only way a host can browse /meadow0 is for the board to fabricate a
+		file system the host already understands. Nothing is stored: each
+		sector read is answered by computing what a FAT16 volume holding those
+		files would have contained at that offset.
+
+		Read-only. The block driver has no write method, which is how NuttX
+		is told to advertise the medium as write protected.
+
+endchoice
+
+config MEADOW_USBMSC_FATSHIM_WRITE
+	bool "Accept host writes to the /meadow0 view"
+	default n
+	depends on MEADOW_USBMSC_FATSHIM
+	---help---
+		Allow a host computer to add, replace, rename and delete files on the
+		synthesized view, translating those changes back into the LittleFS
+		volume.
+
+		A host writes data clusters, FAT sectors and directory entries in
+		whatever order it chooses, so nothing can be committed until it has
+		finished. Incoming clusters are staged in a temporary file and the
+		FAT and directory changes are shadowed in RAM; the whole set is
+		reconciled against /meadow0 once the host has been quiet for
+		CONFIG_MEADOW_USBMSC_FATSHIM_SETTLE_MS.
+
+		The shadow then keeps serving reads for the rest of the session,
+		because committing may place a file on different clusters than the
+		host chose and the host must go on seeing its own layout.
+
+		Turn this off to get the read-only view back, which is useful for
+		telling a write problem apart from a read one.
+
+config MEADOW_USBMSC_FATSHIM_STAGE_KB
+	int "Staging buffer for incoming host data, in KB"
+	default 16384
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		How much a host may write in one go before the changes are applied.
+
+		The buffer is taken from the user heap with kumm_malloc(), which is
+		where the external SDRAM lives. That memory is claimed by the .NET
+		runtime when it is running, but storage mode is by definition the
+		runtime being disabled, so it is idle exactly when this is needed.
+
+		It is allocated on the first host write and held for the rest of the
+		boot, because the shadow it belongs to goes on serving reads after the
+		commit. A host that writes more than this in a single settling window
+		gets a write error, which is honest but not graceful, so leave room.
+
+config MEADOW_USBMSC_FATSHIM_SETTLE_MS
+	int "Milliseconds of host silence before committing"
+	default 2000
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		How long the host has to stop writing before the changes are applied
+		to /meadow0. Too short risks committing a half-written file; too long
+		leaves a user waiting after a copy appears to have finished.
+
+config MEADOW_USBMSC_FATSHIM_TRACE
+	bool "Trace the order in which a host writes"
+	default n
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		Record every sector a host writes and dump the record when the changes
+		are committed. Diagnostic only; leave it off in a shipping build.
+
+		This exists to answer a question nothing else can: whether the data
+		clusters of a file can be written to /meadow0 as they arrive instead of
+		being staged in RAM first. Writing a byte through the LittleFS file API
+		needs a path and an offset, which means knowing the directory entry and
+		the FAT chain, so whether streaming is possible at all comes down to the
+		order the host chooses. That order is a property of the host, not of this
+		firmware, and it has never been looked at.
+
+		Ascending runs of sectors are coalesced into one record, so a host that
+		writes a file in order produces a handful of records and one that
+		scatters produces many. The size of the dump is therefore part of the
+		answer rather than just its content.
+
+		Only the start of each run is timestamped, which is what shows the
+		arrival pattern. Nothing is logged while the write is in progress,
+		because logging every sector would perturb the timing being measured.
+
+config MEADOW_USBMSC_FATSHIM_TRACE_RUNS
+	int "Runs the write trace can hold"
+	default 512
+	depends on MEADOW_USBMSC_FATSHIM_TRACE
+	---help---
+		Capacity of the trace ring, in coalesced runs of sectors. Each costs 12
+		bytes of DTCM, so the default is 6 KB.
+
+		Runs beyond this are counted but not kept, and the dump says how many
+		were lost. Note that the dump is one console line per run and runs while
+		_lock is held, so a large value on a serial console is itself a delay a
+		host has to tolerate. That is worth remembering when reading a result.
+
+config MEADOW_USBMSC_FATSHIM_STALL_MS
+	int "Milliseconds to stall each cluster a host writes"
+	default 0
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		Deliberately block for this long on the last sector of every cluster a
+		host writes. Zero disables it. Diagnostic only.
+
+		Writing host data straight to flash means a mass storage command that
+		blocks for as long as an erase takes, and nobody knows how long a host
+		will wait before it gives up, resets the device and detaches the volume.
+		This finds out, without needing the streaming write path to exist first:
+		set it to what a cluster write would cost and see whether the host
+		copes.
+
+		A cluster is stalled once rather than each of its eight sectors, because
+		that is the shape a streaming write would have - one flash write per 4 KB
+		cluster.
+
+config MEADOW_USBMSC_FATSHIM_LOCKWARN_MS
+	int "Warn when a host command waits this long for the lock"
+	default 0
+	depends on MEADOW_USBMSC_FATSHIM_WRITE
+	---help---
+		Log a warning when a host read, write or flush has to wait this long to
+		acquire _lock. Zero disables it.
+
+		The commit holds _lock for the whole of its flash writing, and there is
+		one SCSI thread serving every command, so a commit makes the device
+		unresponsive to the host - not slow, silent - for as long as it runs. For
+		a 3 MB file that is around 52 seconds. This measures it from the side
+		that suffers.
+
+		Cheap enough to leave enabled: it costs one clock read per command and
+		logs nothing unless the threshold is crossed.
+
+config MEADOW_USBMSC_RAMDISK_SECTORS
+	int "Bring-up RAM disk size in 512 byte sectors"
+	default 128
+	depends on MEADOW_USBMSC_RAMDISK
+	---help---
+		Number of 512 byte sectors in the bring-up RAM disk. The default of
+		128 gives a 64 KB FAT12 volume, which keeps the static buffer small.
+		Raise this if a host refuses to mount a volume that small.
+
+choice
 	prompt "Select Main Board Model"
 	default BOARD_MEADOW_F7MICRO_DEFAULT
 	---help---

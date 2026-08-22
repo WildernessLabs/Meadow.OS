@@ -42,6 +42,7 @@
 #include <nuttx/semaphore.h>
 
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_storage_mode.h>
 #include <meadow/semaphore_lock_unlock.h>
 #include "meadow_logging.h"
 
@@ -92,6 +93,14 @@ static sem_t log_file_lock = { };
  ****************************************************************************/
 void meadow_logging_write_to_file(const char *filename, meadow_file_logging_level_t level, const char *message)
 {
+    // The log is the one thing writing to /meadow0 continuously, so it is the
+    // writer that would invalidate a host's view of the volume during storage
+    // mode. Dropping the file write leaves the line in syslog.
+    if (!meadow_storage_mode_writes_permitted(filename))
+    {
+        return;
+    }
+
     if ((filename != NULL) && (message != NULL))
     {
         MEADOW_SEMAPHORE_LOCK(&log_file_lock);

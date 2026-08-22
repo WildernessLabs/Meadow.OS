@@ -77,20 +77,51 @@ static int board_init_usbdev(void)
 #if defined(CONFIG_BOARDCTL_USBDEVCTRL)
   FAR void *handle;
   struct boardioc_usbdev_ctrl_s ctrl;
+  int ret;
 
-#if defined(CONFIG_CDCACM)
+#if defined(CONFIG_USBDEV_COMPOSITE)
+  /* The composite device presents CDC/ACM and, when a medium is available,
+   * USB mass storage.  The serial interface keeps the /dev/ttyACM0 name
+   * that HCOM_COMMUNICATIONS_DEVICE_NAME expects, so HCOM is unaffected.
+   *
+   * INITIALIZE must run before CONNECT here.  It is what prepares the
+   * block device behind the mass storage LUN, and
+   * board_composite0_connect() inspects that when deciding which
+   * interfaces to advertise.
+   */
+
+  ctrl.usbdev   = BOARDIOC_USBDEV_COMPOSITE;
+  ctrl.action   = BOARDIOC_USBDEV_INITIALIZE;
+  ctrl.instance = 0;
+  ctrl.config   = 0;
+  ctrl.handle   = NULL;
+
+  ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ctrl.usbdev   = BOARDIOC_USBDEV_COMPOSITE;
+  ctrl.action   = BOARDIOC_USBDEV_CONNECT;
+  ctrl.instance = 0;
+  ctrl.config   = 0;
+  ctrl.handle   = &handle;
+#elif defined(CONFIG_CDCACM)
   ctrl.usbdev   = BOARDIOC_USBDEV_CDCACM;
   ctrl.action   = BOARDIOC_USBDEV_CONNECT;
   ctrl.instance = 0;
+  ctrl.config   = 0;
   ctrl.handle   = &handle;
 #else
   ctrl.usbdev   = BOARDIOC_USBDEV_PL2303;
   ctrl.action   = BOARDIOC_USBDEV_CONNECT;
   ctrl.instance = 0;
+  ctrl.config   = 0;
   ctrl.handle   = &handle;
 #endif
 
-  int ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+  ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
   if (ret < 0)
     {
       return ret;
@@ -238,13 +269,17 @@ void board_late_initialize(void)
     }
 #endif
 
-#if defined(CONFIG_CDCACM)
+#if defined(CONFIG_CDCACM) || defined(CONFIG_USBDEV_COMPOSITE)
+  /* A USB failure is logged but deliberately not fatal.  The file system and
+   * /dev/upd registration further down matter more than USB does, so a USB
+   * fault must not cost us those.
+   */
+
   ret = board_init_usbdev();
-  if(ret > 0)
+  if(ret < 0)
   {
     syslog(1, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
               __FILE__, __LINE__, ret);
-    return;
   }
 #endif
 
@@ -342,7 +377,8 @@ void board_late_initialize(void)
  #endif
 
     default:
-      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n",
+                __FILE__, __LINE__, mtd, meadowHwVer);
       return;
   }
 

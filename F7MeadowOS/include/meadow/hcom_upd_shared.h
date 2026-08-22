@@ -223,6 +223,11 @@ typedef struct hcom_nx_upd_host_send_cb_s
 // File system
 #define HCOM_NX_UPD_IS_PART_MOUNTED             (HCOM_NX_UPD_BASE + 0x20)
 
+// Is a host computer currently using the file system exposed over USB
+// mass storage? Narrower than storage mode, which is only the runtime
+// being disabled; this is true once a host has actually read the volume.
+#define HCOM_NX_UPD_IS_HOST_USING_FS            (HCOM_NX_UPD_BASE + 0x21)
+
 // Host / CLI command routing
 #define HCOM_NX_UPD_CLI_COMMAND                 (HCOM_NX_UPD_BASE + 0x30)
 #define HCOM_NX_UPD_DIAG_APP_CMD                (HCOM_NX_UPD_BASE + 0x31)

@@ -27,15 +27,20 @@
 #include <nuttx/config.h>
 #include <sys/types.h>
 #include <debug.h>
+#include <syslog.h>
 #include <assert.h>
 
+#include <nuttx/board.h>
 #include <nuttx/usb/usbdev.h>
 #include <nuttx/usb/rndis.h>
 #include <nuttx/usb/cdcacm.h>
 #include <nuttx/usb/usbmsc.h>
 #include <nuttx/usb/composite.h>
 
+#include <meadow/meadow_storage_mode.h>
+
 #include "stm32_otg.h"
+#include "stm32_usbmsc.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -103,17 +108,42 @@ static int board_mscclassobject(int minor,
 
   uinfo("MSC handle=%p\n", g_mschandle);
 
-  /* Bind the LUN(s) */
+  /* Bind the LUN, but only in storage mode.
+   *
+   * This is how media presence is expressed.  Leaving the LUN unbound makes
+   * the SCSI layer answer MEDIA NOT PRESENT to READ, WRITE and READ
+   * CAPACITY, so the host sees a card reader with nothing in it rather than
+   * a broken disk, while INQUIRY still succeeds and the interface stays
+   * enumerated.
+   *
+   * It cannot be done through geometry() instead: usbmsc_bindlun() refuses a
+   * LUN whose geometry reports unavailable, and geometry is read once at
+   * bind time and never revisited, so there is no way to signal media
+   * presence dynamically through it.
+   *
+   * Nothing needs to handle a mode change while enumerated, because both of
+   * the commands that change the mode, MONO_DISABLE and MONO_ENABLE, restart
+   * the board.
+   */
 
-  uinfo("Bind LUN=0 to /dev/mmcsd0\n");
-  ret = usbmsc_bindlun(g_mschandle, "/dev/mmcsd0", 0, 0, 0, false);
-  if (ret < 0)
+  if (meadow_storage_mode_active())
     {
-      uerr("ERROR: usbmsc_bindlun failed for LUN 1 at /dev/mmcsd0: %d\n",
-           ret);
-      usbmsc_uninitialize(g_mschandle);
-      g_mschandle = NULL;
-      return ret;
+      uinfo("Bind LUN=0 to %s\n", MEADOW_USBMSC_LUN0_DEVPATH);
+      ret = usbmsc_bindlun(g_mschandle, MEADOW_USBMSC_LUN0_DEVPATH, 0, 0, 0,
+                           MEADOW_USBMSC_LUN0_READONLY);
+      if (ret < 0)
+        {
+          uerr("ERROR: usbmsc_bindlun failed for LUN 0 at %s: %d\n",
+               MEADOW_USBMSC_LUN0_DEVPATH, ret);
+          usbmsc_uninitialize(g_mschandle);
+          g_mschandle = NULL;
+          return ret;
+        }
+    }
+  else
+    {
+      syslog(LOG_NOTICE,
+             "USB MSC: runtime enabled, presenting an empty drive\n");
     }
 
   /* Get the mass storage device's class object */
@@ -232,14 +262,14 @@ static void *board_composite0_connect(int port)
   dev[dev_idx].classobject  = cdcacm_classobject;
   dev[dev_idx].uninitialize = cdcacm_uninitialize;
 
-  /* Interfaces */
+  /* Interfaces.  Offset to Interface-IDs, then the minor number */
 
-  dev[dev_idx].devinfo.ifnobase = ifnobase;             /* Offset to Interface-IDs */
-  dev[dev_idx].minor = 0;                               /* The minor interface number */
+  dev[dev_idx].devinfo.ifnobase = ifnobase;
+  dev[dev_idx].minor = 0;
 
-  /* Strings */
+  /* Strings.  Offset to String Numbers */
 
-  dev[dev_idx].devinfo.strbase = strbase;               /* Offset to String Numbers */
+  dev[dev_idx].devinfo.strbase = strbase;
 
   /* Endpoints */
 
@@ -271,14 +301,14 @@ static void *board_composite0_connect(int port)
   dev[dev_idx].classobject  = cdcacm_classobject;
   dev[dev_idx].uninitialize = cdcacm_uninitialize;
 
-  /* Interfaces */
+  /* Interfaces.  Offset to Interface-IDs, then the minor number */
 
-  dev[dev_idx].devinfo.ifnobase = ifnobase + 2;         /* Offset to Interface-IDs */
-  dev[dev_idx].minor = 1;                               /* The minor interface number */
+  dev[dev_idx].devinfo.ifnobase = ifnobase + 2;
+  dev[dev_idx].minor = 1;
 
-  /* Strings */
+  /* Strings.  Offset to String Numbers */
 
-  dev[dev_idx].devinfo.strbase = strbase;               /* Offset to String Numbers */
+  dev[dev_idx].devinfo.strbase = strbase;
 
   /* Endpoints */
 
@@ -295,41 +325,54 @@ static void *board_composite0_connect(int port)
 #endif
 
 #ifdef CONFIG_USBMSC_COMPOSITE
-  /* Configure the mass storage device device */
-
-  /* Ask the usbmsc driver to fill in the constants we didn't
-   * know here.
+  /* Configure the mass storage device, but only if the block device behind
+   * it actually came up.  Advertising the interface and then failing to bind
+   * the LUN would fail composite_initialize() outright, which would cost us
+   * the CDC/ACM interface as well - and that is the one HCOM needs.  So a
+   * missing medium degrades to a serial-only device instead.
    */
 
-  usbmsc_get_composite_devdesc(&dev[dev_idx]);
+  if (meadow_usbmsc_lun_available())
+    {
+      /* Ask the usbmsc driver to fill in the constants we didn't
+       * know here.
+       */
 
-  /* Overwrite and correct some values... */
+      usbmsc_get_composite_devdesc(&dev[dev_idx]);
 
-  /* The callback functions for the USBMSC class */
+      /* Overwrite and correct some values... */
 
-  dev[dev_idx].classobject  = board_mscclassobject;
-  dev[dev_idx].uninitialize = board_mscuninitialize;
+      /* The callback functions for the USBMSC class */
 
-  /* Interfaces */
+      dev[dev_idx].classobject  = board_mscclassobject;
+      dev[dev_idx].uninitialize = board_mscuninitialize;
 
-  dev[dev_idx].devinfo.ifnobase = ifnobase;               /* Offset to Interface-IDs */
-  dev[dev_idx].minor = 0;                                 /* The minor interface number */
+      /* Interfaces.  Offset to Interface-IDs, then the minor number */
 
-  /* Strings */
+      dev[dev_idx].devinfo.ifnobase = ifnobase;
+      dev[dev_idx].minor = 0;
 
-  dev[dev_idx].devinfo.strbase = strbase;                 /* Offset to String Numbers */
+      /* Strings.  Offset to String Numbers */
 
-  /* Endpoints */
+      dev[dev_idx].devinfo.strbase = strbase;
 
-  dev[dev_idx].devinfo.epno[USBMSC_EP_BULKIN_IDX] = epin++;
-  dev[dev_idx].devinfo.epno[USBMSC_EP_BULKOUT_IDX] = epout++;
+      /* Endpoints */
 
-  /* Count up the base numbers */
+      dev[dev_idx].devinfo.epno[USBMSC_EP_BULKIN_IDX] = epin++;
+      dev[dev_idx].devinfo.epno[USBMSC_EP_BULKOUT_IDX] = epout++;
 
-  ifnobase += dev[dev_idx].devinfo.ninterfaces;
-  strbase  += dev[dev_idx].devinfo.nstrings;
+      /* Count up the base numbers */
 
-  dev_idx += 1;
+      ifnobase += dev[dev_idx].devinfo.ninterfaces;
+      strbase  += dev[dev_idx].devinfo.nstrings;
+
+      dev_idx += 1;
+    }
+  else
+    {
+      syslog(LOG_WARNING,
+             "USB: no mass storage medium, enumerating CDC/ACM only\n");
+    }
 #endif
 
   /* Sanity checks */
@@ -354,6 +397,17 @@ static void *board_composite0_connect(int port)
 
 int board_composite_initialize(int port)
 {
+  UNUSED(port);
+
+#ifdef CONFIG_USBMSC_COMPOSITE
+  /* Prepare the block device behind mass storage LUN 0.  The return value is
+   * deliberately ignored: board_composite0_connect() re-checks availability
+   * and simply omits the mass storage interface if this did not succeed.
+   */
+
+  board_usbmsc_initialize(0);
+#endif
+
   return OK;
 }
 
