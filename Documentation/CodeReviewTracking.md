@@ -4,6 +4,8 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
+**Review timeline:** started 2026-08-13, last updated 2026-08-24.
+
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
@@ -18,336 +20,278 @@ Total in scope: 254 files.
 ## Status legend
 
 - **Not started** - not yet reviewed.
-- **Reviewed** - passed through `review-files`; see Notes for a findings summary.
+- **Reviewed** - passed through `review-files`; see the `Issue` column for that file's
+  findings (a `code-review`-labeled GitHub Issue), or `Notes` for a quick remark (e.g.
+  "No confirmed findings" or a cross-reference to another file's issue).
 
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
 
-## Open Findings (fix tracking)
-
-Every confirmed finding from a review batch gets a row here, regardless of how many
-files it spans. Work through these one at a time -- oldest/most severe first is a
-reasonable default, but use judgment. When a finding is fixed, flip Status to "Fixed",
-fill in Fixed Date, and note the branch/commit. A finding can also be closed as "Won't
-Fix" -- no code change, but the decision and reasoning are recorded in the Summary column
-so it doesn't get silently re-flagged and re-litigated by a future review pass. A finding
-can also be "Documented" -- a research/provenance finding with no code fix of its own
-(e.g. root-causing when and how a bug was introduced), recorded so the investigation
-isn't lost and doesn't get redone later. Don't delete resolved rows either way; they're
-the record of what's been decided.
-
-| ID | Score | Files | Summary | Found | Status | Fixed | Branch/Commit |
-|----|-------|-------|---------|-------|--------|-------|---------------|
-| F001 | 80 | apps/system/hcom/comms/hcom_host_enq_deq.c:204-206, hcom_host_watchdog.c:109-152, hcom_host_preprocess.c | Stale watchdog-wakeup flag can abort an unrelated healthy download (single flag disambiguating two producers of the same semaphore). Risk if unfixed: an in-progress, healthy download can be silently aborted (file closed/deleted, buffer wiped) at a later unrelated moment, or a NULL pointer formatted into %s if idle when it fires. Cost/risk to fix: moderate -- needs the enqueue/dequeue fast path to consume or clear the stale flag/semaphore count, touches 3 files' interaction, worth a hardware-verified test of an interrupted download. | 2026-08-13 | Fixed | 2026-08-14 | fixF001WdogFlag |
-| F002 | 80 | apps/system/hcom/comms/hcom_host_preprocess.c:478,541,587 | Missing minimum-length check lets stale reused-buffer bytes reach command dispatch, including destructive request types. Risk if unfixed: a short/garbled serial packet can cause Meadow to act on a bogus command (e.g. bulk flash erase, delete-file) built from leftover bytes of the previous real packet. Cost/risk to fix: small -- add a minimum-length check before casting to the header struct (and/or zero the reused decode buffer between packets); low regression risk, easy to unit-test with a short/garbled input. | 2026-08-13 | Fixed | 2026-08-14 | fixF002PacketLenCheck |
-| F003 | 75 | apps/system/hcom/comms/hcom_host_receive.c:170,267-268,314 | Unlocked fd close race: `_comms_read_fd` closed/reassigned from both the receive pthread and a power-management callback with no lock, unlike the equivalent fd in hcom_host_send.c which is semaphore-guarded. Risk if unfixed: rare double-close of a recycled fd during low-power sleep/wake (a routine, frequent event), which could silently close an unrelated subsystem's fd -- hard to diagnose if it ever fires. Cost/risk to fix: small -- mirror the existing `_hostXmitSem`-guard pattern already used in hcom_host_send.c for the identical hazard; low regression risk since it copies a proven pattern. | 2026-08-13 | Fixed | 2026-08-14 | fixF003RecvFdRace |
-| F004 | 75 | apps/system/hcom/comms/hcom_host_encode.c:127-129 | COBS decoder copies literal-byte runs one byte at a time instead of a single memcpy, despite already knowing the exact run length. Risk if unfixed: none to correctness, just wasted CPU cycles on this hot per-packet path during every download. Cost/risk to fix: trivial -- one-line memcpy swap; verified the source/dest buffers never alias, so it's a safe drop-in replacement. Purely a low-risk/high-return code-quality item. | 2026-08-13 | Fixed | 2026-08-14 | fixF004CobsMemcpy |
-| F005 | 75 | apps/system/hcom/comms/hcom_host_send.c:676-701 | Write-blocked retry path polls with a fixed 50ms usleep (up to 30s worst case) instead of blocking on poll()/select() for POLLOUT, while holding the send semaphore the whole time. Risk if unfixed: added latency and, during large uploads, blocks all other host-bound messages for up to tens of seconds (the code's own comment documents up to 19.5s observed in the field) -- a responsiveness issue, not a correctness bug. Cost/risk to fix: moderate -- swap to poll()/select() with a remaining-timeout budget across retries; confirmed NuttX's serial driver supports POLLOUT on this device, so no redesign needed, but it's more than a one-line change. | 2026-08-13 | Fixed | 2026-08-14 | fixF005WriteRetryPoll |
-| F006 | 60 | apps/system/hcom/comms/hcom_host_send.c:422-490 | hcom_host_send_buffered_msg mallocs/frees a fresh buffer per call with a non-empty body (deprecated-but-still-used path, e.g. app stdout/stderr redirection to CLI, file listing). Risk if unfixed: heap fragmentation risk over long device uptime; impact is bursty (active CLI session) not continuous. Fixed via lazy allocation (on first use, not at setup()) rather than a permanent buffer -- this comms path is rarely exercised on a deployed device (mostly during initial site provisioning) and Meadow has only 64MB total, so an always-allocated buffer was rejected in favor of one that costs nothing on devices that never use it. | 2026-08-13 | Fixed | 2026-08-14 | fixF006SendBufReuse |
-| F007 | 25 | apps/system/hcom/comms/hcom_host_enq_deq.c:107-116, hcom_host_receive.c:204-213, hcom_host_send.c:151-163 | Several `*_shutdown()` functions free shared buffers/destroy semaphores with no synchronization against threads that may still be using them. Risk if unfixed: currently none live -- confirmed the sole caller (`hcom_manager_shutdown()`) has zero call sites anywhere and its own comment says "never called," so this is a dormant landmine, not an active defect. Decision: won't fix now -- it's dead code with nothing to verify against, so a fix here can't be built or hardware-tested, only reasoned about. If `hcom_manager_shutdown()` is ever wired up in the future, this file's `*_shutdown()` functions must gain proper thread-join/synchronization *before* that happens, or it becomes a real use-after-free/destroyed-semaphore bug at that point. | 2026-08-13 | Won't Fix | 2026-08-14 | N/A -- dead code, no fix applied |
-| F008 | 80 | apps/system/hcom/diag/hcom_diag_trace_priority.c:90 | `meadow_configuration_t *config` is declared only inside `#if defined(CONFIG_STM32F7_PWR)` but dereferenced unconditionally afterward (syslog calls ~152,164 and a free-resources call ~168). Risk if unfixed: a hard compile error ("config undeclared") the moment anyone disables CONFIG_STM32F7_PWR on a build that still compiles this file -- it's a plain, user-selectable Kconfig bool defaulting to n, only the shipping defconfig happens to have it on today. Fixed by moving the `config` fetch outside the #if guard entirely (it's needed unconditionally for the startup banner, not just the PWR path); confirmed meadow_configuration_t/meadow_os_deep_copy_config() aren't themselves gated behind that config. Verified via normal build/flash (confirms no regression on the shipping CONFIG_STM32F7_PWR=y path; the no-PWR compile path itself wasn't separately built). | 2026-08-17 | Fixed | 2026-08-17 | fixF008ConfigScope |
-| F009 | 75 | apps/system/hcom/diag/hcom_traverse_ku_user.c:115 | A Unicode em dash in a comment violates Claude.md's explicit ASCII-only character encoding rule. Risk if unfixed: none functionally, but it's a direct violation of an explicit repo rule (confirmed via hexdump: bytes e2 80 94). Fixed -- comment-only change, no compiled code affected, so no build/hardware test needed. | 2026-08-17 | Fixed | 2026-08-17 | fixF009AsciiEmDash |
-| F010 | 75 | apps/system/hcom/diag/hcom_diag_gpio.h:47-50, hcom_diag_gpio.c | Four declared functions (`hcom_diag_gpio_config_alt`, `_set_high_alt`, `_set_low_alt`, `_set_pulse_alt`) are never defined anywhere and have zero callers repo-wide -- not even in this module's own test file. Risk if unfixed: none functionally (no link error since nothing references them), but it's dead, misleading API surface. Resolved as deletion, not implementation: unlike the `_alt(int alt_access_fd, ...)` convention elsewhere in hcom (e.g. `hcom_via_nx_update_bbr_alt`, needed because those go through an ioctl() to a kernel driver for tasks without the main hcom task's fds), the non-alt GPIO functions call stm32_configgpio/stm32_gpiowrite directly as plain syscalls with no fd involved at all -- there's no meaningful fd-taking variant to implement. Comment/header-only change, no compiled code affected. | 2026-08-17 | Fixed | 2026-08-17 | fixF010GpioAltCleanup |
-| F011 | 65 | apps/system/hcom/diag/hcom_traverse_ku_user.c:128 | `traverse_ku_recv_pthread()`'s EOF branch doesn't reset the envelope byte-accumulator (`total`) to 0. Risk if unfixed: confirmed the kernel-side writer does close/reopen its FIFO write end after initial connection (both an on-target test and a real EPIPE-recovery path) -- if a partial envelope was abandoned mid-write when that happens, a reconnected writer's fresh envelope gets spliced onto the stale offset, corrupting the message forwarded to the CLI. Confidence capped by the kernel side's own (somewhat inconsistent) claim that envelope writes are meant to be atomic. Fixed by resetting `total = 0` in the EOF branch. Hardware-verified via kernel test 22 -v 8 (cross-context force-close/reopen): both `cross-context/opened-by-kthread` and `cross-context/sent-by-this-task` arrived at the CLI intact and un-spliced. | 2026-08-17 | Fixed | 2026-08-17 | fixF011TraverseEofReset |
-| F012 | 50 | apps/system/hcom/diag/hcom_diag_misc.c:150,152,154,156 | `hcom_diag_print_buffer_x()`'s ASCII-column snprintf calls compute their size bound from `hexOffset` instead of `asciiOffset`, overstating real remaining buffer space (traced worst case: told 20 bytes available, only 4 actually remain). Risk if unfixed: none today (every write here is 1 char + NUL, and the function is gated behind a diagnostic flag that defaults off) but would become a real stack buffer overflow if ever modified to write longer per-byte representations. Fixed by swapping `hexOffset` for `asciiOffset` in all four size arguments. Debug-only code (developer-enabled buffer dump, never part of production), so no hardware verification cycle -- confirmed correct by tracing the exact byte math. | 2026-08-17 | Fixed | 2026-08-17 | fixF012SnprintfOffset |
-| F013 | 30 | apps/system/hcom/diag/hcom_traverse_ku_user.c:125 | `traverse_ku_recv_pthread()`'s generic (non-EINTR) negative-read branch retries indefinitely at a fixed 5ms cadence with no backoff and no errno logging, on a thread that runs for the device's entire life. Risk if unfixed: traced the actual pipe driver and fd usage -- no realistic trigger identified today (this branch is a defensive catch-all), but if ever reached by a real persistent fault it would spin silently forever with zero diagnostic trace. Fixed with the quick win only: added a `syslog(LOG_ERR, ...)` line logging the errno before the retry (skipped the backoff-cap idea -- more code for a branch confirmed unreachable today). No hardware verification cycle -- this branch has no way to be triggered to observe the new log line; confirmed no regression by inspection. | 2026-08-17 | Fixed | 2026-08-17 | fixF013ErrnoLog |
-| F014 | 25 | apps/system/hcom/diag/hcom_traverse_ku_user.c:196 | `hcom_traverse_ku_init_user_setup()`'s "safe to call multiple times" guard has a genuine TOCTOU gap: `_thread_running` is only set true from inside the spawned thread itself, after `pthread_create()` already returned. Risk if unfixed: currently none live -- confirmed exactly one call site in the whole repo (`hcom_startup_manager.c:420`, inside NuttX's single once-only boot entry point), with no retry logic anywhere that could invoke it twice. Fixed by setting `_thread_running = true` synchronously before `pthread_create()` rather than inside the thread (with every early-return failure path resetting it back to false so a retry still works) -- a first draft set it after `pthread_create()` returned instead, which was caught during implementation as its own new race (the new thread could see `false` on its first loop check if scheduled before that line ran, exiting immediately without ever running). Built, flashed, and smoke-tested on hardware. | 2026-08-17 | Fixed | 2026-08-17 | fixF014ThreadRunningSync |
-| F015 | 80 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c:116,152,190,199,235,314 | All six `hcom_traverse_ku_send()` calls in this test file pass a hardcoded `0` (`HCOM_HOST_REQUEST_UNDEFINED_REQUEST`) for requestType, bypassing the two safe wrapper functions production code uses correctly. Risk if unfixed: the test's own stated verification method ("pass/fail is confirmed by observing the messages at the host CLI") never actually works -- the CLI has no rendering rule for an undefined request type, so `PASS` only proves the kernel-side send succeeded, not that the text was ever displayed. Confirmed scoped to this one file (all 6 of its own call sites); production wrappers (`hcom_traverse_ku_syslog_to_host()`, `hcom_traverse_ku_text_to_host()`) pass correct types, and no other kernel test file calls this API directly. Fixed: initially tried `HCOM_HOST_REQUEST_TEXT_TRACE_MSG` (matching the production SYSLOG_TEXT-type wrapper) but hardware-verified that Meadow.CLI silently drops that type -- switched all six call sites to `HCOM_HOST_REQUEST_TEXT_INFORMATION` instead, confirmed via hardware to actually display. Found while verifying F011 using this file's test case 8. | 2026-08-17 | Fixed | 2026-08-17 | fixF011TraverseEofReset |
-| F016 | 85 | apps/system/hcom/diag/hcom_diag_trace_priority.c:88-148, F7MeadowOS/hcom_nx/hcom_nx_common_utils.c:97-157, F7MeadowOS/include/meadow/hcom_bbreg_defn.h:113-121 | Revised diagnosis from the original write-up below (kept for history): `hcom_diag_trace_priority_level_init()`'s power-on-vs-reboot check (`hcom_bbreg_read_bbr() == 0`), used only to pick the startup banner's "restarted"/"rebooted" wording, can never actually detect a true power-on -- hcom_nx (kernel-side, always runs first) unconditionally writes non-zero syslog-mask bits into this same battery-backed register before user-space ever reads it, so the register can never read back as 0 here regardless of what actually happened. The trace-*level* mask itself was never actually at risk: hcom_nx's own branch-and-persist logic (`hcom_nx_utils_startup_handling_of_trace_level()`) has always correctly seeded a sane default mask on power-on, unchanged since Legacy (this corrects F017's original provenance conclusion, see its updated row). The banner-wording catch-22 itself also predates Meadow.OS: Legacy's own diag-side ancestor, `hcom_logging_syslog_mask_init()` (`~/wl/Meadow/apps/examples/hcom/diag/hcom_diag_logging.c:102-154`), has the identical unconditional-mask-read-then-doomed-recheck structure. Risk if unfixed: cosmetic only (banner wording); no actual logging-verbosity impact, since hcom_nx already guarantees a sane mask regardless. Fixed by adding a dedicated BBR bit, `HCOM_BBREG_LAST_START_WAS_REBOOT_BIT`, that hcom_nx sets only once it determines (from the register's pristine pre-write state) that a given boot is a reboot -- left at its power-on-cleared 0 on a true power-on, staying 1 across any further warm reboots. User-space now reads this dedicated bit instead of re-deriving the same doomed whole-register check. Also documented, not fixed here: a related, separate visibility gap found mid-investigation -- trace-message routing to host/UART is itself gated by BBR bits a true power-on also clears, so observing the corrected banner in practice still requires trace routing to be explicitly re-enabled after a genuine power-cycle. Original (superseded) diagnosis: "`hcom_diag_trace_priority_level_init()` lost logic present in the pre-rebase (Legacy) equivalent... Current code reads `hcom_bbreg_read_bbr_and_right_justify(...)` unconditionally with no power-on-vs-reboot branch for the mask itself, and never writes a default back anywhere... Risk if unfixed: on power-on restart with no config-file trace_level override (the common case), `_traceLevel`/the syslog mask ends up 0..." -- this framing turned out to be wrong; see above. Found while investigating F012's "(--) This may be broken" comment at the user's request. | 2026-08-17 | Fixed | 2026-08-18 | fixF016TraceLevelPowerOn |
-| F017 | 100 | apps/system/hcom/diag/hcom_diag_trace_priority.c (root cause for F016) | **Correction (2026-08-18, found while implementing F016's actual fix): this row's original conclusion, below, was wrong.** It compared current Meadow.OS's diag-side function against Legacy's *kernel-side* `hcom_nx_utils_startup_handling_of_trace_level()` and concluded the 2023-09-26 HCOM import (`3a2afb815b9`) dropped that function's power-on branch/persistence logic during the port. In fact that kernel-side logic was never lost -- it's present and correct in current Meadow.OS, confirmed unchanged by direct inspection. The actual, narrower bug F016 fixed (a diag-side banner-wording catch-22, not a mask-persistence loss) was never introduced by the 2023 import at all: Legacy's own diag-side ancestor, `hcom_logging_syslog_mask_init()` (`~/wl/Meadow/apps/examples/hcom/diag/hcom_diag_logging.c:102-154`), already has the identical unconditional-read-then-doomed-recheck structure -- a design limitation carried faithfully, unchanged, from Legacy's own original diag-side code. So: still not introduced by the user, but not because Legacy "had it right and the import lost it" -- Legacy's diag-side code never had it right either; this was never introduced by anyone in this repo's history, it's inherent to Legacy's own original design. Original (superseded) conclusion: "Root-caused when/how F016 was introduced... Confirmed via direct commit inspection in both repos: the correct power-on-restart-vs-reboot branching logic was present in Legacy Meadow's `hcom_nx_utils_startup_handling_of_trace_level()` continuously since its earliest traceable commit... The bug was introduced on 2023-09-26 in `3a2afb815b9` ('Import HCOM code')... that import did not faithfully port the power-on-restart branch/persistence logic." Kept as Documented (not re-scored) so this correction itself isn't lost. | 2026-08-17 | Documented | 2026-08-18 | fixF016TraceLevelPowerOn (correction only, no code change) |
-| F018 | 100 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c:649-678 | `hcom_dir_mgmt_check_and_add_subdir()`'s `int dirOffset[dnldShared->dnldPathNameEleCount]` VLA is sized to N (the token/element count), but the tokenizing loop writes `dirOffset[tokenCount]` for `tokenCount` running 1..N inclusive (plus the pre-loop `dirOffset[0] = 0`), i.e. N+1 writes into an N-element array -- confirmed by hand-tracing the loop against `find_pathname_element_count()`'s definition of `dnldPathNameEleCount`. The final iteration also computes `(NULL - fullFileNamePath)` (UB pointer arithmetic on NULL) for the out-of-bounds write. Risk if unfixed: stack buffer overflow (writes past the VLA into adjacent stack contents) on every single subdirectory file download/list that reaches this function -- not a rare edge case, this is the common path. Cost/risk to fix: one-line, size the VLA `dnldPathNameEleCount + 1`; no other logic changes needed, low regression risk. Fixed by widening the VLA to `dnldShared->dnldPathNameEleCount + 1`. Verified via build: this is user-space code (apps/system/hcom/file/), part of the pass1 build which linked successfully (nuttx_user.elf) both before and after the fix; not hardware-tested this pass since the unrelated pass2/kernel link is currently broken on `main` from other recently-merged branches (missing `STUB_meadow_rotary_encoder_*`/`STUB_meadow_idle_monitor_get_value`/`STUB_pwrmgmt_most_recent_wakeup_reason` syscall stubs) -- not caused by and out of scope for this fix. | 2026-08-19 | Fixed | 2026-08-19 | fixF018F019SubdirOverflow |
-| F019 | 100 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c:654 | `char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName));` omits the `+ 1` for the NUL terminator; the following `strcpy()` at line 662 then writes `strlen+1` bytes, one byte past the allocation, every single time this function runs. Risk if unfixed: guaranteed 1-byte heap buffer overflow (writes the string's NUL terminator into adjacent heap memory) on every subdirectory download, corrupting heap allocator metadata or an adjacent live allocation -- a classic root cause of intermittent, hard-to-reproduce heap corruption crashes reported far from this function. Cost/risk to fix: one-line (add `+ 1`), trivial and safe. Fixed by adding `+ 1` to the malloc size. Verified via build only (see F018's note); not yet hardware-tested. | 2026-08-19 | Fixed | 2026-08-19 | fixF018F019SubdirOverflow |
-| F020 | 100 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c:251-259 | In `hcom_dir_mgmt_categorize_pathname()`'s SD-card branch, the closing `}` for the `else { ... }` block (line 255) sits *inside* the `#if defined (CONFIG_DIR_MGMT_TESTS)` ... `#endif` region (line 256), while a second closing `}` remains unconditionally at line 258. Verified by extracting the exact snippet and running it through `gcc -E` with both `CONFIG_STM32F7_SDMMC2` and `CONFIG_DIR_MGMT_TESTS` defined: braces come out 6 open / 7 close (mismatched); with only `CONFIG_STM32F7_SDMMC2` defined they balance 6/6. Risk if unfixed: the file fails to compile with a mismatched-brace error whenever a build defines both `CONFIG_DIR_MGMT_TESTS` and `CONFIG_STM32F7_SDMMC2` together (a debug/test build combination that exists specifically to exercise this code). Cost/risk to fix: small -- move the `else` block's closing brace out from under the `#if`/`#endif` so it's unconditional, matching the correctly-structured `if` branch immediately above it; then remove the now-stray extra `}`. Fixed by moving the `}` to after the `#endif`. Verified via `gcc -E` brace-count on the corrected snippet (4/4, balanced with both configs defined) and a full default build (`CONFIG_STM32F7_SDMMC2=y`, `CONFIG_DIR_MGMT_TESTS` unset) succeeding; not separately rebuilt with `CONFIG_DIR_MGMT_TESTS=y` (no Kconfig menu entry exists for it, and enabling it pulls in test-only code across the whole `hcom` module unrelated to this fix). | 2026-08-19 | Fixed | 2026-08-19 | fixF020BraceMismatch |
-| F021 | 90 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c:694-714 | In `hcom_file_dnld_stm32f7_file_end()`'s result-reporting `else` chain, the `if (dnldRecvdFileSize != dnldTotalFileSize)` branch (696-704) and its `else` branch (705-713) build byte-for-byte identical "Download of '%s' failed due to file size mismatch..." messages with identical arguments -- confirmed by direct inspection, this is a copy-paste duplicate. The `else` branch is only reached when sizes *do* match but the CRC comparison failed, yet it still reports "file size mismatch". Risk if unfixed: every download that fails purely on CRC/checksum corruption (sizes matched, data corrupted) is misreported to the host/user as a size mismatch, actively misleading debugging of real data-corruption issues. Cost/risk to fix: small -- rewrite the `else` branch's message to describe a checksum/CRC mismatch instead, using the already-available `dnldCalcFileCrc`/`dnldInitFileCrc`/`actualFileCrc` values. Fixed by rewriting the `else` branch's message to report the three CRC values (received/sender/read-back) instead of the size-mismatch text. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF021CrcMismatchMsg |
-| F022 | 85 | apps/system/hcom/file/hcom_file_upld_proc.c:303,333,362 | `hcom_file_upld_proc_start_file_upload()` returns `-errno` on three failure paths, but each `return` is preceded by several intervening calls (`hcom_host_send_simple_string_msg()`, `hcom_host_send_header_msg()`, `hcom_dir_mgmt_free_file_info()` -- which itself calls `close()`) that can overwrite the global `errno` between the actual failure and the `return` statement. At line 362 the underlying failure is a NULL from `malloc()`, which is not guaranteed to set `errno` to `ENOMEM` on this libc at all -- every sibling file in this batch instead hardcodes `return -ENOMEM;` on malloc failure; this is the only file that relies on `-errno` for that case. Risk if unfixed: callers receive an incorrect/stale error code for genuine upload-start failures (e.g. an out-of-memory condition reported as an unrelated leftover errno value or 0), obscuring the true cause when diagnosing failed uploads. Cost/risk to fix: small -- capture the real reason into a local `int` (or literal `-ENOMEM`) at the point of failure and return that saved value instead of re-reading the global `errno` after intervening calls. Fixed: line 303 now captures `errno` into a local `savedErrno` immediately after the failed `open()` and returns/logs that; line 333 now returns `detectError` (already the correct negative error code from the CRC-calc failure) instead of `-errno`; line 362 now returns the literal `-ENOMEM`, matching the convention used everywhere else in this batch. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF022StaleErrno |
-| F023 | 75 | apps/system/hcom/file/hcom_file_misc.c:274 | `hcom_file_misc_delete_existing()`'s default `switch` case calls `snprintf_chk(errorCause, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "Unexpected error:%d", ret);` but `errorCause` was allocated at line 244 with only `HCOM_TINY_HOST_STRING_BUFF_LENGTH` (64 bytes vs. `HCOM_SHORT_HOST_STRING_BUFF_LENGTH`'s 128, confirmed in `F7MeadowOS/include/meadow/hcom_shared_common.h`); `snprintf_chk` forwards this size straight into `vsnprintf(buf, size, ...)` (confirmed in `hcom_common_utils.c`), so it believes it has 128 bytes to write into a 64-byte buffer. Risk if unfixed: not an active overflow today (current message content tops out around ~30 bytes), but it's a live latent heap-buffer-overflow -- any future lengthening of this message silently writes past the 64-byte allocation with no compiler warning, since the size argument looks legitimate. Cost/risk to fix: trivial one-line -- change the size argument to `HCOM_TINY_HOST_STRING_BUFF_LENGTH` to match the actual allocation. Fixed. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF023SnprintfBufSize |
-| F024 | 70 | apps/system/hcom/file/hcom_file_misc.c:237-249 | In `hcom_file_misc_delete_existing()`, if the second `malloc()` (for `errorCause`, line 244) fails, the function returns `-ENOMEM` without freeing `hostMsg`, which was successfully allocated three lines earlier (line 237, 128 bytes). Risk if unfixed: a memory leak that specifically triggers under low-memory conditions -- exactly the conditions where it's most likely to recur and compound, since a device already short on heap during a failed file delete leaks more heap each time this path executes. Cost/risk to fix: trivial -- add `free(hostMsg);` immediately before the `return -ENOMEM;` at line 248. Fixed. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF024HostMsgLeak |
-| F025 | 60 | apps/system/hcom/file/hcom_file_lists.c:104-105 | In the recursive `hcom_file_lists_all_dev_dir_and_files()`, encountering a "proc" subdirectory (when `userData != 1234`) does `return OK;` instead of `continue;`. Originally flagged as a bug (early exit skips `closedir(dir)` and abandons the rest of the `readdir()` loop for that directory level). **As Designed (confirmed by user, 2026-08-19): once a "proc" entry is found while listing a directory, the remaining entries at that level are intentionally considered safe to skip too -- not a bug.** The leaked `DIR*` handle this early return causes was not separately pursued as its own fix once the user clarified the return-vs-continue behavior itself is intentional. | 2026-08-19 | Won't Fix | 2026-08-19 | N/A -- as designed, no fix applied |
-| F026 | 45 | apps/system/hcom/file/hcom_file_write_stm32f7.c:186-190 | On a failed `write()`, the cleanup check uses `if(dnldShared->dnldFileFD > 0)` rather than `>= 0`, inconsistent with this same file's own convention elsewhere (line 141: `if (dnldShared->dnldFileFD < 0) return -EBADF;`, which treats fd 0 as valid/open) and with the equivalent check in `hcom_dir_mgmt_free_file_info()` (`hcom_host_preprocess.c`, outside this batch, same `> 0` pattern). If a download's file were ever opened as fd 0 (plausible in a lean NuttX user task where stdio may not be pre-opened) and a subsequent write failed, neither `close()` nor the `dnldFileFD = -1` reset would run, leaving a stale "still open" fd value in the shared struct. Risk if unfixed: descriptor bookkeeping goes out of sync with reality specifically in the fd-0 case; a later close/write against the same stale number could act on whatever the OS has since reassigned to fd 0. Cost/risk to fix: one-character fix here (`> 0` to `>= 0`); a complete fix also needs the same change in `hcom_host_preprocess.c`, outside this batch. Fixed here (`> 0` to `>= 0`); the equivalent `hcom_host_preprocess.c` instance is outside this batch's scope, left as a separate future fix. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF026FdZeroCheck |
-| F027 | 40 | apps/system/hcom/file/hcom_file_dnld_esp32.c:254-255 | `hcom_file_dnld_esp32_recvd_file_data()`'s overflow-error message `"Expecting %u bytes, received %u"` is built from `_endAddress` and `_nextStorageAddress + binDataLen`, both `uint8_t *` pointers, passed to `%u` (expects `unsigned int`) -- a format-specifier/argument-type mismatch, and a logic bug: the message is meant to report byte counts but actually prints raw memory addresses. Risk if unfixed: when this overflow-detection path actually fires (host sending more data than the declared file size), the diagnostic sent to the CLI is nonsensical (addresses, not counts), making the real problem harder to diagnose. Cost/risk to fix: small -- compute and pass actual byte counts (e.g. `_endAddress - _esp32FileBuffer` and `(_nextStorageAddress - _esp32FileBuffer) + binDataLen`) instead of raw pointers. Fixed exactly as suggested. Verified via build only (this overflow path isn't easily triggerable without a misbehaving host). | 2026-08-19 | Fixed | 2026-08-19 | fixF027PtrToByteCount |
-| F028 | 35 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c:369 | `int percentDone = (dnldShared->dnldRecvdFileSize * 100) / dnldShared->dnldTotalFileSize;` -- both operands `uint32_t`. `dnldRecvdFileSize * 100` overflows 32-bit unsigned arithmetic for files larger than ~42.9MB (`UINT32_MAX/100`), plausible for this file's own SD-card path (block-buffered writes exist specifically to support files larger than the 8MB flash-cache limit). Also divides by `dnldTotalFileSize` with no zero-guard. Risk if unfixed: progress-percentage messages sent to the CLI become wrong/wrapped for large SD-card downloads (>~43MB); a 0-byte file download that (against normal protocol flow) received any data packet would hit an integer divide-by-zero. Cost/risk to fix: small -- widen to 64-bit before the multiply, and/or guard `dnldTotalFileSize == 0`. Fixed: widened the multiply to `uint64_t` and added a zero-guard (`percentDone` stays 0 if `dnldTotalFileSize` is 0). Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF028PercentOverflow |
-| F029 | 30 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c:399-403 | `size_t binDataLen = packetSize - HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF;` followed by `if(binDataLen < 0)` -- since `binDataLen` is unsigned, this check can never be true; it's dead code. If `packetSize` is ever smaller than the header offset (malformed/truncated packet), `binDataLen` silently wraps to a huge value instead of being caught here, and that value then sizes the following `crc32part()` call and write. The associated syslog also uses `%d` for the `size_t` value. Risk if unfixed: the intended malformed-packet guard never fires; actual exploitability depends on protocol-layer validation upstream of this function (not verified as part of this batch), but the check here is confirmed dead regardless. Cost/risk to fix: small -- compare `packetSize < HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF` before subtracting, and fix the format specifier to `%zu`. Fixed exactly as suggested. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF029PacketSizeGuard |
-| F030 | 25 | apps/system/hcom/file/hcom_file_dnld_esp32.c:394-399 | In `hcom_nx_exec_ex_update_ESP32()`, `firmware_fullpath_len` is computed once as `strlen(UPDATE_FIRMWARE_DIR)` (the directory prefix only, before the per-file filename is appended), then reused as the "space already used" figure for the `strncat(firmware_fullpath_md5, ".md5", PATH_MAX - firmware_fullpath_len - 1)` bound -- but by that point `firmware_fullpath_md5` already contains dir+filename, a longer string than `firmware_fullpath_len` accounts for, so the bound is overstated. Risk if unfixed: with today's fixed, short firmware filenames and a `PATH_MAX` of a few hundred bytes this doesn't overflow in practice, but the bound math is logically wrong and would silently permit an overflow if `UPDATE_FIRMWARE_DIR` or a firmware filename were lengthened enough to approach `PATH_MAX`. Cost/risk to fix: small -- recompute `strlen(firmware_fullpath)` after its own concat and use that for the second `strncat`'s bound instead of the stale `firmware_fullpath_len`. Fixed exactly as suggested. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF030StaleStrncatBound |
-| F031 | 25 | apps/system/hcom/file/hcom_file_dnld_esp32.c:429-438,467-476 | In `hcom_nx_exec_ex_update_ESP32()`, both firmware-file and md5-file read loops store `fread()`'s return into `int n` and only check `n < 0` -- but `fread()` never returns negative; it returns 0 on both EOF and error (distinguishable only via `ferror()`/`feof()`, never called here). If a staged file is shorter than the size `stat()` reported moments earlier (e.g. truncated mid-write, or an FS race), `fread()` returns 0 repeatedly while `bytes_read < file_size` stays true forever -- nothing increments `bytes_read` or breaks the loop on a 0 return. Risk if unfixed: an infinite loop during ESP32 firmware update if a staged file is shorter than its `stat()`-reported size; low-likelihood trigger but would hang the update path with no recovery short of an external reset. Cost/risk to fix: small -- break out (with an error result) on a 0 return before `bytes_read == file_size`. Fixed: both loops now check `n <= 0` instead of `n < 0`. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF031FreadZeroCheck |
-| F032 | 25 | apps/system/hcom/file/hcom_file_upld_proc.c:350,411 | `syslog(LOG_ERR, hostMsg);` and `syslog(LOG_ERR, hostMsg, thisFile, __LINE__);` pass a runtime-built string directly as `syslog()`'s *format* argument rather than as data (i.e., not `syslog(LOG_ERR, "%s", hostMsg)`). In both cases `hostMsg`'s content today is fixed literal text plus `%s@%d` already substituted with `__FILE__`/`__LINE__` (not attacker- or path-controlled), so neither call is currently exploitable, but it is a real format-string-misuse pattern (CWE-134): a future edit that folds arbitrary text (e.g. a file path) into either of these specific `hostMsg` strings without also fixing the `syslog()` call would introduce a live format-string bug reading nonexistent varargs. Risk if unfixed: none today; latent risk on future edits to these two messages. Cost/risk to fix: trivial -- change both to `syslog(LOG_ERR, "%s", hostMsg);`. Fixed exactly as suggested (also dropped the now-redundant `thisFile, __LINE__` args from the second call, since `hostMsg` was already fully formatted). Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF032SyslogFormatString |
-| F033 | 85 | apps/system/hcom/file/hcom_file_dnld_esp32.c:245-266 (cleanup), 226-266 (missing state check) | On the overflow-error path in `hcom_file_dnld_esp32_recvd_file_data()`, `_esp32FileBuffer` and `_nextStorageAddress` are freed/reset to NULL, but `_endAddress` is left pointing near the end of the now-freed buffer and `_currentESP32DnldState` is never reset away from `HcomESP32DnldStateEsp32FileXfer` -- a partial state-machine reset that leaves stale related fields behind (the exact pattern flagged for special attention in this review). Confirmed this function, unlike its `hcom_file_dnld_stm32f7_recvd_file_data()` sibling, has no guard at entry that checks `_currentESP32DnldState` before processing a packet. Risk if unfixed: if one more data packet arrives after this error (e.g. a host retry), the bounds check `(_nextStorageAddress + binDataLen) <= _endAddress` becomes `(NULL + binDataLen) <= <stale address>` -- almost certainly true for realistic packet sizes -- leading straight into `memcpy(NULL, hcomDataMsg->binData, binDataLen)`, a NULL-pointer write / hard fault. Cost/risk to fix: small -- also reset `_endAddress = NULL` and `_currentESP32DnldState = HcomESP32DnldStateNone` in the cleanup block, and/or add the same state-check guard the stm32f7 sibling function already has. Fixed via the state-reset approach: cleanup block now also sets `_endAddress = NULL` and calls `hcom_file_dnld_esp32_set_to_inactive()`; did not add a separate entry guard to `recvd_file_data()` itself since resetting state here means the routing layer's own `is_active()` gate now correctly stops routing further packets to this handler after an abort. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF033Esp32StateReset |
-| F034 | 80 | apps/system/hcom/file/hcom_file_dnld_esp32.c:293-311 | In `hcom_file_dnld_esp32_file_end()`, `ret` is first set from `hcom_esp32_exec_flash_file()` (the actual flash-write result for the file just transferred), but when `lastFile` is true, `ret` is unconditionally overwritten by `hcom_esp32_exec_add_flash_end()`'s return value before the `if (ret == 0)` check that decides whether to tell the host "File received successfully". Risk if unfixed: if flashing the final file in a sequence fails (e.g. MD5 mismatch or flash write error) but the subsequent "add flash end"/reboot call succeeds, the host is told the download succeeded even though the actual firmware flash failed -- a real ESP32 stays on old/corrupt firmware while Meadow.CLI reports success. Cost/risk to fix: small -- capture both return values into separate locals and require both to be 0 before reporting success. Fixed exactly as suggested (`flashEndResult` local added, success message now requires both `ret == 0 && flashEndResult == 0`). Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF034Esp32FlashResultMask |
-| F035 | 60 | apps/system/hcom/file/hcom_file_dnld_esp32.c:392,486-501 | In `hcom_nx_exec_ex_update_ESP32()` (reached from the live OTA path via `hcom_ota.c:263`), the per-file `for (i = 0; i < filecount; i++)` loop's `cleanup:` label does `if (result < 0) break;` *before* the for-loop's own `i++` runs. Per this function's documented contract ("`(i * E) < 0` when an error occurred, where i is index of the file"), if the very first file (`i == 0`) fails (e.g. `FIRMWARE_NOT_FOUND`), the function returns `result * i == result * 0 == 0` -- the same value the contract defines as "0 when no update applied" -- rather than a negative error code. Risk if unfixed: a genuine first-file error during an ESP32 firmware OTA update is indistinguishable from "nothing staged to update," so `hcom_ota.c`'s caller silently treats a real failure as a no-op instead of surfacing/logging it. Cost/risk to fix: small -- return a sentinel distinguishable from 0 (e.g. `result` alone, or `result * (i + 1)`) instead of `result * i`. Fixed: error return now uses `result * (i + 1)` (success path unchanged, still `result * i`); confirmed via the sole caller (`hcom_ota.c:263`) that only the sign of the return value is ever decoded, not the specific index/error-code product, so this encoding shift is safe. Docstring updated to match. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF035Esp32FirstFileError |
-| F036 | 45 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c:112-113 | `find_pathname_element_count()`'s `malloc(strLen + 1)` return value is used directly by the following `strcpy(pathNameTemp, pathName);` with no NULL check -- the only malloc in this file's `file/` subsystem that skips the otherwise-universal NULL-check-and-return-ENOMEM pattern used everywhere else in this batch. Risk if unfixed: under an out-of-memory condition (the exact condition this pattern exists elsewhere to guard against), this call path -- reached from `hcom_dir_mgmt_categorize_pathname()` on every Meadow/SD-card path with subdirectories -- NULL-derefs via `strcpy` instead of returning a clean error, crashing the HCOM user task rather than failing one request. Cost/risk to fix: trivial -- add the same `if (pathNameTemp == NULL) { syslog(...); return 0; }` (or propagate an error) pattern used by every other allocation in this file. Fixed exactly as suggested. Verified via build only. | 2026-08-19 | Fixed | 2026-08-19 | fixF036PathElementCountNullCheck |
-| F037 | 100 | apps/system/hcom/file/hcom_file_lists.c:85-140 | `hcom_file_lists_all_dev_dir_and_files()` recurses once per subdirectory found, starting from `"/"`, with no depth limit, each frame holding at least a 128-byte and a 256-byte stack buffer (384+ bytes/level before call overhead). Confirmed via the build config that the entire `hcom` task (which runs this listing, all comms parsing, and file transfer) has only a 2048-byte total stack (`CONFIG_EXAMPLES_HCOM_STACKSIZE` in `apps/system/hcom/Makefile`, unoverridden anywhere in the tree) -- so pure recursion overhead alone exhausts it in roughly 3-5 levels, well within what an ordinary PC-populated SD card's folder structure (mounted at `/sdcard`, not skipped by this function, and not subject to Meadow's own 8-level subdirectory-download limit which doesn't apply to pre-existing content) could trigger. Risk if unfixed: a completely ordinary "list files" request against a normally-nested SD card can overflow the 2048-byte hcom task stack, corrupting memory or crashing the HCOM comms task -- no attacker or contrived deep tree required. Cost/risk to fix: low -- add a depth counter/cap (mirroring the existing `HCOM_FILE_DNLD_MAX_NUMB_DIR_ELEMENTS` pattern) or convert to an iterative/explicit-stack walk; isolated to this one legacy (CLIv1-only) file. Fixed via the fuller iterative rewrite (superseding an initial depth-cap-only patch): `hcom_file_lists_all_dev_dir_and_files()` no longer recurses at all -- it now walks the tree using an explicit, heap-allocated stack of `{DIR*, path, indent}` frames (`struct hcom_file_lists_stack_frame_s`), growing via `realloc()` as needed (starting capacity `HCOM_FILE_LISTS_INITIAL_STACK_CAPACITY` = 8), so directory nesting depth is limited only by available heap, not by the hcom task's small fixed stack -- removing the artificial nesting limit entirely rather than just capping it. Handles allocation-failure unwinding (closes every still-open `DIR*` before returning `-ENOMEM`) and preserves the exact original traversal order and output. Also confirmed with the user (this design intentionally stops the *entire* walk, not just that one entry, on encountering a "proc" directory -- see F025) that the corresponding early-return in the iterative version needed its own explicit teardown loop (closing every still-open level and freeing the stack) before returning, since a bare early `return` in this flattened design would leak every open `DIR*` up the chain plus the stack array itself -- worse than the single-handle leak the old recursive version's equivalent early return had. Also filled out the `entryType` chain in the non-directory branch with the remaining `DIRENT_IS*` macros from `nuttx/include/dirent.h` (`fifo`, `sem`, `mq`, `shm`, `mtd`, `sock`, `unknown`) that weren't yet mapped to a display string, alongside the existing `file`/`char`/`block`/`link`; the catch-all `else` is kept since `d_type` is a plain field and not compiler-enforced to only ever hold one of the named constants. Verified via build and by the user testing the actual listing output (recursive replacement and the added type labels) against a real device. | 2026-08-19 | Fixed | 2026-08-19 | fixF037ListsRecursionDepthCap |
-| F038 | 75 | apps/system/hcom/file/hcom_file_dnld_esp32.c (state at lines 72,80,85,91; timer arm/reset 210-218,236-243), apps/system/hcom/comms/hcom_host_watchdog.c:109-160 | The ESP32 download path shares its single watchdog timer instance with the STM32F7 download path, but the watchdog timeout handler (`hcom_host_watchdog_dnld_cleanup_wdog()`) only knows how to clean up STM32F7-style download state (closing/deleting a file via the shared `hcom_dnld_shared_t`) -- confirmed zero references to any ESP32 symbol in that handler, and zero call sites anywhere that invoke `hcom_file_dnld_esp32_set_to_inactive()` or free `_esp32FileBuffer` from a timeout path. Risk if unfixed: a stalled/dropped host mid-ESP32-firmware-download leaves `_currentESP32DnldState` stuck at "transferring," holds a large heap buffer (up to a full firmware image) until the next download attempt happens to overwrite it, and the watchdog's own recovery/resend message is worded for the STM32F7 flow -- ESP32 downloads have no real timeout-driven recovery path and can wedge until a manual retry or reset. Cost/risk to fix: moderate -- add an ESP32-aware branch to the shared watchdog cleanup handler (or dispatch on which download is active) that calls an exposed ESP32 abort/reset function; needs care to avoid regressing the existing STM32F7 cleanup path. Fixed: added `hcom_file_dnld_esp32_abort_active_download()` (frees `_esp32FileBuffer`, resets `_nextStorageAddress`/`_endAddress`, and calls the existing `hcom_file_dnld_esp32_set_to_inactive()`), declared in `hcom_common.h`; `hcom_file_dnld_esp32_recvd_file_data()`'s pre-existing overrun-abort path now calls it too instead of duplicating the same free/reset sequence inline. `hcom_host_watchdog_dnld_cleanup_wdog()` now checks `hcom_file_dnld_esp32_is_active()` first (the timer cancel that's common to both paths was hoisted above the branch) and, when true, calls the new abort function, clears the receive buffer queue, and sends its own ESP32-worded "resend" message, then returns -- leaving the existing STM32F7 cleanup path (file close/delete, `_dnldShared` state reset) completely untouched for the non-ESP32 case. Does not call `hcom_esp32_stop_and_prep_for_restart()`, since that tears down UART comms/prepares an F7 reboot and is only appropriate for a fully-completed, all-files-flashed OTA, not a single stalled transfer. Verified on hardware: an ESP32 download interrupted mid-transfer triggered the watchdog, correctly took the new ESP32 branch (`Watchdog Timeout cleanup (ESP32)`), and completed cleanup without crashing. | 2026-08-19 | Fixed | 2026-08-20 | fixF038EspWatchdogCleanup |
-| F039 | 75 | apps/system/hcom/file/hcom_file_write_stm32f7.c:155-168,192-200 | The `pathnameSdcard` branch of `hcom_file_write_to_active_file()` unconditionally `malloc()`s a new buffer and `memcpy()`s the caller's data into it before `write()`, justified by a comment claiming it's needed for alignment ("malloc will allocate memory which is 4-byte aligned"). Originally flagged as redundant since the sole caller, `hcom_file_dnld_stm32f7.c`, already passes in a buffer aligned to the stricter `HCOM_FILE_DNLD_SDCARD_ALIGNMENT` (16 bytes). **Disproved on hardware (2026-08-21): removing the malloc/memcpy and writing the caller's pre-aligned buffer directly caused SD-card downloads to fail; reverting to the original malloc/memcpy restored a successful download.** The malloc-aligned copy is load-bearing for real SD-card writes for a reason not explained by buffer alignment alone (e.g. DMA/cache or driver requirement on the copy itself) -- not simply a leftover workaround. Won't fix -- keep the malloc/memcpy as-is. | 2026-08-19 | Won't Fix | 2026-08-21 | N/A -- disproved by hardware test, no fix applied |
-| F040 | 75 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c:37 | A comment contains Unicode smart/curly quotes (`e2 80 9c`/`e2 80 9d`, U+201C/U+201D) around "current directory" instead of plain ASCII double-quotes, verified via `od -tx1` -- a direct violation of Claude.md's explicit ASCII-only (0x00-0x7F) policy, and an exact parallel to precedent finding F009 (a Unicode em-dash violation, also scored 75 and fixed as a one-line comment change). Risk if unfixed: none functionally (comment-only), but it's a standing, easily-flagged violation of an explicit repo rule. Cost/risk to fix: trivial -- replace the two curly-quote bytes with plain ASCII `"` in the single comment line; zero behavioral/compile impact. Fixed exactly as suggested. Comment-only change, no build needed. | 2026-08-19 | Fixed | 2026-08-21 | fixF040UnicodeQuotes |
-| F041 | 70 | apps/system/hcom/file/hcom_file_dnld_esp32.c:273-338 (`hcom_file_dnld_esp32_file_end()`), apps/system/hcom/hcom_esp32/hcom_esp32_execute.c (`hcom_esp32_exec_flash_file`/`hcom_esp32_exec_copy_file_to_esp_flash`) | `hcom_file_dnld_esp32_file_end()` is driven purely by an incoming host protocol message (`HCOM_MDOW_REQUEST_END_ESP_FILE_TRANSFER`) and checks only `_currentESP32DnldState != HcomESP32DnldStateEsp32FileXfer` before proceeding -- it never verifies `_nextStorageAddress == _endAddress` (i.e. that all `_xferRecvFullFileSize` bytes actually arrived). It then unconditionally calls `hcom_esp32_exec_flash_file(_esp32FileBuffer, _xferRecvFullFileSize, ...)` with the full declared size, and the flash-copy routine loops over that entire declared size regardless of how much of the buffer was ever actually written by incoming data packets. Risk if unfixed: if an end-of-transfer message arrives before all data packets do (host protocol violation, dropped/reordered message not caught by lower-layer framing, or an abort-vs-end race), the trailing unwritten portion of `_esp32FileBuffer` -- currently zero-padding from `zalloc`, but logically uninitialized data -- gets flashed to real ESP32 hardware as if it were legitimate firmware content. Cost/risk to fix: small -- add a completeness check (`_nextStorageAddress == _endAddress`) in `hcom_file_dnld_esp32_file_end()` before calling `hcom_esp32_exec_flash_file()`, failing the transfer instead of flashing a short/incomplete image. Fixed exactly as suggested: `hcom_file_dnld_esp32_file_end()` now checks `_nextStorageAddress != _endAddress` right after the existing state check, and on mismatch logs the error, sends the same "Expecting N bytes, received N" + "Abort file transfer" host messages already used by `hcom_file_dnld_esp32_recvd_file_data()`'s overrun-abort path, calls `hcom_file_dnld_esp32_abort_active_download()`, and returns before flashing anything. Verified on hardware: a normal ESP32 firmware download completed and flashed successfully with the new completeness check in place. | 2026-08-19 | Fixed | 2026-08-21 | fixF041EspTransferCompleteness |
-| F042 | 50 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c:104-106,281-307; apps/system/hcom/comms/hcom_host_watchdog.c:109-160 | The SD-card write-buffer statics (`_sdcardWriteBuffer`/`_sdcardWriteBufferRaw`/`_sdcardBufferOffset`) are reset only once at subsystem init, not per-transfer; `hcom_file_dnld_stm32f7_file_begin()` unconditionally `malloc()`s a new `_sdcardWriteBufferRaw` with no check/free of a prior non-NULL value -- unlike its ESP32 sibling (`hcom_file_dnld_esp32_file_begin()`), which explicitly frees a leftover buffer from a prior failed download first. Confirmed the watchdog timeout handler never calls this file's `hcom_file_dnld_cleanup_sdcard_buffer()` (a file-private static, only reachable from this file's own normal end/error paths). Risk if unfixed: every SD-card-download watchdog timeout permanently leaks ~1039 bytes of heap (block size + alignment), since the next SD-card download's `file_begin()` overwrites the stale pointer without freeing it -- cumulative under repeated flaky-connection timeouts, though limited to the less-common SD-card path. Cost/risk to fix: trivial -- add the same not-NULL-then-free guard used in the ESP32 sibling (or call the existing cleanup helper) before the malloc in `file_begin()`, and/or invoke that cleanup from the watchdog timeout handler. Fixed: `hcom_file_dnld_stm32f7_file_begin()` now calls the existing `hcom_file_dnld_cleanup_sdcard_buffer()` helper before allocating `_sdcardWriteBufferRaw`, freeing any buffer left behind by a prior download that never reached a normal end/error path (e.g. a watchdog timeout), mirroring the guard already used in `hcom_file_dnld_esp32_file_begin()`. Verified via build only; not yet hardware-tested (unlike F039, this only changes when a stale buffer is freed, not the write path itself). | 2026-08-19 | Fixed | 2026-08-21 | fixF039RedundantSdcardBufferCopy |
-| F043 | 25 | apps/system/hcom/file/hcom_file_upld_proc.c:249-389,450-567 | `hcom_file_upld_proc_start_file_upload()` computes a CRC via a full sequential read of the file, then (after the host separately acknowledges) `hcom_file_upld_proc_build_upload_packet()` seeks back to the start and reads the identical file content again to stream it -- confirmed same fd, no modification in between. Verified this is protocol-constrained, not a simple oversight: the wire protocol requires sending the CRC+size and waiting for a separate host ack *before* any data streaming begins, so the CRC can't be computed incrementally during the single streaming pass the way the download path does (which reports its CRC only after all data is already written). Risk if unfixed: doubles I/O latency proportional to file size for uploads, and opens a narrow TOCTOU window between hashing and streaming. Cost/risk to fix: not a local fix -- would require moving the CRC to a post-transfer trailer message in the wire protocol itself, coordinating with the separate host-side CLI, so not worth doing in isolation. **Re-verified (2026-08-21):** traced both read passes and confirmed there is no upload watchdog (unlike downloads) to interact with the doubled I/O time, and the TOCTOU window's worst case is a host-detectable size/CRC mismatch (failed/retry-needed transfer), not silent corruption, a crash, or a security issue. Won't fix -- low value, no hidden bigger risk found; a real fix needs host-CLI-coordinated protocol work, out of scope here. | 2026-08-19 | Won't Fix | 2026-08-21 | N/A -- protocol-constrained, no local fix possible |
-| F044 | 25 | apps/system/hcom/file/hcom_file_write_stm32f7.c:59,74,84,92,138 | `_shutting_down` is a plain (non-`volatile`) bool set by `hcom_file_write_shutdown()` and read by the file open/write helpers, documented as intended to run from a different context than an active transfer; even if observed promptly it only no-ops future open/write calls without closing an already-open fd or freeing an in-progress SD-card buffer. Confirmed this mirrors already-recorded F007 exactly: `hcom_file_write_shutdown()`'s sole caller, `hcom_manager_shutdown()`, has zero call sites anywhere in the tree and its own comment says "at present this is never called" -- so this is currently dead code, not a live race. Risk if unfixed: none today; would become a real race/incomplete-shutdown bug only if this dormant shutdown chain is ever wired up. Cost/risk to fix: low if ever needed -- make the flag `volatile`/atomic and have the shutdown path actually close the open fd and release in-progress buffers; not worth doing now since there's nothing live to build or hardware-test against. **Re-verified (2026-08-21):** confirmed `hcom_manager_shutdown()` has zero callers anywhere in the tree (only its own definition/declaration), matching its own "never called" comment. Also confirmed `hcom_manager_shutdown()`'s shutdown sequence never calls anything from `hcom_file_dnld_stm32f7.c` (no `*_shutdown()` exists there at all) -- so even a `volatile` fix wouldn't make shutdown correct today; the SD-card write buffer and any open download fd would still leak/stay open if this were ever wired up. Won't fix -- dead code, no live bug, and a partial (`volatile`-only) fix wouldn't actually close the underlying design gap. | 2026-08-19 | Won't Fix | 2026-08-21 | N/A -- dead code, no fix applied |
-
 ## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (23 files)
 
-| ID | File | Status | Date | Notes |
-|----|------|--------|------|-------|
-| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Not started | | |
-| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Not started | | |
-| A03 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinit.c | Not started | | |
-| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Not started | | |
-| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Not started | | |
-| A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | Not started | | |
-| A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Not started | | |
-| A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Not started | | |
-| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | Not started | | |
-| A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Not started | | |
-| A11 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.c | Not started | | |
-| A12 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.h | Not started | | |
-| A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Not started | | |
-| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Not started | | |
-| A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Not started | | |
-| A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Not started | | |
-| A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Not started | | |
-| A18 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sdmmc.c | Not started | | |
-| A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Not started | | |
-| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Not started | | |
-| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started | | |
-| A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started | | |
-| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started | | |
+| ID | File | Status | Date | Issue | Notes |
+|----|------|--------|------|-------|-------|
+| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Not started |  |  |  |
+| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Not started |  |  |  |
+| A03 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinit.c | Not started |  |  |  |
+| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Not started |  |  |  |
+| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Not started |  |  |  |
+| A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | Not started |  |  |  |
+| A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Not started |  |  |  |
+| A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Not started |  |  |  |
+| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | Not started |  |  |  |
+| A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Not started |  |  |  |
+| A11 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.c | Not started |  |  |  |
+| A12 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.h | Not started |  |  |  |
+| A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Not started |  |  |  |
+| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Not started |  |  |  |
+| A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Not started |  |  |  |
+| A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Not started |  |  |  |
+| A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Not started |  |  |  |
+| A18 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sdmmc.c | Not started |  |  |  |
+| A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Not started |  |  |  |
+| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Not started |  |  |  |
+| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started |  |  |  |
+| A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started |  |  |  |
+| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started |  |  |  |
 
 ## apps/system/hcom/ (63 files)
 
-| ID | File | Status | Date | Notes |
-|----|------|--------|------|-------|
-| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Not started | | |
-| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Not started | | |
-| B03 | apps/system/hcom/cell/hcom_pppd.c | Not started | | |
-| B04 | apps/system/hcom/cell/hcom_pppd.h | Not started | | |
-| B05 | apps/system/hcom/comms/hcom_host_encode.c | Reviewed | 2026-08-13 | F004 |
-| B06 | apps/system/hcom/comms/hcom_host_enq_deq.c | Reviewed | 2026-08-13 | F001, F007 |
-| B07 | apps/system/hcom/comms/hcom_host_preprocess.c | Reviewed | 2026-08-13 | F001, F002 |
-| B08 | apps/system/hcom/comms/hcom_host_receive.c | Reviewed | 2026-08-13 | F003, F007 |
-| B09 | apps/system/hcom/comms/hcom_host_route.c | Reviewed | 2026-08-13 | No findings |
-| B10 | apps/system/hcom/comms/hcom_host_send.c | Reviewed | 2026-08-13 | F005, F006, F007 |
-| B11 | apps/system/hcom/comms/hcom_host_watchdog.c | Reviewed | 2026-08-13 | F001 |
-| B12 | apps/system/hcom/diag/hcom_diag_decode_protocol.c | Reviewed | 2026-08-17 | No confirmed findings |
-| B13 | apps/system/hcom/diag/hcom_diag_gpio.c | Reviewed | 2026-08-17 | F010 |
-| B14 | apps/system/hcom/diag/hcom_diag_gpio.h | Reviewed | 2026-08-17 | F010 |
-| B15 | apps/system/hcom/diag/hcom_diag_misc.c | Reviewed | 2026-08-17 | F012 |
-| B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 | No confirmed findings |
-| B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | Reviewed | 2026-08-17 | F008, F016, F017 |
-| B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | Reviewed | 2026-08-17 | F009, F011, F013, F014 |
-| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started | | |
-| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started | | |
-| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started | | |
-| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started | | |
-| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started | | |
-| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started | | |
-| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started | | |
-| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started | | |
-| B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 | No confirmed findings |
-| B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | Reviewed | 2026-08-19 | F018, F019, F020, F036, F040 |
-| B29 | apps/system/hcom/file/hcom_file_dnld_esp32.c | Reviewed | 2026-08-19 | F027, F030, F031, F033, F034, F035, F038, F041 |
-| B30 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c | Reviewed | 2026-08-19 | F021, F028, F029, F042 |
-| B31 | apps/system/hcom/file/hcom_file_lists.c | Reviewed | 2026-08-19 | F025, F037 |
-| B32 | apps/system/hcom/file/hcom_file_lists_subdir.c | Reviewed | 2026-08-19 | No confirmed findings |
-| B33 | apps/system/hcom/file/hcom_file_misc.c | Reviewed | 2026-08-19 | F023, F024 |
-| B34 | apps/system/hcom/file/hcom_file_upld_proc.c | Reviewed | 2026-08-19 | F022, F032, F043 |
-| B35 | apps/system/hcom/file/hcom_file_write_stm32f7.c | Reviewed | 2026-08-19 | F026, F039, F044 |
-| B36 | apps/system/hcom/hcom_common.h | Not started | | |
-| B37 | apps/system/hcom/hcom_startup_manager.c | Not started | | |
-| B38 | apps/system/hcom/misc/espcp_utils.c | Not started | | |
-| B39 | apps/system/hcom/misc/espcp_utils.h | Not started | | |
-| B40 | apps/system/hcom/misc/hcom_common_utils.c | Not started | | |
-| B41 | apps/system/hcom/misc/meadow_cirbuf.c | Not started | | |
-| B42 | apps/system/hcom/misc/meadow_utils.c | Not started | | |
-| B43 | apps/system/hcom/mono/hcom_mono_control.c | Not started | | |
-| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Not started | | |
-| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Not started | | |
-| B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Not started | | |
-| B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Not started | | |
-| B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Not started | | |
-| B49 | apps/system/hcom/ota/hcom_ota.c | Not started | | |
-| B50 | apps/system/hcom/ota/hcom_ota.h | Not started | | |
-| B51 | apps/system/hcom/tests/bbreg_tests.c | Not started | | |
-| B52 | apps/system/hcom/tests/cell_tests.c | Not started | | |
-| B53 | apps/system/hcom/tests/developer_tests.c | Not started | | |
-| B54 | apps/system/hcom/tests/diag_ethernet_chat_test.c | Not started | | |
-| B55 | apps/system/hcom/tests/diag_gpio_tests.c | Not started | | |
-| B56 | apps/system/hcom/tests/diag_misc_tests.c | Not started | | |
-| B57 | apps/system/hcom/tests/hcom_dir_mgmt_tests.c | Not started | | |
-| B58 | apps/system/hcom/tests/meadow_bbd_tests.c | Not started | | |
-| B59 | apps/system/hcom/tests/meadow_os_userspace_tests.c | Not started | | |
-| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Not started | | |
-| B61 | apps/system/hcom/tests/sotest_tests.c | Not started | | |
-| B62 | apps/system/hcom/tests/tensorflow_tests.c | Not started | | |
-| B63 | apps/system/hcom/tests/vs_debug_tests.c | Not started | | |
+| ID | File | Status | Date | Issue | Notes |
+|----|------|--------|------|-------|-------|
+| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Not started |  |  |  |
+| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Not started |  |  |  |
+| B03 | apps/system/hcom/cell/hcom_pppd.c | Not started |  |  |  |
+| B04 | apps/system/hcom/cell/hcom_pppd.h | Not started |  |  |  |
+| B05 | apps/system/hcom/comms/hcom_host_encode.c | Reviewed | 2026-08-13 | #300 |  |
+| B06 | apps/system/hcom/comms/hcom_host_enq_deq.c | Reviewed | 2026-08-13 | #301 |  |
+| B07 | apps/system/hcom/comms/hcom_host_preprocess.c | Reviewed | 2026-08-13 | #302 | F001 also tracked in #301 (hcom_host_enq_deq.c) |
+| B08 | apps/system/hcom/comms/hcom_host_receive.c | Reviewed | 2026-08-13 | #303 | F007 also tracked in #301 (hcom_host_enq_deq.c) |
+| B09 | apps/system/hcom/comms/hcom_host_route.c | Reviewed | 2026-08-13 |  | No findings |
+| B10 | apps/system/hcom/comms/hcom_host_send.c | Reviewed | 2026-08-13 | #304 | F007 also tracked in #301 (hcom_host_enq_deq.c) |
+| B11 | apps/system/hcom/comms/hcom_host_watchdog.c | Reviewed | 2026-08-13 |  | F001 tracked in #301 (hcom_host_enq_deq.c); F038 tracked in #310 (hcom_file_dnld_esp32.c); F042 tracked in #311 (hcom_file_dnld_stm32f7.c) |
+| B12 | apps/system/hcom/diag/hcom_diag_decode_protocol.c | Reviewed | 2026-08-17 |  | No confirmed findings |
+| B13 | apps/system/hcom/diag/hcom_diag_gpio.c | Reviewed | 2026-08-17 |  | F010 tracked in #305 (hcom_diag_gpio.h) |
+| B14 | apps/system/hcom/diag/hcom_diag_gpio.h | Reviewed | 2026-08-17 | #305 |  |
+| B15 | apps/system/hcom/diag/hcom_diag_misc.c | Reviewed | 2026-08-17 | #306 |  |
+| B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 |  | No confirmed findings |
+| B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | Reviewed | 2026-08-17 | #307 |  |
+| B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | Reviewed | 2026-08-17 | #308 |  |
+| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  |  |
+| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  |  |
+| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  |  |
+| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  |  |
+| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  |  |
+| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  |  |
+| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  |  |
+| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  |  |
+| B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 |  | No confirmed findings |
+| B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | Reviewed | 2026-08-19 | #309 |  |
+| B29 | apps/system/hcom/file/hcom_file_dnld_esp32.c | Reviewed | 2026-08-19 | #310 |  |
+| B30 | apps/system/hcom/file/hcom_file_dnld_stm32f7.c | Reviewed | 2026-08-19 | #311 |  |
+| B31 | apps/system/hcom/file/hcom_file_lists.c | Reviewed | 2026-08-19 | #312 |  |
+| B32 | apps/system/hcom/file/hcom_file_lists_subdir.c | Reviewed | 2026-08-19 |  | No confirmed findings |
+| B33 | apps/system/hcom/file/hcom_file_misc.c | Reviewed | 2026-08-19 | #313 |  |
+| B34 | apps/system/hcom/file/hcom_file_upld_proc.c | Reviewed | 2026-08-19 | #314 |  |
+| B35 | apps/system/hcom/file/hcom_file_write_stm32f7.c | Reviewed | 2026-08-19 | #315 |  |
+| B36 | apps/system/hcom/hcom_common.h | Not started |  |  |  |
+| B37 | apps/system/hcom/hcom_startup_manager.c | Not started |  |  |  |
+| B38 | apps/system/hcom/misc/espcp_utils.c | Not started |  |  |  |
+| B39 | apps/system/hcom/misc/espcp_utils.h | Not started |  |  |  |
+| B40 | apps/system/hcom/misc/hcom_common_utils.c | Not started |  |  |  |
+| B41 | apps/system/hcom/misc/meadow_cirbuf.c | Not started |  |  |  |
+| B42 | apps/system/hcom/misc/meadow_utils.c | Not started |  |  |  |
+| B43 | apps/system/hcom/mono/hcom_mono_control.c | Not started |  |  |  |
+| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Not started |  |  |  |
+| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Not started |  |  |  |
+| B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Not started |  |  |  |
+| B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Not started |  |  |  |
+| B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Not started |  |  |  |
+| B49 | apps/system/hcom/ota/hcom_ota.c | Not started |  |  |  |
+| B50 | apps/system/hcom/ota/hcom_ota.h | Not started |  |  |  |
+| B51 | apps/system/hcom/tests/bbreg_tests.c | Not started |  |  |  |
+| B52 | apps/system/hcom/tests/cell_tests.c | Not started |  |  |  |
+| B53 | apps/system/hcom/tests/developer_tests.c | Not started |  |  |  |
+| B54 | apps/system/hcom/tests/diag_ethernet_chat_test.c | Not started |  |  |  |
+| B55 | apps/system/hcom/tests/diag_gpio_tests.c | Not started |  |  |  |
+| B56 | apps/system/hcom/tests/diag_misc_tests.c | Not started |  |  |  |
+| B57 | apps/system/hcom/tests/hcom_dir_mgmt_tests.c | Not started |  |  |  |
+| B58 | apps/system/hcom/tests/meadow_bbd_tests.c | Not started |  |  |  |
+| B59 | apps/system/hcom/tests/meadow_os_userspace_tests.c | Not started |  |  |  |
+| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Not started |  |  |  |
+| B61 | apps/system/hcom/tests/sotest_tests.c | Not started |  |  |  |
+| B62 | apps/system/hcom/tests/tensorflow_tests.c | Not started |  |  |  |
+| B63 | apps/system/hcom/tests/vs_debug_tests.c | Not started |  |  |  |
 
 ## F7MeadowOS/ (169 files, libyaml/libcyaml excluded)
 
-| ID | File | Status | Date | Notes |
-|----|------|--------|------|-------|
-| C001 | F7MeadowOS/espcp/espcp_common.c | Not started | | |
-| C002 | F7MeadowOS/espcp/espcp_common.h | Not started | | |
-| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started | | |
-| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started | | |
-| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started | | |
-| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started | | |
-| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started | | |
-| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started | | |
-| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started | | |
-| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started | | |
-| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started | | |
-| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started | | |
-| C013 | F7MeadowOS/espcp/espcp_message.c | Not started | | |
-| C014 | F7MeadowOS/espcp/espcp_message.h | Not started | | |
-| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started | | |
-| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started | | |
-| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started | | |
-| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started | | |
-| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started | | |
-| C020 | F7MeadowOS/espcp/espcp_system.c | Not started | | |
-| C021 | F7MeadowOS/espcp/espcp_system.h | Not started | | |
-| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started | | |
-| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started | | |
-| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started | | |
-| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started | | |
-| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started | | |
-| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started | | |
-| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started | | |
-| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started | | |
-| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started | | |
-| C031 | F7MeadowOS/espcp/generic_list.c | Not started | | |
-| C032 | F7MeadowOS/espcp/generic_list.h | Not started | | |
-| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Not started | | |
-| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Not started | | |
-| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Not started | | |
-| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Not started | | |
-| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Not started | | |
-| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Not started | | |
-| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Not started | | |
-| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Not started | | |
-| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Not started | | |
-| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Not started | | |
-| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Not started | | |
-| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Not started | | |
-| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Not started | | |
-| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started | | |
-| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started | | |
-| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started | | |
-| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Not started | | |
-| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Not started | | |
-| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started | | |
-| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started | | |
-| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started | | |
-| C055 | F7MeadowOS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c | Not started | | |
-| C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started | | |
-| C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started | | |
-| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Not started | | |
-| C059 | F7MeadowOS/include/meadow/hcom_dnld_shared.h | Not started | | |
-| C060 | F7MeadowOS/include/meadow/hcom_misc_diag.h | Not started | | |
-| C061 | F7MeadowOS/include/meadow/hcom_nuttx_shared.h | Not started | | |
-| C062 | F7MeadowOS/include/meadow/hcom_protocol.h | Not started | | |
-| C063 | F7MeadowOS/include/meadow/hcom_shared_common.h | Not started | | |
-| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | Not started | | |
-| C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Not started | | |
-| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Not started | | |
-| C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Not started | | |
-| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | Not started | | |
-| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Not started | | |
-| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Not started | | |
-| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Not started | | |
-| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Not started | | |
-| C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Not started | | |
-| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Not started | | |
-| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | Not started | | |
-| C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Not started | | |
-| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | Not started | | |
-| C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Not started | | |
-| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Not started | | |
-| C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Not started | | |
-| C081 | F7MeadowOS/include/meadow/meadow_os.h | Not started | | |
-| C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Not started | | |
-| C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Not started | | |
-| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Not started | | |
-| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | Not started | | |
-| C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | Not started | | |
-| C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | Not started | | |
-| C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Not started | | |
-| C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Not started | | |
-| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Not started | | |
-| C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Not started | | |
-| C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Not started | | |
-| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Not started | | |
-| C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | Not started | | |
-| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Not started | | |
-| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Not started | | |
-| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | Not started | | |
-| C098 | F7MeadowOS/kerneltests/espcp_tests.c | Not started | | |
-| C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Not started | | |
-| C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Not started | | |
-| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Not started | | |
-| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Not started | | |
-| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Not started | | |
-| C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | Not started | | |
-| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Not started | | |
-| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Not started | | |
-| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Not started | | |
-| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Not started | | |
-| C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | Not started | | |
-| C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Not started | | |
-| C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Not started | | |
-| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Not started | | |
-| C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Not started | | |
-| C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | Not started | | |
-| C115 | F7MeadowOS/kerneltests/network_tests.c | Not started | | |
-| C116 | F7MeadowOS/kerneltests/network_tests.h | Not started | | |
-| C117 | F7MeadowOS/kerneltests/power_management_tests.c | Not started | | |
-| C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Not started | | |
-| C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Not started | | |
-| C120 | F7MeadowOS/kerneltests/timing.h | Not started | | |
-| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Not started | | |
-| C122 | F7MeadowOS/meadow_os/meadow-gpio.c | Not started | | |
-| C123 | F7MeadowOS/meadow_os/meadow-upd.c | Not started | | |
-| C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | Not started | | |
-| C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | Not started | | |
-| C126 | F7MeadowOS/meadow_os/meadow_os.c | Not started | | |
-| C127 | F7MeadowOS/meadow_os/meadow_os_battery_backed_domain.c | Not started | | |
-| C128 | F7MeadowOS/meadow_os/meadow_os_config.c | Not started | | |
-| C129 | F7MeadowOS/meadow_os/meadow_os_espcp.c | Not started | | |
-| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | Not started | | |
-| C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | Not started | | |
-| C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Not started | | |
-| C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | Not started | | |
-| C134 | F7MeadowOS/misc/meadow_adc.c | Not started | | |
-| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Not started | | |
-| C136 | F7MeadowOS/misc/meadow_client_cert.c | Not started | | |
-| C137 | F7MeadowOS/misc/meadow_logging.c | Not started | | |
-| C138 | F7MeadowOS/misc/meadow_logging.h | Not started | | |
-| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | Not started | | |
-| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Not started | | |
-| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | Not started | | |
-| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Not started | | |
-| C143 | F7MeadowOS/misc/meadow_watchdog.c | Not started | | |
-| C144 | F7MeadowOS/misc/meadow_watchdog.h | Not started | | |
-| C145 | F7MeadowOS/misc/parse_iso8601_time.c | Not started | | |
-| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Not started | | |
-| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Not started | | |
-| C148 | F7MeadowOS/ntpclient/ntpv3.h | Not started | | |
-| C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | Not started | | |
-| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | Not started | | |
-| C151 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_timer.c | Not started | | |
-| C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Not started | | |
-| C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Not started | | |
-| C154 | F7MeadowOS/pwrmgmt/pwrmgmt_local.h | Not started | | |
-| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Not started | | |
-| C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Not started | | |
-| C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Not started | | |
-| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Not started | | |
-| C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | Not started | | |
-| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Not started | | |
-| C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Not started | | |
-| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Not started | | |
-| C163 | F7MeadowOS/timers/cpu_measure.c | Not started | | |
-| C164 | F7MeadowOS/timers/freq_duty.c | Not started | | |
-| C165 | F7MeadowOS/timers/lsi_clk_freq_measure.c | Not started | | |
-| C166 | F7MeadowOS/timers/meadow_timers.h | Not started | | |
-| C167 | F7MeadowOS/timers/pulse_width.c | Not started | | |
-| C168 | F7MeadowOS/timers/rc_servo_decode.c | Not started | | |
-| C169 | F7MeadowOS/timers/timer_manager.c | Not started | | |
+| ID | File | Status | Date | Issue | Notes |
+|----|------|--------|------|-------|-------|
+| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  |  |
+| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  |  |
+| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  |  |
+| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  |  |
+| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  |  |
+| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  |  |
+| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  |  |
+| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  |  |
+| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  |  |
+| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  |  |
+| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  |  |
+| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  |  |
+| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  |  |
+| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  |  |
+| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  |  |
+| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  |  |
+| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  |  |
+| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  |  |
+| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  |  |
+| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  |  |
+| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  |  |
+| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  |  |
+| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  |  |
+| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  |  |
+| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  |  |
+| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  |  |
+| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  |  |
+| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  |  |
+| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  |  |
+| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  |  |
+| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  |  |
+| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  |  |
+| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Not started |  |  |  |
+| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Not started |  |  |  |
+| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Not started |  |  |  |
+| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Not started |  |  |  |
+| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Not started |  |  |  |
+| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Not started |  |  |  |
+| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Not started |  |  |  |
+| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Not started |  |  |  |
+| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Not started |  |  |  |
+| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Not started |  |  |  |
+| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Not started |  |  |  |
+| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Not started |  |  |  |
+| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Not started |  |  |  |
+| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
+| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started |  |  |  |
+| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started |  |  |  |
+| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Not started |  |  |  |
+| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Not started |  |  |  |
+| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started |  |  |  |
+| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started |  |  |  |
+| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started |  |  |  |
+| C055 | F7MeadowOS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c | Not started |  |  |  |
+| C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started |  |  |  |
+| C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started |  |  |  |
+| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Not started |  |  |  |
+| C059 | F7MeadowOS/include/meadow/hcom_dnld_shared.h | Not started |  |  |  |
+| C060 | F7MeadowOS/include/meadow/hcom_misc_diag.h | Not started |  |  |  |
+| C061 | F7MeadowOS/include/meadow/hcom_nuttx_shared.h | Not started |  |  |  |
+| C062 | F7MeadowOS/include/meadow/hcom_protocol.h | Not started |  |  |  |
+| C063 | F7MeadowOS/include/meadow/hcom_shared_common.h | Not started |  |  |  |
+| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | Not started |  |  |  |
+| C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Not started |  |  |  |
+| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Not started |  |  |  |
+| C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Not started |  |  |  |
+| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | Not started |  |  |  |
+| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Not started |  |  |  |
+| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Not started |  |  |  |
+| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Not started |  |  |  |
+| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Not started |  |  |  |
+| C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Not started |  |  |  |
+| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Not started |  |  |  |
+| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | Not started |  |  |  |
+| C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Not started |  |  |  |
+| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | Not started |  |  |  |
+| C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Not started |  |  |  |
+| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Not started |  |  |  |
+| C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Not started |  |  |  |
+| C081 | F7MeadowOS/include/meadow/meadow_os.h | Not started |  |  |  |
+| C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Not started |  |  |  |
+| C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Not started |  |  |  |
+| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Not started |  |  |  |
+| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | Not started |  |  |  |
+| C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | Not started |  |  |  |
+| C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | Not started |  |  |  |
+| C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Not started |  |  |  |
+| C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Not started |  |  |  |
+| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Not started |  |  |  |
+| C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Not started |  |  |  |
+| C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Not started |  |  |  |
+| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Not started |  |  |  |
+| C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | Not started |  |  |  |
+| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Not started |  |  |  |
+| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Not started |  |  |  |
+| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | Not started |  |  |  |
+| C098 | F7MeadowOS/kerneltests/espcp_tests.c | Not started |  |  |  |
+| C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Not started |  |  |  |
+| C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Not started |  |  |  |
+| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Not started |  |  |  |
+| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Not started |  |  |  |
+| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Not started |  |  |  |
+| C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | Not started |  |  |  |
+| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Not started |  |  |  |
+| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Not started |  |  |  |
+| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Not started |  |  |  |
+| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Not started |  |  |  |
+| C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | Reviewed | 2026-08-17 | #316 | Found incidentally during F011 hardware verification, not from a full batch review of this file. |
+| C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Not started |  |  |  |
+| C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Not started |  |  |  |
+| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Not started |  |  |  |
+| C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Not started |  |  |  |
+| C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | Not started |  |  |  |
+| C115 | F7MeadowOS/kerneltests/network_tests.c | Not started |  |  |  |
+| C116 | F7MeadowOS/kerneltests/network_tests.h | Not started |  |  |  |
+| C117 | F7MeadowOS/kerneltests/power_management_tests.c | Not started |  |  |  |
+| C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Not started |  |  |  |
+| C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Not started |  |  |  |
+| C120 | F7MeadowOS/kerneltests/timing.h | Not started |  |  |  |
+| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Not started |  |  |  |
+| C122 | F7MeadowOS/meadow_os/meadow-gpio.c | Not started |  |  |  |
+| C123 | F7MeadowOS/meadow_os/meadow-upd.c | Not started |  |  |  |
+| C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | Not started |  |  |  |
+| C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | Not started |  |  |  |
+| C126 | F7MeadowOS/meadow_os/meadow_os.c | Not started |  |  |  |
+| C127 | F7MeadowOS/meadow_os/meadow_os_battery_backed_domain.c | Not started |  |  |  |
+| C128 | F7MeadowOS/meadow_os/meadow_os_config.c | Not started |  |  |  |
+| C129 | F7MeadowOS/meadow_os/meadow_os_espcp.c | Not started |  |  |  |
+| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | Not started |  |  |  |
+| C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | Not started |  |  |  |
+| C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Not started |  |  |  |
+| C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | Not started |  |  |  |
+| C134 | F7MeadowOS/misc/meadow_adc.c | Not started |  |  |  |
+| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Not started |  |  |  |
+| C136 | F7MeadowOS/misc/meadow_client_cert.c | Not started |  |  |  |
+| C137 | F7MeadowOS/misc/meadow_logging.c | Not started |  |  |  |
+| C138 | F7MeadowOS/misc/meadow_logging.h | Not started |  |  |  |
+| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | Not started |  |  |  |
+| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Not started |  |  |  |
+| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | Not started |  |  |  |
+| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Not started |  |  |  |
+| C143 | F7MeadowOS/misc/meadow_watchdog.c | Not started |  |  |  |
+| C144 | F7MeadowOS/misc/meadow_watchdog.h | Not started |  |  |  |
+| C145 | F7MeadowOS/misc/parse_iso8601_time.c | Not started |  |  |  |
+| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Not started |  |  |  |
+| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Not started |  |  |  |
+| C148 | F7MeadowOS/ntpclient/ntpv3.h | Not started |  |  |  |
+| C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | Not started |  |  |  |
+| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | Not started |  |  |  |
+| C151 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_timer.c | Not started |  |  |  |
+| C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Not started |  |  |  |
+| C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Not started |  |  |  |
+| C154 | F7MeadowOS/pwrmgmt/pwrmgmt_local.h | Not started |  |  |  |
+| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Not started |  |  |  |
+| C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Not started |  |  |  |
+| C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Not started |  |  |  |
+| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Not started |  |  |  |
+| C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | Not started |  |  |  |
+| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Not started |  |  |  |
+| C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Not started |  |  |  |
+| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Not started |  |  |  |
+| C163 | F7MeadowOS/timers/cpu_measure.c | Not started |  |  |  |
+| C164 | F7MeadowOS/timers/freq_duty.c | Not started |  |  |  |
+| C165 | F7MeadowOS/timers/lsi_clk_freq_measure.c | Not started |  |  |  |
+| C166 | F7MeadowOS/timers/meadow_timers.h | Not started |  |  |  |
+| C167 | F7MeadowOS/timers/pulse_width.c | Not started |  |  |  |
+| C168 | F7MeadowOS/timers/rc_servo_decode.c | Not started |  |  |  |
+| C169 | F7MeadowOS/timers/timer_manager.c | Not started |  |  |  |

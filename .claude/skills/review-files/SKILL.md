@@ -97,40 +97,62 @@ rather than reviewing everything in one pass.
    drop them). If nothing survives even the 25 bar, call it with an empty list rather
    than announcing "no issues" in prose.
 
-6. Update `Documentation/CodeReviewTracking.md`:
-   a. For every finding from step 5 (score 25+, not just the highest-confidence ones),
-      add one row to the "Open Findings" table (near the top of the doc, above the
-      per-directory tables) -- one row per finding, not per file, since a finding can
-      span multiple files. Use the next sequential ID (F001, F002, ... -- check the
-      existing table for the highest one used so far). Status starts as "Open"; leave
-      Fixed Date and Branch/Commit blank. Include the score and file:line range(s) in the
-      Files column, and fold the "Risk if unfixed" / "Cost/risk to fix" notes into the
-      Summary column so the user can triage from this table alone. Don't touch existing
-      rows in this table other than adding new ones.
+6. Update `Documentation/CodeReviewTracking.md` and GitHub:
+   a. Group step 5's surviving findings (score 25+) by their **primary file** -- the
+      first file listed in each finding's file:line range(s). For every file in this
+      batch that is the primary file for 1+ findings, create one GitHub Issue for that
+      file via `gh issue create` (title `Code review: <file path>`, label
+      `code-review` -- create the label first with `gh label create` if it doesn't exist
+      yet), with one checklist item per finding: `- [ ] (score NN) -- <one-line
+      summary>` followed by the full "Risk if unfixed" / "Cost/risk to fix" writeup and
+      the file:line range(s). Findings no longer get a global F0XX id (that scheme ended
+      with the migration to Issues) -- a checklist item is identified by its issue number
+      plus position/summary, which is enough since almost every issue holds only 1-2
+      findings; a commit fixing one references `#NNN` (and only that issue's *last*
+      finding uses `Fixes #NNN` in its commit, since that's what auto-closes the issue).
+      One issue per file, not one per finding and not one shared issue -- this keeps
+      each issue well under GitHub's body-size limit and independently
+      searchable/closeable. If a finding spans multiple files and its primary file is in
+      this batch but a secondary file was already reviewed in an earlier batch, add a
+      short cross-reference note (`<short description> tracked in #NNN (<primary
+      file>)`) to that earlier file's row instead of creating a second issue.
    b. For every file in this batch, change its row's Status to "Reviewed" and set Date to
-      today. Set Notes to the comma-separated list of finding IDs (from step a) whose
-      Files column actually includes this specific file, e.g. "F001, F002" -- NOT a
-      copy-pasted summary of the whole batch. Most files in a batch will have no findings
-      at all; for those, set Notes to "No confirmed findings" rather than leaving it
-      blank or reusing another file's text. Each of the three per-directory tables has
-      its own ID column (A/B/C + zero-padded row number, e.g. A07, B41, C169) -- never
-      renumber or reuse an existing ID. If a batch file isn't already listed in that
-      table (a new file, or the tracking doc doesn't exist yet), append a row for it at
-      the end of the correct table with the next unused ID in that table's letter
-      sequence, rather than skipping it silently.
+      today. Set the `Issue` column to the new issue's number (`#NNN`) if this file is a
+      primary file from step a; leave it blank otherwise. Set `Notes` to
+      "No confirmed findings" for a file with zero findings, or to a cross-reference note
+      (see step a) if this file is only a *secondary* location for someone else's
+      finding -- never a comma-separated F0XX list (that content now lives in the
+      issue). Each of the three per-directory tables has its own ID column (A/B/C +
+      zero-padded row number, e.g. A07, B41, C169) -- never renumber or reuse an existing
+      ID. If a batch file isn't already listed in that table (a new file, or the tracking
+      doc doesn't exist yet), append a row for it at the end of the correct table with
+      the next unused ID in that table's letter sequence, rather than skipping it
+      silently.
+   c. Update the `**Review timeline:**` line near the top of the doc so `last updated`
+      reflects today's date.
 
 ## Notes
 
-- No `gh`/GitHub involvement -- this operates on the working tree, not a PR.
+- `gh` **is** used, but only to create/update per-file Issues -- this still operates on
+  the working tree, not a PR diff, and is unrelated to `/code-review`'s PR-review flow.
 - Don't build or run the code as part of this; that's separate from the review.
 - Don't fix anything as part of this skill -- it only finds and records findings. Fixing
-  is a deliberate, one-at-a-time follow-up activity against the Open Findings table, not
+  is a deliberate, one-at-a-time follow-up activity against a file's GitHub Issue, not
   something this skill does automatically.
 - When applying a fix as that follow-up activity, don't commit it. Leave the change
-  (and its tracking-doc update) uncommitted so the user can review, build, and test
-  first. Only commit if the user explicitly asks you to.
+  (and the tracking-doc `last updated` bump) uncommitted so the user can review, build,
+  and test first. Only commit if the user explicitly asks you to. Once a fix is
+  committed, comment on its finding's Issue with the branch/PR link and tick that
+  finding's checkbox; close the Issue once every checkbox in it is ticked (or let the
+  merge commit's `Fixes #N` do it automatically if it's the last one).
+- When a fix's branch gets its PR merged on GitHub, delete the local branch too
+  (`git branch -d <branch>`) once you've confirmed the merge (e.g. `gh pr view` or
+  `gh pr list --state merged`) -- GitHub deleting the remote branch on merge doesn't
+  remove the local copy, and these accumulate across a long fix-by-fix review effort.
 - To review the next batch, just invoke this skill again with the next set of files --
   each run is independent.
-- `Documentation/CodeReviewTracking.md` is the source of truth for what's been reviewed,
-  what hasn't, and which findings are still open. Check it before picking the next batch
-  so files aren't reviewed twice or skipped.
+- `Documentation/CodeReviewTracking.md` is the source of truth for what's been reviewed
+  and what hasn't; each file's `code-review`-labeled GitHub Issue (linked from its
+  `Issue` column) is the source of truth for that file's findings and their status.
+  Check the tracking doc before picking the next batch so files aren't reviewed twice or
+  skipped.
