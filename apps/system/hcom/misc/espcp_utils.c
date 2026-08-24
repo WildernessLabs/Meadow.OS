@@ -52,6 +52,13 @@
  * Private Data
  ****************************************************************************/
 
+// Written once from the hcom startup thread (hcom_startup_manager.c's
+// hcom_main(), via espcp_open_esp32_events_message_queue()) and read later
+// from pppd_thread (hcom_pppd.c). Safe without explicit synchronization only
+// because hcom_main() opens this queue before calling hcom_pppd_start(),
+// which creates pppd_thread -- pthread_create()'s happens-before guarantee
+// covers this write. If that startup ordering ever changes, this needs
+// explicit synchronization.
 static mqd_t espcp_events_queue_handler = (mqd_t) - 1;
 // static char *thisFile = __FILE__;
 
@@ -98,6 +105,11 @@ void espcp_encode_uint32(uint32_t value, uint8_t *buffer)
  ****************************************************************************/
 int espcp_open_esp32_events_message_queue()
 {
+  // The check-then-open below is not synchronized: safe only because this
+  // function has a single caller today (hcom_startup_manager.c, once at
+  // startup, before any other hcom thread is created). If a second
+  // concurrent caller is ever added, this check-then-act needs a lock to
+  // avoid a double-open racing on espcp_events_queue_handler.
   if (espcp_events_queue_handler == (mqd_t) - 1)
   {
     struct mq_attr queue_attributes = { 0 };
