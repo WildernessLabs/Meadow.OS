@@ -96,11 +96,11 @@ review a file some other way, update its row manually to keep this list accurate
 | B35 | apps/system/hcom/file/hcom_file_write_stm32f7.c | Reviewed | 2026-08-19 | #315 |  |
 | B36 | apps/system/hcom/hcom_common.h | Not started |  |  |  |
 | B37 | apps/system/hcom/hcom_startup_manager.c | Not started |  |  |  |
-| B38 | apps/system/hcom/misc/espcp_utils.c | Not started |  |  |  |
-| B39 | apps/system/hcom/misc/espcp_utils.h | Not started |  |  |  |
-| B40 | apps/system/hcom/misc/hcom_common_utils.c | Not started |  |  |  |
-| B41 | apps/system/hcom/misc/meadow_cirbuf.c | Not started |  |  |  |
-| B42 | apps/system/hcom/misc/meadow_utils.c | Not started |  |  |  |
+| B38 | apps/system/hcom/misc/espcp_utils.c | Reviewed | 2026-08-24 | #318 |  |
+| B39 | apps/system/hcom/misc/espcp_utils.h | Reviewed | 2026-08-24 |  | No confirmed findings |
+| B40 | apps/system/hcom/misc/hcom_common_utils.c | Reviewed | 2026-08-24 | #319 |  |
+| B41 | apps/system/hcom/misc/meadow_cirbuf.c | Reviewed | 2026-08-24 | #320 |  |
+| B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | No confirmed findings (stub file, no function bodies) |
 | B43 | apps/system/hcom/mono/hcom_mono_control.c | Not started |  |  |  |
 | B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Not started |  |  |  |
 | B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Not started |  |  |  |
