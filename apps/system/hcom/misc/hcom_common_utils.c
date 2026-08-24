@@ -108,17 +108,20 @@ int hcom_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, i
   bufChk = vsnprintf(buf, size, fmt, ap);
   va_end(ap);
 
-  // Handle buffer overflow here
-  if(bufChk >= size)
+  // Handle buffer overflow here. Check the error case first: bufChk is
+  // signed but size is size_t, so comparing bufChk >= size directly would
+  // promote a negative bufChk to a huge unsigned value and always take the
+  // truncation branch below, hiding a real vsnprintf() error.
+  if(bufChk < 0)
+  {
+    syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
+  }
+  else if((size_t)bufChk >= size)
   {
     syslog(LOG_WARNING, "%s@%d Host msg truncated, need:%d\n", fileName, lineNumb, bufChk + 1);
     // This modifies the standard Nuttx snprintf behavior which would normally
     // return the size of needed buffer.
     return -ENAMETOOLONG;
-  }
-  else if(bufChk < 0)
-  {
-    syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
   }
 
   // Must be operations as usual
@@ -161,19 +164,22 @@ void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t
         return;
     }
     
-    syslog(LOG_INFO, "User-provided DNS servers count: %ld\n", server_count);
+    syslog(LOG_INFO, "User-provided DNS servers count: %lu\n", (unsigned long)server_count);
+
     for (int index = 0; index < server_count; index++)
     {
         syslog(LOG_INFO, "%d: %s\n", index + 1, servers[index]);
-    }
-    
-    for (int index = 0; index < server_count; index++)
-    {
+
         if (hcom_common_utils_is_valid_ip_address(servers[index]))
         {
-            fputs("nameserver ", dns_file);
-            fputs(servers[index], dns_file);
-            fputs("\n", dns_file);
+            if (fputs("nameserver ", dns_file) == EOF ||
+                fputs(servers[index], dns_file) == EOF ||
+                fputs("\n", dns_file) == EOF)
+            {
+                syslog(LOG_ERR, "Failed writing DNS server '%s' to %s\n",
+                       servers[index], CONFIG_NETDB_RESOLVCONF_PATH);
+                break;
+            }
         }
     }
 
