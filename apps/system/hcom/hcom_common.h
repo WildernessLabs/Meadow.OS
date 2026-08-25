@@ -226,8 +226,7 @@ void hcom_file_dnld_esp32_file_end(uint32_t user_data);
 // -----------------------------------------------
 // Execute Request for uploading a file
 int hcom_file_upld_proc_setup(void);
-void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
-        const size_t packetSize);
+void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared);
 int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared);
 int hcom_file_upld_proc_begin_file_uploading(hcom_dnld_shared_t *dnldShared);
 void hcom_file_upld_proc_abort_file_upload(const HcomProtoHdrMsg_t *hdrMsg,

@@ -60,7 +60,6 @@
 #endif
 
 #define HCOM_FILE_UPD_PROC_DIAG_OUTPUT_SYSLOG (0)
-#define HCOM_FILE_INITIAL_BYTES_LENGTH (256)
 
 /* Configuration ************************************************************/
 
@@ -103,75 +102,88 @@ int hcom_file_upld_proc_setup()
 //
 // This function receives a command from CLI and builds a single message to
 // send back to the CLI. This message contains the first part of a file's
-// data. The maximum number of bytes is set by HCOM_FILE_INITIAL_BYTES_LENGTH,
-// which is defined here.
+// data. The maximum number of bytes is the size of a single protocol packet.
 // This functionality is considered a type of upload so it's in this file.
 //==========================================================================
-void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize)
+void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
 {
-  int ret;
-  int fd;
-  char *fileNameBuffer;
+  char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
   
-  HcomProtoTextMsg_t *textMsg = (HcomProtoTextMsg_t *)hdrMsg;
+  // Open the file to upload
+  set_errno(0);
 
-  // How long must the file name be
-  size_t fileNameLen = packetSize - HCOM_PROTOCOL_TEXT_MSG_START_OFF;
-
-  // Last field in file info is the file name
-  fileNameBuffer = malloc(fileNameLen + 1);
-  if(fileNameBuffer == NULL)
+  dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDONLY);
+  if (dnldShared->dnldFileFD == -1)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+    int savedErrno = errno;
+
+    if(savedErrno == ENOENT)
+    {
+      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+        "File '%s' could not be found in Meadow file system.",
+        dnldShared->dnldFullPathName);
+    }
+    else
+    {
+      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+        "File '%s' could not be opened, error:%d",
+        dnldShared->dnldFullPathName, savedErrno);
+    }
+
+    syslog(LOG_ERR, "%s@%d-Failed to open '%s', errno:%d\n",
+      thisFile, __LINE__, dnldShared->dnldFullPathName, savedErrno);
+
+    // This message will notify the user of the error
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
+      0, hostMsg, thisFile, __LINE__);
+
+    // This message will tell CLI to stop processing
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
               thisFile, __LINE__);
-    return;
-  }
 
-  memset(fileNameBuffer, 0, fileNameLen + 1);
-  memcpy(fileNameBuffer, textMsg->textData, fileNameLen);
+    hcom_dir_mgmt_free_file_info(dnldShared);
 
-  // Open the file
-  fd = open(fileNameBuffer, O_RDONLY);
-  if (fd == -1)
-  {
-    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
-    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
-          "File '%s' cannot be opened", fileNameBuffer);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-            thisFile, __LINE__);
-
-    syslog(LOG_ERR, "%s@%d-open '%s', errno:%d\n",
-                thisFile, __LINE__, fileNameBuffer, errno);
-    free(fileNameBuffer);
     return;
   }
 
   // Seek to beginning
-  off_t offset = lseek(fd, 0, SEEK_SET);
+  off_t offset = lseek(dnldShared->dnldFileFD, 0, SEEK_SET);
   if (offset == (off_t)-1)
   {
-    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, 
-          "The file '%s' encountered a lseek error", fileNameBuffer);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-            thisFile, __LINE__);
+      "The file '%s' encountered a lseek error, errno:%d",
+      dnldShared->dnldFullPathName, errno);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+      hostMsg, thisFile, __LINE__);
 
     syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
-              thisFile, __LINE__, fileNameBuffer, errno);
-    
-    close(fd);
-    free(fileNameBuffer);
+      thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
+
+    // This message will tell CLI to stop processing
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
+              thisFile, __LINE__);
+
+    hcom_dir_mgmt_free_file_info(dnldShared);
     return;
   }
 
+  // Return a large portion of the file's data
   uint8_t *returnBinData = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
   if(returnBinData == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+      "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s", hostMsg);
 
-    close(fd);
-    free(fileNameBuffer);
+    // This message will notify the user of the error
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
+      0, hostMsg, thisFile, __LINE__);
+
+    // This message will tell CLI to stop processing
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
+              thisFile, __LINE__);
+
+    hcom_dir_mgmt_free_file_info(dnldShared);
     return;
   }
   
@@ -180,38 +192,37 @@ void hcom_file_upld_proc_initial_bytes_in_file(const HcomProtoHdrMsg_t *hdrMsg,
   do
   {
     // Read first part of file
-    nbytes = read(fd, returnBinData + bufOff, HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN - bufOff);
+    nbytes = read(dnldShared->dnldFileFD, returnBinData + bufOff,
+      (HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN) - bufOff);
     if (nbytes < 0)
     {
       syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
-                thisFile, __LINE__, fileNameBuffer, errno); usleep(20 * 1000);
+        thisFile, __LINE__,
+        dnldShared->dnldFullPathName, errno); usleep(20 * 1000);
 
-      close(fd);
-      free(fileNameBuffer);
+      snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+        "The file '%s' encountered a read error, errno:%d",
+        dnldShared->dnldFullPathName, errno);
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+        hostMsg, thisFile, __LINE__);
+
+      // This message will tell CLI to stop processing
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
+                thisFile, __LINE__);
+
       free(returnBinData);
+      hcom_dir_mgmt_free_file_info(dnldShared);
       return;
     }
 
     bufOff += nbytes;
   } while (nbytes > 0);
 
-  // Done with file
-  ret = close(fd);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-close %s, errno:%d\n",
-             thisFile, __LINE__, fileNameBuffer, errno);
-
-    free(fileNameBuffer);
-    free(returnBinData);
-    return;
-  }
-
   // Send the data to host
   hcom_host_send_binary_data_msg(HCOM_HOST_REQUEST_SEND_INITIAL_FILE_BYTES,
-            0, returnBinData, bufOff, __FILE__, __LINE__);
+    0, returnBinData, bufOff, __FILE__, __LINE__);
 
-  free(fileNameBuffer);
+  hcom_dir_mgmt_free_file_info(dnldShared);
   free(returnBinData);
 }
 
