@@ -853,10 +853,9 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                                 saved_status_code = packet->status_code;
                                 response->function = packet->function;
                                 response->interface = packet->interface;
-                                response->message_id = packet->message_id;
                             }
-                            espcp_delete_message_and_payload(packet);
                             message_id = packet->message_id;
+                            espcp_delete_message_and_payload(packet);
                             result = espcp_status_codes_completed_ok;
                         }
                         else
