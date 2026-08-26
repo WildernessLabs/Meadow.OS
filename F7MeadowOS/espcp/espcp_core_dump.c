@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <inttypes.h>
 #include <stdio.h>
 
 #include <sys/stat.h>
@@ -72,6 +73,16 @@
   * @brief Root file name for the ESP32 core dump.
   */
  #define ESP_CORE_DUMP_ROOT_FILE_NAME "esp-coredump-"
+
+ /**
+  * @brief Largest core dump this driver will attempt to retrieve.
+  *
+  *  Covers the largest coredump partition used by the ESP32 firmware
+  *  (0x80000 in partitions-develop.csv; production uses 0x10000).  Acts as a
+  *  backstop for the partition size reported by the ESP32, which is itself
+  *  untrusted wire data.
+  */
+ #define ESPCP_MAXIMUM_CORE_DUMP_SIZE (512 * 1024)
 
 
 /****************************************************************************
@@ -161,6 +172,36 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
 }
 
 /****************************************************************************
+ * Name: espcp_delete_core_dump_fragment_response
+ *
+ * Description:
+ *  Delete the heap storage associated with a core dump fragment response.
+ *
+ *  The fragment response owns a second allocation for the fragment data, so
+ *  both have to be released.  The memory associated with the pointer will be
+ *  invalid on exit.
+ *
+ * Input Parameters:
+ *  fragment_response - pointer to the fragment response, may be NULL.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static void espcp_delete_core_dump_fragment_response(espcp_core_dump_fragment_response_t *fragment_response)
+{
+    if (fragment_response != NULL)
+    {
+        free(fragment_response->data);
+        fragment_response->data = NULL;
+        free(fragment_response);
+    }
+}
+
+/****************************************************************************
  * Name: espcp_get_core_dump_from_esp32
  *
  * Description:
@@ -191,7 +232,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
     uint32_t encoded_fragment_request_size = espcp_encoded_core_dump_fragment_request_buffer_size(&fragment_request);
     while (offset < size)
     {
-        MEADOW_TRACE_INFORMATION("Requesting core dump fragment at offset %d\n", offset);
+        MEADOW_TRACE_INFORMATION("Requesting core dump fragment at offset %" PRIu32 "\n", offset);
         uint8_t *encoded_fragment_request = (uint8_t *) malloc(encoded_fragment_request_size);
         if (encoded_fragment_request == NULL)
         {
@@ -213,15 +254,30 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
                 return(NULL);
             }
             espcp_core_dump_fragment_response_t *fragment_response = espcp_extract_core_dump_fragment_response(message->payload);
+            espcp_delete_message_and_payload(message);
             if (fragment_response == NULL)
             {
-                espcp_delete_message_and_payload(message);
                 free(core_dump);
                 return(NULL);
             }
-            MEADOW_TRACE_INFORMATION("Received core dump fragment of size %d\n", fragment_response->size);
+            MEADOW_TRACE_INFORMATION("Received core dump fragment of size %" PRIu32 "\n", fragment_response->size);
+            //
+            //  The fragment size comes from the ESP32 and is checked
+            //  against the space left in the buffer.  A zero length
+            //  fragment is rejected as well, it would leave the loop
+            //  with no forward progress.
+            //
+            uint32_t remaining = size - offset;
+            if ((fragment_response->size == 0) || (fragment_response->size > remaining))
+            {
+                MEADOW_TRACE_ERROR("Bad fragment %" PRIu32 " at offset %" PRIu32 " (%" PRIu32 " left)\n", fragment_response->size, offset, remaining);
+                espcp_delete_core_dump_fragment_response(fragment_response);
+                free(core_dump);
+                return(NULL);
+            }
             memcpy(core_dump + offset, fragment_response->data, fragment_response->size);
-            espcp_delete_message_and_payload(message);
+            offset += fragment_response->size;
+            espcp_delete_core_dump_fragment_response(fragment_response);
         }
         else
         {
@@ -229,7 +285,6 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
             free(core_dump);
             return(NULL);
         }
-        offset += fragment_request.size;
     }
 
     return(core_dump);
@@ -265,7 +320,19 @@ int espcp_generate_core_dump_file(char *version)
         free(information);
         return(-1);
     }
-    MEADOW_TRACE_INFORMATION("Core dump size %d\n", information->core_dump_size);
+    MEADOW_TRACE_INFORMATION("Core dump size %" PRIu32 "\n", information->core_dump_size);
+    //
+    //  Both sizes are supplied by the ESP32, so the core dump size is
+    //  checked against the partition it is meant to live in and against
+    //  a fixed ceiling before it is used to drive an allocation and a
+    //  request loop.
+    //
+    if ((information->core_dump_size == 0) || (information->core_dump_size > information->partition_size) || (information->core_dump_size > ESPCP_MAXIMUM_CORE_DUMP_SIZE))
+    {
+        MEADOW_TRACE_ERROR("Size mismatch core dump: %" PRIu32 ", partition: %" PRIu32 "\n", information->core_dump_size, information->partition_size);
+        free(information);
+        return(-1);
+    }
     uint8_t *core_dump = espcp_get_core_dump_from_esp32(information->core_dump_size);
     if (core_dump != NULL)
     {
