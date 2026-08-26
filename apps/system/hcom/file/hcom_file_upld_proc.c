@@ -55,7 +55,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 #define HCOM_FILE_READ_F7_DEBUG_TIMING        (0)
-#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 0)
 #include "../hcom_common.h"
 #endif
 
@@ -76,7 +76,7 @@ enum hcom_upload_data_packet_action
 static char *thisFile = __FILE__;
 static int _uploadAction;
 
-#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 0)
 static uint64_t _dbgSendingBeganAt;
 static uint64_t _dbgSendingEndedAt;
 #endif
@@ -167,9 +167,14 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
     return;
   }
 
-  // Return a large portion of the file's data
-  uint8_t *returnBinData = malloc(HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN);
-  if(returnBinData == NULL)
+  // Return a large portion of the file's data. Payload capacity is derived
+  // from HcomProtoBinMsg_t itself (packet max size minus this struct's own
+  // header offset) so the allocation, read length, and send length can
+  // never disagree or exceed a single packet.
+  size_t maxBinPayload = HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE - HCOM_PROTOCOL_BIN_DATA_OFFSET;
+
+  HcomProtoBinMsg_t *binMsg = malloc(HCOM_PROTOCOL_BIN_DATA_OFFSET + maxBinPayload);
+  if(binMsg == NULL)
   {
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
       "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
@@ -186,14 +191,14 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
     hcom_dir_mgmt_free_file_info(dnldShared);
     return;
   }
-  
+
   ssize_t nbytes;
-  int bufOff = 0;
+  size_t bufOff = 0;
   do
   {
     // Read first part of file
-    nbytes = read(dnldShared->dnldFileFD, returnBinData + bufOff,
-      (HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN) - bufOff);
+    nbytes = read(dnldShared->dnldFileFD, binMsg->binData + bufOff,
+      maxBinPayload - bufOff);
     if (nbytes < 0)
     {
       syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
@@ -210,7 +215,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
                 thisFile, __LINE__);
 
-      free(returnBinData);
+      free(binMsg);
       hcom_dir_mgmt_free_file_info(dnldShared);
       return;
     }
@@ -218,12 +223,18 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
     bufOff += nbytes;
   } while (nbytes > 0);
 
-  // Send the data to host
-  hcom_host_send_binary_data_msg(HCOM_HOST_REQUEST_SEND_INITIAL_FILE_BYTES,
-    0, returnBinData, bufOff, __FILE__, __LINE__);
+  // Send the data to host. Uses the long-wait budget since this can carry a
+  // full packet's worth of file data.
+  binMsg->stdHeader.rqstType = HCOM_HOST_REQUEST_SEND_INITIAL_FILE_BYTES;
+  binMsg->stdHeader.seqNumber = HCOM_PROTOCOL_COMMAND_TYPE_SEQUENCE_NUMBER;
+  binMsg->stdHeader.userData = 0;
+  binMsg->stdHeader.extraData = 0;
 
+  hcom_host_send_std_data_msg_long_wait((HcomProtoHdrMsg_t *)binMsg,
+    HCOM_PROTOCOL_BIN_DATA_OFFSET + bufOff, thisFile, __LINE__);
+
+  free(binMsg);
   hcom_dir_mgmt_free_file_info(dnldShared);
-  free(returnBinData);
 }
 
 //=============================================================
@@ -273,7 +284,7 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
     __FILE__, __LINE__, dnldShared->dnldFullPathName);
 #endif
 
-#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 0)
   _dbgSendingBeganAt = hcom_utils_get_current_time64_ns();
 #endif
 
@@ -550,7 +561,7 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
   // ---------------------------------------------------------------
   // Send the end message to CLI
 
-#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 1)
+#if (HCOM_FILE_READ_F7_DEBUG_TIMING > 0)
   _dbgSendingEndedAt = hcom_utils_get_current_time64_ns();
   syslog(LOG_INFO, "%s@%d-File read, took %llu mSec\n",
     __FILE__, __LINE__,
