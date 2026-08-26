@@ -41,10 +41,7 @@
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os.h>
 
-// TODO: Check if these includes are necessary
-
 #include <mqueue.h>
-#include <string.h>
 
 #include "espcp_utils.h"
 
@@ -52,15 +49,10 @@
  * Private Data
  ****************************************************************************/
 
-// Written once from the hcom startup thread (hcom_startup_manager.c's
-// hcom_main(), via espcp_open_esp32_events_message_queue()) and read later
-// from pppd_thread (hcom_pppd.c). Safe without explicit synchronization only
-// because hcom_main() opens this queue before calling hcom_pppd_start(),
-// which creates pppd_thread -- pthread_create()'s happens-before guarantee
-// covers this write. If that startup ordering ever changes, this needs
-// explicit synchronization.
-static mqd_t espcp_events_queue_handler = (mqd_t) - 1;
-// static char *thisFile = __FILE__;
+ /**
+  * @brief Handle for the event queue.
+  */
+static mqd_t espcp_events_queue_handle = (mqd_t) - 1;
 
 /****************************************************************************
  * Private Functions
@@ -101,33 +93,31 @@ void espcp_encode_uint32(uint32_t value, uint8_t *buffer)
  *
  * Returned Value:
  *   Returns EXIT_SUCCESS on success or EXIT_FAILURE on failure.
+ * 
+ * Assumptions:
+ *   Only called once at startup and before any thread attempts to read
+ *   or write to the queue.
  *
  ****************************************************************************/
 int espcp_open_esp32_events_message_queue()
 {
-  // The check-then-open below is not synchronized: safe only because this
-  // function has a single caller today (hcom_startup_manager.c, once at
-  // startup, before any other hcom thread is created). If a second
-  // concurrent caller is ever added, this check-then-act needs a lock to
-  // avoid a double-open racing on espcp_events_queue_handler.
-  if (espcp_events_queue_handler == (mqd_t) - 1)
-  {
-    struct mq_attr queue_attributes = { 0 };
-
-    queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
-    queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE;
-    queue_attributes.mq_flags = 0;
-
-    // Open the message queue
-    espcp_events_queue_handler = mq_open(ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, 0666, &queue_attributes);
-    if (espcp_events_queue_handler == (mqd_t) - 1)
+    if (espcp_events_queue_handle == (mqd_t) - 1)
     {
-        syslog(LOG_ERR, "Failed to open queue for sending event messages\n");
-        return EXIT_FAILURE;
-    }
-  }
+        struct mq_attr queue_attributes = { 0 };
 
-  return EXIT_SUCCESS;
+        queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
+        queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE;
+        queue_attributes.mq_flags = 0;
+
+        espcp_events_queue_handle = mq_open(ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, 0666, &queue_attributes);
+        if (espcp_events_queue_handle == (mqd_t) - 1)
+        {
+            syslog(LOG_ERR, "Failed to open queue for sending event messages\n");
+            return EXIT_FAILURE;
+        }
+    }
+
+    return EXIT_SUCCESS;
 }
 
 /****************************************************************************
@@ -178,14 +168,14 @@ int espcp_queue_event_messages(uint8_t *message)
 {
     int result;
 
-    if (espcp_events_queue_handler == (mqd_t) - 1)
+    if (espcp_events_queue_handle == (mqd_t) - 1)
     {
         syslog(LOG_ERR, "ESP32 events message queue is not opened\n");
         return -1;
     }
 
     // Send the message to the queue
-    result = mq_send(espcp_events_queue_handler, (const char *)message, 13, ESPCP_DEFAULT_MESSAGE_PRIORITY);
+    result = mq_send(espcp_events_queue_handle, (const char *) message, 13, ESPCP_DEFAULT_MESSAGE_PRIORITY);
     if (result == -1)
     {
         syslog(LOG_ERR, "Failed to queue the event message\n");
