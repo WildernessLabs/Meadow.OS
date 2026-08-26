@@ -57,10 +57,18 @@
 
 #define HCOM_XMIT_MAX_BLOCKED_TIME_DELAY  (50 * 1000) // 50 millisec
 
-// Have seen blocked count as high as 390 (19.5 seconds)
-// The long count is for reading files from Meadow and sending to CLI
-#define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_LONG 600    // .05 * 600 = 30.0 seconds
-#define HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL 30   // .05 * 30 = 1.5 seconds
+// Have seen a stall last as long as 19.5 seconds in the wild (this statement
+// was made with an early version of CLI and may no longer be the case).
+// The long budget is for reading files from Meadow and sending to CLI.
+#define HCOM_XMIT_MAX_BLOCKED_MSEC_LONG   30000   // 30.0 seconds
+#define HCOM_XMIT_MAX_BLOCKED_MSEC_NORMAL  1500   // 1.5 seconds
+
+// Floor on real elapsed time per blocked retry. Confirmed on hardware that
+// poll(POLLOUT) can report the fd writable (or time out) in under 1ms total
+// across 30 retries, with write() still failing every time. This floor
+// guarantees each blocked retry costs real time, so the elapsed-time budget
+// below actually elapses.
+#define HCOM_XMIT_MIN_RETRY_DELAY_USEC (2 * 1000)     // 2 millisec
 
 #define HCOM_COMMS_MAX_XMIT_OPEN_ATTEMPTS 4
 
@@ -113,9 +121,9 @@ static void hcom_host_send_build_msg_header(uint16_t requestType, uint16_t extra
 static int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
           uint32_t userData, uint8_t *msgBuffer, size_t msgLength);
 static int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
-          size_t totalLength, uint32_t waitCount);
+          size_t totalLength, uint32_t maxBlockedMs);
 static int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
-  size_t xmitLength, uint32_t waitCount);
+  size_t xmitLength, uint32_t maxBlockedMs);
 static bool hcom_host_send_is_host_xmit_blocked(void);
 static int hcom_host_send_low_power_notification(bool lpStart);
 static int hcom_host_send_open_transmit_connection(void);
@@ -258,7 +266,7 @@ int hcom_host_send_std_header_msg(HcomProtoHdrMsg_t *hdrMsg,
 
   // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen,
-    HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL);
+    HCOM_XMIT_MAX_BLOCKED_MSEC_NORMAL);
   if (ret < 0 && ret != -EAGAIN)
       syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
@@ -287,7 +295,7 @@ int hcom_host_send_std_data_msg_long_wait(HcomProtoHdrMsg_t *hdrMsg,
 
   // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen,
-    HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_LONG);
+    HCOM_XMIT_MAX_BLOCKED_MSEC_LONG);
   if (ret < 0 && ret != -EAGAIN)
       syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
@@ -316,7 +324,7 @@ int hcom_host_send_std_data_msg(HcomProtoHdrMsg_t *hdrMsg,
 
   // EAGAIN is not an error it means the message was blocked
   ret = hcom_host_send_standard_msg(hdrMsg, totalMsgLen,
-    HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL);
+    HCOM_XMIT_MAX_BLOCKED_MSEC_NORMAL);
   if (ret < 0 && ret != -EAGAIN)
       syslog_if_safe(LOG_ERR, "%s@%d-Host xmit err:%d\n",
         sourceFileName, sourceLineNumber, ret);
@@ -331,7 +339,7 @@ int hcom_host_send_std_data_msg(HcomProtoHdrMsg_t *hdrMsg,
 // eliminates the need for hcom_host_send_buffered_msg().
 // The messy work eliminated by structures by the caller.
 int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
-          size_t totalLength, uint32_t waitCount)
+          size_t totalLength, uint32_t maxBlockedMs)
 {
   int ret;
 
@@ -349,7 +357,7 @@ int hcom_host_send_standard_msg(HcomProtoHdrMsg_t *hdrMsg,
 
   // Send the message which may include data
   ret = hcom_host_send_transmit_to_host((uint8_t *)hdrMsg, totalLength,
-    waitCount);
+    maxBlockedMs);
 
   sem_post(&_hostXmitSem);
   return ret;
@@ -493,7 +501,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
 
     // Send the header and the body
     ret = hcom_host_send_transmit_to_host(_bufferedMsgXmitBuff, fullMsgLen,
-      HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL);
+      HCOM_XMIT_MAX_BLOCKED_MSEC_NORMAL);
   }
   else
   {
@@ -505,7 +513,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
 
     // Send the message without a body, just the header
     ret = hcom_host_send_transmit_to_host(headerOnlyMsg, fullMsgLen,
-      HCOM_XMIT_MAX_BLOCKED_COUNT_VALUE_NORMAL);
+      HCOM_XMIT_MAX_BLOCKED_MSEC_NORMAL);
   }
 
   sem_post(&_hostXmitSem);
@@ -610,11 +618,20 @@ bool hcom_host_send_is_host_xmit_blocked()
 //===================================================================================
 // All messages sent to host use this function.
 int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
-  size_t xmitLength, uint32_t waitCount)
+  size_t xmitLength, uint32_t maxBlockedMs)
 {
   size_t remainingBytes;
   size_t toWriteOffset = 0;
   size_t blockedCount = 0;
+  struct timespec blockedSince;   // When the CURRENT contiguous stall began
+  bool isBlocked = false;         // Tracks whether blockedSince is live
+
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+  // Diagnostic only -- lets the success path below report how much real
+  // time a send that had to retry actually cost.
+  struct timespec sendStart;
+  clock_gettime(CLOCK_MONOTONIC, &sendStart);
+#endif
 
   // Only a thread, from the same task group as hcom, can send messages
   if(getpid() != _hcomTaskGroup)
@@ -677,10 +694,11 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
     {
       remainingBytes -= writeRet;   // Note: if remainingBytes == 0 will exit while loop
       toWriteOffset += writeRet;
+      isBlocked = false;   // Made real progress -- any future stall starts fresh
 
 #if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
-      syslog_if_safe(LOG_MDIAG, "-->%s@%d-Write success:%d, wrote:%d\n",
-          thisFile, __LINE__, remainingBytes, writeRet);
+      syslog_if_safe(LOG_MDIAG, "-->%s@%d-Write success, wrote:%d, remaining:%d\n",
+          thisFile, __LINE__, writeRet, remainingBytes);
 #endif
       continue;   // Loop and check if remainingBytes > 0, else done
     }
@@ -700,33 +718,54 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
     {
       // In this case either host PC was disconnected from Meadow, CLI stopped running
       // or Meadow.CLI just can't keep up. We'll give it a chance to catchup.
-      if(blockedCount < waitCount)
+      struct timespec blockedNow;
+      clock_gettime(CLOCK_MONOTONIC, &blockedNow);
+
+      if(!isBlocked)
       {
-        blockedCount++;
+        // Start the clock on this contiguous stall
+        blockedSince = blockedNow;
+        isBlocked = true;
+      }
+
+      long blockedMs = (blockedNow.tv_sec - blockedSince.tv_sec) * 1000L +
+                (blockedNow.tv_nsec - blockedSince.tv_nsec) / 1000000L;
+
+      if(blockedMs < (long)maxBlockedMs)
+      {
+        blockedCount++;   // Kept for diagnostics only; no longer gates the retry
 
         // Wait for the fd to become writable instead of unconditionally
         // sleeping the full interval -- reacts immediately once the driver
         // has room again. A poll() timeout (nothing became writable in time)
-        // is treated the same as the old plain sleep: just another blocked
-        // iteration, so the overall worst-case wait budget
-        // (waitCount * HCOM_XMIT_MAX_BLOCKED_TIME_DELAY) is unchanged. Any
-        // poll() outcome -- ready, timeout, or error -- just falls through to
-        // retry the write above, which is the real source of truth.
+        // is treated the same as a plain sleep: just another blocked
+        // iteration. Any poll() outcome -- ready, timeout, or error -- just
+        // falls through to retry the write above, which is the real source
+        // of truth.
         struct pollfd pfd = { .fd = _comms_write_fd, .events = POLLOUT };
         poll(&pfd, 1, HCOM_XMIT_MAX_BLOCKED_TIME_DELAY / 1000);
+
+        // Floor: confirmed on hardware that poll() can report ready (or
+        // time out) in a fraction of a millisecond while write() keeps
+        // failing, which would otherwise let blockedMs above spin through
+        // its whole budget without any real time elapsing -- i.e. the CLI
+        // never actually gets a chance to catch up. This guarantees every
+        // blocked retry costs real wall-clock time toward that budget.
+        usleep(HCOM_XMIT_MIN_RETRY_DELAY_USEC);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
         hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
 #endif
-
         continue;
       }
 
-      // Exhausted retry count
+      // Exhausted the real-time budget
       _lastXmitBlocked = true; // Seems host isn't connected or CLI not running
 
-      syslog_if_safe(LOG_ERR, "%s@%d-Error:Exceeded blockedCount:%d (wrote %d of %d bytes)\n",
-                thisFile, __LINE__, blockedCount, remainingBytes, encodedLength);
+      syslog_if_safe(LOG_ERR,
+        "%s@%d-Error:Exceeded blockedCount:%d, stalled %ld ms (wrote %d of %d bytes)\n",
+                thisFile, __LINE__, blockedCount, blockedMs,
+                encodedLength - remainingBytes, encodedLength);
 
       // EAGAIN exit. No reason to close fd. The caller can sort out what to do
       // with partial data sent.
@@ -771,6 +810,23 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
 
   // Success exit
   _lastXmitBlocked = false;
+
+#if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
+  if(blockedCount > 0)
+  {
+    // Only fires when this send actually had to retry -- diagnostic for
+    // seeing how much real time a recovered (not given-up) send costs.
+    struct timespec sendEnd;
+    clock_gettime(CLOCK_MONOTONIC, &sendEnd);
+    long totalMs = (sendEnd.tv_sec - sendStart.tv_sec) * 1000L +
+              (sendEnd.tv_nsec - sendStart.tv_nsec) / 1000000L;
+
+    syslog_if_safe(LOG_NOTICE,
+      "%s@%d-Send recovered after blockedCount:%d, total send time %ld ms\n",
+      thisFile, __LINE__, blockedCount, totalMs);
+  }
+#endif
+
   return OK;
 }
 

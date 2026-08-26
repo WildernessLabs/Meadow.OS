@@ -710,12 +710,14 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       }
     }
   }
-  // File Read initialization?
-  else if(requestType == HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT)
+  // File Read initialization or initial?
+  else if(requestType == HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT ||
+          requestType == HCOM_MDOW_REQUEST_GET_INITIAL_FILE_BYTES)
   {
 #if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(2, "===> %s@%d-Upload. Calling hcom_host_process_init_hcom_dnld_share() false,true\n",
-              thisFile, __LINE__);
+    syslog(LOG_MTEST,
+      "===> %s@%d-Upload. Calling hcom_host_process_init_hcom_dnld_share() false,true\n",
+      thisFile, __LINE__);
     usleep(20 * 1000);
 #endif
     

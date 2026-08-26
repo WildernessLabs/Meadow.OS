@@ -370,7 +370,7 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
     case HCOM_MDOW_REQUEST_GET_INITIAL_FILE_BYTES:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
          "", thisFile, __LINE__);
-      hcom_file_upld_proc_initial_bytes_in_file(hdrMsg, packetSize);
+      hcom_file_upld_proc_initial_bytes_in_file(dnldShared);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
          "", thisFile, __LINE__);
       break;
