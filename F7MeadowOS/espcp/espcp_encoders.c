@@ -255,7 +255,7 @@ int32_t espcp_extract_int32(uint8_t *buffer)
 }
 
 /****************************************************************************
- * Name: espcp_extract_message
+ * Name: espcp_encode_int32
  *
  * Description:
  *  Take the first four bytes from the buffer and encode them as a 32 bit
@@ -292,36 +292,42 @@ void espcp_encode_int32(int32_t value, uint8_t *buffer)
  *  buffer - Pointer to the block of memory containing the string.
  *
  * Returned Value:
- *  Pointer to the extracted string.
+ *  Pointer to the extracted string, or NULL if the buffer is NULL, the
+ *  string is empty, no terminator was found within
+ *  ESPCP_MAXIMUM_STRING_LENGTH bytes, or memory could not be allocated.
  *
  * Assumptions/Limitations:
- *  None
+ *  The buffer holds at least ESPCP_MAXIMUM_STRING_LENGTH bytes, or a
+ *  terminator inside that many bytes.  The caller does not say how large the
+ *  buffer is, so this function cannot do better than a protocol level bound
+ *  (see C5 in the code review).
  *
  ****************************************************************************/
 char *espcp_extract_string(uint8_t *buffer)
 {
-    uint32_t length = 0;
-    uint8_t *ptr = buffer;
-
-    while (*ptr != 0)
+    if (buffer == NULL)
     {
-        ptr++;
+        return(NULL);
+    }
+
+    uint32_t length = 0;
+    while ((length < ESPCP_MAXIMUM_STRING_LENGTH) && (buffer[length] != 0))
+    {
         length++;
     }
 
-    if (length == 0)
+    if ((length == 0) || (buffer[length] != 0))
     {
-        ptr = NULL;
+        return(NULL);
     }
-    else
+
+    char *result = (char *) malloc(length + 1);
+    if (result != NULL)
     {
-        ptr = (uint8_t *) malloc(length + 1);
-        if (ptr != NULL)
-        {
-            strcpy((char *) ptr, (char *) buffer);
-        }
+        memcpy(result, buffer, length);
+        result[length] = '\0';
     }
-    return((char *) ptr);
+    return(result);
 }
 
 /****************************************************************************
