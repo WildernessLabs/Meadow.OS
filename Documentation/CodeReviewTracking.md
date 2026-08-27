@@ -104,11 +104,11 @@ review a file some other way, update its row manually to keep this list accurate
 | B43 | apps/system/hcom/mono/hcom_mono_control.c | Reviewed | 2026-08-24 | #325 |  |
 | B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Reviewed | 2026-08-24 | #326 |  |
 | B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Reviewed | 2026-08-24 | #327 |  |
-| B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Not started |  |  |  |
-| B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Not started |  |  |  |
-| B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Not started |  |  |  |
-| B49 | apps/system/hcom/ota/hcom_ota.c | Not started |  |  |  |
-| B50 | apps/system/hcom/ota/hcom_ota.h | Not started |  |  |  |
+| B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Reviewed | 2026-08-27 | #336 |  |
+| B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Reviewed | 2026-08-27 | #338 |  |
+| B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Reviewed | 2026-08-27 |  | No confirmed findings |
+| B49 | apps/system/hcom/ota/hcom_ota.c | Reviewed | 2026-08-27 | #337 |  |
+| B50 | apps/system/hcom/ota/hcom_ota.h | Reviewed | 2026-08-27 |  | No confirmed findings |
 | B51 | apps/system/hcom/tests/bbreg_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=bbr; no obvious hazard |
 | B52 | apps/system/hcom/tests/cell_tests.c | Reviewed | 2026-08-25 |  | Orphaned -- absent from HCOM_SRCS in apps/system/hcom/Makefile, not compiled, no .o produced, no dispatch entry in developer_tests.c |
 | B53 | apps/system/hcom/tests/developer_tests.c | Reviewed | 2026-08-25 |  | CLI dispatcher for all tests/ files (not a test body itself); no obvious hazard in the dispatch logic |
