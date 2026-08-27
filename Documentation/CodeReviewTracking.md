@@ -127,38 +127,38 @@ review a file some other way, update its row manually to keep this list accurate
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
-| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  |  |
-| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  |  |
-| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  |  |
-| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  |  |
-| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  |  |
-| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  |  |
-| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  |  |
-| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  |  |
-| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  |  |
-| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  |  |
-| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  |  |
-| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  |  |
-| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  |  |
-| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  |  |
-| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  |  |
-| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  |  |
-| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  |  |
-| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  |  |
-| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  |  |
-| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  |  |
-| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  |  |
-| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  |  |
-| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  |  |
-| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  |  |
-| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  |  |
-| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  |  |
-| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  |  |
-| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  |  |
-| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  |  |
-| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  |  |
-| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  |  |
-| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  |  |
+| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  | Owner: Mark |
+| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  | Owner: Mark |
+| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  | Owner: Mark |
+| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  | Owner: Mark |
+| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  | Owner: Mark |
+| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  | Owner: Mark |
+| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  | Owner: Mark |
+| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  | Owner: Mark |
+| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  | Owner: Mark |
+| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  | Owner: Mark |
+| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  | Owner: Mark |
+| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  | Owner: Mark |
+| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  | Owner: Mark |
+| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  | Owner: Mark |
+| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  | Owner: Mark |
+| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  | Owner: Mark |
+| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  | Owner: Mark |
+| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  | Owner: Mark |
+| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  | Owner: Mark |
+| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  | Owner: Mark |
+| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  | Owner: Mark |
+| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  | Owner: Mark |
+| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  | Owner: Mark |
+| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  | Owner: Mark |
+| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  | Owner: Mark |
+| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  | Owner: Mark |
+| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  | Owner: Mark |
+| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  | Owner: Mark |
+| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  | Owner: Mark |
+| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  | Owner: Mark |
+| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  | Owner: Mark |
+| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  | Owner: Mark |
 | C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Not started |  |  |  |
 | C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Not started |  |  |  |
 | C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Not started |  |  |  |
