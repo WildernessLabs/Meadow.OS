@@ -159,12 +159,12 @@ review a file some other way, update its row manually to keep this list accurate
 | C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  | Owner: Mark |
 | C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  | Owner: Mark |
 | C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  | Owner: Mark |
-| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Not started |  |  |  |
-| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Not started |  |  |  |
-| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Not started |  |  |  |
-| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Not started |  |  |  |
-| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Not started |  |  |  |
-| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Not started |  |  |  |
+| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Reviewed | 2026-08-27 | #339 |  |
+| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Reviewed | 2026-08-27 | #341 |  |
+| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Reviewed | 2026-08-27 |  | No confirmed findings |
+| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Reviewed | 2026-08-27 |  | ISR register-race and oversized busy-wait timeout findings tracked in #340 (meadow_ethnet_utils.c) |
+| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Reviewed | 2026-08-27 |  | No confirmed findings |
+| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Reviewed | 2026-08-27 | #340 |  |
 | C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Not started |  |  |  |
 | C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Not started |  |  |  |
 | C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Not started |  |  |  |
