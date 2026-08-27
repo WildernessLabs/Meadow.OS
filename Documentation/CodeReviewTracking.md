@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-24.
+**Review timeline:** started 2026-08-13, last updated 2026-08-27.
 
 ## Scope
 
@@ -59,10 +59,10 @@ review a file some other way, update its row manually to keep this list accurate
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
-| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Not started |  |  |  |
-| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Not started |  |  |  |
-| B03 | apps/system/hcom/cell/hcom_pppd.c | Not started |  |  |  |
-| B04 | apps/system/hcom/cell/hcom_pppd.h | Not started |  |  |  |
+| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Reviewed | 2026-08-27 | #333 |  |
+| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Reviewed | 2026-08-27 | #334 |  |
+| B03 | apps/system/hcom/cell/hcom_pppd.c | Reviewed | 2026-08-27 | #332 | Confirmed not in HCOM_SRCS; wouldn't compile if re-enabled as-is |
+| B04 | apps/system/hcom/cell/hcom_pppd.h | Reviewed | 2026-08-27 |  | No confirmed findings |
 | B05 | apps/system/hcom/comms/hcom_host_encode.c | Reviewed | 2026-08-13 | #300 |  |
 | B06 | apps/system/hcom/comms/hcom_host_enq_deq.c | Reviewed | 2026-08-13 | #301 |  |
 | B07 | apps/system/hcom/comms/hcom_host_preprocess.c | Reviewed | 2026-08-13 | #302 | F001 also tracked in #301 (hcom_host_enq_deq.c) |
@@ -94,34 +94,34 @@ review a file some other way, update its row manually to keep this list accurate
 | B33 | apps/system/hcom/file/hcom_file_misc.c | Reviewed | 2026-08-19 | #313 |  |
 | B34 | apps/system/hcom/file/hcom_file_upld_proc.c | Reviewed | 2026-08-19 | #314 |  |
 | B35 | apps/system/hcom/file/hcom_file_write_stm32f7.c | Reviewed | 2026-08-19 | #315 |  |
-| B36 | apps/system/hcom/hcom_common.h | Not started |  |  |  |
-| B37 | apps/system/hcom/hcom_startup_manager.c | Not started |  |  |  |
+| B36 | apps/system/hcom/hcom_common.h | Reviewed | 2026-08-27 | #330 |  |
+| B37 | apps/system/hcom/hcom_startup_manager.c | Reviewed | 2026-08-27 | #331 | Shutdown-path unlocked fd close finding tracked in #303 (hcom_host_receive.c) |
 | B38 | apps/system/hcom/misc/espcp_utils.c | Reviewed | 2026-08-24 | #318 | 2/3 findings addressed (comments, `fixIssue318EspcpUtils`); blocking-`mq_send` finding split out to #324 |
 | B39 | apps/system/hcom/misc/espcp_utils.h | Reviewed | 2026-08-24 |  | No confirmed findings |
 | B40 | apps/system/hcom/misc/hcom_common_utils.c | Reviewed | 2026-08-24 | #319 |  |
 | B41 | apps/system/hcom/misc/meadow_cirbuf.c | Reviewed | 2026-08-24 | #320 |  |
 | B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | No confirmed findings (stub file, no function bodies) |
-| B43 | apps/system/hcom/mono/hcom_mono_control.c | Not started |  |  |  |
-| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Not started |  |  |  |
-| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Not started |  |  |  |
+| B43 | apps/system/hcom/mono/hcom_mono_control.c | Reviewed | 2026-08-24 | #325 |  |
+| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Reviewed | 2026-08-24 | #326 |  |
+| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Reviewed | 2026-08-24 | #327 |  |
 | B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Not started |  |  |  |
 | B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Not started |  |  |  |
 | B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Not started |  |  |  |
 | B49 | apps/system/hcom/ota/hcom_ota.c | Not started |  |  |  |
 | B50 | apps/system/hcom/ota/hcom_ota.h | Not started |  |  |  |
-| B51 | apps/system/hcom/tests/bbreg_tests.c | Not started |  |  |  |
-| B52 | apps/system/hcom/tests/cell_tests.c | Not started |  |  |  |
-| B53 | apps/system/hcom/tests/developer_tests.c | Not started |  |  |  |
-| B54 | apps/system/hcom/tests/diag_ethernet_chat_test.c | Not started |  |  |  |
-| B55 | apps/system/hcom/tests/diag_gpio_tests.c | Not started |  |  |  |
-| B56 | apps/system/hcom/tests/diag_misc_tests.c | Not started |  |  |  |
-| B57 | apps/system/hcom/tests/hcom_dir_mgmt_tests.c | Not started |  |  |  |
-| B58 | apps/system/hcom/tests/meadow_bbd_tests.c | Not started |  |  |  |
-| B59 | apps/system/hcom/tests/meadow_os_userspace_tests.c | Not started |  |  |  |
-| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Not started |  |  |  |
-| B61 | apps/system/hcom/tests/sotest_tests.c | Not started |  |  |  |
-| B62 | apps/system/hcom/tests/tensorflow_tests.c | Not started |  |  |  |
-| B63 | apps/system/hcom/tests/vs_debug_tests.c | Not started |  |  |  |
+| B51 | apps/system/hcom/tests/bbreg_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=bbr; no obvious hazard |
+| B52 | apps/system/hcom/tests/cell_tests.c | Reviewed | 2026-08-25 |  | Orphaned -- absent from HCOM_SRCS in apps/system/hcom/Makefile, not compiled, no .o produced, no dispatch entry in developer_tests.c |
+| B53 | apps/system/hcom/tests/developer_tests.c | Reviewed | 2026-08-25 |  | CLI dispatcher for all tests/ files (not a test body itself); no obvious hazard in the dispatch logic |
+| B54 | apps/system/hcom/tests/diag_ethernet_chat_test.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=chat; no obvious hazard |
+| B55 | apps/system/hcom/tests/diag_gpio_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=gpio; no obvious hazard |
+| B56 | apps/system/hcom/tests/diag_misc_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=overload/snprintf/usrwork; toggles debug-only GPIO pins for oscilloscope timing, no obvious hazard |
+| B57 | apps/system/hcom/tests/hcom_dir_mgmt_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=dirmgmt; unbounded strcat into a fixed currentPath buffer during deep directory traversal (minor, not escalated -- needs an unusually deep tree, developer-run manual test) |
+| B58 | apps/system/hcom/tests/meadow_bbd_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=bbr (Meadow OS test group); save/restore-wrapped, but a crash or power loss mid-test would leave live BBR flags in test-garbage state (inherent to the destructive-test design, not a coding bug -- not escalated) |
+| B59 | apps/system/hcom/tests/meadow_os_userspace_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=os; includes a deliberate board-reset test (expected/intentional), no obvious hazard |
+| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=sqlite; no obvious hazard |
+| B61 | apps/system/hcom/tests/sotest_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=sotest; dlopen/dlsym exercise is the deliberate point of the test, no obvious hazard |
+| B62 | apps/system/hcom/tests/tensorflow_tests.c | Reviewed | 2026-08-25 |  | Developer-only, requires -u=tensorflow; no obvious hazard |
+| B63 | apps/system/hcom/tests/vs_debug_tests.c | Reviewed | 2026-08-25 |  | Only reachable via mono_main_proxy(), itself dead code pending Mono build support (see hcom_mono_module_dead_code_status); no obvious hazard |
 
 ## F7MeadowOS/ (169 files, libyaml/libcyaml excluded)
 
