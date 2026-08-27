@@ -206,7 +206,17 @@ Load all Python extensions in one shot from GDB:
 
 ## Linting
 
-NuttX enforces a strict coding style. Check all files you touch before committing:
+**Do not run checkpatch on Wilderness Labs code, and do not reformat it to satisfy
+checkpatch.** `F7MeadowOS/`, `bootloader/` and `esp32/` use their own house style -
+4-space indent, `//` comments, `return(value)`, allman braces, lines longer than 80
+columns - which NuttX's `checkpatch.sh` rejects wholesale. Running it there produces
+thousands of errors that are all style disagreements rather than defects, and
+"fixing" them would make new code inconsistent with the file around it.
+
+Match the style of the file you are editing. That is the only requirement.
+
+For changes inside `nuttx/` itself, upstream style does apply, and checkpatch is the
+way to check it:
 
 ```bash
 # Check recent commits (run from nuttx/)
@@ -216,7 +226,10 @@ NuttX enforces a strict coding style. Check all files you touch before committin
 ./tools/checkpatch.sh -f path/to/file.c
 ```
 
-Lint failures are caught by CI (`lint/*` step). Fix pre-existing issues in every file you touch.
+Note that this workspace's CI (`.github/workflows/build-system.yml`) runs `build.sh`
+only - there is no lint step, so nothing enforces checkpatch on any tree here. The
+`nxstyle` hook in `nuttx/.pre-commit-config.yaml` belongs to the upstream NuttX
+subtree and is not picked up from the workspace root.
 
 ## Character Encoding
 
