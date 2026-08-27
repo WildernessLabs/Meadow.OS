@@ -77,14 +77,14 @@ review a file some other way, update its row manually to keep this list accurate
 | B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 |  | No confirmed findings |
 | B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | Reviewed | 2026-08-17 | #307 |  |
 | B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | Reviewed | 2026-08-17 | #308 |  |
-| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  |  |
-| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  |  |
-| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  |  |
-| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  |  |
-| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  |  |
-| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  |  |
-| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  |  |
-| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  |  |
+| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  | Owner: Mark |
+| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  | Owner: Mark |
+| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Owner: Mark |
+| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Owner: Mark |
+| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  | Owner: Mark |
+| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  | Owner: Mark |
+| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  | Owner: Mark |
+| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  | Owner: Mark |
 | B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 |  | No confirmed findings |
 | B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | Reviewed | 2026-08-19 | #309 |  |
 | B29 | apps/system/hcom/file/hcom_file_dnld_esp32.c | Reviewed | 2026-08-19 | #310 |  |
