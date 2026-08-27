@@ -129,6 +129,11 @@
 #define ESPCP_MAXIMUM_PAYLOAD_SIZE          8192
 
 /**
+ *  @brief Longest string (excluding the NULL terminator) that can be extracted from a payload.
+ */
+#define ESPCP_MAXIMUM_STRING_LENGTH         (ESPCP_MAXIMUM_PAYLOAD_SIZE - 4 - 1)
+
+/**
  *  @brief Message ID used to indicate an invalid (or unknown) message ID.
  */
 #define ESPCP_MESSAGE_INVALID_MESSAGE_ID    0xffffffff

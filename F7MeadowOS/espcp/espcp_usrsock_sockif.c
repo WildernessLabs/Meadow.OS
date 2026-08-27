@@ -70,8 +70,6 @@
 #include <meadow/meadow_debug_helpers.h>
 #include "../misc/meadow_watchdog.h"
 
-#if defined(CONFIG_NET) && defined(CONFIG_NET_USRSOCK)
-
 /****************************************************************************
  * Definitions.
  ****************************************************************************/
@@ -1621,12 +1619,26 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     }
     else
     {
-        MEADOW_TRACE_INFORMATION("poll setup - Setting up poll request ID %08x, socket %d\n", request->setup_message_id, espcp_sockfd(psock));
+        //
+        //  Note that "request" has already been freed at this point, so the
+        //  message ID has to come from the message rather than from the request.
+        //
+        MEADOW_TRACE_INFORMATION("poll setup - Setting up poll request ID %08x, socket %d\n", message->message_id, espcp_sockfd(psock));
         pr->fd = fds;
         pr->request_id = message->message_id;
         espcp_lock_poll_requests_queue();
-        gl_add_item_to_head(_espcp_poll_requests, pr);
+        bool added = gl_add_item_to_head(_espcp_poll_requests, pr);
         espcp_unlock_poll_requests_queue();
+
+        if (!added)
+        {
+            //
+            //  There is nowhere to record the request, so the response from the ESP32 could never be routed back to this descriptor.
+            //
+            free(pr);
+            espcp_delete_message_and_payload(message);
+            return (-ENOMEM);
+        }
 
         if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
         {
@@ -1646,9 +1658,6 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
         }
         else
         {
-            espcp_lock_poll_requests_queue();
-            gl_remove_item(_espcp_poll_requests, message->message_id, espcp_usrsock_poll_request_compare_message_id);
-            espcp_unlock_poll_requests_queue();
             if (message->status_code == espcp_status_codes_esp_out_of_memory)
             {
                 result = -ENOMEM;
@@ -1657,6 +1666,17 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
             {
                 result = -EFAULT;
             }
+        }
+
+        if (result != 0)
+        {
+            //
+            //  The poll on the ESP32 failed so remove the request from the list.
+            //
+            espcp_lock_poll_requests_queue();
+            void *removed = gl_remove_item(_espcp_poll_requests, message->message_id, espcp_usrsock_poll_request_compare_message_id);
+            espcp_unlock_poll_requests_queue();
+            free(removed);
         }
     }
 
@@ -1689,32 +1709,41 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
 
     int result = 0;
 
+    //
+    //  Remove the item from the list rather than just looking it up.  This method is going to dispose of the poll request
+    //  whatever happens, and removing it here gives this method exclusive ownership of the item for the rest of the call.
+    //
+    //  gl_remove_item() frees the list node but not the data so pr has to be freed here.
+    //
     espcp_lock_poll_requests_queue();
-    espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_find_item(_espcp_poll_requests, 
+    espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
                                                 (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
     espcp_unlock_poll_requests_queue();
 
     if (pr == NULL)
     {
         //
-        //  The request could have been removed from the queue by the interrupt handler so we treat this as a success.
+        //  The request has already been removed from the queue by the interrupt handler so we treat this as a success.
         //
         MEADOW_TRACE_INFORMATION("Poll teardown - Cannot find poll request for socket %d\n", espcp_sockfd(psock));
     }
     else
     {
+        //
+        //  The request ID is the only thing needed from the list item, so take a copy and release the item now.
+        //  Every exit path below is then free of any clean up obligation.
+        //
+        uint32_t request_id = pr->request_id;
+        free(pr);
+
         espcp_poll_request_t *request = (espcp_poll_request_t *) zalloc(sizeof(espcp_poll_request_t));
         if (request == NULL)
         {
-            espcp_lock_poll_requests_queue();
-            gl_remove_item(_espcp_poll_requests, (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
-            free(pr);
-            espcp_unlock_poll_requests_queue();
             return (-ENOMEM);
         }
         request->socket_handle = espcp_sockfd(psock);
         request->setup = 0;
-        request->setup_message_id = pr->request_id;
+        request->setup_message_id = request_id;
 
         int payload_length = espcp_poll_request_buffer_size(request);
         uint8_t *payload = (uint8_t *) zalloc(payload_length);
@@ -1752,11 +1781,6 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
                 free(response);
             }
         }
-
-        espcp_lock_poll_requests_queue();
-        gl_remove_item(_espcp_poll_requests, (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
-        free(pr);
-        espcp_unlock_poll_requests_queue();
         espcp_delete_message_and_payload(message);
     }
 
@@ -1779,36 +1803,42 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
 void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
 {
     MEADOW_TRACE_INFORMATION("poll interrupt handler - enter\n");
-    espcp_interrupt_poll_response_t *ipr = espcp_extract_interrupt_poll_response(message->payload);
+
     uint32_t request_id = 0;
+
+    if (message->payload == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d Poll interrupt event has no payload.\n", _thisFile, __LINE__);
+        espcp_delete_message_and_payload(message);
+        return;
+    }
+
+    espcp_interrupt_poll_response_t *ipr = espcp_extract_interrupt_poll_response(message->payload);
     if (ipr != NULL)
     {
         request_id = ipr->setup_message_id;
+
+        //
+        //  Remove the request from the list so taking ownership.  This preents teardown or a second interrupt from trying use this item.
+        //
         espcp_lock_poll_requests_queue();
-        espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_find_item(_espcp_poll_requests, 
+        espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
                                                     request_id, espcp_usrsock_poll_request_compare_message_id);
+        espcp_unlock_poll_requests_queue();
         if (pr != NULL)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08x\n", request_id);
             pr->fd->revents = ipr->returned_events;
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%hd revents=%hd\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
-
-            // The following comment looks to have been added by Alexis. I
-            // added 'MEADOW.OS REBASE' to the comment so it could be looked
-            // at by someone who knew what the comment means and not forgotten.
-            //
-            //MEADOW.OS REBASE: Install poll callback!!!
-
-            pr->fd->cb(pr->fd);
-            free(pr);
         }
         else
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - Cannot find request %08x\n", request_id);
         }
-        espcp_unlock_poll_requests_queue();
+        free(pr);
         free(ipr);
     }
+
     espcp_delete_message_and_payload(message);
     MEADOW_TRACE_INFORMATION("poll interrupt handler - exit, request ID: %08x\n", request_id);
 }
@@ -3415,5 +3445,3 @@ void espcp_usrsock_not_implemented(const char *source)
 {
     syslog(LOG_CRIT, "%s@%d %s not implemented.\n", _thisFile, __LINE__, source);
 }
-
-#endif /* CONFIG_NET && CONFIG_NET_USRSOCK */

@@ -255,7 +255,7 @@ int32_t espcp_extract_int32(uint8_t *buffer)
 }
 
 /****************************************************************************
- * Name: espcp_extract_message
+ * Name: espcp_encode_int32
  *
  * Description:
  *  Take the first four bytes from the buffer and encode them as a 32 bit
@@ -292,36 +292,42 @@ void espcp_encode_int32(int32_t value, uint8_t *buffer)
  *  buffer - Pointer to the block of memory containing the string.
  *
  * Returned Value:
- *  Pointer to the extracted string.
+ *  Pointer to the extracted string, or NULL if the buffer is NULL, the
+ *  string is empty, no terminator was found within
+ *  ESPCP_MAXIMUM_STRING_LENGTH bytes, or memory could not be allocated.
  *
  * Assumptions/Limitations:
- *  None
+ *  The buffer holds at least ESPCP_MAXIMUM_STRING_LENGTH bytes, or a
+ *  terminator inside that many bytes.  The caller does not say how large the
+ *  buffer is, so this function cannot do better than a protocol level bound
+ *  (see C5 in the code review).
  *
  ****************************************************************************/
 char *espcp_extract_string(uint8_t *buffer)
 {
-    uint32_t length = 0;
-    uint8_t *ptr = buffer;
-
-    while (*ptr != 0)
+    if (buffer == NULL)
     {
-        ptr++;
+        return(NULL);
+    }
+
+    uint32_t length = 0;
+    while ((length < ESPCP_MAXIMUM_STRING_LENGTH) && (buffer[length] != 0))
+    {
         length++;
     }
 
-    if (length == 0)
+    if ((length == 0) || (buffer[length] != 0))
     {
-        ptr = NULL;
+        return(NULL);
     }
-    else
+
+    char *result = (char *) malloc(length + 1);
+    if (result != NULL)
     {
-        ptr = (uint8_t *) malloc(length + 1);
-        if (ptr != NULL)
-        {
-            strcpy((char *) ptr, (char *) buffer);
-        }
+        memcpy(result, buffer, length);
+        result[length] = '\0';
     }
-    return((char *) ptr);
+    return(result);
 }
 
 /****************************************************************************
@@ -507,45 +513,67 @@ uint32_t espcp_progressive_crc32(uint32_t currentChecksum, uint8_t byte)
  ****************************************************************************/
 espcp_message_t *espcp_extract_message(uint8_t *buffer, uint32_t bufferLength, bool headerOnly)
 {
+    if (buffer == NULL)
+    {
+        return(NULL);
+    }
+    if (bufferLength < (ESPCP_MESSAGE_HEADER_SIZE + ESPCP_SPI_MESSAGE_OVERHEAD))
+    {
+        return(NULL);
+    }
+
     uint32_t crc = espcp_extract_uint32(buffer + ESPCP_MESSAGE_CRC_OFFSET);
     espcp_encode_uint32(0, buffer + ESPCP_MESSAGE_CRC_OFFSET);
 
-    espcp_message_t *message = NULL;
-    if (crc == espcp_crc32(buffer, bufferLength - 4))   // See note in comment above.
+    if (crc != espcp_crc32(buffer, bufferLength - ESPCP_SPI_MESSAGE_OVERHEAD))   // See note in comment above.
     {
-        message = (espcp_message_t *) malloc(sizeof(espcp_message_t));
-
-        memset((void *) message, 0, sizeof(espcp_message_t));
-        buffer += 5;                                        // Skip the protocol and CRC.
-        message->packet_offset = espcp_extract_uint16(buffer);
-        buffer += 2;
-        message->packet_length = espcp_extract_uint16(buffer);
-        buffer += 2;
-        message->message_type = *buffer;
-        buffer++;
-        message->interface = *buffer;
-        buffer++;
-        message->function = espcp_extract_uint32(buffer);
-        buffer += 4;
-        message->status_code = espcp_extract_uint32(buffer);
-        buffer += 4;
-        message->message_id = espcp_extract_uint32(buffer);
-        buffer += 4;
-        message->payload_length = espcp_extract_uint32(buffer);
-        buffer += 4;
-        if (!headerOnly && (message->packet_length > 0))
-        {
-            message->payload = (uint8_t *) malloc(message->packet_length);
-            memcpy(message->payload, buffer, message->packet_length);
-        }
-        else
-        {
-            message->payload = NULL;
-        }
+        return(NULL);
     }
-    else
+
+    espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
+    if (message == NULL)
     {
-        message = NULL;
+        return(NULL);
+    }
+
+    buffer += 5;                                        // Skip the protocol and CRC.
+    message->packet_offset = espcp_extract_uint16(buffer);
+    buffer += 2;
+    message->packet_length = espcp_extract_uint16(buffer);
+    buffer += 2;
+    message->message_type = *buffer;
+    buffer++;
+    message->interface = *buffer;
+    buffer++;
+    message->function = espcp_extract_uint32(buffer);
+    buffer += 4;
+    message->status_code = espcp_extract_uint32(buffer);
+    buffer += 4;
+    message->message_id = espcp_extract_uint32(buffer);
+    buffer += 4;
+    message->payload_length = espcp_extract_uint32(buffer);
+    buffer += 4;
+    if (message->packet_length > ESPCP_MAXIMUM_PACKET_SIZE)
+    {
+        free(message);
+        return(NULL);
+    }
+    message->payload = NULL;
+    if (!headerOnly && (message->packet_length > 0))
+    {
+        uint32_t payload_capacity = bufferLength - ESPCP_MESSAGE_HEADER_SIZE - ESPCP_SPI_MESSAGE_OVERHEAD;
+        if (message->packet_length > payload_capacity)
+        {
+            free(message);
+            return(NULL);
+        }
+        message->payload = (uint8_t *) malloc(message->packet_length);
+        if (message->payload == NULL)
+        {
+            free(message);
+            return(NULL);
+        }
+        memcpy(message->payload, buffer, message->packet_length);
     }
     return(message);
 }
