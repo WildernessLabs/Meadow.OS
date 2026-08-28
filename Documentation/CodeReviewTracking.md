@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-27.
+**Review timeline:** started 2026-08-13, last updated 2026-08-28.
 
 ## Scope
 
@@ -170,8 +170,8 @@ review a file some other way, update its row manually to keep this list accurate
 | C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
 | C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
 | C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 |  |
-| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Not started |  |  |  |
-| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Not started |  |  |  |
+| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Reviewed | 2026-08-28 | #345 |  |
+| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 |  |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
 | C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started |  |  |  |
 | C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started |  |  |  |
