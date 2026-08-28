@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-27.
+**Review timeline:** started 2026-08-13, last updated 2026-08-28.
 
 ## Scope
 
@@ -127,51 +127,51 @@ review a file some other way, update its row manually to keep this list accurate
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
-| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  |  |
-| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  |  |
-| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  |  |
-| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  |  |
-| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  |  |
-| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  |  |
-| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  |  |
-| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  |  |
-| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  |  |
-| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  |  |
-| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  |  |
-| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  |  |
-| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  |  |
-| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  |  |
-| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  |  |
-| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  |  |
-| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  |  |
-| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  |  |
-| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  |  |
-| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  |  |
-| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  |  |
-| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  |  |
-| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  |  |
-| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  |  |
-| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  |  |
-| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  |  |
-| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  |  |
-| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  |  |
-| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  |  |
-| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  |  |
-| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  |  |
-| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  |  |
-| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Not started |  |  |  |
-| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Not started |  |  |  |
-| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Not started |  |  |  |
-| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Not started |  |  |  |
-| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Not started |  |  |  |
-| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Not started |  |  |  |
-| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Not started |  |  |  |
-| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Not started |  |  |  |
-| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Not started |  |  |  |
-| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Not started |  |  |  |
-| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Not started |  |  |  |
-| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Not started |  |  |  |
-| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Not started |  |  |  |
+| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  | Owner: Mark |
+| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  | Owner: Mark |
+| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  | Owner: Mark |
+| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  | Owner: Mark |
+| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  | Owner: Mark |
+| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  | Owner: Mark |
+| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  | Owner: Mark |
+| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  | Owner: Mark |
+| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  | Owner: Mark |
+| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  | Owner: Mark |
+| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  | Owner: Mark |
+| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  | Owner: Mark |
+| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  | Owner: Mark |
+| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  | Owner: Mark |
+| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  | Owner: Mark |
+| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  | Owner: Mark |
+| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  | Owner: Mark |
+| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  | Owner: Mark |
+| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  | Owner: Mark |
+| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  | Owner: Mark |
+| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  | Owner: Mark |
+| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  | Owner: Mark |
+| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  | Owner: Mark |
+| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  | Owner: Mark |
+| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  | Owner: Mark |
+| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  | Owner: Mark |
+| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  | Owner: Mark |
+| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  | Owner: Mark |
+| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  | Owner: Mark |
+| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  | Owner: Mark |
+| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  | Owner: Mark |
+| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  | Owner: Mark |
+| C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | Reviewed | 2026-08-27 | #339 |  |
+| C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | Reviewed | 2026-08-27 | #341 |  |
+| C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Reviewed | 2026-08-27 |  | No confirmed findings |
+| C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Reviewed | 2026-08-27 |  | ISR register-race and oversized busy-wait timeout findings tracked in #340 (meadow_ethnet_utils.c) |
+| C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Reviewed | 2026-08-27 |  | No confirmed findings |
+| C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Reviewed | 2026-08-27 | #340 |  |
+| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Reviewed | 2026-08-27 | #343 |  |
+| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Reviewed | 2026-08-27 | #342 |  |
+| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
+| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
+| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 |  |
+| C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Reviewed | 2026-08-28 | #345 |  |
+| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 |  |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
 | C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started |  |  |  |
 | C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started |  |  |  |
@@ -180,7 +180,7 @@ review a file some other way, update its row manually to keep this list accurate
 | C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started |  |  |  |
 | C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started |  |  |  |
 | C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started |  |  |  |
-| C055 | F7MeadowOS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c | Not started |  |  |  |
+| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Not started |  |  | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending, review still pending |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started |  |  |  |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started |  |  |  |
 | C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Not started |  |  |  |
