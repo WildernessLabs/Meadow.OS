@@ -165,11 +165,11 @@ review a file some other way, update its row manually to keep this list accurate
 | C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Reviewed | 2026-08-27 |  | ISR register-race and oversized busy-wait timeout findings tracked in #340 (meadow_ethnet_utils.c) |
 | C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Reviewed | 2026-08-27 |  | No confirmed findings |
 | C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | Reviewed | 2026-08-27 | #340 |  |
-| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Not started |  |  |  |
-| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Not started |  |  |  |
-| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Not started |  |  |  |
-| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Not started |  |  |  |
-| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Not started |  |  |  |
+| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Reviewed | 2026-08-27 | #343 |  |
+| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | Reviewed | 2026-08-27 | #342 |  |
+| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
+| C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
+| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 |  |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Not started |  |  |  |
 | C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Not started |  |  |  |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
