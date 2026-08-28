@@ -172,14 +172,14 @@ review a file some other way, update its row manually to keep this list accurate
 | C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 |  |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Reviewed | 2026-08-28 | #345 |  |
 | C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 |  |
-| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
-| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started |  |  |  |
-| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started |  |  |  |
-| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Not started |  |  |  |
-| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Not started |  |  |  |
-| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started |  |  |  |
-| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started |  |  |  |
-| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started |  |  |  |
+| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Reviewed | 2026-08-28 | #350 |  |
+| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Reviewed | 2026-08-28 | #349 | Unmatched config_lock unlock in espcp_event_handlers.c flagged to Mark, not filed here |
+| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Reviewed | 2026-08-28 | #351 |  |
+| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Not started |  |  | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending, review still pending |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started |  |  |  |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started |  |  |  |
