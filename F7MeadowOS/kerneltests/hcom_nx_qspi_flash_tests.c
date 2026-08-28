@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c
+ * Meadow.OS/kerneltests/hcom_nx_qspi_flash_tests.c
  * 
  *   Copyright (C) 2019 - 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -55,7 +55,7 @@
  * Included Files
  ****************************************************************************/
 
-#include "../hcom_nx_common.h"
+#include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_upd_shared.h>
 
 #include <nuttx/arch.h>

@@ -180,7 +180,7 @@ review a file some other way, update its row manually to keep this list accurate
 | C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started |  |  |  |
 | C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started |  |  |  |
 | C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started |  |  |  |
-| C055 | F7MeadowOS/hcom_nx/tests/hcom_nx_qspi_flash_tests.c | Not started |  |  |  |
+| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Not started |  |  | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending, review still pending |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started |  |  |  |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started |  |  |  |
 | C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Not started |  |  |  |
