@@ -214,22 +214,6 @@ A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use t
 | `pwrmgmt_time_support.c` | Time conversion utilities for wake-up calculations |
 | `pwrmgmt_misc.c` | Miscellaneous helpers |
 
-## `timers` - Timer Capture and Measurement
-
-Source: `F7MeadowOS/timers`
-
-Hardware timer-capture subsystem: PWM generation, pulse-width and frequency/duty-cycle
-measurement, RC servo decoding, CPU load measurement, and LSI clock frequency measurement.
-
-| File | Purpose |
-|------|---------|
-| `timer_manager.c` | Central timer-capture peripheral allocation and management |
-| `pulse_width.c` | Pulse-width capture |
-| `freq_duty.c` | Frequency/duty-cycle measurement |
-| `rc_servo_decode.c` | RC servo PWM signal decoding |
-| `cpu_measure.c` | CPU load measurement |
-| `lsi_clk_freq_measure.c` | Measures the LSI RC oscillator frequency (used by `pwrmgmt`) |
-
 ## `specialized` - Specialized Peripheral Drivers
 
 Source: `F7MeadowOS/specialized`
@@ -273,8 +257,7 @@ Optional in-kernel test suite compiled into the kernel build when specific kconf
 Source: `F7MeadowOS/misc`
 
 Shared utilities used across kernel modules including structured logging (`meadow_logging`) and
-specialised hardware access routines. (Timer helpers live in the separate `timers/` module above,
-not here.)
+specialised hardware access routines.
 
 ## `include` - Public Meadow API Headers
 

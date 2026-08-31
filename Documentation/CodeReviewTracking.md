@@ -4,18 +4,20 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-28.
+**Review timeline:** started 2026-08-13, last updated 2026-08-29.
 
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
   not vendored NuttX core.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
-- `F7MeadowOS/` (168 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
+- `F7MeadowOS/` (161 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
   `Claude.md` marks "do not modify", so reviewing them for fixes here isn't useful.
+  `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
+  never wired into any build config, no remaining project value.
 
-Total in scope: 254 files.
+Total in scope: 247 files.
 
 ## Status legend
 
@@ -23,6 +25,9 @@ Total in scope: 254 files.
 - **Reviewed** - passed through `review-files`; see the `Issue` column for that file's
   findings (a `code-review`-labeled GitHub Issue), or `Notes` for a quick remark (e.g.
   "No confirmed findings" or a cross-reference to another file's issue).
+- **Reviewed (light)** - same as **Reviewed**, but done at reduced depth (fewer parallel
+  reviewer agents, no per-finding confidence-scoring swarm) because the file is
+  rarely-exercised test/diagnostic code rather than a production path.
 
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
@@ -172,126 +177,119 @@ review a file some other way, update its row manually to keep this list accurate
 | C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 |  |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | Reviewed | 2026-08-28 | #345 |  |
 | C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 |  |
-| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Not started |  |  |  |
-| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Not started |  |  |  |
-| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Not started |  |  |  |
-| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Not started |  |  |  |
-| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Not started |  |  |  |
-| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Not started |  |  |  |
-| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Not started |  |  |  |
-| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Not started |  |  |  |
+| C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | Reviewed | 2026-08-28 | #350 |  |
+| C049 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.c | Reviewed | 2026-08-28 | #349 | Unmatched config_lock unlock in espcp_event_handlers.c flagged to Mark, not filed here |
+| C050 | F7MeadowOS/hcom_nx/hcom_nx_config_manager.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Reviewed | 2026-08-28 | #351 |  |
+| C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Not started |  |  | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending, review still pending |
-| C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Not started |  |  |  |
-| C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Not started |  |  |  |
-| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Not started |  |  |  |
-| C059 | F7MeadowOS/include/meadow/hcom_dnld_shared.h | Not started |  |  |  |
-| C060 | F7MeadowOS/include/meadow/hcom_misc_diag.h | Not started |  |  |  |
-| C061 | F7MeadowOS/include/meadow/hcom_nuttx_shared.h | Not started |  |  |  |
-| C062 | F7MeadowOS/include/meadow/hcom_protocol.h | Not started |  |  |  |
-| C063 | F7MeadowOS/include/meadow/hcom_shared_common.h | Not started |  |  |  |
-| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | Not started |  |  |  |
-| C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Not started |  |  |  |
-| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Not started |  |  |  |
-| C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Not started |  |  |  |
-| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | Not started |  |  |  |
-| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Not started |  |  |  |
-| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Not started |  |  |  |
-| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Not started |  |  |  |
-| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Not started |  |  |  |
-| C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Not started |  |  |  |
-| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Not started |  |  |  |
-| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | Not started |  |  |  |
-| C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Not started |  |  |  |
-| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | Not started |  |  |  |
-| C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Not started |  |  |  |
-| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Not started |  |  |  |
-| C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Not started |  |  |  |
-| C081 | F7MeadowOS/include/meadow/meadow_os.h | Not started |  |  |  |
-| C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Not started |  |  |  |
-| C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Not started |  |  |  |
-| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Not started |  |  |  |
-| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | Not started |  |  |  |
-| C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | Not started |  |  |  |
-| C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | Not started |  |  |  |
-| C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Not started |  |  |  |
-| C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Not started |  |  |  |
+| C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C059 | F7MeadowOS/include/meadow/hcom_dnld_shared.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C060 | F7MeadowOS/include/meadow/hcom_misc_diag.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C061 | F7MeadowOS/include/meadow/hcom_nuttx_shared.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C062 | F7MeadowOS/include/meadow/hcom_protocol.h | Reviewed | 2026-08-28 | #352 |  |
+| C063 | F7MeadowOS/include/meadow/hcom_shared_common.h | Reviewed | 2026-08-28 | #353 |  |
+| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | Reviewed | 2026-08-28 | #354 | Concurrency findings for this transport's kernel-side implementation tracked in #346 (hcom_traverse_ku_kernel.c) |
+| C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Reviewed | 2026-08-28 |  | mcu_ser_numb_s struct field finding tracked in #393 (meadow-upd.c) |
+| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | Reviewed | 2026-08-28 | #358 |  |
+| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #357 |  |
+| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 |  |
+| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-08-28 | #359 |  |
+| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-08-28 | #355 |  |
+| C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | Reviewed | 2026-08-28 | #361 |  |
+| C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | Reviewed | 2026-08-28 | #360 |  |
+| C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Reviewed | 2026-08-28 | #363 |  |
+| C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C081 | F7MeadowOS/include/meadow/meadow_os.h | Reviewed | 2026-08-28 | #362 |  |
+| C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Reviewed | 2026-08-28 | #367 |  |
+| C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Reviewed | 2026-08-28 | #364 |  |
+| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | Reviewed | 2026-08-28 | #366 |  |
+| C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | Reviewed | 2026-08-28 | #368 |  |
+| C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | Reviewed | 2026-08-28 | #365 |  |
+| C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Not started |  |  |  |
 | C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Not started |  |  |  |
 | C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Not started |  |  |  |
-| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Not started |  |  |  |
-| C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | Not started |  |  |  |
-| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Not started |  |  |  |
-| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Not started |  |  |  |
-| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | Not started |  |  |  |
-| C098 | F7MeadowOS/kerneltests/espcp_tests.c | Not started |  |  |  |
-| C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Not started |  |  |  |
-| C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Not started |  |  |  |
-| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Not started |  |  |  |
-| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Not started |  |  |  |
-| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Not started |  |  |  |
-| C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | Not started |  |  |  |
-| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Not started |  |  |  |
-| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Not started |  |  |  |
-| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Not started |  |  |  |
-| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Not started |  |  |  |
+| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Reviewed | 2026-08-28 | #369 |  |
+| C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | Reviewed (light) | 2026-08-28 | #370 |  |
+| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #371 |  |
+| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Byte-identical stub header, findings tracked in #371 (bg77_tests.c) |
+| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | Reviewed (light) | 2026-08-28 | #373 |  |
+| C098 | F7MeadowOS/kerneltests/espcp_tests.c | Reviewed (light) | 2026-08-28 | #374 |  |
+| C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Reviewed (light) | 2026-08-28 | #372 |  |
+| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | Reviewed (light) | 2026-08-28 | #377 |  |
+| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Reviewed (light) | 2026-08-28 | #384 |  |
+| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Reviewed (light) | 2026-08-28 | #376 |  |
+| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Reviewed (light) | 2026-08-28 | #375 |  |
+| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
 | C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | Reviewed | 2026-08-17 | #316 | Found incidentally during F011 hardware verification, not from a full batch review of this file. |
-| C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Not started |  |  |  |
-| C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Not started |  |  |  |
-| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Not started |  |  |  |
-| C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Not started |  |  |  |
-| C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | Not started |  |  |  |
-| C115 | F7MeadowOS/kerneltests/network_tests.c | Not started |  |  |  |
-| C116 | F7MeadowOS/kerneltests/network_tests.h | Not started |  |  |  |
-| C117 | F7MeadowOS/kerneltests/power_management_tests.c | Not started |  |  |  |
-| C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Not started |  |  |  |
-| C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Not started |  |  |  |
-| C120 | F7MeadowOS/kerneltests/timing.h | Not started |  |  |  |
+| C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings (intentional NULL-deref assert test, not a bug) |
+| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Reviewed (light) | 2026-08-28 | #383 |  |
+| C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | Reviewed (light) | 2026-08-28 | #381 |  |
+| C115 | F7MeadowOS/kerneltests/network_tests.c | Reviewed (light) | 2026-08-28 | #378 |  |
+| C116 | F7MeadowOS/kerneltests/network_tests.h | Reviewed (light) | 2026-08-28 | #379 |  |
+| C117 | F7MeadowOS/kerneltests/power_management_tests.c | Reviewed (light) | 2026-08-28 | #380 |  |
+| C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
+| C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Reviewed (light) | 2026-08-28 | #382 |  |
+| C120 | F7MeadowOS/kerneltests/timing.h | Reviewed (light) | 2026-08-28 |  | No confirmed findings (dead file, all code commented out, not included anywhere) |
 | C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Not started |  |  |  |
-| C122 | F7MeadowOS/meadow_os/meadow-gpio.c | Not started |  |  |  |
-| C123 | F7MeadowOS/meadow_os/meadow-upd.c | Not started |  |  |  |
-| C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | Not started |  |  |  |
-| C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | Not started |  |  |  |
-| C126 | F7MeadowOS/meadow_os/meadow_os.c | Not started |  |  |  |
-| C127 | F7MeadowOS/meadow_os/meadow_os_battery_backed_domain.c | Not started |  |  |  |
-| C128 | F7MeadowOS/meadow_os/meadow_os_config.c | Not started |  |  |  |
-| C129 | F7MeadowOS/meadow_os/meadow_os_espcp.c | Not started |  |  |  |
-| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | Not started |  |  |  |
-| C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | Not started |  |  |  |
-| C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Not started |  |  |  |
-| C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | Not started |  |  |  |
-| C134 | F7MeadowOS/misc/meadow_adc.c | Not started |  |  |  |
-| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Not started |  |  |  |
-| C136 | F7MeadowOS/misc/meadow_client_cert.c | Not started |  |  |  |
-| C137 | F7MeadowOS/misc/meadow_logging.c | Not started |  |  |  |
-| C138 | F7MeadowOS/misc/meadow_logging.h | Not started |  |  |  |
-| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | Not started |  |  |  |
-| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Not started |  |  |  |
-| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | Not started |  |  |  |
-| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Not started |  |  |  |
-| C143 | F7MeadowOS/misc/meadow_watchdog.c | Not started |  |  |  |
-| C144 | F7MeadowOS/misc/meadow_watchdog.h | Not started |  |  |  |
-| C145 | F7MeadowOS/misc/parse_iso8601_time.c | Not started |  |  |  |
-| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Not started |  |  |  |
-| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Not started |  |  |  |
-| C148 | F7MeadowOS/ntpclient/ntpv3.h | Not started |  |  |  |
-| C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | Not started |  |  |  |
-| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | Not started |  |  |  |
-| C151 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_timer.c | Not started |  |  |  |
-| C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Not started |  |  |  |
-| C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Not started |  |  |  |
-| C154 | F7MeadowOS/pwrmgmt/pwrmgmt_local.h | Not started |  |  |  |
-| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Not started |  |  |  |
-| C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Not started |  |  |  |
-| C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Not started |  |  |  |
+| C122 | F7MeadowOS/meadow_os/meadow-gpio.c | Reviewed | 2026-08-28 | #387 |  |
+| C123 | F7MeadowOS/meadow_os/meadow-upd.c | Reviewed | 2026-08-28 | #393 |  |
+| C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | Reviewed | 2026-08-28 | #391 |  |
+| C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | Reviewed | 2026-08-28 | #394 |  |
+| C126 | F7MeadowOS/meadow_os/meadow_os.c | Reviewed | 2026-08-28 |  | No confirmed findings |
+| C127 | F7MeadowOS/meadow_os/meadow_os_battery_backed_domain.c | Reviewed | 2026-08-28 | #367 | Stale doc comments on strdup_to/from_sram tracked in #392 (meadow_os_fault_handling.c) |
+| C128 | F7MeadowOS/meadow_os/meadow_os_config.c | Reviewed | 2026-08-28 | #389 |  |
+| C129 | F7MeadowOS/meadow_os/meadow_os_espcp.c | Reviewed | 2026-08-28 | #388 |  |
+| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | Reviewed | 2026-08-28 | #386 |  |
+| C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | Reviewed | 2026-08-28 | #392 |  |
+| C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Reviewed | 2026-08-28 | #390 |  |
+| C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | Reviewed | 2026-08-28 | #385 |  |
+| C134 | F7MeadowOS/misc/meadow_adc.c | Reviewed | 2026-08-29 | #403 |  |
+| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Reviewed | 2026-08-29 | #400 |  |
+| C136 | F7MeadowOS/misc/meadow_client_cert.c | Reviewed | 2026-08-29 | #401 |  |
+| C137 | F7MeadowOS/misc/meadow_logging.c | Reviewed | 2026-08-29 | #399 |  |
+| C138 | F7MeadowOS/misc/meadow_logging.h | Reviewed | 2026-08-29 |  | No confirmed findings |
+| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | Reviewed | 2026-08-29 | #395 |  |
+| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | No confirmed findings |
+| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | Reviewed | 2026-08-29 | #398 |  |
+| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | No confirmed findings |
+| C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 |  |
+| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 |  |
+| C145 | F7MeadowOS/misc/parse_iso8601_time.c | Reviewed | 2026-08-29 | #402 |  |
+| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 |  |
+| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | Findings covered in C146 issue |
+| C148 | F7MeadowOS/ntpclient/ntpv3.h | Reviewed | 2026-08-29 | #404 | Findings covered in C146 issue |
+| C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | Reviewed | 2026-08-29 | #412 |  |
+| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | Reviewed | 2026-08-29 | #406 |  |
+| C151 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_timer.c | Reviewed | 2026-08-29 | #407 |  |
+| C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Reviewed | 2026-08-29 | #409 |  |
+| C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Reviewed | 2026-08-29 | #413 |  |
+| C154 | F7MeadowOS/pwrmgmt/pwrmgmt_local.h | Reviewed | 2026-08-29 | #408 |  |
+| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Reviewed | 2026-08-29 | #405 |  |
+| C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Reviewed | 2026-08-29 | #410 |  |
+| C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Reviewed | 2026-08-29 | #411 |  |
 | C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Not started |  |  |  |
 | C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | Not started |  |  |  |
 | C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Not started |  |  |  |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Not started |  |  |  |
 | C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Not started |  |  |  |
-| C163 | F7MeadowOS/timers/cpu_measure.c | Not started |  |  |  |
-| C164 | F7MeadowOS/timers/freq_duty.c | Not started |  |  |  |
-| C165 | F7MeadowOS/timers/lsi_clk_freq_measure.c | Not started |  |  |  |
-| C166 | F7MeadowOS/timers/meadow_timers.h | Not started |  |  |  |
-| C167 | F7MeadowOS/timers/pulse_width.c | Not started |  |  |  |
-| C168 | F7MeadowOS/timers/rc_servo_decode.c | Not started |  |  |  |
-| C169 | F7MeadowOS/timers/timer_manager.c | Not started |  |  |  |

@@ -129,15 +129,6 @@ $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_switch_rtc_clock.c \
 $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_time_support.c
 endif
 
-ifeq ($(CONFIG_MEADOW_TIMER_SUPPORT),y)
-CSRCS += $(MEADOW_OS_DIR)/timers/timer_manager.c \
-$(MEADOW_OS_DIR)/timers/cpu_measure.c \
-$(MEADOW_OS_DIR)/timers/pulse_width.c \
-$(MEADOW_OS_DIR)/timers/freq_duty.c \
-$(MEADOW_OS_DIR)/timers/rc_servo_decode.c \
-$(MEADOW_OS_DIR)/timers/lsi_clk_freq_measure.c
-endif
-
 CSRCS += $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_start.c \
 $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_utils.c \
 $(MEADOW_OS_DIR)/ethernet/meadow_ethnet_connect.c \

@@ -291,15 +291,6 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 14\n"); usleep(5 * 1000);
 #endif
 
-#if defined (CONFIG_MEADOW_TIMER_SUPPORT)
-  // Initialize meadow timer code
-  ret = meadow_timer_support_setup();
-  if (ret != OK)
-  {
-    syslog(LOG_ERR,"ERROR: Failed to initialize meadow timer: %d\n", ret);
-  }
-#endif
-
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
 #endif
