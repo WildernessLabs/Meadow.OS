@@ -4,18 +4,20 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-28.
+**Review timeline:** started 2026-08-13, last updated 2026-08-29.
 
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
   not vendored NuttX core.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
-- `F7MeadowOS/` (168 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
+- `F7MeadowOS/` (161 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
   `Claude.md` marks "do not modify", so reviewing them for fixes here isn't useful.
+  `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
+  never wired into any build config, no remaining project value.
 
-Total in scope: 254 files.
+Total in scope: 247 files.
 
 ## Status legend
 
@@ -291,10 +293,3 @@ review a file some other way, update its row manually to keep this list accurate
 | C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Not started |  |  |  |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Not started |  |  |  |
 | C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Not started |  |  |  |
-| C163 | F7MeadowOS/timers/cpu_measure.c | Not started |  |  |  |
-| C164 | F7MeadowOS/timers/freq_duty.c | Not started |  |  |  |
-| C165 | F7MeadowOS/timers/lsi_clk_freq_measure.c | Not started |  |  |  |
-| C166 | F7MeadowOS/timers/meadow_timers.h | Not started |  |  |  |
-| C167 | F7MeadowOS/timers/pulse_width.c | Not started |  |  |  |
-| C168 | F7MeadowOS/timers/rc_servo_decode.c | Not started |  |  |  |
-| C169 | F7MeadowOS/timers/timer_manager.c | Not started |  |  |  |
