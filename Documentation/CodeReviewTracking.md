@@ -63,8 +63,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started |  |  |  |
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started |  |  |  |
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started |  |  |  |
-| A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Not started |  |  | In include/, not src/ |
-| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Not started |  |  | In include/, not src/; defines BIOC_ENTER_MEMMAP/BIOC_EXIT_MEMMAP, consumed by stm32_ioctl.c |
+| A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Reviewed | 2026-09-01 | #427 | In include/, not src/; see also #426 (upstream watch item) |
+| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Reviewed | 2026-09-01 | #428 | In include/, not src/ |
 
 ## apps/system/hcom/ (63 files)
 
