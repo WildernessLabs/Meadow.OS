@@ -185,7 +185,7 @@ review a file some other way, update its row manually to keep this list accurate
 | C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | Reviewed | 2026-08-28 | #351 |  |
 | C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Reviewed | 2026-08-28 |  | No confirmed findings |
-| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Not started |  |  | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending, review still pending |
+| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Reviewed (light) | 2026-09-01 | #420 | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Reviewed | 2026-08-28 |  | No confirmed findings |
@@ -220,9 +220,9 @@ review a file some other way, update its row manually to keep this list accurate
 | C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | Reviewed | 2026-08-28 | #365 |  |
 | C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Reviewed | 2026-08-28 |  | No confirmed findings |
 | C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Reviewed | 2026-08-28 |  | No confirmed findings |
-| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Not started |  |  |  |
-| C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Not started |  |  |  |
-| C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Not started |  |  |  |
+| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Reviewed | 2026-09-01 | #421 |  |
+| C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Reviewed | 2026-09-01 | #422 | No confirmed findings |
+| C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Reviewed | 2026-09-01 | #423 |  |
 | C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Reviewed | 2026-08-28 | #369 |  |
 | C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | Reviewed (light) | 2026-08-28 | #370 |  |
 | C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #371 |  |
@@ -251,7 +251,7 @@ review a file some other way, update its row manually to keep this list accurate
 | C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Reviewed (light) | 2026-08-28 |  | No confirmed findings |
 | C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Reviewed (light) | 2026-08-28 | #382 |  |
 | C120 | F7MeadowOS/kerneltests/timing.h | Reviewed (light) | 2026-08-28 |  | No confirmed findings (dead file, all code commented out, not included anywhere) |
-| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Not started |  |  |  |
+| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Reviewed | 2026-09-01 | #424 |  |
 | C122 | F7MeadowOS/meadow_os/meadow-gpio.c | Reviewed | 2026-08-28 | #387 |  |
 | C123 | F7MeadowOS/meadow_os/meadow-upd.c | Reviewed | 2026-08-28 | #393 |  |
 | C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | Reviewed | 2026-08-28 | #391 |  |
