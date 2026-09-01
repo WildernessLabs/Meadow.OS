@@ -18,7 +18,6 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 | `stm32_appinitialize.c` | Launches user-space application after kernel is ready |
 | `stm32_extmem.c` | FMC/SDRAM initialisation |
 | `stm32_spi.c` | SPI bus configuration |
-| `stm32_i2c.c` | I2C bus configuration |
 | `stm32_usb.c` | USB OTG FS initialisation |
 | `stm32_idle.c` | Idle thread hook (power management integration) |
 | `stm32_autoleds.c` | Tri-colour LED (PA1=Green, PA0=Blue, PA2=Red) |

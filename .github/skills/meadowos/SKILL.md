@@ -29,7 +29,7 @@ Rebase/
 ├── nuttx/                  # NuttX RTOS source (upstream + Meadow patches)
 │   └── boards/arm/stm32f7/stm32f777zit6-meadow/
 │       ├── scripts/        # Linker scripts (memory.ld, kernel-space.ld, user-space.ld, flash.ld)
-│       ├── src/            # Board-specific NuttX BSP (stm32_bringup.c, stm32_appinit.c, etc.)
+│       ├── src/            # Board-specific NuttX BSP (stm32_bringup.c, stm32_boot.c, etc.)
 │       └── configs/        # NuttX Kconfig defconfigs
 ├── apps/                   # NuttX user-space applications
 ├── Meadow.OS/              # Meadow-specific OS code (kernel + user)

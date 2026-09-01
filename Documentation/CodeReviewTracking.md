@@ -4,13 +4,16 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-08-29.
+**Review timeline:** started 2026-08-13, last updated 2026-09-01.
 
 ## Scope
 
-- `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
+- `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (19 files) - Meadow's board port,
   not vendored NuttX core. Plus `include/board.h` (1 file, added 2026-09-01) from the
-  same board port's `include/` directory.
+  same board port's `include/` directory. 4 files (`stm32_appinit.c`, `stm32_i2c.c`,
+  `stm32_i2c.h`, `stm32_sdmmc.c`) were removed 2026-09-01 (PR #425): confirmed
+  unreferenced by any build config -- wrong-MCU/wrong-layer copy-paste leftovers or
+  superseded by another file, no remaining project value.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
 - `F7MeadowOS/` (161 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
@@ -18,7 +21,7 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
   `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
   never wired into any build config, no remaining project value.
 
-Total in scope: 248 files.
+Total in scope: 244 files.
 
 ## Status legend
 
@@ -33,13 +36,16 @@ Total in scope: 248 files.
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
 
-## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (24 files)
+## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (20 files)
+
+4 files removed 2026-09-01 (PR #425), rows retired rather than renumbered: A03
+(`stm32_appinit.c`), A11 (`stm32_i2c.c`), A12 (`stm32_i2c.h`), A18 (`stm32_sdmmc.c`) --
+each confirmed unreferenced by any build config; see the Scope section above for why.
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
 | A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Not started |  |  |  |
 | A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Not started |  |  |  |
-| A03 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinit.c | Not started |  |  |  |
 | A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Not started |  |  |  |
 | A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Not started |  |  |  |
 | A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | Not started |  |  |  |
@@ -47,14 +53,11 @@ review a file some other way, update its row manually to keep this list accurate
 | A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Not started |  |  |  |
 | A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | Not started |  |  |  |
 | A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Not started |  |  |  |
-| A11 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.c | Not started |  |  |  |
-| A12 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_i2c.h | Not started |  |  |  |
 | A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Not started |  |  |  |
 | A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Not started |  |  |  |
 | A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Not started |  |  |  |
 | A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Not started |  |  |  |
 | A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Not started |  |  |  |
-| A18 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sdmmc.c | Not started |  |  |  |
 | A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Not started |  |  |  |
 | A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Not started |  |  |  |
 | A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started |  |  |  |
