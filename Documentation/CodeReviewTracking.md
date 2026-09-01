@@ -9,7 +9,8 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (23 files) - Meadow's board port,
-  not vendored NuttX core.
+  not vendored NuttX core. Plus `include/board.h` (1 file, added 2026-09-01) from the
+  same board port's `include/` directory.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
 - `F7MeadowOS/` (161 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
@@ -17,7 +18,7 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
   `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
   never wired into any build config, no remaining project value.
 
-Total in scope: 247 files.
+Total in scope: 248 files.
 
 ## Status legend
 
@@ -32,7 +33,7 @@ Total in scope: 247 files.
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
 
-## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (23 files)
+## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (24 files)
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
@@ -59,6 +60,7 @@ review a file some other way, update its row manually to keep this list accurate
 | A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started |  |  |  |
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started |  |  |  |
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started |  |  |  |
+| A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Not started |  |  | In include/, not src/ |
 
 ## apps/system/hcom/ (63 files)
 
