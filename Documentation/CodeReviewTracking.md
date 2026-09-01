@@ -288,8 +288,8 @@ review a file some other way, update its row manually to keep this list accurate
 | C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Reviewed | 2026-08-29 | #405 |  |
 | C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Reviewed | 2026-08-29 | #410 |  |
 | C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Reviewed | 2026-08-29 | #411 |  |
-| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Not started |  |  |  |
-| C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | Not started |  |  |  |
-| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Not started |  |  |  |
-| C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Not started |  |  |  |
-| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Not started |  |  |  |
+| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Reviewed | 2026-09-01 | #415 |  |
+| C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | Reviewed | 2026-09-01 | #417 |  |
+| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Reviewed | 2026-09-01 | #418 |  |
+| C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | Reviewed | 2026-09-01 | #419 |  |
+| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Reviewed | 2026-09-01 | #416 |  |
