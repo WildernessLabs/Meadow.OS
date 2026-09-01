@@ -46,8 +46,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 |----|------|--------|------|-------|-------|
 | A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Not started |  |  |  |
 | A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Not started |  |  |  |
-| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Not started |  |  |  |
-| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Not started |  |  |  |
+| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Reviewed | 2026-09-01 |  | No confirmed findings; generic NuttX board_app_initialize() boilerplate |
+| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Reviewed | 2026-09-01 | #433 | Derived from stm32f769i-disco |
 | A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | Reviewed | 2026-09-01 | #429 | Derived from stm32f769i-disco (see #426) |
 | A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Reviewed | 2026-09-01 | #430 | Derived from stm32f769i-disco |
 | A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Reviewed | 2026-09-01 |  | No confirmed findings; near-unmodified copy of stm32f769i-disco, dead code (CONFIG_ARCH_BUTTONS unset everywhere) |
@@ -59,10 +59,10 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Not started |  |  |  |
 | A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Not started |  |  |  |
 | A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Reviewed | 2026-09-01 |  | No confirmed findings; near-unmodified copy of stm32f769i-disco aside from CONFIG_STM32F7_* naming (see #426); no in-tree caller of its select/cmddata stubs found |
-| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Not started |  |  |  |
-| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Not started |  |  |  |
+| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Reviewed | 2026-09-01 | #434 | Derived from stm32f769i-disco |
+| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Reviewed | 2026-09-01 | #435 | Derived from nucleo-f767zi (see also #426) |
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started |  |  |  |
-| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started |  |  |  |
+| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Reviewed | 2026-09-01 | #432 | Derived from stm32f769i-disco |
 | A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Reviewed | 2026-09-01 | #427 | In include/, not src/; see also #426 (upstream watch item) |
 | A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Reviewed | 2026-09-01 | #428 | In include/, not src/ |
 
