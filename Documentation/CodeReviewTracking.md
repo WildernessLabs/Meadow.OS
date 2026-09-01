@@ -4,7 +4,8 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-01.
+**Review timeline:** started 2026-08-13, last updated 2026-09-01. Tables A, B, and C are
+all now fully reviewed (excluding Mark's esp32/espcp rows, out of scope).
 
 ## Scope
 
@@ -44,20 +45,20 @@ each confirmed unreferenced by any build config; see the Scope section above for
 
 | ID | File | Status | Date | Issue | Notes |
 |----|------|--------|------|-------|-------|
-| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Not started |  |  |  |
-| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Not started |  |  |  |
+| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Reviewed | 2026-09-01 | #443 | Meadow-specific board variant, no upstream equivalent |
+| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Reviewed | 2026-09-01 | #442 | Meadow-specific board variant, no upstream equivalent |
 | A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Reviewed | 2026-09-01 |  | No confirmed findings; generic NuttX board_app_initialize() boilerplate |
 | A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Reviewed | 2026-09-01 | #433 | Derived from stm32f769i-disco |
 | A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | Reviewed | 2026-09-01 | #429 | Derived from stm32f769i-disco (see #426) |
 | A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Reviewed | 2026-09-01 | #430 | Derived from stm32f769i-disco |
 | A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Reviewed | 2026-09-01 |  | No confirmed findings; near-unmodified copy of stm32f769i-disco, dead code (CONFIG_ARCH_BUTTONS unset everywhere) |
-| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | Not started |  |  |  |
+| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | Reviewed | 2026-09-01 | #440 | Derived from nucleo-f767zi |
 | A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Reviewed | 2026-09-01 | #431 | Derived from stm32f769i-disco (only sibling board with an extmem.c) |
 | A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Reviewed | 2026-09-01 | #436 | Meadow's own carried-forward Legacy code |
-| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Not started |  |  |  |
+| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Reviewed | 2026-09-01 | #441 | Meadow's own restored file (Issue200 precedent) |
 | A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Reviewed | 2026-09-01 | #439 | Meadow's own carried-forward Legacy code |
 | A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Reviewed | 2026-09-01 | #438 | Meadow's own carried-forward Legacy code |
-| A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Not started |  |  |  |
+| A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Reviewed | 2026-09-01 |  | No confirmed findings; Meadow's own restored file |
 | A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Reviewed | 2026-09-01 |  | No confirmed findings; near-unmodified copy of stm32f769i-disco aside from CONFIG_STM32F7_* naming (see #426); no in-tree caller of its select/cmddata stubs found |
 | A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Reviewed | 2026-09-01 | #434 | Derived from stm32f769i-disco |
 | A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Reviewed | 2026-09-01 | #435 | Derived from nucleo-f767zi (see also #426) |
