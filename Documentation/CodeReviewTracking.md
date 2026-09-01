@@ -9,11 +9,11 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (19 files) - Meadow's board port,
-  not vendored NuttX core. Plus `include/board.h` (1 file, added 2026-09-01) from the
-  same board port's `include/` directory. 4 files (`stm32_appinit.c`, `stm32_i2c.c`,
-  `stm32_i2c.h`, `stm32_sdmmc.c`) were removed 2026-09-01 (PR #425): confirmed
-  unreferenced by any build config -- wrong-MCU/wrong-layer copy-paste leftovers or
-  superseded by another file, no remaining project value.
+  not vendored NuttX core. Plus `include/board.h` and `include/boardctl.h` (2 files,
+  added 2026-09-01) from the same board port's `include/` directory. 4 files
+  (`stm32_appinit.c`, `stm32_i2c.c`, `stm32_i2c.h`, `stm32_sdmmc.c`) were removed
+  2026-09-01 (PR #425): confirmed unreferenced by any build config -- wrong-MCU/wrong-layer
+  copy-paste leftovers or superseded by another file, no remaining project value.
 - `apps/system/hcom/` (63 files) - Meadow's user-space HCOM protocol handler.
 - `F7MeadowOS/` (161 files) - Meadow's kernel-space extensions. `F7MeadowOS/libyaml/` and
   `F7MeadowOS/libcyaml/` are excluded (22 files): vendored third-party code that
@@ -21,7 +21,7 @@ skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
   `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
   never wired into any build config, no remaining project value.
 
-Total in scope: 244 files.
+Total in scope: 245 files.
 
 ## Status legend
 
@@ -36,7 +36,7 @@ Total in scope: 244 files.
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
 
-## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (20 files)
+## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (21 files)
 
 4 files removed 2026-09-01 (PR #425), rows retired rather than renumbered: A03
 (`stm32_appinit.c`), A11 (`stm32_i2c.c`), A12 (`stm32_i2c.h`), A18 (`stm32_sdmmc.c`) --
@@ -64,6 +64,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Not started |  |  |  |
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Not started |  |  |  |
 | A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Not started |  |  | In include/, not src/ |
+| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Not started |  |  | In include/, not src/; defines BIOC_ENTER_MEMMAP/BIOC_EXIT_MEMMAP, consumed by stm32_ioctl.c |
 
 ## apps/system/hcom/ (63 files)
 
