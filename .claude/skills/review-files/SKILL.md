@@ -139,12 +139,20 @@ rather than reviewing everything in one pass.
 - Don't fix anything as part of this skill -- it only finds and records findings. Fixing
   is a deliberate, one-at-a-time follow-up activity against a file's GitHub Issue, not
   something this skill does automatically.
-- When applying a fix as that follow-up activity, don't commit it. Leave the change
-  (and the tracking-doc `last updated` bump) uncommitted so the user can review, build,
-  and test first. Only commit if the user explicitly asks you to. Once a fix is
-  committed, comment on its finding's Issue with the branch/PR link and tick that
-  finding's checkbox; close the Issue once every checkbox in it is ticked (or let the
-  merge commit's `Fixes #N` do it automatically if it's the last one).
+- When applying a fix as that follow-up activity: **create a dedicated branch first,
+  before editing anything** (e.g. `issue<NNN>-<short-description>`) -- check
+  `git branch --show-current` if there's any doubt which branch is checked out. Never
+  edit directly on `main` or on an unrelated in-progress branch; if a fix is started
+  before this is caught, stop, create the branch, and confirm the (still-uncommitted)
+  change now shows up on it before going further -- uncommitted changes move with you
+  when you switch/create a branch, so this is always recoverable as long as nothing's
+  been committed yet.
+- Don't commit a fix immediately after making it. Leave the change (and the
+  tracking-doc `last updated` bump) uncommitted so the user can review, build, and test
+  first. Only commit if the user explicitly asks you to. Once a fix is committed,
+  comment on its finding's Issue with the branch/PR link and tick that finding's
+  checkbox; close the Issue once every checkbox in it is ticked (or let the merge
+  commit's `Fixes #N` do it automatically if it's the last one).
 - When a fix's branch gets its PR merged on GitHub, delete the local branch too
   (`git branch -d <branch>`) once you've confirmed the merge (e.g. `gh pr view` or
   `gh pr list --state merged`) -- GitHub deleting the remote branch on merge doesn't
