@@ -11,6 +11,25 @@
 #include <meadow/meadow_client_cert.h>
 #include <meadow/meadow_apps_core_share.h>
 
+/****************************************************************************
+ * Debug-only toggle: MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
+ *
+ * When defined, restores full-content logging of the client certificate,
+ * private key, and passphrase to syslog -- the original behavior, before it
+ * was found that the private key and passphrase were being logged in
+ * plaintext and actively streamed off-device over UART by the always-on
+ * diagnostic thread (hcom_nx_trace_msg_proc.c), not just written to a local
+ * log (see Issue #401). This must NEVER be enabled outside of local,
+ * temporary debugging. The #warning below is deliberate: this project
+ * builds with -Werror, so leaving this defined turns into a hard build
+ * failure instead of a silent leak.
+ ****************************************************************************/
+// #define MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
+
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
+#warning "MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT is enabled -- private key and passphrase will be logged in plaintext and streamed off-device. Local debugging only; must never be committed or shipped."
+#endif
+
 static int client_cert_buf_size = 0;
 static int private_key_buf_size = 0;
 static int private_key_pass_buf_size = 0;
@@ -71,7 +90,11 @@ int meadow_client_cert_initialize() {
         fclose(client_cert_file);
 
         // Storing client certificate
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
         syslog(LOG_INFO, "Storing client certificate length: %d\nContent: %s\n", client_cert_len, client_cert);
+#else
+        syslog(LOG_INFO, "Storing client certificate length: %d\n", client_cert_len);
+#endif
         ret = espcp_file_system_write_file(CLIENT_CERT_FILE, (uint8_t *) client_cert, client_cert_len + 1);
         if (ret < 0)
         {
@@ -114,7 +137,11 @@ int meadow_client_cert_initialize() {
         fclose(private_key_file);
 
         // Storing client certificate private key
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
         syslog(LOG_INFO, "Storing private key length: %d\nContent: %s\n", private_key_len, private_key);
+#else
+        syslog(LOG_INFO, "Storing private key length: %d\n", private_key_len);
+#endif
         ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_FILE, (uint8_t *) private_key, private_key_len + 1);
         if (ret < 0)
         {
@@ -160,7 +187,11 @@ int meadow_client_cert_initialize() {
         fclose(private_key_pass_file);
 
         // Storing client certificate private key passphrase
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
         syslog(LOG_INFO, "Storing private key passphrase length: %d\nContent: %s\n", private_key_pass_len, private_key_pass);
+#else
+        syslog(LOG_INFO, "Storing private key passphrase length: %d\n", private_key_pass_len);
+#endif
         ret = espcp_file_system_write_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, (uint8_t *) private_key_pass, private_key_pass_len + 1);
         if (ret < 0)
         {
@@ -196,7 +227,11 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
         return -1;
     }
 
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
     syslog(LOG_INFO, "Retrieved client cert: %s len: %d\n", client_cert_buf, client_cert_length);
+#else
+    syslog(LOG_INFO, "Retrieved client cert len: %d\n", client_cert_length);
+#endif
     *client_cert_buf_ptr = client_cert_buf;
     client_cert_buf_size = client_cert_length;
     *client_cert_len = client_cert_length;
@@ -211,7 +246,11 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
         return -1;
     }
 
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
     syslog(LOG_INFO, "Retrieved client cert private key: %s len: %d\n", private_key_buf, private_key_length);
+#else
+    syslog(LOG_INFO, "Retrieved client cert private key len: %d\n", private_key_length);
+#endif
     *private_key_buf_ptr = private_key_buf;
     private_key_buf_size = private_key_length;
     *private_key_len = private_key_length;
@@ -226,7 +265,11 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
         return -1;
     }
 
+#ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
     syslog(LOG_INFO, "Retrieved client cert private key pass: %s len: %d\n", private_key_pass_buf, private_key_pass_length);
+#else
+    syslog(LOG_INFO, "Retrieved client cert private key pass len: %d\n", private_key_pass_length);
+#endif
     *private_key_pass_buf_ptr = private_key_pass_buf;
     private_key_pass_buf_size = private_key_pass_length;
     *private_key_pass_len = private_key_pass_length;
