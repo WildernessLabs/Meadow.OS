@@ -52,6 +52,31 @@ enable_nsh() {
     printf "\n\n********** Enabling NSH (NuttX Shell) on USART6 (COM6). **********\n\n"
 
     #
+    # Required for exec_builtin()/nsh_builtin() to find *any* registered
+    # builtin app by name at the nsh> prompt (calib_udelay, pppd, renew, hcom,
+    # sh, a nested nsh -- anything that isn't one of NSH's own internal
+    # commands like ls/cat/help). Without both of these, such commands report
+    # "command not found" even though they're compiled in and registered --
+    # NSH's own internal commands and its own top-level launch are unaffected
+    # (nsh itself is started via a direct task_create() call, not through this
+    # lookup), which is why "help" can work fine while everything else can't.
+    #
+    ktweak --enable BUILTIN
+    ktweak --enable NSH_BUILTIN_APPS
+
+    #
+    # NOTE: CONFIG_FDCLONE_STDIO is NOT set here -- it lives permanently in the
+    # base defconfig instead, since it's not actually NSH-specific. Every
+    # task_create()/task_spawn() in the system (not just NSH's own builtin
+    # commands) goes through group_setuptaskfiles(), including
+    # hcom_mono_control.c's launch of the Mono runtime itself, whose own
+    # comment documents relying on exactly this behavior ("A task will only
+    # share stdin, stderr and stdout with the threads running hcom"). See the
+    # base defconfig for the actual setting and Documentation/SettingupMeadowNSH.md
+    # for the full explanation.
+    #
+
+    #
     # USART6 is the NSH console.  It is not the system console, so TTY_SIGINT has
     # to be requested explicitly for Ctrl+C to work (e.g. to get out of "top").
     #
@@ -104,7 +129,27 @@ enable_nsh() {
     ktweak --enable NSH_LIBRARY
     ktweak --enable NSH_CONSOLE
     ktweak --enable NSH_READLINE
+
+    #
+    # SYSTEM_READLINE is a menuconfig that NSH_LIBRARY/NSH_READLINE normally
+    # pull in via Kconfig's own "select" -- but ktweak/kconfig-tweak edits
+    # .config as text and never resolves "select" dependencies, so it has to
+    # be requested explicitly here too.
+    #
+    ktweak --enable SYSTEM_READLINE
     ktweak --enable READLINE_HAVE_EXTMATCH
+
+    #
+    # readline() only removes a backspaced character from its own line
+    # buffer; it never touches the terminal unless READLINE_ECHO is on, in
+    # which case it actively sends a backspace + VT100 clear-to-EOL to erase
+    # it on screen. Without this, backspace silently does nothing visible
+    # over a terminal emulator with local echo turned off (as this project's
+    # setup requires), even though normal typed characters still show up via
+    # the serial driver's own termios echo. Defaults to 'y' upstream, but set
+    # explicitly here since it has been accidentally turned off before.
+    #
+    ktweak --enable READLINE_ECHO
     ktweak --enable READLINE_CMD_HISTORY
     ktweak --set-val READLINE_CMD_HISTORY_LEN 4
     ktweak --set-val READLINE_CMD_HISTORY_LINELEN 64
@@ -190,6 +235,23 @@ enable_nsh() {
     ktweak --set-val SYSTEM_NSH_STACKSIZE 8192
     ktweak --set-str SYSTEM_NSH_PROGNAME "nsh"
 }
+
+#
+# calib_udelay: a one-off diagnostic tool used to measure the real
+# CONFIG_BOARD_LOOPSPERMSEC value for a board -- not something every NSH
+# session needs, so it's deliberately not part of enable_nsh(). Enable it
+# on top of --nsh only when actually calibrating:
+#   ktweak --enable EXAMPLES_CALIB_UDELAY
+#   ktweak --set-val EXAMPLES_CALIB_UDELAY_NUM_MEASUREMENTS 3
+#   ktweak --set-val EXAMPLES_CALIB_UDELAY_NUM_RESULTS 20
+#   ktweak --set-val EXAMPLES_CALIB_UDELAY_DELAY_TEST_ITERATIONS 100000
+# The three sub-options are declared under "if EXAMPLES_CALIB_UDELAY" in
+# apps/examples/calib_udelay/Kconfig, so -- same kconfig-tweak-never-runs-
+# olddefconfig reason as everywhere in enable_nsh() -- they must be set
+# explicitly too. NUM_MEASUREMENTS/NUM_RESULTS happen to have matching
+# #ifndef fallbacks in the source itself, but DELAY_TEST_ITERATIONS does not
+# and fails the build outright ("undeclared") if left unset.
+#
 
 #
 # Enable the NuttX debug features (debug output to SYSLOG).
