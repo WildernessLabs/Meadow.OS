@@ -62,6 +62,9 @@ int meadow_client_cert_initialize() {
     char *client_cert = NULL;
     char *private_key = NULL;
     char *private_key_pass = NULL;
+    long client_cert_size = 0;
+    long private_key_size = 0;
+    long private_key_pass_size = 0;
 
     FILE *client_cert_file = fopen(CLIENT_CERT_FILE_PATH, "r");
     if (client_cert_file == NULL)
@@ -74,7 +77,13 @@ int meadow_client_cert_initialize() {
         // Add a null-terminator character at the end of the file
         //  since it's required by mbedTLS
         fseek(client_cert_file, 0, SEEK_END);
-        long client_cert_size = ftell(client_cert_file);
+        client_cert_size = ftell(client_cert_file);
+        if (client_cert_size < 0)
+        {
+            syslog(LOG_ERR, "Failed to determine client certificate file size.\n");
+            fclose(client_cert_file);
+            return -EIO;
+        }
         rewind(client_cert_file);
 
         client_cert = (char *)malloc(client_cert_size + 1);
@@ -99,6 +108,8 @@ int meadow_client_cert_initialize() {
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
+            memset(client_cert, 0, client_cert_size + 1);
+            free(client_cert);
             return ret;
         }
 
@@ -120,7 +131,18 @@ int meadow_client_cert_initialize() {
         // Add a null-terminator character at the end of the file
         //  since it's required by mbedTLS
         fseek(private_key_file, 0, SEEK_END);
-        long private_key_size = ftell(private_key_file);
+        private_key_size = ftell(private_key_file);
+        if (private_key_size < 0)
+        {
+            syslog(LOG_ERR, "Failed to determine private key file size.\n");
+            fclose(private_key_file);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
+            return -EIO;
+        }
         rewind(private_key_file);
 
         private_key = (char *)malloc(private_key_size + 1);
@@ -128,7 +150,11 @@ int meadow_client_cert_initialize() {
         {
             syslog(LOG_ERR, "Memory allocation failed for private_key.\n");
             fclose(private_key_file);
-            free(client_cert);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
             return -ENOMEM;
         }
 
@@ -146,7 +172,13 @@ int meadow_client_cert_initialize() {
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key.\n");
-            free(client_cert);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
+            memset(private_key, 0, private_key_size + 1);
+            free(private_key);
             return ret;
         }
 
@@ -169,7 +201,23 @@ int meadow_client_cert_initialize() {
         // Add a null-terminator character at the end of the file
         //  since it's required by mbedTLS
         fseek(private_key_pass_file, 0, SEEK_END);
-        long private_key_pass_size = ftell(private_key_pass_file);
+        private_key_pass_size = ftell(private_key_pass_file);
+        if (private_key_pass_size < 0)
+        {
+            syslog(LOG_ERR, "Failed to determine private key passphrase file size.\n");
+            fclose(private_key_pass_file);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
+            if (private_key != NULL)
+            {
+                memset(private_key, 0, private_key_size + 1);
+                free(private_key);
+            }
+            return -EIO;
+        }
         rewind(private_key_pass_file);
 
         private_key_pass = (char *)malloc(private_key_pass_size + 1);
@@ -177,8 +225,16 @@ int meadow_client_cert_initialize() {
         {
             syslog(LOG_ERR, "Memory allocation failed for private_key_pass.\n");
             fclose(private_key_pass_file);
-            free(client_cert);
-            free(private_key);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
+            if (private_key != NULL)
+            {
+                memset(private_key, 0, private_key_size + 1);
+                free(private_key);
+            }
             return -ENOMEM;
         }
 
@@ -196,8 +252,18 @@ int meadow_client_cert_initialize() {
         if (ret < 0)
         {
             syslog(LOG_ERR, "Failed to store client cert private key passphrase.\n");
-            free(client_cert);
-            free(private_key);
+            if (client_cert != NULL)
+            {
+                memset(client_cert, 0, client_cert_size + 1);
+                free(client_cert);
+            }
+            if (private_key != NULL)
+            {
+                memset(private_key, 0, private_key_size + 1);
+                free(private_key);
+            }
+            memset(private_key_pass, 0, private_key_pass_size + 1);
+            free(private_key_pass);
             return ret;
         }
 
@@ -205,9 +271,21 @@ int meadow_client_cert_initialize() {
         remove(CLIENT_CERT_PRIVATE_KEY_PASS_FILE_PATH);
     }
 
-    free(client_cert);
-    free(private_key);
-    free(private_key_pass);
+    if (client_cert != NULL)
+    {
+        memset(client_cert, 0, client_cert_size + 1);
+        free(client_cert);
+    }
+    if (private_key != NULL)
+    {
+        memset(private_key, 0, private_key_size + 1);
+        free(private_key);
+    }
+    if (private_key_pass != NULL)
+    {
+        memset(private_key_pass, 0, private_key_pass_size + 1);
+        free(private_key_pass);
+    }
 
     return OK;
 }
