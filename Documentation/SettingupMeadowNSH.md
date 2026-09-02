@@ -15,8 +15,10 @@ covers configuration, not those source changes.
 
 ## Step 1: Build with NSH enabled
 
-NSH is an opt-in build option rather than part of the board's `defconfig`. Pass
-`--nsh` to `build.sh`:
+NSH is used only for rare diagnostic sessions, so **none of its configuration
+lives in the tracked `defconfig`** -- the board's normal build carries zero NSH
+content. Everything needed is applied on top, at build time, by passing `--nsh`
+to `build.sh`:
 
 ```bash
 # Full clean build with NSH
@@ -26,18 +28,59 @@ NSH is an opt-in build option rather than part of the board's `defconfig`. Pass
 ./build.sh
 ```
 
-`--nsh` runs the `enable_nsh` function in `build.sh`, which applies the settings
-below to `nuttx/.config` with `kconfig-tweak`. Because `kconfig-tweak` edits
-`.config` as text and never runs `olddefconfig`, that function also has to write
-out every value Kconfig would otherwise have defaulted (the `NSH_PROMPT_*`,
-`NSH_MAXARGUMENTS`, `USART6_BAUD` sort of thing). If you add a setting here, add
-it there too.
+`--nsh` calls the `enable_nsh` function in `scripts/configuration_tweaks.sh`
+(sourced by `build.sh`, not defined in it directly), which applies every
+setting below to `nuttx/.config` with `kconfig-tweak`. Because `kconfig-tweak`
+edits `.config` as text and never runs `olddefconfig`, that function has to
+write out every value Kconfig would otherwise have defaulted (the
+`NSH_PROMPT_*`, `NSH_MAXARGUMENTS`, `USART6_BAUD` sort of thing) in addition to
+the values that matter functionally. `enable_nsh()` is the **only** place any
+of this is set -- there is deliberately no equivalent block anywhere in
+`defconfig` to keep in sync. If you add a setting here, add it to that function
+only.
 
-The equivalent `defconfig` block - the settings themselves, with the notes that
-explain them - is:
+Three exceptions live in the base `defconfig` permanently, not in
+`enable_nsh()`, because they aren't actually NSH-specific even though NSH is
+what surfaced the need for them:
+
+- `CONFIG_BOARD_LOOPSPERMSEC` -- a global `up_udelay()`/`up_mdelay()`
+  timing-calibration constant used system-wide, measured using NSH's
+  `calib_udelay` tool but not meaningful only to NSH.
+- `CONFIG_DEFAULT_TASK_STACKSIZE` -- the generic fallback stack size for any
+  task that doesn't set its own, raised for `calib_udelay`'s benefit but not an
+  NSH-only knob.
+- `CONFIG_FDCLONE_STDIO` -- controls file-descriptor inheritance for *every*
+  `task_create()`/`task_spawn()` in the system, not just NSH's builtin
+  commands. Most of Meadow's own kernel-space work uses `kthread_create()`
+  (exempt from this setting entirely), but `apps/system/hcom/mono/hcom_mono_control.c`
+  launches the Mono/.NET runtime itself with `task_create()`, and its own
+  comment documents relying on exactly this behavior: *"A task will only share
+  stdin, stderr and stdout with the threads running hcom."* That claim is only
+  actually true when `CONFIG_FDCLONE_STDIO=y` is set -- without it (Kconfig's
+  real default), a spawned task clones *every* file descriptor its parent has
+  open, not just stdio.
+
+  `CONFIG_FDCLONE_DISABLE` must never be set alongside it (or at all).
+  `group_setuptaskfiles()` (`nuttx/sched/group/`) wraps its entire
+  file-descriptor-inheritance logic in `#ifndef CONFIG_FDCLONE_DISABLE`, so if
+  that's set, no spawned task -- Mono, `nsh`, `calib_udelay`, a nested `nsh`,
+  nothing -- inherits stdin/stdout/stderr at all. The task still runs to
+  completion, but every `printf()` silently goes nowhere, while typed input to
+  an interactive one (like a nested `nsh`) still appears to echo (that's the
+  serial driver's own termios-level echo, unrelated to whether the task has a
+  valid stdin fd). This exact combination (`FDCLONE_DISABLE=y` left on
+  alongside `FDCLONE_STDIO=y`, which silently makes the latter dead
+  configuration) was accidentally introduced once already, in an unrelated
+  "turn on some debug features" commit -- watch for it if NSH commands, or
+  Mono's console output, ever stop appearing again.
+
+The settings `enable_nsh()` applies, with the notes that explain them, are:
 
 ```
 # ---- NSH support (see Documentation/SettingupMeadowNSH.md) ----
+CONFIG_BUILTIN=y
+CONFIG_NSH_BUILTIN_APPS=y
+CONFIG_SYSTEM_READLINE=y
 CONFIG_FS_PROCFS=y
 CONFIG_FS_PROCFS_REGISTER=y
 CONFIG_SCHED_CPULOAD_SYSCLK=y
@@ -50,6 +93,7 @@ CONFIG_NSH_DISABLE_IFCONFIG=y
 CONFIG_NSH_DISABLE_IFUPDOWN=y
 CONFIG_NSH_DISABLE_TIMEDATECTL=y
 CONFIG_READLINE_CMD_HISTORY=y
+CONFIG_READLINE_ECHO=y
 CONFIG_STM32F7_USART6=y
 CONFIG_USART6_RXBUFSIZE=512
 CONFIG_USART6_TXBUFSIZE=512
@@ -185,6 +229,30 @@ Notes:
 - `CONFIG_TTY_SIGINT` is required for Ctrl+C to work at all in NSH (e.g. to exit
   `top`) -- it's only auto-enabled for console devices, and USART6 here is not
   the console.
+- `CONFIG_SYSTEM_READLINE` is a `menuconfig` that `nshlib`/`nsh` Kconfig normally
+  pulls in via `select` -- but `kconfig-tweak` edits `.config` as text and never
+  resolves `select` dependencies (same reason the `NSH_PROMPT_*`-style defaults
+  have to be spelled out explicitly), so it must be requested directly here too.
+- `CONFIG_READLINE_ECHO` controls only one thing: whether `readline()` actively
+  sends a backspace + VT100 clear-to-EOL to erase a character on the terminal
+  when Backspace/Delete is pressed. Normal typed characters are echoed by the
+  serial driver's own termios-level echo regardless of this setting -- it is
+  *not* the same thing as a terminal's "local echo" setting (which must stay off,
+  per Step 2 below). With `CONFIG_READLINE_ECHO` off, `readline()` still correctly
+  drops the character from its internal line buffer, but sends nothing to the
+  terminal, so backspace looks like it does nothing at all: the cursor doesn't
+  move and the character stays on screen. Defaults to `y` upstream, but has been
+  accidentally turned off before, so it's set explicitly here.
+- `CONFIG_BUILTIN` and `CONFIG_NSH_BUILTIN_APPS` are both required for
+  `exec_builtin()`/`nsh_builtin()` to find *any* registered builtin app by
+  name at the `nsh>` prompt -- anything that isn't one of NSH's own internal
+  commands (`ls`, `cat`, `help`, etc.). Miss either one and every such
+  command (`pppd`, `renew`, `hcom`, `sh`, a nested `nsh`, or the
+  `calib_udelay` tool described below) reports "command not found" even
+  though it's compiled in and registered, while NSH's own internal commands
+  and its own top-level launch (started via a direct `task_create()` call,
+  not through this lookup) work fine -- easy to misdiagnose as a deeper
+  problem when it's really just these two missing flags.
 - `/dev/ttyS3` is what USART6 currently resolves to in this board's serial
   configuration. If you change which UARTs are enabled elsewhere in the defconfig,
   re-check this -- the `/dev/ttySx` numbering is assigned in UART-enable order, not
@@ -196,6 +264,34 @@ Notes:
   TX, RX, and ground are needed -- no flow control lines.
 
 Flash the resulting build as usual.
+
+### Optional: calibrating `CONFIG_BOARD_LOOPSPERMSEC` with `calib_udelay`
+
+`calib_udelay` is a one-off diagnostic tool, not part of every NSH session, so
+it's deliberately not included by `--nsh`. Enable it on top of `--nsh` only
+when actually (re-)calibrating, by adding these `ktweak` calls (matching the
+comment above `enable_nsh()` in `scripts/configuration_tweaks.sh`) before
+building:
+
+```
+ktweak --enable EXAMPLES_CALIB_UDELAY
+ktweak --set-val EXAMPLES_CALIB_UDELAY_NUM_MEASUREMENTS 3
+ktweak --set-val EXAMPLES_CALIB_UDELAY_NUM_RESULTS 20
+ktweak --set-val EXAMPLES_CALIB_UDELAY_DELAY_TEST_ITERATIONS 100000
+```
+
+The three sub-options are declared under `if EXAMPLES_CALIB_UDELAY` in
+`apps/examples/calib_udelay/Kconfig`, so -- same `kconfig-tweak`-never-runs-
+`olddefconfig` reason as everything in `enable_nsh()` -- they must be set
+explicitly. `NUM_MEASUREMENTS`/`NUM_RESULTS` happen to have matching
+`#ifndef` fallbacks in the source itself and would silently use the same
+values even if left unset, but `DELAY_TEST_ITERATIONS` does not and fails the
+build outright ("undeclared") if it's missing.
+
+Run `calib_udelay` at the `nsh>` prompt and copy its recommended value into
+the base `defconfig`'s `CONFIG_BOARD_LOOPSPERMSEC`. It calls `sched_lock()`
+for its whole run (which can be tens of seconds), so it produces no visible
+output at all until it finishes -- that's expected, not a hang.
 
 ## Step 2: Set up a terminal emulator
 
