@@ -40,7 +40,8 @@
 // management code is built via the CONFIG_PM configuration option.
 // Therefore, this function was duplicated here with the name changed to
 // meadow_clockenable.
-// Has this all been tested? No. Not yet.
+// The decision to do this was due to the side-effects and complexities of
+// pulling in the entire Nuttx power managment.
 
 /****************************************************************************
  * Included Files
@@ -69,6 +70,7 @@
  */
 
 #define HSERDY_TIMEOUT (100 * CONFIG_BOARD_LOOPSPERMSEC)
+#define HSIRDY_TIMEOUT HSERDY_TIMEOUT
 
 /* Voltage output scale (default to Scale 1 mode) */
 
@@ -78,7 +80,7 @@
 
 /* HSE divisor to yield ~1MHz RTC clock */
 
-#define HSE_DIVISOR (STM32_HSE_FREQUENCY + 500000) / 1000000
+#define HSE_DIVISOR ((STM32_HSE_FREQUENCY + 500000) / 1000000)
 
 /****************************************************************************
  * Private Function
