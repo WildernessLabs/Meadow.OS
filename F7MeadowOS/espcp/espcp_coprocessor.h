@@ -197,11 +197,6 @@ struct espcp_configuration_s
      */
     bool incoming_event_handler_thread_running;
 
-    /**
-     *  @brief Indicate if the UART monitor thread is running.
-     */
-    bool uart_monitor_thread_running;
-
     /*
      *  ID of the thread processing the messages for the ESP32.
      */
@@ -218,15 +213,6 @@ struct espcp_configuration_s
     int incoming_event_thread;
 #else
     pthread_t incoming_event_thread;
-#endif
-
-    /*
-     *  @brief ID of the thread monitoring the UART comms between the ESP32 and the STM32.
-     */
-#ifdef CONFIG_BUILD_PROTECTED
-    int uart_monitor_thread;
-#else
-    pthread_t uart_monitor_thread;
 #endif
 
     /*
