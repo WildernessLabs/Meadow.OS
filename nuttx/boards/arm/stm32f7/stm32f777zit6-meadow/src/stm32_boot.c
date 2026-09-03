@@ -180,7 +180,7 @@ void stm32_boardinitialize(void)
   arch_sporadic_initialize();
 #endif
 
-// THIS IS NOT NEVER USED, NOR CONFIGURED
+// This is never used -- CONFIG_ARCH_LEDS is not configured.
 #ifdef CONFIG_ARCH_LEDS
   /* Configure on-board LEDs if LED support has been selected. */
 
@@ -239,7 +239,7 @@ void board_late_initialize(void)
   ret = board_init_usbdev();
   if(ret < 0)
   {
-    syslog(1, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
               __FILE__, __LINE__, ret);
   }
 #endif
@@ -294,7 +294,7 @@ void board_late_initialize(void)
       meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_ERROR)
   {
     ferr("ERROR: Meadow version could not be determined\n");
-    syslog(1, "%s@%d-ERROR: Meadow version could not be determined\n",
+    syslog(LOG_ERR, "%s@%d-ERROR: Meadow version could not be determined\n",
       __FILE__, __LINE__);
     return;
   }
@@ -342,7 +342,7 @@ void board_late_initialize(void)
  #endif
 
     default:
-      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      syslog(LOG_ERR, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
       return;
   }
 
