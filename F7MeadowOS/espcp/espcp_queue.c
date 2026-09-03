@@ -148,37 +148,6 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
 }
 
 /****************************************************************************
- * Name: espcp_delete_message_queue
- *
- * Description:
- *  Close the message queue and mark it for deletion (unlink the queue).
- * 
- *  Note that the mq_unlink method will only delete the named queue if it is
- *  not opened by another thread / process.  If it is still opened elsewhere
- *  then the it is marked for deletion later (when the final close for this
- *  queue is executed).
- *
- * Input Parameters:
- *   queue_id - ID of the queue to be closed and unlinked.
- *
- * Returned Value:
- *  OK if the queue deletion succeeded.
- *  -1 if an error occurred.
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-int espcp_delete_message_queue(struct file *queue)
-{
-    if (file_mq_close(queue) < 0)
-    {
-        return (-1);
-    }
-    return (file_mq_unlink(ESPCP_REQUEST_MESSAGE_QUEUE_NAME));
-}
-
-/****************************************************************************
  * Name: espcp_add_message_to_queue
  *
  * Description:
