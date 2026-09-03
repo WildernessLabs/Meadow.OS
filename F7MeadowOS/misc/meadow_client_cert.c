@@ -1,4 +1,37 @@
-// Meadow.OS/Meadow.OS/misc/meadow_client_cert.c
+/****************************************************************************
+ * /Meadow.OS/misc/meadow_client_cert.c
+ *
+ *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
+ *   Author:  Wilderness Labs
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ *
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -54,8 +87,8 @@ static int private_key_pass_buf_size = 0;
  *  None
  *
  ****************************************************************************/
-int meadow_client_cert_initialize() {
-
+int meadow_client_cert_initialize(void)
+{
     // Loading client certificate
     syslog(LOG_INFO, "Checking for a client certificate in STM storage.\n");
     int ret;
@@ -290,6 +323,36 @@ int meadow_client_cert_initialize() {
     return OK;
 }
 
+/****************************************************************************
+ * Name: meadow_client_cert_retrieve_credentials
+ *
+ * Description:
+ *  Reads the client certificate, private key, and private key passphrase
+ * back from ESP32 storage, allocating a buffer for each and returning it
+ * via the corresponding output pointer.
+ *
+ *  Currently unused: no caller exists yet anywhere in the repo. It's
+ * kept, documented, alongside meadow_client_cert_initialize() (which writes
+ * these same three values to ESP32 storage) as the read-side counterpart,
+ * reserved for a future credential-retrieval use case (e.g. cert rotation)
+ * once one is needed. Call meadow_client_cert_release_credentials() to free
+ * the buffers this function allocates.
+ *
+ * Input Parameters:
+ *  client_cert_buf_ptr      - Set to the allocated client certificate buffer.
+ *  client_cert_len          - Set to the length of that buffer.
+ *  private_key_buf_ptr      - Set to the allocated private key buffer.
+ *  private_key_len          - Set to the length of that buffer.
+ *  private_key_pass_buf_ptr - Set to the allocated passphrase buffer.
+ *  private_key_pass_len     - Set to the length of that buffer.
+ *
+ * Returned Value:
+ *  Zero, if the function succeeds, otherwise a negative error code.
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
 int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
                     int *client_cert_len, const uint8_t **private_key_buf_ptr,
                     int *private_key_len, const uint8_t **private_key_pass_buf_ptr,
@@ -355,6 +418,29 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
     return OK;
 }
 
+/****************************************************************************
+ * Name: meadow_client_cert_release_credentials
+ *
+ * Description:
+ *  Zeroes and frees the three buffers allocated by
+ * meadow_client_cert_retrieve_credentials(), then sets each pointer to
+ * NULL. Safe to call with any subset of the pointers already NULL.
+ *
+ *  Currently unused, since meadow_client_cert_retrieve_credentials() has
+ * no caller yet -- see that function's doc comment.
+ *
+ * Input Parameters:
+ *  client_cert_buf_ptr      - Pointer to the client certificate buffer.
+ *  private_key_buf_ptr      - Pointer to the private key buffer.
+ *  private_key_pass_buf_ptr - Pointer to the passphrase buffer.
+ *
+ * Returned Value:
+ *  Zero (always succeeds).
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
 int meadow_client_cert_release_credentials(char ** const client_cert_buf_ptr,
     char ** const private_key_buf_ptr,
     char ** const private_key_pass_buf_ptr)
