@@ -513,6 +513,7 @@ static void espcp_send_wifi_country_code(void)
     char *country_code = NULL;
 
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    hcom_nx_config_lock();
     if (config != NULL)
     {
         country_code = kmm_strdup(config->country_code);
