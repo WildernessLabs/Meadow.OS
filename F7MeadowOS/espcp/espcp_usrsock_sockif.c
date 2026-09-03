@@ -3121,7 +3121,7 @@ int32_t espcp_usrsock_read(struct socket *psock, const void *buffer, size_t coun
 int espcp_usrsock_dup2(struct socket *old_psock, struct socket *new_psock)
 {
   espcp_usrsock_not_implemented(__func__);
-  return(-1);
+  return(-EOPNOTSUPP);
 }
 
 /****************************************************************************
@@ -3252,7 +3252,7 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
 int espcp_usrsock_shutdown(struct socket *psock, int how)
 {
   espcp_usrsock_not_implemented(__func__);
-  return(-1);
+  return(-EOPNOTSUPP);
 }
 
 /****************************************************************************
@@ -3415,7 +3415,7 @@ int espcp_usrsock_getaddrinfo(const char *hostname, const char *servname,
                 const struct addrinfo *hint, struct addrinfo **res)
 {
     espcp_usrsock_not_implemented(__func__);
-    return(-1);    
+    return(-EOPNOTSUPP);
 }
 
 /****************************************************************************
