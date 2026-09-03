@@ -35,6 +35,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,8 +45,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
-
-#include <nuttx/config.h>
+#include <inttypes.h>
 
 #include "espcp_message.h"
 #include "espcp_shared_enums.h"
@@ -443,7 +444,7 @@ static char *lookup_value(uint32_t value, meadow_debug_mapping_t table[], uint32
 
     if (length > 0)
     {
-        for (int index = 0; index < length; index++)
+        for (uint32_t index = 0; index < length; index++)
         {
             if (value == table[index].value)
             {
@@ -458,7 +459,8 @@ static char *lookup_value(uint32_t value, meadow_debug_mapping_t table[], uint32
     }
     if (result == NULL)
     {
-        snprintf(meadow_debug_message_buffer, MEADOW_DEBUG_MESSAGE_BUFFER_LENGTH, "Unknown value %u", value);
+        snprintf(meadow_debug_message_buffer, MEADOW_DEBUG_MESSAGE_BUFFER_LENGTH, "Unknown value %" PRIu32, value);
+        result = meadow_debug_message_buffer;
     }
     return(result);
 }
@@ -473,7 +475,7 @@ void espcp_dump_message(espcp_message_t *message)
     MEADOW_TRACE_INFORMATION("\n");
     MEADOW_TRACE_INFORMATION("Message type: 0x%02x (%s)\n", message->message_type, lookup_value(message->message_type, message_types, sizeof(message_types) / sizeof(meadow_debug_mapping_t)));
     MEADOW_TRACE_INFORMATION("ESP32 Interface: 0x%02x (%s)\n", message->interface, lookup_value(message->interface, interfaces, sizeof(interfaces) / sizeof(meadow_debug_mapping_t)));
-    MEADOW_TRACE_INFORMATION("Message ID: 0x%08x\n", message->message_id);
+    MEADOW_TRACE_INFORMATION("Message ID: 0x%08" PRIx32 "\n", message->message_id);
     MEADOW_TRACE_INFORMATION("Packet offset (length): %d (%d) bytes\n", message->packet_offset, message->packet_length);
     meadow_debug_mapping_t *mapping = NULL;
     uint32_t mapping_length = 0;
@@ -498,9 +500,9 @@ void espcp_dump_message(espcp_message_t *message)
             break;
     }
     mapping_length /= sizeof(meadow_debug_mapping_t);
-    MEADOW_TRACE_INFORMATION("Function: 0x%08x (%s)\n", message->function, lookup_value(message->function, mapping, mapping_length));
-    MEADOW_TRACE_INFORMATION("Status code: 0x%08x (%s)\n", message->status_code, lookup_value(message->status_code, status_codes, sizeof(status_codes) / sizeof(meadow_debug_mapping_t)));
-    MEADOW_TRACE_INFORMATION("Payload length: %d\n", message->payload_length);
+    MEADOW_TRACE_INFORMATION("Function: 0x%08" PRIx32 " (%s)\n", message->function, lookup_value(message->function, mapping, mapping_length));
+    MEADOW_TRACE_INFORMATION("Status code: 0x%08" PRIx32 " (%s)\n", message->status_code, lookup_value(message->status_code, status_codes, sizeof(status_codes) / sizeof(meadow_debug_mapping_t)));
+    MEADOW_TRACE_INFORMATION("Payload length: %" PRIu32 "\n", message->payload_length);
     MEADOW_TRACE_INFORMATION("\n");
     MEADOW_TRACE_INFORMATION("************************************************************\n");
 }
