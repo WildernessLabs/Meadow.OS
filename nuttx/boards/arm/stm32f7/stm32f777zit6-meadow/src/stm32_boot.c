@@ -180,7 +180,7 @@ void stm32_boardinitialize(void)
   arch_sporadic_initialize();
 #endif
 
-// THIS IS NOT NEVER USED, NOR CONFIGURED
+// This is never used -- CONFIG_ARCH_LEDS is not configured.
 #ifdef CONFIG_ARCH_LEDS
   /* Configure on-board LEDs if LED support has been selected. */
 
@@ -220,9 +220,6 @@ void stm32_boardinitialize(void)
 void board_late_initialize(void)
 {
   int ret;
-#ifdef CONFIG_STM32F7_QUADSPI
-  FAR struct qspi_dev_s *qspi;
-  FAR struct mtd_dev_s *mtd = NULL;
 
 #if defined(CONFIG_STM32F7_PWR)
   // Initialize the backup SRAM and the 32 registers
@@ -240,11 +237,10 @@ void board_late_initialize(void)
 
 #if defined(CONFIG_CDCACM)
   ret = board_init_usbdev();
-  if(ret > 0)
+  if(ret < 0)
   {
-    syslog(1, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
+    syslog(LOG_ERR, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
               __FILE__, __LINE__, ret);
-    return;
   }
 #endif
 
@@ -270,6 +266,10 @@ void board_late_initialize(void)
     return;
   }
 
+#ifdef CONFIG_STM32F7_QUADSPI
+  FAR struct qspi_dev_s *qspi;
+  FAR struct mtd_dev_s *mtd = NULL;
+
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information
   // without knowing much about the chip. Thus using the Nuttx function
@@ -294,7 +294,7 @@ void board_late_initialize(void)
       meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_ERROR)
   {
     ferr("ERROR: Meadow version could not be determined\n");
-    syslog(1, "%s@%d-ERROR: Meadow version could not be determined\n",
+    syslog(LOG_ERR, "%s@%d-ERROR: Meadow version could not be determined\n",
       __FILE__, __LINE__);
     return;
   }
@@ -342,7 +342,7 @@ void board_late_initialize(void)
  #endif
 
     default:
-      syslog(1, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
+      syslog(LOG_ERR, "%s@%d-Unknown MTD:%p, meadowHwVer:%" PRId32 "\n", __FILE__, __LINE__, mtd, meadowHwVer);
       return;
   }
 
