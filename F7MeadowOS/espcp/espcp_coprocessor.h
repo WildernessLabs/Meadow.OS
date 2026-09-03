@@ -134,7 +134,8 @@
 /*
  *  Chip select pin.
  * 
- *  On the internal interface this is PI2 (SPI CS).
+ *  On the internal interface this is PI0 (SPI CS), matching GPIO_SPI2_CS in
+ *  the board header.
  */
 #define ESP32CP_SPI_CS_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN0)
 
@@ -152,7 +153,7 @@
  */
 #define ESPCP_NETWORK_MONITOR_UART_NAME         MEADOW_UART5_NAME
 
-#endif /* CONFIG_MEADOW_ESP32CP_USE_EXTERNAL_ESP32_BOARD */
+#endif /* CONFIG_MEADOW_ESPCP_USE_EXTERNAL_ESP32_BOARD */
 
 /****************************************************************************
  * Public Types

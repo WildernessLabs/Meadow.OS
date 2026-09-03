@@ -54,6 +54,7 @@
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 #include <nuttx/kthread.h>
+#include <inttypes.h>
 
 #include "espcp_coprocessor.h"
 #include "espcp_message.h"
@@ -189,7 +190,7 @@ static void *espcp_thread(void *parameters)
         }
         else
         {
-            MEADOW_TRACE_CRITICAL("%s@%d ESP thread received %d bytes, %d expected.\n", _thisFile, __LINE__, number_of_bytes, sizeof(espcp_message_t));
+            MEADOW_TRACE_CRITICAL("%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", _thisFile, __LINE__, number_of_bytes, sizeof(espcp_message_t));
         }
     }
 

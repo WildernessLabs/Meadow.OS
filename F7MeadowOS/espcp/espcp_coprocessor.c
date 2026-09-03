@@ -371,7 +371,7 @@ static int espcp_spi_init(void)
             MEADOW_TRACE_CRITICAL("%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
             return(ERROR);
         }
-        stm32_gpiowrite(ESP32CP_SPI_CS_PIN_OUTPUT, true); // SPI CS is active low so deselect SPI.
+        stm32_gpiowrite(_active_pins->chip_select, true); // SPI CS is active low so deselect SPI.
 
         g_esp_spi_dev = stm32_spibus_initialize(ESP32CP_SPI_COMMS_PORT);
         if (g_esp_spi_dev == 0)
