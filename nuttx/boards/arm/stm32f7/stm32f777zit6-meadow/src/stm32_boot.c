@@ -220,9 +220,6 @@ void stm32_boardinitialize(void)
 void board_late_initialize(void)
 {
   int ret;
-#ifdef CONFIG_STM32F7_QUADSPI
-  FAR struct qspi_dev_s *qspi;
-  FAR struct mtd_dev_s *mtd = NULL;
 
 #if defined(CONFIG_STM32F7_PWR)
   // Initialize the backup SRAM and the 32 registers
@@ -268,6 +265,10 @@ void board_late_initialize(void)
     syslog(LOG_CRIT, "ERROR: meadow_upd_initialize() failed: %d\n", ret);
     return;
   }
+
+#ifdef CONFIG_STM32F7_QUADSPI
+  FAR struct qspi_dev_s *qspi;
+  FAR struct mtd_dev_s *mtd = NULL;
 
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information
