@@ -240,11 +240,10 @@ void board_late_initialize(void)
 
 #if defined(CONFIG_CDCACM)
   ret = board_init_usbdev();
-  if(ret > 0)
+  if(ret < 0)
   {
     syslog(1, "%s@%d-Error: board_init_usbdev failed, ret:%d\n",
               __FILE__, __LINE__, ret);
-    return;
   }
 #endif
 
