@@ -20,6 +20,15 @@
  *
  ****************************************************************************/
 
+// Meadow note: this file's CONFIG_BOARD_DUAL_CDCACM support (a second USB
+// CDC/ACM virtual serial port, presented over the same physical USB
+// connection via standard composite-device descriptors) came in from
+// upstream NuttX and is not currently wired up to anything in Meadow --
+// it's reachable only via the standalone configs/dualcdcacm/ defconfig,
+// not meadow_os, build.sh, or any CI/documentation. It's been discussed
+// as a possible future "nice to have" but isn't scheduled. See Issue #457
+// for the full writeup and what integrating it would require.
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -41,7 +50,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define COMPOSITE0_DEV (3)
+// Meadow note: upstream sizes this for its original max of 3 device types
+// (RNDIS + CDC/ACM + MSC). Meadow's CONFIG_BOARD_DUAL_CDCACM (see #457)
+// adds a 4th possible device, and none of RNDIS_COMPOSITE/CDCACM_COMPOSITE/
+// USBMSC_COMPOSITE are mutually exclusive at the Kconfig level, so this
+// must cover all 4 even though no current defconfig combines them.
+#define COMPOSITE0_DEV (4)
 
 /****************************************************************************
  * Private Data
@@ -273,7 +287,7 @@ static void *board_composite0_connect(int port)
 
   /* Interfaces */
 
-  dev[dev_idx].devinfo.ifnobase = ifnobase + 2;         /* Offset to Interface-IDs */
+  dev[dev_idx].devinfo.ifnobase = ifnobase;             /* Offset to Interface-IDs */
   dev[dev_idx].minor = 1;                               /* The minor interface number */
 
   /* Strings */
@@ -336,6 +350,7 @@ static void *board_composite0_connect(int port)
 
   DEBUGASSERT(epin < STM32_NENDPOINTS);
   DEBUGASSERT(epout < STM32_NENDPOINTS);
+  DEBUGASSERT(dev_idx <= COMPOSITE0_DEV);
 
   return composite_initialize(composite_getdevdescs(), dev, dev_idx);
 }
