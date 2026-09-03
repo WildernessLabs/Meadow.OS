@@ -60,7 +60,6 @@
 #include "stm32_gpio.h"
 
 #include "generic_list.h"
-#include "espcp_wifi.h"
 #include "espcp_encoders.h"
 
 /****************************************************************************

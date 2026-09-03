@@ -144,7 +144,6 @@ $(MEADOW_OS_DIR)/espcp/espcp_message_dispatcher.c \
 $(MEADOW_OS_DIR)/espcp/generic_list.c \
 $(MEADOW_OS_DIR)/espcp/espcp_coprocessor.c \
 $(MEADOW_OS_DIR)/espcp/espcp_core_dump.c \
-$(MEADOW_OS_DIR)/espcp/espcp_wifi.c \
 $(MEADOW_OS_DIR)/espcp/espcp_system.c \
 $(MEADOW_OS_DIR)/espcp/espcp_common.c \
 $(MEADOW_OS_DIR)/espcp/espcp_usrsock_sockif.c \
