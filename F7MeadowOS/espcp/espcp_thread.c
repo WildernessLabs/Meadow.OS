@@ -67,7 +67,6 @@
 #include <meadow/meadow_thread_config.h>
 
 // #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 
@@ -190,7 +189,7 @@ static void *espcp_thread(void *parameters)
         }
         else
         {
-            MEADOW_TRACE_CRITICAL("%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", _thisFile, __LINE__, number_of_bytes, sizeof(espcp_message_t));
+            MEADOW_TRACE_CRITICAL("%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t));
         }
     }
 
