@@ -203,41 +203,6 @@ int espcp_setup_message_dispatcher(void)
 }
 
 /****************************************************************************
- * Name: espcp_teardown_message_dispatcher
- *
- * Description:
- *  Teardown the message dispatcher and reset any static variables.
- *
- * Input Parameters:
- *  None.
- *
- * Returned Value:
- *  OK if the method succeeds, error code if there is a problem.
- *
- * Assumptions/Limitations:
- *  espcp_setup_message_dispatcher has been called at some point before this
- *  method is called.
- *
- ****************************************************************************/
-int espcp_teardown_message_dispatcher(void)
-{
-    int result = OK;
-
-    //
-    //  file_mq_close() clears f_inode, which is what marks the handle closed,
-    //  and is a harmless no-op if it was never opened.
-    //
-    result = file_mq_close(&g_message_queue);
-
-    if (g_request_response_message != NULL)
-    {
-        espcp_delete_message_and_payload(g_request_response_message);
-    }
-
-    return(result);
-}
-
-/****************************************************************************
  * Name: espcp_queue_send_response_message
  *
  * Description:
