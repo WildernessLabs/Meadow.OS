@@ -76,11 +76,6 @@ static uint32_t g_last_message_id = 0;
 static gl_linked_list_t *g_messages_waiting_for_a_response = NULL;
 
 /**
- *  Mutex for the messages waiting for a response list.
- */
-static sem_t g_messages_waiting_for_a_response_mutex;
-
-/**
  *  This message is used to request a response from the ESP32.  It is created
  *  as part of the setup process for the message dispatcher.  It should never
  *  be deleted as it is reused each time a response is requested.
@@ -196,8 +191,6 @@ int espcp_setup_message_dispatcher(void)
     }
 
     g_messages_waiting_for_a_response = gl_create_empty_linked_list();
-
-    result = sem_init(&g_messages_waiting_for_a_response_mutex, 0, 1);
 
     return (result);
 }
@@ -564,9 +557,7 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                     *  So release any memory allocated while waiting for the response.
                     */
                     espcp_delete_message_payload(message);
-                    sem_wait(&g_messages_waiting_for_a_response_mutex);
                     gl_add_item_to_head(g_messages_waiting_for_a_response, message);
-                    sem_post(&g_messages_waiting_for_a_response_mutex);
                 }
                 else
                 {
@@ -632,9 +623,7 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
         }
         else
         {
-            sem_wait(&g_messages_waiting_for_a_response_mutex);
             espcp_message_t *waiting_message = (espcp_message_t *) gl_remove_item(g_messages_waiting_for_a_response, message->message_id, espcp_check_message_id);
-            sem_post(&g_messages_waiting_for_a_response_mutex);
             if (waiting_message != NULL)
             {
                 waiting_message->payload_length = message->payload_length;

@@ -821,15 +821,15 @@ espcp_configuration_t *espcp_get_configuration(void)
 void espcp_early_init(void)
 {
     g_espcp_configuration = espcp_get_default_configuration();
+    uint32_t hardware_version = meadow_hw_version_get();
+    if ((hardware_version == MEADOW_F7_HW_VERSION_NUMB_F7V2) || (hardware_version == MEADOW_F7_HW_VERSION_NUMB_CCMV2))
+    {
+        _active_pins = &_f7v2_pins;
+    }
     if (g_espcp_configuration != NULL)
     {
         if (espcp_create_message_queues(g_espcp_configuration))
         {
-            uint32_t hardware_version = meadow_hw_version_get();
-            if ((hardware_version == MEADOW_F7_HW_VERSION_NUMB_F7V2) || (hardware_version == MEADOW_F7_HW_VERSION_NUMB_CCMV2))
-            {
-                _active_pins = &_f7v2_pins;
-            }
             espcp_setup_message_dispatcher();
             espcp_event_handlers_init();
         }

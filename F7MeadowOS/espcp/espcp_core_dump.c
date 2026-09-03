@@ -120,7 +120,8 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
  {
     if (version != NULL)
     {
-        for (int index = 0; index < strlen(version); index++)
+        uint32_t length = strlen(version);
+        for (int index = 0; index < length; index++)
         {
             if (version[index] == '.')
             {
@@ -339,8 +340,12 @@ int espcp_generate_core_dump_file(char *version)
         MEADOW_TRACE_INFORMATION("Core dump retrieved successfully, writing to file %s\n", file_name);
         if (unlink(file_name) != 0)
         {
-            MEADOW_TRACE_ERROR("Failed to delete existing core dump file %s (%s)\n", file_name, strerror(errno));
-            if (errno != ENOENT)
+            //
+            //  We need to save errno here because when debugging the next call to MEADOW_TRACE_ERROR could overwrite it.
+            //
+            uint32_t saved_errno = errno;
+            MEADOW_TRACE_ERROR("Failed to delete existing core dump file %s (%s)\n", file_name, strerror(saved_errno));
+            if (saved_errno != ENOENT)
             {
                 free(core_dump);
                 free(information);

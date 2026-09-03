@@ -175,7 +175,7 @@ int espcp_queue_event_messages(uint8_t *message)
     }
 
     // Send the message to the queue
-    result = mq_send(espcp_events_queue_handle, (const char *) message, 13, ESPCP_DEFAULT_MESSAGE_PRIORITY);
+    result = mq_send(espcp_events_queue_handle, (const char *) message, ESPCP_EVENT_DATA_SIZE, ESPCP_DEFAULT_MESSAGE_PRIORITY);
     if (result == -1)
     {
         syslog(LOG_ERR, "Failed to queue the event message\n");

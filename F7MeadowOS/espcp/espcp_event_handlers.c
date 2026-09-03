@@ -218,15 +218,14 @@ int espcp_event_handlers_thread_start(void)
     espcp_config_unlock();
     if (is_thread_running)
     {
-        return (EALREADY);
+        return (-EALREADY);
     }
 
     int result = OK;
-    int thread_id = 0;
 
 #ifdef CONFIG_BUILD_PROTECTED
-    thread_id = kthread_create(ESPCP_EVENT_HANDLER_THREAD_NAME, ESPCP_EVENT_HANDLER_THREAD_PRIORITY,
-                               ESPCP_EVENT_HANDLER_THREAD_STACKSIZE, (main_t) espcp_event_handler_thread, (char *const *) NULL);
+    int thread_id = kthread_create(ESPCP_EVENT_HANDLER_THREAD_NAME, ESPCP_EVENT_HANDLER_THREAD_PRIORITY,
+                                   ESPCP_EVENT_HANDLER_THREAD_STACKSIZE, (main_t) espcp_event_handler_thread, (char *const *) NULL);
 
     if (thread_id <= 0)
     {
@@ -255,7 +254,7 @@ int espcp_event_handlers_thread_start(void)
         return (-result);
     }
 
-    result = pthread_create(&configuration->thread, &thread_attributes, espcp_event_handler_thread, configuration);
+    result = pthread_create(&configuration->incoming_event_thread, &thread_attributes, espcp_event_handler_thread, configuration);
     if (result != OK)
     {
         return (-result);
@@ -279,7 +278,9 @@ int espcp_event_handlers_thread_start(void)
     }
 
     configuration->incoming_event_handler_thread_running = true;
+#ifdef CONFIG_BUILD_PROTECTED
     configuration->incoming_event_thread = thread_id;
+#endif
     espcp_config_unlock();
 
     return(result);

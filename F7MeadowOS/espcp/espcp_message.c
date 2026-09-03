@@ -35,6 +35,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+#include <nuttx/config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,8 +45,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
-
-#include <nuttx/config.h>
+#include <inttypes.h>
 
 #include "espcp_message.h"
 #include "espcp_shared_enums.h"
@@ -223,7 +224,8 @@ static meadow_debug_mapping_t status_codes[] =
     { espcp_status_codes_completed_ok, "espcp_status_codes_completed_ok" },
     { espcp_status_codes_crc_error, "espcp_status_codes_crc_error" },
     { espcp_status_codes_restart, "espcp_status_codes_restart" },
-    { espcp_status_codes_failure, "espcp_status_codes_invalid_interface" },
+    { espcp_status_codes_failure, "espcp_status_codes_failure" },
+    { espcp_status_codes_invalid_interface, "espcp_status_codes_invalid_interface" },
     { espcp_status_codes_queue_error, "espcp_status_codes_queue_error" },
     { espcp_status_codes_timeout, "espcp_status_codes_timeout" },
     { espcp_status_codes_invalid_packet, "espcp_status_codes_invalid_packet" },
@@ -239,6 +241,7 @@ static meadow_debug_mapping_t status_codes[] =
     { espcp_status_codes_default_access_point_not_configured, "espcp_status_codes_default_access_point_not_configured" },
     { espcp_status_codes_invalid_antenna_data, "espcp_status_codes_invalid_antenna_data" },
     { espcp_status_codes_invalid_antenna_value, "espcp_status_codes_invalid_antenna_value" },
+    { espcp_status_codes_invalid_ip, "espcp_status_codes_invalid_ip" },
     { espcp_status_codes_no_messages_waiting, "espcp_status_codes_no_messages_waiting" },
     { espcp_status_codes_coprocessor_not_responding, "espcp_status_codes_coprocessor_not_responding" },
     { espcp_status_codes_esp_wi_fi_not_started, "espcp_status_codes_esp_wi_fi_not_started" },
@@ -265,9 +268,12 @@ static meadow_debug_mapping_t status_codes[] =
     { espcp_status_codes_invalid_WiFi_configuration_file, "espcp_status_codes_invalid_WiFi_configuration_file" },
     { espcp_status_codes_invalid_cell_configuration_file, "espcp_status_codes_invalid_cell_configuration_file" },
     { espcp_status_codes_network_deadlock, "espcp_status_codes_network_deadlock" },
+    { espcp_status_codes_close_deadlock, "espcp_status_codes_close_deadlock" },
+    { espcp_status_codes_poll_deadlock, "espcp_status_codes_poll_deadlock" },
+    { espcp_status_codes_socket_deadlock, "espcp_status_codes_socket_deadlock" },
     { espcp_status_codes_esp_reset_unknown, "espcp_status_codes_esp_reset_unknown" },
     { espcp_status_codes_esp_reset_power_on, "espcp_status_codes_esp_reset_power_on" },
-    { espcp_status_codes_esp_reset_external_gpio, "espcp_status_codes_esp_reset_external_gpio"}, 
+    { espcp_status_codes_esp_reset_external_gpio, "espcp_status_codes_esp_reset_external_gpio" },
     { espcp_status_codes_esp_reset_software, "espcp_status_codes_esp_reset_software" },
     { espcp_status_codes_esp_reset_panic, "espcp_status_codes_esp_reset_panic" },
     { espcp_status_codes_esp_reset_interrupt_watchdog, "espcp_status_codes_esp_reset_interrupt_watchdog" },
@@ -276,6 +282,8 @@ static meadow_debug_mapping_t status_codes[] =
     { espcp_status_codes_esp_reset_deep_sleep, "espcp_status_codes_esp_reset_deep_sleep" },
     { espcp_status_codes_esp_reset_brownout, "espcp_status_codes_esp_reset_brownout" },
     { espcp_status_codes_esp_reset_sdio, "espcp_status_codes_esp_reset_sdio" },
+    { espcp_status_codes_invalid_request, "espcp_status_codes_invalid_request" },
+    { espcp_status_codes_invalid_country_code, "espcp_status_codes_invalid_country_code" },
 };
 
 /**
@@ -297,6 +305,8 @@ static meadow_debug_mapping_t interfaces[] =
  */
 static meadow_debug_mapping_t wifi_functions[] =
 {
+    { espcp_wi_fi_function_start_wi_fi_interface, "espcp_wi_fi_function_start_wi_fi_interface" },
+    { espcp_wi_fi_function_stop_wi_fi_interface, "espcp_wi_fi_function_stop_wi_fi_interface" },
     { espcp_wi_fi_function_connect_to_access_point, "espcp_wi_fi_function_connect_to_access_point" },
     { espcp_wi_fi_function_connect_to_default_access_point, "espcp_wi_fi_function_connect_to_default_access_point" },
     { espcp_wi_fi_function_clear_default_access_point, "espcp_wi_fi_function_clear_default_access_point" },
@@ -304,7 +314,7 @@ static meadow_debug_mapping_t wifi_functions[] =
     { espcp_wi_fi_function_get_access_points, "espcp_wi_fi_function_get_access_points" },
     { espcp_wi_fi_function_set_antenna, "espcp_wi_fi_function_set_antenna" },
     { espcp_wi_fi_function_socket, "espcp_wi_fi_function_socket" },
-    { espcp_wi_fi_function_connect, "espcp_wi_fi_function_socket" },
+    { espcp_wi_fi_function_connect, "espcp_wi_fi_function_connect" },
     { espcp_wi_fi_function_write, "espcp_wi_fi_function_write" },
     { espcp_wi_fi_function_set_sock_opt, "espcp_wi_fi_function_set_sock_opt" },
     { espcp_wi_fi_function_get_sock_opt, "espcp_wi_fi_function_get_sock_opt" },
@@ -329,6 +339,8 @@ static meadow_debug_mapping_t wifi_functions[] =
     { espcp_wi_fi_function_dup2, "espcp_wi_fi_function_dup2" },
     { espcp_wi_fi_function_add_ref, "espcp_wi_fi_function_add_ref" },
     { espcp_wi_fi_function_sock_caps, "espcp_wi_fi_function_sock_caps" },
+    { espcp_wi_fi_function_start_wi_fi_interface_event, "espcp_wi_fi_function_start_wi_fi_interface_event" },
+    { espcp_wi_fi_function_stop_wi_fi_interface_event, "espcp_wi_fi_function_stop_wi_fi_interface_event" },
     { espcp_wi_fi_function_network_connected_event, "espcp_wi_fi_function_network_connected_event" },
     { espcp_wi_fi_function_network_disconnected_event, "espcp_wi_fi_function_network_disconnected_event" },
     { espcp_wi_fi_function_ntp_update_event, "espcp_wi_fi_function_ntp_update_event" },
@@ -341,6 +353,7 @@ static meadow_debug_mapping_t wifi_functions[] =
     { espcp_wi_fi_function_node_disconnected_event, "espcp_wi_fi_function_node_disconnected_event" },
     { espcp_wi_fi_function_network_connection_retry_count_exceeded_event, "espcp_wi_fi_function_network_connection_retry_count_exceeded_event" },
     { espcp_wi_fi_function_network_connecting_event, "espcp_wi_fi_function_network_connecting_event" },
+    { espcp_wi_fi_function_network_got_ip_event, "espcp_wi_fi_function_network_got_ip_event" },
 };
 
 /**
@@ -354,7 +367,18 @@ static meadow_debug_mapping_t system_functions[] =
     { espcp_system_function_get_battery_charge_level, "espcp_system_function_get_battery_charge_level" },
     { espcp_system_function_error_event, "espcp_system_function_error_event" },
     { espcp_system_function_start_heap_trace, "espcp_system_function_start_heap_trace" },
-    { espcp_system_function_stop_heap_trace, "espcp_system_function_stop_heap_trace" }
+    { espcp_system_function_stop_heap_trace, "espcp_system_function_stop_heap_trace" },
+    { espcp_system_function_file_system_format, "espcp_system_function_file_system_format" },
+    { espcp_system_function_file_system_list_files, "espcp_system_function_file_system_list_files" },
+    { espcp_system_function_file_system_write_file, "espcp_system_function_file_system_write_file" },
+    { espcp_system_function_file_system_read_file, "espcp_system_function_file_system_read_file" },
+    { espcp_system_function_file_system_delete_file, "espcp_system_function_file_system_delete_file" },
+    { espcp_system_function_os_exception, "espcp_system_function_os_exception" },
+    { espcp_system_function_logging_configuration, "espcp_system_function_logging_configuration" },
+    { espcp_system_function_log_message, "espcp_system_function_log_message" },
+    { espcp_system_function_get_core_dump_information, "espcp_system_function_get_core_dump_information" },
+    { espcp_system_function_core_dump_fragment, "espcp_system_function_core_dump_fragment" },
+    { espcp_system_function_core_dump_erase, "espcp_system_function_core_dump_erase" },
 };
 
 /**
@@ -377,7 +401,13 @@ static meadow_debug_mapping_t bluetooth_functions[] =
     { espcp_bluetooth_function_stop, "espcp_bluetooth_function_stop" },
     { espcp_bluetooth_function_get_handles, "espcp_bluetooth_function_get_handles" },
     { espcp_bluetooth_function_server_data_set, "espcp_bluetooth_function_server_data_set" },
-    { espcp_bluetooth_function_client_write_request_event, "espcp_bluetooth_function_client_write_request_event" }
+    { espcp_bluetooth_function_client_write_request_event, "espcp_bluetooth_function_client_write_request_event" },
+    { espcp_bluetooth_starting_event, "espcp_bluetooth_starting_event" },
+    { espcp_bluetooth_started_event, "espcp_bluetooth_started_event" },
+    { espcp_bluetooth_stopping_event, "espcp_bluetooth_stopping_event" },
+    { espcp_bluetooth_stopped_event, "espcp_bluetooth_stopped_event" },
+    { espcp_client_connected_event, "espcp_client_connected_event" },
+    { espcp_client_disconnected_event, "espcp_client_disconnected_event" },
 };
 
 /**
@@ -414,7 +444,7 @@ static char *lookup_value(uint32_t value, meadow_debug_mapping_t table[], uint32
 
     if (length > 0)
     {
-        for (int index = 0; index < length; index++)
+        for (uint32_t index = 0; index < length; index++)
         {
             if (value == table[index].value)
             {
@@ -429,7 +459,8 @@ static char *lookup_value(uint32_t value, meadow_debug_mapping_t table[], uint32
     }
     if (result == NULL)
     {
-        snprintf(meadow_debug_message_buffer, MEADOW_DEBUG_MESSAGE_BUFFER_LENGTH, "Unknown value %u", value);
+        snprintf(meadow_debug_message_buffer, MEADOW_DEBUG_MESSAGE_BUFFER_LENGTH, "Unknown value %" PRIu32, value);
+        result = meadow_debug_message_buffer;
     }
     return(result);
 }
@@ -444,7 +475,7 @@ void espcp_dump_message(espcp_message_t *message)
     MEADOW_TRACE_INFORMATION("\n");
     MEADOW_TRACE_INFORMATION("Message type: 0x%02x (%s)\n", message->message_type, lookup_value(message->message_type, message_types, sizeof(message_types) / sizeof(meadow_debug_mapping_t)));
     MEADOW_TRACE_INFORMATION("ESP32 Interface: 0x%02x (%s)\n", message->interface, lookup_value(message->interface, interfaces, sizeof(interfaces) / sizeof(meadow_debug_mapping_t)));
-    MEADOW_TRACE_INFORMATION("Message ID: 0x%08x\n", message->message_id);
+    MEADOW_TRACE_INFORMATION("Message ID: 0x%08" PRIx32 "\n", message->message_id);
     MEADOW_TRACE_INFORMATION("Packet offset (length): %d (%d) bytes\n", message->packet_offset, message->packet_length);
     meadow_debug_mapping_t *mapping = NULL;
     uint32_t mapping_length = 0;
@@ -469,9 +500,9 @@ void espcp_dump_message(espcp_message_t *message)
             break;
     }
     mapping_length /= sizeof(meadow_debug_mapping_t);
-    MEADOW_TRACE_INFORMATION("Function: 0x%08x (%s)\n", message->function, lookup_value(message->function, mapping, mapping_length));
-    MEADOW_TRACE_INFORMATION("Status code: 0x%08x (%s)\n", message->status_code, lookup_value(message->status_code, status_codes, sizeof(status_codes) / sizeof(meadow_debug_mapping_t)));
-    MEADOW_TRACE_INFORMATION("Payload length: %d\n", message->payload_length);
+    MEADOW_TRACE_INFORMATION("Function: 0x%08" PRIx32 " (%s)\n", message->function, lookup_value(message->function, mapping, mapping_length));
+    MEADOW_TRACE_INFORMATION("Status code: 0x%08" PRIx32 " (%s)\n", message->status_code, lookup_value(message->status_code, status_codes, sizeof(status_codes) / sizeof(meadow_debug_mapping_t)));
+    MEADOW_TRACE_INFORMATION("Payload length: %" PRIu32 "\n", message->payload_length);
     MEADOW_TRACE_INFORMATION("\n");
     MEADOW_TRACE_INFORMATION("************************************************************\n");
 }

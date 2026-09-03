@@ -167,9 +167,12 @@ bool gl_is_empty(gl_linked_list_t *list)
 {
     bool is_empty = false;
 
-    gl_lock(list);
-    is_empty = (list->head == NULL);
-    gl_unlock(list);
+    if (list != NULL)
+    {
+        gl_lock(list);
+        is_empty = (list->head == NULL);
+        gl_unlock(list);
+    }
 
     return(is_empty);
 }
@@ -197,20 +200,24 @@ void *gl_find_item(gl_linked_list_t *list, uint32_t key, comparison_function_t c
 {
     void *data = NULL;
 
-    gl_lock(list);
-    gl_linked_list_item_t *item = list->head;
-    while ((item != NULL) && (data == NULL))
+    if (list != NULL)
     {
-        if ((*compare)(key, item->data))
+        gl_lock(list);
+        gl_linked_list_item_t *item = list->head;
+        while ((item != NULL) && (data == NULL))
         {
-            data = item->data;
+            if ((*compare)(key, item->data))
+            {
+                data = item->data;
+            }
+            else
+            {
+                item = item->child;
+            }
         }
-        else
-        {
-            item = item->child;
-        }
+        gl_unlock(list);
     }
-    gl_unlock(list);
+
     return(data);
 }
 
