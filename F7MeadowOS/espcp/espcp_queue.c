@@ -148,37 +148,6 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
 }
 
 /****************************************************************************
- * Name: espcp_delete_message_queue
- *
- * Description:
- *  Close the message queue and mark it for deletion (unlink the queue).
- * 
- *  Note that the mq_unlink method will only delete the named queue if it is
- *  not opened by another thread / process.  If it is still opened elsewhere
- *  then the it is marked for deletion later (when the final close for this
- *  queue is executed).
- *
- * Input Parameters:
- *   queue_id - ID of the queue to be closed and unlinked.
- *
- * Returned Value:
- *  OK if the queue deletion succeeded.
- *  -1 if an error occurred.
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-int espcp_delete_message_queue(struct file *queue)
-{
-    if (file_mq_close(queue) < 0)
-    {
-        return (-1);
-    }
-    return (file_mq_unlink(ESPCP_REQUEST_MESSAGE_QUEUE_NAME));
-}
-
-/****************************************************************************
  * Name: espcp_add_message_to_queue
  *
  * Description:
@@ -278,37 +247,4 @@ void *espcp_get_message_from_queue(struct file *queue)
     }
 
     return message;
-}
-
-/****************************************************************************
- * Name: espcp_queue_kill_nuttx_thread_message
- *
- * Description:
- *  Add the "Kill NUTTX Process Thread" message to the message queue.
- * 
- *  This message will eventually cause the NUTTX thread that is processing
- *  the message queue to exit.
- * 
- *  Calling this method will also close the connection to the message
- *  queue.
- * 
- * Input Parameters:
- *  queue_id - Message queue to add the kill message to.
- *
- * Returned Value:
- *  None.
- *
- * Assumptions/Limitations:
- *  None
- *
- ****************************************************************************/
-void espcp_queue_kill_nuttx_thread_message(struct file *queue)
-{
-    espcp_message_t *kill_thread_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
-    kill_thread_message->message_type = espcp_message_types_transport;
-    kill_thread_message->interface = espcp_esp32_interfaces_transport;
-    kill_thread_message->function = espcp_transport_function_kill_nuttx_thread;
-    kill_thread_message->semaphore = NULL;
-
-    espcp_add_message_to_queue(queue, kill_thread_message);
 }

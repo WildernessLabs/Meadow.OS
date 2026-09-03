@@ -79,7 +79,5 @@
  * Public Function Prototypes
  ****************************************************************************/
 int espcp_thread_start(espcp_configuration_t *);
-bool espcp_is_thead_running(espcp_configuration_t *);
-int espcp_thread_stop(espcp_configuration_t *);
 
 #endif // __ESPCP_THREAD_H

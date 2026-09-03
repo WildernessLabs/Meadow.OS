@@ -44,7 +44,6 @@
 #include <debug.h>
 #include <fcntl.h>
 
-#include "espcp_wifi.h"
 #include "espcp_shared_enums.h"
 #include "espcp_message.h"
 #include "espcp_encoders.h"

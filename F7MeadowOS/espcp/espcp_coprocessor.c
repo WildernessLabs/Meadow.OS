@@ -296,7 +296,6 @@ static espcp_configuration_t *espcp_get_default_configuration(void)
         config->current_mode = espcp_mode_unknown;
         config->thread_running = false;
         config->esp_not_responding = true;
-        config->uart_monitor_thread_running = false;
         config->send_data_to_esp32 = espcp_send_data_over_spi;
         config->header_only_buffer_size = espcp_calculate_spi_buffer_size(ESPCP_MESSAGE_HEADER_SIZE);
         config->header = (uint8_t *) kmm_zalloc(config->header_only_buffer_size);

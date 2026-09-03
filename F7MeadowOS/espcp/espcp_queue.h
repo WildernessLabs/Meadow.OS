@@ -116,10 +116,8 @@
  * Public Function Prototypes
  ****************************************************************************/
 bool espcp_create_message_queues(espcp_configuration_t *);
-int espcp_delete_message_queue(struct file *);
 int espcp_add_message_to_queue(struct file *, espcp_message_t *);
 int espcp_queue_add_nonblocking_message(uint8_t, uint8_t, uint32_t, uint8_t *, uint32_t);
 void *espcp_get_message_from_queue(struct file *);
-void espcp_queue_kill_nuttx_thread_message(struct file *);
 
 #endif /* __ESPCP_QUEUE_H */

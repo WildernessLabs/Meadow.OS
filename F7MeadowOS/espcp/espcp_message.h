@@ -49,35 +49,6 @@
  * Definitions
  ****************************************************************************/
 
-/**
- *  Default constructor for a Message structure.
- */
-#define DEFAULT_ESPCP_MESSAGE = \
-    { \
-        message_type = 0, \
-        interface = 0 \
-        function = 0, \
-        status_code = 0, \
-        message_id = 0, \
-        payload = NULL, \
-        payload_length = 0 \
-    }
-
-/**
- *  Default constructor for a Message structure.
- */
-#define DEFAULT_ESPCP_GET_RESPONSE_MESSAGE = \
-    { \
-        message_type = 0, \
-        interface = 0 \
-        function = 0, \
-        status_code = 0, \
-        message_id = 0, \
-        payload = NULL, \
-        payload_length = 0 \
-    }
-
-
 /****************************************************************************
  * Private Constants
  ****************************************************************************/

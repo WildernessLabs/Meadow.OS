@@ -167,7 +167,6 @@ Key modules:
 | `espcp_queue.c` | Thread-safe message queues between reader/writer threads |
 | `espcp_thread.c` | UART reader/writer threads |
 | `espcp_usrsock_sockif.c` | Implements the NuttX `usrsock` socket interface over ESPCP |
-| `espcp_wifi.c` | WiFi-specific commands (connect, scan, credentials) |
 | `espcp_encoders.c` | Protocol field encoders |
 | `espcp_system.c` | ESP32 system-level commands (reset, version) |
 | `espcp_file_system.c` | File operations forwarded to ESP32 flash |
