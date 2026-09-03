@@ -95,7 +95,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: espcp_is_thead_running
+ * Name: espcp_is_thread_running
  *
  * Description:
  *  Check the configuration object to see if the ESP32 coprocessor thread is
@@ -160,13 +160,12 @@ static void *espcp_thread(void *parameters)
     espcp_configuration_t *configuration = parameters;
 #endif
 
-    bool thread_running = true;
-    configuration->thread_running = thread_running;
+    configuration->thread_running = true;
 #ifdef CONFIG_BUILD_PROTECTED
     espcp_config_unlock();
 #endif
 
-    while (thread_running)
+    while (true)
     {
         espcp_message_t *retrieved_message;
         MEADOW_TRACE_INFORMATION("Retrieving message to send to ESP32.\n");
@@ -175,33 +174,16 @@ static void *espcp_thread(void *parameters)
         {
             if (retrieved_message != NULL)
             {
-                if ((retrieved_message->message_type == espcp_message_types_transport) && (retrieved_message->function == espcp_transport_function_kill_nuttx_thread))
+                MEADOW_TRACE_INFORMATION("Waiting for SPI interface.\n");
+                espcp_spi_interface_lock();
+                MEADOW_TRACE_INFORMATION("Sending message.\n");
+                if ((retrieved_message->interface == espcp_esp32_interfaces_transport) && (retrieved_message->function == espcp_transport_function_send_response))
                 {
-                    thread_running = false;
-                    espcp_config_lock();
-                    configuration->thread_running = thread_running;
-                    configuration->exit_code = OK;
-                    espcp_config_unlock();
-                    free(retrieved_message);
-#ifdef CONFIG_BUILD_PROTECTED
-                    kthread_delete(0);
-#else
-                    pthread_exit(configuration);
-#endif
+                    espcp_get_message(configuration, retrieved_message);
                 }
                 else
                 {
-                    MEADOW_TRACE_INFORMATION("Waiting for SPI interface.\n");
-                    espcp_spi_interface_lock();
-                    MEADOW_TRACE_INFORMATION("Sending message.\n");
-                    if ((retrieved_message->interface == espcp_esp32_interfaces_transport) && (retrieved_message->function == espcp_transport_function_send_response))
-                    {
-                        espcp_get_message(configuration, retrieved_message);
-                    }
-                    else
-                    {
-                        espcp_send_message(configuration, retrieved_message);
-                    }
+                    espcp_send_message(configuration, retrieved_message);
                 }
             }
         }
@@ -235,15 +217,14 @@ int espcp_thread_start(espcp_configuration_t *configuration)
 {
     if (espcp_is_thread_running(configuration))
     {
-        return (EALREADY);
+        return (-EALREADY);
     }
 
     int result = OK;
-    int thread_id = 0;
 
 #ifdef CONFIG_BUILD_PROTECTED
-    thread_id = kthread_create(ESPCP_THREAD_NAME, ESPCP_THREAD_PRIORITY,
-                               ESPCP_THREAD_STACKSIZE, (main_t) espcp_thread, (char *const *) NULL);
+    int thread_id = kthread_create(ESPCP_THREAD_NAME, ESPCP_THREAD_PRIORITY,
+                                   ESPCP_THREAD_STACKSIZE, (main_t) espcp_thread, (char *const *) NULL);
 
     if (thread_id <= 0)
     {
@@ -292,7 +273,9 @@ int espcp_thread_start(espcp_configuration_t *configuration)
         result = -1;
     }
 
+#ifdef CONFIG_BUILD_PROTECTED
     configuration->thread = thread_id;
+#endif
     configuration->exit_code = result;
     espcp_config_unlock();
 
