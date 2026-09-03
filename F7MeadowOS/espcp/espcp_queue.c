@@ -279,36 +279,3 @@ void *espcp_get_message_from_queue(struct file *queue)
 
     return message;
 }
-
-/****************************************************************************
- * Name: espcp_queue_kill_nuttx_thread_message
- *
- * Description:
- *  Add the "Kill NUTTX Process Thread" message to the message queue.
- * 
- *  This message will eventually cause the NUTTX thread that is processing
- *  the message queue to exit.
- * 
- *  Calling this method will also close the connection to the message
- *  queue.
- * 
- * Input Parameters:
- *  queue_id - Message queue to add the kill message to.
- *
- * Returned Value:
- *  None.
- *
- * Assumptions/Limitations:
- *  None
- *
- ****************************************************************************/
-void espcp_queue_kill_nuttx_thread_message(struct file *queue)
-{
-    espcp_message_t *kill_thread_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
-    kill_thread_message->message_type = espcp_message_types_transport;
-    kill_thread_message->interface = espcp_esp32_interfaces_transport;
-    kill_thread_message->function = espcp_transport_function_kill_nuttx_thread;
-    kill_thread_message->semaphore = NULL;
-
-    espcp_add_message_to_queue(queue, kill_thread_message);
-}
