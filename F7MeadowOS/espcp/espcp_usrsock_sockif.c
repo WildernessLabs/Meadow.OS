@@ -161,12 +161,6 @@ const struct sock_intf_s g_usrsock_sockif =
  ****************************************************************************/
 
 /*
- *  Static pointer to the name of the file being compiled.  This is used for
- *  logging and making it a static variable ensure that one one instance exists.
- */
-static char *_thisFile = __FILE__;
-
-/*
  *  Linked list holding the list of poll requests that are in progress
  *  on the ESP32.
  */
@@ -1342,7 +1336,7 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                         lifr->lifr_flags |= IFF_WIFI;
                                         break;
                                     default:
-                                        MEADOW_TRACE_CRITICAL("%s@%d Unknown ioctl command %08x.\n", _thisFile, __LINE__, cmd);
+                                        MEADOW_TRACE_CRITICAL("%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
                                         result = -EINVAL;
                                         break;
                                 }
@@ -1809,7 +1803,7 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
 
     if (message->payload == NULL)
     {
-        syslog(LOG_ERR, "%s@%d Poll interrupt event has no payload.\n", _thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d Poll interrupt event has no payload.\n", __FILE__, __LINE__);
         espcp_delete_message_and_payload(message);
         return;
     }
@@ -3444,5 +3438,5 @@ int espcp_usrsock_getaddrinfo(const char *hostname, const char *servname,
  ****************************************************************************/
 void espcp_usrsock_not_implemented(const char *source)
 {
-    syslog(LOG_CRIT, "%s@%d %s not implemented.\n", _thisFile, __LINE__, source);
+    syslog(LOG_CRIT, "%s@%d %s not implemented.\n", __FILE__, __LINE__, source);
 }
