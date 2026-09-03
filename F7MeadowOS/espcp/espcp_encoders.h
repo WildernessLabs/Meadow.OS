@@ -11,6 +11,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#include <meadow/espcp.h>
+
 #include "espcp_shared_enums.h"
 #include "espcp_message.h"
 
@@ -452,14 +455,10 @@ struct espcp_get_sock_peer_name_response_s
 };
 typedef struct espcp_get_sock_peer_name_response_s espcp_get_sock_peer_name_response_t;
 
-struct espcp_event_data_s
-{
-    uint8_t interface;
-    uint32_t function;
-    uint32_t status_code;
-    uint32_t message_id;
-};
-typedef struct espcp_event_data_s espcp_event_data_t;
+/*
+ *  espcp_event_data_s / espcp_event_data_t are shared with user space and are
+ *  defined in <meadow/espcp.h>.
+ */
 
 struct espcp_event_data_payload_s
 {

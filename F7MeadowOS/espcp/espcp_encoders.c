@@ -3236,7 +3236,7 @@ void espcp_encode_event_data(espcp_event_data_t *event_data, uint8_t *buffer)
 ****************************************************************************/
 int espcp_event_data_buffer_size(espcp_event_data_t *event_data)
 {
-    return(13);
+    return(ESPCP_EVENT_DATA_SIZE);
 }
 
 /****************************************************************************

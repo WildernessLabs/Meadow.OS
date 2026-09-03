@@ -55,6 +55,8 @@
 #include <nuttx/mqueue.h>
 #include <nuttx/config.h>
 
+#include <meadow/espcp.h>
+
 #include "espcp_coprocessor.h"
 #include "espcp_message.h"
 
@@ -64,34 +66,10 @@
 
 /****************************************************************************
  * 
- *  Name of the message queue used to store the outbound messages.
+ *  The message queue names, the maximum queue length and the default message
+ *  priority are shared with user space and live in <meadow/espcp.h>.
  * 
 ****************************************************************************/
-#define ESPCP_REQUEST_MESSAGE_QUEUE_NAME    "/Esp32Requests"
-
-#define ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME    "/IncomingEvents"
-
-/****************************************************************************
- * 
- *  Name of the message queue used to store the event messages.
- * 
-****************************************************************************/
-#define ESPCP_EVENT_MESSAGE_QUEUE_NAME      "/Esp32Events"
-
-/****************************************************************************
- * 
- *  Maximum number of messages that can be added to the outbound message
- *  queue.
- * 
-****************************************************************************/
-#define ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH 10
-
-/****************************************************************************
- * 
- *  Priority of the messages added to the message queue.
- * 
-****************************************************************************/
-#define ESPCP_DEFAULT_MESSAGE_PRIORITY 1
 
 /****************************************************************************
  * Private Types

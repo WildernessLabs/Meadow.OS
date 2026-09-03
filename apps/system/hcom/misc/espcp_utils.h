@@ -42,6 +42,7 @@
  ****************************************************************************/
 
 #include "../hcom_common.h"
+#include <meadow/espcp.h>
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os.h>
@@ -50,12 +51,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH       10
-#define ESPCP_EVENT_DATA_SIZE                    13
-#define ESPCP_EVENT_MESSAGE_QUEUE_NAME           "/Esp32Events"
-#define ESPCP_REQUEST_MESSAGE_QUEUE_NAME         "/Esp32Requests"
-#define ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME   "/IncomingEvents"
-#define ESPCP_DEFAULT_MESSAGE_PRIORITY           1
+/*
+ *  The queue names, ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH,
+ *  ESPCP_DEFAULT_MESSAGE_PRIORITY and ESPCP_EVENT_DATA_SIZE are shared with
+ *  the kernel-side driver and come from <meadow/espcp.h>.
+ */
 
 // Note: Most of these definitions are in the esp32 codebase (espcp_shared_enums.h)
 #define ESPCP_CELL_CONNECTED_EVENT        0x00
@@ -82,14 +82,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-struct espcp_event_data_s
-{
-    uint8_t interface;
-    uint32_t function;
-    uint32_t status_code;
-    uint32_t message_id;
-};
-typedef struct espcp_event_data_s espcp_event_data_t;
+/*
+ *  espcp_event_data_s / espcp_event_data_t come from <meadow/espcp.h>.
+ */
 
 /****************************************************************************
  * Public Functions
