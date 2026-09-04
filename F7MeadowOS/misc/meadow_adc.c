@@ -128,7 +128,8 @@
 #define MEADOW_ADC_MAX_NUMBER_OF_ADC_INPUTS (16 + 3)
 
 // Each analog input is digitized to a 12-bit number
-#define MEADOW_ADC_MAX_DMA_BUFFER_SIZE (MEADOW_ADC_MAX_NUMBER_OF_ADC_INPUTS * sizeof(uint16_t))
+#define MEADOW_ADC_MAX_DMA_BUFFER_ELEMENTS (MEADOW_ADC_MAX_NUMBER_OF_ADC_INPUTS)
+#define MEADOW_ADC_MAX_DMA_BUFFER_SIZE (MEADOW_ADC_MAX_DMA_BUFFER_ELEMENTS * sizeof(uint16_t))
 
 // From Datasheet-Internal reference addresses of parameter TS_CAL1, TS_CAL2
 // (Table 79) and VREFINT_CAL (Table 81).
@@ -185,8 +186,9 @@ static uint8_t _gpioAdcChanMap[] =
 #define MEADOW_ADC_GPIO_CHAN_MAP_LENGTH (sizeof(_gpioAdcChanMap))
 
 DMA_HANDLE _dmaHandle;
-uint16_t _dmaAdcBuf[MEADOW_ADC_MAX_DMA_BUFFER_SIZE];     // This will contain ADC values (0-4095)
 
+// This will contain ADC values (0-4095)
+uint16_t _dmaAdcBuf[MEADOW_ADC_MAX_DMA_BUFFER_ELEMENTS];
 // These are user provided configuration values that must be persisted.
 double *_userVoltageResultBuf;
 static uint32_t _userGpioXferCount;
@@ -216,14 +218,19 @@ static void meadow_adc_turn_on(void);
 static void meadow_adc_restart(void);
 static int meadow_adc_chan_from_pinid(uint32_t pinId, uint32_t *adcInputChan);
 static int meadow_adc_fill_seq_chan(uint32_t *regval, uint32_t seqRegMaxGpios,
-          uint32_t initRegShift, uint8_t *userGpioList);
-static int meadow_adc_read_injected_temp_vref(uint16_t *adcTempReading, uint16_t *adcVrefInCal);
+  uint32_t initRegShift, uint8_t *userGpioList);
+static int meadow_adc_read_injected_temp_vref(uint16_t *adcTempReading,
+  uint16_t *adcVrefInCal);
 static int meadow_adc_read_injected_vbat(uint16_t *adcBatteryReading);
-static int meadow_adc_convert_adc_to_voltage(uint16_t adcValue, double *convertedVoltage);
+static int meadow_adc_convert_adc_to_voltage(uint16_t adcValue,
+  double *convertedVoltage);
 static int meadow_adc_check_first_func_call(void);
-static int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount, uint8_t *userGpioList);
-static void meadow_adc_initialize(uint16_t *dmaAdcBuf, uint32_t userGpioXferCount);
-static int meadow_adc_read_injected_common(uint16_t *analogIn18, uint16_t *analogIn17);
+static int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount,
+  uint8_t *userGpioList);
+static void meadow_adc_initialize(uint16_t *dmaAdcBuf,
+  uint32_t userGpioXferCount);
+static int meadow_adc_read_injected_common(uint16_t *analogIn18,
+  uint16_t *analogIn17);
 static int meadow_adc_free_configuration_resources(void);
 
 /************************************************************************************
@@ -448,26 +455,26 @@ static void meadow_adc_buffer_takesem(sem_t *semaphore)
 // Only for TESTING
 static void adc_test_display_basic_adc_regs(uint32_t baseADCAddr)
 {
-  syslog(LOG_MTEST, "SR:  0x%08x CR1:  0x%08x CR2:  0x%08x\n",
+  syslog(LOG_MTEST, "SR:  0x%08" PRIx32 " CR1:  0x%08" PRIx32 " CR2:  0x%08" PRIx32 "\n",
         getreg32(baseADCAddr + STM32_ADC_SR_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_CR1_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_CR2_OFFSET));
 
-  syslog(LOG_MTEST, "SQR1: 0x%08x SQR2: 0x%08x SQR3: 0x%08x\n",
+  syslog(LOG_MTEST, "SQR1: 0x%08" PRIx32 " SQR2: 0x%08" PRIx32 " SQR3: 0x%08" PRIx32 "\n",
         getreg32(baseADCAddr + STM32_ADC_SQR1_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_SQR2_OFFSET),
         getreg32(baseADCAddr + STM32_ADC_SQR3_OFFSET));
 
-  syslog(LOG_MTEST, "CCR:  0x%08x\n", getreg32(STM32_ADC_CCR));
+  syslog(LOG_MTEST, "CCR:  0x%08" PRIx32 "\n", getreg32(STM32_ADC_CCR));
 }
 
 static void adc_test_display_basic_dma_regs(void)
 {
-  syslog(LOG_MTEST, "S0CR:  0x%08x  S0NDTR: 0x%08x\n",
+  syslog(LOG_MTEST, "S0CR:  0x%08" PRIx32 "  S0NDTR: 0x%08" PRIx32 "\n",
         getreg32(STM32_DMA2_S4CR),
         getreg32(STM32_DMA2_S4NDTR));
 
-  syslog(LOG_MTEST, "S0PAR: 0x%08x  S0M0AR: 0x%08x S0M1AR: 0x%08x\n",
+  syslog(LOG_MTEST, "S0PAR: 0x%08" PRIx32 "  S0M0AR: 0x%08" PRIx32 " S0M1AR: 0x%08" PRIx32 "\n",
         getreg32(STM32_DMA2_S4PAR),
         getreg32(STM32_DMA2_S4M0AR),
         getreg32(STM32_DMA2_S4M1AR));
@@ -521,7 +528,8 @@ static int meadow_adc_fill_seq_chan(uint32_t *regval, uint32_t seqRegGpios,
 // This function will place the GPIO information into the sequence registers.
 // This informs the ADC which GPIOs to convert and what order to do the
 // conversion.
-int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount, uint8_t *userGpioList)
+int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount,
+  uint8_t *userGpioList)
 {
   uint32_t regval;
   
@@ -556,7 +564,8 @@ int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount, uint8_t *userGpi
       remainingCnt = 0;
     }
 
-    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT, userGpioList);
+    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT,
+      userGpioList);
     if(ret < 0)
       return ret;    // Error
   }
@@ -578,7 +587,8 @@ int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount, uint8_t *userGpi
       remainingCnt = 0;
     }
 
-    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT, userGpioList);
+    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT,
+              userGpioList + MEADOW_ADC_SEQ_3_REGISTER_TOTAL);
     if(ret < 0)
       return ret;    // Error
   }
@@ -600,7 +610,9 @@ int meadow_adc_config_sequence_regs(uint32_t userGpioXferCount, uint8_t *userGpi
       remainingCnt = 0;
     }
 
-    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT, userGpioList);
+    ret = meadow_adc_fill_seq_chan(&regval, regCount, ADC_SQR3_SQ1_SHIFT,
+              userGpioList + MEADOW_ADC_SEQ_3_REGISTER_TOTAL +
+              MEADOW_ADC_SEQ_2_REGISTER_TOTAL);
     if(ret < 0)
       return ret;    // Error
   }
@@ -647,7 +659,8 @@ int meadow_adc_read_injected_common(uint16_t *analogIn18, uint16_t *analogIn17)
 
 //======================================================================
 // Using injection get the adc value (0-4095) for temp and vbat
-int meadow_adc_read_injected_temp_vref(uint16_t *adcTempReading, uint16_t *adcVrefInCal)
+int meadow_adc_read_injected_temp_vref(uint16_t *adcTempReading,
+   uint16_t *adcVrefInCal)
 {
   int ret;
   uint32_t regval;
@@ -1119,7 +1132,14 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
     ret = meadow_adc_free_configuration_resources();
     return ret;
   }
-  
+
+  if(gpioCount > MEADOW_ADC_GPIO_CHAN_MAP_LENGTH)
+  {
+    syslog(LOG_ERR, "%s@%d-gpioCount:%lu exceeds max of %u\n",
+              __FILE__, __LINE__, gpioCount, MEADOW_ADC_GPIO_CHAN_MAP_LENGTH);
+    return -EINVAL;   // Invalid argument
+  }
+
   if(resultBuffer == NULL)
   {
     syslog(LOG_ERR, "%s@%d-resultBuffer is NULL\n",
@@ -1127,7 +1147,7 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
     return -EINVAL;   // Invalid argument
   }
   
-  // Verify GPIO list is valid
+  // Verify GPIO is in the list of valid GPIOs
   for(gpioListOff = 0; gpioListOff < gpioCount; gpioListOff++)
   {
     // Look for matching port/pin in the list

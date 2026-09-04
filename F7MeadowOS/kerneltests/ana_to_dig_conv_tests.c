@@ -69,7 +69,7 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-#pragma GCC optimize "Og"
+// #pragma GCC optimize "Og"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -114,6 +114,7 @@ enum
   readTempBatOnce   = 6,
   readGpioAnaOften  = 7,
   readTempBatOften  = 8,
+  verifySeqRegs     = 9,    // Configure 16 GPIOs, verify SQR1/2/3 contents
 };
 
 /************************************************************************************
@@ -121,6 +122,7 @@ enum
  ************************************************************************************/
 
 static void adc_test_initialize(uint32_t numberGpio);
+static void adc_test_verify_seq_regs(void);
 static int adc_test_create_testing_thread(void);
 static void *adc_test_kthread_func(int argc, char *argv[]);
 static void show_all_data_in_buffer(char *headerText, double dataBuffer[],
@@ -214,6 +216,12 @@ void meadow_kt_adc_tests(uint32_t userData)
      adc_test_create_testing_thread();
       break;
 
+    case verifySeqRegs:
+      syslog(LOG_MTEST, "--------------- verifySeqRegs ---------------\n");
+      usleep(20 * 1000);
+      adc_test_verify_seq_regs();
+      break;
+
     default:
       syslog(LOG_MTEST, "Undefined test for meadow_kt_adc_tests, userData:%lu\n",
         userData);
@@ -259,20 +267,27 @@ void adc_test_initialize(uint32_t numberGpio)
   gpioList[3]  = GPIO_V2_A03_IN8_PB0  & 0x000000ff;
   gpioList[4]  = GPIO_V2_A04_IN9_PB1  & 0x000000ff;
   gpioList[5]  = GPIO_V2_A05_IN10_PC0 & 0x000000ff;
-  // Note: because the ADC sequence registers 3 and 2 both hold 6 GPIOs and
-  // the Meadow has 6 GPIOs for ADC the pattern will repeat itself in these
-  // registers.
-  gpioList[6]  = GPIO_V2_A00_IN4_PA4  & 0x000000ff;
-  gpioList[7]  = GPIO_V2_A01_IN5_PA5  & 0x000000ff;
-  gpioList[8]  = GPIO_V2_A02_IN3_PA3  & 0x000000ff;
-  gpioList[9]  = GPIO_V2_A03_IN8_PB0  & 0x000000ff;
-  gpioList[10] = GPIO_V2_A04_IN9_PB1  & 0x000000ff;
-  gpioList[11] = GPIO_V2_A05_IN10_PC0 & 0x000000ff;
+  // Entries 6-15 used to repeat entries 0-5/0-3 above, on the assumption
+  // that only 6 GPIOs are physically wired for ADC on this board. But that
+  // made the sequence registers 2 and 1 always get filled with the same
+  // values as register 3, which masked Issue #403's finding that the calls
+  // filling SQR2/SQR1 never advanced past the caller's first 6 list entries
+  // -- the bug and the (buggy) test produced identical output. These are
+  // not physically wired to anything meaningful, but every value here is a
+  // genuinely distinct, valid ADC channel (see _gpioAdcChanMap in
+  // meadow_adc.c), so SQR2/SQR1 each get content that could only be correct
+  // if the pointer into userGpioList was actually advanced.
+  gpioList[6]  = 0x00;  // PA0  -> ADC channel 0
+  gpioList[7]  = 0x01;  // PA1  -> ADC channel 1
+  gpioList[8]  = 0x02;  // PA2  -> ADC channel 2
+  gpioList[9]  = 0x06;  // PA6  -> ADC channel 6
+  gpioList[10] = 0x07;  // PA7  -> ADC channel 7
+  gpioList[11] = 0x21;  // PC1  -> ADC channel 11
 
-  gpioList[12] = GPIO_V2_A00_IN4_PA4  & 0x000000ff;
-  gpioList[13] = GPIO_V2_A01_IN5_PA5  & 0x000000ff;
-  gpioList[14] = GPIO_V2_A02_IN3_PA3  & 0x000000ff;
-  gpioList[15] = GPIO_V2_A03_IN8_PB0  & 0x000000ff;
+  gpioList[12] = 0x22;  // PC2  -> ADC channel 12
+  gpioList[13] = 0x23;  // PC3  -> ADC channel 13
+  gpioList[14] = 0x24;  // PC4  -> ADC channel 14
+  gpioList[15] = 0x25;  // PC5  -> ADC channel 15
 
   // syslog(LOG_MTEST, "----- gpioList contains -----\n");
   // hcom_nx_diag_print_buffer(gpioList, 16, 1);
@@ -285,6 +300,81 @@ void adc_test_initialize(uint32_t numberGpio)
       __FILE__, __LINE__, ret, errno);
     usleep(20 * 1000);
   }
+}
+
+//===================================================================
+// Configures 16 GPIOs using channels 0-15 in ascending order, then reads
+// back the ADC_SQR1/2/3 registers and confirms each sequence slot holds
+// the expected channel number. Unlike adc_test_initialize()'s list (which
+// prioritizes exercising the board's physically-wired analog pins),
+// ascending channel order here makes the expected register contents known
+// ahead of time -- SQR3 should hold channels 0-5, SQR2 channels 6-11, and
+// SQR1 channels 12-15, each in slot order -- so this directly catches a
+// regression of Issue #403's finding (the SQR2/SQR1 fill calls not
+// advancing past the first 6 entries of the caller's GPIO list) without
+// needing a human to read a register dump and do the bit math by hand.
+static void adc_test_verify_seq_regs(void)
+{
+  uint8_t seqTestGpioList[ADC_TESTS_MAX_GPIO_COUNT] =
+  {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05,   // PA0-PA5        -> channels 0-5
+    0x06, 0x07, 0x10, 0x11, 0x20, 0x21,   // PA6,PA7,PB0,PB1,PC0,PC1 -> 6-11
+    0x22, 0x23, 0x24, 0x25                // PC2-PC5        -> channels 12-15
+  };
+  double resultBuf[ADC_TESTS_MAX_GPIO_COUNT];
+  int ret;
+  uint32_t regval;
+  uint32_t chan;
+  bool pass = true;
+
+  ret = meadow_adc_configure(seqTestGpioList, ADC_TESTS_MAX_GPIO_COUNT, resultBuf);
+  if(ret < 0)
+  {
+    syslog(LOG_MTEST, "FAIL:verifySeqRegs - meadow_adc_configure() ret:%d\n", ret);
+    return;
+  }
+
+  // SQR3 (indices 0-5) should hold channels 0-5 in slots 1-6.
+  regval = getreg32(STM32_ADC1_BASE + STM32_ADC_SQR3_OFFSET);
+  for(int slot = 0; slot < 6; slot++)
+  {
+    chan = (regval >> (slot * 5)) & 0x1f;
+    if(chan != (uint32_t)slot)
+    {
+      syslog(LOG_MTEST, "FAIL:verifySeqRegs - SQR3 slot %d expected chan %d, got %" PRIu32 "\n",
+                slot, slot, chan);
+      pass = false;
+    }
+  }
+
+  // SQR2 (indices 6-11) should hold channels 6-11 in slots 1-6.
+  regval = getreg32(STM32_ADC1_BASE + STM32_ADC_SQR2_OFFSET);
+  for(int slot = 0; slot < 6; slot++)
+  {
+    chan = (regval >> (slot * 5)) & 0x1f;
+    if(chan != (uint32_t)(6 + slot))
+    {
+      syslog(LOG_MTEST, "FAIL:verifySeqRegs - SQR2 slot %d expected chan %d, got %" PRIu32 "\n",
+                slot, 6 + slot, chan);
+      pass = false;
+    }
+  }
+
+  // SQR1 (indices 12-15) should hold channels 12-15 in slots 1-4.
+  regval = getreg32(STM32_ADC1_BASE + STM32_ADC_SQR1_OFFSET);
+  for(int slot = 0; slot < 4; slot++)
+  {
+    chan = (regval >> (slot * 5)) & 0x1f;
+    if(chan != (uint32_t)(12 + slot))
+    {
+      syslog(LOG_MTEST, "FAIL:verifySeqRegs - SQR1 slot %d expected chan %d, got %" PRIu32 "\n",
+                slot, 12 + slot, chan);
+      pass = false;
+    }
+  }
+
+  syslog(LOG_MTEST, "%s:verifySeqRegs - sequence register contents %s expected\n",
+        pass ? "PASS" : "FAIL", pass ? "match" : "do not match");
 }
 
 //===================================================================
