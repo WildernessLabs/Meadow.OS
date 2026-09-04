@@ -146,7 +146,7 @@ void meadow_kt_adc_tests(uint32_t userData)
   
   switch(userData)
   {
-    case configure0Gpio:
+    case configure0Gpio: // (1)
       // Initialize test code
       syslog(LOG_MTEST, "--------------- configure-0-Gpio ---------------\n");
       usleep(20 * 1000);
@@ -154,14 +154,14 @@ void meadow_kt_adc_tests(uint32_t userData)
       _numbGpioActive = 0;
       break;
 
-    case configure1Gpio:
+    case configure1Gpio: // (2)
       // Initialize test code
       syslog(LOG_MTEST, "--------------- configure-1-Gpio ---------------\n");
       usleep(20 * 1000);
       adc_test_initialize(1);
       _numbGpioActive = 1;
       break;
-    case configure8Gpio:
+    case configure8Gpio: // (3)
       // Initialize test code
       syslog(LOG_MTEST, "--------------- configure-8-Gpio ---------------\n");
       usleep(20 * 1000);
@@ -169,7 +169,7 @@ void meadow_kt_adc_tests(uint32_t userData)
       _numbGpioActive = 8;
       break;
 
-    case configure16Gpio:
+    case configure16Gpio: // (4)
       // Initialize test code
       syslog(LOG_MTEST, "--------------- configure-16-Gpio ---------------\n");
       usleep(20 * 1000);
@@ -178,7 +178,7 @@ void meadow_kt_adc_tests(uint32_t userData)
       break;
 
       // Read the data here after configuring
-    case readGpioAnaOnce:
+    case readGpioAnaOnce: // (5)
       syslog(LOG_MTEST, "--------------- readGpioAnaOnce ---------------\n");
       usleep(20 * 1000);
       ret = meadow_adc_read_values();
@@ -187,10 +187,11 @@ void meadow_kt_adc_tests(uint32_t userData)
         syslog(LOG_ERR, "Error:GPIO conversion, ret:%d\n", ret);
       }
       // Show information in the buffer
+      _numbGpioActive = 1;
       show_all_data_in_buffer("TestApp", _voltageResultBuf, _numbGpioActive);
       break;
 
-    case readTempBatOnce:
+    case readTempBatOnce: // (6)
       syslog(LOG_MTEST, "--------------- readTempBatOnce ---------------\n");
       // Read the internal values of battery and temperature once
       ret = meadow_adc_read_temp_vbat(&batteryVoltage, &temperatureValue);
@@ -202,21 +203,21 @@ void meadow_kt_adc_tests(uint32_t userData)
         batteryVoltage, temperatureValue);
       break;
     
-    case readGpioAnaOften:
+    case readGpioAnaOften: // (7)
       syslog(LOG_MTEST, "--------------- readGpioAnaOften ---------------\n");
       usleep(20 * 1000);
       // Create a thread to test standard GPIO ADC operation often
       adc_test_create_testing_thread();
       break;
 
-    case readTempBatOften:
+    case readTempBatOften: // (8)
       syslog(LOG_MTEST, "--------------- readTempBatOften ---------------\n");
       usleep(20 * 1000);
       // Create a thread to test getting temperature & Vbat often
      adc_test_create_testing_thread();
       break;
 
-    case verifySeqRegs:
+    case verifySeqRegs: // (9)
       syslog(LOG_MTEST, "--------------- verifySeqRegs ---------------\n");
       usleep(20 * 1000);
       adc_test_verify_seq_regs();
@@ -420,6 +421,7 @@ void *adc_test_kthread_func(int argc, char *argv[])
       char textBuf[64];
       snprintf_chk(textBuf, sizeof(textBuf), "%04d-%s", chkCnt + 1, "Test App");
 
+      _numbGpioActive = 1;
       show_all_data_in_buffer(textBuf, _voltageResultBuf, _numbGpioActive);
     }
     else if(_userData == readTempBatOften)
@@ -475,7 +477,7 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
   do
   {
     // Add address of offset to beginning of line
-    lineBuffOff = snprintf(lineBuff, disp_total_line_len, "%08" PRIx32, dmaBuffOff);
+    lineBuffOff = snprintf(lineBuff, disp_total_line_len, "%08" PRIx32 " ", dmaBuffOff);
 
     // Build a full row of data then print it
     for(columnCnt = 0; columnCnt < disp_max_per_row; columnCnt++)
