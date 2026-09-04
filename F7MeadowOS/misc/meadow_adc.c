@@ -48,6 +48,7 @@
 #include <string.h>
 
 #include <nuttx/arch.h>   // up_enable_irq
+#include <nuttx/mutex.h>
 #include "arm_internal.h"
 #include <arch/stm32f7/chip.h>
 #include "stm32_gpio.h"
@@ -204,6 +205,17 @@ static bool _hardwareConfigDone;
 static bool _isFirstTimeInitDone = false;
 static bool _isMeadowAdcInitialized;
 static bool _isReinitialization;    // Was configure called again?
+
+// Serializes the three syscall entry points (meadow_adc_configure(),
+// meadow_adc_read_values(), meadow_adc_read_temp_vbat()) against each
+// other. Held across each call's entire body, including its (bounded --
+// microseconds, waiting only on a hardware ADC-conversion interrupt)
+// semaphore wait, so a configure(gpioCount=0) teardown can never destroy
+// _gpioDoneSem/_injectionDoneSem while another call is blocked on them,
+// and _dmaHandle's read-check-free-reassign sequence can never race with
+// a concurrent call. Matches the locking upstream NuttX's own STM32F7 ADC
+// driver uses (nxmutex_lock(&priv->cmn->lock)) around its entry points.
+static mutex_t _adcLock = NXMUTEX_INITIALIZER;
 
 #if MEADOW_ADC_TEST_TOGGLE_ADC_INPUT > 0
 static int _noChangeCnt;
@@ -1127,26 +1139,34 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   adc_test_display_basic_dma_regs();
 #endif
 
+  ret = nxmutex_lock(&_adcLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   if(gpioCount == 0)
   {
     ret = meadow_adc_free_configuration_resources();
-    return ret;
+    goto errout;
   }
 
   if(gpioCount > MEADOW_ADC_GPIO_CHAN_MAP_LENGTH)
   {
     syslog(LOG_ERR, "%s@%d-gpioCount:%lu exceeds max of %u\n",
               __FILE__, __LINE__, gpioCount, MEADOW_ADC_GPIO_CHAN_MAP_LENGTH);
-    return -EINVAL;   // Invalid argument
+    ret = -EINVAL;   // Invalid argument
+    goto errout;
   }
 
   if(resultBuffer == NULL)
   {
     syslog(LOG_ERR, "%s@%d-resultBuffer is NULL\n",
               __FILE__, __LINE__);
-    return -EINVAL;   // Invalid argument
+    ret = -EINVAL;   // Invalid argument
+    goto errout;
   }
-  
+
   // Verify GPIO is in the list of valid GPIOs
   for(gpioListOff = 0; gpioListOff < gpioCount; gpioListOff++)
   {
@@ -1164,7 +1184,8 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
               __FILE__, __LINE__,
               (gpioList[gpioListOff] >> 4) + 'A',
               gpioList[gpioListOff] & 0x0f);
-      return -EINVAL;   // Invalid argument
+      ret = -EINVAL;   // Invalid argument
+      goto errout;
     }
   }
 
@@ -1174,7 +1195,7 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   {
     syslog(LOG_ERR, "%s@%d-Meadow adc config, ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // Is this a re-initialization or the first time?
@@ -1199,7 +1220,7 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
     {
       syslog(LOG_ERR, "%s@%d-Hardware initialize failed. ret:%d\n",
               __FILE__, __LINE__, ret);
-      return ret;
+      goto errout;
     }
   }
 
@@ -1210,7 +1231,7 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   {
     syslog(LOG_ERR, "%s@%d-Initialization failed. ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // Initialize ADC
@@ -1224,7 +1245,11 @@ int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount,
   adc_test_display_basic_dma_regs();
 #endif
 
-  return OK;
+  ret = OK;
+
+errout:
+  nxmutex_unlock(&_adcLock);
+  return ret;
 }
 
 //=========================================================
@@ -1236,11 +1261,18 @@ int meadow_adc_read_values(void)
 {
   int ret = OK;
 
+  ret = nxmutex_lock(&_adcLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   if(! _isMeadowAdcInitialized)
   {
     syslog(LOG_ERR, "%s@%d-Error:Meadow ADC not configured\n",
               __FILE__, __LINE__);
-    return -EPERM;    // Operation not permitted
+    ret = -EPERM;    // Operation not permitted
+    goto errout;
   }
 
   // Since not doing continous conversion we need to re-start ADC each time
@@ -1279,13 +1311,15 @@ int meadow_adc_read_values(void)
     {
       syslog(LOG_ERR, "%s@%d-Error:ADC to Voltage, ret:%d\n",
               __FILE__, __LINE__, ret);
-      return ret;
+      goto errout;
     }
 
     // Populate caller's buffer
     _userVoltageResultBuf[valOff] = convVoltage;
   }
 
+errout:
+  nxmutex_unlock(&_adcLock);
   return ret;
 }
 
@@ -1309,13 +1343,19 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
   uint16_t adcTempReading;
   uint16_t adcVrefInCal;
 
+  ret = nxmutex_lock(&_adcLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   // Check if this is the very first time any function has been called
   ret = meadow_adc_check_first_func_call();
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Reading Temp/Vbat failed. ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // Has the hardware configuration been done already?
@@ -1330,7 +1370,7 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
     {
       syslog(LOG_ERR, "%s@%d-Reading Temp/Vbat failed. ret:%d\n",
               __FILE__, __LINE__, ret);
-      return ret;
+      goto errout;
     }
   }
 
@@ -1344,7 +1384,7 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
   {
     syslog(LOG_ERR, "%s@%d-Temperature/Vref read error, ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // From Data Sheet , temperatures calibration values have been read at 30
@@ -1372,7 +1412,7 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
   {
     syslog(LOG_ERR, "%s@%d-Reading Vbat Error. ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // Convert the Vbat reading into a voltage value
@@ -1384,7 +1424,7 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
   {
     syslog(LOG_ERR, "%s@%d-VBat Conversion Error. ret:%d\n",
               __FILE__, __LINE__, ret);
-    return ret;
+    goto errout;
   }
 
   // Per Data Sheet 2.17, any voltage below 1.65 is not allowed
@@ -1393,6 +1433,10 @@ int meadow_adc_read_temp_vbat(double *batteryVoltage, double *tempValue)
   else
     *batteryVoltage = vbat;
 
-  return OK;
+  ret = OK;
+
+errout:
+  nxmutex_unlock(&_adcLock);
+  return ret;
 }
 
