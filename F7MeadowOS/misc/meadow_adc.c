@@ -1043,14 +1043,19 @@ int meadow_adc_hardware_initialize(void)
 int meadow_adc_convert_adc_to_voltage(uint16_t adcValue, double *convertedVoltage)
 {
   double calRefVal_CAL  = (double) getreg16(MEADOW_ADC_VREFINT_CAL_ADDR);
-  double voltage = (MEADOW_ADC_VOLTAGE_ADC_CAL_TAKEN * (double)adcValue * calRefVal_CAL + \
-      (_doubVrefInCal * MEADOW_ADC_MAX_ADC_COUNT_DOUBLE / 2.0)) / \
-      (_doubVrefInCal * MEADOW_ADC_MAX_ADC_COUNT_DOUBLE);
 
-  // Don't know the cause but, the voltage returned is always exactly 0.50
-  // volts too high. Tried this on different platforms (F7FeatherV2,
-  // CCM versions), it's always the same. Must be something in the math.
-  *convertedVoltage = voltage - 0.5;
+  // Per http://efton.sk/STM32/STM32_VREF.pdf eq.(4): vmeas = vcal * MEAS *
+  // CAL / (REFINT * MAX). The previous version of this line also added
+  // "+ (REFINT * MAX / 2)" to the numerator -- that's the same paper's
+  // integer-arithmetic rounding trick (add half the divisor before
+  // dividing, to round to nearest instead of truncating), which only means
+  // something when discarding an integer remainder. Applied here, where
+  // the whole calculation is already done in double, it just adds an
+  // exact +0.5V with nothing to round, which a later version of this code
+  // then compensated for with a trailing "- 0.5". Both together were an
+  // exact no-op; removed both, leaving the paper's formula directly.
+  *convertedVoltage = (MEADOW_ADC_VOLTAGE_ADC_CAL_TAKEN * (double)adcValue * calRefVal_CAL) /
+      (_doubVrefInCal * MEADOW_ADC_MAX_ADC_COUNT_DOUBLE);
   return OK;
 }
 
