@@ -54,51 +54,9 @@ idf.py monitor                  # Interactive menu selects test
 
 ### Message Flow
 
-```
-STM32 (SPI request)
-  -> SpiTransportProvider        # Hardware SPI layer
-  -> MessageDispatcher           # Routes by message type (singleton)
-      +- WiFiRequestHandler      # WiFi + POSIX socket requests
-      +- BluetoothRequestHandler # BLE requests
-      +- SystemRequestHandler    # FileSystem, NVS, system state
-  -> STM32 (SPI response)
-```
-
 Communication protocol details: `Documentation/CommunicationsOverview.md`, `Documentation/SPIProtocolOverview.md`, `Documentation/MessageFormat.md`.
 
-### Threading Model
-
-1. **Main Task** - entry point, creates handlers, then self-deletes
-2. **SPI Task** - receives/transmits SPI packets (stack: 8192 B)
-3. **Dispatcher Task** - routes messages to handlers
-4. **Handler Tasks** - WiFi, Bluetooth, System each run their own task
-5. **ThreadPool** - additional workers for parallel processing
-
-### Component Layout
-
-All source is under `components/F7Services/`:
-
-| Subdirectory | Responsibility |
-|---|---|
-| `Messaging/` | SPI transport, message dispatch, encoding, base classes |
-| `WiFi/` | WiFi connection, AP scan, POSIX socket API |
-| `Bluetooth/` | BLE manager, services, characteristics, descriptors |
-| `System/` | File system (LittleFS/SPIFFS), NVS, CoreDump, Thread/ThreadPool |
-| `Diagnostics/` | Debug utilities |
-| `Exceptions/` | Custom exception types |
-| `test/` | Unity tests + mock classes |
-
-Top-level files: `Logging.*`, `Mapping.*`, `Globals.hpp`, `Utils.*`, `ProgressiveDelay.*`, `Gpio.hpp`, `Debug.hpp`.
-
-### Flash Partitions (`partitions.csv`)
-
-| Name | Offset | Size |
-|---|---|---|
-| nvs | 0x9000 | 24 KB |
-| phy_init | 0xf000 | 4 KB |
-| factory | 0x10000 | 3.625 MB |
-| coredump | 0x3b0000 | 64 KB |
-| littlefs | 0x3c0000 | 256 KB |
+All source is under `components/F7Services/` (see that tree, and `partitions.csv` for flash layout).
 
 ## Code Conventions
 
