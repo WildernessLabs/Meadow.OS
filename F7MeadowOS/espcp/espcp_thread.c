@@ -154,16 +154,13 @@ static void *espcp_thread(void *parameters)
 #endif
 
 #ifdef CONFIG_BUILD_PROTECTED
-    espcp_config_lock();
     espcp_configuration_t *configuration = espcp_get_configuration();
 #else
     espcp_configuration_t *configuration = parameters;
 #endif
-
+    espcp_config_lock();
     configuration->thread_running = true;
-#ifdef CONFIG_BUILD_PROTECTED
     espcp_config_unlock();
-#endif
 
     while (true)
     {

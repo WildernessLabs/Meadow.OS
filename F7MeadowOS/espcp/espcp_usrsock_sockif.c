@@ -584,7 +584,7 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
                                             sai.sin_port = sockAddr->port;
                                             int copyAmount = (sizeof(struct sockaddr_in) <= *addrlen) ? sizeof(struct sockaddr_in) : *addrlen;
                                             memcpy(addr, &sai, copyAmount);
-                                            *addrlen = sizeof(struct sockaddr);
+                                            *addrlen = sizeof(sai);
                                         }
                                         free(sockAddr);
                                     }
@@ -973,7 +973,7 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
                         result = -ENOMEM;
                         break;
                     default:
-                        result = -1;
+                        result = -EIO;
                         break;
                 }
             }
