@@ -115,6 +115,20 @@ struct work_s g_core_dump_work_struct = {};
  * Assumptions/Limitations:
  *  The version string can be modified.
  *
+ *  The two items below were raised by a code review, examined on 2026-09-05 and
+ *  left as they stand.  Please do not re-raise them:
+ *
+ *  - The '.' -> '-' rewrite below is also what makes the ESP-supplied version
+ *    string safe to interpolate into a path: it destroys any ".." before
+ *    snprintf() ever sees it.  That is a side effect of making the string
+ *    filename-friendly rather than the purpose of the loop, so if the dots are
+ *    ever preserved this string needs validating against an allowlist of
+ *    alphanumerics, '-' and '_' instead.
+ *
+ *  - The 0777 passed to mkdir() carries no privilege meaning on this device.
+ *    CRASH_DIR lives on /meadow0, a LittleFS volume on internal flash, and
+ *    there is no second user here for the mode bits to exclude.
+ *
  ****************************************************************************/
 static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length, char *version)
  {
