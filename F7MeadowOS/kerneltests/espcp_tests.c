@@ -586,6 +586,8 @@ static void espcp_test_enetdown(void)
     socklen_t sockaddr_length = sizeof(struct sockaddr);
     int option_value = 1;
     struct sockaddr sa = { };
+    struct iovec iov = { .iov_base = buffer, .iov_len = buffer_length };
+    struct msghdr msg = { .msg_iov = &iov, .msg_iovlen = 1 };
 
     syslog(LOGGING_LEVEL, "********** ENETDOWN error code response checks.\n");
 
@@ -608,14 +610,8 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_connect(&psock, &sa, sizeof(struct sockaddr));
     espcp_test_check_result_equal(-ENETDOWN, result, "connect");
     //
-    result = espcp_usrsock_send(&psock, buffer, buffer_length, 0);
-    espcp_test_check_result_equal(-ENETDOWN, result, "send");
-    //
-    result = espcp_usrsock_sendto(&psock, buffer, buffer_length, 0, NULL, 0);
-    espcp_test_check_result_equal(-ENETDOWN, result, "sendto");
-    //
-    result = espcp_usrsock_recvfrom(&psock, buffer, buffer_length, 0, NULL, 0);
-    espcp_test_check_result_equal(-ENETDOWN, result, "recvfrom");
+    result = espcp_usrsock_sendmsg(&psock, &msg, 0);
+    espcp_test_check_result_equal(-ENETDOWN, result, "sendmsg");
     //
     struct socket new_sock = { };
     socklen_t new_sock_length = sizeof(new_sock);
@@ -641,8 +637,8 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_listen(&psock, 0);
     espcp_test_check_result_equal(-ENETDOWN, result, "listen");
     //
-    result = espcp_usrsock_read(&psock, buffer, buffer_length);
-    espcp_test_check_result_equal(-ENETDOWN, result, "read");
+    result = espcp_usrsock_recvmsg(&psock, &msg, 0);
+    espcp_test_check_result_equal(-ENETDOWN, result, "recvmsg");
     //
     result = espcp_usrsock_close(&psock);
     espcp_test_check_result_equal(-ENETDOWN, result, "close");

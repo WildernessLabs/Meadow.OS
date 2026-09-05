@@ -463,82 +463,6 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup);
 #endif
 
 /****************************************************************************
- * Name: usrsock_sendto
- *
- * Description:
- *   If sendto() is used on a connection-mode (SOCK_STREAM, SOCK_SEQPACKET)
- *   socket, the parameters to and 'tolen' are ignored (and the error EISCONN
- *   may be returned when they are not NULL and 0), and the error ENOTCONN is
- *   returned when the socket was not actually connected.
- *
- * Input Parameters:
- *   psock    A reference to the socket structure of the socket to be connected
- *   buf      Data to send
- *   len      Length of data to send
- *   flags    Send flags (ignored)
- *   to       Address of recipient
- *   tolen    The length of the address structure
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-ssize_t espcp_usrsock_sendto(struct socket *psock, const void *buf,
-                       size_t len, int flags, const struct sockaddr *to,
-                       socklen_t tolen);
-
-
-/****************************************************************************
- * Name: usrsock_send
- *
- * Description:
- *  send messages to a socket.
- *
- * Input Parameters:
- *   psock    A reference to the socket structure of the socket to be connected
- *   buf      Data to send
- *   len      Length of data to send
- *   flags    Send flags (ignored)
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-ssize_t espcp_usrsock_send(struct socket *psock, const void *buffer, size_t len, int flags);
-
-/****************************************************************************
- * Name: usrsock_recvfrom
- *
- * Description:
- *   recvfrom() receives messages from a socket, and may be used to receive
- *   data on a socket whether or not it is connection-oriented.
- *
- *   If from is not NULL, and the underlying protocol provides the source
- *   address, this source address is filled in. The argument fromlen
- *   initialized to the size of the buffer associated with from, and modified
- *   on return to indicate the actual size of the address stored there.
- *
- * Input Parameters:
- *   psock    A pointer to a NuttX-specific, internal socket structure
- *   buf      Buffer to receive data
- *   len      Length of buffer
- *   flags    Receive flags (ignored)
- *   from     Address of source (may be NULL)
- *   fromlen  The length of the address structure
- *
- ****************************************************************************/
-
-ssize_t espcp_usrsock_recvfrom(struct socket *psock, void *buf, size_t len,
-                         int flags, struct sockaddr *from,
-                         socklen_t *fromlen);
-
-/****************************************************************************
  * Name: usrsock_getsockopt
  *
  * Description:
@@ -670,40 +594,9 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg);
 
 void usrsock_register_sockif(const struct sock_intf_s* sockif);
 
-/****************************************************************************
- * Name: espcp_usrsock_read
- *
- * Description:
- *  Read the specified number of bytes from the socket and place them in the
- *  buffer.
- * 
- *  This method instructs the ESP32 to call the read method which will in
- *  turn call the equivalent LWIP method.
- * 
- * See:
- *  http://www.nongnu.org/lwip/2_0_x/group__socket.html#ga822040573319cf87bfe6758d511be57f
- * 
- * Input Parameters:
- * 
- *  psock - Pointer to the socket structure to read from
- *  buffer - Buffer to hold the results of the read
- *  count - Size of the buffer.
- *
- * Returned Value:
- *  If successful, the number of bytes read from the socket, -1 otherwise.
- *
- * Assumptions/Limitations:
- *  None
- *
- ****************************************************************************/
-int32_t espcp_usrsock_read(struct socket *psock, const void *buffer, size_t count);
-
-int espcp_usrsock_dup2(struct socket *old_psock, struct socket *new_psock);
 ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flags);
 int espcp_usrsock_shutdown(struct socket *psock, int how);
 ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flags);
-int espcp_usrsock_getaddrinfo(const char *hostname, const char *servname,
-                const struct addrinfo *hint, struct addrinfo **res);
 void espcp_usrsock_not_implemented(const char *source);
 void espcp_usrsock_init(void);
 
