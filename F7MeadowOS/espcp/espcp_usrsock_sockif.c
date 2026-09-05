@@ -973,7 +973,7 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
                         result = -ENOMEM;
                         break;
                     default:
-                        result = -1;
+                        result = -EIO;
                         break;
                 }
             }
