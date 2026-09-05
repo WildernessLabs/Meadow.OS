@@ -120,15 +120,27 @@ espcp_message_t *espcp_create_copy_of_message_on_heap(espcp_message_t *message, 
     if (copy_payload)
     {
         payload_length = message->payload_length;
-        payload = (uint8_t *) malloc(payload_length);
-        if (payload == NULL)
+        if ((payload_length == 0) || (message->payload == NULL))
         {
-            return(NULL);
+            payload = NULL;
+            payload_length = 0;
         }
-        memcpy((void *) payload, (void *) message->payload, (size_t) payload_length);
+        else
+        {
+            payload = (uint8_t *) malloc(payload_length);
+            if (payload == NULL)
+            {
+                return(NULL);
+            }
+            memcpy((void *) payload, (void *) message->payload, (size_t) payload_length);
+        }
     }
     espcp_message_t *new_message = espcp_create_message_on_heap(message->message_type,
         message->interface, message->function, message->status_code, message->message_id, payload, payload_length);
+    if ((new_message == NULL) && (payload != NULL))
+    {
+        free(payload);
+    }
     return(new_message);
 }
 
