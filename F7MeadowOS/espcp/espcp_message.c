@@ -489,6 +489,14 @@ void espcp_dump_message(espcp_message_t *message)
     MEADOW_TRACE_INFORMATION("ESP32 Interface: 0x%02x (%s)\n", message->interface, lookup_value(message->interface, interfaces, sizeof(interfaces) / sizeof(meadow_debug_mapping_t)));
     MEADOW_TRACE_INFORMATION("Message ID: 0x%08" PRIx32 "\n", message->message_id);
     MEADOW_TRACE_INFORMATION("Packet offset (length): %d (%d) bytes\n", message->packet_offset, message->packet_length);
+    //
+    // The function code is interface specific, so the table used to decode it is
+    // selected at runtime while the tables above are fixed at their call site.
+    // Each case assigns sizeof(table) only and the single division below converts
+    // that to an element count, keeping the conversion in one place rather than
+    // repeating it in every case.  The lengths are still sizeof derived, so the 
+    // tables can grow safely.
+    // 
     meadow_debug_mapping_t *mapping = NULL;
     uint32_t mapping_length = 0;
     switch (message->interface)
