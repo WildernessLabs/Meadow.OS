@@ -61,7 +61,6 @@
 
 // Diagnostic only
 // #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
