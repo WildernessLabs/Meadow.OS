@@ -60,7 +60,6 @@
 #include "stm32_gpio.h"
 
 // #define USE_MEADOW_DEBUG_HELPERS
-#undef USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
 // #pragma GCC optimize("O0")    // Prevent compiler from changing the code
