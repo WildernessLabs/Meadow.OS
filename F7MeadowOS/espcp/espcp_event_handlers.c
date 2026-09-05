@@ -160,16 +160,16 @@ static void *espcp_event_handler_thread(void *parameters)
 #endif
 
 #ifdef CONFIG_BUILD_PROTECTED
-    espcp_config_lock();
     espcp_configuration_t *configuration = espcp_get_configuration();
 #else
     espcp_configuration_t *configuration = parameters;
 #endif
+
     struct file *queue = &configuration->incoming_event_queue;
+    espcp_config_lock();
     configuration->incoming_event_handler_thread_running = true;
-#ifdef CONFIG_BUILD_PROTECTED
     espcp_config_unlock();
-#endif
+
     while (true)
     {
         espcp_message_t *retrieved_message;
