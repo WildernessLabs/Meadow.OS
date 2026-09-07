@@ -49,6 +49,7 @@
 #include <arch/board/board.h>
 #include <arch/arch.h>
 #include <nuttx/mqueue.h>
+#include <nuttx/mutex.h>
 #include <errno.h>
 #include "chip.h"
 #include "arm_internal.h"
@@ -240,6 +241,15 @@ static volatile int _allGpiosBeingTimedCnt = 0;
 // Incremented and decrementd during configuration to indicate how many GPIOs
 // need to be timed (only glitch and debounce GPIOs need to be timed).
 static volatile int _totalGpiosCanBeTimed = 0;
+
+// Serializes mint_config_interrupt()'s entire body (bootstrap init, add,
+// and remove paths) so the check-then-register sequence for a given
+// PinId is atomic, closing the same-pin double-registration race, the
+// first-call bootstrap-window race, and the non-atomic
+// _totalGpiosCanBeTimed counter race all at once. Safe to hold across
+// the whole call: nothing under it blocks indefinitely, it's all
+// register pokes and array/list bookkeeping.
+static mutex_t _mintConfigLock = NXMUTEX_INITIALIZER;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -433,7 +443,7 @@ static int mint_gpio_need_delay_isr(int irq, void *context, void *arg)
     // filtering which is indicated by their configured duration being > 0.
     syslog(LOG_ERR, "%s@%d-Wrong ISR mint_gpio_need_delay_isr called\n",
       __FILE__, __LINE__);
-    usleep(20 * 1000);
+    up_udelay(20 * 1000);   // usleep() is unsafe from real ISR context
     ASSERT(false);
   }
 
@@ -505,7 +515,7 @@ static int mint_isr_periodic(int irq, void *context, void *arg)
     // be timed.
     syslog(LOG_ERR, "Invalid process state %d detected\n",
               gpioInfoAddr->CurrentProcessState);
-    usleep(20 * 1000);
+    up_udelay(20 * 1000);   // usleep() is unsafe from real ISR context
     PANIC();
   }
 
@@ -1143,6 +1153,12 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     return -EINVAL;
   }
 
+  ret = nxmutex_lock(&_mintConfigLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   if(_firstTimeConfig)
   {
     _allGpiosBeingTimedCnt = 0;
@@ -1168,7 +1184,7 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
       syslog(LOG_ERR,
         "mint-(cfg)-mint_config_interrupt_prep_timer failed, ret:%d\n",
         ret);
-      return ret;
+      goto errout;
     }
   }
 
@@ -1181,10 +1197,12 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     {
       syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is not configured\n",
         __FILE__, __LINE__, pinDesignation);
-      return -ENODATA;
+      ret = -ENODATA;
+      goto errout;
     }
 
-    return mint_config_interrupt_remove(cfg, gpioInfoAddr);
+    ret = mint_config_interrupt_remove(cfg, gpioInfoAddr);
+    goto errout;
   }
 
   // Only gpio_intrpt_cfg_type_add and gpio_intrpt_cfg_type_wakeup reach here,
@@ -1197,7 +1215,8 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: PinId 0x%02x is already configured\n",
       __FILE__, __LINE__, pinDesignation);
-    return -ENOTEMPTY;
+    ret = -ENOTEMPTY;
+    goto errout;
   }
 
   // Allocate memory for this GPIO's configuration and data storage needs
@@ -1205,7 +1224,8 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
   if(gpioInfoAddr == NULL)
   {
     syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return -ENOMEM;
+    ret = -ENOMEM;
+    goto errout;
   }
 
   // We must set a few elements in the struct for this configuration
@@ -1238,6 +1258,8 @@ int mint_config_interrupt(struct mint_gpio_int_config* cfg)
     break;
   }
 
+errout:
+  nxmutex_unlock(&_mintConfigLock);
   return ret;
 }
 
@@ -1266,7 +1288,13 @@ static int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
 
   // Tell Nuttx to forget about this interrupt first, before touching the
   // timed list or process state below.
-  ret = stm32_gpiosetevent(gpioInfoAddr->PinId, 0, 0, 0, NULL, NULL);
+  int gpioSetEventRet = stm32_gpiosetevent(gpioInfoAddr->PinId, 0, 0, 0, NULL, NULL);
+  if(gpioSetEventRet < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-stm32_gpiosetevent returned, ret:%d\n",
+              __FILE__, __LINE__, gpioSetEventRet);
+    // Have reported error, might as well finish removing GPIO
+  }
 
   // Small chance but it might be actively timing
   mint_remove_from_timed_list_and_decr(gpioInfoAddr);
@@ -1303,6 +1331,7 @@ static int mint_config_interrupt_new(struct mint_gpio_int_config* cfg,
   if(ret < 0)
   {
     syslog(LOG_ERR, "mint-(cfg)-mint_add_new_gpio_to_allocation_list, ret:%d\n", ret);
+    free(gpioInfoAddr);
     return ret;
   }
 
