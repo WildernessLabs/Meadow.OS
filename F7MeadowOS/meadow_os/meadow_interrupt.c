@@ -1264,11 +1264,12 @@ static int mint_config_interrupt_remove(struct mint_gpio_int_config* cfg,
     gpioInfoAddr->PinId & 0x0f);
 #endif
 
+  // Tell Nuttx to forget about this interrupt first, before touching the
+  // timed list or process state below.
+  ret = stm32_gpiosetevent(gpioInfoAddr->PinId, 0, 0, 0, NULL, NULL);
+
   // Small chance but it might be actively timing
   mint_remove_from_timed_list_and_decr(gpioInfoAddr);
-
-  // Tell Nuttx to forget about this interrupt
-  ret = stm32_gpiosetevent(gpioInfoAddr->PinId, 0, 0, 0, NULL, NULL);
 
   if(gpioInfoAddr->CurrentProcessState != mint_state_mon_no_delay)
     _totalGpiosCanBeTimed--;   // Keep track only of timed gpios
