@@ -76,6 +76,7 @@ uint32_t hcom_bbreg_read_bbr_and_right_justify(uint32_t bitMask)
   {
     syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
               thisFile, __LINE__, __func__, ret, errno);
+    return 0;
   }
 
   if(regValue == 0)
@@ -103,6 +104,7 @@ uint32_t hcom_bbreg_read_bbr()
   {
     syslog(LOG_ERR, "%s@%d-%s() failed, ret:%d, errno:%d\n",
             thisFile, __LINE__, __func__, ret, errno);
+    return 0;
   }
   return regValue;
 }
@@ -130,6 +132,7 @@ bool hcom_bbreg_is_bbr_bits_set_n_clear(uint32_t value)
   {
     syslog(LOG_ERR, "%s@%d-%s() #1 Failed, ret:%d, errno:%d\n",
             thisFile, __LINE__, __func__, ret, errno);
+    return false;
   }
 
   ret = hcom_via_nx_set_bbr(regValue & (~value));
@@ -151,6 +154,7 @@ bool hcom_bbreg_is_bbr_bit_set(uint32_t value)
   {
     syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
             thisFile, __LINE__, __func__, ret, errno);
+    return false;
   }
   return (value & regValue) != 0;
 }
