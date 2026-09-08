@@ -84,8 +84,8 @@
 // #define HCOM_RECV_TIMEOUT_DEFAULT_SECONDS (1 * 60 * 60) // once an hour report hcom thread running
 #define HCOM_RECV_TIMEOUT_ACTIVE_SECONDS 10
 
-#define HCOM_CONNECTION_TIMEOUT_STARTUP 250 * 1000    // At startup we connect quickly
-#define HCOM_CONNECTION_TIMEOUT_RUNNING 5000 * 1000   // If no host connection at first wait longer
+#define HCOM_CONNECTION_TIMEOUT_STARTUP (250 * 1000)    // At startup we connect quickly
+#define HCOM_CONNECTION_TIMEOUT_RUNNING (5000 * 1000)   // If no host connection at first wait longer
 // How many fast connection attempts during startup before falling to a slower rate
 // After 5 seconds realize host isn't there. After this use a slower rate
 #define HCOM_CONNECTION_STARTUP_ATTEMPTS ((1000000 / HCOM_CONNECTION_TIMEOUT_STARTUP) * 5) // 5 seconds
