@@ -263,8 +263,8 @@ int meadow_eth_conn_thread_do_work(void)
     ret = meadow_eth_conn_process_link_status_change(_linkStatusUp);
     if(ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-switch default value:%d\n",
-                  thisFile, __LINE__, _meadow_eth_conn_action);
+      syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change failed:%d\n",
+                  thisFile, __LINE__, ret);
     }
     break;
 
@@ -274,8 +274,8 @@ int meadow_eth_conn_thread_do_work(void)
       ret = meadow_eth_conn_renew_lease_periodically(_dhcp_info);
       if(ret < 0)
       {
-        syslog(LOG_ERR, "%s@%d-switch default value:%d\n",
-                    thisFile, __LINE__, _meadow_eth_conn_action);
+        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n",
+                    thisFile, __LINE__, ret);
       }
     }
     break;
@@ -301,7 +301,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
   uint8_t macAddr[IFHWADDRLEN];
   
   MEADOW_TRACE_INFORMATION("%s@%d-Processing LinkStatus change. Now %s\n",
-            thisFile, __LINE__, _linkStatusUp ? "Up" : "Down");
+            thisFile, __LINE__, linkStatusUp ? "Up" : "Down");
 
   // Did the link status transition from down to up?
   if(linkStatusUp)
@@ -367,6 +367,8 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
 
     // Stop the periodic NTP time request
     ntpc_stop();
+
+    _isConnectionValid = false;
   }
 
   return ret;
@@ -471,6 +473,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
+      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
 
@@ -481,6 +484,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
+      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
   }
@@ -517,6 +521,7 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
   {
     syslog(LOG_ERR, "%s@%d-ioctl(SIOCSIFFLAGS) failed, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
+    close(sockDescp);
     return ret;
   }
 
