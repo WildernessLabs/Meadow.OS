@@ -33,6 +33,10 @@ Total in scope: 245 files.
 - **Reviewed (light)** - same as **Reviewed**, but done at reduced depth (fewer parallel
   reviewer agents, no per-finding confidence-scoring swarm) because the file is
   rarely-exercised test/diagnostic code rather than a production path.
+- **Blocked (runtime)** - reviewed and findings filed, but fixes can't be built/exercised
+  and verified today because the code path depends on the Mono runtime, which isn't yet
+  integrated into Meadow.OS (see `mono_not_yet_in_meadow_os` project context). Deferred
+  until Mono build support lands rather than fixed blind.
 
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
@@ -113,9 +117,9 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B40 | apps/system/hcom/misc/hcom_common_utils.c | Reviewed | 2026-08-24 | #319 | Peter |  |
 | B41 | apps/system/hcom/misc/meadow_cirbuf.c | Reviewed | 2026-08-24 | #320 | Peter |  |
 | B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | Mark | No confirmed findings (stub file, no function bodies) |
-| B43 | apps/system/hcom/mono/hcom_mono_control.c | Reviewed | 2026-08-24 | #325 | Peter |  |
-| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Reviewed | 2026-08-24 | #326 | Peter |  |
-| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Reviewed | 2026-08-24 | #327 | Peter |  |
+| B43 | apps/system/hcom/mono/hcom_mono_control.c | Blocked (runtime) | 2026-08-24 | #325 | Peter |  |
+| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Blocked (runtime) | 2026-08-24 | #326 | Peter |  |
+| B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Blocked (runtime) | 2026-08-24 | #327 | Peter |  |
 | B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Reviewed | 2026-08-27 | #336 | Peter |  |
 | B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Reviewed | 2026-08-27 | #338 | Peter |  |
 | B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Reviewed | 2026-08-27 |  | Peter | No confirmed findings |
