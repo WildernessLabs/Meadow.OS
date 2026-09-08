@@ -82,21 +82,20 @@ static sem_t _startupWaitSem;
 static int hcom_startup_mgr_takesem(sem_t *semaphore)
 {
   int ret;
-  _semaphoreRet = OK;
-  
+
   do
   {
     ret = sem_wait(semaphore);    // Take the semaphore (perhaps waiting)
   }
-  while (ret == -EINTR);
-  
+  while (ret == ERROR && errno == EINTR);
+
   return _semaphoreRet;
 }
 
 //===========================================================================
 // Called by setup code in different modules to release this startup thread
 // to continue the setup
-void hcom_startup_mgr_release_sem()
+void hcom_startup_mgr_release_sem(void)
 {
   hcom_startup_mgr_release_sem_err(OK);
 }
@@ -143,9 +142,20 @@ int hcom_main(int argc, char *argv[])
   // create a thread to complete before continuing with the startup.
   // Initialize value to 0 for a 'signaling' semaphore to block
   // the calling thread (this one) until it is okay for it to proceed.
-  sem_init(&_startupWaitSem, 0, 0);
+  ret = sem_init(&_startupWaitSem, 0, 0);
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-sem_init startup wait sem:%d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
+
   // Special non-standard nuttx function required for signaling semaphores
-  sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
+  ret = sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-sem_setprotocol startup wait sem:%d\n", thisFile, __LINE__, ret);
+    return ret;
+  }
 
   #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
   //
@@ -331,6 +341,11 @@ int hcom_main(int argc, char *argv[])
 #endif
 
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
+  // Reset before spawning the thread that will release this semaphore, so a
+  // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
+  // its result clobbered back to OK.
+  _semaphoreRet = OK;
+
   // Creates a fifo and a thread to receive stdout
   ret = hcom_mono_stdxxx_read_setup();
   if (ret < 0)
@@ -393,6 +408,11 @@ int hcom_main(int argc, char *argv[])
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG, "Apps startup manager 19\n"); usleep(20 * 1000);
 #endif
+
+  // Reset before spawning the thread that will release this semaphore, so a
+  // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
+  // its result clobbered back to OK.
+  _semaphoreRet = OK;
 
   // Creates a thread to run hcom USB serial receive
   ret = hcom_host_recv_setup();  // Handle CLI commands
