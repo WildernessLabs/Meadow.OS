@@ -121,6 +121,8 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
           const char *interfaceName, const uint8_t *macAddr);
 
 int meadow_eth_mon_config_lan9355_irq(void);
+int meadow_eth_mon_disable_lan9355_irq(void);
+int meadow_eth_mon_reenable_lan9355_irq(void);
 
 int meadow_eth_conn_startup(void);
 int meadow_eth_conn_link_status_changed(bool linkStatusUp);
