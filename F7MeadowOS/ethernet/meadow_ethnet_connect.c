@@ -41,6 +41,7 @@
 #include <nuttx/config.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <nuttx/arch.h>
 #include <nuttx/kthread.h>
 #include <nuttx/clock.h>
 #include <nuttx/net/mii.h>
@@ -85,12 +86,21 @@ static uint32_t _configStaticIpAddr;
 static uint32_t _configStaticIpMask;
 static uint32_t _configStaticGateWay;
 
-static enum 
-{
-  MEADOW_ETH_CONN_UNDEFINED_STATE,
-  MEADOW_ETH_CONN_LINK_STATUS_CHANGED,
-  MEADOW_ETH_CONN_LEASE_RENEWAL_TIME
-} _meadow_eth_conn_action;
+//
+//  Pending-action bitmask. _linkStatusUp and this mask are written by the
+//  LAN9355 link-status ISR (meadow_eth_conn_link_status_changed()) and by
+//  this module's own kthread (lease renewal timeout), and read/cleared by
+//  the kthread in meadow_eth_conn_thread_do_work(). A bitmask (rather than
+//  a single mutually-exclusive enum) lets a link-status change and a
+//  lease-renewal-due condition both stay pending if they occur close
+//  together; every access is wrapped in enter_critical_section()/
+//  leave_critical_section() since the ISR side runs in genuine interrupt
+//  context.
+//
+#define MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED (1 << 0)
+#define MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME  (1 << 1)
+
+static uint8_t _pendingActions;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -135,7 +145,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
 {
   int ret;
   time_t leaseTimeSec = 0;
-  _meadow_eth_conn_action = MEADOW_ETH_CONN_UNDEFINED_STATE;
+  _pendingActions = 0;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
@@ -229,7 +239,9 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
           continue;       // Nothing to do
 
         MEADOW_TRACE_INFORMATION("%s@%d-Time to Renew Lease\n", thisFile, __LINE__);
-        _meadow_eth_conn_action = MEADOW_ETH_CONN_LEASE_RENEWAL_TIME;
+        irqstate_t flags = enter_critical_section();
+        _pendingActions |= MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME;
+        leave_critical_section(flags);
       }
       else
       {
@@ -238,14 +250,11 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       }
     }
 
-    // Do the work, then return and continue to wait for the next event.
-    ret = meadow_eth_conn_thread_do_work();
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Meadow Ethernet Monitor failed, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
-      break;
-    }
+    // Do the work, then continue to wait for the next event. Failures inside
+    // are logged there and are all recoverable via the next link-status
+    // change or lease-renewal timeout, so this thread must never exit --
+    // it is meant to supervise the connection for the life of the device.
+    meadow_eth_conn_thread_do_work();
   }
 
   return NULL;
@@ -256,39 +265,54 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
 int meadow_eth_conn_thread_do_work(void)
 {
   int ret;
-  
-  switch(_meadow_eth_conn_action)
+  uint8_t pendingActions;
+  bool linkStatusUp;
+
+  // Atomically snapshot and clear every pending action (and the link status
+  // value the ISR wrote alongside it) so a new ISR-posted action can't be
+  // lost between reading and clearing.
+  irqstate_t flags = enter_critical_section();
+  pendingActions = _pendingActions;
+  _pendingActions = 0;
+  linkStatusUp = _linkStatusUp;
+  leave_critical_section(flags);
+
+  if(pendingActions & MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED)
   {
-    case MEADOW_ETH_CONN_LINK_STATUS_CHANGED:
-    ret = meadow_eth_conn_process_link_status_change(_linkStatusUp);
+    ret = meadow_eth_conn_process_link_status_change(linkStatusUp);
     if(ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-switch default value:%d\n",
-                  thisFile, __LINE__, _meadow_eth_conn_action);
+      syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change failed:%d\n",
+                  thisFile, __LINE__, ret);
     }
-    break;
+  }
 
-    case MEADOW_ETH_CONN_LEASE_RENEWAL_TIME:
+  if(pendingActions & MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME)
+  {
     if(_isConnectionValid)
     {
       ret = meadow_eth_conn_renew_lease_periodically(_dhcp_info);
       if(ret < 0)
       {
-        syslog(LOG_ERR, "%s@%d-switch default value:%d\n",
-                    thisFile, __LINE__, _meadow_eth_conn_action);
+        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n",
+                    thisFile, __LINE__, ret);
       }
     }
-    break;
-
-    case MEADOW_ETH_CONN_UNDEFINED_STATE:
-    break;
-
-    default:
-    syslog(LOG_ERR, "%s@%d-Unknown switch value:%d\n",
-                thisFile, __LINE__, _meadow_eth_conn_action);
+    else if(linkStatusUp)
+    {
+      // We don't have a connection yet even though the link is physically
+      // up -- most likely an earlier DHCP attempt failed. Retry establishing
+      // the connection now instead of silently waiting for the link to
+      // toggle again, which may never happen.
+      MEADOW_TRACE_INFORMATION("%s@%d-No connection yet, retrying\n", thisFile, __LINE__);
+      ret = meadow_eth_conn_process_link_status_change(true);
+      if(ret < 0)
+      {
+        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change (retry) failed:%d\n",
+                    thisFile, __LINE__, ret);
+      }
+    }
   }
-
-  _meadow_eth_conn_action = MEADOW_ETH_CONN_UNDEFINED_STATE;
 
   return OK;
 }
@@ -301,7 +325,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
   uint8_t macAddr[IFHWADDRLEN];
   
   MEADOW_TRACE_INFORMATION("%s@%d-Processing LinkStatus change. Now %s\n",
-            thisFile, __LINE__, _linkStatusUp ? "Up" : "Down");
+            thisFile, __LINE__, linkStatusUp ? "Up" : "Down");
 
   // Did the link status transition from down to up?
   if(linkStatusUp)
@@ -367,6 +391,8 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
 
     // Stop the periodic NTP time request
     ntpc_stop();
+
+    _isConnectionValid = false;
   }
 
   return ret;
@@ -471,6 +497,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
+      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
 
@@ -481,6 +508,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
              thisFile, __LINE__, ret, errno);
+      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
   }
@@ -517,6 +545,7 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
   {
     syslog(LOG_ERR, "%s@%d-ioctl(SIOCSIFFLAGS) failed, ret:%d, errno:%d\n",
                 thisFile, __LINE__, ret, errno);
+    close(sockDescp);
     return ret;
   }
 
@@ -572,11 +601,12 @@ int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
 // ISR execution time.
 int meadow_eth_conn_link_status_changed(bool linkStatusUp)
 {
+  irqstate_t flags = enter_critical_section();
   _linkStatusUp = linkStatusUp;
+  _pendingActions |= MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED;
+  leave_critical_section(flags);
 
   // Set the action and then wakeup our thread
-  _meadow_eth_conn_action = MEADOW_ETH_CONN_LINK_STATUS_CHANGED;
-
   (void)sem_post(&_connectSem);
 
   return OK;
