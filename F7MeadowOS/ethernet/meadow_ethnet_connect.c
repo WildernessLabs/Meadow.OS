@@ -250,14 +250,11 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       }
     }
 
-    // Do the work, then return and continue to wait for the next event.
-    ret = meadow_eth_conn_thread_do_work();
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Meadow Ethernet Monitor failed, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
-      break;
-    }
+    // Do the work, then continue to wait for the next event. Failures inside
+    // are logged there and are all recoverable via the next link-status
+    // change or lease-renewal timeout, so this thread must never exit --
+    // it is meant to supervise the connection for the life of the device.
+    meadow_eth_conn_thread_do_work();
   }
 
   return NULL;
@@ -298,6 +295,20 @@ int meadow_eth_conn_thread_do_work(void)
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n",
+                    thisFile, __LINE__, ret);
+      }
+    }
+    else if(linkStatusUp)
+    {
+      // We don't have a connection yet even though the link is physically
+      // up -- most likely an earlier DHCP attempt failed. Retry establishing
+      // the connection now instead of silently waiting for the link to
+      // toggle again, which may never happen.
+      MEADOW_TRACE_INFORMATION("%s@%d-No connection yet, retrying\n", thisFile, __LINE__);
+      ret = meadow_eth_conn_process_link_status_change(true);
+      if(ret < 0)
+      {
+        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change (retry) failed:%d\n",
                     thisFile, __LINE__, ret);
       }
     }
