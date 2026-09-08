@@ -118,12 +118,20 @@ void meadow_logging_write_to_file(const char *filename, meadow_file_logging_leve
             }
             time_t current_time = time(NULL);
             struct tm *time_info = localtime(&current_time);
-            
+
             char the_time[30];
-            //
-            //  Format time stamp in ISO format e.g. 2023-02-21T08:08:57Z
-            //
-            strftime(the_time, 29, "%Y-%m-%dT%H:%M:%SZ", time_info);
+            if (time_info != NULL)
+            {
+                //
+                //  Format time stamp in ISO format e.g. 2023-02-21T08:08:57Z
+                //
+                strftime(the_time, 29, "%Y-%m-%dT%H:%M:%SZ", time_info);
+            }
+            else
+            {
+                strncpy(the_time, "0000-00-00T00:00:00Z", sizeof(the_time) - 1);
+                the_time[sizeof(the_time) - 1] = 0;
+            }
             snprintf(buffer, MEADOW_FILE_LOG_LINE_LENGTH - 1, "%s~%s~%s", level_text, the_time, message);
             while (buffer[strlen(buffer) - 1] == '\n')
             {
@@ -169,10 +177,10 @@ void meadow_logging_write(meadow_file_logging_level_t level, const char *message
  * Name: meadow_logging_clear_logfile
  *
  * Description:
- *  Name of the file to clear.
+ *  Empty the specified log file.
  *
  * Input Parameters:
- *  None.
+ *  filename - Name of the file to clear.
  *
  * Returned Value:
  *  None.
@@ -224,6 +232,9 @@ void meadow_logging_clear_os_logfile(void)
  * Description:
  *  Copy the contents of the specified file to syslog.
  *
+ *  Not currently called anywhere; kept as a stub for a planned
+ *  "dump log to syslog" feature that has not been wired up yet.
+ *
  * Input Parameters:
  *  filename - Name of the file to copy to syslog.
  *
@@ -250,7 +261,7 @@ void meadow_logging_send_log_file_to_syslog(const char *filename)
                 {
                     syslog(LOG_INFO, "%s", buffer);
                 }
-                
+
                 free(buffer);
             }
             fclose(file);
@@ -265,6 +276,9 @@ void meadow_logging_send_log_file_to_syslog(const char *filename)
  *
  * Description:
  *  Copy the contents of the OS log file to syslog.
+ *
+ *  Not currently called anywhere; kept as a stub for a planned
+ *  "dump log to syslog" feature that has not been wired up yet.
  *
  * Input Parameters:
  *  None.
@@ -283,7 +297,7 @@ void meadow_logging_send_os_log_file_to_syslog(void)
 
 
 /****************************************************************************
- * Name: meadow_logging_init
+ * Name: meadow_logging_init_os_logging
  *
  * Description:
  *  Prepare the OS logging system.
