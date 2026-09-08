@@ -93,7 +93,7 @@ static bool _meadowVersionKnown = false;
 /**
  * @brief Hardware version names.
  */
-char *_hardware_version_names[] = 
+static char *_hardware_version_names[] =
 {
     "Unknown",                  // 0
     "F7FeatherV1",              // 1
@@ -160,7 +160,7 @@ char *meadow_hw_version_string_return(void)
     hwVersion = meadow_hw_version_get();
   }
 
-  if ((hwVersion >= 0) && (hwVersion <= (sizeof(_hardware_version_names) / sizeof(char *))))
+  if (hwVersion < (sizeof(_hardware_version_names) / sizeof(char *)))
   {
     result = _hardware_version_names[hwVersion];
   }
