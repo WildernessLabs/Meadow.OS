@@ -230,6 +230,8 @@ int meadow_eth_utils_set_mac(const char *interfaceName,
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
     if (sockfd >= 0)
     {
+      memset(&req, 0, sizeof(struct ifreq));
+
       /* Put the driver name into the request */
 
       strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -298,6 +300,8 @@ int meadow_eth_utils_set_ipv4(const char *interfaceName,
       FAR struct sockaddr_in *inaddr;
       struct ifreq req;
 
+      memset(&req, 0, sizeof(struct ifreq));
+
       /* Add the device name to the request */
 
       strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -361,6 +365,8 @@ int meadow_eth_utils_set_ipv4_mask(const char *interfaceName,
           FAR struct sockaddr_in *inaddr;
           struct ifreq req;
 
+          memset(&req, 0, sizeof(struct ifreq));
+
           /* Add the device name to the request */
 
           strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -420,6 +426,7 @@ int meadow_eth_utils_set_router(const char *interfaceName,
   memset(&netmask, 0, sizeof(netmask));
   netmask.sin_family  = AF_INET;
 
+  memset(&router, 0, sizeof(router));
   router.sin_addr    = *addr;
   router.sin_family  = AF_INET;
 #endif
@@ -431,6 +438,8 @@ int meadow_eth_utils_set_router(const char *interfaceName,
     {
       FAR struct sockaddr_in *inaddr;
       struct ifreq req;
+
+      memset(&req, 0, sizeof(struct ifreq));
 
       /* Add the device name to the request */
 
