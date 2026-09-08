@@ -228,8 +228,17 @@ void hcom_host_recv_shutdown()
   _shutting_down = true;
 
   // Forces a receive error which, causes the thread to return.
-  close(_comms_read_fd);
-  _comms_read_fd = -1;
+  //
+  // Guarded against the receive pthread / power-management callback
+  // concurrently closing/reopening the same fd (see the identical pattern
+  // in hcom_host_recv_low_power_notification() and hcom_host_recv_pthread()).
+  hcom_host_receive_takesem(&_hcomRecvFdSem);
+  if(_comms_read_fd >= 0)
+  {
+    close(_comms_read_fd);
+    _comms_read_fd = -1;
+  }
+  sem_post(&_hcomRecvFdSem);
 
   free(_recvDataBuffer);
 }
