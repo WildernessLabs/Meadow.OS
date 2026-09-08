@@ -66,9 +66,16 @@
  ****************************************************************************/
 
 // For timeout of certain read/write operation that need to wait for data to be
-// available/delivered
-#define LAN9355_PHY_READ_TIMEOUT  (0x0004ffff)
-#define LAN9355_PHY_WRITE_TIMEOUT (0x0004ffff)
+// available/delivered. This function is called directly from real ISR
+// context (the LAN9355 link-status interrupt), so this must be bounded well
+// below a value that would stall the system on a genuine hardware fault.
+// Measured on hardware: successful transactions complete within 205-505
+// iterations (see Issue #340 Finding 2); this leaves ~16x margin over the
+// highest value observed while still being far below the previous
+// 0x0004ffff (327679), which could block the ISR for up to ~150ms on a
+// fault (4 calls per interrupt).
+#define LAN9355_PHY_READ_TIMEOUT  (0x2000)
+#define LAN9355_PHY_WRITE_TIMEOUT (0x2000)
 
 /****************************************************************************
  * Private Data
