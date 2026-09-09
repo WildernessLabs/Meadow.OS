@@ -281,4 +281,30 @@ int meadow_eth_mon_config_lan9355_irq()
   return ret;
 }
 
+//=============================================================
+// Temporarily disables the LAN9355 link-status IRQ. Used to protect the
+// vendored stm32_ethernet.c driver's own (unprotected) MDIO register access
+// during autonegotiation -- see meadow_eth_utils_exec_ifup() -- from being
+// interleaved with this IRQ's own MDIO access, since both share the same
+// STM32_ETH_MACMIIAR/MACMIIDR registers. Must be paired with a later call to
+// meadow_eth_mon_reenable_lan9355_irq().
+int meadow_eth_mon_disable_lan9355_irq(void)
+{
+  return stm32_gpiosetevent(MEADOW_ETH_LAN9355_IRQ_PIN, 0, 0, 0, NULL, NULL);
+}
+
+//=============================================================
+// Re-arms the LAN9355 link-status IRQ after meadow_eth_mon_disable_lan9355_irq().
+// Uses the same rising-edge-only configuration as meadow_eth_mon_config_lan9355_irq().
+int meadow_eth_mon_reenable_lan9355_irq(void)
+{
+  return stm32_gpiosetevent(
+  MEADOW_ETH_LAN9355_IRQ_PIN,         // Nuttx cfgset
+  1,                                  // Rising Edge,
+  0,                                  // Falling Edge,
+  0,                                  // Event
+  meadow_eth_monitor_link_status_isr, // ISR
+  NULL);
+}
+
 #endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)

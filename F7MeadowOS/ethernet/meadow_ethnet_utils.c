@@ -43,6 +43,7 @@
 #include <stdint.h>
 
 #include <sys/ioctl.h>
+#include <nuttx/arch.h>
 #include <nuttx/net/dns.h>
 #include <net/route.h>
 #include <net/if.h>
@@ -65,9 +66,16 @@
  ****************************************************************************/
 
 // For timeout of certain read/write operation that need to wait for data to be
-// available/delivered
-#define LAN9355_PHY_READ_TIMEOUT  (0x0004ffff)
-#define LAN9355_PHY_WRITE_TIMEOUT (0x0004ffff)
+// available/delivered. This function is called directly from real ISR
+// context (the LAN9355 link-status interrupt), so this must be bounded well
+// below a value that would stall the system on a genuine hardware fault.
+// Measured on hardware: successful transactions complete within 205-505
+// iterations (see Issue #340 Finding 2); this leaves ~16x margin over the
+// highest value observed while still being far below the previous
+// 0x0004ffff (327679), which could block the ISR for up to ~150ms on a
+// fault (4 calls per interrupt).
+#define LAN9355_PHY_READ_TIMEOUT  (0x2000)
+#define LAN9355_PHY_WRITE_TIMEOUT (0x2000)
 
 /****************************************************************************
  * Private Data
@@ -179,7 +187,18 @@ int meadow_eth_utils_exec_ifup(const char *interfaceName)
 
       req.ifr_flags |= IFF_UP;
 
+      // The vendored stm32_ethernet.c driver runs its own (unprotected)
+      // MDIO-register autonegotiation sequence synchronously inside this
+      // ioctl, sharing the same STM32_ETH_MACMIIAR/MACMIIDR registers as our
+      // LAN9355 access. Disable the LAN9355 link-status IRQ for the duration
+      // so a genuine link-status interrupt can't interleave its own MDIO
+      // transaction with the vendor driver's in-flight one.
+      meadow_eth_mon_disable_lan9355_irq();
+
       ret = ioctl(sockfd, SIOCSIFFLAGS, (unsigned long)&req);
+
+      meadow_eth_mon_reenable_lan9355_irq();
+
       close(sockfd);
     }
   }
@@ -230,6 +249,8 @@ int meadow_eth_utils_set_mac(const char *interfaceName,
     int sockfd = socket(PF_INET, SOCK_DGRAM, 0);
     if (sockfd >= 0)
     {
+      memset(&req, 0, sizeof(struct ifreq));
+
       /* Put the driver name into the request */
 
       strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -298,6 +319,8 @@ int meadow_eth_utils_set_ipv4(const char *interfaceName,
       FAR struct sockaddr_in *inaddr;
       struct ifreq req;
 
+      memset(&req, 0, sizeof(struct ifreq));
+
       /* Add the device name to the request */
 
       strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -361,6 +384,8 @@ int meadow_eth_utils_set_ipv4_mask(const char *interfaceName,
           FAR struct sockaddr_in *inaddr;
           struct ifreq req;
 
+          memset(&req, 0, sizeof(struct ifreq));
+
           /* Add the device name to the request */
 
           strncpy(req.ifr_name, interfaceName, IFNAMSIZ);
@@ -420,6 +445,7 @@ int meadow_eth_utils_set_router(const char *interfaceName,
   memset(&netmask, 0, sizeof(netmask));
   netmask.sin_family  = AF_INET;
 
+  memset(&router, 0, sizeof(router));
   router.sin_addr    = *addr;
   router.sin_family  = AF_INET;
 #endif
@@ -431,6 +457,8 @@ int meadow_eth_utils_set_router(const char *interfaceName,
     {
       FAR struct sockaddr_in *inaddr;
       struct ifreq req;
+
+      memset(&req, 0, sizeof(struct ifreq));
 
       /* Add the device name to the request */
 
@@ -504,6 +532,14 @@ int meadow_lan9355_phyread_16(uint16_t phyAddr, uint16_t regAddr, uint16_t *valu
 {
   int regval;
   volatile uint32_t timeout;
+  int ret;
+
+  // STM32_ETH_MACMIIAR/MACMIIDR are shared with the vendored stm32_ethernet.c
+  // driver's own (unprotected) MDIO access, reached from a genuine hardware
+  // ISR (the LAN9355 link-status interrupt) as well as thread context. This
+  // critical section protects our own transaction below from being
+  // interleaved with any other access to these registers.
+  irqstate_t flags = enter_critical_section();
 
   // Preserve CSR Clock Range CR[2:0] bits
   regval  = getreg32(STM32_ETH_MACMIIAR);
@@ -522,6 +558,7 @@ int meadow_lan9355_phyread_16(uint16_t phyAddr, uint16_t regAddr, uint16_t *valu
   putreg32(regval, STM32_ETH_MACMIIAR);
 
   // Wait for the transfer to complete
+  ret = -ETIMEDOUT;
   for (timeout = 0; timeout < LAN9355_PHY_READ_TIMEOUT; timeout++)
   {
     // When the ETH_MACMIIAR_MW is clear, the read has completed.
@@ -529,14 +566,20 @@ int meadow_lan9355_phyread_16(uint16_t phyAddr, uint16_t regAddr, uint16_t *valu
     {
       // Read the register value from data register
       *value = (uint16_t)(getreg32(STM32_ETH_MACMIIDR) & 0xffff);
-      return OK;
+      ret = OK;
+      break;
     }
   }
 
-  MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII transfer timed out: phyAddr: %04x regAddr: %04x\n",
-        thisFile, __func__, __LINE__, phyAddr, regAddr);
+  leave_critical_section(flags);
 
-  return -ETIMEDOUT;
+  if (ret < 0)
+  {
+    MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII transfer timed out: phyAddr: %04x regAddr: %04x\n",
+          thisFile, __func__, __LINE__, phyAddr, regAddr);
+  }
+
+  return ret;
 }
 
 //=============================================================
@@ -545,6 +588,10 @@ int meadow_lan9355_phywrite_16(uint16_t phyAddr, uint16_t regAddr, uint16_t valu
 {
   volatile uint32_t timeout;
   uint32_t regval;
+  int ret;
+
+  // See meadow_lan9355_phyread_16() for why this critical section is needed.
+  irqstate_t flags = enter_critical_section();
 
   // Preserve CSR Clock Range CR[2:0] bits
   regval = getreg32(STM32_ETH_MACMIIAR);
@@ -564,18 +611,25 @@ int meadow_lan9355_phywrite_16(uint16_t phyAddr, uint16_t regAddr, uint16_t valu
   putreg32(regval, STM32_ETH_MACMIIAR);
 
   // When the ETH_MACMIIAR_MW is clear, the write has completed.
+  ret = -ETIMEDOUT;
   for (timeout = 0; timeout < LAN9355_PHY_WRITE_TIMEOUT; timeout++)
   {
     if ((getreg32(STM32_ETH_MACMIIAR) & ETH_MACMIIAR_MB) == 0)
     {
-      return OK;
+      ret = OK;
+      break;
     }
   }
 
-  MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII Transfer timed out: phyAddr: %04x regAddr: %04x value: %04x\n",
-            thisFile, __func__, __LINE__, regAddr, phyAddr, value);
+  leave_critical_section(flags);
 
-  return -ETIMEDOUT;
+  if (ret < 0)
+  {
+    MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII Transfer timed out: phyAddr: %04x regAddr: %04x value: %04x\n",
+              thisFile, __func__, __LINE__, regAddr, phyAddr, value);
+  }
+
+  return ret;
 }
 
 //=============================================================
