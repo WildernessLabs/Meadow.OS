@@ -47,8 +47,9 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-// Should rotary encoder code be built?
-// This is a temporary #define. Remove #define when final decision made
+// Should rotary encoder code be built? The feature is shipped (has a live
+// dispatched kernel test); this flag exists only for potential future
+// exclusion, not a pending decision.
 #define MEADOW_ROTARY_ENCODER_BUILD     (1)
 
 // Define the maximum number of encoders that can be monitored.

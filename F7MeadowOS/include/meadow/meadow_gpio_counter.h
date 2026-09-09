@@ -47,8 +47,9 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-// Should gpio counter code be built? This is a temporary #define.
-// Remove #define when final decision made
+// Should gpio counter code be built? The feature is shipped (has a live
+// dispatched kernel test); this flag exists only for potential future
+// exclusion, not a pending decision.
 #define MEADOW_GPIO_COUNTER_BUILD         (1)
 
 // Define the maximum number of GPIOs that can be monitored.
