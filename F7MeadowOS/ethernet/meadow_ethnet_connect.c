@@ -218,7 +218,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       waketime.tv_sec += leaseTimeSec;
       
       // Wait for lease time to expire or the link status to change
-      MEADOW_TRACE_INFORMATION("%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
+      syslog(LOG_INFO, "%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
                 thisFile, __LINE__);
       ret = sem_timedwait(&_connectSem, &waketime);
       sched_unlock();
@@ -226,7 +226,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
     else
     {
       // No, least time to worry about so just wait for interrupt from LAN Chip
-      MEADOW_TRACE_INFORMATION("%s@%d-Static addressing. Waiting on status change\n",
+      syslog(LOG_INFO, "%s@%d-Static addressing. Waiting on status change\n",
                 thisFile, __LINE__);
       ret = sem_wait(&_connectSem);
     }
@@ -238,7 +238,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
         if(! _configUseDhcp)
           continue;       // Nothing to do
 
-        MEADOW_TRACE_INFORMATION("%s@%d-Time to Renew Lease\n", thisFile, __LINE__);
+        syslog(LOG_INFO, "%s@%d-Time to Renew Lease\n", thisFile, __LINE__);
         irqstate_t flags = enter_critical_section();
         _pendingActions |= MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME;
         leave_critical_section(flags);
@@ -304,7 +304,7 @@ int meadow_eth_conn_thread_do_work(void)
       // up -- most likely an earlier DHCP attempt failed. Retry establishing
       // the connection now instead of silently waiting for the link to
       // toggle again, which may never happen.
-      MEADOW_TRACE_INFORMATION("%s@%d-No connection yet, retrying\n", thisFile, __LINE__);
+      syslog(LOG_INFO, "%s@%d-No connection yet, retrying\n", thisFile, __LINE__);
       ret = meadow_eth_conn_process_link_status_change(true);
       if(ret < 0)
       {
@@ -324,7 +324,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
   int ret;
   uint8_t macAddr[IFHWADDRLEN];
   
-  MEADOW_TRACE_INFORMATION("%s@%d-Processing LinkStatus change. Now %s\n",
+  syslog(LOG_INFO, "%s@%d-Processing LinkStatus change. Now %s\n",
             thisFile, __LINE__, linkStatusUp ? "Up" : "Down");
 
   // Did the link status transition from down to up?
@@ -375,7 +375,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     }
 
     // We now have an ethernet connection.
-    MEADOW_TRACE_INFORMATION("%s@%d-We now have an ethernet connection\n", thisFile, __LINE__);
+    syslog(LOG_INFO, "%s@%d-We now have an ethernet connection\n", thisFile, __LINE__);
     _isConnectionValid = true;
   }
   else
@@ -570,7 +570,7 @@ int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
 
   DEBUGASSERT(dhcp_info != NULL);
 
-  MEADOW_TRACE_INFORMATION("%s@%d-Renewing lease\n", thisFile, __LINE__);
+  syslog(LOG_INFO, "%s@%d-Renewing lease\n", thisFile, __LINE__);
 
   ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
   if(ret < 0)

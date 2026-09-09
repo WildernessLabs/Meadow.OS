@@ -121,7 +121,7 @@ int meadow_eth_utils_verify_lan9355(void)
     return ret;
   }
 
-  MEADOW_TRACE_INFORMATION("%s@%d-mon - Chip Id:0x%08lx\n", thisFile, __LINE__, lanChipId);
+  syslog(LOG_INFO, "%s@%d-mon - Chip Id:0x%08lx\n", thisFile, __LINE__, lanChipId);
 
   if((lanChipId & 0xffff0000) != 0x93550000)
   {
@@ -575,7 +575,7 @@ int meadow_lan9355_phyread_16(uint16_t phyAddr, uint16_t regAddr, uint16_t *valu
 
   if (ret < 0)
   {
-    MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII transfer timed out: phyAddr: %04x regAddr: %04x\n",
+    syslog(LOG_ERR, "%s:%s()@%d-MII transfer timed out: phyAddr: %04x regAddr: %04x\n",
           thisFile, __func__, __LINE__, phyAddr, regAddr);
   }
 
@@ -625,7 +625,7 @@ int meadow_lan9355_phywrite_16(uint16_t phyAddr, uint16_t regAddr, uint16_t valu
 
   if (ret < 0)
   {
-    MEADOW_TRACE_INFORMATION("%s:%s()@%d-MII Transfer timed out: phyAddr: %04x regAddr: %04x value: %04x\n",
+    syslog(LOG_ERR, "%s:%s()@%d-MII Transfer timed out: phyAddr: %04x regAddr: %04x value: %04x\n",
               thisFile, __func__, __LINE__, regAddr, phyAddr, value);
   }
 
