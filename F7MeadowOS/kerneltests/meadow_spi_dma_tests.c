@@ -87,6 +87,11 @@ typedef struct SPITestingOptions_s SPITestingOptions;
 SPITestingOptions SpiTestOps;
 SPITestingOptions *_testOps = &SpiTestOps;
 
+// Guards against a second invocation racing the async work-queue callback
+// still using _testOps from a prior invocation. Matches the busy-flag
+// pattern used for _mqMonitorThreadCreated in meadow_interrupt_tests.c.
+static bool _spiTestInFlight = false;
+
 // Buffer sizes for each meadow_kt_spi_dma_tests userData value. 0-13 step
 // through common sizes from 4k down to 1 byte; 14-32 step up in 10k
 // increments to 200k; 33-37 straddle the F7 DMA controller's 65535-item
@@ -129,6 +134,14 @@ static void spi_test_main_work_function(FAR void *arg);
 // developer -p 17 comes here
 void meadow_kt_spi_dma_tests(uint32_t userData)
 {
+  int ret;
+
+  if(_spiTestInFlight)
+  {
+    syslog(LOG_MTEST, "SPI DMA test already in progress, ignoring request\n");
+    return;
+  }
+
   memset(_testOps, 0, sizeof(SPITestingOptions));
   // Default values SPI3/5, aligned 2k buffer, 8 byte message, no repeat
   _testOps->repeatExchange = 1;
@@ -149,7 +162,15 @@ void meadow_kt_spi_dma_tests(uint32_t userData)
   //   _testOps->repeatExchange = 20;
   // }
 
-  spi_initiate_loopback_test(_testOps);
+  // Set before scheduling the work item, not after: rolled back below only
+  // if scheduling itself fails. This is the same pattern used for
+  // _mqMonitorThreadCreated in meadow_interrupt_tests.c (Issue #377).
+  _spiTestInFlight = true;
+  ret = spi_initiate_loopback_test(_testOps);
+  if(ret < 0)
+  {
+    _spiTestInFlight = false;
+  }
 }
 
 /************************************************************************************
@@ -219,6 +240,7 @@ void spi_test_main_work_function(FAR void *arg)
     syslog(LOG_MTEST, "%s@%d-Couldn't allocate mem for txBuff\n",
       __FILE__, __LINE__);
     usleep(20 * 1000);
+    _spiTestInFlight = false;
     return;
   }
 
@@ -228,6 +250,7 @@ void spi_test_main_work_function(FAR void *arg)
     free(txBuff);
     syslog(LOG_MTEST, "%s@%d-Couldn't allocate mem for rxBuff\n",
       __FILE__, __LINE__);
+    _spiTestInFlight = false;
     return;
   }
 
@@ -357,6 +380,8 @@ void spi_test_main_work_function(FAR void *arg)
   free(txBuff);
   free(rxBuff);
   // syslog(LOG_MTEST, "Memory freed\n"); usleep(10 * 1000);
+
+  _spiTestInFlight = false;
 }
 
 #endif  // #if defined(CONFIG_SPI_DMA_TESTS)
