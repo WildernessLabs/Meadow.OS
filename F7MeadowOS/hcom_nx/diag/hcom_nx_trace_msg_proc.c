@@ -254,6 +254,7 @@ int hcom_nx_trace_msg_lazy_initialization()
   if (_syslogMsgBuf == NULL)
   {
     hcom_nx_uart_direct(LOG_ERR, "%s@%d-cir buf malloc\n", thisFile, __LINE__);
+    sem_post(&_startupSem);
     return -ENOMEM;
   }
 
@@ -545,7 +546,7 @@ int hcom_nx_trace_msg_route_trace_text(char* syslogMsg, size_t syslogMsgLen)
   int ret;
 
   // To UART?
-  if(_trace_log_to_uart)
+  if(_trace_log_to_uart && !_profiler_log_to_uart)
   {
     // Route to uart
     ret = hcom_nx_trace_msg_send_msg_to_uart((char *) syslogMsg, syslogMsgLen);
@@ -663,11 +664,24 @@ int hcom_nx_trace_msg_send_msg_to_uart(const char *toUartBuf, size_t numbBytes)
     }
   }
 
-  // Write string out the uart
-  ssize_t nbytes = write(_uart_fd, toUartBuf, numbBytes);
-  if (nbytes < 0)
+  // Write string out the uart. A blocking write can return a short count if
+  // interrupted by a signal mid-transfer (this kthread's own shutdown sends
+  // itself SIGALRM) -- retry until every byte is sent or a real error occurs,
+  // so a truncated message isn't silently dropped.
+  size_t totalWritten = 0;
+  while (totalWritten < numbBytes)
   {
-    return nbytes;
+    ssize_t nbytes = write(_uart_fd, toUartBuf + totalWritten,
+                           numbBytes - totalWritten);
+    if (nbytes < 0)
+    {
+      if (errno == EINTR)
+        continue;
+
+      return nbytes;
+    }
+
+    totalWritten += (size_t)nbytes;
   }
 
   return OK;
@@ -697,7 +711,8 @@ void hcom_nx_trace_msg_wait_sem(sem_t *semaphore)
 int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData)
 {
   char *sendMsgToHost;
-  
+  int ret;
+
   // Set the appropriate battery backed register bit
   modifyreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER,
               0, HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT);
@@ -714,9 +729,13 @@ int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData)
     _trace_log_to_host = true;
 
     // Initialize as needed
-    hcom_nx_trace_msg_lazy_initialization();
-
-    if(_trace_log_to_uart)
+    ret = hcom_nx_trace_msg_lazy_initialization();
+    if(ret < 0)
+    {
+      _trace_log_to_host = false;
+      sendMsgToHost = "Trace logging failed to initialize";
+    }
+    else if(_trace_log_to_uart)
       sendMsgToHost = "Trace logs now sent to CLI and UART";
     else
       sendMsgToHost = "Trace logs now sent to CLI";
@@ -777,7 +796,8 @@ int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData)
 int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData)
 {
   char *sendMsgToHost;
-  
+  int ret;
+
   // Set the appropriate battery backed register bit
   modifyreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER,
               0, HCOM_BBREG_ROUTE_TRACE_MSG_TO_UART_BIT);
@@ -794,9 +814,13 @@ int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData)
     _trace_log_to_uart = true;
 
     // Initialize if needed
-    hcom_nx_trace_msg_lazy_initialization();
-
-    if(_trace_log_to_host)
+    ret = hcom_nx_trace_msg_lazy_initialization();
+    if(ret < 0)
+    {
+      _trace_log_to_uart = false;
+      sendMsgToHost = "Trace logging failed to initialize";
+    }
+    else if(_trace_log_to_host)
       sendMsgToHost = "Trace logs now sent to UART and CLI";
     else
       sendMsgToHost = "Trace logs now sent to UART";
@@ -921,16 +945,14 @@ void hcom_nx_trace_insure_correct_config(bool uartTracing, bool cliTracing,
     bool uartProfiling)
 {
 
+  bool needToInit = false;
+
   if (uartProfiling)
   {
     _profiler_log_to_uart = true;
     _trace_log_to_uart = false;
-    return;
   }
-
-  bool needToInit = false;
-
-  if(uartTracing && (!_trace_log_to_uart))
+  else if(uartTracing && (!_trace_log_to_uart))
   {
     _trace_log_to_uart = true;
     needToInit = true;
