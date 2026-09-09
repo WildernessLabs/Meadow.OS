@@ -44,6 +44,15 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// Note: this buffer is not internally locked. It is safe today only because
+// each host_com_cir_buffer_t instance is used in one of two ways:
+//   - single-thread access (e.g. the ESP32 receive buffer), or
+//   - a single-producer/single-consumer pair mediated by semaphores that
+//     signal "data/space may be available" (e.g. the host enq/deq buffer
+//     in hcom_host_enq_deq.c) -- head is written only by the producer,
+//     tail only by the consumer.
+// Adding a new caller that doesn't fit one of these two patterns would
+// need real locking, not just a semaphore signal.
 typedef struct host_com_cir_buffer_s
 {
   uint8_t *bottom;    // bottom of buffer
