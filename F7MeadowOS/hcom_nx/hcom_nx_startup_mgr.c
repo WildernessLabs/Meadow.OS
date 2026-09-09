@@ -1,5 +1,5 @@
 /****************************************************************************
- * /home/peter/wl/Meadow.OS/Meadow.OS/hcom_nx/hcom_nx_startup_mgr.c
+ * F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c
  * 
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
