@@ -6,9 +6,6 @@
  *
  ****************************************************************************/
 
- // This code was mostly copied from Nuttx version 12.3 because it needed to
- // be on the Kernel side of the build.
-
  /****************************************************************************
 * apps/netutils/dhcpc/dhcpc.c
 *
@@ -58,6 +55,9 @@
 // the needed code changes were made to keep this as close to the Nuttx 12
 // code as practical.
 
+// Update Sep 2026 - During code inspection found and fixed a dhcp_close() bug.
+// Also converted all nerr() logging entries to syslog(LOG_ERR...) to capture
+// errors in production code.
 /****************************************************************************
 * Included Files
 ****************************************************************************/
@@ -373,7 +373,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (netmask missing)\n");
+                syslog(LOG_ERR, "Packet too short (netmask missing)\n");
               }
             break;
 
@@ -387,7 +387,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (router address missing)\n");
+                syslog(LOG_ERR, "Packet too short (router address missing)\n");
               }
             break;
 
@@ -401,7 +401,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (DNS address missing)\n");
+                syslog(LOG_ERR, "Packet too short (DNS address missing)\n");
               }
             break;
 
@@ -415,7 +415,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (type missing)\n");
+                syslog(LOG_ERR, "Packet too short (type missing)\n");
               }
             break;
 
@@ -429,7 +429,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (server address missing)\n");
+                syslog(LOG_ERR, "Packet too short (server address missing)\n");
               }
             break;
 
@@ -446,7 +446,7 @@ static uint8_t dhcpc_parseoptions(FAR struct dhcp_info_s *presult,
               }
             else
               {
-                nerr("Packet too short (lease time missing)\n");
+                syslog(LOG_ERR, "Packet too short (lease time missing)\n");
               }
             break;
 
@@ -507,7 +507,7 @@ static void *dhcpc_run(void *args)
         {
           pdhcpc->callback(NULL);
           memset(&result, 0, sizeof(result));
-          nerr("dhcpc_request error\n");
+          syslog(LOG_ERR, "dhcpc_request error\n");
         }
 
       if (pdhcpc->cancel)
@@ -660,7 +660,7 @@ void dhcpc_close(FAR void *handle)
           dhcpc_cancel(pdhcpc);
         }
 
-      if (pdhcpc->sockfd)
+      if (pdhcpc->sockfd >= 0)
         {
           close(pdhcpc->sockfd);
         }
@@ -692,7 +692,7 @@ void dhcpc_cancel(FAR void *handle)
           ret = pthread_kill(pdhcpc->thread, SIGQUIT);
           if (ret != 0)
             {
-              nerr("ERROR: pthread_kill DHCPC thread\n");
+              syslog(LOG_ERR, "ERROR: pthread_kill DHCPC thread\n");
             }
 
           /* Wait for the end of dhcpc_run */
@@ -700,7 +700,7 @@ void dhcpc_cancel(FAR void *handle)
           ret = pthread_join(pdhcpc->thread, NULL);
           if (ret != 0)
             {
-              nerr("ERROR: pthread_join DHCPC thread\n");
+              syslog(LOG_ERR, "ERROR: pthread_join DHCPC thread\n");
             }
 
           pdhcpc->thread = 0;
@@ -973,7 +973,7 @@ int dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback)
 
   if (pdhcpc->thread)
     {
-      nerr("ERROR: DHCPC thread already running\n");
+      syslog(LOG_ERR, "ERROR: DHCPC thread already running\n");
       errno = EALREADY;
       return ERROR;
     }
@@ -982,7 +982,7 @@ int dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback)
   ret = pthread_create(&pdhcpc->thread, NULL, dhcpc_run, pdhcpc);
   if (ret != 0)
     {
-      nerr("ERROR: Failed to start the DHCPC thread\n");
+      syslog(LOG_ERR, "ERROR: Failed to start the DHCPC thread\n");
       errno = ret;
       return ERROR;
     }
