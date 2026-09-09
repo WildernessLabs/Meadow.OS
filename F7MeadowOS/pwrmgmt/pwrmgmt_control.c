@@ -173,9 +173,17 @@ static void pwrmgmt_idle_behavior_control(bool allowWaitOp)
 int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callback)
 {
   int slotOffset;
+  int ret = -EBADSLT;
 
   // syslog(LOG_MDIAG, "%s@%d-Subscribing callback:%p\n",
   //   __FILE__, __LINE__, callback);
+
+  // Guard the find-free-slot-then-write sequence against a concurrent
+  // subscriber racing for the same slot. Uses a critical section rather
+  // than _lowPwrCtrlEntry (the notify-side semaphore) since that one is
+  // lazily initialized on first low-power entry, which may not have
+  // happened yet when a module subscribes at startup.
+  irqstate_t flags = enter_critical_section();
 
   // Find free slot
   for(slotOffset = 0; slotOffset < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; slotOffset++)
@@ -184,14 +192,20 @@ int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callbac
     {
       // Found a slot save the callback
       _regCallback[slotOffset] = callback;
-      return OK;
+      ret = OK;
+      break;
     }
   }
 
-  syslog(LOG_ERR, "Notification for Low-Power failed. %d slots are not enough.\n",
-            PWR_MGMT_MAX_CALLBACKS_AVAILABLE);
+  leave_critical_section(flags);
 
-  return -EBADSLT;
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "Notification for Low-Power failed. %d slots are not enough.\n",
+              PWR_MGMT_MAX_CALLBACKS_AVAILABLE);
+  }
+
+  return ret;
 }
 
 //==============================================================
