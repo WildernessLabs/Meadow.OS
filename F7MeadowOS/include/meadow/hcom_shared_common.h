@@ -1054,8 +1054,6 @@ void hcom_nx_flash_testing_fill_5mb_of_flash(void);
 void hcom_nx_flash_testing_verify_regions(void);
 #endif
 
-#endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -1065,3 +1063,5 @@ void hcom_nx_flash_testing_verify_regions(void);
  */
 extern bool g_copy_application_output_to_uart;
 #endif
+
+#endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
