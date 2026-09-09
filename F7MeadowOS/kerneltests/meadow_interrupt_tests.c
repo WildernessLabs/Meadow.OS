@@ -154,16 +154,23 @@ void meadow_kt_meadow_interrupt_tests(uint32_t userData)
         break;
       }
 
+      // Set before creating the thread, not after: the new kthread runs at
+      // an elevated priority and can execute immediately, including its own
+      // file_mq_open() failure path (which sets this flag back to false) --
+      // setting it here only on success would race that path and could
+      // clobber a correct false back to true.
+      _mqMonitorThreadCreated = true;
+
       int mqMonitorPid = kthread_create("MintMqMonitor", 200, 2048,
         (main_t) meadow_interrupt_test_monitor_mint_mq, (char * const *)NULL);
       if(mqMonitorPid < 0)
       {
+        _mqMonitorThreadCreated = false;
         syslog(LOG_MTEST, "Mint test - failed to create mq monitor thread, ret:%d\n",
           mqMonitorPid);
         break;
       }
 
-      _mqMonitorThreadCreated = true;
       syslog(LOG_MTEST, "Mint test - mq monitor thread started, pid:%d\n", mqMonitorPid);
       break;
     }
