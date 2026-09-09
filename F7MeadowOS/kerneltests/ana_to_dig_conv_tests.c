@@ -403,8 +403,9 @@ void *adc_test_kthread_func(int argc, char *argv[])
   double batteryVoltage;
   double temperatureValue;
 
-  // Run the test
-  for(int chkCnt = 0; chkCnt < 1000000; chkCnt++)
+  // Run the test. This is a soak test intended to run indefinitely (until
+  // the device is reset), so the loop is deliberately unbounded.
+  for(int chkCnt = 0; ; chkCnt++)
   {
     if(_userData == readGpioAnaOften)
     {
@@ -470,6 +471,11 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
   int disp_total_line_len = disp_char_per_row + DMA_ISR_DISP_LEADER_LEN;
 
   char *lineBuff = malloc(disp_total_line_len);    // Room for NULL
+  if(lineBuff == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc failed\n", __FILE__, __LINE__);
+    return;
+  }
 
   // Fill unused spaces with space
   memset(lineBuff, 0x20, disp_total_line_len);
@@ -479,16 +485,33 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
     // Add address of offset to beginning of line
     lineBuffOff = snprintf(lineBuff, disp_total_line_len, "%08" PRIx32 " ", dmaBuffOff);
 
+    // Clamp this row's element count to what's actually left, so a
+    // non-multiple-of-row-width element count doesn't read past the end
+    // of dataBuffer on the final (partial) row.
+    int row_elements = disp_max_per_row;
+    if(row_elements > remainingElements)
+      row_elements = remainingElements;
+
     // Build a full row of data then print it
-    for(columnCnt = 0; columnCnt < disp_max_per_row; columnCnt++)
+    for(columnCnt = 0; columnCnt < row_elements; columnCnt++)
     {
+      // Buffer size available for this value
+      int bufSizeForCall = disp_char_per_row - (columnCnt * DMA_ISR_DISP_VALUE_LEN);
+
       // This will add a terminating NULL in the buffer
       int lineLen = snprintf(&lineBuff[lineBuffOff],
-                disp_char_per_row - (columnCnt * DMA_ISR_DISP_VALUE_LEN),   // Buffer size
+                bufSizeForCall,   // Buffer size
                 "%.3f ", dataBuffer[dmaBuffOff++]);
 
+      // snprintf() returns the length that would have been written had the
+      // buffer been big enough, not the actual (possibly truncated) written
+      // length. Clamp to what was actually written so the overwrite below
+      // can't land past lineBuff's allocation.
+      if(lineLen >= bufSizeForCall)
+        lineLen = bufSizeForCall - 1;
+
       // On the last entry don't override the NULL, it's terminating the line
-      if((columnCnt+ 1) != disp_max_per_row)
+      if((columnCnt+ 1) != row_elements)
         lineBuff[lineBuffOff + lineLen] = 0x20;    // Overwrite unwanted NULL
 
       lineBuffOff += DMA_ISR_DISP_VALUE_LEN;    // Fixed spacing
