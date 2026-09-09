@@ -163,10 +163,10 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   //             LOG_MASK(LOG_INFO);  // | LOG_MASK(LOG_DEBUG);
 
   // Sets new mask and returns the previous syslog_mask
-  uint32_t syslogMaskPrev = setlogmask(_syslogMask);
+  int syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08lx\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #else
@@ -177,7 +177,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   int syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08lx\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #endif
