@@ -41,6 +41,11 @@
 
 #include <nuttx/config.h>
 
+// Deliberately excluded from CONFIG_ALL_MEADOW_TESTS: this file is unfinished
+// scaffolding (see the "never implemented" note above) -- the DAC is enabled
+// but never given an output value, and the sine table below is computed but
+// never sent to hardware. Only build it when explicitly requested via
+// CONFIG_DAC_TESTS.
 #if defined (CONFIG_DAC_TESTS) //|| defined (CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) Hacking dig_to_ana_conv_tests.c"
 
