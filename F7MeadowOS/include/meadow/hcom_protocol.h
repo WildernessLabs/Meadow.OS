@@ -262,7 +262,7 @@ typedef struct HcomProtoBinMsg_s HcomProtoBinMsg_t;
 // requirement) the message and the terminating delimiter. For messages longer
 // than 254 bytes, another byte may be added every 254 bytes. What would be a
 // safe size for the receive buffer that can hold an encoded message?
-// The COBS encoding can add 2 bytes every 254 bytes. Add a fudge factor of 8
+// The COBS encoding can add 1 byte every 254 bytes. Add a fudge factor of 8
 // for safety.
 // Delimiter is defined in HCOM_PROTOCOL_COBS_DELIMITER.
 // Note: The COBS encoded size varies depending on the data type. A file
