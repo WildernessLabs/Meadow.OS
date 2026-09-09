@@ -663,11 +663,24 @@ int hcom_nx_trace_msg_send_msg_to_uart(const char *toUartBuf, size_t numbBytes)
     }
   }
 
-  // Write string out the uart
-  ssize_t nbytes = write(_uart_fd, toUartBuf, numbBytes);
-  if (nbytes < 0)
+  // Write string out the uart. A blocking write can return a short count if
+  // interrupted by a signal mid-transfer (this kthread's own shutdown sends
+  // itself SIGALRM) -- retry until every byte is sent or a real error occurs,
+  // so a truncated message isn't silently dropped.
+  size_t totalWritten = 0;
+  while (totalWritten < numbBytes)
   {
-    return nbytes;
+    ssize_t nbytes = write(_uart_fd, toUartBuf + totalWritten,
+                           numbBytes - totalWritten);
+    if (nbytes < 0)
+    {
+      if (errno == EINTR)
+        continue;
+
+      return nbytes;
+    }
+
+    totalWritten += (size_t)nbytes;
   }
 
   return OK;
