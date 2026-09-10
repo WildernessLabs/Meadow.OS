@@ -76,6 +76,17 @@
 // #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+// How long traverse_ku_open_write_end() waits for a reader to attach before
+// giving up on the current message, so a reboot where no reader ever
+// attaches (host tracing left enabled from a prior session) cannot freeze
+// the ramlog kthread -- and UART routing with it -- forever.
+#define TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS (10)
+#define TRAVERSE_KU_OPEN_RETRY_MAX_MS      (3000)  // 3 seconds
+
+/****************************************************************************
  * Private Data
  ****************************************************************************/
 
@@ -104,9 +115,18 @@ static struct file _send_pipe_filep;
 static int traverse_ku_open_write_end(void)
 {
   int ret;
+  int retriesLeft = TRAVERSE_KU_OPEN_RETRY_MAX_MS / TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS;
 
   do
   {
+    if(hcom_nx_trace_msg_is_shutting_down())
+    {
+      // Tracing is being torn down (see hcom_nx_trace_kthread_exit_initiate()
+      // in hcom_nx_trace_msg_proc.c) -- give up immediately instead of
+      // waiting out the retry cap below, so that path isn't held up.
+      return -ESHUTDOWN;
+    }
+
     ret = file_open(&_send_pipe_filep, HCOM_TRAVERSE_KU_PIPE_PATH,
                      O_WRONLY | O_NONBLOCK);
     if(ret < 0)
@@ -114,8 +134,20 @@ static int traverse_ku_open_write_end(void)
       syslog(LOG_MDIAG, "file_open Error:%d\n", ret);
       if(ret == -ENXIO)
       {
-        // Wait for reader to open named pipe and unblock writer
-        usleep(10 * 1000);
+        // Wait for reader to open named pipe and unblock writer, but only
+        // for a bounded time: this is reachable on every reboot where a
+        // prior session left host tracing enabled (a battery-backed bit),
+        // and no reader may ever attach. Give up and let the caller drop
+        // this message rather than freezing the ramlog kthread -- and UART
+        // routing with it, since it happens earlier in the same call chain
+        // -- forever.
+        if(--retriesLeft <= 0)
+        {
+          syslog(LOG_MDIAG, "file_open: giving up waiting for reader after %d ms\n",
+                  TRAVERSE_KU_OPEN_RETRY_MAX_MS);
+          return -ENXIO;
+        }
+        usleep(TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS * 1000);
         continue;
       }
       else
@@ -241,7 +273,7 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
  * Description:
  *   Marshal msgBody into a hcom_traverse_ku_msg_t envelope and write it
  *   atomically to the FIFO.  Because sizeof(envelope) < PIPE_BUF (1024
- *   bytes on NuttX) the write is guaranteed to be atomic — no framing or
+ *   bytes on NuttX) the write is guaranteed to be atomic -- no framing or
  *   mutex is needed.
  *
  *   Blocks if the pipe buffer is full (natural back-pressure).  Returns
@@ -293,7 +325,7 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
   do
   {
     /* Lazy open: attempt to connect to the read end opened by the user side.
-    * Returns -ENXIO (no reader) if user init has not run yet — caller drops.
+    * Returns -ENXIO (no reader) if user init has not run yet -- caller drops.
     */
     if (_send_pipe_filep.f_inode == NULL)
     {
@@ -319,6 +351,15 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     size_t total_written = 0;
     while(total_written < sizeof(msg))
     {
+      if(hcom_nx_trace_msg_is_shutting_down())
+      {
+        // Tracing is being torn down -- don't keep retrying a write (e.g.
+        // waiting out EAGAIN back-pressure) against a pipe that's about to
+        // go away, so hcom_nx_trace_kthread_exit_initiate()'s poll loop
+        // isn't held up.
+        return -ESHUTDOWN;
+      }
+
       written = file_write(&_send_pipe_filep,
                       (const uint8_t *)&msg + total_written,
                       sizeof(msg) - total_written);
@@ -351,7 +392,7 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
       }
       else if(written == -EINTR)    // Interrupted
       {
-        /* Signal interrupted the call — retry immediately. */
+        /* Signal interrupted the call -- retry immediately. */
       }
       else
       {

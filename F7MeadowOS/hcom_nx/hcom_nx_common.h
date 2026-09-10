@@ -175,6 +175,10 @@ extern "C"
   int hcom_nx_trace_msg_proc_setup(void);
   int hcom_nx_trace_msg_mono_started(void);
   void hcom_nx_trace_insure_correct_config (bool uartTracing, bool cliTracing, bool uartProfiling);
+  bool hcom_nx_trace_msg_is_shutting_down(void);
+#else
+  // No ramlog kthread exists to be shutting down in this configuration.
+  static inline bool hcom_nx_trace_msg_is_shutting_down(void) { return false; }
 #endif
 
   // Low-level file system support
