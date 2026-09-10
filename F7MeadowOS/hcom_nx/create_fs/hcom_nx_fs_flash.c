@@ -660,6 +660,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   {
     syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
            thisFile, __LINE__, runtimePath, errno);
+    close(filefd);
     return -errno;
   }
 
@@ -670,6 +671,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
             "%s@%d-Mono runtime binary has invalid size.", thisFile, __LINE__);
+    close(filefd);
     return -1;
   }
 
@@ -927,6 +929,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   if (ret < 0)
   {
     error("%s@%d-fstat of %s failed errno:%d\n", thisFile, __LINE__, path, errno);
+    close(filefd);
     return -errno;
   }
 
@@ -934,6 +937,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   if (fileSize != size)
   {
     error("File has invalid size. Expected %" PRId32 ", got %" PRId32 "\n", size, fileSize);
+    close(filefd);
     return -1;
   }
 
