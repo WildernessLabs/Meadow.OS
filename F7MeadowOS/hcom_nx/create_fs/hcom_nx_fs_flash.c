@@ -134,6 +134,11 @@ static char *thisFile = __FILE__;
  */
 static FAR struct mtd_dev_s *_mtd;
 
+/**
+ * @brief Cached flash geometry, populated once in hcom_nx_exec_ex_flash_setup.
+ */
+static struct mtd_geometry_s _geo;
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -161,6 +166,7 @@ static FAR struct mtd_dev_s *_mtd;
 int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd)
 {
   _mtd = mtd;
+  _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&_geo));
   return OK;
 }
 
@@ -489,10 +495,7 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_get_block_size(void)
 {
-  struct mtd_geometry_s geo;
-
-  _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) &geo));
-  return(geo.blocksize);
+  return(_geo.blocksize);
 }
 
 /****************************************************************************
@@ -513,10 +516,7 @@ uint32_t hcom_nx_exec_ex_flash_get_block_size(void)
  ****************************************************************************/
 uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void)
 {
-  struct mtd_geometry_s geo;
-
-  _mtd->ioctl(_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t) &geo));
-  return(geo.erasesize);
+  return(_geo.erasesize);
 }
 
 /****************************************************************************
