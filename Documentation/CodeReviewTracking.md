@@ -118,7 +118,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B41 | apps/system/hcom/misc/meadow_cirbuf.c | Reviewed | 2026-08-24 | #320 | Peter |  |
 | B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | Mark | No confirmed findings (stub file, no function bodies) |
 | B43 | apps/system/hcom/mono/hcom_mono_control.c | Blocked (runtime) | 2026-08-24 | #325 | Peter |  |
-| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Blocked (runtime) | 2026-08-24 | #326 | Peter |  |
+| B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | Blocked (runtime) | 2026-08-24 | #326 | Peter | Findings addressed on branch issue326-hcom-remote-vs-debug (2026-09); UNTESTED, blocked on Mono runtime |
 | B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Blocked (runtime) | 2026-08-24 | #327 | Peter |  |
 | B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | Reviewed | 2026-08-27 | #336 | Peter |  |
 | B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | Reviewed | 2026-08-27 | #338 | Peter |  |
