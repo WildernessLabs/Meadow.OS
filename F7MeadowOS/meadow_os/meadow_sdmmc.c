@@ -98,12 +98,10 @@ static int stm32_ncd_interrupt(int irq, FAR void *context, void *arg)
 {
   _CurrentSdInserted = !stm32_gpioread(GPIO_MEADOW_SDIO_NCD);
 
-#if defined (CONFIG_SD_CARD_TESTS)
-syslog(LOG_MTEST, "%s@%d-SDMMC interrupt. Card was %s, now is %s\n",
-            __FILE__, __LINE__,
-            _PreviousSdInserted ? "In" : "Out",
-            _CurrentSdInserted ? "In" : "Out");
-#endif
+  syslog(LOG_INFO, "%s@%d-SDMMC interrupt. Card was %s, now is %s\n",
+              __FILE__, __LINE__,
+              _PreviousSdInserted ? "In" : "Out",
+              _CurrentSdInserted ? "In" : "Out");
 
   if (_CurrentSdInserted != _PreviousSdInserted)
   {
@@ -134,16 +132,19 @@ int stm32_sdio_initialize_meadow(void)
 #ifdef HAVE_MEADOW_NCD
   // Configure the card detect GPIO PG6 defined in
   // Meadow.OS/include/meadow/meadow_sdmmc.h
+  //
+  // Note: the interrupt handler for this pin is NOT registered here.
+  // stm32_gpiosetevent() synchronously unmasks the NVIC/EXTI path before
+  // returning, so registering it this early would let stm32_ncd_interrupt()
+  // fire (e.g. a card already inserted at boot, or an EXTI edge latched
+  // during pin reconfiguration) before _SdioDev is assigned by
+  // sdio_initialize() below, or before the initial _CurrentSdInserted/
+  // _PreviousSdInserted state is established -- either a NULL-pointer crash
+  // in sdio_mediachange() or a race on those unsynchronized globals. The
+  // event is armed at the end of this function instead, once _SdioDev is
+  // valid, the block driver is bound, and the initial card state matches
+  // real hardware.
   stm32_configgpio(GPIO_MEADOW_SDIO_NCD);
-
-  // Register an interrupt handler for the card detect pin
-  (void)stm32_gpiosetevent(
-    GPIO_MEADOW_SDIO_NCD,
-    true,
-    true,
-    true,
-    stm32_ncd_interrupt,
-    NULL);
 #endif
 
   syslog(LOG_DEBUG, "Initializing SDIO slot %d\n", SDIO_SLOTNO);
@@ -200,6 +201,19 @@ int stm32_sdio_initialize_meadow(void)
       return ret;
     }
   }
+
+  // Now that _SdioDev is valid, the block driver is bound, and the initial
+  // card state matches real hardware, it's safe to register the interrupt
+  // handler for the card detect pin -- see the comment above
+  // stm32_configgpio(GPIO_MEADOW_SDIO_NCD) for why this can't happen
+  // earlier.
+  (void)stm32_gpiosetevent(
+    GPIO_MEADOW_SDIO_NCD,
+    true,
+    true,
+    true,
+    stm32_ncd_interrupt,
+    NULL);
 #else
   /* Assume that the SD card is inserted.  What choice do we have? */
   sdio_mediachange(_SdioDev, true);
