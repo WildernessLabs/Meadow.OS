@@ -192,7 +192,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | *Reviewed | 2026-08-27 | #342 | TBD | 7/8 findings fixed (branch `issue342-346-hcom-nx-create-fs-cluster`); finding 8 (`copy_blocks_to_memory()` double-read) Won't Fix -- verify pass is the only check for a transient QSPI read glitch, not worth trading away; issue closed |
 | C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | TBD | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
 | C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Peter | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
-| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 | TBD |  |
+| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | *Reviewed | 2026-08-27 | #344 | TBD | 2/2 findings fixed (branch `issue344-hcom-nx-fs-part-utils`); issue closed |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | *Reviewed | 2026-08-28 | #345 | Peter |  |
 | C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 | TBD |  |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
