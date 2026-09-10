@@ -37,8 +37,9 @@
  *
  * Design notes:
  *   - A fixed-size envelope (hcom_traverse_ku_msg_t) is written atomically
- *     because sizeof(envelope) < PIPE_BUF (1024 bytes on NuttX).  No framing
- *     or mutex is required.
+ *     because sizeof(envelope) < PIPE_BUF (512 bytes on NuttX; not to be
+ *     confused with CONFIG_DEV_PIPE_SIZE, the pipe's ring-buffer capacity,
+ *     which defaults to 1024).  No framing or mutex is required.
  *   - Blocking write() on the kernel side provides natural back-pressure: the
  *     kernel caller stalls when the pipe buffer is full rather than dropping.
  *   - The user side opens the FIFO O_RDONLY | O_NONBLOCK so the open returns
@@ -62,7 +63,7 @@
  ****************************************************************************/
 
 /* Maximum payload bytes per message.  The total envelope size must stay
- * below PIPE_BUF (1024 bytes on NuttX) to guarantee an atomic write().
+ * below PIPE_BUF (512 bytes on NuttX) to guarantee an atomic write().
  */
 
 #define HCOM_TRAVERSE_KU_PAYLOAD_MAX  256
@@ -83,7 +84,7 @@ enum HcomTraverseKUType
   HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,      /* kernel syslog / trace text */
   HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,     /* generic snapshot text      */
   HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING,   /* NULL terminated char array */
-  HCOM_TRAVERSE_KU_TYPE_COUNT             /* sentinel — keep last       */
+  HCOM_TRAVERSE_KU_TYPE_COUNT             /* sentinel -- keep last      */
 };
 
 /* Fixed-size envelope transferred atomically through the FIFO.
@@ -113,6 +114,11 @@ struct hcom_traverse_ku_msg_t
 int hcom_traverse_ku_kernel_setup(void);
 
 // These allow access to hcom_traverse_ku_send
+
+/* Not safe to call from ISR/interrupt context: the write path
+ * (pipecommon_write) takes a blocking mutex and will assert or hang if
+ * called from a real interrupt handler.
+ */
 int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen);
 int hcom_traverse_ku_text_to_host(uint16_t requestType,
         char *textMsg, size_t textLen);
