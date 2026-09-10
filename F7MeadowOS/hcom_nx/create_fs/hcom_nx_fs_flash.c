@@ -131,6 +131,14 @@ static char *thisFile = __FILE__;
 
 /**
  * @brief Pointer to the _mtd driver for the flash memory on the board.
+ *
+ * Not lock-protected: safe only because every current caller funnels
+ * through a single serialized task and hcom_nx_exec_ex_flash_setup() runs
+ * once at boot before any task starts. This assumption would need
+ * revisiting if the currently-unwired /dev/upd ioctl entry points
+ * (HCOM_NX_UPD_UPDATE_OS1/OS2, HCOM_NX_UPD_COPY_RUNTIME_TO_RAM) are ever
+ * reactivated from a second task. See _partInfoArray in
+ * hcom_nx_fs_create.c for the same assumption.
  */
 static FAR struct mtd_dev_s *_mtd;
 
