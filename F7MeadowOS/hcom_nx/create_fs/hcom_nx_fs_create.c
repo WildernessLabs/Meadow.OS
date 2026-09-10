@@ -67,6 +67,15 @@ static char *thisFile = __FILE__;
 
 static uint32_t _totalFlashSize;
 static uint32_t _pagesPerEraSector;
+
+/*
+ * Not lock-protected: safe only because every current caller funnels
+ * through a single serialized task and partition setup runs once at boot
+ * before any task starts. This assumption would need revisiting if the
+ * currently-unwired /dev/upd ioctl entry points (HCOM_NX_UPD_UPDATE_OS1/OS2,
+ * HCOM_NX_UPD_COPY_RUNTIME_TO_RAM) are ever reactivated from a second task.
+ * See _mtd in hcom_nx_fs_flash.c for the same assumption.
+ */
 static FAR meadow_part_info_t _partInfoArray[MEADOW_FLASH_PART_TOTAL_ELEMENTS];
 
 /****************************************************************************
