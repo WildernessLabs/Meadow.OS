@@ -66,7 +66,6 @@
 static char *thisFile = __FILE__;
 
 static uint32_t _totalFlashSize;
-static uint32_t _pagesPerEraSector;
 
 /*
  * Not lock-protected: safe only because every current caller funnels
@@ -121,8 +120,6 @@ int hcom_nx_fs_get_partition_info(uint32_t partId,
 int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 {
   int ret;
-
-  _pagesPerEraSector = 0;
 
   // Initialize the partition information of all elements
   for(int i = 0; i < MEADOW_FLASH_PART_TOTAL_ELEMENTS; i++)
@@ -233,7 +230,8 @@ bool hcom_nx_fs_is_mounted(uint32_t partitionNumber)
 // (--) FIX THIS NO NEED TO PASS IN PARTITION NUMBER
 int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionNumber)
 {
-  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].byteOffset / _pagesPerEraSector);
+  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].byteOffset /
+            hcom_nx_exec_ex_flash_get_erase_block_size());
 }
 
 //=====================================================================
@@ -295,8 +293,6 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   syslog(LOG_INFO, "MTD Geo info - total erase sectors %lu, eraseSize %lu block/page size %lu\n",
           geo.neraseblocks, geo.erasesize, geo.blocksize);
 #endif
-
-  _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
   // Need total flash size so we can find the primary partition size
   uint32_t primaryPartSize = geo.neraseblocks * geo.erasesize;
