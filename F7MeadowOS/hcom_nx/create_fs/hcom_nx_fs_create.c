@@ -206,6 +206,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
           MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
           HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE,
           MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
+    return ret;
   }
 #endif
 
