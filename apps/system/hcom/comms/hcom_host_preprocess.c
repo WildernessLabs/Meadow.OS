@@ -698,10 +698,13 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
                 thisFile, __LINE__, dnldShared->dnldFullPathName);
       usleep(20 * 1000);
 #endif
-      // mount(source, target, fstype, mountflags, data)
-      // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-      ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-                MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
+      // Use the shared helper (also used by the file write/delete and file
+      // read paths below) rather than a raw mount() call: it retries via
+      // unmount-then-remount if the SD-Card is already mounted (e.g. from
+      // the boot-time auto-mount in meadow_sdmmc.c), which a bare mount()
+      // call here would otherwise fail with -ENOTDIR on every subsequent
+      // file-list request.
+      ret = hcom_host_preprocess_mount_sdcard();
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
