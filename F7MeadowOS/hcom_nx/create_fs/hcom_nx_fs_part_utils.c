@@ -159,16 +159,24 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
   // Loop through the partitions looking for the partition with this block
   for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
   {
+    // The last partition (file system) has no fixed size known at compile
+    // time (it's whatever remains of the flash chip, which varies by
+    // hardware version) -- there's no _partitionOffsets[] entry past it to
+    // read as an end bound, so treat it as extending to the top of the
+    // address space. This partition is rejected below anyway.
+    uint32_t partEnd = (activePart + 1 < MEADOW_FLASH_PART_TOTAL_PARTITIONS) ?
+              partitionOffsets[activePart + 1] : UINT32_MAX;
+
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
     syslog(2, "-->%s@%d-Checking Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
         thisFile, __LINE__, activePart,
-        partitionOffsets[activePart], partitionOffsets[activePart + 1]);
+        partitionOffsets[activePart], partEnd);
 #endif
 
     // Look at the starting and ending offset of this partition and determine
     // if the requested block is here.
     if((startByteAddr >= partitionOffsets[activePart]) && \
-       (startByteAddr < partitionOffsets[activePart + 1]))
+       (startByteAddr < partEnd))
     {
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
       syslog(2, "-->%s@%d-Partition:%lu, matches. 0x%08lx between 0x%08lx and 0x%08lx\n",
@@ -176,7 +184,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
                 activePart,
                 startByteAddr,
                 partitionOffsets[activePart],
-                partitionOffsets[activePart + 1]);
+                partEnd);
       usleep(20 * 1000);    // Make sure this is seen
 #endif
       break;    // On success, break out of loop
