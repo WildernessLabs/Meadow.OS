@@ -276,7 +276,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Reviewed | 2026-08-28 | #390 | Mark |  |
 | C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | Reviewed | 2026-08-28 | #385 | Peter |  |
 | C134 | F7MeadowOS/misc/meadow_adc.c | Reviewed | 2026-08-29 | #403 | Peter |  |
-| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Reviewed | 2026-08-29 | #400 | Peter |  |
+| C135 | F7MeadowOS/misc/meadow_cirbuf.c | Fixed | 2026-08-29 | #400 | Peter | File deleted (dead kernel-space duplicate); see branch issue400-remove-dead-cirbuf-kernel-copy |
 | C136 | F7MeadowOS/misc/meadow_client_cert.c | Reviewed | 2026-08-29 | #401 | Eduardo Menezes |  |
 | C137 | F7MeadowOS/misc/meadow_logging.c | Reviewed | 2026-08-29 | #399 | Mark |  |
 | C138 | F7MeadowOS/misc/meadow_logging.h | Reviewed | 2026-08-29 |  | Mark | No confirmed findings |
