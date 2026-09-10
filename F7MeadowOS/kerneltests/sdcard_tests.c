@@ -351,14 +351,14 @@ int meadow_kt_sd_card_tests(uint32_t userData)
   {
     case 100:  // format as fat32
     // Future. For now use NSH or PC to format FAT32
-    // As of the Rebase there is no need to mount this before using it. The
-    // mounting and unmounting is handled by hcom_host_preprocess.c now.
     syslog(LOG_MTEST,
       "sdcard tests received %" PRIu32 " this is NOT a supported option\n",
       userData);
     break;
 
     case 101: // mount
+    // As of the Rebase there is no need to mount this before using it. The
+    // mounting and unmounting is handled by hcom_host_preprocess.c now.
     syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mount test\n",
       userData);
     return hcom_nx_sdcard_mount_card();
