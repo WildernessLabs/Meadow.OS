@@ -63,6 +63,18 @@
  ****************************************************************************/
 static char *thisFile = __FILE__;
 
+// One-entry cache of the last partition resolved by
+// hcom_nx_flash_block_offset_to_part_offset(), so a run of sequential
+// blocks within one bulk flash operation (the actual real-world access
+// pattern for OTA/mono-flash reads/writes/erases) can skip the linear
+// partition scan on every call after the first. Partition boundaries are
+// immutable after hcom_fs_init_partitions() runs at boot, so this never
+// needs invalidating. Both fields default to 0 (empty range), so the very
+// first call always falls through to the full scan.
+static uint32_t _cachedPart;
+static uint32_t _cachedPartStart;
+static uint32_t _cachedPartEnd;
+
 // Taken from Meadow repo via syslog 5Oct24. This defines the partitioning
 // layout that Meadow.OS must match.
 // Runtime       - Size: 3145728 ( 3072 KB), Offset:0x00000000
@@ -146,6 +158,7 @@ uint32_t *hcom_nx_fs_get_partition_offsets(void)
 // Erase blocks and Read/Write starting addresses are different! Erase blocks are
 // 4096 bytes and Read/Write blocks are 256 bytes. Therefore, this functions
 // uses the starting byte offset.
+// What this function does:
 // This function will take a byte address and return partition mtd,
 // partition number and offset of the block within the partition
 int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
@@ -156,38 +169,50 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
   uint32_t activePart;
   uint32_t *partitionOffsets = hcom_nx_fs_get_partition_offsets();
 
-  // Loop through the partitions looking for the partition with this block
-  for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
+  // Fast path: skip the linear scan if this address falls in the same
+  // partition as the last call (see _cachedPart's declaration comment).
+  if((startByteAddr >= _cachedPartStart) && (startByteAddr < _cachedPartEnd))
   {
-    // The last partition (file system) has no fixed size known at compile
-    // time (it's whatever remains of the flash chip, which varies by
-    // hardware version) -- there's no _partitionOffsets[] entry past it to
-    // read as an end bound, so treat it as extending to the top of the
-    // address space. This partition is rejected below anyway.
-    uint32_t partEnd = (activePart + 1 < MEADOW_FLASH_PART_TOTAL_PARTITIONS) ?
-              partitionOffsets[activePart + 1] : UINT32_MAX;
-
-#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
-    syslog(2, "-->%s@%d-Checking Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
-        thisFile, __LINE__, activePart,
-        partitionOffsets[activePart], partEnd);
-#endif
-
-    // Look at the starting and ending offset of this partition and determine
-    // if the requested block is here.
-    if((startByteAddr >= partitionOffsets[activePart]) && \
-       (startByteAddr < partEnd))
+    activePart = _cachedPart;
+  }
+  else
+  {
+    // Loop through the partitions looking for the partition with this block
+    for(activePart = 0; activePart < MEADOW_FLASH_PART_TOTAL_PARTITIONS; activePart++)
     {
+      // The last partition (file system) has no fixed size known at compile
+      // time (it's whatever remains of the flash chip, which varies by
+      // hardware version) -- there's no _partitionOffsets[] entry past it to
+      // read as an end bound, so treat it as extending to the top of the
+      // address space. This partition is rejected below anyway.
+      uint32_t partEnd = (activePart + 1 < MEADOW_FLASH_PART_TOTAL_PARTITIONS) ?
+                partitionOffsets[activePart + 1] : UINT32_MAX;
+
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
-      syslog(2, "-->%s@%d-Partition:%lu, matches. 0x%08lx between 0x%08lx and 0x%08lx\n",
-                thisFile, __LINE__,
-                activePart,
-                startByteAddr,
-                partitionOffsets[activePart],
-                partEnd);
-      usleep(20 * 1000);    // Make sure this is seen
+      syslog(2, "-->%s@%d-Checking Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
+          thisFile, __LINE__, activePart,
+          partitionOffsets[activePart], partEnd);
 #endif
-      break;    // On success, break out of loop
+
+      // Look at the starting and ending offset of this partition and determine
+      // if the requested block is here.
+      if((startByteAddr >= partitionOffsets[activePart]) && \
+         (startByteAddr < partEnd))
+      {
+#if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
+        syslog(2, "-->%s@%d-Partition:%lu, matches. 0x%08lx between 0x%08lx and 0x%08lx\n",
+                  thisFile, __LINE__,
+                  activePart,
+                  startByteAddr,
+                  partitionOffsets[activePart],
+                  partEnd);
+        usleep(20 * 1000);    // Make sure this is seen
+#endif
+        _cachedPart = activePart;
+        _cachedPartStart = partitionOffsets[activePart];
+        _cachedPartEnd = partEnd;
+        break;    // On success, break out of loop
+      }
     }
   }
 
