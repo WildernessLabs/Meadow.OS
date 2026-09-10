@@ -67,6 +67,7 @@
 
 #include <sys/stat.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/mutex.h>
 
 // Diagnostics
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -94,6 +95,11 @@
 // the state after a successful file_close() too - see struct file in
 // nuttx/include/nuttx/fs/fs.h.
 static struct file _send_pipe_filep;
+
+// Protects _send_pipe_filep's open/write/close lifecycle across the two
+// independent contexts documented in the file header comment above: the
+// ramlog kthread and the traverse_ku kernel test suite.
+static mutex_t _sendPipeLock = NXMUTEX_INITIALIZER;
 
 /****************************************************************************
  * Private Functions
@@ -127,8 +133,28 @@ static int traverse_ku_open_write_end(void)
       return -ESHUTDOWN;
     }
 
+    ret = nxmutex_lock(&_sendPipeLock);
+    if(ret < 0)
+    {
+      if(ret == -EINTR)
+      {
+        continue;   // Signal interrupted the lock wait -- retry.
+      }
+      return ret;
+    }
+
+    if(_send_pipe_filep.f_inode != NULL)
+    {
+      // Another context already opened it while we were waiting for the
+      // lock -- nothing left to do.
+      nxmutex_unlock(&_sendPipeLock);
+      return OK;
+    }
+
     ret = file_open(&_send_pipe_filep, HCOM_TRAVERSE_KU_PIPE_PATH,
                      O_WRONLY | O_NONBLOCK);
+    nxmutex_unlock(&_sendPipeLock);
+
     if(ret < 0)
     {
       syslog(LOG_MDIAG, "file_open Error:%d\n", ret);
@@ -199,10 +225,18 @@ int hcom_traverse_ku_kernel_setup(void)
     return -errno;
   }
 
+  ret = nxmutex_lock(&_sendPipeLock);
+  if (ret < 0)
+  {
+    return ret;
+  }
+
   if (_send_pipe_filep.f_inode != NULL)
   {
     file_close(&_send_pipe_filep);
   }
+
+  nxmutex_unlock(&_sendPipeLock);
 
   return OK;
 }
@@ -273,8 +307,12 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
  * Description:
  *   Marshal msgBody into a hcom_traverse_ku_msg_t envelope and write it
  *   atomically to the FIFO.  Because sizeof(envelope) < PIPE_BUF (1024
- *   bytes on NuttX) the write is guaranteed to be atomic -- no framing or
- *   mutex is needed.
+ *   bytes on NuttX) a single write() of the whole envelope is guaranteed
+ *   atomic -- no length-prefixed framing is needed. _sendPipeLock still
+ *   guards _send_pipe_filep's open/write/close lifecycle across the two
+ *   independent contexts that can call this function (see file header
+ *   comment); it isn't needed for the write's atomicity, only for the
+ *   shared struct.
  *
  *   Blocks if the pipe buffer is full (natural back-pressure).  Returns
  *   -ENXIO without logging if the user side has not yet opened the read
@@ -322,6 +360,14 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
     return -EINVAL;
   }
 
+  /* Build the envelope once; it doesn't depend on the shared pipe state. */
+  memset(&msg, 0, sizeof(msg));
+  msg.traverseType = traverseType;
+  msg.rqstType     = requestType;
+  msg.length       = msgLen;
+  memcpy(msg.payload, msgBody, msgLen);
+
+  bool msgSent = false;
   do
   {
     /* Lazy open: attempt to connect to the read end opened by the user side.
@@ -338,19 +384,14 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
       }
     }
 
-    /* Build the envelope. */
-    memset(&msg, 0, sizeof(msg));
-    msg.traverseType = traverseType;
-    msg.rqstType     = requestType;
-    msg.length       = msgLen;
-    memcpy(msg.payload, msgBody, msgLen);
-
     /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
     * so partial writes cannot occur and no framing layer is needed.
     */
     size_t total_written = 0;
     while(total_written < sizeof(msg))
     {
+      int lockRet;
+
       if(hcom_nx_trace_msg_is_shutting_down())
       {
         // Tracing is being torn down -- don't keep retrying a write (e.g.
@@ -360,9 +401,21 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
         return -ESHUTDOWN;
       }
 
+      lockRet = nxmutex_lock(&_sendPipeLock);
+      if(lockRet < 0)
+      {
+        if(lockRet == -EINTR)
+        {
+          continue;   // Signal interrupted the lock wait -- retry.
+        }
+        return lockRet;
+      }
+
       written = file_write(&_send_pipe_filep,
                       (const uint8_t *)&msg + total_written,
                       sizeof(msg) - total_written);
+      nxmutex_unlock(&_sendPipeLock);
+
       if (written > 0)
       {
         total_written += (size_t)written;
@@ -382,7 +435,12 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
       {
         // Will spin here waiting for User side to start, creating the other
         // end of the pipe.
-        file_close(&_send_pipe_filep);
+        lockRet = nxmutex_lock(&_sendPipeLock);
+        if(lockRet == 0)
+        {
+          file_close(&_send_pipe_filep);
+          nxmutex_unlock(&_sendPipeLock);
+        }
         usleep(20 * 1000);
         break;            // Break out of inner loop
       }
@@ -402,8 +460,14 @@ int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
       }
     }
 
-    // Only loop if the write end got closed above
-  } while(_send_pipe_filep.f_inode == NULL);
+    msgSent = (total_written == sizeof(msg));
+
+    // Only loop if the write end got closed above (EPIPE) without finishing.
+    // Tracked explicitly rather than inferred from _send_pipe_filep's current
+    // state, since another context could have reopened it by the time we get
+    // here -- that would otherwise look like "no need to retry" even though
+    // THIS message was never actually sent.
+  } while(!msgSent);
 
   // One message written
   return OK;
