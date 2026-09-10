@@ -373,7 +373,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, Block Offset=%lu nParts=%lu\n",
                thisFile, __LINE__, partitionNumber, firstBlockOff, totBlocksInPart);
-      break;
+      return -ENOMEM;
     }
 
     firstBlockOff += totBlocksInPart;
