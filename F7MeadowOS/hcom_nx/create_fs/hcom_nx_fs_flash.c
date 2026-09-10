@@ -952,6 +952,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     return -ret;
   }
   info("Erase success\n");
+  ret = OK;
 
   uint8_t buf[geo.blocksize];
   size_t numBlocksToWrite = fileSize / geo.blocksize;
@@ -962,6 +963,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     {
       syslog(LOG_ERR, "%s@%d-Error\n", thisFile, __LINE__);
       error("Error reading from %s\n", path);
+      ret = -1;
       goto cleanup;
     }
 
@@ -969,6 +971,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     if (writtenBlocks != 1)
     {
       error("Error while writing block %d to flash\n", i);
+      ret = -1;
       goto cleanup;
     }
 
@@ -993,6 +996,7 @@ int flash_file(const char *path, off_t size, off_t offset)
     if (memcmp(buf, verify, geo.blocksize) != 0)
     {
       syslog(LOG_ERR, "Error while verifying block %d.\n", i);
+      ret = -1;
       goto cleanup;
     }
 #endif
@@ -1000,9 +1004,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   info("Flash operation completed\n");
 cleanup:
   close(filefd);
-  // if(cmdData->logLevel != LOG_NONE)
-  //   return -1;
-  return OK;
+  return ret;
 }
 
 // mirroring the individual flags in bootloader/Core/Inc/ota_data.h
