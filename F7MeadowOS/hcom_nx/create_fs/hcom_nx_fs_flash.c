@@ -880,9 +880,7 @@ int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, 
 
   for (int i = 0; i < numBlocksToWrite; i++)
     {
-      memcpy(buf,data_buf, geo.blocksize);
-
-      ssize_t writtenBlocks = MTD_BWRITE_Proxy(_mtd, i + offsetInPages, 1, buf);
+      ssize_t writtenBlocks = MTD_BWRITE_Proxy(_mtd, i + offsetInPages, 1, data_buf);
       if (writtenBlocks != 1)
       {
         error("Error while writing block %d to flash\n", i);
