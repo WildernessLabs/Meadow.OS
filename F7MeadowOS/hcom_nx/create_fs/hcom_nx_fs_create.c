@@ -97,7 +97,7 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 int hcom_nx_fs_get_partition_info(uint32_t partId,
           meadow_part_info_t *partInfo)
 {
-  if((partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART) | (partId < 0))
+  if(partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART)
   {
     syslog(LOG_ERR, "%s@%d-Partition:%lu out of range\n",
               thisFile, __LINE__, partId);
