@@ -1,5 +1,5 @@
 /****************************************************************************
- * \apps\examples\hcom\mono\hcom_remote_vs_debug.c
+ * apps/system/hcom/mono/hcom_remote_vs_debug.c
  * 
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -39,6 +39,13 @@
 // NOTE: This module is a WIP as it has never been put into use. Therefore,
 // there are remaining syslog entries that have not been removed.
 
+// NOTE: GitHub Issue #326 (see Documentation/CodeReviewTracking.md, row B44)
+// -- code-review findings addressed on branch issue326-hcom-remote-vs-debug
+// (2026-09). This module needs the not-yet-available Mono runtime to
+// exercise, so none of these changes have been hardware-tested. The tracking
+// doc's status for this row remains "Blocked (runtime)" -- do NOT assume the
+// changes here are verified.
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -56,6 +63,7 @@
 #include <errno.h>
 #include <sys/un.h>
 #include <sys/time.h>
+#include <poll.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -63,14 +71,22 @@
 
 /* Configuration ************************************************************/
 
+/* How long to wait in poll() for data from Mono before giving up on a
+ * connection and forcing a reconnect. Long enough to not trip while a
+ * developer is paused at a breakpoint, short enough to eventually notice
+ * a dead/crashed peer.
+ */
+#define HCOM_MONO_REMOTE_DBG_RECV_TIMEOUT_MS  (5 * 60 * 1000)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 #if defined (CONFIG_HCOM_MONO_REMOTE_DEBUGGING) 
 
 static char *thisFile = __FILE__;
-static bool _shutting_down;
+static volatile bool _shutting_down;
 static int _transmit_sd;
+static int _listen_sd = -1;
 static bool _hcom_mono_remote_dbg_running;
 static bool _hcom_mono_remote_dbg_socket_active;
 
@@ -151,6 +167,14 @@ int hcom_mono_remote_dbg_startup(void)
 void hcom_mono_remote_dbg_shutdown()
 {
   _shutting_down = true;
+
+  // Force the blocking accept() in the debug thread to return so it can
+  // observe the shutdown flag instead of hanging indefinitely.
+  if(_listen_sd >= 0)
+  {
+    close(_listen_sd);
+    _listen_sd = -1;
+  }
 }
 
 //================================================================
@@ -174,6 +198,7 @@ int hcom_mono_remote_dbg_create_thread()
     (void)pthread_attr_init(&attr);
     (void)pthread_attr_setschedparam(&attr, &param);
     (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_REMOTE_DBG);
+    (void)pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     ret = pthread_create(&thread, &attr, hcom_mono_remote_dbg_pthread, NULL);
     if (ret < 0)
@@ -254,19 +279,10 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
     return dbgSock->listen_sd;
   }
 
-  // Set receive timeout to detect server crash and reconnect. 
-  // Otherwise, we can get stuck in psock_receive forever.
-  struct timeval tv;
-  tv.tv_sec  = 5;
-  tv.tv_usec = 0;
-  ret = setsockopt(dbgSock->listen_sd, SOL_SOCKET, SO_RCVTIMEO,
-                          (const void *)&tv, sizeof(tv));
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Remote dbg sock opt, ret:%d errno:%d\n",
-              thisFile, __LINE__, ret, errno);
-    return ret;
-  }
+  // Note: SO_RCVTIMEO cannot be used here to detect a stalled peer -- NuttX's
+  // AF_LOCAL stream sockets ignore it entirely, and even if honored, the
+  // accept()'d socket (not this listening socket) is the one that recv()s.
+  // See the poll()-based timeout in hcom_mono_remote_dbg_read_mono_send_to_host_loop().
 
   dbgSock->addrlen = strlen(HCOM_MONO_REMOTE_DBG_SOCKET_NAME);
   if (dbgSock->addrlen > UNIX_PATH_MAX - 1)
@@ -275,7 +291,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
   //Note: the letters 'SC0' & 'CS0' will be appended to the 2 sockets.
   // SC = server to client and CS = client to server
   dbgSock->sock_address.sun_family = AF_LOCAL;
-  memcpy(dbgSock->sock_address.sun_path, HCOM_MONO_REMOTE_DBG_SOCKET_NAME, strlen(HCOM_MONO_REMOTE_DBG_SOCKET_NAME));
+  memcpy(dbgSock->sock_address.sun_path, HCOM_MONO_REMOTE_DBG_SOCKET_NAME, dbgSock->addrlen);
   dbgSock->sock_address.sun_path[dbgSock->addrlen] = '\0';
 
   dbgSock->addrlen += sizeof(sa_family_t) + 1;
@@ -301,6 +317,7 @@ int hcom_mono_remote_dbg_create_server_socket(struct remote_dbg_session *dbgSock
     return ret;
   }
 
+  _listen_sd = dbgSock->listen_sd;
   _hcom_mono_remote_dbg_socket_active = true;
   return OK;
 }
@@ -329,9 +346,15 @@ int hcom_mono_remote_dbg_connect_and_receive(struct remote_dbg_session *dbgSock,
 
     // Read data from mono via socket until error. Error reported in loop.
     hcom_mono_remote_dbg_read_mono_send_to_host_loop(dbgSock, recvBuffer);
+
+    // Session ended (error, EOF, or timeout) -- close the connected socket
+    // so its fd is freed and _transmit_sd can't target a stale connection.
+    close(dbgSock->connected_sd);
+    _transmit_sd = -1;
+
     if(_shutting_down)
       return OK;
-    
+
     hcom_mono_remote_dbg_close_and_delay();
   }
 
@@ -374,8 +397,31 @@ void hcom_mono_remote_dbg_read_mono_send_to_host_loop(struct remote_dbg_session 
   while(!_shutting_down)
   {
     // Read from mono
-    syslog(LOG_INFO, "%s@%d-Waiting data from mono debug\n",
+#if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
+    syslog(LOG_DEBUG, "%s@%d-Waiting data from mono debug\n",
               thisFile, __LINE__);
+#endif
+
+    // Wait for data with a timeout so a stalled/gone peer doesn't leave us
+    // blocked in recv() forever -- NuttX's AF_LOCAL sockets ignore
+    // SO_RCVTIMEO, so poll() is used instead.
+    struct pollfd pfd;
+    pfd.fd = dbgSock->connected_sd;
+    pfd.events = POLLIN;
+
+    int pret = poll(&pfd, 1, HCOM_MONO_REMOTE_DBG_RECV_TIMEOUT_MS);
+    if (pret < 0)
+    {
+      syslog(LOG_ERR, "%s@%d-poll, ret:%d errno:%d\n",
+                thisFile, __LINE__, pret, errno);
+      return;
+    }
+    else if (pret == 0)
+    {
+      syslog(LOG_WARNING, "%s@%d-Remote dbg recv timeout, closing connection\n",
+                thisFile, __LINE__);
+      return;
+    }
 
     nBytesRead = recv(dbgSock->connected_sd, recvBuffer,
                        HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN, 0);
@@ -433,6 +479,7 @@ void hcom_mono_remote_dbg_recv_host_sending_to_mono(const HcomProtoHdrMsg_t *hdr
   {
     syslog(LOG_ERR, "%s@%d-message from host but no transmit_sd\n",
             thisFile, __LINE__);
+    return;
   }
 
   size_t dbgDataLen = packetSize - HCOM_PROTOCOL_BIN_DATA_OFFSET;
