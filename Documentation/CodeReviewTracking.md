@@ -189,7 +189,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Reviewed | 2026-08-27 |  | Peter | No confirmed findings |
 | C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | *Reviewed | 2026-08-27 | #340 | Peter |  |
 | C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | Reviewed | 2026-08-27 | #343 | TBD |  |
-| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | *Reviewed | 2026-08-27 | #342 | TBD | 7/8 findings fixed (branch `issue342-346-hcom-nx-create-fs-cluster`); finding 8 (`copy_blocks_to_memory()` double-read) left deferred pending Mono runtime integration |
+| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | *Reviewed | 2026-08-27 | #342 | TBD | 7/8 findings fixed (branch `issue342-346-hcom-nx-create-fs-cluster`); finding 8 (`copy_blocks_to_memory()` double-read) Won't Fix -- verify pass is the only check for a transient QSPI read glitch, not worth trading away; issue closed |
 | C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | TBD | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
 | C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Peter | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
 | C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | Reviewed | 2026-08-27 | #344 | TBD |  |
