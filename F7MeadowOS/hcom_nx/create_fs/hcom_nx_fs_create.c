@@ -66,7 +66,6 @@
 static char *thisFile = __FILE__;
 
 static uint32_t _totalFlashSize;
-static uint32_t _pagesPerEraSector;
 
 /*
  * Not lock-protected: safe only because every current caller funnels
@@ -98,7 +97,7 @@ static int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flas
 int hcom_nx_fs_get_partition_info(uint32_t partId,
           meadow_part_info_t *partInfo)
 {
-  if((partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART) | (partId < 0))
+  if(partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART)
   {
     syslog(LOG_ERR, "%s@%d-Partition:%lu out of range\n",
               thisFile, __LINE__, partId);
@@ -121,8 +120,6 @@ int hcom_nx_fs_get_partition_info(uint32_t partId,
 int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
 {
   int ret;
-
-  _pagesPerEraSector = 0;
 
   // Initialize the partition information of all elements
   for(int i = 0; i < MEADOW_FLASH_PART_TOTAL_ELEMENTS; i++)
@@ -209,6 +206,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
           MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
           HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE,
           MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
+    return ret;
   }
 #endif
 
@@ -233,7 +231,8 @@ bool hcom_nx_fs_is_mounted(uint32_t partitionNumber)
 // (--) FIX THIS NO NEED TO PASS IN PARTITION NUMBER
 int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionNumber)
 {
-  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].byteOffset / _pagesPerEraSector);
+  return (_partInfoArray[MEADOW_FLASH_PART_OFFSET_FILE_SYS].byteOffset /
+            hcom_nx_exec_ex_flash_get_erase_block_size());
 }
 
 //=====================================================================
@@ -295,8 +294,6 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   syslog(LOG_INFO, "MTD Geo info - total erase sectors %lu, eraseSize %lu block/page size %lu\n",
           geo.neraseblocks, geo.erasesize, geo.blocksize);
 #endif
-
-  _pagesPerEraSector = geo.erasesize / geo.blocksize;
 
   // Need total flash size so we can find the primary partition size
   uint32_t primaryPartSize = geo.neraseblocks * geo.erasesize;
@@ -373,7 +370,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, Block Offset=%lu nParts=%lu\n",
                thisFile, __LINE__, partitionNumber, firstBlockOff, totBlocksInPart);
-      break;
+      return -ENOMEM;
     }
 
     firstBlockOff += totBlocksInPart;
