@@ -386,9 +386,13 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     // Find offset to top of array
     uint8_t *featherArrayTop = &validF7v1GpioArray[gpioArrayOff][0];
 
-    // We now we have the right channel look for the GPIO match
+    // We now have the right channel look for the GPIO match. Bound the
+    // scan by the real entry count, not the fixed row size -- GPIO_PORTA |
+    // GPIO_PIN0 encodes as 0, identical to an unfilled slot's implicit
+    // zero-fill, so scanning past the real entries risks a false PA0 match.
+    uint8_t validEntryCount = validF7v1GpioArrayCount[gpioArrayOff];
     for(entryCnt = 0;
-      entryCnt < MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER;
+      entryCnt < validEntryCount;
       entryCnt++)
     {
       entryPtr = featherArrayTop + entryCnt;
@@ -404,7 +408,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
       }
     }
 
-    if(entryCnt == MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER)
+    if(entryCnt == validEntryCount)
     {
       syslog(LOG_ERR, "Error: No port pin match found\n");
       return 0;
@@ -432,9 +436,11 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     uint8_t *featherArrayTop = &validF7v2GpioArray[gpioArrayOff][0];
 
     // We know we have the right channel so we need to look for the GPIO
-    // match
+    // match. Bound the scan by the real entry count, not the fixed row
+    // size -- see the matching comment in the F7v1 branch above.
+    uint8_t validEntryCount = validF7v2GpioArrayCount[gpioArrayOff];
     for(entryCnt = 0;
-      entryCnt < MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER;
+      entryCnt < validEntryCount;
       entryCnt++)
     {
       entryPtr = featherArrayTop + entryCnt;
@@ -449,7 +455,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
       }
     }
 
-    if(entryCnt == MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER)
+    if(entryCnt == validEntryCount)
     {
       syslog(LOG_ERR, "Error: No port pin match found\n");
       return 0;

@@ -383,6 +383,17 @@ static uint8_t validF7v1GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER] =
   },
 };
 
+// Number of real (non-padding) entries in each validF7v1GpioArray[] row.
+// GPIO_PORTA | GPIO_PIN0 encodes as 0, identical to an unfilled trailing
+// slot's implicit zero-fill, so the lookup loop must stop at the real
+// entry count for a timer rather than scanning the whole fixed-size row --
+// otherwise a request for PA0 could falsely match a padding slot on a
+// timer that doesn't actually expose it.
+static const uint8_t validF7v1GpioArrayCount[MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS] =
+{
+  0, 0, 4, 4, 1, 0, 0, 0, 1, 1, 1, 2, 0, 1
+};
+
 //-------------------------------------------------
 // Used to verify port and pin availability on F7FeatherV2
 static uint8_t validF7v2GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER]=
@@ -440,6 +451,13 @@ static uint8_t validF7v2GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER]=
 
   /* TIM14 No GPIO exposed */
   {},
+};
+
+// Number of real (non-padding) entries in each validF7v2GpioArray[] row.
+// See validF7v1GpioArrayCount above for why this is needed.
+static const uint8_t validF7v2GpioArrayCount[MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS] =
+{
+  0, 0, 4, 4, 2, 0, 0, 0, 0, 1, 1, 2, 0, 0
 };
 
 #endif      // __CONFIGS_MEADOW_SPEC_MEADOW_FREQ_LOCAL__H
