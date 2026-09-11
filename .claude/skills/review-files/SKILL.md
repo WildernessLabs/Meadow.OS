@@ -149,7 +149,10 @@ rather than reviewing everything in one pass.
   been committed yet.
 - Don't commit a fix immediately after making it. Leave the change (and the
   tracking-doc `last updated` bump) uncommitted so the user can review, build, and test
-  first. Only commit if the user explicitly asks you to. Once a fix is committed,
+  first. Only commit if the user explicitly asks you to -- don't infer that go-ahead
+  from an unrelated message (e.g. a follow-up question about the fix), and don't
+  assume "looks done" is the same as the user having actually reviewed it in their
+  editor. Once a fix is committed,
   comment on its finding's Issue with the branch/PR link and tick that finding's
   checkbox; close the Issue once every checkbox in it is ticked (or let the merge
   commit's `Fixes #N` do it automatically if it's the last one).
