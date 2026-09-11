@@ -206,7 +206,6 @@ A custom implementation of STM32 Stop mode (low-power sleep). Does **not** use t
 | `pwrmgmt_control.c` | Main entry point; decides whether/when to enter stop mode |
 | `pwrmgmt_enter_stop_mode.c` | Executes the Stop mode entry sequence |
 | `pwrmgmt_config_wakeup_alarm.c` | Configures RTC alarm as wake-up source |
-| `pwrmgmt_config_wakeup_timer.c` | Configures RTC wake-up timer |
 | `pwrmgmt_switch_rtc_clock.c` | Switches between HSE and LSI as RTC clock source |
 | `pwrmgmt_calib_lsi_clock.c` | Calibrates the LSI RC oscillator frequency |
 | `pwrmgmt_time_support.c` | Time conversion utilities for wake-up calculations |

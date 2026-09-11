@@ -118,7 +118,6 @@ endif
 
 ifeq ($(CONFIG_MEADOW_PWR_MGMT_SUPPORT),y)
 CSRCS += $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_calib_lsi_clock.c \
-$(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_config_wakeup_timer.c \
 $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_config_wakeup_alarm.c \
 $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_control.c \
 $(MEADOW_OS_DIR)/pwrmgmt/pwrmgmt_enter_stop_mode.c \
