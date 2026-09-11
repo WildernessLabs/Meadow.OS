@@ -45,15 +45,15 @@
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
-#if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 // This test provides a means to know, and display on syslog, when the clock
-// feeding the RTC (HSE or LSI) has changed.
-  // yes=1 or no=0
-  #define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (1)
-#else
-  // leave 0
-  #define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (0)
-#endif
+// feeding the RTC (HSE or LSI) has changed. Currently disabled: enabling it
+// makes pwrmgmt_lsi_calc_prep_thread_func() (F7MeadowOS/pwrmgmt/
+// pwrmgmt_calib_lsi_clock.c) never exit after calibration, instead looping
+// forever from boot logging a line roughly once per second -- not something
+// to switch on just because CONFIG_POWER_MANAGEMENT_TESTS/
+// CONFIG_ALL_MEADOW_TESTS is set, since those are otherwise-normal dev
+// build configs, not a signal that this specific diagnostic is wanted.
+#define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (0)
 
 // This are defined here because they are not in Nuttx. In Nuttx they are
 // hardcoded as 0xff and 7812 or 7182 (an error) in stm32_rtc.c etc.
@@ -88,6 +88,10 @@ int meadow_pwr_mgmt_use_lsi_for_rtc(void);
 // This function is in Meadow.OS/pwrmgmt/pwrmgmt_control.c
 void up_idle_pwrmgmt_set_idle_behavior(bool useWaitOps);
 
+  // See PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING above before enabling this --
+  // it makes pwrmgmt_lsi_calc_prep_thread_func() (pwrmgmt_calib_lsi_clock.c)
+  // never exit after calibration, looping forever from boot logging a line
+  // roughly once per second.
   #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
   void pwrmgmt_rtc_source_clk_changed_flag(bool dbgClkSwitched);
   #endif
