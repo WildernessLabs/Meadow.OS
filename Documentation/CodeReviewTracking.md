@@ -298,7 +298,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | TBD | Findings covered in C146 issue |
 | C148 | F7MeadowOS/ntpclient/ntpv3.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |
 | C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | Reviewed | 2026-08-29 | #412 | Peter |  |
-| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | Reviewed | 2026-08-29 | #406 | Peter |  |
+| C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | *Reviewed | 2026-08-29 | #406 | Peter | All 3 findings fixed; unit tested via `--unittests=power` test 58 (full sleep/wake cycle through this file's alarm config/wakeup path, exact 10s sleep, no timeout errors); issue closed via PR |
 | C151 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_timer.c | Reviewed | 2026-08-29 | #407 | Peter |  |
 | C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Reviewed | 2026-08-29 | #409 | Peter |  |
 | C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Reviewed | 2026-08-29 | #413 | Peter |  |
