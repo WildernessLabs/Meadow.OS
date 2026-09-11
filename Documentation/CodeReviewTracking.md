@@ -303,7 +303,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C152 | F7MeadowOS/pwrmgmt/pwrmgmt_control.c | Reviewed | 2026-08-29 | #409 | Peter |  |
 | C153 | F7MeadowOS/pwrmgmt/pwrmgmt_enter_stop_mode.c | Reviewed | 2026-08-29 | #413 | Peter |  |
 | C154 | F7MeadowOS/pwrmgmt/pwrmgmt_local.h | Reviewed | 2026-08-29 | #408 | Peter |  |
-| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Reviewed | 2026-08-29 | #405 | Peter |  |
+| C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | *Reviewed | 2026-08-29 | #405 | Peter | All 3 findings fixed, built and smoketested (not yet unit tested via `--unittests=power`); issue closed via PR |
 | C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Reviewed | 2026-08-29 | #410 | Peter |  |
 | C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Reviewed | 2026-08-29 | #411 | Peter |  |
 | C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | *Reviewed | 2026-09-01 | #415 | TBD | All 5 findings fixed, unit tested (`--unittests=gpiocount`), smoketested, merged (PR #557); issue closed |

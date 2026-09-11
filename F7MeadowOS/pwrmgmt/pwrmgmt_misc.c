@@ -50,6 +50,7 @@
 #include "stm32_exti.h"
 #include "arm_internal.h"
 #include <inttypes.h>
+#include <nuttx/mutex.h>
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
@@ -68,6 +69,15 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
+// pwrmgmt_rtc_wprunlock()/pwrmgmt_rtc_wprlock() always bracket the critical
+// RTC register-access sequence (write-protect unlock, optional enterinit()/
+// exitinit(), register writes, write-protect lock) in every caller across
+// this directory. Acquiring this lock in wprunlock() and releasing it in
+// wprlock() serializes that whole sequence against any other caller,
+// regardless of entry point -- including kernel-test code that calls
+// pwrmgmt_enter_stop_mode() directly, bypassing pwrmgmt_control.c's
+// production-path _lowPwrCtrlEntry semaphore.
+static mutex_t _rtcAccessLock = NXMUTEX_INITIALIZER;
 
 /************************************************************************************
  * Public Data
@@ -84,7 +94,7 @@
 #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 {
-  int rtc_state;
+  int rtcState;
 
   // After backup domain reset these are the default values
   // RTC control register (RTC_CR)                    [0]
@@ -122,12 +132,12 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
   syslog(LOG_MTEST, "     ISR: %08" PRIx32 "\n", getreg32(STM32_RTC_ISR));
   syslog(LOG_MTEST, "MAGICREG: %08" PRIx32 "\n", getreg32(RTC_MAGIC_REG));
 
-  rtc_state =
+  rtcState =
     ((getreg32(STM32_EXTI_IMR)  & EXTI_RTC_ALARM) ? 0x0010 : 0) |
     ((getreg32(STM32_EXTI_EMR)  & EXTI_RTC_ALARM) ? 0x0001 : 0) |
     ((getreg32(STM32_EXTI_RTSR) & EXTI_RTC_ALARM) ? 0x1000 : 0) |
     ((getreg32(STM32_EXTI_FTSR) & EXTI_RTC_ALARM) ? 0x0100 : 0);
-  syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n",rtc_state);
+  syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n",rtcState);
 }
 #endif
 
@@ -136,6 +146,13 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 // Write PRotect Unlock
 void pwrmgmt_rtc_wprunlock(void)
 {
+  // Serialize the whole write-protect-unlock...write-protect-lock sequence
+  // against any other caller. Released in pwrmgmt_rtc_wprlock(). This is an
+  // internal, always-initialized static mutex, so nxmutex_lock() failing
+  // here would indicate a programming error rather than a real runtime
+  // condition to recover from.
+  (void)nxmutex_lock(&_rtcAccessLock);
+
   // Sets the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
   // Ref Man 4.4.1 PWR power control register (PWR_CR1)
   // True enables ability to write to backup domain registers
@@ -157,6 +174,9 @@ void pwrmgmt_rtc_wprlock(void)
   // Ref Man 4.4.1 PWR power control register (PWR_CR1)
   // False disables ability to write to backup domain registers
   stm32_pwr_enablebkp(false);
+
+  // Release the lock acquired in pwrmgmt_rtc_wprunlock().
+  nxmutex_unlock(&_rtcAccessLock);
 }
 
 //=============================================================
@@ -221,8 +241,8 @@ void pwrmgmt_rtc_exitinit(void)
   regval &= ~RTC_CR_BYPSHAD;    // Clear BYPSHAD
   putreg32(regval, STM32_RTC_CR);
 
-  // Wait for RFS bit to indicate that shadow registers are synchronized.
-  while ((getreg32(STM32_RTC_CR) & RTC_ISR_RSF) != 0);
+  // Wait for RSF bit to indicate that shadow registers are synchronized.
+  while ((getreg32(STM32_RTC_ISR) & RTC_ISR_RSF) == 0);
   return;
 }
 
@@ -237,22 +257,22 @@ int pwrmgmt_rtc_synchwait(void)
   pwrmgmt_rtc_wprunlock();
 
   // Clear Registers synchronization flag (RSF)
-  regval  = getreg32(STM32_RTC_ISR);
+  regval = getreg32(STM32_RTC_ISR);
   regval &= ~RTC_ISR_RSF;
   putreg32(regval, STM32_RTC_ISR);
 
   // Now wait the registers to become synchronised
   ret = -ETIMEDOUT;
   for (timeout = 0; timeout < 20000; timeout++)
+  {
+    regval = getreg32(STM32_RTC_ISR);
+    if ((regval & RTC_ISR_RSF) != 0)
     {
-      regval = getreg32(STM32_RTC_ISR);
-      if ((regval & RTC_ISR_RSF) != 0)
-        {
-          // Synchronized
-          ret = OK;
-          break;
-        }
+      // Synchronized
+      ret = OK;
+      break;
     }
+  }
 
   // Re-enable the write protection for RTC registers
   pwrmgmt_rtc_wprlock();
