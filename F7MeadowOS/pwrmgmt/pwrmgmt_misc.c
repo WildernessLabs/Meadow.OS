@@ -50,6 +50,7 @@
 #include "stm32_exti.h"
 #include "arm_internal.h"
 #include <inttypes.h>
+#include <nuttx/mutex.h>
 
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_common.h"
@@ -68,6 +69,15 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
+// pwrmgmt_rtc_wprunlock()/pwrmgmt_rtc_wprlock() always bracket the critical
+// RTC register-access sequence (write-protect unlock, optional enterinit()/
+// exitinit(), register writes, write-protect lock) in every caller across
+// this directory. Acquiring this lock in wprunlock() and releasing it in
+// wprlock() serializes that whole sequence against any other caller,
+// regardless of entry point -- including kernel-test code that calls
+// pwrmgmt_enter_stop_mode() directly, bypassing pwrmgmt_control.c's
+// production-path _lowPwrCtrlEntry semaphore.
+static mutex_t _rtcAccessLock = NXMUTEX_INITIALIZER;
 
 /************************************************************************************
  * Public Data
@@ -136,6 +146,13 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 // Write PRotect Unlock
 void pwrmgmt_rtc_wprunlock(void)
 {
+  // Serialize the whole write-protect-unlock...write-protect-lock sequence
+  // against any other caller. Released in pwrmgmt_rtc_wprlock(). This is an
+  // internal, always-initialized static mutex, so nxmutex_lock() failing
+  // here would indicate a programming error rather than a real runtime
+  // condition to recover from.
+  (void)nxmutex_lock(&_rtcAccessLock);
+
   // Sets the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
   // Ref Man 4.4.1 PWR power control register (PWR_CR1)
   // True enables ability to write to backup domain registers
@@ -157,6 +174,9 @@ void pwrmgmt_rtc_wprlock(void)
   // Ref Man 4.4.1 PWR power control register (PWR_CR1)
   // False disables ability to write to backup domain registers
   stm32_pwr_enablebkp(false);
+
+  // Release the lock acquired in pwrmgmt_rtc_wprunlock().
+  nxmutex_unlock(&_rtcAccessLock);
 }
 
 //=============================================================
