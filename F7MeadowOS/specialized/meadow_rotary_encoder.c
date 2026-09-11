@@ -62,6 +62,7 @@
 #include "stm32_gpio.h"
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mutex.h>
 
 #if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_rotary_encoder.c"
@@ -125,6 +126,13 @@ static uint32_t rotencInputDataReg[] =
 // This is the list of the GPIOs currently configured.
 static rotaryEncoderInfo_t *_allRotaryEncodersList[MEADOW_ROTARY_ENC_MAX_ENCODERS]\
         = {NULL};
+
+// Serializes meadow_rotary_encoder_config() calls against each other so a
+// concurrent add/add (or add/remove) targeting the same slot can't race
+// past the check-then-publish sequence below. Reads (set_count/read_data)
+// don't need this -- they're independently protected by rotenc_acquire()/
+// rotenc_release() above.
+static mutex_t _rotencCfgLock = NXMUTEX_INITIALIZER;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -398,6 +406,15 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     return -ERANGE;    // Out of Range
   }
 
+  // Serialize the remainder of this function (check-through-publish for an
+  // add, or check-through-unpublish for a remove) against concurrent callers
+  // targeting the same or another slot.
+  ret = nxmutex_lock(&_rotencCfgLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   // Check if slot is in use
   rotaryEncoderInfo = _allRotaryEncodersList[cfg->encoderNumb];
   if(cfg->isAddEncoder)
@@ -407,6 +424,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     {
       syslog(LOG_ERR, "%s@%d-Encoder %lu is in use\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
+      nxmutex_unlock(&_rotencCfgLock);
       return -ENOTEMPTY;    // Not empty
     }
   }
@@ -417,11 +435,13 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
     {
       syslog(LOG_ERR, "%s@%d-Encoder %lu already removed\n",
                 __FILE__, __LINE__, cfg->encoderNumb);
+      nxmutex_unlock(&_rotencCfgLock);
       return -ENOTEMPTY;    // Not empty
     }
 
     // Remove
     ret = rotenc_config_interrupt_remove(cfg->encoderNumb);
+    nxmutex_unlock(&_rotencCfgLock);
     return ret;
   }
 
@@ -433,6 +453,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   {
     syslog(LOG_ERR, "%s@%d-Encoder %lu, GPIO Port or PIN is out of range\n",
               __FILE__, __LINE__, cfg->encoderNumb);
+    nxmutex_unlock(&_rotencCfgLock);
     return -ERANGE;    // Out of Range
   }
 
@@ -440,6 +461,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   if(rotaryEncoderInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Memory allocation failed\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_rotencCfgLock);
     return -ENOMEM;
   }
 
@@ -492,6 +514,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
       syslog(LOG_ERR, "%s@%d-Encoder %lu, resistorMode %lu is out of range\n",
                 __FILE__, __LINE__, cfg->encoderNumb, cfg->resistorMode);
       rotenc_config_interrupt_remove(cfg->encoderNumb);
+      nxmutex_unlock(&_rotencCfgLock);
       return -EINVAL;
   }
 
@@ -504,6 +527,7 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   if(ret < 0)
   {
     rotenc_config_interrupt_remove(cfg->encoderNumb);
+    nxmutex_unlock(&_rotencCfgLock);
     return ret;
   }
 
@@ -512,9 +536,11 @@ int meadow_rotary_encoder_config(rotEncConfigParms_t* cfg)
   if(ret < 0)
   {
     rotenc_config_interrupt_remove(cfg->encoderNumb);
+    nxmutex_unlock(&_rotencCfgLock);
     return ret;
   }
 
+  nxmutex_unlock(&_rotencCfgLock);
   return OK;
 }
 
