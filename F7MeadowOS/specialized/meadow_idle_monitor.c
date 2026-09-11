@@ -64,7 +64,7 @@
 
 // #pragma GCC optimize("O0")    /* Prevent optimization from removing test code */
 
-//===================================================================
+//================================================================
 // Timer 6 is one of the 2 basic timers. It has no connected GPIO I/O
 // Both of the following #defines must match
 #define MEADOW_IDLE_MON_USE_TIMER_NUMBER (6)
@@ -95,8 +95,8 @@ static int meadow_idle_mon_timer_init(uint32_t timerBase);
 static int meadow_idle_mon_isr(int irq, void *context, void *arg);
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
-int meadow_idle_mon_create_test_thread(void);
-void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
+static int meadow_idle_mon_create_test_thread(void);
+static void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
 #endif
 
 /****************************************************************************
@@ -104,7 +104,6 @@ void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
  ****************************************************************************/
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-// 
 static volatile uint32_t _idleLoopCounter;
 static volatile uint32_t _idleOneSecSnapShot;
 #endif
@@ -117,7 +116,7 @@ static volatile uint32_t _idleOneSecSnapShot;
  * Private Functions
  ****************************************************************************/
 // This ISR designed to be called once/second via a timer interrupt.
-int meadow_idle_mon_isr(int irq, void *context, void *arg)
+static int meadow_idle_mon_isr(int irq, void *context, void *arg)
 {
   // Check the timer's Status Register
   uint16_t timStatusReg = getreg16(MEADOW_IDLE_MON_TIMER_BASE + STM32_BTIM_SR_OFFSET);
@@ -155,7 +154,7 @@ int meadow_idle_mon_isr(int irq, void *context, void *arg)
 
 //================================================================
 // Called during startup
-int meadow_idle_monitor_setup()
+int meadow_idle_monitor_setup(void)
 {
   int ret;
 
@@ -190,7 +189,7 @@ static int meadow_idle_mon_timer_init(uint32_t timerBase)
 
   // Setup the clock enable for timer 6
   modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM6EN);
-  
+
   // Must be between 0 and 0xffff. Set the prescaler value of 0 to allow
   // highest speed. A prescaler value of 1 will divide the clock by 2.
   // Find proper pre-scaler value so all timers run at the same speed
@@ -245,14 +244,14 @@ static int meadow_idle_mon_timer_init(uint32_t timerBase)
  * Public Functions
  ****************************************************************************/
 // Return the current MCU idle percentage 0 - 100%
-int meadow_idle_monitor_get_value()
+int meadow_idle_monitor_get_value(void)
 {
   static int IdlePercent = 0;
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
   irqstate_t flags = enter_critical_section();
-  // Calculate the percentage 
-  IdlePercent = 
+  // Calculate the percentage
+  IdlePercent =
       (_idleOneSecSnapShot * 100) / MEADOW_IDLE_MON_MAX_100_PER_CENT_COUNT;
   leave_critical_section(flags);
 #endif    // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
@@ -274,8 +273,8 @@ void meadow_idle_mon_entering_idle_mode(void)
 
 // Test code follows
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
-//=========================================================
-int meadow_idle_mon_create_test_thread()
+//================================================================
+static int meadow_idle_mon_create_test_thread(void)
 {
   int test_kthrd;
 
@@ -287,7 +286,7 @@ int meadow_idle_mon_create_test_thread()
                               2048,     // Stack
                               (main_t) meadow_idle_mon_test_thread_proc,
                               (char *const *) NULL);
-  if (test_kthrd <= 0)
+  if(test_kthrd <= 0)
   {
     syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
                 __FILE__, __LINE__, "IdleMonTest");
@@ -296,10 +295,10 @@ int meadow_idle_mon_create_test_thread()
   return OK;
 }
 
-//=========================================================
+//================================================================
 // Test code for mcu idle measurement. It only reports via syslog the current
 // idle percentage calculated.
-void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
+static void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
