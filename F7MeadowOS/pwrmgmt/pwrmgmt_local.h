@@ -49,7 +49,7 @@
 // This test provides a means to know, and display on syslog, when the clock
 // feeding the RTC (HSE or LSI) has changed.
   // yes=1 or no=0
-  #define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (0)
+  #define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (1)
 #else
   // leave 0
   #define PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING (0)
