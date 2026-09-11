@@ -1279,7 +1279,18 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   double dblTotalCaptureTime =\
             ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
   dblTotalInputCount = (double)gpioCountForAvg;
-  dblAvgFreq = ((double)dblTotalInputCount) / dblTotalCaptureTime;
+
+  // Guard against a zero (or near-zero) elapsed time -- the RTC subsecond
+  // counter has coarse (millisecond-scale) resolution, so two calls landing
+  // within the same tick (plausible under a tight polling loop) would
+  // otherwise divide by zero here, producing +Infinity and then
+  // implementation-defined/undefined behavior when assigned into the
+  // uint32_t avgFreqX1000 return field below. Skip the average-frequency
+  // update for this call rather than propagate a bogus reading.
+  if(dblTotalCaptureTime > 0.0)
+    dblAvgFreq = ((double)dblTotalInputCount) / dblTotalCaptureTime;
+  else
+    dblAvgFreq = 0;
 
   if(useDutyCycle)
     returnData->dutyCycleX1000  = (dblDutyCycle * 1000.0);
