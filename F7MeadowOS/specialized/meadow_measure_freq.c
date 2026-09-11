@@ -323,13 +323,18 @@ static uint8_t meadow_measure_freq_get_channel_bit(const uint32_t timerChan)
 // frequency calculations.
 // Note: Since reading of frequency information is asynchronous with their
 // calculation, the average frequence will vary a bit.
-static uint64_t meadow_measure_freq_get_current_time(void)
+// Returns OK with *nowNsec set on success, or a negative errno (*nowNsec
+// left unmodified) if the underlying RTC read failed -- a real, if rare,
+// condition per the STM32F77X errata workaround below. Plumbed through an
+// out-parameter rather than overloading the uint64_t return value, since a
+// negative int error code cast to uint64_t would otherwise be
+// indistinguishable from a legitimate (if implausibly large) timestamp.
+static int meadow_measure_freq_get_current_time(uint64_t *nowNsec)
 {
   int ret;
   struct tm rtcTime;
   long nsecs;
   long prevNsecs;
-  uint64_t returnTime;
 
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
   do
@@ -355,19 +360,24 @@ static uint64_t meadow_measure_freq_get_current_time(void)
     // If they match we have good values
     if(prevNsecs == nsecs)
       break;
-      
+
   } while (1);
 #else
   // This function is used if no sub-seconds.
   ret = up_rtc_getdatetime(&rtcTime);
+  if(ret < 0)
+  {
+    return ret;
+  }
   nsecs = 0;
 #endif
 
-  returnTime = mktime(&rtcTime);
+  uint64_t returnTime = mktime(&rtcTime);
   returnTime *= 1000 * 1000 * 1000;
   returnTime += nsecs;
 
-  return returnTime;
+  *nowNsec = returnTime;
+  return OK;
 }
 
 //=============================================================
@@ -695,8 +705,14 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 
   // Init time and count used to calculate average frequency
   mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->gpioCountForAvg = 0;
-  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->startTimeForAvg =
-            meadow_measure_freq_get_current_time();
+  uint64_t nowNsec = 0;
+  int getTimeRet = meadow_measure_freq_get_current_time(&nowNsec);
+  if(getTimeRet < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+              __FILE__, __LINE__, getTimeRet);
+  }
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->startTimeForAvg = nowNsec;
 
   // Indicate this channel is being used
   mdwFreqTimerInfo->chanActiveBits |= chanBit;    // Set channel bit
@@ -1219,7 +1235,14 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     returnData->gpioCountForAvg = 0;
 
     // Reset capture time for next average
-    mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
+    uint64_t nowNsec = 0;
+    ret = meadow_measure_freq_get_current_time(&nowNsec);
+    if(ret < 0)
+    {
+      syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+                __FILE__, __LINE__, ret);
+    }
+    mdwFreqChanData->startTimeForAvg = nowNsec;
 
     syslog(LOG_ERR, "%s@%d-Error:No freq input since last read\n",
               __FILE__, __LINE__);
@@ -1271,13 +1294,24 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   dblFrequency = ((double)MEADOW_FREQ_CLOCK_FREQ) / ((double)fullCycle);
 
   // Average frequency since last calculated
-  totalCaptureTime =
-            meadow_measure_freq_get_current_time() - \
-            startTimeForAvg;
+  uint64_t nowNsec = 0;
+  ret = meadow_measure_freq_get_current_time(&nowNsec);
+  double dblTotalCaptureTime;
+  if(ret < 0)
+  {
+    // Can't compute a valid elapsed time this call; fall through to the
+    // zero-duration guard below rather than propagate a bogus reading.
+    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+              __FILE__, __LINE__, ret);
+    dblTotalCaptureTime = 0;
+  }
+  else
+  {
+    totalCaptureTime = nowNsec - startTimeForAvg;
 
-  // Convert time in nanoseconds to fractional seconds
-  double dblTotalCaptureTime =\
-            ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
+    // Convert time in nanoseconds to fractional seconds
+    dblTotalCaptureTime = ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
+  }
   dblTotalInputCount = (double)gpioCountForAvg;
 
   // Guard against a zero (or near-zero) elapsed time -- the RTC subsecond
@@ -1305,7 +1339,13 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   // above, atomically with the snapshot.
   // Since reading the information is asynchronous with these calculation
   // the average frequence can vary a bit.
-  mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
+  ret = meadow_measure_freq_get_current_time(&nowNsec);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+              __FILE__, __LINE__, ret);
+  }
+  mdwFreqChanData->startTimeForAvg = nowNsec;
 
   nxmutex_unlock(&_measureFreqLock);
   return MEADOW_MEAS_FREQ_READ_SUCCESSFUL;
