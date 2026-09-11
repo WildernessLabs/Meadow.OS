@@ -68,6 +68,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <nuttx/arch.h>
+#include <nuttx/mutex.h>
 #include <arch/board/board.h>
 #include <sys/ioctl.h>
 #include <nuttx/timers/timer.h>
@@ -93,6 +94,17 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+// Serializes meadow_measure_freq_configure() and
+// meadow_measure_freq_return_freq_info() against each other and against
+// themselves. meadow_measure_freq_unconfigure() is static and only ever
+// reached through configure()'s MEADOW_MEAS_FREQ_CONF_OPTION_UNCFG branch,
+// so it doesn't need its own lock -- its only caller already holds this
+// one. Without this, concurrent configure()/unconfigure() calls on the
+// same channel could double-free mdwFreqChanData, and return_freq_info()
+// could read/write through a pointer freed out from under it by a
+// concurrent unconfigure(). The ISR's own enter_critical_section() use is
+// unaffected -- it guards against the ISR specifically, not other tasks.
+static mutex_t _measureFreqLock = NXMUTEX_INITIALIZER;
 
 /************************************************************************************
  * Private Function Prototypes
@@ -572,6 +584,15 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   stm32_gpiowrite(DEBUG_GPIO_V2_D06, false); // Diagnostic only
 #endif
 
+  // Serialize the remainder of this function -- and meadow_measure_freq_
+  // unconfigure(), reached below and only ever called from here -- against
+  // concurrent configure()/return_freq_info() calls. See _measureFreqLock.
+  ret = nxmutex_lock(&_measureFreqLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   // Configure the timer and channel
   // 1 = Configure without Duty Cycle (reduces interrupts by 50%)
   // 2 = Configure with Duty Cycle
@@ -590,24 +611,27 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     case MEADOW_MEAS_FREQ_CONF_OPTION_UNCFG:
       // Unconfigure - Also removes Timer if no channels remain
       ret = meadow_measure_freq_unconfigure(mdwCfgTimerChan);
+      nxmutex_unlock(&_measureFreqLock);
       return ret;   // Done with unconfigure
 
     default:
       syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%" PRIu32 "\n",
         __FILE__, __LINE__, mdwCfgTimerChan->configOption);
+      nxmutex_unlock(&_measureFreqLock);
       return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;
   }
 
   // Insure a valid timer, channel, port+pin combination was supplied.
   // Timers have, at most, 4 channels, each representing 1 GPIO. For the
   // specified timer we need to verify a proper port and pin.
-  uint8_t chanValid4TimerPortPin = 
+  uint8_t chanValid4TimerPortPin =
     meadow_measure_freq_verify_portpin_get_chan(timerNumber, portAndPin);
   if(chanValid4TimerPortPin == 0)
   {
     syslog(LOG_ERR,
       "%s@%d-Error:The Port and Pin, not valid for timer %" PRIu32 "\n",
       __FILE__, __LINE__, timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_NOT_FOR_TIM;
   }
 
@@ -617,6 +641,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR,
       "%s@%d-Error:The Port/Pin/Timer/Channel combination, not valid\n",
       __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_TIM_CHAN_INVALID;
   }
 
@@ -627,6 +652,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   {
     syslog(LOG_ERR, "%s@%d-Error:Timer %ld unusable\n",
               __FILE__, __LINE__, timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_TIM_NOT_USABLE;
   }
 
@@ -648,6 +674,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR,
       "%s@%d-Error:Timer %" PRIu32 ", channel %" PRIu32 " already in use\n",
       __FILE__, __LINE__, timerNumber, channelNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_TIM_CHAN_IN_USE;
   }
 
@@ -658,6 +685,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   {
     syslog(LOG_ERR, "%s@%d-Error:Allocation for mdwFreqChanData_s\n",
       __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_CHAN_MEM_ALLOC_FAILED;
   }
 
@@ -697,6 +725,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
     mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
     mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_CONFIGGPIO_ERR;   // Not supported
   }
 
@@ -713,6 +742,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
     mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
     mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_INIT_CHAN_HW_FAIL;
   }
 
@@ -728,6 +758,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
       mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
       mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+      nxmutex_unlock(&_measureFreqLock);
       return MEADOW_MEAS_FREQ_CONF_INIT_TIM_HW_FAIL;
     }
   }
@@ -736,6 +767,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
           "After Configuration", mdwFreqTimerInfo);
 #endif
 
+  nxmutex_unlock(&_measureFreqLock);
   return MEADOW_MEAS_FREQ_CONF_SUCCESSFUL;
 }
 
@@ -1071,6 +1103,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 // Return Frequency and Duty Cycle information to caller.
 int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
 {
+  int ret;
   // 64 bytes of stack space
   double dblFrequency;
   double dblDutyCycle;
@@ -1099,6 +1132,14 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     return MEADOW_MEAS_FREQ_READ_INVALID_CHANNEL_NUMB;
   }
 
+  // Serialize the remainder of this function against concurrent
+  // configure()/unconfigure() calls. See _measureFreqLock.
+  ret = nxmutex_lock(&_measureFreqLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   mdwFreqTimerInfo_t *mdwFreqTimerInfo =
             meadow_measure_freq_chk_get_timer_info(returnData->timerNumber);
   if(mdwFreqTimerInfo == NULL)
@@ -1106,6 +1147,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     syslog(LOG_ERR,
       "%s@%d-Error:Couldn't get TimerInfo from timer number:%lu\n",
       __FILE__, __LINE__, returnData->timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_TIMER_ACCESS_NULL;
   }
 
@@ -1124,6 +1166,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   {
     syslog(LOG_ERR,
       "%s@%d-Error:Unconfigured channel accessed\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_CHAN_NOT_CONFIG;
   }
 
@@ -1132,6 +1175,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   if(mdwFreqChanData == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Error:Channel data NULL\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_CHANNEL_DATA_NULL;
   }
 
@@ -1175,6 +1219,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
 
     syslog(LOG_ERR, "%s@%d-Error:No freq input since last read\n",
               __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
   }
 
@@ -1206,6 +1251,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   {
     syslog(LOG_ERR, "%s@%d-Error:Zero-length cycle, discarding sample\n",
               __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
   }
 
@@ -1246,6 +1292,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   // the average frequence can vary a bit.
   mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
 
+  nxmutex_unlock(&_measureFreqLock);
   return MEADOW_MEAS_FREQ_READ_SUCCESSFUL;
 }
 
