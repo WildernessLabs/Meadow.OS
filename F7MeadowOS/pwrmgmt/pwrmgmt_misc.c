@@ -221,8 +221,8 @@ void pwrmgmt_rtc_exitinit(void)
   regval &= ~RTC_CR_BYPSHAD;    // Clear BYPSHAD
   putreg32(regval, STM32_RTC_CR);
 
-  // Wait for RFS bit to indicate that shadow registers are synchronized.
-  while ((getreg32(STM32_RTC_CR) & RTC_ISR_RSF) != 0);
+  // Wait for RSF bit to indicate that shadow registers are synchronized.
+  while ((getreg32(STM32_RTC_ISR) & RTC_ISR_RSF) == 0);
   return;
 }
 
