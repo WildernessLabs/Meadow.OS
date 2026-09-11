@@ -310,4 +310,4 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | *Reviewed | 2026-09-01 | #417 | Peter | Style/hygiene finding fixed, smoketested, merged (PR #552); issue closed |
 | C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Reviewed | 2026-09-01 | #418 | Peter |  |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | *Reviewed | 2026-09-01 | #419 | Peter | All 3 findings fixed, smoketested, merged (PR #554); issue closed |
-| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | Reviewed | 2026-09-01 | #416 | Peter |  |
+| C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | *Reviewed | 2026-09-01 | #416 | Peter | All 3 findings fixed (finding 1 hardware-verified with a real encoder), unit tested (`--unittests=rotenc`), smoketested; issue closed via PR |
