@@ -54,6 +54,7 @@
 #include "stm32_gpio.h"
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mutex.h>
 
 #if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) meadow_gpio_counter.c"
@@ -70,6 +71,13 @@
 // This is the list of configured GPIOs.
 static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_MONITORED]\
         = {NULL};
+
+// Serializes meadow_gpio_counter_config() calls against each other so a
+// concurrent add/add (or add/remove) targeting the same slot can't race
+// past the check-then-publish sequence below. Reads (set_count/read_data)
+// doesn't need this -- they're independently protected by gpio_cnt_acquire()/
+// gpio_cnt_release() above.
+static mutex_t _gpioCntCfgLock = NXMUTEX_INITIALIZER;
 
 /****************************************************************************
  * Private Function Prototypes
@@ -226,6 +234,15 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     return -ERANGE;    // Out of Range
   }
 
+  // Serialize the remainder of this function (check-through-publish for an
+  // add, or check-through-unpublish for a remove) against concurrent callers
+  // targeting the same or another slot.
+  ret = nxmutex_lock(&_gpioCntCfgLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   // Check if slot is in use
   gpioCounterInfo = _allGpioCountList[cfg->gpioCntrNumb];
   if(!cfg->isAddGpioCounter)
@@ -235,11 +252,13 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     {
       syslog(LOG_ERR, "%s@%d-GPIOCnt %lu already removed\n",
                 __FILE__, __LINE__, cfg->gpioCntrNumb);
+      nxmutex_unlock(&_gpioCntCfgLock);
       return -ENOTEMPTY;    // Not empty
     }
 
     // Remove
     ret = gpio_cnt_config_interrupt_remove(cfg->gpioCntrNumb);
+    nxmutex_unlock(&_gpioCntCfgLock);
     return ret;
   }
 
@@ -248,6 +267,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is in use\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb);
+    nxmutex_unlock(&_gpioCntCfgLock);
     return -ENOTEMPTY;    // Not empty
   }
 
@@ -257,6 +277,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu, GPIO Port or PIN is out of range\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb);
+    nxmutex_unlock(&_gpioCntCfgLock);
     return -ERANGE;    // Out of Range
   }
 
@@ -264,6 +285,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   if(gpioCounterInfo == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Memory allocation failed\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_gpioCntCfgLock);
     return -ENOMEM;
   }
 
@@ -303,6 +325,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
       syslog(LOG_ERR, "%s@%d-GPIOCnt %lu, resistorMode %lu is out of range\n",
                 __FILE__, __LINE__, cfg->gpioCntrNumb, cfg->resistorMode);
       gpio_cnt_config_interrupt_remove(cfg->gpioCntrNumb);
+      nxmutex_unlock(&_gpioCntCfgLock);
       return -EINVAL;
   }
 
@@ -322,6 +345,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     gpio_cnt_config_interrupt_remove(cfg->gpioCntrNumb);
   }
 
+  nxmutex_unlock(&_gpioCntCfgLock);
   return ret;
 }
 
