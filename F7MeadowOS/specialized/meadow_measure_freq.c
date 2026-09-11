@@ -68,6 +68,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <nuttx/arch.h>
+#include <nuttx/mutex.h>
 #include <arch/board/board.h>
 #include <sys/ioctl.h>
 #include <nuttx/timers/timer.h>
@@ -93,6 +94,17 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+// Serializes meadow_measure_freq_configure() and
+// meadow_measure_freq_return_freq_info() against each other and against
+// themselves. meadow_measure_freq_unconfigure() is static and only ever
+// reached through configure()'s MEADOW_MEAS_FREQ_CONF_OPTION_UNCFG branch,
+// so it doesn't need its own lock -- its only caller already holds this
+// one. Without this, concurrent configure()/unconfigure() calls on the
+// same channel could double-free mdwFreqChanData, and return_freq_info()
+// could read/write through a pointer freed out from under it by a
+// concurrent unconfigure(). The ISR's own enter_critical_section() use is
+// unaffected -- it guards against the ISR specifically, not other tasks.
+static mutex_t _measureFreqLock = NXMUTEX_INITIALIZER;
 
 /************************************************************************************
  * Private Function Prototypes
@@ -101,8 +113,7 @@
 static int meadow_measure_freq_isr(int irq, void *context, void *arg);
 static int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan);
 static int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo);
-static int meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo,
-          mdwFreqChanData_t *mdwFreqChanData);
+static int meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo);
 #if MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP > 0
 static void meadow_measure_freq_diag_dump_timer_regs(char *label,
             mdwFreqTimerInfo_t *mdwFreqTimerInfo);
@@ -118,7 +129,7 @@ static void meadow_measure_freq_diag_dump_timer_regs(char *label,
 // There is a unique ISR vector for each timer. But, each timer must process
 // 1 - 4 inputs. On entry we don't know which input(s) is/are involved.
 // Measuring 100kHz, average time in ISR measured 1 microsec
-int meadow_measure_freq_isr(int irq, void *context, void *arg)
+static int meadow_measure_freq_isr(int irq, void *context, void *arg)
 {
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
   stm32_gpiowrite(DEBUG_GPIO_V2_D06, true);    // Diagnostic only
@@ -251,9 +262,9 @@ static uint32_t meadow_measure_freq_get_max_clock(
 // Disable the selected timer
 static void meadow_measure_freq_disable(const uint32_t timerBase)
 {
-  uint16_t regval = getreg16(timerBase + STM32_BTIM_CR1_OFFSET);
-  regval &= ~ATIM_CR1_CEN;
-  putreg16(regval, timerBase + STM32_BTIM_CR1_OFFSET);
+  uint16_t cr1Val = getreg16(timerBase + STM32_BTIM_CR1_OFFSET);
+  cr1Val &= ~ATIM_CR1_CEN;
+  putreg16(cr1Val, timerBase + STM32_BTIM_CR1_OFFSET);
 }
 
 //=============================================================
@@ -312,29 +323,35 @@ static uint8_t meadow_measure_freq_get_channel_bit(const uint32_t timerChan)
 // frequency calculations.
 // Note: Since reading of frequency information is asynchronous with their
 // calculation, the average frequence will vary a bit.
-static uint64_t meadow_measure_freq_get_current_time(void)
+// Returns OK with *nowNsec set on success, or a negative errno (*nowNsec
+// left unmodified) if the underlying RTC read failed -- a real, if rare,
+// condition per the STM32F77X errata workaround below. Plumbed through an
+// out-parameter rather than overloading the uint64_t return value, since a
+// negative int error code cast to uint64_t would otherwise be
+// indistinguishable from a legitimate (if implausibly large) timestamp.
+static int meadow_measure_freq_get_current_time(uint64_t *nowNsec)
 {
   int ret;
   struct tm rtcTime;
   long nsecs;
   long prevNsecs;
-  uint64_t returnTime;
 
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
+  // This function reads the date, time and sub-seconds from the MCU's
+  // hardware into a struct tm. However, the STM32F77X Errata warns about a
+  // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
+  // register not locked properly. Therefore, we'll implement the workaround
+  // by reading the nsec twice and comparing, repeating till two consecutive
+  // reads agree.
+  ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &prevNsecs);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   do
   {
-    // This function reads the date, time and sub-seconds from the MCU's
-    // hardware into a struct tm. However, the STM32F77X Errata warns about a
-    // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
-    // register not locked properly. Therefore, we'll implement the workaround
-    // by reading the nsec twice and compare, if different repeat till equal.
-    ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &prevNsecs);
-    if(ret < 0)
-    {
-      return ret;
-    }
-
-    // Read a second time per Errata
+    // Read again per Errata
     ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &nsecs);
     if(ret < 0)
     {
@@ -344,19 +361,28 @@ static uint64_t meadow_measure_freq_get_current_time(void)
     // If they match we have good values
     if(prevNsecs == nsecs)
       break;
-      
+
+    // Otherwise this read becomes the next iteration's baseline, instead
+    // of discarding both samples and starting over with two brand-new
+    // reads.
+    prevNsecs = nsecs;
   } while (1);
 #else
   // This function is used if no sub-seconds.
   ret = up_rtc_getdatetime(&rtcTime);
+  if(ret < 0)
+  {
+    return ret;
+  }
   nsecs = 0;
 #endif
 
-  returnTime = mktime(&rtcTime);
+  uint64_t returnTime = mktime(&rtcTime);
   returnTime *= 1000 * 1000 * 1000;
   returnTime += nsecs;
 
-  return returnTime;
+  *nowNsec = returnTime;
+  return OK;
 }
 
 //=============================================================
@@ -386,9 +412,13 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
     // Find offset to top of array
     uint8_t *featherArrayTop = &validF7v1GpioArray[gpioArrayOff][0];
 
-    // We now we have the right channel look for the GPIO match
+    // We now have the right channel look for the GPIO match. Bound the
+    // scan by the real entry count, not the fixed row size -- GPIO_PORTA |
+    // GPIO_PIN0 encodes as 0, identical to an unfilled slot's implicit
+    // zero-fill, so scanning past the real entries risks a false PA0 match.
+    uint8_t validEntryCount = validF7v1GpioArrayCount[gpioArrayOff];
     for(entryCnt = 0;
-      entryCnt < MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER;
+      entryCnt < validEntryCount;
       entryCnt++)
     {
       entryPtr = featherArrayTop + entryCnt;
@@ -404,7 +434,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
       }
     }
 
-    if(entryCnt == MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER)
+    if(entryCnt == validEntryCount)
     {
       syslog(LOG_ERR, "Error: No port pin match found\n");
       return 0;
@@ -420,21 +450,15 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
   }
   else if (hardwareVersion == MEADOW_F7_HW_VERSION_NUMB_F7V2)
   {
-#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-    // syslog(LOG_MDIAG,
-    //    "--->%s@%d All Entries for F7FeatherV2\n", __FILE__, __LINE__);
-    // hcom_nx_diag_print_buffer((uint8_t *)&validF7v2GpioArray[0][0],
-    //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS *
-    //      MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER, 1);
-#endif
-
     // Find offset to top of array
     uint8_t *featherArrayTop = &validF7v2GpioArray[gpioArrayOff][0];
 
     // We know we have the right channel so we need to look for the GPIO
-    // match
+    // match. Bound the scan by the real entry count, not the fixed row
+    // size -- see the matching comment in the F7v1 branch above.
+    uint8_t validEntryCount = validF7v2GpioArrayCount[gpioArrayOff];
     for(entryCnt = 0;
-      entryCnt < MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER;
+      entryCnt < validEntryCount;
       entryCnt++)
     {
       entryPtr = featherArrayTop + entryCnt;
@@ -449,7 +473,7 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
       }
     }
 
-    if(entryCnt == MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER)
+    if(entryCnt == validEntryCount)
     {
       syslog(LOG_ERR, "Error: No port pin match found\n");
       return 0;
@@ -474,15 +498,6 @@ static uint8_t meadow_measure_freq_verify_portpin_get_chan(
   // GPIOs are available on which pin. But the CCM is used on a number of
   // different boards. Therefore, we cannot do the same level of verification.
   // We need to trust the the users have some idea of what they are doing.
-
-#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-  // syslog(LOG_MDIAG, "--->%s@%d All Entries for CCM\n", __FILE__, __LINE__);
-  // syslog(LOG_MDIAG, "--->Timer:%lu, Top of CCM array:%p\n",
-  //   timerNumb, &validStm32F7GpioArray[0][0]);
-  //   hcom_nx_diag_print_buffer((uint8_t *)&validStm32F7GpioArray[0][0],
-  //   MEADOW_MEAS_FREQ_NUMB_OF_F7_TIMERS *
-  //     MEADOW_MEAS_FREQ_MAX_CCM_BYTES_PER_TIMER, 1);
-#endif
 
   // Get top of array
   mdwFreqChanPortPin_t *ccmArrayTop = &validStm32F7GpioArray[gpioArrayOff][0];
@@ -549,15 +564,17 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     ((portAndPin) >> 4) + 'A', portAndPin & 0x0f);
 #endif
 
-  if(timerNumber > 14 || timerNumber < 1)
+  if(timerNumber > MEADOW_FREQ_TOTAL_TIMERS_AVAILABLE || timerNumber < 1)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Timer must be 1 - 14\n", __FILE__, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:Timer must be 1 - %u\n", __FILE__, __LINE__,
+      (unsigned int)MEADOW_FREQ_TOTAL_TIMERS_AVAILABLE);
     return MEADOW_MEAS_FREQ_CONF_TIM_NUMB_ILLEGAL;
   }
-  
-  if(channelNumber > 4 || channelNumber < 1)
+
+  if(channelNumber > MEADOW_FREQ_MAX_TIMER_CHANNELS || channelNumber < 1)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Channel must be 1 - 4\n", __FILE__, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:Channel must be 1 - %u\n", __FILE__, __LINE__,
+      (unsigned int)MEADOW_FREQ_MAX_TIMER_CHANNELS);
     return MEADOW_MEAS_FREQ_CONF_CHAN_NUMB_ILLEGAL;
   }
 
@@ -566,6 +583,15 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   stm32_configgpio(DEBUG_GPIO_V2_D06);       // Diagnostic only
   stm32_gpiowrite(DEBUG_GPIO_V2_D06, false); // Diagnostic only
 #endif
+
+  // Serialize the remainder of this function -- and meadow_measure_freq_
+  // unconfigure(), reached below and only ever called from here -- against
+  // concurrent configure()/return_freq_info() calls. See _measureFreqLock.
+  ret = nxmutex_lock(&_measureFreqLock);
+  if(ret < 0)
+  {
+    return ret;
+  }
 
   // Configure the timer and channel
   // 1 = Configure without Duty Cycle (reduces interrupts by 50%)
@@ -585,24 +611,27 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     case MEADOW_MEAS_FREQ_CONF_OPTION_UNCFG:
       // Unconfigure - Also removes Timer if no channels remain
       ret = meadow_measure_freq_unconfigure(mdwCfgTimerChan);
+      nxmutex_unlock(&_measureFreqLock);
       return ret;   // Done with unconfigure
 
     default:
       syslog(LOG_ERR, "%s@%d-Error:Unknown configure option:%" PRIu32 "\n",
         __FILE__, __LINE__, mdwCfgTimerChan->configOption);
+      nxmutex_unlock(&_measureFreqLock);
       return MEADOW_MEAS_FREQ_CONF_UNDEFINED_OPTION;
   }
 
   // Insure a valid timer, channel, port+pin combination was supplied.
   // Timers have, at most, 4 channels, each representing 1 GPIO. For the
   // specified timer we need to verify a proper port and pin.
-  uint8_t chanValid4TimerPortPin = 
+  uint8_t chanValid4TimerPortPin =
     meadow_measure_freq_verify_portpin_get_chan(timerNumber, portAndPin);
   if(chanValid4TimerPortPin == 0)
   {
     syslog(LOG_ERR,
       "%s@%d-Error:The Port and Pin, not valid for timer %" PRIu32 "\n",
       __FILE__, __LINE__, timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_NOT_FOR_TIM;
   }
 
@@ -612,6 +641,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR,
       "%s@%d-Error:The Port/Pin/Timer/Channel combination, not valid\n",
       __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_PORT_PIN_TIM_CHAN_INVALID;
   }
 
@@ -620,8 +650,9 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
             meadow_measure_freq_chk_get_timer_info(timerNumber);
   if(mdwFreqTimerInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Timer %ld unusable\n",
+    syslog(LOG_ERR, "%s@%d-Error:Timer %" PRIu32 " unusable\n",
               __FILE__, __LINE__, timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_TIM_NOT_USABLE;
   }
 
@@ -643,6 +674,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR,
       "%s@%d-Error:Timer %" PRIu32 ", channel %" PRIu32 " already in use\n",
       __FILE__, __LINE__, timerNumber, channelNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_TIM_CHAN_IN_USE;
   }
 
@@ -653,23 +685,30 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
   {
     syslog(LOG_ERR, "%s@%d-Error:Allocation for mdwFreqChanData_s\n",
       __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_CHAN_MEM_ALLOC_FAILED;
   }
 
   // Start populating the channel structure
-  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->useDutyCycle = \
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->useDutyCycle =
     chanNeedsDuty;
 
   // Init time and count used to calculate average frequency
   mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->gpioCountForAvg = 0;
-  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->startTimeForAvg =
-            meadow_measure_freq_get_current_time();
+  uint64_t nowNsec = 0;
+  int getTimeRet = meadow_measure_freq_get_current_time(&nowNsec);
+  if(getTimeRet < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+              __FILE__, __LINE__, getTimeRet);
+  }
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->startTimeForAvg = nowNsec;
 
   // Indicate this channel is being used
   mdwFreqTimerInfo->chanActiveBits |= chanBit;    // Set channel bit
 
   // Build the GPIO input configuration for Nuttx GPIO processing
-  inputGpioConfig = MEADOW_TIMER_GPIO_CONST | portAndPin | \
+  inputGpioConfig = MEADOW_TIMER_GPIO_CONST | portAndPin |
             mdwFreqTimerInfo->timerAltFunc;
 
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
@@ -692,16 +731,16 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
     mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
     mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_CONFIGGPIO_ERR;   // Not supported
   }
 
   // Save GPIO configuration
-  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->inputConfig = \
+  mdwFreqTimerInfo->mdwFreqChanData[channelOffset]->inputConfig =
             inputGpioConfig;
 
   // Initialized the F7's channel hardware for this GPIO as input
-  ret = meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo,
-          mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
+  ret = meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:Channel hardware init failed:%d\n",
@@ -709,6 +748,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
     mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
     mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_CONF_INIT_CHAN_HW_FAIL;
   }
 
@@ -724,6 +764,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       free(mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
       mdwFreqTimerInfo->mdwFreqChanData[channelOffset] = NULL;
       mdwFreqTimerInfo->chanActiveBits &= ~chanBit;
+      nxmutex_unlock(&_measureFreqLock);
       return MEADOW_MEAS_FREQ_CONF_INIT_TIM_HW_FAIL;
     }
   }
@@ -732,20 +773,19 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
           "After Configuration", mdwFreqTimerInfo);
 #endif
 
+  nxmutex_unlock(&_measureFreqLock);
   return MEADOW_MEAS_FREQ_CONF_SUCCESSFUL;
 }
 
 //============================================================
 // Configuration of timer channel hardware registers.
-int meadow_measure_freq_cfg_channel_hardware(
-          mdwFreqTimerInfo_t *mdwFreqTimerInfo,
-          mdwFreqChanData_t *mdwFreqChanData)
+static int meadow_measure_freq_cfg_channel_hardware(
+          mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 {
   uint32_t regVal32;
   uint16_t ccerRegVal;    // Capture/Compare Enable Register
   uint16_t dierRegVal;    // DMA/Interrupt Enable Register
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;
-  bool useDC = mdwFreqChanData->useDutyCycle;
 
   ccerRegVal = getreg16(timerBase + STM32_GTIM_CCER_OFFSET);
   dierRegVal = getreg16(timerBase + STM32_GTIM_DIER_OFFSET);
@@ -768,8 +808,11 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000001;       // 1 = 01, set bits 1:0
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR1_OFFSET);
 
-    // Set the input triggers, rising, falling or both for channel
-    if(useDC)
+    // Set the input triggers, rising, falling or both for channel. Each
+    // active channel's own useDutyCycle drives its polarity bits -- using
+    // a single value for all channels would silently reprogram another
+    // already-active channel's polarity to match this one.
+    if(mdwFreqTimerInfo->mdwFreqChanData[0]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC1P | GTIM_CCER_CC1NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC1P | GTIM_CCER_CC1NP);  // 00 rising only
@@ -785,7 +828,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000100;   // 0x0100 = 0100, set bits 9:8
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR1_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[1]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC2P | GTIM_CCER_CC2NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC2P | GTIM_CCER_CC2NP);  // 00 rising only
@@ -801,7 +844,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000001;   // 1 = 01, set bits 1:0
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR2_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[2]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC3P | GTIM_CCER_CC3NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC3P | GTIM_CCER_CC3NP);  // 00 rising only
@@ -817,7 +860,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000100;   // 0x0100 = 0100, set bits 9:8
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR2_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[3]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC4P | GTIM_CCER_CC4NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC4P | GTIM_CCER_CC4NP);  // 00 rising only
@@ -843,7 +886,7 @@ int meadow_measure_freq_cfg_channel_hardware(
 
 //=============================================================
 // Configuration of timer registers.
-int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
+static int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 {
   int ret;
   uint32_t apbClock;
@@ -864,7 +907,7 @@ int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
   // Must be between 0 and 0xffff. Setting the prescaler value to 0 to allow
   // highest speed.
   //Note: A prescaler value of 1 will divide the clock by 2.
-  uint16_t prescaler = (meadow_measure_freq_get_max_clock(mdwFreqTimerInfo)/ \
+  uint16_t prescaler = (meadow_measure_freq_get_max_clock(mdwFreqTimerInfo)/
             (MEADOW_FREQ_CLOCK_FREQ) - 1);
   putreg16(prescaler, timerBase + STM32_GTIM_PSC_OFFSET);
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
@@ -879,9 +922,9 @@ int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
   putreg32(maxARRValue, timerBase + STM32_GTIM_ARR_OFFSET);
 
   // Control Register 1
-  uint16_t regval = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
-  regval |= GTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
-  putreg16(regval, timerBase + STM32_GTIM_CR1_OFFSET);
+  uint16_t cr1Val = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
+  cr1Val |= GTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
+  putreg16(cr1Val, timerBase + STM32_GTIM_CR1_OFFSET);
 
   // All interrupts are handled by the same ISR code, but each timer has a
   // different interrupt vector.
@@ -907,7 +950,7 @@ int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 //=============================================================
 // Called to unconfigure a timer
 // It needs channelNumber etc.
-int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
+static int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 {
   int ret;
   uint32_t apbClock;
@@ -920,16 +963,12 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     meadow_measure_freq_chk_get_timer_info(mdwCfgTimerChan->timerNumber);
   if(mdwFreqTimerInfo == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Error:Couldn't get TimerInfo via timer number:%lu\n",
+    syslog(LOG_ERR, "%s@%d-Error:Couldn't get TimerInfo via timer number:%" PRIu32 "\n",
       __FILE__, __LINE__, mdwCfgTimerChan->timerNumber);
     return MEADOW_MEAS_FREQ_UNCFG_TIMER_ACCESS_NULL;
   }
 
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;
-
-  // Stop the timer's clock so values can be written to it's registers
-  apbClock = meadow_measure_freq_get_apb_clock(mdwFreqTimerInfo);
-  modifyreg32(apbClock, mdwFreqTimerInfo->timerClkEn, 0);
 
   // Is the channel configured?
   uint8_t channelBit = meadow_measure_freq_get_channel_bit(
@@ -948,6 +987,14 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR, "%s@%d-Error:Channel data NULL\n", __FILE__, __LINE__);
     return MEADOW_MEAS_FREQ_UNCFG_NO_CHANNEL;
   }
+
+  // Stop the timer's clock so values can be written to its registers. Done
+  // only after the validity checks above (rather than immediately after
+  // resolving mdwFreqTimerInfo) so that rejecting an invalid/unconfigured
+  // channel never gates off the clock -- and therefore any other
+  // already-active channel on this same timer -- as a side effect.
+  apbClock = meadow_measure_freq_get_apb_clock(mdwFreqTimerInfo);
+  modifyreg32(apbClock, mdwFreqTimerInfo->timerClkEn, 0);
 
   // Unconfigure channel hardware
   ccerRegVal = getreg16(timerBase + STM32_GTIM_CCER_OFFSET);
@@ -1000,6 +1047,11 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
       ccerRegVal &= ~(GTIM_CCER_CC4E | GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
       dierRegVal &= ~GTIM_DIER_CC4IE;
       break;
+
+    default:
+      syslog(LOG_ERR, "%s@%d-Error:Unconfigure, channel %" PRIu32 " out of range\n",
+                __FILE__, __LINE__, mdwCfgTimerChan->channelNumber);
+      return MEADOW_MEAS_FREQ_UNCFG_INVALID_CHANNEL_NUMB;
   }
 
   // Update the new register values
@@ -1027,9 +1079,9 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     putreg16(dierRegVal, timerBase + STM32_GTIM_DIER_OFFSET);
 
     // No need to auto-reload CNT
-    uint16_t regval = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
-    regval &= ~GTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
-    putreg16(regval, timerBase + STM32_GTIM_CR1_OFFSET);
+    uint16_t cr1Val = getreg16(timerBase + STM32_GTIM_CR1_OFFSET);
+    cr1Val &= ~GTIM_CR1_ARPE;    // Auto Reload Pre-Load enable bit
+    putreg16(cr1Val, timerBase + STM32_GTIM_CR1_OFFSET);
 
     // Detach ISR
     ret = irq_detach(mdwFreqTimerInfo->timerIrqVec);
@@ -1066,6 +1118,7 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 // Return Frequency and Duty Cycle information to caller.
 int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
 {
+  int ret;
   // 64 bytes of stack space
   double dblFrequency;
   double dblDutyCycle;
@@ -1080,18 +1133,30 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   uint64_t totalCaptureTime;
 
   // Verify that provided timer and channel are valid
-  if(returnData->timerNumber > 14 || returnData->timerNumber < 1)
+  if(returnData->timerNumber > MEADOW_FREQ_TOTAL_TIMERS_AVAILABLE ||
+     returnData->timerNumber < 1)
   {
-    syslog(LOG_ERR, "%s@%d-Timer must be 1 - 14, was:%lu\n",
-      __FILE__, __LINE__, returnData->timerNumber);
+    syslog(LOG_ERR, "%s@%d-Timer must be 1 - %u, was:%" PRIu32 "\n",
+      __FILE__, __LINE__, (unsigned int)MEADOW_FREQ_TOTAL_TIMERS_AVAILABLE,
+      returnData->timerNumber);
     return MEADOW_MEAS_FREQ_READ_INVALID_TIMER_NUMB;
   }
 
-  if(returnData->channelNumber > 4 || returnData->channelNumber < 1)
+  if(returnData->channelNumber > MEADOW_FREQ_MAX_TIMER_CHANNELS ||
+     returnData->channelNumber < 1)
   {
-    syslog(LOG_ERR, "%s@%d-Channel must be 1 - 4, was:%lu\n",
-      __FILE__, __LINE__, returnData->channelNumber);
+    syslog(LOG_ERR, "%s@%d-Channel must be 1 - %u, was:%" PRIu32 "\n",
+      __FILE__, __LINE__, (unsigned int)MEADOW_FREQ_MAX_TIMER_CHANNELS,
+      returnData->channelNumber);
     return MEADOW_MEAS_FREQ_READ_INVALID_CHANNEL_NUMB;
+  }
+
+  // Serialize the remainder of this function against concurrent
+  // configure()/unconfigure() calls. See _measureFreqLock.
+  ret = nxmutex_lock(&_measureFreqLock);
+  if(ret < 0)
+  {
+    return ret;
   }
 
   mdwFreqTimerInfo_t *mdwFreqTimerInfo =
@@ -1101,16 +1166,9 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     syslog(LOG_ERR,
       "%s@%d-Error:Couldn't get TimerInfo from timer number:%lu\n",
       __FILE__, __LINE__, returnData->timerNumber);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_TIMER_ACCESS_NULL;
   }
-
-#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
-  // syslog(LOG_MDIAG,
-  //   "--->%s@%d-Data-for timer:%lu, chan:%lu, active chans:0x%02x\n",
-  //   __FILE__, __LINE__,
-  //   returnData->timerNumber, returnData->channelNumber,
-  //   mdwFreqTimerInfo->chanActiveBits);
-#endif
 
   // Is the channel configured?
   uint8_t channelBit = meadow_measure_freq_get_channel_bit(
@@ -1119,6 +1177,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   {
     syslog(LOG_ERR,
       "%s@%d-Error:Unconfigured channel accessed\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_CHAN_NOT_CONFIG;
   }
 
@@ -1127,6 +1186,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   if(mdwFreqChanData == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Error:Channel data NULL\n", __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_CHANNEL_DATA_NULL;
   }
 
@@ -1166,10 +1226,24 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     returnData->gpioCountForAvg = 0;
 
     // Reset capture time for next average
-    mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
+    uint64_t nowNsec = 0;
+    ret = meadow_measure_freq_get_current_time(&nowNsec);
+    if(ret < 0)
+    {
+      syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+                __FILE__, __LINE__, ret);
+    }
+    mdwFreqChanData->startTimeForAvg = nowNsec;
 
-    syslog(LOG_ERR, "%s@%d-Error:No freq input since last read\n",
+    // No new edge since the last poll is routine (idle or low-frequency
+    // input, or a poller running faster than the signal), not an actual
+    // error -- gate this like the rest of the file's diagnostic tracing
+    // rather than paying for syslog() on every poll of an idle channel.
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
+    syslog(LOG_MDIAG, "%s@%d-No freq input since last read\n",
               __FILE__, __LINE__);
+#endif
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
   }
 
@@ -1185,9 +1259,9 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   // ever-growing) absolute overflow count. bgnCapture needs no overflow
   // term of its own: relative to its own baseline, it's always zero.
   bgnCapture = bgnResultCnt;
-  midCapture = midResultCnt + \
+  midCapture = midResultCnt +
         ((midResultOvr - bgnResultOvr) * regOvrFloTimSize);
-  endCapture = endResultCnt + \
+  endCapture = endResultCnt +
         ((endResultOvr - bgnResultOvr) * regOvrFloTimSize);
 
   // Normalize from the beginning
@@ -1201,6 +1275,7 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   {
     syslog(LOG_ERR, "%s@%d-Error:Zero-length cycle, discarding sample\n",
               __FILE__, __LINE__);
+    nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
   }
 
@@ -1216,15 +1291,37 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   dblFrequency = ((double)MEADOW_FREQ_CLOCK_FREQ) / ((double)fullCycle);
 
   // Average frequency since last calculated
-  totalCaptureTime =
-            meadow_measure_freq_get_current_time() - \
-            startTimeForAvg;
+  uint64_t nowNsec = 0;
+  ret = meadow_measure_freq_get_current_time(&nowNsec);
+  double dblTotalCaptureTime;
+  if(ret < 0)
+  {
+    // Can't compute a valid elapsed time this call; fall through to the
+    // zero-duration guard below rather than propagate a bogus reading.
+    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
+              __FILE__, __LINE__, ret);
+    dblTotalCaptureTime = 0;
+  }
+  else
+  {
+    totalCaptureTime = nowNsec - startTimeForAvg;
 
-  // Convert time in nanoseconds to fractional seconds
-  double dblTotalCaptureTime =\
-            ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
+    // Convert time in nanoseconds to fractional seconds
+    dblTotalCaptureTime = ((double) totalCaptureTime) / (1000.0 * 1000.0 * 1000.0);
+  }
   dblTotalInputCount = (double)gpioCountForAvg;
-  dblAvgFreq = ((double)dblTotalInputCount) / dblTotalCaptureTime;
+
+  // Guard against a zero (or near-zero) elapsed time -- the RTC subsecond
+  // counter has coarse (millisecond-scale) resolution, so two calls landing
+  // within the same tick (plausible under a tight polling loop) would
+  // otherwise divide by zero here, producing +Infinity and then
+  // implementation-defined/undefined behavior when assigned into the
+  // uint32_t avgFreqX1000 return field below. Skip the average-frequency
+  // update for this call rather than propagate a bogus reading.
+  if(dblTotalCaptureTime > 0.0)
+    dblAvgFreq = ((double)dblTotalInputCount) / dblTotalCaptureTime;
+  else
+    dblAvgFreq = 0;
 
   if(useDutyCycle)
     returnData->dutyCycleX1000  = (dblDutyCycle * 1000.0);
@@ -1235,19 +1332,25 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   returnData->avgFreqX1000      = (dblAvgFreq   * 1000.0);
   returnData->gpioCountForAvg   = (uint32_t)dblTotalInputCount;
 
-  // Reset Meadow time for next average. gpioCountForAvg was already reset
+  // Reset Meadow time for next average, reusing the timestamp already
+  // captured above instead of paying for a second RTC read here -- each
+  // call wraps up_rtc_getdatetime_with_subseconds(), itself internally
+  // double-read per the errata workaround, so a second call would cost up
+  // to 4 full RTC register-read/BCD-convert passes per poll of a function
+  // meant to be called frequently. gpioCountForAvg was already reset
   // above, atomically with the snapshot.
   // Since reading the information is asynchronous with these calculation
   // the average frequence can vary a bit.
-  mdwFreqChanData->startTimeForAvg = meadow_measure_freq_get_current_time();
+  mdwFreqChanData->startTimeForAvg = nowNsec;
 
+  nxmutex_unlock(&_measureFreqLock);
   return MEADOW_MEAS_FREQ_READ_SUCCESSFUL;
 }
 
 #if MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP > 0
 //=================================================================
 // Dump all timer registers
-void meadow_measure_freq_diag_dump_timer_regs(char *label,
+static void meadow_measure_freq_diag_dump_timer_regs(char *label,
           mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 {
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;

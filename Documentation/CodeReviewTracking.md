@@ -308,6 +308,6 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Reviewed | 2026-08-29 | #411 | Peter |  |
 | C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | *Reviewed | 2026-09-01 | #415 | TBD | All 5 findings fixed, unit tested (`--unittests=gpiocount`), smoketested, merged (PR #557); issue closed |
 | C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | *Reviewed | 2026-09-01 | #417 | Peter | Style/hygiene finding fixed, smoketested, merged (PR #552); issue closed |
-| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Reviewed | 2026-09-01 | #418 | Peter |  |
+| C160 | F7MeadowOS/specialized/meadow_measure_freq.c | *Reviewed | 2026-09-01 | #418 | Peter | All 11 findings fixed, unit tested (`--unittests=measfreq`), smoketested; duty-cycle math found separately broken during testing, unrelated to any of these 11 findings, tracked as Issue #560; issue closed via PR |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | *Reviewed | 2026-09-01 | #419 | Peter | All 3 findings fixed, smoketested, merged (PR #554); issue closed |
 | C162 | F7MeadowOS/specialized/meadow_rotary_encoder.c | *Reviewed | 2026-09-01 | #416 | Peter | All 3 findings fixed (finding 1 hardware-verified with a real encoder), unit tested (`--unittests=rotenc`), smoketested; issue closed via PR |
