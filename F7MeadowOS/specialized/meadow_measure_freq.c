@@ -1244,8 +1244,14 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
     }
     mdwFreqChanData->startTimeForAvg = nowNsec;
 
-    syslog(LOG_ERR, "%s@%d-Error:No freq input since last read\n",
+    // No new edge since the last poll is routine (idle or low-frequency
+    // input, or a poller running faster than the signal), not an actual
+    // error -- gate this like the rest of the file's diagnostic tracing
+    // rather than paying for syslog() on every poll of an idle channel.
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_OUTPUT > 0)
+    syslog(LOG_MDIAG, "%s@%d-No freq input since last read\n",
               __FILE__, __LINE__);
+#endif
     nxmutex_unlock(&_measureFreqLock);
     return MEADOW_MEAS_FREQ_READ_FREQ_INPUT_NOT_DETECTED;
   }
