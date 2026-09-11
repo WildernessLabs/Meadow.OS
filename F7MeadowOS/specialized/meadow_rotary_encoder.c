@@ -77,18 +77,25 @@
  * Private Data
  ****************************************************************************/
 // A rotary encoder has 2 digital outputs, called A and B. Therefore, 2 GPIO
-// input are needed. The way a rotary encoder is designed, when rotated it
-// toggles output A and output B 90 degrees out of phase. If A toggles
-// followed by B, it indicates clock-wise rotation, if B then A, counter
-// clock-wise. This is how rotational direction is determined and whether
-// the count is incremented or decremented.
+// input are needed. On common encoder modules these outputs are silkscreened
+// CLK and DT (or "Data") rather than A/B -- wire CLK to this module's A input
+// and DT/Data to its B input. The way a rotary encoder is designed, when
+// rotated it toggles output A and output B 90 degrees out of phase. If A
+// toggles followed by B, it indicates clock-wise rotation, if B then A,
+// counter clock-wise. This is how rotational direction is determined and
+// whether the count is incremented or decremented.
 // For each transition we must consider the previous and current state of
 // A and B. This past and present state is represented by a 4-bit number.
 // Bits 0 and 1 represent the current state of A and B and bits 2 and 3
 // represent previous states of A and B.
 // |old|new|
-// |A|B|A|B|
+// |B|A|B|A|
 //  3 2 1 0
+// Hardware-verified 2026-09 with CLK wired to A and DT/Data wired to B: a
+// physically clockwise rotation reports MEADOW_ROTARY_ENC_DIRECTION_CW, so
+// this diagram (and the code's bit assembly in rotenc_calc_dir_count()) is
+// the correct convention -- an earlier version of this diagram had A and B
+// swapped in all four positions relative to what the code actually does.
 //
 // This 4-bit number creates 16 possible values (0-15). The following lookup
 // table is used to determine if there is a change and if there is its
