@@ -299,6 +299,11 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
     case 2: // Pull down
       cfgsetA |= GPIO_PULLDOWN;
       break;
+    default:
+      syslog(LOG_ERR, "%s@%d-GPIOCnt %lu, resistorMode %lu is out of range\n",
+                __FILE__, __LINE__, cfg->gpioCntrNumb, cfg->resistorMode);
+      gpio_cnt_config_interrupt_remove(cfg->gpioCntrNumb);
+      return -EINVAL;
   }
 
   // Setup only rising edges of input GPIO to trigger isr
