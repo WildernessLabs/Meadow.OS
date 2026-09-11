@@ -314,8 +314,7 @@ int meadow_gpio_counter_config(gpioCntConfigParms_t* cfg)
   {
     syslog(LOG_ERR, "%s@%d-Error gpio counter:%lu Pin A interrupt, ret:%d\n",
               __FILE__, __LINE__, cfg->gpioCntrNumb, ret);
-    kmm_free(gpioCounterInfo);
-    _allGpioCountList[cfg->gpioCntrNumb] = NULL;
+    gpio_cnt_config_interrupt_remove(cfg->gpioCntrNumb);
   }
 
   return ret;
