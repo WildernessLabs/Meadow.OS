@@ -350,6 +350,13 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
           (uint32_t)PreDivA << RTC_PRER_PREDIV_A_SHIFT;
   
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
+  // Warning: this thread is created unconditionally at boot
+  // (pwrmgmt_init_lsi_calib(), called from meadow_power_mgmt_initialize()),
+  // not on demand by a specific test. With this flag enabled, once
+  // calibration finishes it drops into the while(true) loop below and
+  // never exits, logging a line roughly once per second for the life of
+  // the device -- see PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING's definition
+  // in pwrmgmt_local.h before turning this on.
   //---------------------------------------------------------------------
   // x999 millisec sleep is closer to a x+1 seconds period
   #define PWRMGMT_CAL_SHOW_STATS_EVERY_mSEC (999)  // msec
