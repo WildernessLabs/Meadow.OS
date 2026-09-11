@@ -306,7 +306,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | Reviewed | 2026-08-29 | #405 | Peter |  |
 | C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | Reviewed | 2026-08-29 | #410 | Peter |  |
 | C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | Reviewed | 2026-08-29 | #411 | Peter |  |
-| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | Reviewed | 2026-09-01 | #415 | TBD |  |
+| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | *Reviewed | 2026-09-01 | #415 | TBD | All 5 findings fixed (branch `issue415-gpio-counter`), unit tested (`--unittests=gpiocount`) and smoketested; pending PR merge before closing |
 | C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | *Reviewed | 2026-09-01 | #417 | Peter | Style/hygiene finding fixed, smoketested, merged (PR #552); issue closed |
 | C160 | F7MeadowOS/specialized/meadow_measure_freq.c | Reviewed | 2026-09-01 | #418 | Peter |  |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | *Reviewed | 2026-09-01 | #419 | Peter | All 3 findings fixed, smoketested, merged (PR #554); issue closed |
