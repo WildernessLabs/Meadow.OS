@@ -1335,16 +1335,15 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   returnData->avgFreqX1000      = (dblAvgFreq   * 1000.0);
   returnData->gpioCountForAvg   = (uint32_t)dblTotalInputCount;
 
-  // Reset Meadow time for next average. gpioCountForAvg was already reset
+  // Reset Meadow time for next average, reusing the timestamp already
+  // captured above instead of paying for a second RTC read here -- each
+  // call wraps up_rtc_getdatetime_with_subseconds(), itself internally
+  // double-read per the errata workaround, so a second call would cost up
+  // to 4 full RTC register-read/BCD-convert passes per poll of a function
+  // meant to be called frequently. gpioCountForAvg was already reset
   // above, atomically with the snapshot.
   // Since reading the information is asynchronous with these calculation
   // the average frequence can vary a bit.
-  ret = meadow_measure_freq_get_current_time(&nowNsec);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:RTC read failed, ret:%d\n",
-              __FILE__, __LINE__, ret);
-  }
   mdwFreqChanData->startTimeForAvg = nowNsec;
 
   nxmutex_unlock(&_measureFreqLock);
