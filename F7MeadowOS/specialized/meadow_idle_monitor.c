@@ -104,7 +104,6 @@ static void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
  ****************************************************************************/
 
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
-//
 static volatile uint32_t _idleLoopCounter;
 static volatile uint32_t _idleOneSecSnapShot;
 #endif
