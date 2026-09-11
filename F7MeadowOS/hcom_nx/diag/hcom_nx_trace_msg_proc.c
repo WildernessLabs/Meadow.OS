@@ -71,6 +71,7 @@
 // This is an arbituary value. Nuttx has no limit on syslog messages.
 #define HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG (512)
 #define HCOM_TRACE_RAMLOG_RECONFIG_TIMEOUT (30)   // Seconds to reconfigure
+#define HCOM_NX_TRACE_KTHREAD_EXIT_TIMEOUT_MS (5 * MSEC_PER_SEC) // Max wait for kthread exit
 
 #define HCOM_TRACE_RAMLOG_SERIAL_PORT_NAME_1 ("/dev/ttyS0")    // UART 1
 #define HCOM_TRACE_RAMLOG_SERIAL_PORT_NAME_4 ("/dev/ttyS1")    // UART 4
@@ -90,7 +91,7 @@ static char *thisFile = __FILE__;
 // This covers most of this file
 #if defined (CONFIG_RAMLOG_SYSLOG)
 
-static bool _shutting_down;
+static bool _haltingMsgProcessing;
 // This buffer receives complete syslog lines from fgets().
 static uint8_t *_syslogMsgBuf;
 static FILE *_ramlog_fp;
@@ -301,7 +302,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
   struct sigaction act;
 
   _trace_kthread_running = true;
-  _shutting_down = false;
+  _haltingMsgProcessing = false;
   sem_post(&_startupSem);
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
@@ -322,11 +323,11 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
   }
 
   // Only leave this loop when shutting down
-  while(!_shutting_down)
+  while(!_haltingMsgProcessing)
   {
     // Must have ramlog, it's the source of all trace info
     ret = hcom_nx_trace_msg_open_ramlog();
-    if(_shutting_down) break;
+    if(_haltingMsgProcessing) break;
     if(ret < 0)
     {
       hcom_nx_trace_msg_close_and_delay(false);
@@ -337,7 +338,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
     if(_trace_log_to_uart && !_profiler_log_to_uart)
     {
       ret = hcom_nx_trace_msg_open_uart_serial_port();
-      if(_shutting_down) break;
+      if(_haltingMsgProcessing) break;
       if(ret < 0)
       {
         hcom_nx_trace_msg_close_and_delay(false);
@@ -347,7 +348,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
 
     // Attempt to read from the ramlog buffer and don't return
     ret = hcom_nx_trace_msg_read_ramlog_loop();
-    if(_shutting_down) break;
+    if(_haltingMsgProcessing) break;
     if(ret < 0)
     {
       hcom_nx_trace_msg_close_and_delay(true);
@@ -376,21 +377,42 @@ void hcom_nx_trace_msg_sig_recv(int signo, FAR siginfo_t *info,
 void hcom_nx_trace_kthread_exit_initiate()
 {
   // A pthread cannot kill a kthread so we must indirectly kill the thread
-  // by setting _shutting_down true, closing connections and waiting
-  _shutting_down = true;
+  // by setting _haltingMsgProcessing true, closing connections and waiting
+  _haltingMsgProcessing = true;
 
-  // Signal the kthread so _shutting_down will be tested, forcing it to exit
+  // Signal the kthread so _haltingMsgProcessing will be tested, forcing it to exit
   kill(_ramlog_reader_kthread_pid, SIGALRM);
 
   // Nuttx kthreads have no 'join' functionality. We stay in this loop
-  // until the exiting kthread has cleaned up it's resources.
-  while(_trace_kthread_running)
+  // until the exiting kthread has cleaned up it's resources. Bounded so
+  // this can never hang the calling CLI command indefinitely even if the
+  // kthread is unexpectedly still stuck somewhere (e.g. a retry loop in
+  // hcom_traverse_ku_kernel.c that hasn't yet noticed _haltingMsgProcessing).
+  uint32_t stopTimeMs = hcom_nx_trace_get_time_ms() +
+            HCOM_NX_TRACE_KTHREAD_EXIT_TIMEOUT_MS;
+  while(_trace_kthread_running && (hcom_nx_trace_get_time_ms() < stopTimeMs))
   {
     usleep(10 * 1000);
   }
 
+  if(_trace_kthread_running)
+  {
+    syslog(LOG_ERR, "%s@%d: ramlog kthread did not exit within %u ms\n",
+            __FILE__, __LINE__, (unsigned)HCOM_NX_TRACE_KTHREAD_EXIT_TIMEOUT_MS);
+  }
+
   // sem_destroy(&_readNxtSem);
   // sem_destroy(&_sendCliSem);
+}
+
+//==========================================================================
+// Returns true once hcom_nx_trace_kthread_exit_initiate() has set
+// _haltingMsgProcessing, so other files with their own retry loops (see
+// hcom_traverse_ku_kernel.c's send/open loops) can bail out immediately
+// instead of waiting for their own retry cap to elapse.
+bool hcom_nx_trace_msg_is_shutting_down(void)
+{
+  return _haltingMsgProcessing;
 }
 
 //==========================================================================
@@ -434,7 +456,7 @@ void hcom_nx_trace_msg_close_and_delay(bool ramLogClose)
   }
 
   // Wait and try again
-  if(!_shutting_down)
+  if(!_haltingMsgProcessing)
     sleep(1);   // Not a special value, just prevent hard infinite looping
 }
 
@@ -448,7 +470,7 @@ int hcom_nx_trace_msg_open_ramlog()
   }
 
   _ramlog_fp = fopen(HCOM_TRACE_RAMLOG_DEVICE_NAME, "r");
-  if(_shutting_down) return OK;
+  if(_haltingMsgProcessing) return OK;
   if (_ramlog_fp == NULL)
   {
     hcom_nx_uart_direct(LOG_ERR, "%s@%d-fopen %s, errno:%d\n",
@@ -478,7 +500,7 @@ int hcom_nx_trace_msg_open_uart_serial_port()
 #error "Must select a valid syslog uart"
 #endif
 
-  if(_shutting_down) return OK;
+  if(_haltingMsgProcessing) return OK;
   if (_uart_fd < 0)
   {
     _uart_fd = -1;
@@ -496,12 +518,12 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
   int ret;
   size_t msgLen;
 
-  while(!_shutting_down)
+  while(!_haltingMsgProcessing)
   {
     if(fgets((char *)_syslogMsgBuf, HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG,
              _ramlog_fp) == NULL)
     {
-      if(_shutting_down) break;
+      if(_haltingMsgProcessing) break;
 
       hcom_nx_uart_direct(LOG_ERR,
         "%s@%d ramlog fgets failed, errno:%d\n",
@@ -509,7 +531,7 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
       return -errno;    // Close connection, wait and try again
     }
 
-    if(_shutting_down) break;
+    if(_haltingMsgProcessing) break;
 
     // Skip if all logging was disabled while blocked in fgets()
     if(!_trace_log_to_host && !_trace_log_to_uart)
@@ -533,7 +555,7 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
         thisFile, __LINE__, ret);
       return ret;    // Close connection, wait and try again
     }
-  }   // while (!_shutting_down)
+  }   // while (!_haltingMsgProcessing)
 
   return OK;
 }

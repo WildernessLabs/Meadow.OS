@@ -194,7 +194,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Peter | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
 | C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | *Reviewed | 2026-08-27 | #344 | TBD | 2/2 findings fixed (branch `issue344-hcom-nx-fs-part-utils`); issue closed |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | *Reviewed | 2026-08-28 | #345 | Peter |  |
-| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | Reviewed | 2026-08-28 | #346 | TBD |  |
+| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | *Reviewed | 2026-08-28 | #346 | TBD | 3/4 findings fixed (branch `issue346-hcom-traverse-ku-kernel`); finding 4 (fixed-size envelope) Won't Fix -- needs a wire-format change on both kernel+user sides, no correctness risk today; issue closed. Also surfaced a separate pre-existing bug tracked as Issue #550 |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | *Reviewed | 2026-08-28 | #350 | Peter |  |
