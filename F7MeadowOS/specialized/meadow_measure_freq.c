@@ -101,8 +101,7 @@
 static int meadow_measure_freq_isr(int irq, void *context, void *arg);
 static int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan);
 static int meadow_measure_freq_cfg_timer_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo);
-static int meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo,
-          mdwFreqChanData_t *mdwFreqChanData);
+static int meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo_t *mdwFreqTimerInfo);
 #if MEADOW_MEASURE_FREQ_INCLUDE_REG_DUMP > 0
 static void meadow_measure_freq_diag_dump_timer_regs(char *label,
             mdwFreqTimerInfo_t *mdwFreqTimerInfo);
@@ -706,8 +705,7 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
             inputGpioConfig;
 
   // Initialized the F7's channel hardware for this GPIO as input
-  ret = meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo,
-          mdwFreqTimerInfo->mdwFreqChanData[channelOffset]);
+  ret = meadow_measure_freq_cfg_channel_hardware(mdwFreqTimerInfo);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:Channel hardware init failed:%d\n",
@@ -744,14 +742,12 @@ int meadow_measure_freq_configure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 //============================================================
 // Configuration of timer channel hardware registers.
 int meadow_measure_freq_cfg_channel_hardware(
-          mdwFreqTimerInfo_t *mdwFreqTimerInfo,
-          mdwFreqChanData_t *mdwFreqChanData)
+          mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 {
   uint32_t regVal32;
   uint16_t ccerRegVal;    // Capture/Compare Enable Register
   uint16_t dierRegVal;    // DMA/Interrupt Enable Register
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;
-  bool useDC = mdwFreqChanData->useDutyCycle;
 
   ccerRegVal = getreg16(timerBase + STM32_GTIM_CCER_OFFSET);
   dierRegVal = getreg16(timerBase + STM32_GTIM_DIER_OFFSET);
@@ -774,8 +770,11 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000001;       // 1 = 01, set bits 1:0
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR1_OFFSET);
 
-    // Set the input triggers, rising, falling or both for channel
-    if(useDC)
+    // Set the input triggers, rising, falling or both for channel. Each
+    // active channel's own useDutyCycle drives its polarity bits -- using
+    // a single value for all channels would silently reprogram another
+    // already-active channel's polarity to match this one.
+    if(mdwFreqTimerInfo->mdwFreqChanData[0]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC1P | GTIM_CCER_CC1NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC1P | GTIM_CCER_CC1NP);  // 00 rising only
@@ -791,7 +790,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000100;   // 0x0100 = 0100, set bits 9:8
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR1_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[1]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC2P | GTIM_CCER_CC2NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC2P | GTIM_CCER_CC2NP);  // 00 rising only
@@ -807,7 +806,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000001;   // 1 = 01, set bits 1:0
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR2_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[2]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC3P | GTIM_CCER_CC3NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC3P | GTIM_CCER_CC3NP);  // 00 rising only
@@ -823,7 +822,7 @@ int meadow_measure_freq_cfg_channel_hardware(
     regVal32 |= 0x00000100;   // 0x0100 = 0100, set bits 9:8
     putreg32(regVal32, timerBase + STM32_GTIM_CCMR2_OFFSET);
 
-    if(useDC)
+    if(mdwFreqTimerInfo->mdwFreqChanData[3]->useDutyCycle)
       ccerRegVal |= (GTIM_CCER_CC4P | GTIM_CCER_CC4NP);   // 11 both edges
     else
       ccerRegVal &= ~(GTIM_CCER_CC4P | GTIM_CCER_CC4NP);  // 00 rising only
