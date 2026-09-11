@@ -337,20 +337,21 @@ static int meadow_measure_freq_get_current_time(uint64_t *nowNsec)
   long prevNsecs;
 
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
+  // This function reads the date, time and sub-seconds from the MCU's
+  // hardware into a struct tm. However, the STM32F77X Errata warns about a
+  // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
+  // register not locked properly. Therefore, we'll implement the workaround
+  // by reading the nsec twice and comparing, repeating till two consecutive
+  // reads agree.
+  ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &prevNsecs);
+  if(ret < 0)
+  {
+    return ret;
+  }
+
   do
   {
-    // This function reads the date, time and sub-seconds from the MCU's
-    // hardware into a struct tm. However, the STM32F77X Errata warns about a
-    // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
-    // register not locked properly. Therefore, we'll implement the workaround
-    // by reading the nsec twice and compare, if different repeat till equal.
-    ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &prevNsecs);
-    if(ret < 0)
-    {
-      return ret;
-    }
-
-    // Read a second time per Errata
+    // Read again per Errata
     ret = up_rtc_getdatetime_with_subseconds(&rtcTime, &nsecs);
     if(ret < 0)
     {
@@ -361,6 +362,10 @@ static int meadow_measure_freq_get_current_time(uint64_t *nowNsec)
     if(prevNsecs == nsecs)
       break;
 
+    // Otherwise this read becomes the next iteration's baseline, instead
+    // of discarding both samples and starting over with two brand-new
+    // reads.
+    prevNsecs = nsecs;
   } while (1);
 #else
   // This function is used if no sub-seconds.
