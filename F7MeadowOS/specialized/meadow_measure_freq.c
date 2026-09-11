@@ -964,10 +964,6 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
 
   uint32_t timerBase = mdwFreqTimerInfo->timerBase;
 
-  // Stop the timer's clock so values can be written to it's registers
-  apbClock = meadow_measure_freq_get_apb_clock(mdwFreqTimerInfo);
-  modifyreg32(apbClock, mdwFreqTimerInfo->timerClkEn, 0);
-
   // Is the channel configured?
   uint8_t channelBit = meadow_measure_freq_get_channel_bit(
           mdwCfgTimerChan->channelNumber);
@@ -985,6 +981,14 @@ int meadow_measure_freq_unconfigure(mdwFreqCfgTimer_t *mdwCfgTimerChan)
     syslog(LOG_ERR, "%s@%d-Error:Channel data NULL\n", __FILE__, __LINE__);
     return MEADOW_MEAS_FREQ_UNCFG_NO_CHANNEL;
   }
+
+  // Stop the timer's clock so values can be written to its registers. Done
+  // only after the validity checks above (rather than immediately after
+  // resolving mdwFreqTimerInfo) so that rejecting an invalid/unconfigured
+  // channel never gates off the clock -- and therefore any other
+  // already-active channel on this same timer -- as a side effect.
+  apbClock = meadow_measure_freq_get_apb_clock(mdwFreqTimerInfo);
+  modifyreg32(apbClock, mdwFreqTimerInfo->timerClkEn, 0);
 
   // Unconfigure channel hardware
   ccerRegVal = getreg16(timerBase + STM32_GTIM_CCER_OFFSET);
