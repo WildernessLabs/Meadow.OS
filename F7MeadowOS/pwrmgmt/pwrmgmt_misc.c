@@ -94,7 +94,7 @@ static mutex_t _rtcAccessLock = NXMUTEX_INITIALIZER;
 #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 {
-  int rtc_state;
+  int rtcState;
 
   // After backup domain reset these are the default values
   // RTC control register (RTC_CR)                    [0]
@@ -132,12 +132,12 @@ void pwrmgmt_rtc_dumpregs(FAR const char *msg)
   syslog(LOG_MTEST, "     ISR: %08" PRIx32 "\n", getreg32(STM32_RTC_ISR));
   syslog(LOG_MTEST, "MAGICREG: %08" PRIx32 "\n", getreg32(RTC_MAGIC_REG));
 
-  rtc_state =
+  rtcState =
     ((getreg32(STM32_EXTI_IMR)  & EXTI_RTC_ALARM) ? 0x0010 : 0) |
     ((getreg32(STM32_EXTI_EMR)  & EXTI_RTC_ALARM) ? 0x0001 : 0) |
     ((getreg32(STM32_EXTI_RTSR) & EXTI_RTC_ALARM) ? 0x1000 : 0) |
     ((getreg32(STM32_EXTI_FTSR) & EXTI_RTC_ALARM) ? 0x0100 : 0);
-  syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n",rtc_state);
+  syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n",rtcState);
 }
 #endif
 
@@ -257,22 +257,22 @@ int pwrmgmt_rtc_synchwait(void)
   pwrmgmt_rtc_wprunlock();
 
   // Clear Registers synchronization flag (RSF)
-  regval  = getreg32(STM32_RTC_ISR);
+  regval = getreg32(STM32_RTC_ISR);
   regval &= ~RTC_ISR_RSF;
   putreg32(regval, STM32_RTC_ISR);
 
   // Now wait the registers to become synchronised
   ret = -ETIMEDOUT;
   for (timeout = 0; timeout < 20000; timeout++)
+  {
+    regval = getreg32(STM32_RTC_ISR);
+    if ((regval & RTC_ISR_RSF) != 0)
     {
-      regval = getreg32(STM32_RTC_ISR);
-      if ((regval & RTC_ISR_RSF) != 0)
-        {
-          // Synchronized
-          ret = OK;
-          break;
-        }
+      // Synchronized
+      ret = OK;
+      break;
     }
+  }
 
   // Re-enable the write protection for RTC registers
   pwrmgmt_rtc_wprlock();
