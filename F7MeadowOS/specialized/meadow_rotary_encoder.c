@@ -94,8 +94,7 @@
 // Hardware-verified 2026-09 with CLK wired to A and DT/Data wired to B: a
 // physically clockwise rotation reports MEADOW_ROTARY_ENC_DIRECTION_CW, so
 // this diagram (and the code's bit assembly in rotenc_calc_dir_count()) is
-// the correct convention -- an earlier version of this diagram had A and B
-// swapped in all four positions relative to what the code actually does.
+// the correct convention.
 //
 // This 4-bit number creates 16 possible values (0-15). The following lookup
 // table is used to determine if there is a change and if there is its
