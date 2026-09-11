@@ -69,8 +69,8 @@
  * Private Data
  ****************************************************************************/
 // This is the list of configured GPIOs.
-static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_MONITORED]\
-        = {NULL};
+static gpioCounterInfo_t *_allGpioCountList[MEADOW_GPIO_COUNT_MAX_MONITORED] =
+        {NULL};
 
 // Serializes meadow_gpio_counter_config() calls against each other so a
 // concurrent add/add (or add/remove) targeting the same slot can't race
@@ -101,8 +101,8 @@ static int meadow_gpio_count_isr(int irq, void *context, void *arg)
 }
 
 //========================================================================
-// Return count now. 
-void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
+// Return count now.
+static void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
           gpioCntReadData_t *gpioCntReadData)
 {
   // Get the current data values
@@ -113,7 +113,7 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
   uint64_t countDiff = gpioCounterInfo->totalCount - gpioCounterInfo->prevCount;
   gpioCounterInfo->prevCount = gpioCounterInfo->totalCount;
   leave_critical_section(flags);
- 
+
   // How much did the count change?
   gpioCntReadData->gpioCountChange = countDiff;
   return;
@@ -160,7 +160,7 @@ static void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo)
 
 //========================================================================
 // Remove an existing gpio counter entry
-int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
+static int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 {
   int ret;
   uint8_t gpioPinInfo;
