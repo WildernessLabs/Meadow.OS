@@ -177,8 +177,8 @@ static mdwFreqTimerInfo_t mdwFreqTimerInfoArray[] =
   /* TIM3   */  {3 , 0,  0,  0, 1, STM32_TIM3_BASE,  RCC_APB1ENR_TIM3EN,  STM32_IRQ_TIM3,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
   /* TIM4   */  {4 , 0,  0,  0, 1, STM32_TIM4_BASE,  RCC_APB1ENR_TIM4EN,  STM32_IRQ_TIM4,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
   /* TIM5   */  {5 , 1,  0,  0, 1, STM32_TIM5_BASE,  RCC_APB1ENR_TIM5EN,  STM32_IRQ_TIM5,  GPIO_AF2, 0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM6   */  {6 , 0,  0,  0, 0, STM32_TIM6_BASE,  RCC_APB1ENR_TIM6EN,  STM32_IRQ_TIM6,  0xff,     0,  0, {NULL, NULL, NULL, NULL}},
-  /* TIM7   */  {7 , 0,  0,  0, 0, STM32_TIM7_BASE,  RCC_APB1ENR_TIM7EN,  STM32_IRQ_TIM7,  0xff,     0,  0, {NULL, NULL, NULL, NULL}},
+  /* TIM6   */  {6 , 0,  0,  0, 0, STM32_TIM6_BASE,  RCC_APB1ENR_TIM6EN,  STM32_IRQ_TIM6,  0,        0,  0, {NULL, NULL, NULL, NULL}},
+  /* TIM7   */  {7 , 0,  0,  0, 0, STM32_TIM7_BASE,  RCC_APB1ENR_TIM7EN,  STM32_IRQ_TIM7,  0,        0,  0, {NULL, NULL, NULL, NULL}},
   /* TIM8   */  {8 , 0,  1,  1, 0, STM32_TIM8_BASE,  RCC_APB2ENR_TIM8EN,  0,               GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
   /* TIM9   */  {9 , 0,  1,  1, 1, STM32_TIM9_BASE,  RCC_APB2ENR_TIM9EN,  STM32_IRQ_TIM9,  GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
   /* TIM10  */  {10, 0,  1,  1, 1, STM32_TIM10_BASE, RCC_APB2ENR_TIM10EN, STM32_IRQ_TIM10, GPIO_AF3, 0,  0, {NULL, NULL, NULL, NULL}},
@@ -200,7 +200,7 @@ static mdwFreqTimerInfo_t mdwFreqTimerInfoArray[] =
 // This table contains all of the STM32F7's timers and their valid GPIOs with
 // channel. It is used for F7v1 and F7v2 and CCM. It should be able to verify
 // any timer, GPIO combination.
-mdwFreqChanPortPin_t validStm32F7GpioArray[][MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER] = 
+static mdwFreqChanPortPin_t validStm32F7GpioArray[][MEADOW_MEAS_FREQ_MAX_CCM_ENTRIES_PER_TIMER] =
 {
   /* Tim 1 */
   {
@@ -376,7 +376,7 @@ static uint8_t validF7v1GpioArray[][MEADOW_MEAS_FREQ_MAX_F7_BYTES_PER_TIMER] =
   },
 
   /* TIM13  No GPIO exposed */
-  {0xff},
+  {},
 
   /* TIM14 */
   {GPIO_PORTA | GPIO_PIN7,  // PA7, A03
