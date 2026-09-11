@@ -96,6 +96,15 @@ struct gpioCounterInfo_s
   // years, so no reasonable application will ever see it wrap.
   uint64_t totalCount;        // Total of rising edges
   uint64_t prevCount;         // Count at last read
+
+  // Guards against gpio_cnt_config_interrupt_remove() freeing this struct
+  // while a read (or set_count) call is still using it. A caller registers
+  // by incrementing activeReaders before use and decrementing after; remove()
+  // sets pendingFree and only frees immediately if no reader is registered,
+  // otherwise the last reader to unregister does the free. See
+  // gpio_cnt_acquire()/gpio_cnt_release() in meadow_gpio_counter.c.
+  uint16_t activeReaders;     // Count of in-flight callers referencing this struct
+  bool pendingFree;           // remove() requested while a reader was active
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 

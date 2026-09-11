@@ -78,6 +78,8 @@ static gpioCounterInfo_t * _allGpioCountList[MEADOW_GPIO_COUNT_MAX_MONITORED]\
 static void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
           gpioCntReadData_t *gpioCntReadData);
 static int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb);
+static gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb);
+static void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo);
 
 /****************************************************************************
  * Private Functions
@@ -110,18 +112,64 @@ void meadow_gpio_counter_read_now(gpioCounterInfo_t *gpioCounterInfo,
 }
 
 //========================================================================
+// Static - Register the caller as an active reader of gpioCntrNumb's info,
+// guarding against a concurrent gpio_cnt_config_interrupt_remove(). The
+// lookup and the increment happen in the same critical section as
+// gpio_cnt_config_interrupt_remove()'s un-publish step, so the two can never
+// interleave: either this sees the still-valid pointer and remove() is then
+// blocked from freeing it, or remove() already ran and this sees NULL.
+// Returns NULL if the gpio counter is not configured; caller must not call
+// gpio_cnt_release() in that case.
+static gpioCounterInfo_t *gpio_cnt_acquire(uint32_t gpioCntrNumb)
+{
+  irqstate_t flags = enter_critical_section();
+  gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
+  if(gpioCounterInfo != NULL)
+  {
+    gpioCounterInfo->activeReaders++;
+  }
+  leave_critical_section(flags);
+  return gpioCounterInfo;
+}
+
+//========================================================================
+// Static - Unregister as an active reader. If gpio_cnt_config_interrupt_remove()
+// ran while we were active it deferred the free() to whichever caller turns
+// out to be last out - do it here if that's us.
+static void gpio_cnt_release(gpioCounterInfo_t *gpioCounterInfo)
+{
+  irqstate_t flags = enter_critical_section();
+  gpioCounterInfo->activeReaders--;
+  bool shouldFree = (gpioCounterInfo->activeReaders == 0) &&
+                     gpioCounterInfo->pendingFree;
+  leave_critical_section(flags);
+
+  if(shouldFree)
+  {
+    kmm_free(gpioCounterInfo);
+  }
+}
+
+//========================================================================
 // Remove an existing gpio counter entry
 int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
 {
   int ret;
   uint8_t gpioPinInfo;
   gpioCounterInfo_t *gpioCounterInfo;
+  bool shouldFreeNow = false;
 
+  // Un-publish the slot and snapshot whether a reader is currently active,
+  // atomically with gpio_cnt_acquire()'s lookup+increment (see there). This
+  // also guards against two concurrent removes of the same counter both
+  // acting on it - the second one to run this critical section sees NULL.
   irqstate_t flags = enter_critical_section();
   gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
   if(gpioCounterInfo != NULL)
   {
     _allGpioCountList[gpioCntrNumb] = NULL;
+    gpioCounterInfo->pendingFree = true;
+    shouldFreeNow = (gpioCounterInfo->activeReaders == 0);
   }
   leave_critical_section(flags);
 
@@ -145,7 +193,11 @@ int gpio_cnt_config_interrupt_remove(uint32_t gpioCntrNumb)
       __FILE__, __LINE__, gpioCntrNumb, ret);
   }
 
-  kmm_free(gpioCounterInfo);
+  if(shouldFreeNow)
+  {
+    kmm_free(gpioCounterInfo);
+  }
+
   return ret;
 }
 
@@ -282,7 +334,7 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, uint64_t newCount)
     return -ERANGE;    // Out of Range
   }
 
-  gpioCounterInfo_t *gpioCounterInfo = _allGpioCountList[gpioCntrNumb];
+  gpioCounterInfo_t *gpioCounterInfo = gpio_cnt_acquire(gpioCntrNumb);
   if(gpioCounterInfo == NULL)  // Is requested slot valid?
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is not configured\n",
@@ -296,6 +348,7 @@ int meadow_gpio_counter_set_count(uint32_t gpioCntrNumb, uint64_t newCount)
   gpioCounterInfo->prevCount = newCount;
   leave_critical_section(flags);
 
+  gpio_cnt_release(gpioCounterInfo);
   return OK;
 }
 
@@ -324,7 +377,7 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
     return -ERANGE;    // Out of Range
   }
 
-  gpioCounterInfo = _allGpioCountList[gpioCntReadData->gpioCntrNumb];
+  gpioCounterInfo = gpio_cnt_acquire(gpioCntReadData->gpioCntrNumb);
   if(gpioCounterInfo == NULL)  // Is requested slot configured?
   {
     syslog(LOG_ERR, "%s@%d-GPIOCnt %lu is not configured\n",
@@ -335,6 +388,7 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData)
   // Get info and return
   meadow_gpio_counter_read_now(gpioCounterInfo, gpioCntReadData);
 
+  gpio_cnt_release(gpioCounterInfo);
   return ret;
 }
 
