@@ -67,8 +67,6 @@
 
 #include "hcom_nx/hcom_nx_common.h"
 
-#include "stm32_alarm.h"
-
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
 
 // #pragma message "(--) pwrmgmt_config_wakeup_alarm.c"
@@ -109,7 +107,7 @@ int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
   struct tm tmAlarm;
 
   // Is the desired low-power period reasonable?
-  if(secondsTillAlarm < 2)
+  if (secondsTillAlarm < 2)
   {
     // Less than 2 seconds is not reasonable
     return -EPERM;    // Operation not permitted
@@ -126,27 +124,27 @@ int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
 do
   {
     ret = up_rtc_getdatetime_with_subseconds(&tmHardware, &prevNsec);
-    if(ret < 0)
+    if (ret < 0)
     {
       return ret;
     }
 
     // Read a second time per Errata
     ret = up_rtc_getdatetime_with_subseconds(&tmHardware, &nsec);
-    if(ret < 0)
+    if (ret < 0)
     {
       return ret;
     }
 
     // If they match we have good values
-    if(prevNsec == nsec)
+    if (prevNsec == nsec)
       break;
       
   } while (1);
 
-#elif
+#else
   // This function is used if no sub-seconds.
-  ret = up_rtc_getdatetime(&tmHardware)
+  ret = up_rtc_getdatetime(&tmHardware);
 #endif
 
   // With the current date and time established we'll add the number of
@@ -182,7 +180,7 @@ do
 
   // Set the alarm based on the calendar time
   ret = pwrmgmt_config_rtc_alarm_wakeup_tm(tmAlarm);
-  if(ret < 0)
+  if (ret < 0)
   {
     syslog(LOG_ERR, "Error:Setting alarm time failed, ret:%d\n", ret);
   }
@@ -190,7 +188,7 @@ do
   return ret;
 }
 
-//==================================================================
+//=============================================================
 // Enter low-power mode. Wakeup in time specified as struct tm
 int pwrmgmt_config_rtc_alarm_wakeup_tm(struct tm tmAlarm)
 {
@@ -320,11 +318,12 @@ int pwrmgmt_config_rtc_alarm_wakeup_tm(struct tm tmAlarm)
   return OK;
 }
 
-//==================================================================
+//=============================================================
 // After exiting low-power mode disable the Alarm Timeout
-void pwrmgmt_disable_rtc_alarm_wakeup()
+void pwrmgmt_disable_rtc_alarm_wakeup(void)
 {
   uint32_t regval;
+  volatile uint32_t timeout;
 
   // Enable write access to RTC registers
   pwrmgmt_rtc_wprunlock();
@@ -335,8 +334,20 @@ void pwrmgmt_disable_rtc_alarm_wakeup()
   regval &= ~RTC_CR_ALRAE;   // Clear Alarm A enable bit
   putreg32(regval, STM32_RTC_CR);
   // Wait for status flag to indicate that ALRAE bit has been cleared
-  // indicating updates are no longer allowed
-  while ((getreg32(STM32_RTC_ISR) & RTC_ISR_ALRAWF) == 0);
+  // indicating updates are no longer allowed. Bounded, matching the
+  // pattern in pwrmgmt_misc.c, since this runs right after wake with
+  // SysTick masked -- an unbounded spin here would hang the waking task
+  // forever on a genuine RTC hardware fault, with no timeslice preemption.
+  for (timeout = 0; timeout < 10000; timeout++)
+  {
+    if ((getreg32(STM32_RTC_ISR) & RTC_ISR_ALRAWF) != 0)
+      break;
+  }
+  if (timeout == 10000)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:Timed out waiting for ALRAWF\n",
+              __FILE__, __LINE__);
+  }
 
   // Clear the Alarm A occurred flag
   regval = getreg32(STM32_RTC_ISR);
@@ -348,9 +359,21 @@ void pwrmgmt_disable_rtc_alarm_wakeup()
   regval &= ~RTC_CR_ALRBIE;  // Clear Alarm B Interrupt enable bit
   regval &= ~RTC_CR_ALRBE;   // Clear Alarm B enable bit
   putreg32(regval, STM32_RTC_CR);
-  // Wait for status flag to indicate that ALRAE bit has been cleared
-  // indicating updates are no longer allowed
-  while ((getreg32(STM32_RTC_ISR) & RTC_ISR_ALRBWF) == 0);
+  // Wait for status flag to indicate that ALRBE bit has been cleared
+  // indicating updates are no longer allowed. Bounded, matching the
+  // pattern in pwrmgmt_misc.c, since this runs right after wake with
+  // SysTick masked -- an unbounded spin here would hang the waking task
+  // forever on a genuine RTC hardware fault, with no timeslice preemption.
+  for (timeout = 0; timeout < 10000; timeout++)
+  {
+    if ((getreg32(STM32_RTC_ISR) & RTC_ISR_ALRBWF) != 0)
+      break;
+  }
+  if (timeout == 10000)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:Timed out waiting for ALRBWF\n",
+              __FILE__, __LINE__);
+  }
 
   // Clear the Alarm B occurred flag
   regval = getreg32(STM32_RTC_ISR);
