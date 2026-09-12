@@ -88,7 +88,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static char *thisFile = __FILE__;
 
 // Save the HSE value either read from the correct RTC register or set here
 static uint32_t _hseRtcPrer;
@@ -146,7 +145,7 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
       if(_hseRtcPrer == 0)
       {
         syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n",
-          thisFile, __LINE__);
+          __FILE__, __LINE__);
         return -1;
       }
     }
@@ -171,7 +170,7 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-HSE clock pre-scaler set error\n",
-      thisFile, __LINE__);
+      __FILE__, __LINE__);
     return -1;
   }
 
@@ -200,7 +199,7 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
       if(_hseRtcPrer == 0)
       {
         syslog(LOG_ERR, "%s@%d-ERROR:HSE clock source but no pre-scaler\n",
-          thisFile, __LINE__);
+          __FILE__, __LINE__);
         return -1;
       }
     }
@@ -219,7 +218,7 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
   if(pwrmgmt_get_lsi_calib_rtc_clk_value() == 0)
   {
     syslog(LOG_ERR, "%s@%d-LSI BBR pre-scaler value is 0. It must be set\n",
-      thisFile, __LINE__);
+      __FILE__, __LINE__);
     return -1;
   }
 
@@ -229,7 +228,7 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR:Switching to LSI failed\n",
-      thisFile, __LINE__);
+      __FILE__, __LINE__);
     return -1;
   }
 
@@ -297,7 +296,7 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error: pwrmgmt_rtc_enterinit() returned %d\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
   }
   else
   {
@@ -332,7 +331,7 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
   if (ret != OK && nretry > 0)
   {
     syslog(LOG_ERR, "%s@%d-init/resume ran %d times and failed with %d\n",
-              thisFile, __LINE__, nretry, ret);
+              __FILE__, __LINE__, nretry, ret);
     return -ETIMEDOUT;
   }
   //----------------------------------------------------------

@@ -63,7 +63,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static uint32_t _totalFlashSize;
 
@@ -100,7 +99,7 @@ int hcom_nx_fs_get_partition_info(uint32_t partId,
   if(partId > MEADOW_FLASH_PART_OFFSET_PARENT_PART)
   {
     syslog(LOG_ERR, "%s@%d-Partition:%lu out of range\n",
-              thisFile, __LINE__, partId);
+              __FILE__, __LINE__, partId);
     return -EINVAL;
   }
 
@@ -137,7 +136,7 @@ int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR:LittleFS F/S init error:%d\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -146,7 +145,7 @@ int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd)
   ret = hcom_fs_create_partitions_initialize_and_mount_fs(mtd);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-F/S creation, error:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-F/S creation, error:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -169,7 +168,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   ret = hcom_fs_init_partitions(mtd);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-partitioning FS:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-partitioning FS:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -186,7 +185,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-LittleFS error:%d part:%d\n",
-              thisFile, __LINE__, ret, MEADOW_FLASH_PART_OFFSET_FILE_SYS);
+              __FILE__, __LINE__, ret, MEADOW_FLASH_PART_OFFSET_FILE_SYS);
     return ret;
   }
 #endif
@@ -202,7 +201,7 @@ int hcom_fs_create_partitions_initialize_and_mount_fs(FAR struct mtd_dev_s *mtd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-fs mount failed '%s' to '%s' for type '%s', Part %d error:%d\n",
-          thisFile, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE,
+          __FILE__, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE,
           MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
           HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE,
           MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
@@ -242,13 +241,13 @@ int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flash_mtd)
   int ret;
 
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Register master mtd\n", thisFile, __LINE__);
+  syslog(LOG_DEBUG, "%s@%d-Register master mtd\n", __FILE__, __LINE__);
 #endif
 
   char *finalSourceName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(finalSourceName == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -261,7 +260,7 @@ int hcom_nx_register_external_flash_mtd(FAR struct mtd_dev_s *master_flash_mtd)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-register_mtddriver() ret:%d, errno:%d\n",
-            thisFile, __LINE__, ret, errno);
+            __FILE__, __LINE__, ret, errno);
     free(finalSourceName);
     return ret;
   }
@@ -286,7 +285,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
   int ret = mtd->ioctl(mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&geo));
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Read MTD geometry:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Read MTD geometry:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -315,7 +314,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     if(partitionSizes[partitionNumber] % geo.erasesize != 0)
     {
       syslog(LOG_ERR, "%s@%d-Partition %d, size (%lu) not multiple of erase size (%lu)\n",
-              thisFile, __LINE__, partitionNumber,
+              __FILE__, __LINE__, partitionNumber,
               partitionSizes[partitionNumber],
               geo.erasesize);
       return -EINVAL;     // Invalid argument
@@ -369,7 +368,7 @@ int hcom_fs_init_partitions(FAR struct mtd_dev_s *mtd)
     if (_partInfoArray[partitionNumber].mtdPart == NULL)
     {
       syslog(LOG_ERR, "%s@%d-Error:mtd_partition:%d, Block Offset=%lu nParts=%lu\n",
-               thisFile, __LINE__, partitionNumber, firstBlockOff, totBlocksInPart);
+               __FILE__, __LINE__, partitionNumber, firstBlockOff, totBlocksInPart);
       return -ENOMEM;
     }
 

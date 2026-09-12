@@ -62,11 +62,6 @@
 /* Configuration ************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -81,18 +76,18 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partNumb,
   char *partName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(partName == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Registering part %ld\n", thisFile, __LINE__, partNumb);
+  syslog(LOG_DEBUG, "%s@%d-Registering part %ld\n", __FILE__, __LINE__, partNumb);
 #endif
 
   if (partitionMtd == NULL)
   {
     syslog(LOG_ERR, "%s@%d-mtd is NULL, part %" PRId32 "",
-             thisFile, __LINE__, partNumb);
+             __FILE__, __LINE__, partNumb);
     free(partName);
     return -1;
   }
@@ -103,7 +98,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partNumb,
 
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-Register part %ld as '%s'. MTD:%p\n",
-           thisFile, __LINE__, partNumb, partName, partitionMtd);
+           __FILE__, __LINE__, partNumb, partName, partitionMtd);
 #endif
 
   // Register the MTD driver so that it can be accessed from the VFS
@@ -112,7 +107,7 @@ int hcom_nx_create_one_littlefs_file_dev(uint32_t partNumb,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-register_mtddriver() ret:%d, errno:%d\n",
-            thisFile, __LINE__, ret, errno);
+            __FILE__, __LINE__, ret, errno);
     free(partName);
     return ret;
   }
@@ -133,7 +128,7 @@ static int hcom_nx_create_littlefs_low_level_mount(const char *sourceDevice,
   char *finalSourceName = malloc(HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(finalSourceName == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
   
@@ -143,7 +138,7 @@ static int hcom_nx_create_littlefs_low_level_mount(const char *sourceDevice,
 
  #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
   syslog(LOG_DEBUG, "%s@%d-Mounting part:%ld as '%s' to '%s' type '%s', cmd '%s'\n",
-        thisFile, __LINE__, partitionNumber, finalSourceName,
+        __FILE__, __LINE__, partitionNumber, finalSourceName,
         MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
         fileSystemType, mountCommand);
  #endif
@@ -160,7 +155,7 @@ static int hcom_nx_create_littlefs_low_level_mount(const char *sourceDevice,
   }
   
  #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-Mount successful\n", thisFile, __LINE__);
+  syslog(LOG_DEBUG, "%s@%d-Mount successful\n", __FILE__, __LINE__);
  #endif
 
   free(finalSourceName);
@@ -175,7 +170,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partNumb, const char 
   int ret;
 
 #if HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING > 0
-  syslog(LOG_DEBUG, "%s@%d-LittleFS mount part %ld\n", thisFile, __LINE__, partNumb);
+  syslog(LOG_DEBUG, "%s@%d-LittleFS mount part %ld\n", __FILE__, __LINE__, partNumb);
 #endif
 
   // First we'll attempt to mount the device. A mount failure with a specific
@@ -198,7 +193,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partNumb, const char 
   if(ret != -EFAULT && ret != -EINVAL)
   {
     syslog(LOG_ERR, "-->%s@%d-LittleFS mount as '%s' type '%s' for Part %lu, err:%d failed\n",
-              thisFile, __LINE__, MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
+              __FILE__, __LINE__, MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
               HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partNumb, ret);
     return ret;
   }
@@ -218,7 +213,7 @@ int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partNumb, const char 
   if (ret < 0)
   {
     syslog(LOG_ERR, "--> %s@%d-Format and remount '%s' to '%s' for type '%s' on Part %lu, err:%d\n",
-              thisFile, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE,
+              __FILE__, __LINE__, HCOM_NX_FILE_MOUNT_POINT_SOURCE,
               targetDevice, HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE, partNumb, ret);
   }
 

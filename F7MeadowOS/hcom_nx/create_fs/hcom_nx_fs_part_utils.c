@@ -61,7 +61,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 // One-entry cache of the last partition resolved by
 // hcom_nx_flash_block_offset_to_part_offset(), so a run of sequential
@@ -190,7 +189,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
 
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
       syslog(2, "-->%s@%d-Checking Partition:%lu, start:0x%08lx, end:0x%08lx,\n",
-          thisFile, __LINE__, activePart,
+          __FILE__, __LINE__, activePart,
           partitionOffsets[activePart], partEnd);
 #endif
 
@@ -201,7 +200,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
       {
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
         syslog(2, "-->%s@%d-Partition:%lu, matches. 0x%08lx between 0x%08lx and 0x%08lx\n",
-                  thisFile, __LINE__,
+                  __FILE__, __LINE__,
                   activePart,
                   startByteAddr,
                   partitionOffsets[activePart],
@@ -228,7 +227,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
   {
     // File System is last partition and should not be accessed
     syslog(LOG_ERR, "%s@%d-Error:File System area in flash is restricted\n",
-            thisFile, __LINE__);
+            __FILE__, __LINE__);
     // _assert;
     usleep(20 * 1000); // Make sure this is seen
     return -EINVAL;     // Invalid argument
@@ -244,7 +243,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
     if(intraPartMemOffset % hcom_nx_exec_ex_flash_get_block_size() != 0)
     {
       syslog(LOG_ERR, "%s@%d-Error:Block %06ld, size (%ld) not multiple of erase size (%ld)\n",
-              thisFile, __LINE__,
+              __FILE__, __LINE__,
               startByteAddr,
               hcom_nx_exec_ex_flash_get_block_size(),
               hcom_nx_exec_ex_flash_get_erase_block_size());
@@ -261,14 +260,14 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
 
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
     syslog(2, "-->%s@%d-Partition size:%ld and offset:%lu \n",
-              thisFile, __LINE__, intraPartMemOffset, partSize);
+              __FILE__, __LINE__, intraPartMemOffset, partSize);
     usleep(20 * 1000);    // Make sure this is seen
 #endif
 
     if(intraPartMemOffset >= partSize)
     {
       syslog(LOG_ERR, "%s@%d-Block offset:%lu is outside of the partition:%lu\n",
-              thisFile, __LINE__, *partBlockOff, partSize);
+              __FILE__, __LINE__, *partBlockOff, partSize);
       usleep(20 * 1000);  // Make sure this is seen
       return -EINVAL;
     }
@@ -284,7 +283,7 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Error:%d getting partition info\n",
-                thisFile, __LINE__, ret);
+                __FILE__, __LINE__, ret);
       usleep(20 * 1000);  // Make sure this is seen
       return ret;
     }
@@ -295,10 +294,10 @@ int hcom_nx_flash_block_offset_to_part_offset(uint32_t startByteAddr,
   
 #if MEADOW_FLASH_PART_UTILS_SHOW_SYSLOG > 0
   syslog(2, "-->%s@%d-Returning partition:%lu, partBlockOff:%lu\n",
-          thisFile, __LINE__, activePart, *partBlockOff);
+          __FILE__, __LINE__, activePart, *partBlockOff);
 
   syslog(2, "-->%s@%d-mtdPart:%p, byteOffset:%lu, blockOffset:%lu, isPartMounted:%u, partSize:%u \n",
-          thisFile, __LINE__, partInfo.mtdPart, partInfo.byteOffset,
+          __FILE__, __LINE__, partInfo.mtdPart, partInfo.byteOffset,
           partInfo.blockOffset, partInfo.isPartMounted, partInfo.partSize);
   usleep(20 * 1000);    // Make sure this is seen
 #endif
@@ -329,7 +328,7 @@ int partMtdBRead(uint32_t startBlock, uint32_t numbBlocks, uint8_t *destBuff)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:%d converting block to partition\n",
-               thisFile, __LINE__, ret);
+               __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -356,7 +355,7 @@ int partMtdBWrite(uint32_t startBlock, uint32_t numbBlocks, uint8_t *sourceBuff)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:%d converting block to partition\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -383,7 +382,7 @@ int partMtdErase(uint32_t startBlock, uint32_t numbBlocks)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:%d converting block to partition\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
     return ret;
   }
 

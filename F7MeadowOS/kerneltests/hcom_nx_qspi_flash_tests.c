@@ -84,8 +84,6 @@
  * Private Data
  ****************************************************************************/
 
-static char *thisFile = __FILE__;
-
 static FAR struct mtd_dev_s *_test_mtd = NULL;
 static FAR struct mtd_geometry_s _test_geo;
 static uint32_t _flash_test_write_page_size;
@@ -152,7 +150,7 @@ static int hcom_exec_flash_initialize_mtd_for_testing(void)
   if(_test_mtd == NULL)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR MTD offset is NULL\n",
-      thisFile, __LINE__);
+      __FILE__, __LINE__);
     usleep(50 * 1000);
     return -1;
   }
@@ -161,7 +159,7 @@ static int hcom_exec_flash_initialize_mtd_for_testing(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -319,7 +317,7 @@ static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, boo
     if(nread != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        thisFile, __LINE__, __func__, nread);
+        __FILE__, __LINE__, __func__, nread);
       usleep(50 * 1000);
       return nread;
     }
@@ -399,7 +397,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     return ret;
   }
 
@@ -422,7 +420,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n",
-              thisFile, __LINE__, __func__, ret);
+              __FILE__, __LINE__, __func__, ret);
     return ret;
   }
   usleep(10);
@@ -444,7 +442,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
     if(nwrite != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        thisFile, __LINE__, __func__, nwrite);
+        __FILE__, __LINE__, __func__, nwrite);
       return ret;
     }
   }
@@ -474,7 +472,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
     if(nread != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        thisFile, __LINE__, __func__, nread);
+        __FILE__, __LINE__, __func__, nread);
       return ret;
     }
 
@@ -532,7 +530,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     return ret;
   }
 
@@ -549,7 +547,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n",
-              thisFile, __LINE__, __func__, ret);
+              __FILE__, __LINE__, __func__, ret);
     return ret;
   }
   usleep(10);
@@ -570,7 +568,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     if(nwrite != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        thisFile, __LINE__, __func__, nwrite);
+        __FILE__, __LINE__, __func__, nwrite);
       return ret;
     }
   }
@@ -592,7 +590,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     if(nread != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        thisFile, __LINE__, __func__, nread);
+        __FILE__, __LINE__, __func__, nread);
       return ret;
     }
 
@@ -620,7 +618,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     return ret;
   }
 
@@ -637,7 +635,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages, ret:%d\n",
-              thisFile, __LINE__, __func__, ret);
+              __FILE__, __LINE__, __func__, ret);
     return ret;
   }
   usleep(10);
@@ -658,7 +656,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     if(nwrite != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        thisFile, __LINE__, __func__, nwrite);
+        __FILE__, __LINE__, __func__, nwrite);
       return ret;
     }
   }
@@ -680,7 +678,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     if(nread != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        thisFile, __LINE__, __func__, nread);
+        __FILE__, __LINE__, __func__, nread);
       return ret;
     }
 
@@ -733,7 +731,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -750,7 +748,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
     if(nwrite != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        thisFile, __LINE__, __func__, nwrite);
+        __FILE__, __LINE__, __func__, nwrite);
       usleep(50 * 1000);
       return nwrite;
     }
@@ -762,7 +760,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
     if(nread != 1)
     {
       syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        thisFile, __LINE__, __func__, nread);
+        __FILE__, __LINE__, __func__, nread);
       usleep(50 * 1000);
       return nread;
     }
@@ -789,7 +787,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
       if(nread != 1)
       {
         syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-          thisFile, __LINE__, __func__, nread);
+          __FILE__, __LINE__, __func__, nread);
         usleep(50 * 1000);
         return nread;
       }
@@ -818,7 +816,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
       if(nread != 1)
       {
         syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-          thisFile, __LINE__, __func__, nread);
+          __FILE__, __LINE__, __func__, nread);
         usleep(50 * 1000);
         return nread;
       }
@@ -853,7 +851,7 @@ static int hcom_exec_flash_test_read_display_1_page(uint32_t pageOffset)
   if(nread != 1)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-      thisFile, __LINE__, __func__, nread);
+      __FILE__, __LINE__, __func__, nread);
     usleep(50 * 1000);
     return nread;
   }
@@ -875,7 +873,7 @@ static int hcom_exec_flash_fs_flash_test_erase_1_4k_sector(uint32_t sectorOffset
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -896,7 +894,7 @@ static int hcom_exec_flash_fs_flash_test_erase_entire_flash(void)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -919,7 +917,7 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -951,7 +949,7 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
       if(ret != 1)    // Check number written
       {
         syslog(LOG_MTEST, "%s@%d-ERROR in %s() - number written:%d. Must be 1\n",
-                  thisFile, __LINE__, __func__, ret);
+                  __FILE__, __LINE__, __func__, ret);
         usleep(50 * 1000);
         ret = -1;
       }
@@ -961,12 +959,12 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR: Write test with ret:%d (command:%d)\n",
-              thisFile, __LINE__, ret, userData);
+              __FILE__, __LINE__, ret, userData);
   }
   else if (ret > 0)
   {
     syslog(LOG_MTEST, "%s@%d-Write test reported %d flash write errors (command:%d)\n",
-              thisFile, __LINE__, ret, userData);
+              __FILE__, __LINE__, ret, userData);
   }
   else
   {
@@ -989,7 +987,7 @@ int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -1012,12 +1010,12 @@ int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-Init test command:%d ERROR with ret:%d\n",
-      thisFile, __LINE__, userData, ret);
+      __FILE__, __LINE__, userData, ret);
   }
   else
   {
     syslog(LOG_MTEST, "%s@%d-Init test command:%d Succeeded\n",
-      thisFile, __LINE__, userData);
+      __FILE__, __LINE__, userData);
   }
   return ret;
 }
@@ -1035,7 +1033,7 @@ int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      thisFile, __LINE__, __func__, ret);
+      __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
     return ret;
   }
@@ -1058,12 +1056,12 @@ int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData)
   if(ret < 0)
   {
     syslog(LOG_MTEST, "%s@%d-Read test command:%d ERROR with ret:%d\n",
-      thisFile, __LINE__, userData, ret);
+      __FILE__, __LINE__, userData, ret);
   }
   else
   {
     syslog(LOG_MTEST, "%s@%d-Read test command:%d Succeeded\n",
-      thisFile, __LINE__, userData);
+      __FILE__, __LINE__, userData);
   }
   return ret;
 }

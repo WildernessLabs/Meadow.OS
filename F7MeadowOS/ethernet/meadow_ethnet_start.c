@@ -61,12 +61,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -83,7 +77,7 @@ int meadow_eth_mngr_startup()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-No LAN chip, or not a LAN9355. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -94,7 +88,7 @@ int meadow_eth_mngr_startup()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_mon_config_lan9355_irq() failed. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -104,7 +98,7 @@ int meadow_eth_mngr_startup()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_conn_startup() failed. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

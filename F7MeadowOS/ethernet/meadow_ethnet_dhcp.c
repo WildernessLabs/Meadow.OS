@@ -171,7 +171,6 @@ struct dhcpc_state_s
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static const uint8_t magic_cookie[4] =
 {
@@ -1005,7 +1004,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
   if (handle == NULL)
   {
     syslog(LOG_ERR, "%s@%d-failed, handle == NULL, errno:%d\n",
-      thisFile, __LINE__, errno);
+      __FILE__, __LINE__, errno);
     return -errno;
   }
 
@@ -1014,7 +1013,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_dhcp_request() failed, ret:%d, errno:%d\n",
-      thisFile, __LINE__, ret, errno);
+      __FILE__, __LINE__, ret, errno);
     dhcpc_close(handle);
     return -errno;
   }
@@ -1024,7 +1023,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4() failed, ret:%d, errno:%d\n",
-      thisFile, __LINE__, ret, errno);
+      __FILE__, __LINE__, ret, errno);
     dhcpc_close(handle);
     return -errno;
   }
@@ -1036,7 +1035,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
-        thisFile, __LINE__, ret, errno);
+        __FILE__, __LINE__, ret, errno);
       dhcpc_close(handle);
       return -errno;
     }
@@ -1049,7 +1048,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
-          thisFile, __LINE__, ret, errno);
+          __FILE__, __LINE__, ret, errno);
       dhcpc_close(handle);
       return -errno;
     }
@@ -1062,7 +1061,7 @@ int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_dns() failed, ret:%d, errno:%d\n",
-        thisFile, __LINE__, ret, errno);
+        __FILE__, __LINE__, ret, errno);
       dhcpc_close(handle);
       return -errno;
     }

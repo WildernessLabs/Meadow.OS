@@ -86,8 +86,6 @@
  ****************************************************************************/
 #endif
 
-static char *thisFile = __FILE__;
-
 // This covers most of this file
 #if defined (CONFIG_RAMLOG_SYSLOG)
 
@@ -254,7 +252,7 @@ int hcom_nx_trace_msg_lazy_initialization()
   _syslogMsgBuf = malloc(HCOM_TRACE_RAMLOG_ASSUME_LARGEST_SYSLOG);
   if (_syslogMsgBuf == NULL)
   {
-    hcom_nx_uart_direct(LOG_ERR, "%s@%d-cir buf malloc\n", thisFile, __LINE__);
+    hcom_nx_uart_direct(LOG_ERR, "%s@%d-cir buf malloc\n", __FILE__, __LINE__);
     sem_post(&_startupSem);
     return -ENOMEM;
   }
@@ -264,7 +262,7 @@ int hcom_nx_trace_msg_lazy_initialization()
   if (ret < 0)
   {
     hcom_nx_uart_direct(LOG_ERR, "%s@%d-thread create, errno:%d\n",
-              thisFile, __LINE__, errno);
+              __FILE__, __LINE__, errno);
 
     free(_syslogMsgBuf);
     _syslogMsgBuf = NULL;
@@ -474,7 +472,7 @@ int hcom_nx_trace_msg_open_ramlog()
   if (_ramlog_fp == NULL)
   {
     hcom_nx_uart_direct(LOG_ERR, "%s@%d-fopen %s, errno:%d\n",
-            thisFile, __LINE__, HCOM_TRACE_RAMLOG_DEVICE_NAME, errno);
+            __FILE__, __LINE__, HCOM_TRACE_RAMLOG_DEVICE_NAME, errno);
     return -1;
   }
 
@@ -527,7 +525,7 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
 
       hcom_nx_uart_direct(LOG_ERR,
         "%s@%d ramlog fgets failed, errno:%d\n",
-        thisFile, __LINE__, errno);
+        __FILE__, __LINE__, errno);
       return -errno;    // Close connection, wait and try again
     }
 
@@ -544,7 +542,7 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
     {
       hcom_nx_uart_direct(LOG_ERR,
         "%s@%d-syslog message truncated at %zu bytes, no linefeed\n",
-        thisFile, __LINE__, msgLen);
+        __FILE__, __LINE__, msgLen);
     }
 
     ret = hcom_nx_trace_msg_route_trace_text((char *)_syslogMsgBuf, msgLen);
@@ -552,7 +550,7 @@ int hcom_nx_trace_msg_read_ramlog_loop(void)
     {
       hcom_nx_uart_direct(LOG_ERR,
         "%s@%d-route_trace_text returned:%d\n",
-        thisFile, __LINE__, ret);
+        __FILE__, __LINE__, ret);
       return ret;    // Close connection, wait and try again
     }
   }   // while (!_haltingMsgProcessing)
@@ -767,7 +765,7 @@ int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData)
 #endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          sendMsgToHost, thisFile, __LINE__);
+          sendMsgToHost, __FILE__, __LINE__);
   return OK;
 }
 
@@ -808,7 +806,7 @@ int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData)
 #endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          sendMsgToHost, thisFile, __LINE__);
+          sendMsgToHost, __FILE__, __LINE__);
 
   return OK;
 }
@@ -852,7 +850,7 @@ int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData)
 #endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          sendMsgToHost, thisFile, __LINE__);
+          sendMsgToHost, __FILE__, __LINE__);
 
   return OK;
 }
@@ -893,7 +891,7 @@ int hcom_nx_exec_trace_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData)
   sendMsgToHost = "Trace logging not available";
 #endif
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-            sendMsgToHost, thisFile, __LINE__);
+            sendMsgToHost, __FILE__, __LINE__);
   
   return OK;
 }
@@ -925,7 +923,7 @@ int hcom_nx_exec_profiler_forward_to_uart(struct hcom_nx_cmd_data *cmdData)
 #endif
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          sendMsgToHost, thisFile, __LINE__);
+          sendMsgToHost, __FILE__, __LINE__);
 
   return OK;
 }
@@ -954,7 +952,7 @@ int hcom_nx_exec_profiler_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData)
   sendMsgToHost = "Profiler logging not available";
 #endif
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-            sendMsgToHost, thisFile, __LINE__);
+            sendMsgToHost, __FILE__, __LINE__);
   
   return OK;
 }
