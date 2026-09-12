@@ -70,11 +70,6 @@
  ************************************************************************************/
 
 /************************************************************************************
- * Private Data
- ************************************************************************************/
-static char *thisFile = __FILE__;
-
-/************************************************************************************
  * Public Data
  ************************************************************************************/
 
@@ -130,7 +125,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
 
   if(timePeriodLen == 0 || setPeriodCmd->textData == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Error:No period value found\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:No period value found\n", __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -138,7 +133,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
   timePeriodStr = malloc(timePeriodLen + 1);
   if(timePeriodStr == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Memory Allocation error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Memory Allocation error\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -157,7 +152,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Error:Time Period parsing failed, Len:%u, time:'%s', ret:%d\n",
-                 thisFile, __LINE__, timePeriodLen, timePeriodStr);
+                 __FILE__, __LINE__, timePeriodLen, timePeriodStr);
       free(timePeriodStr);
       return ret;
     }
@@ -167,7 +162,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Error:Time Period parsing failed, Len:%u, time:'%s', ret:%d\n",
-                thisFile, __LINE__, timePeriodLen, timePeriodStr);
+                __FILE__, __LINE__, timePeriodLen, timePeriodStr);
     }
   }
   else
@@ -180,7 +175,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
     {
       // Parsing time period failed
       syslog(LOG_ERR, "%s@%d-Error:Date/Time parsing failed, Len:%u, time:'%s'\n",
-                thisFile, __LINE__, timePeriodLen, timePeriodStr);
+                __FILE__, __LINE__, timePeriodLen, timePeriodStr);
       free(timePeriodStr);
       return ret;
     }
@@ -190,7 +185,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Error:Setting alarm time failed, ret:%d\n",
-                thisFile, __LINE__, ret);
+                __FILE__, __LINE__, ret);
     }
   }
 
@@ -218,7 +213,7 @@ int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
 
   if(dateTimeLen == 0 || setTimeCmd->textData[0] == '\0')
   {
-    syslog(LOG_ERR, "%s@%d-Error:No time value found\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:No time value found\n", __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -226,7 +221,7 @@ int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
   dateTimeStr = malloc(dateTimeLen + 1);
   if(dateTimeStr == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Memory Allocation error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Memory Allocation error\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
   memcpy(dateTimeStr, setTimeCmd->textData, dateTimeLen);

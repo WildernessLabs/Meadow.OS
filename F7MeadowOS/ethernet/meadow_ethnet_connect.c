@@ -74,7 +74,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 static struct dhcp_info_s *_dhcp_info;
 
 static int _meadow_ethnet_connect_kthrd;
@@ -131,7 +130,7 @@ int meadow_eth_conn_startup()
   if (_meadow_ethnet_connect_kthrd <= 0)
   {
     syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-                thisFile, __LINE__,  MEADOW_THREAD_NAME_ETHNET_CONNECTION);
+                __FILE__, __LINE__,  MEADOW_THREAD_NAME_ETHNET_CONNECTION);
     return -ENOEXEC;
   }
 
@@ -155,7 +154,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
   _dhcp_info = malloc(sizeof(struct dhcp_info_s));
   if(_dhcp_info == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return NULL;   // -ENOMEM;
   }
   memset(_dhcp_info, 0, sizeof(struct dhcp_info_s));
@@ -165,7 +164,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-sem_init failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return NULL;
   }
 
@@ -200,7 +199,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-clock_gettime, ret:%d, errno:%d\n",
-                    thisFile, __LINE__, ret, errno);
+                    __FILE__, __LINE__, ret, errno);
         sched_unlock();
         return NULL;
       }
@@ -219,7 +218,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       
       // Wait for lease time to expire or the link status to change
       syslog(LOG_INFO, "%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
-                thisFile, __LINE__);
+                __FILE__, __LINE__);
       ret = sem_timedwait(&_connectSem, &waketime);
       sched_unlock();
     }
@@ -227,7 +226,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
     {
       // No, least time to worry about so just wait for interrupt from LAN Chip
       syslog(LOG_INFO, "%s@%d-Static addressing. Waiting on status change\n",
-                thisFile, __LINE__);
+                __FILE__, __LINE__);
       ret = sem_wait(&_connectSem);
     }
 
@@ -238,7 +237,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
         if(! _configUseDhcp)
           continue;       // Nothing to do
 
-        syslog(LOG_INFO, "%s@%d-Time to Renew Lease\n", thisFile, __LINE__);
+        syslog(LOG_INFO, "%s@%d-Time to Renew Lease\n", __FILE__, __LINE__);
         irqstate_t flags = enter_critical_section();
         _pendingActions |= MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME;
         leave_critical_section(flags);
@@ -246,7 +245,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       else
       {
         syslog(LOG_ERR, "%s@%d-sem_timedwait() Failed, ret:%d, errno:%d\n",
-                    thisFile, __LINE__, ret, errno);
+                    __FILE__, __LINE__, ret, errno);
       }
     }
 
@@ -283,7 +282,7 @@ int meadow_eth_conn_thread_do_work(void)
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change failed:%d\n",
-                  thisFile, __LINE__, ret);
+                  __FILE__, __LINE__, ret);
     }
   }
 
@@ -295,7 +294,7 @@ int meadow_eth_conn_thread_do_work(void)
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n",
-                    thisFile, __LINE__, ret);
+                    __FILE__, __LINE__, ret);
       }
     }
     else if(linkStatusUp)
@@ -304,12 +303,12 @@ int meadow_eth_conn_thread_do_work(void)
       // up -- most likely an earlier DHCP attempt failed. Retry establishing
       // the connection now instead of silently waiting for the link to
       // toggle again, which may never happen.
-      syslog(LOG_INFO, "%s@%d-No connection yet, retrying\n", thisFile, __LINE__);
+      syslog(LOG_INFO, "%s@%d-No connection yet, retrying\n", __FILE__, __LINE__);
       ret = meadow_eth_conn_process_link_status_change(true);
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change (retry) failed:%d\n",
-                    thisFile, __LINE__, ret);
+                    __FILE__, __LINE__, ret);
       }
     }
   }
@@ -325,7 +324,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
   uint8_t macAddr[IFHWADDRLEN];
   
   syslog(LOG_INFO, "%s@%d-Processing LinkStatus change. Now %s\n",
-            thisFile, __LINE__, linkStatusUp ? "Up" : "Down");
+            __FILE__, __LINE__, linkStatusUp ? "Up" : "Down");
 
   // Did the link status transition from down to up?
   if(linkStatusUp)
@@ -334,7 +333,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
       return -errno;
     }
 
@@ -357,7 +356,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
+                  __FILE__, __LINE__, ret, errno);
       return ret;
     }
 
@@ -375,7 +374,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     }
 
     // We now have an ethernet connection.
-    syslog(LOG_INFO, "%s@%d-We now have an ethernet connection\n", thisFile, __LINE__);
+    syslog(LOG_INFO, "%s@%d-We now have an ethernet connection\n", __FILE__, __LINE__);
     _isConnectionValid = true;
   }
   else
@@ -385,7 +384,7 @@ int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
+                  __FILE__, __LINE__, ret, errno);
       return ret;
     }
 
@@ -411,7 +410,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_utils_exec_ifup err:0x%08x, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return -errno;
   }
 
@@ -422,7 +421,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_utils_get_hw_mac err:0x%08x, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
     return -errno;
   }
@@ -432,7 +431,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac err:0x%08x, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
     return -errno;
   }
@@ -457,7 +456,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
         else
         {
           syslog(LOG_ERR, "%s@%d-failed to get IP address via DHCP, ret:%d, errno:%d\n",
-                    thisFile, __LINE__, ret, errno);
+                    __FILE__, __LINE__, ret, errno);
           meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
           return -errno;
         }
@@ -470,7 +469,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     {
       // Why try forever?
       syslog(LOG_ERR, "%s@%d-After %d attempts failed to get IP address via DHCP, ret:%d, errno:%d\n",
-                thisFile, __LINE__, MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT, ret, errno);
+                __FILE__, __LINE__, MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT, ret, errno);
       meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
@@ -485,7 +484,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4() err:0x%08x, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
       meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
@@ -496,7 +495,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
-             thisFile, __LINE__, ret, errno);
+             __FILE__, __LINE__, ret, errno);
       meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
@@ -507,7 +506,7 @@ int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
-             thisFile, __LINE__, ret, errno);
+             __FILE__, __LINE__, ret, errno);
       meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
       return -errno;
     }
@@ -535,7 +534,7 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
   if (sockDescp < 0)
   {
     syslog(LOG_ERR, "%s@%d-socket open failed, sockDescp:%d, errno:%d\n",
-                thisFile, __LINE__, sockDescp, errno);
+                __FILE__, __LINE__, sockDescp, errno);
     return -errno;
   }
 
@@ -544,7 +543,7 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-ioctl(SIOCSIFFLAGS) failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     close(sockDescp);
     return ret;
   }
@@ -570,13 +569,13 @@ int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
 
   DEBUGASSERT(dhcp_info != NULL);
 
-  syslog(LOG_INFO, "%s@%d-Renewing lease\n", thisFile, __LINE__);
+  syslog(LOG_INFO, "%s@%d-Renewing lease\n", __FILE__, __LINE__);
 
   ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -585,7 +584,7 @@ int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_eth_dhcp_get_dhcp_info() ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

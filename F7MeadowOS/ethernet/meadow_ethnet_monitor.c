@@ -116,7 +116,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 static bool _prevLinkStatus;
 
 /****************************************************************************
@@ -156,7 +155,7 @@ int meadow_eth_monitor_link_status_isr(int irq, void *context, void *arg)
   // Use to verify that LAN9355 IRQ is being generated and getting this far
   // syslog(LOG_MDIAG,
   //   "%s@%d-mon-ISR-Link status PREV Link Status:%s, CURR PHY A:%s, CURR PHY B:%s\n",
-  //   thisFile, __LINE__,
+  //   __FILE__, __LINE__,
   //   _prevLinkStatus == 0 ? "Down" : "Up",
   //   currStatusPhy1  == 0 ? "Down" : "Up",
   //   currStatusPhy2  == 0 ? "Down" : "Up");
@@ -182,7 +181,7 @@ int meadow_eth_monitor_link_status_isr(int irq, void *context, void *arg)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Re-creating connection failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -207,7 +206,7 @@ int meadow_eth_mon_config_lan9355_irq()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Writing IRQ_CFG failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -221,7 +220,7 @@ int meadow_eth_mon_config_lan9355_irq()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Writing INT_EN failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -238,7 +237,7 @@ int meadow_eth_mon_config_lan9355_irq()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Writing INT_EN failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
   
@@ -247,7 +246,7 @@ int meadow_eth_mon_config_lan9355_irq()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Writing INT_EN failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

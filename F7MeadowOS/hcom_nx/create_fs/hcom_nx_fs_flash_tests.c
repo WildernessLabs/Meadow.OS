@@ -32,12 +32,6 @@
 #pragma message "(--) hcom_nx_fs_flash_tests.c"
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
@@ -71,7 +65,7 @@ void hcom_nx_flash_testing_verify_regions()
   uint8_t *flashBuffer = zalloc(HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY * block_size);
   if(flashBuffer == NULL)
   {
-    syslog(2, "%s@%d-Error zalloc == NULL\n", thisFile, __LINE__);
+    syslog(2, "%s@%d-Error zalloc == NULL\n", __FILE__, __LINE__);
     usleep(3000 * 1000);
     return;
   }
@@ -86,7 +80,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY / 2);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret);
     usleep(3000 * 1000);
     free(flashBuffer);
     return;
@@ -109,7 +103,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -119,7 +113,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -129,7 +123,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -155,7 +149,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -165,7 +159,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -175,7 +169,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -201,7 +195,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -211,7 +205,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -221,7 +215,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -247,7 +241,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -257,7 +251,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -267,7 +261,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -293,7 +287,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -303,7 +297,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer + block_size, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -313,7 +307,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -336,7 +330,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, 1);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -351,7 +345,7 @@ void hcom_nx_flash_testing_verify_regions()
   if(ret < 0)
   {
     syslog(2, "%s@%d-This \"successfully\" failed:%d\n",
-              thisFile, __LINE__, ret); usleep(3000 * 1000);
+              __FILE__, __LINE__, ret); usleep(3000 * 1000);
     free(flashBuffer);
     return;
   }
@@ -363,7 +357,7 @@ void hcom_nx_flash_testing_verify_regions()
             (void *) flashBuffer, HCOM_NX_EX_FLASH_BLOCKS_TO_VERIFY);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret);
     usleep(3000 * 1000);
     free(flashBuffer);
     return;
@@ -411,7 +405,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   uint32_t writeBufLen;
   uint32_t prevUseSpace = 0;
 
-  syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated <<**\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-**>> Please wait, 5 MB of flash being populated <<**\n", __FILE__, __LINE__);
 
   // Fake files generated by /Meadow.OS/alphaTooling/create_mock_sysfiles.py
   // Use something like the following to download the fake files to Meadow.
@@ -423,7 +417,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // replaced with a fake version in Meadow.
   // File is filled with a title string then filled with the 'A' character
   syslog(2, "%s@%d-Region 1 Writing %7u bytes at offset 0x%08lx\n",
-            thisFile, __LINE__,
+            __FILE__, __LINE__,
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, prevUseSpace);
   usleep(100 * 1000);
 
@@ -433,7 +427,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME, 0x0);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); 
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); 
     return;
   }
   prevUseSpace = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME;
@@ -442,7 +436,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Second is a 1835008 byte file Meadow.OS.Update.bin
   // File is filled with 'B' characters after title string
   syslog(2, "%s@%d-Region 2 Writing %7u bytes at offset 0x%08lx\n",
-            thisFile, __LINE__,
+            __FILE__, __LINE__,
             MEADOW_FLASH_PART_SIZE_OS_UPDATE, prevUseSpace);
   usleep(100 * 1000);
 
@@ -453,7 +447,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
             MEADOW_FLASH_PART_SIZE_MONO_RUNTIME);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
 
@@ -464,7 +458,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // 
   titleMsg = "This is Segment 3 used for OTAState, fill with D.";
   writeBufLen = MEADOW_FLASH_PART_SIZE_OTA_STATE;
-  syslog(2, "%s@%d-Region 3 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 3 Writing %7lu bytes at offset 0x%08lx\n", __FILE__, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -481,7 +475,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   free(writeBuf);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
 
@@ -491,7 +485,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Fourth is a region for persisted data.
   titleMsg = "This is Segment 4 used for persisted data, fill with H.";
   writeBufLen = MEADOW_FLASH_PART_SIZE_OS_PERSIST;
-  syslog(2, "%s@%d-Region 4 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 4 Writing %7lu bytes at offset 0x%08lx\n", __FILE__, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -503,7 +497,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   free(writeBuf);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
   prevUseSpace += writeBufLen;
@@ -512,7 +506,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   // Fifth is a 32KB region for assert data
   titleMsg = "This is Segment 5 used for assertion data, fill with P.";
   writeBufLen = MEADOW_FLASH_PART_SIZE_ASSERT_DATA;
-  syslog(2, "%s@%d-Region 5 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 5 Writing %7lu bytes at offset 0x%08lx\n", __FILE__, __LINE__,
             writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -523,7 +517,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   free(writeBuf);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
 
@@ -536,7 +530,7 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   uint32_t reservedFlashLen = MEADOW_FLASH_PART_SIZE_MONO_RUNTIME + \
             MEADOW_FLASH_PART_SIZE_OTHER_RESERVED;
   writeBufLen = reservedFlashLen - prevUseSpace;
-  syslog(2, "%s@%d-Region 6 Writing %7lu bytes at offset 0x%08lx\n", thisFile, __LINE__,
+  syslog(2, "%s@%d-Region 6 Writing %7lu bytes at offset 0x%08lx\n", __FILE__, __LINE__,
               writeBufLen, prevUseSpace);
   usleep(100 * 1000);
 
@@ -549,11 +543,11 @@ void hcom_nx_flash_testing_fill_5mb_of_flash()
   free(writeBuf);
   if(ret < 0)
   {
-    syslog(2, "%s@%d-Error:%d\n", thisFile, __LINE__, ret); usleep(3000 * 1000);
+    syslog(2, "%s@%d-Error:%d\n", __FILE__, __LINE__, ret); usleep(3000 * 1000);
     return;
   }
 
-  syslog(2, "%s@%d-First 5 MB flashed ready for testing\n", thisFile, __LINE__);
+  syslog(2, "%s@%d-First 5 MB flashed ready for testing\n", __FILE__, __LINE__);
 
   // Test flash. It should all be filled
   ASSERT((prevUseSpace + writeBufLen) == reservedFlashLen);

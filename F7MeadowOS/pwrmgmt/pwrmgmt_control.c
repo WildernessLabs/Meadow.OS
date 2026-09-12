@@ -95,7 +95,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static char *thisFile = __FILE__;
 static bool _firstTime = true;
 
 static sem_t _lowPwrCtrlEntry;
@@ -147,7 +146,7 @@ static int pwrmgmt_notify_registered_modules(bool lpStart)
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Callback:%d returned:%d\n",
-                thisFile, __LINE__, slotOffset + 1, ret);
+                __FILE__, __LINE__, slotOffset + 1, ret);
       return ret;
     }
   }
@@ -224,14 +223,14 @@ int meadow_power_mgmt_initialize()
   ret = pwrmgmt_init_lsi_calib();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
     return ret;
   }
  
   ret = pwrmgmt_init_rtc_clk_switch();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
   }
 
   return ret;
@@ -302,7 +301,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error attempting to send msg to host, ret:%d\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
     // Keep going, this is unavoidable
   }
 
@@ -329,7 +328,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = meadow_pwr_mgmt_use_lsi_for_rtc();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
 
@@ -347,7 +346,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
     sem_post(&_lowPwrCtrlEntry);
 
@@ -362,7 +361,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = pwrmgmt_config_rtc_timer_wakeup_seconds(wakeupPeriod);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
     sem_post(&_lowPwrCtrlEntry);
 
@@ -384,7 +383,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = pwrmgmt_enter_stop_mode();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
     pwrmgmt_idle_behavior_control(true);
 
     sem_post(&_lowPwrCtrlEntry);
@@ -398,7 +397,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = meadow_pwr_mgmt_use_hse_for_rtc();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
   }
 
   // Notify concerned modules that low-power mode has ended. If a module has
@@ -407,7 +406,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   ret = pwrmgmt_notify_registered_modules(false);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
   }
 
   // Allow up_idle function to again use WFI and WFE to save power in normal

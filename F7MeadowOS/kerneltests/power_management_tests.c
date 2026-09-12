@@ -342,7 +342,7 @@ int pwrmgmt_enter_test_sleep_x_times_for_y_seconds()
     // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
   }
   // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n",
-  //  thisFile, __LINE__);
+  //  __FILE__, __LINE__);
 
   int thread_id = kthread_create("SleepTest",
                                 100,
@@ -571,7 +571,7 @@ static void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[]);
 // Called when starting to initialize the thread used to run the test
 int pwmmgmt_test_sleep_wake_only_setup()
 {
-  // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n", thisFile, __LINE__);
+  // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n", __FILE__, __LINE__);
   int thread_id = kthread_create("SleepWakeForever",
                                 100,
                                 4096,

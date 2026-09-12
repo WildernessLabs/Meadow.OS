@@ -108,7 +108,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static char *thisFile = __FILE__;
 
 volatile uint32_t _prevISRCount;
 volatile uint32_t _elapsedCount;
@@ -229,7 +228,7 @@ int pwrmgmt_init_lsi_calib(void)
   ret = pwrmgmt_lsi_init_timer_5_for_measuring();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-LSI init TIM5 failed:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-LSI init TIM5 failed:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -238,7 +237,7 @@ int pwrmgmt_init_lsi_calib(void)
   ret = pwrmgmt_create_lsi_calc_thread();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-LSI calc freq failed:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-LSI calc freq failed:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
   
@@ -258,7 +257,7 @@ int pwrmgmt_create_lsi_calc_thread()
   if (_pwrmgmt_lsi_calc_thread_id <= 0)
   {
     syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-              thisFile, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
+              __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
     return -ENOEXEC;
   }
 
@@ -295,7 +294,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
     ret = pwrmgmt_rtc_enterinit();
     if(ret == -ETIMEDOUT)
     {
-      syslog(LOG_ERR, "%s@%d-STARTUP->RTC INIT state timed out\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-STARTUP->RTC INIT state timed out\n", __FILE__, __LINE__);
       pwrmgmt_rtc_wprlock();
       return NULL;
     }
@@ -321,7 +320,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
   ret = pwrmgmt_lsi_calculate_lsi_clock_freq(&lsiMeasuredFreq);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-LSI clock average error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-LSI clock average error\n", __FILE__, __LINE__);
     return NULL;
   }
 
@@ -336,7 +335,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
             &PreDivA, &PreDivS);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-LSI clock pre-scaler calc error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-LSI clock pre-scaler calc error\n", __FILE__, __LINE__);
     return NULL;
   }
 
@@ -378,7 +377,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
   ret = meadow_pwr_mgmt_use_hse_for_rtc();
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Switching to HSE/LSI failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Switching to HSE/LSI failed\n", __FILE__, __LINE__);
     return NULL;
   }
 
@@ -542,7 +541,7 @@ int pwrmgmt_lsi_init_timer_5_for_measuring(void)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-irq_attach failed, ret:%d, errno:%d\n",
-          thisFile, __LINE__, ret, errno);
+          __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

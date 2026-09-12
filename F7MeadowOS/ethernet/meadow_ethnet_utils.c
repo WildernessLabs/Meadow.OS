@@ -78,11 +78,6 @@
 #define LAN9355_PHY_WRITE_TIMEOUT (0x2000)
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 void meadow_eth_utils_syslog_ip_mac(bool useDhcp)
@@ -117,16 +112,16 @@ int meadow_eth_utils_verify_lan9355(void)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_lan9355_phyread_32 failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
-  syslog(LOG_INFO, "%s@%d-mon - Chip Id:0x%08lx\n", thisFile, __LINE__, lanChipId);
+  syslog(LOG_INFO, "%s@%d-mon - Chip Id:0x%08lx\n", __FILE__, __LINE__, lanChipId);
 
   if((lanChipId & 0xffff0000) != 0x93550000)
   {
     syslog(LOG_ERR, "%s@%d-Ethernet chip must be LAN9355\n",
-                thisFile, __LINE__);
+                __FILE__, __LINE__);
     return -ENOTSUP;
   }
   return OK;
@@ -576,7 +571,7 @@ int meadow_lan9355_phyread_16(uint16_t phyAddr, uint16_t regAddr, uint16_t *valu
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s:%s()@%d-MII transfer timed out: phyAddr: %04x regAddr: %04x\n",
-          thisFile, __func__, __LINE__, phyAddr, regAddr);
+          __FILE__, __func__, __LINE__, phyAddr, regAddr);
   }
 
   return ret;
@@ -626,7 +621,7 @@ int meadow_lan9355_phywrite_16(uint16_t phyAddr, uint16_t regAddr, uint16_t valu
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s:%s()@%d-MII Transfer timed out: phyAddr: %04x regAddr: %04x value: %04x\n",
-              thisFile, __func__, __LINE__, regAddr, phyAddr, value);
+              __FILE__, __func__, __LINE__, regAddr, phyAddr, value);
   }
 
   return ret;
@@ -656,7 +651,7 @@ int meadow_lan9355_phywrite_32(uint16_t csrAddr, uint32_t value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_lan9355_phywrite_16-1 failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -666,7 +661,7 @@ int meadow_lan9355_phywrite_32(uint16_t csrAddr, uint32_t value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_lan9355_phywrite_16-2 failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -698,7 +693,7 @@ int meadow_lan9355_phyread_32(uint16_t csrAddr, uint32_t *value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_lan9355_phyread_16-1 failed, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -710,7 +705,7 @@ int meadow_lan9355_phyread_32(uint16_t csrAddr, uint32_t *value)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-meadow_lan9355_phyread_16-2, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

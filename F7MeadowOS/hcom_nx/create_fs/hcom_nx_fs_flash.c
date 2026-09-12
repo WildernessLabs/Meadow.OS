@@ -100,10 +100,10 @@
     if (cmdData)                                                      \
     {                                                                 \
       char buf2[256];                                                 \
-      snprintf(buf2, sizeof(buf2), "%s@%d-%s\n", thisFile, __LINE__, x); \
+      snprintf(buf2, sizeof(buf2), "%s@%d-%s\n", __FILE__, __LINE__, x); \
       snprintf(buf2, sizeof(buf2), buf2, ##__VA_ARGS__);              \
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,   \
-                             buf2, thisFile, __LINE__);               \
+                             buf2, __FILE__, __LINE__);               \
     }                                                                 \
     else                                                              \
     {                                                                 \
@@ -123,11 +123,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-
-/**
- * @brief Name of this file.
- */
-static char *thisFile = __FILE__;
 
 /**
  * @brief Pointer to the _mtd driver for the flash memory on the board.
@@ -305,7 +300,7 @@ int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData)
   int ret;
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "Bulk erase started (~2-3 minutes)", thisFile, __LINE__);
+          "Bulk erase started (~2-3 minutes)", __FILE__, __LINE__);
 
   syslog(LOG_INFO, "Bulk erase of External Flash begun\n");
 
@@ -315,18 +310,18 @@ int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-IOCTL MTDIOC_BULKERASE Err:%d\n", thisFile, __LINE__, ret);
+            "%s@%d-IOCTL MTDIOC_BULKERASE Err:%d\n", __FILE__, __LINE__, ret);
 
     char hostMsg[HCOM_NX_CMD_HOST_MSG_SIZE];
     snprintf_chk(hostMsg, HCOM_NX_CMD_HOST_MSG_SIZE,
               "Bulk Erase of QSPI Flash error:%d", ret);
     cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
-            thisFile, __LINE__);
+            __FILE__, __LINE__);
     return ret;
   }
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "Bulk erase complete", thisFile, __LINE__);
+          "Bulk erase complete", __FILE__, __LINE__);
 
   syslog(LOG_INFO, "Bulk erase complete\n\n");
   return OK;
@@ -357,7 +352,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   int ret;
 
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          "External flash verification started", thisFile, __LINE__);
+          "External flash verification started", __FILE__, __LINE__);
 
   syslog(LOG_NOTICE, "Verification of External Flash Erased beginning\n");
 
@@ -368,7 +363,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Read geo for MTD:%d\n", thisFile, __LINE__, ret);
+            "%s@%d-Read geo for MTD:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -379,7 +374,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   uint8_t *readBuffer = (uint8_t *)malloc(geo.blocksize * writeable_pages_per_sector);
   if(readBuffer == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
   
@@ -387,7 +382,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   if(baseReference == NULL)
   {
     free(readBuffer);
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
   
@@ -404,7 +399,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
       if (ret != 0)
       {
         syslog(LOG_WARNING, "%s@%d-4k sector at offset %04d is not erased\n",
-            thisFile, __LINE__, sectorCounter);
+            __FILE__, __LINE__, sectorCounter);
         notErasedSectors++;
       }
       continue;
@@ -417,7 +412,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
             "%s@%d-Expected %" PRId32 " pages but read %d\n",
-            thisFile, __LINE__, writeable_pages_per_sector, pagesRead);
+            __FILE__, __LINE__, writeable_pages_per_sector, pagesRead);
     break;
   }
 
@@ -431,7 +426,7 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
             "Verified %04d bytes (%d of %d sectors), found %d not erased.",
             sectorCounter * geo.erasesize, sectorCounter, geo.neraseblocks, notErasedSectors);
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
-          thisFile, __LINE__);
+          __FILE__, __LINE__);
 
   free(baseReference);
   free(readBuffer);
@@ -479,7 +474,7 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
           "%s@%d-flash erase partition %d, err:%d\n",
-          thisFile, __LINE__, MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
+          __FILE__, __LINE__, MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
     return ret;
   }
   return OK;
@@ -657,7 +652,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Mono runtime was not found in %s.", thisFile, __LINE__,
+            "%s@%d-Mono runtime was not found in %s.", __FILE__, __LINE__,
             runtimePath);
     return -1;
   }
@@ -667,7 +662,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
-           thisFile, __LINE__, runtimePath, errno);
+           __FILE__, __LINE__, runtimePath, errno);
     close(filefd);
     return -errno;
   }
@@ -678,7 +673,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLevel = LOG_ERR;
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-            "%s@%d-Mono runtime binary has invalid size.", thisFile, __LINE__);
+            "%s@%d-Mono runtime binary has invalid size.", __FILE__, __LINE__);
     close(filefd);
     return -1;
   }
@@ -688,7 +683,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
   const char monoEraseFlashMsg1[] = "Erasing mono flash memory\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          (char*)monoEraseFlashMsg1, thisFile, __LINE__);
+          (char*)monoEraseFlashMsg1, __FILE__, __LINE__);
 
   size_t numBlocksToErase = fileSize / geo.erasesize;
   
@@ -701,7 +696,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          (char*)monoEraseFlashMsg2, thisFile, __LINE__);
+          (char*)monoEraseFlashMsg2, __FILE__, __LINE__);
 
   uint8_t buf[geo.blocksize];
   uint8_t *verify = NULL;
@@ -713,7 +708,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error reading from %s.\n", thisFile, __LINE__,
+              "%s@%d-Error reading from %s.\n", __FILE__, __LINE__,
               HCOM_NX_FS_MONO_RUNTIME_FILENAME);
       goto cleanup;
     }
@@ -724,7 +719,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error while writing block %d to flash.\n", thisFile, __LINE__, i);
+              "%s@%d-Error while writing block %d to flash.\n", __FILE__, __LINE__, i);
       goto cleanup;
     }
 
@@ -737,7 +732,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
       snprintf_chk(hostMsg, HCOM_NX_CMD_HOST_MSG_SIZE, "Flashing %d%% complete", percentDone);
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              hostMsg, thisFile, __LINE__);
+              hostMsg, __FILE__, __LINE__);
     }
   }
   //
@@ -748,7 +743,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error resetting file pointer for file %s.\n", thisFile, __LINE__,
+              "%s@%d-Error resetting file pointer for file %s.\n", __FILE__, __LINE__,
               HCOM_NX_FS_MONO_RUNTIME_FILENAME);
       goto cleanup;
   }
@@ -759,13 +754,13 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error allocating memory for verification operation.\n", thisFile, __LINE__);
+              "%s@%d-Error allocating memory for verification operation.\n", __FILE__, __LINE__);
       goto cleanup;
   }
 
   const char monoStartingVerificationOperation[] = "Verifying runtime flash operation.\n";
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          (char*)monoStartingVerificationOperation, thisFile, __LINE__);
+          (char*)monoStartingVerificationOperation, __FILE__, __LINE__);
 
   lastPercentSent = 0;
   for (int i = 0; i < numBlocksToWrite; i++)
@@ -775,7 +770,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error reading from %s.\n", thisFile, __LINE__,
+              "%s@%d-Error reading from %s.\n", __FILE__, __LINE__,
               HCOM_NX_FS_MONO_RUNTIME_FILENAME);
       goto cleanup;
     }
@@ -786,7 +781,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Error verifying %s.\n", thisFile, __LINE__,
+              "%s@%d-Error verifying %s.\n", __FILE__, __LINE__,
               HCOM_NX_FS_MONO_RUNTIME_FILENAME);
       goto cleanup;
     }
@@ -800,7 +795,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 
       snprintf_chk(hostMsg, HCOM_NX_CMD_HOST_MSG_SIZE, "Verifying %d%% complete", percentDone);
       cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              hostMsg, thisFile, __LINE__);
+              hostMsg, __FILE__, __LINE__);
     }
   }
   free(verify);
@@ -809,7 +804,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
   const char monoSuccessFlashMsg[] = "Runtime flashed successfully\n";
   syslog(LOG_INFO, monoSuccessFlashMsg);
   cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-          (char*)monoSuccessFlashMsg, thisFile, __LINE__);
+          (char*)monoSuccessFlashMsg, __FILE__, __LINE__);
 
   cleanup:
     close(filefd);
@@ -821,7 +816,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     {
       if (cmdData->logLevel == LOG_ERR)
       {
-        cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, thisFile, __LINE__);
+        cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, __FILE__, __LINE__);
       }
       return -1;
     }
@@ -931,7 +926,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   int filefd = open(path, O_RDONLY);
   if (filefd == -1)
   {
-    error("%s@%d-File not found: %s.\n", thisFile, __LINE__, path);
+    error("%s@%d-File not found: %s.\n", __FILE__, __LINE__, path);
     return -errno;
   }
 
@@ -939,7 +934,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   ret = fstat(filefd, &fileStatus);
   if (ret < 0)
   {
-    error("%s@%d-fstat of %s failed errno:%d\n", thisFile, __LINE__, path, errno);
+    error("%s@%d-fstat of %s failed errno:%d\n", __FILE__, __LINE__, path, errno);
     close(filefd);
     return -errno;
   }
@@ -963,7 +958,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   ret = MTD_ERASE_Proxy(_mtd, offsetInEraseBlocks, numBlocksToErase);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Error\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Error\n", __FILE__, __LINE__);
     return -ret;
   }
   info("Erase success\n");
@@ -976,7 +971,7 @@ int flash_file(const char *path, off_t size, off_t offset)
   {
     if (read(filefd, buf, geo.blocksize) < 0)
     {
-      syslog(LOG_ERR, "%s@%d-Error\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-Error\n", __FILE__, __LINE__);
       error("Error reading from %s\n", path);
       ret = -1;
       goto cleanup;

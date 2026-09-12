@@ -60,7 +60,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 static uint32_t _syslogMask;
 
 /****************************************************************************
@@ -166,7 +165,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   int syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", __FILE__, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #else
@@ -177,7 +176,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
   int syslogMaskPrev = setlogmask(_syslogMask);
   if (syslogMaskPrev < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", thisFile, __LINE__, syslogMaskPrev);
+    syslog(LOG_CRIT, "%s@%d-setlogmask err:0x%08x\n", __FILE__, __LINE__, syslogMaskPrev);
     return syslogMaskPrev;    // not old mask but error
   }
 #endif
@@ -216,7 +215,7 @@ void hcom_nx_utils_apply_config_trace_level(int configTraceLevel)
     default:
       syslog(LOG_WARNING,
         "%s@%d-Unsupported config trace level of %d ignored\n",
-         thisFile, __LINE__, configTraceLevel);
+         __FILE__, __LINE__, configTraceLevel);
       break;
   }
 
@@ -324,14 +323,14 @@ void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8
   if(bufLen <= 0)
   {
     logger(msgPriority, "%s@%d-%s() but 'bufLen:%d'\n",
-              thisFile, __LINE__, __func__, bufLen);
+              __FILE__, __LINE__, __func__, bufLen);
     return;
   }
 
   if(buffer == NULL)
   {
     logger(msgPriority, "%s@%d-%s() but 'buffer == NULL'\n",
-              thisFile, __LINE__, __func__);
+              __FILE__, __LINE__, __func__);
     return;
   }
 

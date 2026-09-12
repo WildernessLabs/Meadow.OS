@@ -65,11 +65,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -116,7 +111,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = hcom_nx_exec_ex_flash_setup(mtd);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -155,7 +150,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = hcom_nx_create_fs_initialize(mtd);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -230,7 +225,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     //  as an object containing default values is created if the config file
     //  cannot be found or it is empty.
     //
-    syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", thisFile, __LINE__);
+    syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", __FILE__, __LINE__);
     return ERROR;
   }
 
@@ -303,7 +298,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = hcom_nx_exec_test_qspi_flash_setup(mtd);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup for testing qspi flash %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup for testing qspi flash %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -316,7 +311,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = hcom_nx_exec_test_sdcard_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup for testing sdcard %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup for testing sdcard %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -329,7 +324,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   ret = meadow_interrupt_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-initialization for meadow interrupt:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-initialization for meadow interrupt:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 

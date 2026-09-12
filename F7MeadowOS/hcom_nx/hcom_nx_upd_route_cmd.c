@@ -51,11 +51,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -141,7 +136,7 @@ int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData)
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here
       cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Undefined command:0x%08x.\n", thisFile, __LINE__, cmdData->hcomCmd);
+              "%s@%d-Undefined command:0x%08x.\n", __FILE__, __LINE__, cmdData->hcomCmd);
   }
   return -1;
 }
