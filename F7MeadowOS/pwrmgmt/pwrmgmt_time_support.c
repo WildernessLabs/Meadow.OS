@@ -81,16 +81,17 @@
  * Private Functions
  ****************************************************************************/
 // Convert the value in struct tm from local to UTC. The UTC offset is in
-// minutes and can be positive or negative. A negative UTC offset means that
-// UTC is behind by this amount. Therefore, to get UTC we must add the offset
-// to the provided time value.
+// minutes and follows the ISO 8601 sign convention (local = UTC + offset,
+// e.g. "+05:00" is +300 minutes), so a negative offset means UTC is AHEAD
+// of local by that amount. Therefore, to get UTC we must subtract the
+// offset from the provided time value.
 //
 // Currently not needed.
 // static int meadow_time_convert_local_and_offset_to_utc(struct tm *tm, int utcTimeOffset)
 // {
 //   time_t localTime = mktime(tm);
 //   int localOffset = utcTimeOffset * 60;     // Convert minutes to seconds
-//   time_t utcTime = localTime - localOffset; // Subtact to add negative offset
+//   time_t utcTime = localTime - localOffset; // UTC = local - offset
 
 //   // Replace provided struct tm with utc time
 //   struct tm tmTemp;
@@ -123,7 +124,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
   setPeriodCmd = (HcomProtoTextMsg_t *) hdrMsg;
   timePeriodLen = packetSize - HCOM_PROTOCOL_TEXT_MSG_START_OFF;
 
-  if(timePeriodLen == 0 || setPeriodCmd->textData == NULL)
+  if(timePeriodLen == 0 || setPeriodCmd->textData[0] == '\0')
   {
     syslog(LOG_ERR, "%s@%d-Error:No period value found\n", __FILE__, __LINE__);
     return -EINVAL;
@@ -269,7 +270,14 @@ int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
   tp.tv_nsec = 0;
   tp.tv_sec = mktime(&tmSet);
 
+  // Serialize against Meadow's own RTC-touching sequence (pwrmgmt_switch_rtc_clock.c,
+  // pwrmgmt_misc.c), which shares this physical hardware with NuttX's own
+  // clock_settime() driver but has zero coordination with it otherwise.
+  // Acquires _rtcAccessLock; the write-protect unlock/lock here is otherwise
+  // a no-op alongside clock_settime()'s own internal sequence.
+  pwrmgmt_rtc_wprunlock();
   clock_settime(CLOCK_REALTIME, &tp);
+  pwrmgmt_rtc_wprlock();
 
   return OK;
 }
