@@ -130,8 +130,8 @@ int meadow_upd_initialize(void);
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called from stm32_usbinitialize very early in inialization to setup
- *   USB-related GPIO pins for the nucleo-144 board.
+ *   Called from stm32_boardinitialize very early in initialization to setup
+ *   USB-related GPIO pins for the stm32f777zit6-meadow board.
  *
  ****************************************************************************/
 
