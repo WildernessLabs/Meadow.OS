@@ -280,7 +280,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C120 | F7MeadowOS/kerneltests/timing.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings (dead file, all code commented out, not included anywhere) |
 | C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Reviewed | 2026-09-01 | #424 | Alexis Christoforides |  |
 | C122 | F7MeadowOS/meadow_os/meadow-gpio.c | *Reviewed | 2026-08-28 | #387 | Chris Tacke |  |
-| C123 | F7MeadowOS/meadow_os/meadow-upd.c | Reviewed | 2026-08-28 | #393 | Chris Tacke |  |
+| C123 | F7MeadowOS/meadow_os/meadow-upd.c | *Reviewed | 2026-08-28 | #393 | Chris Tacke | 4/9 findings fixed (branch `issue393-meadow-upd-fixes`): dir_enum overflow guard, unreachable EINVAL, dead watchdog/IRQ declarations, pointer-vs-NULL comparison; finding 6 (serial-number ABI gap) Won't Fix; findings 2/3/4/5 (I2C config race, I2C shutdown race, missing SPI_LOCK, I2C NULL check) deferred -- upd_handle_i2c()/upd_handle_spi_*() are only reachable via the /dev/upd ioctl path from Meadow.Core, not yet integrated, and the existing meadow_i2c_tests.c kernel test bypasses this ioctl layer entirely, so there is no way to verify a concurrency fix here today; issue left open pending real I2C/SPI hardware or Mono runtime access |
 | C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | *Reviewed | 2026-08-28 | #391 | Peter |  |
 | C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | *Reviewed | 2026-08-28 | #394 | Peter |  |
 | C126 | F7MeadowOS/meadow_os/meadow_os.c | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
