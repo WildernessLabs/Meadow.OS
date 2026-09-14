@@ -296,8 +296,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 | Eduardo Menezes |  |
 | C137 | F7MeadowOS/misc/meadow_logging.c | *Reviewed | 2026-08-29 | #399 | Mark |  |
 | C138 | F7MeadowOS/misc/meadow_logging.h | Reviewed | 2026-08-29 |  | Mark | No confirmed findings |
-| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | Reviewed | 2026-08-29 | #395 | TBD |  |
-| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | TBD | No confirmed findings |
+| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | *Reviewed | 2026-08-29 | #395 | Peter/Alexis | Both findings fixed (branch `issue395-qspi-reinit-fixes`): DCR FSIZE field now clears QSPI_DCR_FSIZE_MASK before OR-ing in the new value; added a BUSY-wait after ABORT before touching DCR. Hardware-verified on a physical Meadow F7 board; issue closed via PR |
+| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | Peter/Alexis | No confirmed findings |
 | C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | *Reviewed | 2026-08-29 | #398 | TBD |  |
 | C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | TBD | No confirmed findings |
 | C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 | Eduardo Menezes |  |

@@ -66,9 +66,14 @@ void meadow_qspi_hw_reinitialize(int flashSize)
   regval |= QSPI_CR_ABORT;
   putreg32(regval, STM32_QUADSPI_CR);
 
+  // Wait till BUSY flag clear; the QUADSPI hardware ignores DCR writes
+  // while BUSY=1, so DCR must not be touched until the abort settles
+  while (((regval = getreg32(STM32_QUADSPI_SR)) & QSPI_SR_BUSY));
+
   // Reconfigure QSPI Flash Size, must assume CS High Time and Clock Mode
   // are already set correctly
   regval = getreg32(STM32_QUADSPI_DCR);
+  regval &= ~QSPI_DCR_FSIZE_MASK;
   if (0 != flashSize)
     {
       unsigned int nsize = flashSize;
