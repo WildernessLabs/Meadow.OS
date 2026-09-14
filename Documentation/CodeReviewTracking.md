@@ -225,7 +225,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | TBD | No confirmed findings |
 | C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | *Reviewed | 2026-08-28 | #361 | TBD |  |
 | C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | *Reviewed | 2026-08-28 | #360 | Peter |  |
+| C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | *Reviewed | 2026-08-28 | #360 | Peter | All 3 findings now terminal: port-range comment fixed (PR #533), packed-struct unaligned access Won't Fix, speculative timestamp feature defaulted back off pending confirmed Meadow.Core support; built and smoketested; issue closed via PR |
 | C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Reviewed | 2026-08-28 | #363 | Mark |  |
 | C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
