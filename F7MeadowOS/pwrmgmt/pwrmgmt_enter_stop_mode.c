@@ -92,8 +92,6 @@
 #pragma message "(--) pwrmgmt_enter_stop_mode.c"
 #endif
 
-// #pragma message "(--) pwrmgmt_enter_stop_mode.c"
-
 // This controls the entire modules code built
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
@@ -144,7 +142,7 @@ static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
  * Private Functions
  ************************************************************************************/
 
-//====================================================================
+//=============================================================
 // ISR called when the RTC generates an alarm, or the wakeup timer expires,
 // indicating time to exit low-power mode.
 static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
@@ -240,10 +238,10 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
   return OK;
 }
 
-//======================================================================
+//=============================================================
 // This public function is called from Meadow GPIO interrupt handling code.
 // This allows a GPIO interrupts to be configured for stop mode wakeup.
-int pwrmgmt_isr_gpio_wakeup_code()
+int pwrmgmt_isr_gpio_wakeup_code(void)
 {
   // This check is for the case when a GPIO interrupt is received while
   // Meadow is not in stop mode and for when multiple interrupts may be
@@ -268,7 +266,7 @@ int pwrmgmt_isr_gpio_wakeup_code()
   return OK;
 }
 
-//=======================================================================
+//=============================================================
 // This public function will put the F7 into stop mode
 int pwrmgmt_enter_stop_mode(void)
 {
@@ -333,7 +331,7 @@ int pwrmgmt_enter_stop_mode(void)
   regval &= ~(PWR_CR1_LPUDS);       // Bit 10:1=Low-power regulator in under-drive
   regval &= ~(PWR_CR1_MRUDS);       // Bit 11:Main regulator in under-drive
   regval &= ~(PWR_CR1_UDEN_ENABLE); // Bits 18-19:11=Under-drive, 00=disable
- 
+
   // Setting the following seems to be the highest power savings for the stop
   // mode. Without these the Meadow current drops to about 58 ma. With the
   // following settings added Meadow drops to about 52 ma.
@@ -394,7 +392,7 @@ int pwrmgmt_enter_stop_mode(void)
   while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
 
   putreg32(FMC_SDRAM_MODE_CMD_SELF_REFRESH | FMC_SDRAM_CMD_BANK_1, STM32_FMC_SDCMR);
-  
+
   // Wait again till busy flag is cleared and SDRAM is fully in self-refresh
   while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
 
@@ -432,7 +430,7 @@ int pwrmgmt_enter_stop_mode(void)
   regval &= ~(PWR_CR1_LPDS | PWR_CR1_PDDS);
   regval &= ~(PWR_CR1_UDEN_ENABLE | PWR_CR1_MRUDS | PWR_CR1_LPUDS);
   putreg32(regval, STM32_PWR_CR1);
-  
+
   // Clear SLEEPDEEP bit of Cortex System Control Register. Otherwise any
   // WFI or WFE will become a SLEEPDEEP event. And normally WFI/WFE
   // are used to Sleep the MCU core (not Stop/Standby).
@@ -442,7 +440,7 @@ int pwrmgmt_enter_stop_mode(void)
 
   // We won't need anymore waking up or interrupts
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-  // Disable RTC Alarm 
+  // Disable RTC Alarm
   pwrmgmt_disable_rtc_alarm_wakeup();
 
   up_disable_irq(STM32_IRQ_RTCALRM);
@@ -498,7 +496,7 @@ int pwrmgmt_enter_stop_mode(void)
   return OK;
 }
 
-//================================================================
+//=============================================================
 // This public function returns the wakeup reason to managed code or any
 // other caller. It returns a simple integer.
 // 0 = Wakeup reason not known
