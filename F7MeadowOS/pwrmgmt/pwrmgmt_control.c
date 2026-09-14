@@ -95,7 +95,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static bool _firstTime = true;
 
 static sem_t _lowPwrCtrlEntry;
 
@@ -219,6 +218,10 @@ int meadow_power_mgmt_initialize(void)
     _regCallback[i] = NULL;
   }
 
+  // Create semaphore to only allow single threaded access to
+  // pwrmgmt_enter_stm32f7_stop_mode()
+  sem_init(&_lowPwrCtrlEntry, 0, 1);
+
   // Initialize internals needed for the LSI clock to be used with RTC
   ret = pwrmgmt_init_lsi_calib();
   if(ret < 0)
@@ -246,14 +249,6 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   MEADOW_TRACE_INFORMATION( "Received command to sleep for %d seconds\n",
           wakeupPeriod);
-
-  // Only do this once
-  if(_firstTime)
-  {
-    _firstTime = false;
-    // Create semaphore to only allow single threaded access here
-    sem_init(&_lowPwrCtrlEntry, 0, 1);
-  }
 
   // Don't sleep for less than 2 seconds
   if(wakeupPeriod < 2)
