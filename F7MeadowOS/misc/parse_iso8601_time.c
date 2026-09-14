@@ -112,13 +112,13 @@ static char *sscanfArgs[] =
 // This function will return the number of seconds defined in the period
 // Turns out a parser is the only way to handle the ISO 8601 duration
 // (aka period)
-uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
+int meadow_parse_iso8601_time_period(const char *isoTimePeriod,
           time_t *secondsTillAlarm)
 {
   double value;
   double secs = 0.0;
   const char *ptr = isoTimePeriod;
-  uint32_t charsParsed = 0;
+  long charsParsed = 0;
   uint32_t P_TTest = 0;
   uint8_t type;
   bool afterT = false;
@@ -186,10 +186,21 @@ uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
 // This is enough to fully populate the struct tm. There is a helper function
 // that can get the utc offset and any fractional seconds.
 //
-int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDataTimeLen,
+int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDateTimeLen,
           struct tm *tmResult)
 {
   int sscanfArgOff;
+
+  // Every access below goes at most to offset MEADOW_ISO_8601_DOT_ELEMENT_OFFSET
+  // (15) before sscanf() is ever called, so the string must be at least that
+  // long. Using MEADOW_ISO_8601_MIN_INPUT_STR_LEN (19) here would incorrectly
+  // reject a valid, minimal condensed-format string (16 characters, e.g.
+  // "20220331T173425Z").
+  if(isoDateTimeLen <= MEADOW_ISO_8601_DOT_ELEMENT_OFFSET)
+  {
+    syslog(LOG_ERR, "Date Time format error for '%s', too short\n", isoDateTime);
+    return -EINVAL;
+  }
 
   // Identify the actual format so we know how to parse this string
   if(isoDateTime[MEADOW_ISO_8601_DOT_ELEMENT_OFFSET] == 'Z' &&
@@ -234,7 +245,7 @@ int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDataTimeLen,
 //===================================================================
 // Find the UTC offset and any fractional seconds that are are part of 
 // the ISO 8601 provided time string
-int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDataTimeLen,
+int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDateTimeLen,
           int *utcTimeOffset, double *fractSec)
 {
   char *fracEnd;    // point to next character after fraction
@@ -244,7 +255,7 @@ int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDataTimeLen,
   *fractSec = 0.0;
   
   // 2022-04-01T14:37:34 = 19 characters
-  if(isoDataTimeLen <= MEADOW_ISO_8601_MIN_INPUT_STR_LEN)
+  if(isoDateTimeLen <= MEADOW_ISO_8601_MIN_INPUT_STR_LEN)
   {
     // There can't be any other information just return with fields = 0
     return OK;

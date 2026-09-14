@@ -234,10 +234,10 @@ bool hcom_nx_bbreg_is_bbr_bit_set(uint32_t value);
 int hcom_nx_config_copy_for_user_mode(uint8_t *, int);
 
 // Power Management/RTC
-int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDataTimeLen, struct tm *tmResult);
-int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDataTimeLen,
+int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDateTimeLen, struct tm *tmResult);
+int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDateTimeLen,
           int *utcTimeOffset, double *fractSec);
-uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
+int meadow_parse_iso8601_time_period(const char *isoTimePeriod,
           time_t *secondsTillAlarm);
 
 #define MEADOW_ISO_8601_PERIOD_FORMAT_LEAD_IN ('P')
