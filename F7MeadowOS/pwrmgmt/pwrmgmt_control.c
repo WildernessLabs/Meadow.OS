@@ -210,11 +210,11 @@ int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callbac
 //==============================================================
 // This function is called during initialization and is responsible for calling
 // the other initialization function within this block of code.
-int meadow_power_mgmt_initialize()
+int meadow_power_mgmt_initialize(void)
 {
   int ret = OK;
 
-  for (int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
+  for(int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
   {
     _regCallback[i] = NULL;
   }
