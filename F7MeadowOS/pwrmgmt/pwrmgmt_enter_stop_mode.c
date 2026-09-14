@@ -271,6 +271,7 @@ int pwrmgmt_isr_gpio_wakeup_code(void)
 int pwrmgmt_enter_stop_mode(void)
 {
   uint32_t regval;
+  volatile uint32_t sdramTimeout;
 
 #if (PWRMGMT_ADD_LEDS_FOR_DIAGNOSTIC_INFO > 0)
   // One time GPIO initialization
@@ -388,13 +389,31 @@ int pwrmgmt_enter_stop_mode(void)
   // Put SDRAM into self-refresh mode so data isn't lost (saves current).
   // This must follow all other activities because once in the self-refresh
   // mode, *ANY* SDRAM access will return the SDRAM to normal mode.
-  // Wait for SDRAM to not be busy
-  while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
+  // Wait for SDRAM to not be busy (or a timeout occurs). 0xffff matches
+  // Nuttx's own stm32_fmc_sdram_wait() timeout for this same busy flag
+  // (arch/arm/src/stm32f7/stm32_fmc.c).
+  for(sdramTimeout = 0; sdramTimeout < 0xffff; sdramTimeout++)
+  {
+    if((getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY) == 0)
+      break;
+  }
+  if(sdramTimeout >= 0xffff)
+  {
+    syslog(LOG_ERR, "%s@%d-SDRAM controller busy-wait timed out\n", __FILE__, __LINE__);
+  }
 
   putreg32(FMC_SDRAM_MODE_CMD_SELF_REFRESH | FMC_SDRAM_CMD_BANK_1, STM32_FMC_SDCMR);
 
   // Wait again till busy flag is cleared and SDRAM is fully in self-refresh
-  while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
+  for(sdramTimeout = 0; sdramTimeout < 0xffff; sdramTimeout++)
+  {
+    if((getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY) == 0)
+      break;
+  }
+  if(sdramTimeout >= 0xffff)
+  {
+    syslog(LOG_ERR, "%s@%d-SDRAM controller busy-wait timed out\n", __FILE__, __LINE__);
+  }
 
   // DIAGNOSTIC-LED on when sleeping. The ISR will turn this off ASAP
 #if (PWRMGMT_ADD_LEDS_FOR_DIAGNOSTIC_INFO > 0)
