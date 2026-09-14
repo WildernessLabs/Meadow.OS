@@ -67,7 +67,7 @@
 
 #include "hcom_nx/hcom_nx_common.h"
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
+#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
 // #pragma message "(--) pwrmgmt_config_wakeup_alarm.c"
 
@@ -387,4 +387,4 @@ void pwrmgmt_disable_rtc_alarm_wakeup(void)
   pwrmgmt_rtc_wprlock();
 }
 
-#endif  // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
+#endif  // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

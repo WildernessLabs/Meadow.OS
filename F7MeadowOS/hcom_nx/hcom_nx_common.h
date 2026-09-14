@@ -110,11 +110,6 @@ extern "C"
 #define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
 #endif
 
-// Selects the low-power wakeup timing method. RTC Alarm can sleep for up to
-// 28 days - 1 second. The alternative RTC Wakeup Timer scheme (65535 seconds
-// max) was removed (Issue #407); this must stay defined.
-#define PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM
-
 // Support ISO-8601 time standard
 // This #define may not control all ISO-8601 code, as maybe it should
 #define HCOM_INCLUDE_ISO8601_SUPPORT 0

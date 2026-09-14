@@ -155,7 +155,6 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
   stm32_gpiowrite(TEST_PIN_V2_D03_STOP_TEST, false);
 #endif
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Clear the EXTI Pending Register bit for the RTC Alarm
   regval = getreg32(STM32_EXTI_PR);
   regval |= (EXTI_RTC_ALARM); // Writing '1' clears
@@ -199,31 +198,9 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
     #error "Only Alarm A supported in module"
  #endif
 
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Clear the EXTI Pending Register for the Wakeup Timer
-  regval = getreg32(STM32_EXTI_PR);
-  regval &= ~(EXTI_RTC_WAKEUP);
-  putreg32(EXTI_RTC_WAKEUP, STM32_EXTI_PR);
-
-  // NOTE: The following few lines of Alarm B code have never been tested.
-  // Added when solving Issue #667 which only addressed waking up for RTC
-  // Alarm.
-  // Clear the Wakeup timer flag.
-  rtcIsr = getreg32(STM32_RTC_ISR);
-  if((rtcIsr & RTC_ISR_WUTF) != 0)
-  {
-    rtcIsr &= ~RTC_ISR_WUTF;
-    putreg32(rtcIsr, STM32_RTC_ISR);
-  }
-#else
-  #error "Select Power Management Low-Power scheme"
-#endif
-
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // If Alarm A didn't cause the interrupt exit
   if(!AlarmA)
     return OK;
-#endif
 
   _wakeupReason = wake_reason_wakeup_time_reached;
 
@@ -353,21 +330,10 @@ int pwrmgmt_enter_stop_mode(void)
   // Relock the RTC registers
   pwrmgmt_rtc_wprlock();
 
-  // RTC Alarm and Wakeup Timer share the same ISR handler
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Setup the ISR for the RTC alarm when date/time match. When the date and
   // time match an interrupt is generated.
-  // Note: The same ISR is used for both RTC Alarm and Wakeup Timer.
   irq_attach(STM32_IRQ_RTCALRM, meadow_rtc_wakeup_isr_handler, NULL);
   up_enable_irq(STM32_IRQ_RTCALRM);
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Setup the ISR for the RTC wakeup timer counting down to 0. Every time
-  // it reaches 0 an interrupt is generated.
-  irq_attach(STM32_IRQ_RTC_WKUP, meadow_rtc_wakeup_isr_handler, NULL);
-  up_enable_irq(STM32_IRQ_RTC_WKUP);
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
 #if MEADOW_PWRMGMT_SHOW_RTC_NUTTX_TIME > 0
   struct timespec abstime;
@@ -458,21 +424,11 @@ int pwrmgmt_enter_stop_mode(void)
   putreg32(regval, NVIC_SYSCON);
 
   // We won't need anymore waking up or interrupts
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Disable RTC Alarm
   pwrmgmt_disable_rtc_alarm_wakeup();
 
   up_disable_irq(STM32_IRQ_RTCALRM);
   irq_detach(STM32_IRQ_RTCALRM);
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Disable Wakeup Timer
-  pwrmgmt_disable_wakeup_timer_wakeup();
-
-  up_disable_irq(STM32_IRQ_RTC_WKUP);
-  irq_detach(STM32_IRQ_RTC_WKUP);
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
   // Synch Nuttx clock with RTC hardware, which keeps time while in stop
   // mode. The RTC clock may drift because the Meadow doesn't have a crystal
