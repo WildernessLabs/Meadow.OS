@@ -943,6 +943,15 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
     {
       uint8_t pageBuffer[_flash_test_write_page_size];
 
+      if(userData < 0 || (uint32_t)userData >= _flash_test_total_write_pages)
+      {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - page %d out of range (0-%lu)\n",
+                  __FILE__, __LINE__, __func__, userData, _flash_test_total_write_pages - 1);
+        usleep(50 * 1000);
+        ret = -EINVAL;
+        break;
+      }
+
       // Populate the buffer with userData for a page
       hcom_exec_flash_populate_buffer(userData, pageBuffer);
 
@@ -1006,6 +1015,14 @@ int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
       break;
 
    default:
+      if(userData < 0 || (uint32_t)userData >= _test_geo.neraseblocks)
+      {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - sector %d out of range (0-%lu)\n",
+                  __FILE__, __LINE__, __func__, userData, _test_geo.neraseblocks - 1);
+        usleep(50 * 1000);
+        ret = -EINVAL;
+        break;
+      }
       ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(userData);
       break;
   }
