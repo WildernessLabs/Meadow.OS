@@ -42,12 +42,14 @@
 #define MEADOW_INTERRUPT_MAX_GPIO_PORT      (10)   // A-K
 #define MEADOW_INTERRUPT_MAX_GPIO_PIN       (15)   // 0-15
 
-// This #define was added so timestamp code could be added without changing
-// the current behavior and and yet do the needed refactoring.
-// ONLY SET THIS TO 1 IF MEADOW.CORE HAS BEEN MODIFIED TO EXPECT TIME
-// OR IF TESTING.
-// Remove this #define after Managed code has been updated to expect timestamp
-#define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (1)
+// Speculative "for the future if" feature: adds a timestamp to the interrupt
+// message sent to Meadow.Core. Left as dead-but-buildable scaffolding since
+// there is no confirmed date this will be needed; whoever revives it must
+// first confirm Meadow.Core (the separate .NET/managed-side repo) has been
+// updated to expect the extra mintSysTicks field in mint_send_int_core_s
+// below, then flip this to 1. Defaults to 0 (feature off) since that support
+// is currently unconfirmed.
+#define MEADOW_INTERRUPT_INCLUDE_TIME_STAMP (0)
 
 // This struct is populated in Meadow.Core to configure or remove an interrupt.
 struct mint_gpio_int_config
