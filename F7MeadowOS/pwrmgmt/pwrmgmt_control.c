@@ -95,7 +95,6 @@
 /************************************************************************************
  * Private Data
  ************************************************************************************/
-static bool _firstTime = true;
 
 static sem_t _lowPwrCtrlEntry;
 
@@ -210,14 +209,18 @@ int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callbac
 //==============================================================
 // This function is called during initialization and is responsible for calling
 // the other initialization function within this block of code.
-int meadow_power_mgmt_initialize()
+int meadow_power_mgmt_initialize(void)
 {
   int ret = OK;
 
-  for (int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
+  for(int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
   {
     _regCallback[i] = NULL;
   }
+
+  // Create semaphore to only allow single threaded access to
+  // pwrmgmt_enter_stm32f7_stop_mode()
+  sem_init(&_lowPwrCtrlEntry, 0, 1);
 
   // Initialize internals needed for the LSI clock to be used with RTC
   ret = pwrmgmt_init_lsi_calib();
@@ -247,17 +250,9 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   MEADOW_TRACE_INFORMATION( "Received command to sleep for %d seconds\n",
           wakeupPeriod);
 
-  // Only do this once
-  if(_firstTime)
-  {
-    _firstTime = false;
-    // Create semaphore to only allow single threaded access here
-    sem_init(&_lowPwrCtrlEntry, 0, 1);
-  }
-
   // Don't sleep for less than 2 seconds
   if(wakeupPeriod < 2)
-    return OK;
+    return PWRMGMT_SLEEP_SKIPPED_TOO_SHORT;
 
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // The STM32F7's internal alarm clock uses day of month and HH:mm:ss but not
@@ -269,15 +264,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     return -ETIME;      // -62
   }
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Using the wakeup timer limits to maximum to its 16-bit timer or 65535
-  // seconds
-  if(wakeupPeriod > 0xffff)
-  {
-    return -ETIME;      // -62
-  }
 #else
-#error "Select Low-Power timing scheme"
+#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
 #endif
 
   // Get the semaphore to insure only one caller at a time
@@ -296,7 +284,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   // This will route a text message to app side and on to CLI.
   char *lowPowerNext = "Entering low-power mode\n";
-  hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
+  ret = hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
             lowPowerNext, strlen(lowPowerNext));
   if(ret < 0)
   {
@@ -348,30 +336,15 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
-    sem_post(&_lowPwrCtrlEntry);
-
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
-    return ret;
-  }
-
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Using the RTC Wakeup Timer allows setting a future time up to 0xffff seconds
-  // into the future (a little over 18 hours).
-  ret = pwrmgmt_config_rtc_timer_wakeup_seconds(wakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
     sem_post(&_lowPwrCtrlEntry);
-
-    (void) pwrmgmt_notify_registered_modules(false);
-    pwrmgmt_idle_behavior_control(true);
     return ret;
   }
 
 #else
-#error "Select Low-Power timing scheme"
+#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
 #endif
 
   //---------------------------------------------------------------------
@@ -384,6 +357,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+
+    (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
 
     sem_post(&_lowPwrCtrlEntry);

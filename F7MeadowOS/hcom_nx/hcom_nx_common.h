@@ -110,12 +110,10 @@ extern "C"
 #define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
 #endif
 
-// Which timing method should be built in Meadow, Wakeup Timer or RTC Alarm.
-// RTC Alarm can sleep for up to 28 days - 1 second, where as the Wakeup Timer
-// can sleep for 65535 seconds (18.2 hours).
-// Define only 1
+// Selects the low-power wakeup timing method. RTC Alarm can sleep for up to
+// 28 days - 1 second. The alternative RTC Wakeup Timer scheme (65535 seconds
+// max) was removed (Issue #407); this must stay defined.
 #define PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM
-// #define PWRMGMT_LOW_PWR_EXIT_USE_WAKEUP_TIMER
 
 // Support ISO-8601 time standard
 // This #define may not control all ISO-8601 code, as maybe it should
@@ -194,6 +192,12 @@ extern "C"
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   // This functions allow mono to access power management
+
+  // Distinct informational return from pwrmgmt_enter_stm32f7_stop_mode() when
+  // wakeupPeriod is below the minimum and the call is a no-op (didn't
+  // actually sleep). Positive, so it's distinguishable from OK (0, a
+  // completed sleep cycle) and from a negative error code.
+  #define PWRMGMT_SLEEP_SKIPPED_TOO_SHORT (1)
 
   // Public functions to manage power management
   int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
