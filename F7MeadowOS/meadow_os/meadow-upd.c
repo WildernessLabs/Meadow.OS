@@ -434,6 +434,7 @@ static int upd_handle_dir_enum(struct upd_dir_enum_cmd* cmd)
     }
     strcat(cmd->result, dir->d_name);
     strcat(cmd->result, "\n");
+    len += strlen(dir->d_name) + 1;
   }
   closedir(d);
   return OK;
