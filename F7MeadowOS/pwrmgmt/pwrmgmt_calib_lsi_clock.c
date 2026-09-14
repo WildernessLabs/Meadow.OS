@@ -114,7 +114,7 @@ volatile uint32_t _elapsedCount;
 static int _pwrmgmt_lsi_calc_thread_id;
 
 // These variables need to be shared 
-static uint32_t _lsiRtcPrer;    // Set here, read on to switch
+static volatile uint32_t _lsiRtcPrer;    // Set here, read on to switch
 
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
 static bool _dbgClkSwitched;    // Set on both sides, read here
