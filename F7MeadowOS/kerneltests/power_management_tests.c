@@ -118,8 +118,6 @@ static int pwrmgmt_enter_test_sleep_x_times_for_y_seconds(void);
 static int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod);
 static void *pwrmgmt_test_sleep_kthread_func(int argc, char *argv[]);
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-
 // ISR called when the RTC generates an alarm. Will indicate time to exit
 // low-power mode.
 static int pwmmgmt_test_rtc_alarm_isr_handler(int irq, FAR void *context, FAR void *arg)
@@ -136,23 +134,6 @@ static int pwmmgmt_test_rtc_alarm_isr_handler(int irq, FAR void *context, FAR vo
 
   return OK;
 }
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-// ISR called when wakeup timer reaches 0 indicating time to exit-power mode.
-static int pwmmgmt_test_wakeup_timer_isr_handler(int irq, FAR void *context, FAR void *arg)
-{
-  // Clear the EXTI Pending Register for the wakeup event
-  putreg32(EXTI_RTC_WAKEUP, STM32_EXTI_PR);
-  
-  syslog(LOG_MTEST, "RTC Wakeup Timer ISR called\n");
-
-  up_disable_irq(STM32_IRQ_RTC_WKUP);
-  irq_detach(STM32_IRQ_RTC_WKUP);
-
-  return OK;
-}
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -431,7 +412,6 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
     tmNowNx.tm_hour, tmNowNx.tm_min, tmNowNx.tm_sec);
 #endif   // FOR TESTING ONLY
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Configure the hardware
   // Set alarm wakeup period and wait for ISR to notify that time has elapsed
   syslog(LOG_MTEST, "==> Setting RTC alarm for %lld seconds\n", wakeupPeriod);
@@ -441,32 +421,10 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
     return ret;
   }
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Set wakeup timer period and wait for ISR to notify time has elapsed
-  syslog(LOG_MTEST, "==> Setting RTC wakeup timer for %d seconds\n",
-    wakeupPeriod);
-  ret = pwrmgmt_config_rtc_timer_wakeup_seconds(wakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    return ret;
-  }
-#else
-#error "Select Low-Power timing scheme"
-#endif
-  // Prepare for wakeup by configuring an ISR to be called when the time 
+  // Prepare for wakeup by configuring an ISR to be called when the time
   // period has been reached.
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-  // For using RTC Alarm timing
   irq_attach(STM32_IRQ_RTCALRM, pwmmgmt_test_rtc_alarm_isr_handler, NULL);
   up_enable_irq(STM32_IRQ_RTCALRM);
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Setup the testing ISR for the RTC wakeup timer counting down to 0.
-  irq_attach(STM32_IRQ_RTC_WKUP, pwmmgmt_test_wakeup_timer_isr_handler, NULL);
-  up_enable_irq(STM32_IRQ_RTC_WKUP);
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
 #if 0  // FOR TESTING. Use the HCOM thread to loop until it's time wakeup
   int countDown = wakeupPeriod;

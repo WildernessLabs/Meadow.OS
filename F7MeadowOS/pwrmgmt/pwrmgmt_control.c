@@ -254,7 +254,6 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(wakeupPeriod < 2)
     return PWRMGMT_SLEEP_SKIPPED_TOO_SHORT;
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // The STM32F7's internal alarm clock uses day of month and HH:mm:ss but not
   // the month or year. Therefore, the worse case, maximum length, of a delay
   // is 28 days minus 1 second. It could be longer during some months but for
@@ -264,9 +263,6 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     return -ETIME;      // -62
   }
-#else
-#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
-#endif
 
   // Get the semaphore to insure only one caller at a time
   do
@@ -324,7 +320,6 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     return ret;
   }
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Configure Wakeup/Alarm hardware and stop period.
   // Using the RTC Alarm allows waking up at a future time. However, since
   // there's no year or month comparison available, only day of the month,
@@ -342,10 +337,6 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     sem_post(&_lowPwrCtrlEntry);
     return ret;
   }
-
-#else
-#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
-#endif
 
   //---------------------------------------------------------------------
   // Enter stop mode and wait for specified time to expire. Actually, not

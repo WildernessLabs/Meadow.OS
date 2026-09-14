@@ -92,8 +92,6 @@
 #pragma message "(--) pwrmgmt_enter_stop_mode.c"
 #endif
 
-// #pragma message "(--) pwrmgmt_enter_stop_mode.c"
-
 // This controls the entire modules code built
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
@@ -133,8 +131,8 @@ enum MeadowWakeupReason_e
 static bool _firstTime = true;
 #endif
 
-static bool _isMeadowInStopMode = false;
-static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
+static volatile bool _isMeadowInStopMode = false;
+static volatile enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
 
 /************************************************************************************
  * Public Data
@@ -144,7 +142,7 @@ static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
  * Private Functions
  ************************************************************************************/
 
-//====================================================================
+//=============================================================
 // ISR called when the RTC generates an alarm, or the wakeup timer expires,
 // indicating time to exit low-power mode.
 static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
@@ -157,7 +155,6 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
   stm32_gpiowrite(TEST_PIN_V2_D03_STOP_TEST, false);
 #endif
 
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Clear the EXTI Pending Register bit for the RTC Alarm
   regval = getreg32(STM32_EXTI_PR);
   regval |= (EXTI_RTC_ALARM); // Writing '1' clears
@@ -201,31 +198,9 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
     #error "Only Alarm A supported in module"
  #endif
 
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Clear the EXTI Pending Register for the Wakeup Timer
-  regval = getreg32(STM32_EXTI_PR);
-  regval &= ~(EXTI_RTC_WAKEUP);
-  putreg32(EXTI_RTC_WAKEUP, STM32_EXTI_PR);
-
-  // NOTE: The following few lines of Alarm B code have never been tested.
-  // Added when solving Issue #667 which only addressed waking up for RTC
-  // Alarm.
-  // Clear the Wakeup timer flag.
-  rtcIsr = getreg32(STM32_RTC_ISR);
-  if((rtcIsr & RTC_ISR_WUTF) != 0)
-  {
-    rtcIsr &= ~RTC_ISR_WUTF;
-    putreg32(rtcIsr, STM32_RTC_ISR);
-  }
-#else
-  #error "Select Power Management Low-Power scheme"
-#endif
-
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // If Alarm A didn't cause the interrupt exit
   if(!AlarmA)
     return OK;
-#endif
 
   _wakeupReason = wake_reason_wakeup_time_reached;
 
@@ -240,10 +215,10 @@ static int meadow_rtc_wakeup_isr_handler(int irq, FAR void *context,
   return OK;
 }
 
-//======================================================================
+//=============================================================
 // This public function is called from Meadow GPIO interrupt handling code.
 // This allows a GPIO interrupts to be configured for stop mode wakeup.
-int pwrmgmt_isr_gpio_wakeup_code()
+int pwrmgmt_isr_gpio_wakeup_code(void)
 {
   // This check is for the case when a GPIO interrupt is received while
   // Meadow is not in stop mode and for when multiple interrupts may be
@@ -268,11 +243,12 @@ int pwrmgmt_isr_gpio_wakeup_code()
   return OK;
 }
 
-//=======================================================================
+//=============================================================
 // This public function will put the F7 into stop mode
 int pwrmgmt_enter_stop_mode(void)
 {
   uint32_t regval;
+  volatile uint32_t sdramTimeout;
 
 #if (PWRMGMT_ADD_LEDS_FOR_DIAGNOSTIC_INFO > 0)
   // One time GPIO initialization
@@ -333,7 +309,7 @@ int pwrmgmt_enter_stop_mode(void)
   regval &= ~(PWR_CR1_LPUDS);       // Bit 10:1=Low-power regulator in under-drive
   regval &= ~(PWR_CR1_MRUDS);       // Bit 11:Main regulator in under-drive
   regval &= ~(PWR_CR1_UDEN_ENABLE); // Bits 18-19:11=Under-drive, 00=disable
- 
+
   // Setting the following seems to be the highest power savings for the stop
   // mode. Without these the Meadow current drops to about 58 ma. With the
   // following settings added Meadow drops to about 52 ma.
@@ -354,21 +330,10 @@ int pwrmgmt_enter_stop_mode(void)
   // Relock the RTC registers
   pwrmgmt_rtc_wprlock();
 
-  // RTC Alarm and Wakeup Timer share the same ISR handler
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // Setup the ISR for the RTC alarm when date/time match. When the date and
   // time match an interrupt is generated.
-  // Note: The same ISR is used for both RTC Alarm and Wakeup Timer.
   irq_attach(STM32_IRQ_RTCALRM, meadow_rtc_wakeup_isr_handler, NULL);
   up_enable_irq(STM32_IRQ_RTCALRM);
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Setup the ISR for the RTC wakeup timer counting down to 0. Every time
-  // it reaches 0 an interrupt is generated.
-  irq_attach(STM32_IRQ_RTC_WKUP, meadow_rtc_wakeup_isr_handler, NULL);
-  up_enable_irq(STM32_IRQ_RTC_WKUP);
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
 #if MEADOW_PWRMGMT_SHOW_RTC_NUTTX_TIME > 0
   struct timespec abstime;
@@ -390,13 +355,31 @@ int pwrmgmt_enter_stop_mode(void)
   // Put SDRAM into self-refresh mode so data isn't lost (saves current).
   // This must follow all other activities because once in the self-refresh
   // mode, *ANY* SDRAM access will return the SDRAM to normal mode.
-  // Wait for SDRAM to not be busy
-  while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
+  // Wait for SDRAM to not be busy (or a timeout occurs). 0xffff matches
+  // Nuttx's own stm32_fmc_sdram_wait() timeout for this same busy flag
+  // (arch/arm/src/stm32f7/stm32_fmc.c).
+  for(sdramTimeout = 0; sdramTimeout < 0xffff; sdramTimeout++)
+  {
+    if((getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY) == 0)
+      break;
+  }
+  if(sdramTimeout >= 0xffff)
+  {
+    syslog(LOG_ERR, "%s@%d-SDRAM controller busy-wait timed out\n", __FILE__, __LINE__);
+  }
 
   putreg32(FMC_SDRAM_MODE_CMD_SELF_REFRESH | FMC_SDRAM_CMD_BANK_1, STM32_FMC_SDCMR);
-  
+
   // Wait again till busy flag is cleared and SDRAM is fully in self-refresh
-  while ((getreg32(STM32_FMC_SDSR) & 0x00000020) != 0);
+  for(sdramTimeout = 0; sdramTimeout < 0xffff; sdramTimeout++)
+  {
+    if((getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY) == 0)
+      break;
+  }
+  if(sdramTimeout >= 0xffff)
+  {
+    syslog(LOG_ERR, "%s@%d-SDRAM controller busy-wait timed out\n", __FILE__, __LINE__);
+  }
 
   // DIAGNOSTIC-LED on when sleeping. The ISR will turn this off ASAP
 #if (PWRMGMT_ADD_LEDS_FOR_DIAGNOSTIC_INFO > 0)
@@ -409,13 +392,13 @@ int pwrmgmt_enter_stop_mode(void)
   // before entering the STOP mode Data Synchronous Barrier (DSB) just after
   // the write operation. This will force the CPU to respect the sequence of
   // instructions (no optimization).
-  asm volatile ("dsb");   // All memory access needs to be completed
-  asm volatile ("isb");   // Throw away prefetched instructions, execute in order
+  asm volatile ("dsb" ::: "memory");   // All memory access needs to be completed
+  asm volatile ("isb" ::: "memory");   // Throw away prefetched instructions, execute in order
 
   // Put into stop-mode
-  asm volatile ("sev");    // Set an event
-  asm volatile ("wfe");    // Clear just set Event, we know our state now
-  asm volatile ("wfe");    // This is the wait that forces low-power to begin
+  asm volatile ("sev" ::: "memory");    // Set an event
+  asm volatile ("wfe" ::: "memory");    // Clear just set Event, we know our state now
+  asm volatile ("wfe" ::: "memory");    // This is the wait that forces low-power to begin
 
   //----------------------------------------------------------------------
   // The calling thread is stopped here while in Stop Mode
@@ -432,7 +415,7 @@ int pwrmgmt_enter_stop_mode(void)
   regval &= ~(PWR_CR1_LPDS | PWR_CR1_PDDS);
   regval &= ~(PWR_CR1_UDEN_ENABLE | PWR_CR1_MRUDS | PWR_CR1_LPUDS);
   putreg32(regval, STM32_PWR_CR1);
-  
+
   // Clear SLEEPDEEP bit of Cortex System Control Register. Otherwise any
   // WFI or WFE will become a SLEEPDEEP event. And normally WFI/WFE
   // are used to Sleep the MCU core (not Stop/Standby).
@@ -441,21 +424,11 @@ int pwrmgmt_enter_stop_mode(void)
   putreg32(regval, NVIC_SYSCON);
 
   // We won't need anymore waking up or interrupts
-#if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
-  // Disable RTC Alarm 
+  // Disable RTC Alarm
   pwrmgmt_disable_rtc_alarm_wakeup();
 
   up_disable_irq(STM32_IRQ_RTCALRM);
   irq_detach(STM32_IRQ_RTCALRM);
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Disable Wakeup Timer
-  pwrmgmt_disable_wakeup_timer_wakeup();
-
-  up_disable_irq(STM32_IRQ_RTC_WKUP);
-  irq_detach(STM32_IRQ_RTC_WKUP);
-#else
-#error "Select Low-Power timing scheme"
-#endif
 
   // Synch Nuttx clock with RTC hardware, which keeps time while in stop
   // mode. The RTC clock may drift because the Meadow doesn't have a crystal
@@ -498,7 +471,7 @@ int pwrmgmt_enter_stop_mode(void)
   return OK;
 }
 
-//================================================================
+//=============================================================
 // This public function returns the wakeup reason to managed code or any
 // other caller. It returns a simple integer.
 // 0 = Wakeup reason not known
