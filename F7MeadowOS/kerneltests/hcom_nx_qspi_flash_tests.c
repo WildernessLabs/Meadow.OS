@@ -171,7 +171,7 @@ static int hcom_exec_flash_initialize_mtd_for_testing(void)
 
   if(!_mtdGeoShown)
   {
-    syslog(LOG_MTEST, "MTD Geo-Numb Erase Sectors:%lu, Erase Size:%u Page Size:%lu, Total Pages:%lu, Pages/Sector %lu\n",
+    syslog(LOG_MTEST, "MTD Geo-Numb Erase Sectors:%lu, Erase Size:%lu Page Size:%lu, Total Pages:%lu, Pages/Sector %lu\n",
             _test_geo.neraseblocks, _test_geo.erasesize, _test_geo.blocksize,
             _flash_test_total_write_pages, _flash_test_pages_per_4k_sector);
     _mtdGeoShown = true;
@@ -298,13 +298,13 @@ static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, boo
   }
 
   else if(eraseUsedPages)
-    syslog(LOG_MTEST, "Checking %d pages to erase those used\n",
+    syslog(LOG_MTEST, "Checking %lu pages to erase those used\n",
       _flash_test_total_write_pages);
   else if(displayErasedPages)
-    syslog(LOG_MTEST, "Checking %d pages to display those erased\n",\
+    syslog(LOG_MTEST, "Checking %lu pages to display those erased\n",
       _flash_test_total_write_pages);
   else
-    syslog(LOG_MTEST, "Checking %d pages to display those not erased\n",
+    syslog(LOG_MTEST, "Checking %lu pages to display those not erased\n",
       _flash_test_total_write_pages);
 
   // Now read and test that the entire qspi flash is correct
@@ -335,7 +335,7 @@ static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, boo
     {
       // Note this erases multiple pages
       uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
-      syslog(LOG_MTEST, "Page offset %u (0x%08x) used. Erasing associated 4k sector %u (0x%08x)\n",
+      syslog(LOG_MTEST, "Page offset %ld (0x%08lx) used. Erasing associated 4k sector %lu (0x%08lx)\n",
           pageOff, pageOff, sectorOff, sectorOff);
       ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(sectorOff);
       if(ret < 0)
@@ -353,15 +353,19 @@ static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, boo
       // Used to verify erase functionality.
       // Display erased page
       uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
-      syslog(LOG_MTEST, "Page offset %u (0x%08x) erased. Associated 4k erase sector %u (0x%08x)\n",
+      syslog(LOG_MTEST, "Page offset %ld (0x%08lx) erased. Associated 4k erase sector %lu (0x%08lx)\n",
           pageOff, pageOff, sectorOff, sectorOff);
       numbUsed++;
     }
     else if(patternFailed && eraseFailed)
     {
       // Just display if not pattern nor erased
-      syslog(LOG_MTEST, "\n--------- data read from page# %d----------\n", pageOff);
+      syslog(LOG_MTEST, "\n--------- data read from page# %ld----------\n", pageOff);
+#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
       hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+#else
+      syslog(LOG_MTEST, "Print buffer not included in build\n");
+#endif
       numbUsed++;
     }
   }
@@ -385,7 +389,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
   int nread;
   int nfailed = 0;
   
-  syslog(LOG_MTEST, "QSPI Flash data testing %d pages has begun.\n",
+  syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n",
     _flash_test_total_write_pages);
   uint64_t testTimeEraStart = hcom_nx_utils_get_current_time64();
 
@@ -433,7 +437,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
 
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Writing to page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -450,12 +454,12 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
 
   if(!verifyPages)
   {
-    syslog(LOG_MTEST, "Pattern written to %d pages\n",
+    syslog(LOG_MTEST, "Pattern written to %lu pages\n",
       _flash_test_total_write_pages);
     return OK;
   }
-  
-  syslog(LOG_MTEST, "Data written. Verifying %d pages\n",
+
+  syslog(LOG_MTEST, "Data written. Verifying %lu pages\n",
     _flash_test_total_write_pages);
   
   // Now read and test that the entire qspi flash is correct
@@ -463,7 +467,7 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
   {
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -480,11 +484,11 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
     {
       if(nfailed == 0)
       {
-        syslog(LOG_MTEST, "Page %d was first to fail to compare\n", pageOff);
+        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
       }
       else
       {
-        syslog(LOG_MTEST, "Page %d also failed to compare\n", pageOff);
+        syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
       }
       nfailed++;
     }
@@ -519,7 +523,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   int nread;
   int nfailed = 0;
 
-  syslog(LOG_MTEST, "QSPI Flash data testing %d pages has begun.\n",
+  syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n",
     _flash_test_total_write_pages);
   uint64_t testTimeTestStart = hcom_nx_utils_get_current_time64();
 
@@ -559,7 +563,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
 
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Writing to page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -573,15 +577,15 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     }
   }
 
-  syslog(LOG_MTEST, "Data written. Verifying %d pages\n",
+  syslog(LOG_MTEST, "Data written. Verifying %lu pages\n",
     _flash_test_total_write_pages);
-  
+
   // Now read and test that the entire qspi flash is correct
   for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
   {
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -598,12 +602,12 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     {
       if(nfailed == 0)
       {
-        syslog(LOG_MTEST, "Page %d was first to fail to compare\n",
+        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n",
           pageOff);
       }
       else
       {
-        syslog(LOG_MTEST, "Page %d also failed to compare\n",
+        syslog(LOG_MTEST, "Page %ld also failed to compare\n",
           pageOff);
       }
       nfailed++;
@@ -647,7 +651,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
 
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Writing to page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -661,7 +665,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     }
   }
 
-  syslog(LOG_MTEST, "Data written. Verifying %d pages again\n",
+  syslog(LOG_MTEST, "Data written. Verifying %lu pages again\n",
     _flash_test_total_write_pages);
   
   // Now read and test that the entire qspi flash is correct
@@ -669,7 +673,7 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
   {
     if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %d of %d\n",
+      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
         pageOff, _flash_test_total_write_pages);
       usleep(10);
     }
@@ -686,11 +690,11 @@ static int hcom_exec_flash_test_qspi_data_rw_2(void)
     {
       if(nfailed == 0)
       {
-        syslog(LOG_MTEST, "Page %d was first to fail to compare\n", pageOff);
+        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
       }
       else
       {
-        syslog(LOG_MTEST, "Page %d also failed to compare\n", pageOff);
+        syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
       }
       nfailed++;
     }
@@ -721,7 +725,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
   uint8_t eraseBuffer[_flash_test_write_page_size];
   memset(eraseBuffer, 0xff, _flash_test_write_page_size);
 
-  syslog(LOG_MTEST, "Comprehensive testing %d pages has begun.\n",
+  syslog(LOG_MTEST, "Comprehensive testing %lu pages has begun.\n",
     _flash_test_total_write_pages);
   syslog(LOG_MTEST, "This checks that the driver only writes to 1 page and the correct page\n");
   syslog(LOG_MTEST, "Bulk erasing QSPI flash (2-3 minutes)\n");
@@ -767,7 +771,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
 
     if(!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
     {
-      syslog(LOG_MTEST, "Just written page %d failed to compare\n",
+      syslog(LOG_MTEST, "Just written page %ld failed to compare\n",
         pageOff);
     }
 
@@ -778,7 +782,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
     {
       if(beforeOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
       {
-        syslog(LOG_MTEST, "INFO-Testing:%d Previous page %d of %d. Errors:%lu\n",
+        syslog(LOG_MTEST, "INFO-Testing:%ld Previous page %ld of %lu. Errors:%d\n",
           pageOff, beforeOff, _flash_test_total_write_pages, errCount);
         usleep(10);
       }
@@ -796,7 +800,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
       if(!hcom_exec_flash_verify_buffered_data(beforeOff, pageBuffer))
       {
         errCount++;
-        syslog(LOG_MTEST, "Proceeding page %d failed to compare\n",
+        syslog(LOG_MTEST, "Proceeding page %ld failed to compare\n",
           beforeOff);
       }
     }
@@ -805,7 +809,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
     {
       if(afterOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
       {
-        syslog(LOG_MTEST, "INFO-Testing:%d After page %d of %d. Errors:%lu\n",
+        syslog(LOG_MTEST, "INFO-Testing:%ld After page %ld of %lu. Errors:%d\n",
           pageOff, afterOff, _flash_test_total_write_pages, errCount);
         usleep(10);
       }
@@ -825,7 +829,7 @@ static int hcom_exec_flash_qspi_comprehensive_test(void)
       if(memcmp(eraseBuffer, pageBuffer, _flash_test_write_page_size) != 0)
       {
         errCount++;
-        syslog(LOG_MTEST, "Following page %d failed to compare\n", afterOff);
+        syslog(LOG_MTEST, "Following page %ld failed to compare\n", afterOff);
         usleep(10);
       }
     }
@@ -845,7 +849,7 @@ static int hcom_exec_flash_test_read_display_1_page(uint32_t pageOffset)
 {
   uint8_t pageBuffer[_flash_test_write_page_size];
 
-  syslog(LOG_MTEST, "Reading 256 bytes from QSPI flash at page# %d\n",
+  syslog(LOG_MTEST, "Reading 256 bytes from QSPI flash at page# %lu\n",
     pageOffset);
   int nread = MTD_BREAD(_test_mtd, pageOffset, 1, pageBuffer);
   if(nread != 1)
@@ -856,8 +860,12 @@ static int hcom_exec_flash_test_read_display_1_page(uint32_t pageOffset)
     return nread;
   }
 
-  syslog(LOG_MTEST, "\n--------- data read from page# %d----------\n", pageOffset);
+  syslog(LOG_MTEST, "\n--------- data read from page# %lu----------\n", pageOffset);
+#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
   hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+#else
+  syslog(LOG_MTEST, "Print buffer not included in build\n");
+#endif
   return OK;
 }
 
@@ -867,7 +875,7 @@ static int hcom_exec_flash_fs_flash_test_erase_1_4k_sector(uint32_t sectorOffset
 {
   int ret;
 
-  syslog(LOG_MTEST, "Erasing QSPI flash erase sector# %d\n",
+  syslog(LOG_MTEST, "Erasing QSPI flash erase sector# %lu\n",
     sectorOffset);
   ret = MTD_ERASE(_test_mtd, sectorOffset, 1);
   if(ret < 0)
