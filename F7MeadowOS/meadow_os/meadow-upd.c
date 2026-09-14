@@ -141,8 +141,6 @@ static int upd_hcom_get_mcu_ser_numb(unsigned long arg);
 static int upd_hcom_restore_uart_reconfig(unsigned long arg);
 #endif
 
-// static int upd_gpio_interrupt(int irq, void *context, void *arg);
-
 static int upd_handle_i2c(int cmd, struct upd_i2c_cmd*);
 static struct spi_dev_s * get_spi_bus(int busNumber);
 static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd*);
@@ -151,9 +149,6 @@ static int upd_handle_spi_mode(int cmd, struct upd_spi_mode_cmd*);
 static int upd_handle_spi_bits(int cmd, struct upd_spi_bits_cmd* data);
 static int upd_handle_dir_enum(struct upd_dir_enum_cmd*);
 static int upd_handle_sleep_command(struct upd_sleep_cmd* cmd);
-
-// static int upd_handle_watchdog_set(unsigned long cmd);
-// static int upd_handle_watchdog_pet(void);
 
 static int upd_get_set_configuration_value(upd_get_set_configuration_value_t *);
 
@@ -184,8 +179,6 @@ static struct i2c_config_s g_i2c3_cfg;
 static struct spi_dev_s *g_spi5 = NULL; // external
 static struct spi_dev_s *g_spi3 = NULL; // external
 static struct spi_dev_s *g_spi2 = NULL; // to ESP32
-
-// static int s_wd_fd = -1;
 
 // Note ioctl calls put any returned value into errno and the returned int
 // is set to -1
