@@ -120,7 +120,7 @@ int pwrmgmt_init_rtc_clk_switch(void)
 
 //=============================================================
 // Public Function to restore the RTC source to HSE
-int meadow_pwr_mgmt_use_hse_for_rtc()
+int meadow_pwr_mgmt_use_hse_for_rtc(void)
 {
   int ret;
 
@@ -157,8 +157,8 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
   else
   {
     // Since the clock source is not HSE we are forced to use the hardcoded
-    // values found in /arch/arm/src/stm32f7/stm32_rtc.c @510.
-    _hseRtcPrer = \
+    // values found in /arch/arm/src/stm32f7/stm32_rtc.c @499-500.
+    _hseRtcPrer =
       (uint32_t)PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_S_SHIFT |
       (uint32_t)PWRMGMT_CLK_HSE_DIV_A_FACTOR_FOR_1_MHZ << RTC_PRER_PREDIV_A_SHIFT;
 
@@ -179,7 +179,7 @@ int meadow_pwr_mgmt_use_hse_for_rtc()
 
 //=============================================================
 // Public Function to restore the RTC source to LSI
-int meadow_pwr_mgmt_use_lsi_for_rtc()
+int meadow_pwr_mgmt_use_lsi_for_rtc(void)
 {
   int ret;
   // Read current clock source
@@ -205,8 +205,7 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
     }
   }
 
-  // If the current value in STM32_RCC_BDCR indicates that HSE is
-  // in use we'll copy it's STM32_RTC_PRER value so we can restore it later.
+  // If the current clock source is already LSI, there's nothing to do.
   if(initClkSrc == RCC_BDCR_RTCSEL_LSI)
   {
     MEADOW_TRACE_DEBUG("Call to switch to LSI but already LSI. Exiting!\n");
@@ -238,16 +237,16 @@ int meadow_pwr_mgmt_use_lsi_for_rtc()
 //=============================================================
 // Set up RTC to use the LSI Clock
 // RCC_BDCR_RTCSEL_HSE or RCC_BDCR_RTCSEL_LSI supported
-int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
+static int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
 {
   int ret;
   uint32_t regval;
-  uint32_t tr_bkp;
-  uint32_t dr_bkp;
+  uint32_t trBkp;
+  uint32_t drBkp;
 
   // Save time and date
-  tr_bkp = getreg32(STM32_RTC_TR);
-  dr_bkp = getreg32(STM32_RTC_DR);
+  trBkp = getreg32(STM32_RTC_TR);
+  drBkp = getreg32(STM32_RTC_DR);
 
   // Save the Battery Backed Registers we know about
   //
@@ -297,22 +296,27 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
   {
     syslog(LOG_ERR, "%s@%d-Error: pwrmgmt_rtc_enterinit() returned %d\n",
               __FILE__, __LINE__, ret);
+    pwrmgmt_rtc_wprlock();
+    return ret;
   }
-  else
-  {
-    // Write the 2 pre-scaler values that calibrate the RTC for the desired
-    // clock. These values (PREDIV_A 22:16 and PREDIV_S 14:0) have already been
-    // pre-combined.
-    putreg32(rtcPrer, STM32_RTC_PRER);
 
-    // Restore time and date
-    putreg32(tr_bkp, STM32_RTC_TR);
-    putreg32(dr_bkp, STM32_RTC_DR);
+  // Write the 2 pre-scaler values that calibrate the RTC for the desired
+  // clock. These values (PREDIV_A 22:16 and PREDIV_S 14:0) have already been
+  // pre-combined.
+  putreg32(rtcPrer, STM32_RTC_PRER);
 
-    pwrmgmt_rtc_exitinit();
-  }
+  // Restore time and date
+  putreg32(trBkp, STM32_RTC_TR);
+  putreg32(drBkp, STM32_RTC_DR);
+
+  pwrmgmt_rtc_exitinit();
 
   pwrmgmt_rtc_wprlock();
+
+  // Restore Battery Backed Registers. Unrelated to RTC sync status below, so
+  // this must happen regardless of whether synchwait() times out.
+  putreg32(saveMagicRegi, RTC_MAGIC_REG);
+  putreg32(saveMeadowReg, HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
 
   //----------------------------------------------------------
   // Loop, attempting to initialize/resume the RTC. This loop is necessary
@@ -326,19 +330,15 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
     // RTC APB clock.
     ret = pwrmgmt_rtc_synchwait();
   }
-  while (ret != OK && ++nretry < maxretry);
+  while(ret != OK && ++nretry < maxretry);
 
-  if (ret != OK && nretry > 0)
+  if(ret != OK && nretry > 0)
   {
     syslog(LOG_ERR, "%s@%d-init/resume ran %d times and failed with %d\n",
               __FILE__, __LINE__, nretry, ret);
     return -ETIMEDOUT;
   }
   //----------------------------------------------------------
-
-  // Restore Battery Backed Registers
-  putreg32(saveMagicRegi, RTC_MAGIC_REG);
-  putreg32(saveMeadowReg, HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
 
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
   // Signal the debug code that the source cloci forRTC has changed
