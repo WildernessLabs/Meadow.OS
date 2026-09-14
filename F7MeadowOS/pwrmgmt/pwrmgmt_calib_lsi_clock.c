@@ -623,6 +623,7 @@ int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
   uint8_t preDivA;
   uint16_t initialPreDivS;
   uint16_t chkOffset;
+  int32_t chkDiffSigned;
   uint16_t chkDiff = 0xffff;
   uint16_t smallestDiff = 0xffff;
   uint8_t smallestDivA = 127;
@@ -656,7 +657,11 @@ int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
     // difference)?
     for (chkOffset = 0; chkOffset <  4; chkOffset++)
     {  
-      chkDiff = (preDivA * initialPreDivS) - lsiTargetFreq;
+      // Compute in a signed intermediate and take the absolute value: a
+      // candidate that undershoots the target would otherwise underflow
+      // the unsigned chkDiff.
+      chkDiffSigned = (preDivA * initialPreDivS) - lsiTargetFreq;
+      chkDiff = (uint16_t)(chkDiffSigned < 0 ? -chkDiffSigned : chkDiffSigned);
       if(chkDiff < smallestDiff)
       {
          MEADOW_TRACE_DEBUG("*** New smallest - chkOffset:%u, A(%03u) * S(%04u) = %05lu (dif:%03u)\n",
