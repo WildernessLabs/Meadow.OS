@@ -132,7 +132,7 @@ static bool _firstTime = true;
 #endif
 
 static volatile bool _isMeadowInStopMode = false;
-static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
+static volatile enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
 
 /************************************************************************************
  * Public Data
