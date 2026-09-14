@@ -907,7 +907,6 @@ static int hcom_exec_flash_fs_flash_test_erase_entire_flash(void)
 // This function is used to test the qspi flash
 int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
 {
-  uint8_t pageBuffer[_flash_test_write_page_size];
   int userData = (int)cmdData->userData;
   int ret;
 
@@ -941,6 +940,9 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
       break;
 
     default:
+    {
+      uint8_t pageBuffer[_flash_test_write_page_size];
+
       // Populate the buffer with userData for a page
       hcom_exec_flash_populate_buffer(userData, pageBuffer);
 
@@ -954,6 +956,7 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
         ret = -1;
       }
       break;
+    }
   }
 
   if(ret < 0)
