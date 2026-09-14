@@ -264,15 +264,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     return -ETIME;      // -62
   }
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Using the wakeup timer limits to maximum to its 16-bit timer or 65535
-  // seconds
-  if(wakeupPeriod > 0xffff)
-  {
-    return -ETIME;      // -62
-  }
 #else
-#error "Select Low-Power timing scheme"
+#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
 #endif
 
   // Get the semaphore to insure only one caller at a time
@@ -350,23 +343,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     return ret;
   }
 
-#elif defined (PWRMGMT_LOW_PWR_MODE_USE_WAKEUP_TIMER)
-  // Using the RTC Wakeup Timer allows setting a future time up to 0xffff seconds
-  // into the future (a little over 18 hours).
-  ret = pwrmgmt_config_rtc_timer_wakeup_seconds(wakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-
-    (void) pwrmgmt_notify_registered_modules(false);
-    pwrmgmt_idle_behavior_control(true);
-
-    sem_post(&_lowPwrCtrlEntry);
-    return ret;
-  }
-
 #else
-#error "Select Low-Power timing scheme"
+#error "PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM must be defined"
 #endif
 
   //---------------------------------------------------------------------
