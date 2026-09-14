@@ -112,7 +112,7 @@ static char *sscanfArgs[] =
 // This function will return the number of seconds defined in the period
 // Turns out a parser is the only way to handle the ISO 8601 duration
 // (aka period)
-uint32_t meadow_parse_iso8601_time_period(const char *isoTimePeriod,
+int meadow_parse_iso8601_time_period(const char *isoTimePeriod,
           time_t *secondsTillAlarm)
 {
   double value;
