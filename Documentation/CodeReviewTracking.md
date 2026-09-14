@@ -203,7 +203,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C051 | F7MeadowOS/hcom_nx/hcom_nx_config_manager_yaml.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C052 | F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c | *Reviewed | 2026-08-28 | #351 | Peter |  |
 | C054 | F7MeadowOS/hcom_nx/hcom_nx_upd_route_cmd.c | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | Reviewed (light) | 2026-09-01 | #420 | Peter | Moved from hcom_nx/tests/ to kerneltests/ (Issue #347); reachability restore still pending |
+| C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | *Reviewed (light) | 2026-09-01 | #420 | Peter | Both findings fixed (0-byte VLA stack overflow, missing bounds checks); also fixed 46 format-string errors + 1 implicit-declaration error uncovered by temporarily enabling the file's build flag to verify compilation (file had apparently never been compiled against current toolchain checks); verified via a full local build with the flag enabled (zero errors), then reverted -- reachability restore remains Issue #347's task; issue closed via PR |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Reviewed | 2026-08-28 |  | TBD | No confirmed findings |
