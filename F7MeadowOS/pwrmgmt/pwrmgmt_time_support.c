@@ -270,7 +270,14 @@ int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
   tp.tv_nsec = 0;
   tp.tv_sec = mktime(&tmSet);
 
+  // Serialize against Meadow's own RTC-touching sequence (pwrmgmt_switch_rtc_clock.c,
+  // pwrmgmt_misc.c), which shares this physical hardware with NuttX's own
+  // clock_settime() driver but has zero coordination with it otherwise.
+  // Acquires _rtcAccessLock; the write-protect unlock/lock here is otherwise
+  // a no-op alongside clock_settime()'s own internal sequence.
+  pwrmgmt_rtc_wprunlock();
   clock_settime(CLOCK_REALTIME, &tp);
+  pwrmgmt_rtc_wprlock();
 
   return OK;
 }
