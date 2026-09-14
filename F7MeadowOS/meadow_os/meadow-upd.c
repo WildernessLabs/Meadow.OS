@@ -564,7 +564,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
       SPI_SNDBLOCK(target, data->txBuffer, data->length);
     }
   }
-  else if(data->rxBuffer > 0)
+  else if(data->rxBuffer != NULL)
   {
     // read
     SPI_RECVBLOCK(target, data->rxBuffer, data->length);
