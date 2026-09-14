@@ -177,7 +177,5 @@ void stm32_sdram_initialize(void);
 void stm32_disablefmc(void);
 #endif
 
-void stm32_quadspi_init(void);
-
 #endif /* __ASSEMBLY__ */
 #endif /* __BOARDS_ARM_MEADOW_SRC_STM32F777ZIT6_MEADOW_H */
