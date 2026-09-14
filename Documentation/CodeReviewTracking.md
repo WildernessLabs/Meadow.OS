@@ -241,7 +241,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Reviewed | 2026-09-01 | #421 | Mark |  |
 | C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Reviewed | 2026-09-01 | #422 | Mark | No confirmed findings |
 | C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Reviewed | 2026-09-01 | #423 | Mark |  |
-| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | Reviewed | 2026-08-28 | #369 | Geoff Norton |  |
+| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | *Reviewed | 2026-08-28 | #369 | Geoff Norton | 3/5 findings fixed (branch `issue369-stm32-meadow-header-cleanup`): dead `stm32_quadspi_init` declaration removed, `stm32_usbinitialize` and `stm32_spidev_initialize` doc comments corrected (wrong caller/board name, typo); the 2 GPIO-speed findings (`GPIO_OTGFS_PWRON`, LED pins) Won't Fix -- functional today, EMI-margin nitpicks only; issue closed via PR |
 | C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | *Reviewed (light) | 2026-08-28 | #370 | Peter |  |
 | C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #371 | Mark |  |
 | C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Mark | Byte-identical stub header, findings tracked in #371 (bg77_tests.c) |

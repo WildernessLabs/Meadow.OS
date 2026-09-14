@@ -130,8 +130,8 @@ int meadow_upd_initialize(void);
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called from stm32_usbinitialize very early in inialization to setup
- *   USB-related GPIO pins for the nucleo-144 board.
+ *   Called from stm32_boardinitialize very early in initialization to setup
+ *   USB-related GPIO pins for the stm32f777zit6-meadow board.
  *
  ****************************************************************************/
 
@@ -143,8 +143,8 @@ void stm32_usbinitialize(void);
  * Name: stm32_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the stm32f769i-disco
- *   board.
+ *   Called to configure SPI chip select GPIO pins for the
+ *   stm32f777zit6-meadow board.
  *
  ****************************************************************************/
 
@@ -176,8 +176,6 @@ void stm32_sdram_initialize(void);
 
 void stm32_disablefmc(void);
 #endif
-
-void stm32_quadspi_init(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __BOARDS_ARM_MEADOW_SRC_STM32F777ZIT6_MEADOW_H */

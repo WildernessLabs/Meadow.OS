@@ -124,8 +124,8 @@ static int usbhost_waiter(int argc, char *argv[])
  * Name: stm32_usbinitialize
  *
  * Description:
- *   Called from stm32_usbinitialize very early in initialization to setup
- *   USB-related GPIO pins for the STM32F4Discovery board.
+ *   Called from stm32_boardinitialize very early in initialization to setup
+ *   USB-related GPIO pins for the stm32f777zit6-meadow board.
  *
  ****************************************************************************/
 
