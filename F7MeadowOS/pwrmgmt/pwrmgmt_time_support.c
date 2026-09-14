@@ -81,16 +81,17 @@
  * Private Functions
  ****************************************************************************/
 // Convert the value in struct tm from local to UTC. The UTC offset is in
-// minutes and can be positive or negative. A negative UTC offset means that
-// UTC is behind by this amount. Therefore, to get UTC we must add the offset
-// to the provided time value.
+// minutes and follows the ISO 8601 sign convention (local = UTC + offset,
+// e.g. "+05:00" is +300 minutes), so a negative offset means UTC is AHEAD
+// of local by that amount. Therefore, to get UTC we must subtract the
+// offset from the provided time value.
 //
 // Currently not needed.
 // static int meadow_time_convert_local_and_offset_to_utc(struct tm *tm, int utcTimeOffset)
 // {
 //   time_t localTime = mktime(tm);
 //   int localOffset = utcTimeOffset * 60;     // Convert minutes to seconds
-//   time_t utcTime = localTime - localOffset; // Subtact to add negative offset
+//   time_t utcTime = localTime - localOffset; // UTC = local - offset
 
 //   // Replace provided struct tm with utc time
 //   struct tm tmTemp;
@@ -123,7 +124,7 @@ int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg,
   setPeriodCmd = (HcomProtoTextMsg_t *) hdrMsg;
   timePeriodLen = packetSize - HCOM_PROTOCOL_TEXT_MSG_START_OFF;
 
-  if(timePeriodLen == 0 || setPeriodCmd->textData == NULL)
+  if(timePeriodLen == 0 || setPeriodCmd->textData[0] == '\0')
   {
     syslog(LOG_ERR, "%s@%d-Error:No period value found\n", __FILE__, __LINE__);
     return -EINVAL;
