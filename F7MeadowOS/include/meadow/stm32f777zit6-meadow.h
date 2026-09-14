@@ -143,8 +143,8 @@ void stm32_usbinitialize(void);
  * Name: stm32_spidev_initialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the stm32f769i-disco
- *   board.
+ *   Called to configure SPI chip select GPIO pins for the
+ *   stm32f777zit6-meadow board.
  *
  ****************************************************************************/
 
