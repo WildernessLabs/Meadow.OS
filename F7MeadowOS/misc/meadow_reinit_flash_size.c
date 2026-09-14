@@ -69,6 +69,7 @@ void meadow_qspi_hw_reinitialize(int flashSize)
   // Reconfigure QSPI Flash Size, must assume CS High Time and Clock Mode
   // are already set correctly
   regval = getreg32(STM32_QUADSPI_DCR);
+  regval &= ~QSPI_DCR_FSIZE_MASK;
   if (0 != flashSize)
     {
       unsigned int nsize = flashSize;
