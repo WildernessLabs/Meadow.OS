@@ -314,6 +314,11 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
 
   pwrmgmt_rtc_wprlock();
 
+  // Restore Battery Backed Registers. Unrelated to RTC sync status below, so
+  // this must happen regardless of whether synchwait() times out.
+  putreg32(saveMagicRegi, RTC_MAGIC_REG);
+  putreg32(saveMeadowReg, HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
+
   //----------------------------------------------------------
   // Loop, attempting to initialize/resume the RTC. This loop is necessary
   // because it seems that occasionally it takes longer to initialize the
@@ -335,10 +340,6 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
     return -ETIMEDOUT;
   }
   //----------------------------------------------------------
-
-  // Restore Battery Backed Registers
-  putreg32(saveMagicRegi, RTC_MAGIC_REG);
-  putreg32(saveMeadowReg, HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER);
 
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
   // Signal the debug code that the source cloci forRTC has changed
