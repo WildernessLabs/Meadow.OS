@@ -59,7 +59,7 @@
 // Note: There's a lot of useful code in /arch/arm/src/stm32f7/stm32_rtc.c.
 // However, the public functions are limited to common things like setting
 // time and setting alarms. The type of low-level functionality needed here
-// is not available. Some of the stm32_rtc.c code has be duplicated here.
+// is not available. Some of the stm32_rtc.c code has been duplicated here.
 //
 
 /****************************************************************************
@@ -113,8 +113,8 @@ volatile uint32_t _prevISRCount;
 volatile uint32_t _elapsedCount;
 static int _pwrmgmt_lsi_calc_thread_id;
 
-// These variables need to be shared 
-static uint32_t _lsiRtcPrer;    // Set here, read on to switch
+// These variables need to be shared
+static volatile uint32_t _lsiRtcPrer;    // Set here, read on to switch
 
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
 static bool _dbgClkSwitched;    // Set on both sides, read here
@@ -140,7 +140,7 @@ static int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq, uint8_t
 
 //=============================================================
 // This function returns the LSI pre-scaler values set here
-uint32_t pwrmgmt_get_lsi_calib_rtc_clk_value()
+uint32_t pwrmgmt_get_lsi_calib_rtc_clk_value(void)
 {
   return _lsiRtcPrer;
 }
@@ -158,14 +158,14 @@ void pwrmgmt_rtc_source_clk_changed_flag(bool dbgClkSwitched)
 //=============================================================
 // This ISR is only used to measure the LSI frequency for a moment
 static int pwrmgmt_lsi_use_isr_lsi_clock(int irq, void *context, void *arg)
-{  
+{
   uint16_t timStatusReg = getreg16(STM32_TIM5_SR);
 
   // Get interrupt on rising edge
   if(timStatusReg & GTIM_SR_CC4IF)
   {
     timStatusReg &= ~GTIM_SR_CC4IF;
-  
+
     uint32_t currentCount = getreg32(STM32_TIM5_CCR4);
 
     // Roll over? If it did ignore data
@@ -188,7 +188,7 @@ static void pwrmgmt_lsi_enable_timer_5(void)
 {
   uint16_t cr1Val = getreg16(STM32_TIM5_CR1);
   cr1Val |= GTIM_CR1_CEN;
-  
+
   uint16_t egrVal = getreg16(STM32_TIM5_EGR);
   egrVal |= GTIM_EGR_UG;
 
@@ -205,7 +205,7 @@ static void pwrmgmt_lsi_disable_timer_5(void)
   putreg16(regval, STM32_TIM5_CR1);
 }
 
-//====================================================================
+//=============================================================
 // This function is called during startup. It is responsible for finding the
 // LSI clock frequency and the needed factors for calibrating the RTC hardware.
 // This function creates a thread so the rest of the initialization
@@ -240,13 +240,13 @@ int pwrmgmt_init_lsi_calib(void)
     syslog(LOG_ERR, "%s@%d-LSI calc freq failed:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
-  
+
   return ret;
 }
 
-//=====================================================================
+//=============================================================
 // Create a thread to do the early initialization
-int pwrmgmt_create_lsi_calc_thread()
+static int pwrmgmt_create_lsi_calc_thread(void)
 {
   // Create a thread to use for experimenting
   _pwrmgmt_lsi_calc_thread_id = kthread_create(PWRMGMT_CAL_LSI_THREAD_NAME,
@@ -254,7 +254,7 @@ int pwrmgmt_create_lsi_calc_thread()
                                   PWRMGMT_CAL_LSI_THREAD_STACKSIZE,
                                   (main_t) pwrmgmt_lsi_calc_prep_thread_func,
                                   (char *const *) NULL);
-  if (_pwrmgmt_lsi_calc_thread_id <= 0)
+  if(_pwrmgmt_lsi_calc_thread_id <= 0)
   {
     syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
               __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
@@ -267,7 +267,7 @@ int pwrmgmt_create_lsi_calc_thread()
 //=============================================================
 // This thread function will calculate the calibration needed for the LSI
 // clocks timing error. It is called before entering the low-power mode.
-void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
+static void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
 {
   int ret;
   double lsiMeasuredFreq;
@@ -347,7 +347,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
   // to the RTC_PRER register.
   _lsiRtcPrer = (uint32_t)PreDivS << RTC_PRER_PREDIV_S_SHIFT |
           (uint32_t)PreDivA << RTC_PRER_PREDIV_A_SHIFT;
-  
+
 #if PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING > 0
   // Warning: this thread is created unconditionally at boot
   // (pwrmgmt_init_lsi_calib(), called from meadow_power_mgmt_initialize()),
@@ -466,7 +466,7 @@ void *pwrmgmt_lsi_calc_prep_thread_func(int argc, char *argv[])
 
 //=============================================================
 // Low-level register setup for Timer 5
-int pwrmgmt_lsi_init_timer_5_for_measuring(void)
+static int pwrmgmt_lsi_init_timer_5_for_measuring(void)
 {
   int ret;
   uint16_t regVal16;
@@ -474,33 +474,33 @@ int pwrmgmt_lsi_init_timer_5_for_measuring(void)
 
   // Before starting disable capture/control for all channels. Ref Man (26.4.7 at
   // end) "Note: CC1S bits are writable only when the channel is OFF (i.e.
-  // CC1E = 0 in TIMx_CCER)." 
+  // CC1E = 0 in TIMx_CCER)."
   regVal16 = getreg16(STM32_TIM5_CCER);
   regVal16 &= 0xeeee;   // e = 1110, clear CCxE bits 0, 4, 8 & 12
   putreg16(regVal16, STM32_TIM5_CCER);
-  
-  // Timer5 Option Register is used to connect GPIO (default), LSI, LSE or 
+
+  // Timer5 Option Register is used to connect GPIO (default), LSI, LSE or
   // RTC wakeup interrupt to Timer 5 Channel 4
   regVal16 = getreg16(STM32_TIM5_OR);
   regVal16 &= ~TIM5_OR_TI4_RMP_MASK;  // Clear the bits
   regVal16 |= TIM5_OR_TI4_LSI;        // Use LSI to measure its frequency
   putreg16(regVal16, STM32_TIM5_OR);
-  
+
   // 01: CC4 channel mapped on TI4
   regVal32 = getreg32(STM32_TIM5_CCMR2);
   regVal32 |= 0x00000100;   // 0x0100 = 0100, set bits 9:8
   putreg32(regVal32, STM32_TIM5_CCMR2);
-  
+
   // GTIM_CCER_CC4NP (bit 15) & GTIM_CCER_CC4P (bit 13)
   // Set 00 rising only, 01 falling, 11 both rising and falling
   // Clear both bits for rising only.
   regVal16 = getreg16(STM32_TIM5_CCER);
   regVal16 &= ~(GTIM_CCER_CC4P | GTIM_CCER_CC4NP);
   putreg16(regVal16, STM32_TIM5_CCER);
-  
+
   // Setup the clock enable
   modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM5EN);
-  
+
   // Must be between 0 and 0xffff. Set the prescaler value of 0 to allow
   // highest speed. A prescaler value of 1 will divide the clock by 2.
   // Timer 5 (STM32_APB1_TIM5_CLKIN).
@@ -530,7 +530,7 @@ int pwrmgmt_lsi_init_timer_5_for_measuring(void)
   // Clear all interrupt sources and set the ones we need in the DMA/Interrupt
   // enable register (DIER). Note: Advanced timers 1 & 8 add ATIM_DIER_COMIE,
   // ATIM_DIER_BIE and ATIM_DIER_COMDE
-  modifyreg16(STM32_TIM5_BASE + STM32_GTIM_DIER_OFFSET, 
+  modifyreg16(STM32_TIM5_BASE + STM32_GTIM_DIER_OFFSET,
           GTIM_DIER_TDE   | GTIM_DIER_CC4DE | GTIM_DIER_CC3DE | GTIM_DIER_CC2DE |
           GTIM_DIER_CC1DE | GTIM_DIER_UDE   | GTIM_DIER_TIE   | GTIM_DIER_CC4IE |
           GTIM_DIER_CC3IE | GTIM_DIER_CC2IE | GTIM_DIER_CC1IE | GTIM_DIER_UIE,
@@ -555,30 +555,37 @@ int pwrmgmt_lsi_init_timer_5_for_measuring(void)
   // 0.6 micro amps max. while running.
   modifyreg32(STM32_RCC_CSR, 0, RCC_CSR_LSION);
 
-  // Wait for the internal RC oscillator to become stable
-  while ((getreg32(STM32_RCC_CSR) & RCC_CSR_LSIRDY) == 0);
+  // Wait for the internal RC oscillator to become stable. Intentionally
+  // unbounded: mainline Nuttx's own stm32_lsi.c (arch/arm/src/stm32f7/
+  // stm32_lsi.c) waits the same way, and has done so reliably across many
+  // systems for years. A hardware failure here isn't something a software
+  // timeout can meaningfully recover from.
+  while((getreg32(STM32_RCC_CSR) & RCC_CSR_LSIRDY) == 0);
 
   return OK;
 }
 
-//================================================================
+//=============================================================
 // This function will measure the frequency of the LSI clock using the
 //  data via Timer5's ISR
-int pwrmgmt_lsi_calculate_lsi_clock_freq(double *lsiMeasuredFreq)
+static int pwrmgmt_lsi_calculate_lsi_clock_freq(double *lsiMeasuredFreq)
 {
   static uint32_t freqCount;
   static uint32_t isrCount = 0;
   static uint64_t totCount = 0;
 
   // Measure the clock frequency x times, waiting y usec
-  for (freqCount = 0; freqCount < PWRMGMT_CLK_CAL_MEASURE_CLK_COUNT; freqCount++)
+  for(freqCount = 0; freqCount < PWRMGMT_CLK_CAL_MEASURE_CLK_COUNT; freqCount++)
   {
     // Pause a moment
     usleep(PWRMGMT_CLK_CAL_MEASURE_CLK_DELAY);
 
     // Ignore possibly bad values. Warning: this loop will never exit if there
-    // are no ISR interrupts.
-    for ( ; ; )
+    // are no ISR interrupts. Intentionally unbounded, same rationale as
+    // pwrmgmt_lsi_init_timer_5_for_measuring()'s LSIRDY wait above: a
+    // hardware failure here isn't something a software timeout can
+    // meaningfully recover from.
+    for( ; ; )
     {
       // We should not have the same count as last time
       if(isrCount != _elapsedCount)
@@ -595,13 +602,13 @@ int pwrmgmt_lsi_calculate_lsi_clock_freq(double *lsiMeasuredFreq)
   // Since we know the clock frequency of Timer 5 and the average number of
   // counts between the LSI clock's rising edges we have everything we need.
   *lsiMeasuredFreq = (double)(PWRMGMT_CLK_TIMER_5_BASE_CLOCK_FREQ) / (double) (totCount/freqCount);
-  
+
   MEADOW_TRACE_DEBUG("LSI Average Frequency:%06.03f\n", *lsiMeasuredFreq);
 
   return OK;
 }
 
-//================================================================
+//=============================================================
 // In STMicro's AN4759 Rev 7 section 2.1.4 there is a brief section on
 // adjusting the RTC clock to match the input frequency of the reference
 // clock, LSI in our case. There are 2 factors needed and the product
@@ -609,13 +616,14 @@ int pwrmgmt_lsi_calculate_lsi_clock_freq(double *lsiMeasuredFreq)
 // result in a RTC clock frequency of 1 Hz.
 // The following code finds these 2 factors, however, the factors needed by
 // the MCU's hardware needs both factors to be 1 less than calculated.
-int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
+static int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
           uint8_t *PreDivA, uint16_t *PreDivS)
 {
   // int ret;
   uint8_t preDivA;
   uint16_t initialPreDivS;
   uint16_t chkOffset;
+  int32_t chkDiffSigned;
   uint16_t chkDiff = 0xffff;
   uint16_t smallestDiff = 0xffff;
   uint8_t smallestDivA = 127;
@@ -629,7 +637,7 @@ int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
   if(lsiMeasuredFreq == (double)PWRMGMT_CLK_CAL_TARGET_FREQUENCY)
   {
     // Use the default values
-     MEADOW_TRACE_DEBUG("**Perfect:%u**\n", lsiMeasuredFreq);
+     MEADOW_TRACE_DEBUG("**Perfect:%.3f**\n", lsiMeasuredFreq);
     *PreDivA = 127;
     *PreDivS = 255;
     return OK;
@@ -640,16 +648,20 @@ int pwrmgmt_lsi_calc_rtc_prescaler_values(double lsiMeasuredFreq,
   // goal is to find the largest PREDIVA, that when multiplied by PREDIVS
   // results in a value as close as possible to the lsiMeasuredFreq. This will
   // result in the RTC receiving, as close as possible, the needed 1Hz clock.
-  for (preDivA = 127; preDivA >= 2; preDivA--)
-  {    
+  for(preDivA = 127; preDivA >= 1; preDivA--)
+  {
     // To be thorough check above and below our initial guess too
     initialPreDivS = (lsiTargetFreq / preDivA) + 2;   // Start above
 
     // Is this closest to our average frequency target (i.e. smallest
     // difference)?
-    for (chkOffset = 0; chkOffset <  4; chkOffset++)
-    {  
-      chkDiff = (preDivA * initialPreDivS) - lsiTargetFreq;
+    for(chkOffset = 0; chkOffset < 4; chkOffset++)
+    {
+      // Compute in a signed intermediate and take the absolute value: a
+      // candidate that undershoots the target would otherwise underflow
+      // the unsigned chkDiff.
+      chkDiffSigned = (preDivA * initialPreDivS) - lsiTargetFreq;
+      chkDiff = (uint16_t)(chkDiffSigned < 0 ? -chkDiffSigned : chkDiffSigned);
       if(chkDiff < smallestDiff)
       {
          MEADOW_TRACE_DEBUG("*** New smallest - chkOffset:%u, A(%03u) * S(%04u) = %05lu (dif:%03u)\n",
