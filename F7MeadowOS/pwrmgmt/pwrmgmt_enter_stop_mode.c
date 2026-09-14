@@ -131,7 +131,7 @@ enum MeadowWakeupReason_e
 static bool _firstTime = true;
 #endif
 
-static bool _isMeadowInStopMode = false;
+static volatile bool _isMeadowInStopMode = false;
 static enum MeadowWakeupReason_e _wakeupReason = wake_reason_unknown;
 
 /************************************************************************************
@@ -407,13 +407,13 @@ int pwrmgmt_enter_stop_mode(void)
   // before entering the STOP mode Data Synchronous Barrier (DSB) just after
   // the write operation. This will force the CPU to respect the sequence of
   // instructions (no optimization).
-  asm volatile ("dsb");   // All memory access needs to be completed
-  asm volatile ("isb");   // Throw away prefetched instructions, execute in order
+  asm volatile ("dsb" ::: "memory");   // All memory access needs to be completed
+  asm volatile ("isb" ::: "memory");   // Throw away prefetched instructions, execute in order
 
   // Put into stop-mode
-  asm volatile ("sev");    // Set an event
-  asm volatile ("wfe");    // Clear just set Event, we know our state now
-  asm volatile ("wfe");    // This is the wait that forces low-power to begin
+  asm volatile ("sev" ::: "memory");    // Set an event
+  asm volatile ("wfe" ::: "memory");    // Clear just set Event, we know our state now
+  asm volatile ("wfe" ::: "memory");    // This is the wait that forces low-power to begin
 
   //----------------------------------------------------------------------
   // The calling thread is stopped here while in Stop Mode
