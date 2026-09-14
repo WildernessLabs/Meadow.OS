@@ -297,20 +297,20 @@ int pwrmgmt_switch_rtc_as_per_args(uint32_t clkSrc, uint32_t rtcPrer)
   {
     syslog(LOG_ERR, "%s@%d-Error: pwrmgmt_rtc_enterinit() returned %d\n",
               __FILE__, __LINE__, ret);
+    pwrmgmt_rtc_wprlock();
+    return ret;
   }
-  else
-  {
-    // Write the 2 pre-scaler values that calibrate the RTC for the desired
-    // clock. These values (PREDIV_A 22:16 and PREDIV_S 14:0) have already been
-    // pre-combined.
-    putreg32(rtcPrer, STM32_RTC_PRER);
 
-    // Restore time and date
-    putreg32(tr_bkp, STM32_RTC_TR);
-    putreg32(dr_bkp, STM32_RTC_DR);
+  // Write the 2 pre-scaler values that calibrate the RTC for the desired
+  // clock. These values (PREDIV_A 22:16 and PREDIV_S 14:0) have already been
+  // pre-combined.
+  putreg32(rtcPrer, STM32_RTC_PRER);
 
-    pwrmgmt_rtc_exitinit();
-  }
+  // Restore time and date
+  putreg32(tr_bkp, STM32_RTC_TR);
+  putreg32(dr_bkp, STM32_RTC_DR);
+
+  pwrmgmt_rtc_exitinit();
 
   pwrmgmt_rtc_wprlock();
 
