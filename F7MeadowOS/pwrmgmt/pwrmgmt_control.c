@@ -257,7 +257,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 
   // Don't sleep for less than 2 seconds
   if(wakeupPeriod < 2)
-    return OK;
+    return PWRMGMT_SLEEP_SKIPPED_TOO_SHORT;
 
 #if defined (PWRMGMT_LOW_PWR_EXIT_USE_RTC_ALARM)
   // The STM32F7's internal alarm clock uses day of month and HH:mm:ss but not

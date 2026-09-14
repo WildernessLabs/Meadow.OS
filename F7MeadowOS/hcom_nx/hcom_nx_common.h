@@ -195,6 +195,12 @@ extern "C"
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
   // This functions allow mono to access power management
 
+  // Distinct informational return from pwrmgmt_enter_stm32f7_stop_mode() when
+  // wakeupPeriod is below the minimum and the call is a no-op (didn't
+  // actually sleep). Positive, so it's distinguishable from OK (0, a
+  // completed sleep cycle) and from a negative error code.
+  #define PWRMGMT_SLEEP_SKIPPED_TOO_SHORT (1)
+
   // Public functions to manage power management
   int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
   int pwrmgmt_most_recent_wakeup_reason(void);
