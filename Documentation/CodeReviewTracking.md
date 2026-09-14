@@ -233,7 +233,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Reviewed | 2026-08-28 | #367 | Mark |  |
 | C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Reviewed | 2026-08-28 | #364 | Mark |  |
-| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | Reviewed | 2026-08-28 | #366 | TBD |  |
+| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | *Reviewed | 2026-08-28 | #366 | TBD | Both findings fixed: added missing #include <stdint.h>/<stdbool.h>/<sys/types.h> (header wasn't self-contained), added a compile-time #if guard against MEADOW_FLASH_PART_SIZE_UNUSED_SPACE going negative; built with no warnings and smoketested; issue closed via PR |
 | C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | *Reviewed | 2026-08-28 | #368 | Peter |  |
 | C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | *Reviewed | 2026-08-28 | #365 | Peter |  |
 | C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
