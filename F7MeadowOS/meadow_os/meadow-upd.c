@@ -274,7 +274,6 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     case MUPD_PWR_SLEEP1:
     case MUPD_PWR_SLEEP2:
       return upd_handle_sleep_command((struct upd_sleep_cmd *)arg);
-      return EINVAL;
 
 #if defined (CONFIG_MEADOW_HCOM)
   //=========================================================================
