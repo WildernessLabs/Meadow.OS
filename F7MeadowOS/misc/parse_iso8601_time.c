@@ -191,6 +191,17 @@ int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDataTimeLen,
 {
   int sscanfArgOff;
 
+  // Every access below goes at most to offset MEADOW_ISO_8601_DOT_ELEMENT_OFFSET
+  // (15) before sscanf() is ever called, so the string must be at least that
+  // long. Using MEADOW_ISO_8601_MIN_INPUT_STR_LEN (19) here would incorrectly
+  // reject a valid, minimal condensed-format string (16 characters, e.g.
+  // "20220331T173425Z").
+  if(isoDataTimeLen <= MEADOW_ISO_8601_DOT_ELEMENT_OFFSET)
+  {
+    syslog(LOG_ERR, "Date Time format error for '%s', too short\n", isoDateTime);
+    return -EINVAL;
+  }
+
   // Identify the actual format so we know how to parse this string
   if(isoDateTime[MEADOW_ISO_8601_DOT_ELEMENT_OFFSET] == 'Z' &&
           isoDateTime[MEADOW_ISO_8601_CON_T_ELEMENT_OFFSET] == 'T')
