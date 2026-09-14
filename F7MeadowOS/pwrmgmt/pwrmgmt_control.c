@@ -348,10 +348,10 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
-    sem_post(&_lowPwrCtrlEntry);
-
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
+
+    sem_post(&_lowPwrCtrlEntry);
     return ret;
   }
 
@@ -363,10 +363,10 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
 
-    sem_post(&_lowPwrCtrlEntry);
-
     (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
+
+    sem_post(&_lowPwrCtrlEntry);
     return ret;
   }
 
@@ -384,6 +384,8 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+
+    (void) pwrmgmt_notify_registered_modules(false);
     pwrmgmt_idle_behavior_control(true);
 
     sem_post(&_lowPwrCtrlEntry);
