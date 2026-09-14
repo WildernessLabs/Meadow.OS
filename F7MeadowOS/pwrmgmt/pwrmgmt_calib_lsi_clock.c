@@ -555,7 +555,11 @@ int pwrmgmt_lsi_init_timer_5_for_measuring(void)
   // 0.6 micro amps max. while running.
   modifyreg32(STM32_RCC_CSR, 0, RCC_CSR_LSION);
 
-  // Wait for the internal RC oscillator to become stable
+  // Wait for the internal RC oscillator to become stable. Intentionally
+  // unbounded: mainline Nuttx's own stm32_lsi.c (arch/arm/src/stm32f7/
+  // stm32_lsi.c) waits the same way, and has done so reliably across many
+  // systems for years. A hardware failure here isn't something a software
+  // timeout can meaningfully recover from.
   while ((getreg32(STM32_RCC_CSR) & RCC_CSR_LSIRDY) == 0);
 
   return OK;
@@ -577,7 +581,10 @@ int pwrmgmt_lsi_calculate_lsi_clock_freq(double *lsiMeasuredFreq)
     usleep(PWRMGMT_CLK_CAL_MEASURE_CLK_DELAY);
 
     // Ignore possibly bad values. Warning: this loop will never exit if there
-    // are no ISR interrupts.
+    // are no ISR interrupts. Intentionally unbounded, same rationale as
+    // pwrmgmt_lsi_init_timer_5_for_measuring()'s LSIRDY wait above: a
+    // hardware failure here isn't something a software timeout can
+    // meaningfully recover from.
     for ( ; ; )
     {
       // We should not have the same count as last time
