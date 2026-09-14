@@ -21,6 +21,10 @@
 #ifndef __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 #define __INCLUDE_MEADOWOS_PARTITION_SHARE_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <sys/types.h>
+
 // This enables the ouput of partition information at startup
 #define HCOM_NX_CREATE_FS_DISPLAY_PARTITION_AT_STARTUP (1)
 
@@ -65,6 +69,11 @@
                                               MEADOW_FLASH_PART_SIZE_OTA_STATE + \
                                               MEADOW_FLASH_PART_SIZE_OS_PERSIST + \
                                               MEADOW_FLASH_PART_SIZE_ASSERT_DATA))
+
+#if MEADOW_FLASH_PART_SIZE_UNUSED_SPACE < 0
+#error "MEADOW_FLASH_PART_SIZE_UNUSED_SPACE went negative -- check the flash \
+partition size constants in hcom_shared_common.h"
+#endif
 
 // Partition assignments
 #define MEADOW_FLASH_PART_OFFSET_RUNTIME        (0)
