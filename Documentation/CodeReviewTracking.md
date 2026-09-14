@@ -4,8 +4,17 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-10. Tables A, B, and C are
-all now fully reviewed (excluding Mark's esp32/espcp rows, out of scope).
+**Review timeline:** started 2026-08-13, last updated 2026-09-14. Tables A, B, and C are
+all now fully reviewed (excluding Mark's esp32/espcp rows and all Cell-owned rows, out of
+scope -- see the Original Author note below).
+
+**"Cell Owner" placeholder (added 2026-09-14):** cellular-modem-related files
+(`apps/system/hcom/cell/`, `apps/system/hcom/tests/cell_tests.c`,
+`F7MeadowOS/kerneltests/bg77_tests.{c,h}`) are attributed to a generic "Cell Owner" rather
+than a specific individual -- this is a feature/subsystem-based ownership designation, not
+a real person. Cell-owned files are out of scope for this review effort going forward,
+same as Mark's esp32/espcp rows: don't pick up new ones, and existing filed issues stay
+open for that team to handle.
 
 ## Scope
 
@@ -82,10 +91,10 @@ each confirmed unreferenced by any build config; see the Scope section above for
 
 | ID | File | Status | Date | Issue | Original Author | Notes |
 |----|------|--------|------|-------|------------------|-------|
-| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Reviewed | 2026-08-27 | #333 | Halysson Carvalho |  |
-| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Reviewed | 2026-08-27 | #334 | Halysson Carvalho |  |
-| B03 | apps/system/hcom/cell/hcom_pppd.c | Reviewed | 2026-08-27 | #332 | Eduardo Menezes | Confirmed not in HCOM_SRCS; wouldn't compile if re-enabled as-is |
-| B04 | apps/system/hcom/cell/hcom_pppd.h | Reviewed | 2026-08-27 |  | Eduardo Menezes | No confirmed findings |
+| B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Reviewed | 2026-08-27 | #333 | Cell Owner |  |
+| B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Reviewed | 2026-08-27 | #334 | Cell Owner |  |
+| B03 | apps/system/hcom/cell/hcom_pppd.c | Reviewed | 2026-08-27 | #332 | Cell Owner | Confirmed not in HCOM_SRCS; wouldn't compile if re-enabled as-is |
+| B04 | apps/system/hcom/cell/hcom_pppd.h | Reviewed | 2026-08-27 |  | Cell Owner | No confirmed findings |
 | B05 | apps/system/hcom/comms/hcom_host_encode.c | *Reviewed | 2026-08-13 | #300 | Peter |  |
 | B06 | apps/system/hcom/comms/hcom_host_enq_deq.c | *Reviewed | 2026-08-13 | #301 | Peter |  |
 | B07 | apps/system/hcom/comms/hcom_host_preprocess.c | *Reviewed | 2026-08-13 | #302 | Peter | F001 also tracked in #301 (hcom_host_enq_deq.c) |
@@ -133,7 +142,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B49 | apps/system/hcom/ota/hcom_ota.c | *Reviewed | 2026-08-27 | #337 | Alexis Christoforides |  |
 | B50 | apps/system/hcom/ota/hcom_ota.h | Reviewed | 2026-08-27 |  | Mark | No confirmed findings |
 | B51 | apps/system/hcom/tests/bbreg_tests.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=bbr; no obvious hazard |
-| B52 | apps/system/hcom/tests/cell_tests.c | Reviewed | 2026-08-25 |  | Halysson Carvalho | Orphaned -- absent from HCOM_SRCS in apps/system/hcom/Makefile, not compiled, no .o produced, no dispatch entry in developer_tests.c |
+| B52 | apps/system/hcom/tests/cell_tests.c | Reviewed | 2026-08-25 |  | Cell Owner | Orphaned -- absent from HCOM_SRCS in apps/system/hcom/Makefile, not compiled, no .o produced, no dispatch entry in developer_tests.c |
 | B53 | apps/system/hcom/tests/developer_tests.c | Reviewed | 2026-08-25 |  | Peter | CLI dispatcher for all tests/ files (not a test body itself); no obvious hazard in the dispatch logic |
 | B54 | apps/system/hcom/tests/diag_ethernet_chat_test.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=chat; no obvious hazard |
 | B55 | apps/system/hcom/tests/diag_gpio_tests.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=gpio; no obvious hazard |
@@ -243,8 +252,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Reviewed | 2026-09-01 | #423 | Mark |  |
 | C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | *Reviewed | 2026-08-28 | #369 | Geoff Norton | 3/5 findings fixed (branch `issue369-stm32-meadow-header-cleanup`): dead `stm32_quadspi_init` declaration removed, `stm32_usbinitialize` and `stm32_spidev_initialize` doc comments corrected (wrong caller/board name, typo); the 2 GPIO-speed findings (`GPIO_OTGFS_PWRON`, LED pins) Won't Fix -- functional today, EMI-margin nitpicks only; issue closed via PR |
 | C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | *Reviewed (light) | 2026-08-28 | #370 | Peter |  |
-| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #371 | Mark |  |
-| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Mark | Byte-identical stub header, findings tracked in #371 (bg77_tests.c) |
+| C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #372 | Cell Owner | Original-Author corrected from Mark -- git history shows only Alexis Christoforides/Peter; reassigned to Cell Owner per feature-based ownership. Issue number corrected from #371 (mismatch) |
+| C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Cell Owner | Byte-identical stub header, findings tracked in #372 (bg77_tests.c) |
 | C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | *Reviewed (light) | 2026-08-28 | #373 | Peter |  |
 | C098 | F7MeadowOS/kerneltests/espcp_tests.c | *Reviewed (light) | 2026-08-28 | #374 | Mark |  |
 | C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
