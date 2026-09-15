@@ -59,6 +59,7 @@ static struct mq_attr recvMsgQAttr;
 static bool _waitingForBinary;
 static uint8_t _currentExpectRecvCommand;
 static host_com_cir_buffer_t *_esp_cir_buf;
+static uint8_t *_packetBuffer;
 
 static int32_t _diagBufferedCount;
 
@@ -99,6 +100,13 @@ int hcom_esp32_recv_setup_lazy()
     return -1;
   }
 
+  _packetBuffer = malloc(HCOM_ESP_COMMS_MAX_ESP_PACKET_SIZE);
+  if (_packetBuffer == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-packet buffer allocation failed\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+
   recvMsgQAttr.mq_maxmsg = HCOM_ESP_COMMS_MSG_QUEUE_MAX_MSGS;
   recvMsgQAttr.mq_msgsize = HCOM_ESP32_MQ_RECVD_DATA_STRUCT_LENGTH;
   recvMsgQAttr.mq_flags = 0;
@@ -123,11 +131,7 @@ void hcom_esp32_recv_shutdown()
   mq_unlink(HCOM_ESP_COMMS_MSG_QUEUE_NAME);
   hcom_cirbuf_release_memory(_esp_cir_buf);
   free(_esp_cir_buf);
-
-  _shutting_down = false;
-  _waitingForBinary = true;
-  _currentExpectRecvCommand = Esp32CommandUndefined;  
-  _diagBufferedCount = 0;
+  free(_packetBuffer);
 }
 
 //===================================================================
@@ -195,16 +199,16 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
       // Wasn't possible to put these bytes in the buffer. We need to
       // process a few packets and then retry to add this data
       ret = hcom_esp32_recv_pull_and_process();
-      if (ret == HCOM_CIR_BUF_GET_FOUND_MSG ||
-          ret == HCOM_CIR_BUF_GET_NONE_FOUND)
+      if (ret == HCOM_CIR_BUF_GET_NONE_FOUND)
           continue;   // There should be room now for the failed add
 
-      if (ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
+      if (ret < 0)
       {
-        // The message is too long and has been deleted
-        syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
-                thisFile, __LINE__, bytesToAdd);
-        return -EFBIG;
+        // pull_and_process failed (message too big and deleted, or a
+        // protocol error) -- propagate rather than retrying blindly
+        syslog(LOG_ERR, "%s@%d-pull_and_process failed:%d\n",
+                thisFile, __LINE__, ret);
+        return ret;
       }
     }
     else if (ret == HCOM_CIR_BUF_ADD_BAD_ARG)
@@ -241,12 +245,7 @@ int hcom_esp32_recv_pull_and_process()
 {
     int ret;
     size_t packetLength;
-    uint8_t *packetBuffer = malloc(HCOM_ESP_COMMS_MAX_ESP_PACKET_SIZE);
-    if(packetBuffer == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-      return -ENOMEM;
-    }
+    uint8_t *packetBuffer = _packetBuffer;
 
     while (true)
     {
@@ -297,7 +296,6 @@ int hcom_esp32_recv_pull_and_process()
       }
     }
 
-    free(packetBuffer);
     return ret;
 }
 //=====================================================================
@@ -361,7 +359,8 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     syslog(LOG_ERR, "%s@%d-Msg too small, expected:%d, recvd:%d\n",
               __FILE__, __LINE__, HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH,
               decodedLen);
-    return -EPROTO; 
+    free(decodedMsg);
+    return -EPROTO;
   }
 
   // Populate header
@@ -371,6 +370,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
   {
     syslog(LOG_ERR, "%s@%d-Expected direct of 1, not:%d\n",
               thisFile, __LINE__, mqRecvdData.espMqHdr.direction);
+    free(decodedMsg);
     return -EIO;
   }
 
@@ -383,6 +383,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     syslog(LOG_ERR, "%s@%d-Msg length error, expected:%d, not:%d\n",
               thisFile, __LINE__, decodedLen,
               mqRecvdData.espMqHdr.size + HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH);
+    free(decodedMsg);
     return -EMSGSIZE;
   }
 
@@ -439,6 +440,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
       // EINTR (4). The call was interrupted by a signal handler.
       syslog(LOG_ERR, "%s@%d-mq_send errno:%d\n", thisFile, __LINE__, errn);
     }
+    free(decodedMsg);
   }
 
   return ret;
