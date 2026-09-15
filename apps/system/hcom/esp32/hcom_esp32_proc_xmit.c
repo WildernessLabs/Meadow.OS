@@ -55,6 +55,13 @@ static char *thisFile = __FILE__;
 static mqd_t xmitMsgQueue;
 static struct mq_attr xmitMsgQAttr;
 
+// True SLIP worst case for the largest message this file ever sends
+// (FLASH_DATA): every byte can be escaped to 2 bytes, plus the leading
+// and trailing 0xc0 frame delimiters.
+#define HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE \
+          (((HCOM_ESP32_PROTOCOL_LONGEST_BOOT_LOADER) * 2) + 2)
+static uint8_t *_encodedMsgBuffer;
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -87,6 +94,13 @@ int hcom_esp32_xmit_setup_lazy()
     return -errcode;
   }
 
+  _encodedMsgBuffer = malloc(HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE);
+  if (_encodedMsgBuffer == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-encode buffer allocation failed\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+
   return OK;
 }
 
@@ -95,6 +109,7 @@ void hcom_esp32_xmit_shutdown()
 {
   mq_close(xmitMsgQueue);
   mq_unlink(HCOM_ESP_COMMS_MSG_QUEUE_NAME);
+  free(_encodedMsgBuffer);
 }
 
 //====================================================================
@@ -130,12 +145,13 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   // leading and trailing 0xc0 frame delimiters.
   ssize_t bufferSize = (msgBodyLen + sizeof(struct HcomEsp32XmitHeader_s));
   bufferSize = (bufferSize * 2) + 2;
-  uint8_t *encodedMsg = malloc(bufferSize);
-  if(encodedMsg == NULL)
+  if(bufferSize > HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-    return -ENOMEM;
+    syslog(LOG_ERR, "%s@%d-encode buffer too small, need:%d, have:%d\n",
+              thisFile, __LINE__, bufferSize, HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE);
+    return -EFBIG;
   }
+  uint8_t *encodedMsg = _encodedMsgBuffer;
 
   ssize_t encodedOffset;
 
@@ -192,7 +208,6 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
     if(ret != -ETIMEDOUT)   // ETIMEDOUT = 116
       syslog(LOG_ERR, "%s@%d-Sending to ESP failed:%d\n", thisFile, __LINE__, ret);
 
-    free(encodedMsg);
     return ret;
   }
 
@@ -230,7 +245,6 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   }
 
   free(mqRecvdData->recvdMqData);    // Free memory allocated by receiver
-  free(encodedMsg);
   return ret;
 }
 
