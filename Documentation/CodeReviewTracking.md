@@ -112,7 +112,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | *Reviewed | 2026-08-17 | #307 | Peter |  |
 | B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | *Reviewed | 2026-08-17 | #308 | Peter |  |
 | B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Reviewed | 2026-09-15 | #582 | Peter | Stale file header path finding also filed (per-file, redundantly by request) in #583/#584/#587/#585/#586 for execute.c/proc_recv.c/proc_util.c/proc_xmit.c/uart_comms.c |
-| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Reviewed | 2026-09-15 | #583 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
+| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | *Reviewed | 2026-09-15 | #583 | Peter | All 3 findings fixed (branch `issue583-execute-error-code-fixes`); stale header path also tracked centrally in #582 (hcom_esp32_comms.h); issue closed |
 | B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Mark |  |
 | B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Mark |  |
 | B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Reviewed | 2026-09-15 | #584 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |

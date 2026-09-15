@@ -284,6 +284,7 @@ int hcom_esp32_exec_add_flash_end()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-esp32 xmit 2:%d\n", thisFile, __LINE__, ret);
+    return ret;
   }
   else if(recvdData.esp32Status)
   {
@@ -480,7 +481,7 @@ int hcom_esp32_exec_flash_file(uint8_t *file, uint32_t amount, uint32_t address,
 
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, thisFile, __LINE__);
     syslog(LOG_ERR, "%s@%d-download ESP32 start transfer:%d\n", thisFile, __LINE__, result);
-    return(-EFAULT);
+    return(result);
   }
   result = hcom_esp32_exec_copy_file_to_esp_flash(file, amount, address);
   if (result == OK)
