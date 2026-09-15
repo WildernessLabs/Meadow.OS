@@ -318,6 +318,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
         syslog(LOG_ERR, "%s@%d-Msg Cmd:0x%02x ESP32 err:0x%02x, status:%u\n",
             thisFile, __LINE__, espCommand, mqRecvdData->esp32Status, mqRecvdData->esp32Error);
         ret = -mqRecvdData->esp32Status; // For bootloader 05 - 0b
+        free(mqRecvdData->recvdMqData);
         return ret;
       }
 
