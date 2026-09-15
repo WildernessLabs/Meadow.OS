@@ -123,11 +123,6 @@ void hcom_esp32_recv_shutdown()
   mq_unlink(HCOM_ESP_COMMS_MSG_QUEUE_NAME);
   hcom_cirbuf_release_memory(_esp_cir_buf);
   free(_esp_cir_buf);
-
-  _shutting_down = false;
-  _waitingForBinary = true;
-  _currentExpectRecvCommand = Esp32CommandUndefined;  
-  _diagBufferedCount = 0;
 }
 
 //===================================================================
