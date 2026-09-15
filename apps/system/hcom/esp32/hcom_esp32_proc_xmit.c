@@ -209,6 +209,16 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
     // Note: This is NOT the whole message, it excludes the header and
     // the last 4 bytes which are for error indication and error value.
     size_t sizeOfRealData = mqRecvdData->recvdMqDataLen - HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH - 4;
+    if(sizeOfRealData > sizeof(recvdData->recvdData))
+    {
+      // Defensive backstop: a corrupted/malformed response should already
+      // be rejected in hcom_esp32_proc_recv.c, but never trust an
+      // ESP32-derived length enough to memcpy it unclamped into a
+      // fixed-size destination.
+      syslog(LOG_ERR, "%s@%d-recvdData size %zu exceeds destination %zu\n",
+                thisFile, __LINE__, sizeOfRealData, sizeof(recvdData->recvdData));
+      sizeOfRealData = sizeof(recvdData->recvdData);
+    }
     recvdData->recvdDataLen = sizeOfRealData;
     if(sizeOfRealData > 0)
     {
