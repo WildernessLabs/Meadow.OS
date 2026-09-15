@@ -303,8 +303,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 | Eduardo Menezes |  |
 | C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 | Eduardo Menezes |  |
 | C145 | F7MeadowOS/misc/parse_iso8601_time.c | *Reviewed | 2026-08-29 | #402 | Peter | All 3 findings fixed: a live HCOM-reachable heap OOB read (missing length check before offset-15 access), a `uint32_t`-returning-negative-errno type mismatch, and a parameter-name typo + `%ln`/`uint32_t` type mismatch; one sub-finding (dead debug scaffold) was already resolved by an unrelated commit; built (no warnings) and smoketested; issue closed via PR |
-| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 | TBD |  |
-| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | TBD | Findings covered in C146 issue |
+| C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 | Mark |  |
+| C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |
 | C148 | F7MeadowOS/ntpclient/ntpv3.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |
 | C149 | F7MeadowOS/pwrmgmt/pwrmgmt_calib_lsi_clock.c | *Reviewed | 2026-08-29 | #412 | Peter | Findings 3-5 fixed (signed-diff underflow, `_lsiRtcPrer` volatile, style/hygiene); findings 1-2 (unbounded LSI-hardware waits) Won't Fix -- identical pattern verified in mainline Nuttx's own stm32_lsi.c, run reliably for years, not something a software timeout can fix; built and smoketested; issue closed via PR |
 | C150 | F7MeadowOS/pwrmgmt/pwrmgmt_config_wakeup_alarm.c | *Reviewed | 2026-08-29 | #406 | Peter | All 3 findings fixed; unit tested via `--unittests=power` test 58 (full sleep/wake cycle through this file's alarm config/wakeup path, exact 10s sleep, no timeout errors); issue closed via PR. Touched again by Issue #413's cluster-wide cleanup (simplified this file's top-level compile guard once RTC Alarm became the only scheme) |
