@@ -437,6 +437,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
       // EINTR (4). The call was interrupted by a signal handler.
       syslog(LOG_ERR, "%s@%d-mq_send errno:%d\n", thisFile, __LINE__, errn);
     }
+    free(decodedMsg);
   }
 
   return ret;
