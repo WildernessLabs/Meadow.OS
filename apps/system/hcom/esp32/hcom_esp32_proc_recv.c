@@ -299,7 +299,8 @@ int hcom_esp32_recv_pull_and_process()
     return ret;
 }
 //=====================================================================
-// This is where the received binary message are decoded and processed
+// This is where the received binary message from the ESP are decoded
+// and processed
 int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen)
 {
   int ret;
@@ -383,6 +384,19 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     syslog(LOG_ERR, "%s@%d-Msg length error, expected:%d, not:%d\n",
               thisFile, __LINE__, decodedLen,
               mqRecvdData.espMqHdr.size + HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH);
+    free(decodedMsg);
+    return -EMSGSIZE;
+  }
+
+  // The trailing 4 bytes (esp32Status/esp32Error/reserved) are subtracted
+  // out of this size elsewhere, and what remains must fit the transmitter's
+  // fixed-size destination buffer -- reject anything that would underflow
+  // or overflow that later.
+  if(mqRecvdData.espMqHdr.size < 4 ||
+     mqRecvdData.espMqHdr.size - 4 > HCOM_ESP32_MQ_DATA_FIELD_SIZE)
+  {
+    syslog(LOG_ERR, "%s@%d-Msg size field out of range:%d\n",
+              thisFile, __LINE__, mqRecvdData.espMqHdr.size);
     free(decodedMsg);
     return -EMSGSIZE;
   }

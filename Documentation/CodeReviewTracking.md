@@ -117,7 +117,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Mark |  |
 | B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | *Reviewed | 2026-09-15 | #584 | Peter | 5/6 findings fixed (branch `issue584-proc-recv-leaks-and-fixes`); decodedMsg per-packet-alloc finding Won't Fix -- shared-buffer fix would trade away safety by relying on an implicit single-outstanding-command invariant for a bounded, low-frequency perf cost; stale header path also tracked centrally in #582 (hcom_esp32_comms.h); issue closed |
 | B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | *Reviewed | 2026-09-15 | #587 | Peter | Only finding fixed (branch `issue582-esp32-stale-header-paths`); also tracked centrally in #582 (hcom_esp32_comms.h); issue closed |
-| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Reviewed | 2026-09-15 | #585 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
+| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | *Reviewed | 2026-09-15 | #585 | Peter | All 5 findings fixed (branch `issue585-proc-xmit-fixes`, hardware-verified with 3 file downloads); highest-scored fix also touched hcom_esp32_proc_recv.c (#584, already closed); stale header path also tracked centrally in #582 (hcom_esp32_comms.h); issue closed |
 | B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Reviewed | 2026-09-15 | #586 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
 | B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 |  | Peter | No confirmed findings |
 | B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | *Reviewed | 2026-08-19 | #309 | Peter |  |
