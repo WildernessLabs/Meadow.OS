@@ -59,6 +59,7 @@ static struct mq_attr recvMsgQAttr;
 static bool _waitingForBinary;
 static uint8_t _currentExpectRecvCommand;
 static host_com_cir_buffer_t *_esp_cir_buf;
+static uint8_t *_packetBuffer;
 
 static int32_t _diagBufferedCount;
 
@@ -99,6 +100,13 @@ int hcom_esp32_recv_setup_lazy()
     return -1;
   }
 
+  _packetBuffer = malloc(HCOM_ESP_COMMS_MAX_ESP_PACKET_SIZE);
+  if (_packetBuffer == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-packet buffer allocation failed\n", thisFile, __LINE__);
+    return -ENOMEM;
+  }
+
   recvMsgQAttr.mq_maxmsg = HCOM_ESP_COMMS_MSG_QUEUE_MAX_MSGS;
   recvMsgQAttr.mq_msgsize = HCOM_ESP32_MQ_RECVD_DATA_STRUCT_LENGTH;
   recvMsgQAttr.mq_flags = 0;
@@ -123,6 +131,7 @@ void hcom_esp32_recv_shutdown()
   mq_unlink(HCOM_ESP_COMMS_MSG_QUEUE_NAME);
   hcom_cirbuf_release_memory(_esp_cir_buf);
   free(_esp_cir_buf);
+  free(_packetBuffer);
 }
 
 //===================================================================
@@ -236,12 +245,7 @@ int hcom_esp32_recv_pull_and_process()
 {
     int ret;
     size_t packetLength;
-    uint8_t *packetBuffer = malloc(HCOM_ESP_COMMS_MAX_ESP_PACKET_SIZE);
-    if(packetBuffer == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
-      return -ENOMEM;
-    }
+    uint8_t *packetBuffer = _packetBuffer;
 
     while (true)
     {
@@ -292,7 +296,6 @@ int hcom_esp32_recv_pull_and_process()
       }
     }
 
-    free(packetBuffer);
     return ret;
 }
 //=====================================================================
