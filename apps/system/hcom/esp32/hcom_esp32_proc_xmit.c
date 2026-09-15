@@ -126,9 +126,10 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
     return -EINVAL; 
   }
 
-  // Guess at a safe allocation for encoding (150%)
+  // True SLIP worst case: every byte can be escaped to 2 bytes, plus the
+  // leading and trailing 0xc0 frame delimiters.
   ssize_t bufferSize = (msgBodyLen + sizeof(struct HcomEsp32XmitHeader_s));
-  bufferSize += bufferSize / 2; // assume no more than 150% expansion
+  bufferSize = (bufferSize * 2) + 2;
   uint8_t *encodedMsg = malloc(bufferSize);
   if(encodedMsg == NULL)
   {
