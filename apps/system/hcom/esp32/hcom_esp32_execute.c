@@ -1,5 +1,5 @@
 /****************************************************************************
- * \apps\examples\hcom\esp32\hcom_esp32_execute.c
+ * apps/system/hcom/esp32/hcom_esp32_execute.c
  * 
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

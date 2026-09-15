@@ -4,9 +4,11 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-14. Tables A, B, and C are
-all now fully reviewed (excluding Mark's esp32/espcp rows and all Cell-owned rows, out of
-scope -- see the Original Author note below).
+**Review timeline:** started 2026-08-13, last updated 2026-09-15. Tables A, B, and C are
+all now fully reviewed (excluding Mark's `F7MeadowOS/espcp/` rows and all Cell-owned rows,
+out of scope -- see the Original Author note below). B21/B22
+(`hcom_esp32_network_monitor.{c,h}`) remain Mark's and out of scope; B19/B20/B23-B26 were
+reassigned to Peter and reviewed 2026-09-15.
 
 **"Cell Owner" placeholder (added 2026-09-14):** cellular-modem-related files
 (`apps/system/hcom/cell/`, `apps/system/hcom/tests/cell_tests.c`,
@@ -109,14 +111,14 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 |  | Peter | No confirmed findings |
 | B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | *Reviewed | 2026-08-17 | #307 | Peter |  |
 | B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | *Reviewed | 2026-08-17 | #308 | Peter |  |
-| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  | Peter |  |
-| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  | Peter |  |
+| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Reviewed | 2026-09-15 | #582 | Peter | Stale file header path finding also filed (per-file, redundantly by request) in #583/#584/#587/#585/#586 for execute.c/proc_recv.c/proc_util.c/proc_xmit.c/uart_comms.c |
+| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Reviewed | 2026-09-15 | #583 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
 | B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Mark |  |
 | B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Mark |  |
-| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  | Peter |  |
-| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  | Peter |  |
-| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  | Peter |  |
-| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  | Peter |  |
+| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Reviewed | 2026-09-15 | #584 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
+| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | *Reviewed | 2026-09-15 | #587 | Peter | Only finding fixed (branch `issue582-esp32-stale-header-paths`); also tracked centrally in #582 (hcom_esp32_comms.h); issue closed |
+| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Reviewed | 2026-09-15 | #585 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
+| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Reviewed | 2026-09-15 | #586 | Peter | Stale header path also tracked centrally in #582 (hcom_esp32_comms.h) |
 | B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 |  | Peter | No confirmed findings |
 | B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | *Reviewed | 2026-08-19 | #309 | Peter |  |
 | B29 | apps/system/hcom/file/hcom_file_dnld_esp32.c | *Reviewed | 2026-08-19 | #310 | Peter |  |
