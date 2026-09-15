@@ -121,11 +121,9 @@ void hcom_esp32_uart_comms_shutdown()
 
   _shutting_down = true;
 
-  hcom_esp32_recv_shutdown();
-  hcom_esp32_xmit_shutdown();
-  hcom_esp32_util_shutdown();
-
-  // Kill esp32 receive thread
+  // Stop the receive thread first -- it's the only thing that touches
+  // the message queues and circular buffer torn down below, so nothing
+  // may free/close them until it's confirmed stopped.
   pthread_cancel(_esp32_recv_thread);
 
   ret = pthread_join(_esp32_recv_thread, NULL);
@@ -134,6 +132,10 @@ void hcom_esp32_uart_comms_shutdown()
     syslog(LOG_ERR, "%s@%d-pthread join failed:%d, errno:%d\n", thisFile, __LINE__, ret, errno);
     return;
   }
+
+  hcom_esp32_recv_shutdown();
+  hcom_esp32_xmit_shutdown();
+  hcom_esp32_util_shutdown();
 
   // Close everything open
   if(_esp32_read_fd > -1)
