@@ -409,11 +409,9 @@ int hcom_esp32_uart_comms_write_serial(uint8_t* espWriteBuf, size_t espWriteSize
 
       continue;
     }
-    
-    if(remainingBytes == 0)
-      return toWriteOffset;
 
     syslog(LOG_ERR, "%s@%d-ESP32 write errno:%d\n", thisFile, __LINE__, errno);
+    return -errno;
   }
-  return writeRet;
+  return toWriteOffset;
 }
