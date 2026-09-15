@@ -65,27 +65,27 @@ each confirmed unreferenced by any build config; see the Scope section above for
 
 | ID | File | Status | Date | Issue | Owner | Notes |
 |----|------|--------|------|-------|-------|-------|
-| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Reviewed | 2026-09-01 | #443 | TBD | Meadow-specific board variant, no upstream equivalent |
-| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Reviewed | 2026-09-01 | #442 | TBD | Meadow-specific board variant, no upstream equivalent |
-| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Reviewed | 2026-09-01 |  | Geoff Norton | No confirmed findings; generic NuttX board_app_initialize() boilerplate |
-| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Reviewed | 2026-09-01 | #433 | Geoff Norton | Derived from stm32f769i-disco |
-| A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | *Reviewed | 2026-09-01 | #429 | Geoff Norton | Derived from stm32f769i-disco (see #426) |
-| A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Reviewed | 2026-09-01 | #430 | TBD | Derived from stm32f769i-disco |
-| A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Reviewed | 2026-09-01 |  | Geoff Norton | No confirmed findings; near-unmodified copy of stm32f769i-disco, dead code (CONFIG_ARCH_BUTTONS unset everywhere) |
-| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | *Reviewed | 2026-09-01 | #440 | TBD | Derived from nucleo-f767zi |
-| A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Reviewed | 2026-09-01 | #431 | Geoff Norton | Derived from stm32f769i-disco (only sibling board with an extmem.c) |
-| A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Reviewed | 2026-09-01 | #436 | Geoff Norton | Meadow's own carried-forward Legacy code |
-| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Reviewed | 2026-09-01 | #441 | TBD | Meadow's own restored file (Issue200 precedent) |
-| A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Reviewed | 2026-09-01 | #439 | Geoff Norton | Meadow's own carried-forward Legacy code |
-| A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Reviewed | 2026-09-01 | #438 | Joao Matos | Meadow's own carried-forward Legacy code |
+| A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Reviewed | 2026-09-01 | #443 | Mark | Meadow-specific board variant, no upstream equivalent |
+| A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Reviewed | 2026-09-01 | #442 | Mark | Meadow-specific board variant, no upstream equivalent |
+| A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Reviewed | 2026-09-01 |  | Peter | No confirmed findings; generic NuttX board_app_initialize() boilerplate |
+| A05 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_autoleds.c | Reviewed | 2026-09-01 | #433 | Peter | Derived from stm32f769i-disco |
+| A06 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_boot.c | *Reviewed | 2026-09-01 | #429 | Peter | Derived from stm32f769i-disco (see #426) |
+| A07 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_bringup.c | Reviewed | 2026-09-01 | #430 | Peter | Derived from stm32f769i-disco |
+| A08 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_buttons.c | Reviewed | 2026-09-01 |  | Peter | No confirmed findings; near-unmodified copy of stm32f769i-disco, dead code (CONFIG_ARCH_BUTTONS unset everywhere) |
+| A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | *Reviewed | 2026-09-01 | #440 | Peter | Derived from nucleo-f767zi |
+| A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | Reviewed | 2026-09-01 | #431 | Peter | Derived from stm32f769i-disco (only sibling board with an extmem.c) |
+| A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | Reviewed | 2026-09-01 | #436 | Peter | Meadow's own carried-forward Legacy code |
+| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Reviewed | 2026-09-01 | #441 | Peter | Meadow's own restored file (Issue200 precedent) |
+| A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Reviewed | 2026-09-01 | #439 | Peter | Meadow's own carried-forward Legacy code |
+| A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Reviewed | 2026-09-01 | #438 | Peter | Meadow's own carried-forward Legacy code |
 | A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Reviewed | 2026-09-01 |  | Mark | No confirmed findings; Meadow's own restored file |
-| A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Reviewed | 2026-09-01 |  | Geoff Norton | No confirmed findings; near-unmodified copy of stm32f769i-disco aside from CONFIG_STM32F7_* naming (see #426); no in-tree caller of its select/cmddata stubs found |
-| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Reviewed | 2026-09-01 | #434 | Geoff Norton | Derived from stm32f769i-disco |
-| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Reviewed | 2026-09-01 | #435 | Joao Matos | Derived from nucleo-f767zi (see also #426) |
-| A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Reviewed | 2026-09-01 | #437 | Joao Matos | Meadow's own carried-forward Legacy code |
-| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Reviewed | 2026-09-01 | #432 | Geoff Norton | Derived from stm32f769i-disco |
-| A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Reviewed | 2026-09-01 | #427 | Geoff Norton | In include/, not src/; see also #426 (upstream watch item) |
-| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Reviewed | 2026-09-01 | #428 | Joao Matos | In include/, not src/ |
+| A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Reviewed | 2026-09-01 |  | Peter | No confirmed findings; near-unmodified copy of stm32f769i-disco aside from CONFIG_STM32F7_* naming (see #426); no in-tree caller of its select/cmddata stubs found |
+| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Reviewed | 2026-09-01 | #434 | Peter | Derived from stm32f769i-disco |
+| A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Reviewed | 2026-09-01 | #435 | Peter | Derived from nucleo-f767zi (see also #426) |
+| A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Reviewed | 2026-09-01 | #437 | Peter | Meadow's own carried-forward Legacy code |
+| A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Reviewed | 2026-09-01 | #432 | Peter | Derived from stm32f769i-disco |
+| A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Reviewed | 2026-09-01 | #427 | Peter | In include/, not src/; see also #426 (upstream watch item) |
+| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Reviewed | 2026-09-01 | #428 | Peter | In include/, not src/ |
 
 ## apps/system/hcom/ (63 files)
 
@@ -107,8 +107,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B14 | apps/system/hcom/diag/hcom_diag_gpio.h | *Reviewed | 2026-08-17 | #305 | Peter |  |
 | B15 | apps/system/hcom/diag/hcom_diag_misc.c | *Reviewed | 2026-08-17 | #306 | Peter |  |
 | B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 |  | Peter | No confirmed findings |
-| B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | *Reviewed | 2026-08-17 | #307 | TBD |  |
-| B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | *Reviewed | 2026-08-17 | #308 | TBD |  |
+| B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | *Reviewed | 2026-08-17 | #307 | Peter |  |
+| B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | *Reviewed | 2026-08-17 | #308 | Peter |  |
 | B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  | Peter |  |
 | B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  | Peter |  |
 | B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Mark |  |
@@ -139,8 +139,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | *Reviewed | 2026-08-27 | #336 | Peter |  |
 | B47 | apps/system/hcom/nx_rqsts/hcom_misc_requests.c | *Reviewed | 2026-08-27 | #338 | Peter |  |
 | B48 | apps/system/hcom/nx_rqsts/hcom_via_nx_access.c | Reviewed | 2026-08-27 |  | Peter | No confirmed findings |
-| B49 | apps/system/hcom/ota/hcom_ota.c | *Reviewed | 2026-08-27 | #337 | Alexis Christoforides |  |
-| B50 | apps/system/hcom/ota/hcom_ota.h | Reviewed | 2026-08-27 |  | Mark | No confirmed findings |
+| B49 | apps/system/hcom/ota/hcom_ota.c | *Reviewed | 2026-08-27 | #337 | HCOM OTA |  |
+| B50 | apps/system/hcom/ota/hcom_ota.h | Reviewed | 2026-08-27 |  | HCOM OTA | No confirmed findings |
 | B51 | apps/system/hcom/tests/bbreg_tests.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=bbr; no obvious hazard |
 | B52 | apps/system/hcom/tests/cell_tests.c | Reviewed | 2026-08-25 |  | Cell Owner | Orphaned -- absent from HCOM_SRCS in apps/system/hcom/Makefile, not compiled, no .o produced, no dispatch entry in developer_tests.c |
 | B53 | apps/system/hcom/tests/developer_tests.c | Reviewed | 2026-08-25 |  | Peter | CLI dispatcher for all tests/ files (not a test body itself); no obvious hazard in the dispatch logic |
@@ -150,8 +150,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B57 | apps/system/hcom/tests/hcom_dir_mgmt_tests.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=dirmgmt; unbounded strcat into a fixed currentPath buffer during deep directory traversal (minor, not escalated -- needs an unusually deep tree, developer-run manual test) |
 | B58 | apps/system/hcom/tests/meadow_bbd_tests.c | Reviewed | 2026-08-25 |  | Mark | Developer-only, requires -u=bbr (Meadow OS test group); save/restore-wrapped, but a crash or power loss mid-test would leave live BBR flags in test-garbage state (inherent to the destructive-test design, not a coding bug -- not escalated) |
 | B59 | apps/system/hcom/tests/meadow_os_userspace_tests.c | Reviewed | 2026-08-25 |  | Mark | Developer-only, requires -u=os; includes a deliberate board-reset test (expected/intentional), no obvious hazard |
-| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Reviewed | 2026-08-25 |  | TBD | Developer-only, requires -u=sqlite; no obvious hazard |
-| B61 | apps/system/hcom/tests/sotest_tests.c | Reviewed | 2026-08-25 |  | TBD | Developer-only, requires -u=sotest; dlopen/dlsym exercise is the deliberate point of the test, no obvious hazard |
+| B60 | apps/system/hcom/tests/meadow_sqlite_tests.c | Reviewed | 2026-08-25 |  | Peter | Developer-only, requires -u=sqlite; no obvious hazard |
+| B61 | apps/system/hcom/tests/sotest_tests.c | Reviewed | 2026-08-25 |  | Mark | Developer-only, requires -u=sotest; dlopen/dlsym exercise is the deliberate point of the test, no obvious hazard |
 | B62 | apps/system/hcom/tests/tensorflow_tests.c | Reviewed | 2026-08-25 |  | Mark | Developer-only, requires -u=tensorflow; no obvious hazard |
 | B63 | apps/system/hcom/tests/vs_debug_tests.c | Reviewed | 2026-08-25 |  | Peter | Only reachable via mono_main_proxy(), itself dead code pending Mono build support (see hcom_mono_module_dead_code_status); no obvious hazard |
 
