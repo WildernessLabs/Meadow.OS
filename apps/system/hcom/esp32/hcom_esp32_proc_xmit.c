@@ -304,6 +304,16 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
               HCOM_ESP32_MQ_RECVD_DATA_STRUCT_LENGTH, NULL, &timeoutTime);
     if(bytes_read >= 0)
     {
+      if(mqRecvdData->espMqHdr.command != espCommand)
+      {
+        // A stale response for a different (already-timed-out) command
+        // slipped through; discard it and keep waiting for the real one.
+        syslog(LOG_WARNING, "%s@%d-Recvd stale cmd:0x%02x while expecting:0x%02x, discarding\n",
+                  thisFile, __LINE__, mqRecvdData->espMqHdr.command, espCommand);
+        free(mqRecvdData->recvdMqData);
+        continue;
+      }
+
       // We have data from ESP32, but did ESP32 report an error?
       if(mqRecvdData->esp32Status != 0)
       {
@@ -351,6 +361,11 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
     }
   }   // for(;;)
 
+  // Timed out or errored waiting -- no matching response will be treated
+  // as expected any more, so clear the filter set at the top of this
+  // command (the receiver only ever clears it itself on a successful
+  // match, which didn't happen here).
+  hcom_esp32_recv_expect_command_type(Esp32CommandUndefined);
   return ret;
 }
 
