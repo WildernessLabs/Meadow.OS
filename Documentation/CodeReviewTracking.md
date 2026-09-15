@@ -63,8 +63,8 @@ review a file some other way, update its row manually to keep this list accurate
 (`stm32_appinit.c`), A11 (`stm32_i2c.c`), A12 (`stm32_i2c.h`), A18 (`stm32_sdmmc.c`) --
 each confirmed unreferenced by any build config; see the Scope section above for why.
 
-| ID | File | Status | Date | Issue | Original Author | Notes |
-|----|------|--------|------|-------|------------------|-------|
+| ID | File | Status | Date | Issue | Owner | Notes |
+|----|------|--------|------|-------|-------|-------|
 | A01 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_corecomp.c | Reviewed | 2026-09-01 | #443 | TBD | Meadow-specific board variant, no upstream equivalent |
 | A02 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/board_projlab.c | Reviewed | 2026-09-01 | #442 | TBD | Meadow-specific board variant, no upstream equivalent |
 | A04 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c | Reviewed | 2026-09-01 |  | Geoff Norton | No confirmed findings; generic NuttX board_app_initialize() boilerplate |
@@ -89,34 +89,34 @@ each confirmed unreferenced by any build config; see the Scope section above for
 
 ## apps/system/hcom/ (63 files)
 
-| ID | File | Status | Date | Issue | Original Author | Notes |
-|----|------|--------|------|-------|------------------|-------|
+| ID | File | Status | Date | Issue | Owner | Notes |
+|----|------|--------|------|-------|-------|-------|
 | B01 | apps/system/hcom/cell/cmux/hcom_cmux.c | Reviewed | 2026-08-27 | #333 | Cell Owner |  |
 | B02 | apps/system/hcom/cell/cmux/hcom_cmux.h | Reviewed | 2026-08-27 | #334 | Cell Owner |  |
 | B03 | apps/system/hcom/cell/hcom_pppd.c | Reviewed | 2026-08-27 | #332 | Cell Owner | Confirmed not in HCOM_SRCS; wouldn't compile if re-enabled as-is |
 | B04 | apps/system/hcom/cell/hcom_pppd.h | Reviewed | 2026-08-27 |  | Cell Owner | No confirmed findings |
 | B05 | apps/system/hcom/comms/hcom_host_encode.c | *Reviewed | 2026-08-13 | #300 | Peter |  |
 | B06 | apps/system/hcom/comms/hcom_host_enq_deq.c | *Reviewed | 2026-08-13 | #301 | Peter |  |
-| B07 | apps/system/hcom/comms/hcom_host_preprocess.c | *Reviewed | 2026-08-13 | #302 | Peter | F001 also tracked in #301 (hcom_host_enq_deq.c) |
-| B08 | apps/system/hcom/comms/hcom_host_receive.c | *Reviewed | 2026-08-13 | #303 | Peter | F007 also tracked in #301 (hcom_host_enq_deq.c) |
+| B07 | apps/system/hcom/comms/hcom_host_preprocess.c | *Reviewed | 2026-08-13 | #302 | Peter | Issue #301 (hcom_host_enq_deq.c) |
+| B08 | apps/system/hcom/comms/hcom_host_receive.c | *Reviewed | 2026-08-13 | #303 | Peter | Issue #301 (hcom_host_enq_deq.c) |
 | B09 | apps/system/hcom/comms/hcom_host_route.c | Reviewed | 2026-08-13 |  | Peter | No findings |
-| B10 | apps/system/hcom/comms/hcom_host_send.c | *Reviewed | 2026-08-13 | #304 | Peter | F007 also tracked in #301 (hcom_host_enq_deq.c) |
-| B11 | apps/system/hcom/comms/hcom_host_watchdog.c | Reviewed | 2026-08-13 |  | Peter | F001 tracked in #301 (hcom_host_enq_deq.c); F038 tracked in #310 (hcom_file_dnld_esp32.c); F042 tracked in #311 (hcom_file_dnld_stm32f7.c) |
+| B10 | apps/system/hcom/comms/hcom_host_send.c | *Reviewed | 2026-08-13 | #304 | Peter | Issue #301 (hcom_host_enq_deq.c) |
+| B11 | apps/system/hcom/comms/hcom_host_watchdog.c | Reviewed | 2026-08-13 |  | Peter | Issue #301 (hcom_host_enq_deq.c); Issue #310 (hcom_file_dnld_esp32.c); Issue #311 (hcom_file_dnld_stm32f7.c) |
 | B12 | apps/system/hcom/diag/hcom_diag_decode_protocol.c | Reviewed | 2026-08-17 |  | Peter | No confirmed findings |
-| B13 | apps/system/hcom/diag/hcom_diag_gpio.c | Reviewed | 2026-08-17 |  | Peter | F010 tracked in #305 (hcom_diag_gpio.h) |
+| B13 | apps/system/hcom/diag/hcom_diag_gpio.c | Reviewed | 2026-08-17 |  | Peter | Issue #305 (hcom_diag_gpio.h) |
 | B14 | apps/system/hcom/diag/hcom_diag_gpio.h | *Reviewed | 2026-08-17 | #305 | Peter |  |
 | B15 | apps/system/hcom/diag/hcom_diag_misc.c | *Reviewed | 2026-08-17 | #306 | Peter |  |
 | B16 | apps/system/hcom/diag/hcom_diag_nsh_support.c | Reviewed | 2026-08-17 |  | Peter | No confirmed findings |
 | B17 | apps/system/hcom/diag/hcom_diag_trace_priority.c | *Reviewed | 2026-08-17 | #307 | TBD |  |
 | B18 | apps/system/hcom/diag/hcom_traverse_ku_user.c | *Reviewed | 2026-08-17 | #308 | TBD |  |
-| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  | Peter | Owner: Mark |
-| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  | Peter | Owner: Mark |
-| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Mark | Owner: Mark |
-| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Mark | Owner: Mark |
-| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  | Peter | Owner: Mark |
-| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  | Peter | Owner: Mark |
-| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  | Peter | Owner: Mark |
-| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  | Peter | Owner: Mark |
+| B19 | apps/system/hcom/esp32/hcom_esp32_comms.h | Not started |  |  | Peter |  |
+| B20 | apps/system/hcom/esp32/hcom_esp32_execute.c | Not started |  |  | Peter |  |
+| B21 | apps/system/hcom/esp32/hcom_esp32_network_monitor.c | Not started |  |  | Mark |  |
+| B22 | apps/system/hcom/esp32/hcom_esp32_network_monitor.h | Not started |  |  | Mark |  |
+| B23 | apps/system/hcom/esp32/hcom_esp32_proc_recv.c | Not started |  |  | Peter |  |
+| B24 | apps/system/hcom/esp32/hcom_esp32_proc_util.c | Not started |  |  | Peter |  |
+| B25 | apps/system/hcom/esp32/hcom_esp32_proc_xmit.c | Not started |  |  | Peter |  |
+| B26 | apps/system/hcom/esp32/hcom_esp32_uart_comms.c | Not started |  |  | Peter |  |
 | B27 | apps/system/hcom/file/hcom_file_delete_stm32f7.c | Reviewed | 2026-08-19 |  | Peter | No confirmed findings |
 | B28 | apps/system/hcom/file/hcom_file_dir_mgmt_utils.c | *Reviewed | 2026-08-19 | #309 | Peter |  |
 | B29 | apps/system/hcom/file/hcom_file_dnld_esp32.c | *Reviewed | 2026-08-19 | #310 | Peter |  |
@@ -128,8 +128,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B35 | apps/system/hcom/file/hcom_file_write_stm32f7.c | *Reviewed | 2026-08-19 | #315 | Peter |  |
 | B36 | apps/system/hcom/hcom_common.h | *Reviewed | 2026-08-27 | #330 | Peter |  |
 | B37 | apps/system/hcom/hcom_startup_manager.c | *Reviewed | 2026-08-27 | #331 | Peter | Shutdown-path unlocked fd close finding tracked in #303 (hcom_host_receive.c) |
-| B38 | apps/system/hcom/misc/espcp_utils.c | *Reviewed | 2026-08-24 | #318 | Eduardo Menezes | 2/3 findings addressed (comments, `fixIssue318EspcpUtils`); blocking-`mq_send` finding split out to #324 |
-| B39 | apps/system/hcom/misc/espcp_utils.h | Reviewed | 2026-08-24 |  | Eduardo Menezes | No confirmed findings |
+| B38 | apps/system/hcom/misc/espcp_utils.c | *Reviewed | 2026-08-24 | #318 | Cell Owner | 2/3 findings addressed (comments, `fixIssue318EspcpUtils`); blocking-`mq_send` finding split out to #324 |
+| B39 | apps/system/hcom/misc/espcp_utils.h | Reviewed | 2026-08-24 |  | Cell Owner | No confirmed findings |
 | B40 | apps/system/hcom/misc/hcom_common_utils.c | *Reviewed | 2026-08-24 | #319 | Peter |  |
 | B41 | apps/system/hcom/misc/meadow_cirbuf.c | *Reviewed | 2026-08-24 | #320 | Peter |  |
 | B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | Mark | No confirmed findings (stub file, no function bodies) |
@@ -155,55 +155,59 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B62 | apps/system/hcom/tests/tensorflow_tests.c | Reviewed | 2026-08-25 |  | Mark | Developer-only, requires -u=tensorflow; no obvious hazard |
 | B63 | apps/system/hcom/tests/vs_debug_tests.c | Reviewed | 2026-08-25 |  | Peter | Only reachable via mono_main_proxy(), itself dead code pending Mono build support (see hcom_mono_module_dead_code_status); no obvious hazard |
 
-## F7MeadowOS/ (169 files, libyaml/libcyaml excluded)
+## F7MeadowOS/ (168 files, libyaml/libcyaml excluded)
 
-| ID | File | Status | Date | Issue | Original Author | Notes |
-|----|------|--------|------|-------|------------------|-------|
-| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  | Mark | Owner: Mark |
-| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  | Mark | Owner: Mark |
-| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  | Mark | Owner: Mark |
-| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  | Mark | Owner: Mark |
-| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  | Mark | Owner: Mark |
-| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  | Mark | Owner: Mark |
-| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  | Mark | Owner: Mark |
-| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  | Mark | Owner: Mark |
-| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  | Mark | Owner: Mark |
-| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  | Mark | Owner: Mark |
-| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  | Mark | Owner: Mark |
-| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  | Mark | Owner: Mark |
-| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  | Mark | Owner: Mark |
-| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  | Mark | Owner: Mark |
-| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  | Mark | Owner: Mark |
-| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  | Mark | Owner: Mark |
-| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  | Mark | Owner: Mark |
-| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  | Mark | Owner: Mark |
-| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  | Mark | Owner: Mark |
-| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  | Mark | Owner: Mark |
-| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  | Mark | Owner: Mark |
-| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  | Mark | Owner: Mark |
-| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  | Mark | Owner: Mark |
-| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  | Mark | Owner: Mark |
-| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  | Mark | Owner: Mark |
-| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  | Mark | Owner: Mark |
-| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  | Mark | Owner: Mark |
-| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  | Mark | Owner: Mark |
-| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  | Mark | Owner: Mark |
-| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  | Mark | Owner: Mark |
-| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  | Mark | Owner: Mark |
-| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  | Mark | Owner: Mark |
+1 file removed 2026-09-08 (PR #518), row retired rather than renumbered: C122
+(`meadow_os/meadow-gpio.c`) -- dead/unbuildable file deleted per Issue #387; the real
+GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
+
+| ID | File | Status | Date | Issue | Owner | Notes |
+|----|------|--------|------|-------|-------|-------|
+| C001 | F7MeadowOS/espcp/espcp_common.c | Not started |  |  | Mark |  |
+| C002 | F7MeadowOS/espcp/espcp_common.h | Not started |  |  | Mark |  |
+| C003 | F7MeadowOS/espcp/espcp_coprocessor.c | Not started |  |  | Mark |  |
+| C004 | F7MeadowOS/espcp/espcp_coprocessor.h | Not started |  |  | Mark |  |
+| C005 | F7MeadowOS/espcp/espcp_core_dump.c | Not started |  |  | Mark |  |
+| C006 | F7MeadowOS/espcp/espcp_core_dump.h | Not started |  |  | Mark |  |
+| C007 | F7MeadowOS/espcp/espcp_encoders.c | Not started |  |  | Mark |  |
+| C008 | F7MeadowOS/espcp/espcp_encoders.h | Not started |  |  | Mark |  |
+| C009 | F7MeadowOS/espcp/espcp_event_handlers.c | Not started |  |  | Mark |  |
+| C010 | F7MeadowOS/espcp/espcp_event_handlers.h | Not started |  |  | Mark |  |
+| C011 | F7MeadowOS/espcp/espcp_file_system.c | Not started |  |  | Mark |  |
+| C012 | F7MeadowOS/espcp/espcp_file_system.h | Not started |  |  | Mark |  |
+| C013 | F7MeadowOS/espcp/espcp_message.c | Not started |  |  | Mark |  |
+| C014 | F7MeadowOS/espcp/espcp_message.h | Not started |  |  | Mark |  |
+| C015 | F7MeadowOS/espcp/espcp_message_dispatcher.c | Not started |  |  | Mark |  |
+| C016 | F7MeadowOS/espcp/espcp_message_dispatcher.h | Not started |  |  | Mark |  |
+| C017 | F7MeadowOS/espcp/espcp_queue.c | Not started |  |  | Mark |  |
+| C018 | F7MeadowOS/espcp/espcp_queue.h | Not started |  |  | Mark |  |
+| C019 | F7MeadowOS/espcp/espcp_shared_enums.h | Not started |  |  | Mark |  |
+| C020 | F7MeadowOS/espcp/espcp_system.c | Not started |  |  | Mark |  |
+| C021 | F7MeadowOS/espcp/espcp_system.h | Not started |  |  | Mark |  |
+| C022 | F7MeadowOS/espcp/espcp_test_heap_tracing.h | Not started |  |  | Mark |  |
+| C023 | F7MeadowOS/espcp/espcp_thread.c | Not started |  |  | Mark |  |
+| C024 | F7MeadowOS/espcp/espcp_thread.h | Not started |  |  | Mark |  |
+| C025 | F7MeadowOS/espcp/espcp_uart_monitor.c | Not started |  |  | Mark |  |
+| C026 | F7MeadowOS/espcp/espcp_uart_monitor.h | Not started |  |  | Mark |  |
+| C027 | F7MeadowOS/espcp/espcp_usrsock.h | Not started |  |  | Mark |  |
+| C028 | F7MeadowOS/espcp/espcp_usrsock_sockif.c | Not started |  |  | Mark |  |
+| C029 | F7MeadowOS/espcp/espcp_wifi.c | Not started |  |  | Mark |  |
+| C030 | F7MeadowOS/espcp/espcp_wifi.h | Not started |  |  | Mark |  |
+| C031 | F7MeadowOS/espcp/generic_list.c | Not started |  |  | Mark |  |
+| C032 | F7MeadowOS/espcp/generic_list.h | Not started |  |  | Mark |  |
 | C033 | F7MeadowOS/ethernet/meadow_ethnet_connect.c | *Reviewed | 2026-08-27 | #339 | Peter |  |
 | C034 | F7MeadowOS/ethernet/meadow_ethnet_dhcp.c | *Reviewed | 2026-08-27 | #341 | Peter |  |
 | C035 | F7MeadowOS/ethernet/meadow_ethnet_local.h | Reviewed | 2026-08-27 |  | Peter | No confirmed findings |
 | C036 | F7MeadowOS/ethernet/meadow_ethnet_monitor.c | Reviewed | 2026-08-27 |  | Peter | ISR register-race and oversized busy-wait timeout findings tracked in #340 (meadow_ethnet_utils.c) |
 | C037 | F7MeadowOS/ethernet/meadow_ethnet_start.c | Reviewed | 2026-08-27 |  | Peter | No confirmed findings |
 | C038 | F7MeadowOS/ethernet/meadow_ethnet_utils.c | *Reviewed | 2026-08-27 | #340 | Peter |  |
-| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | *Reviewed | 2026-08-27 | #343 | TBD | 4/5 findings fixed (branch `issue343-hcom-nx-fs-create`); finding 3 (boot-time malloc/free) Won't Fix -- codebase's own buffer-size convention marks this size class heap-allocate, not stack; issue closed |
-| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | *Reviewed | 2026-08-27 | #342 | TBD | 7/8 findings fixed (branch `issue342-346-hcom-nx-create-fs-cluster`); finding 8 (`copy_blocks_to_memory()` double-read) Won't Fix -- verify pass is the only check for a transient QSPI read glitch, not worth trading away; issue closed |
-| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | TBD | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
+| C039 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_create.c | *Reviewed | 2026-08-27 | #343 | Peter | 4/5 findings fixed (branch `issue343-hcom-nx-fs-create`); finding 3 (boot-time malloc/free) Won't Fix -- codebase's own buffer-size convention marks this size class heap-allocate, not stack; issue closed |
+| C040 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash.c | *Reviewed | 2026-08-27 | #342 | Peter | 7/8 findings fixed (branch `issue342-346-hcom-nx-create-fs-cluster`); finding 8 (`copy_blocks_to_memory()` double-read) Won't Fix -- verify pass is the only check for a transient QSPI read glitch, not worth trading away; issue closed |
+| C041 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_flash_tests.c | Reviewed | 2026-08-27 |  | Peter | No confirmed findings; is the live twin referenced by the dead-code finding tracked in #342 (hcom_nx_fs_flash.c) |
 | C042 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_littlefs.c | Reviewed | 2026-08-27 |  | Peter | Boot-time malloc/free finding tracked in #343 (hcom_nx_fs_create.c) |
-| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | *Reviewed | 2026-08-27 | #344 | TBD | 2/2 findings fixed (branch `issue344-hcom-nx-fs-part-utils`); issue closed |
+| C043 | F7MeadowOS/hcom_nx/create_fs/hcom_nx_fs_part_utils.c | *Reviewed | 2026-08-27 | #344 | Peter | 2/2 findings fixed (branch `issue344-hcom-nx-fs-part-utils`); issue closed |
 | C044 | F7MeadowOS/hcom_nx/diag/hcom_nx_trace_msg_proc.c | *Reviewed | 2026-08-28 | #345 | Peter |  |
-| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | *Reviewed | 2026-08-28 | #346 | TBD | 3/4 findings fixed (branch `issue346-hcom-traverse-ku-kernel`); finding 4 (fixed-size envelope) Won't Fix -- needs a wire-format change on both kernel+user sides, no correctness risk today; issue closed. Also surfaced a separate pre-existing bug tracked as Issue #550 |
+| C045 | F7MeadowOS/hcom_nx/diag/hcom_traverse_ku_kernel.c | *Reviewed | 2026-08-28 | #346 | Peter | 3/4 findings fixed (branch `issue346-hcom-traverse-ku-kernel`); finding 4 (fixed-size envelope) Won't Fix -- needs a wire-format change on both kernel+user sides, no correctness risk today; issue closed. Also surfaced a separate pre-existing bug tracked as Issue #550 |
 | C046 | F7MeadowOS/hcom_nx/hcom_nx_bbreg_access.c | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C047 | F7MeadowOS/hcom_nx/hcom_nx_common.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C048 | F7MeadowOS/hcom_nx/hcom_nx_common_utils.c | *Reviewed | 2026-08-28 | #350 | Peter |  |
@@ -215,24 +219,24 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C055 | F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c | *Reviewed (light) | 2026-09-01 | #420 | Peter | Both findings fixed (0-byte VLA stack overflow, missing bounds checks); also fixed 46 format-string errors + 1 implicit-declaration error uncovered by temporarily enabling the file's build flag to verify compilation (file had apparently never been compiled against current toolchain checks); verified via a full local build with the flag enabled (zero errors), then reverted -- reachability restore remains Issue #347's task; issue closed via PR |
 | C056 | F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C057 | F7MeadowOS/include/meadow/hcom_bbreg_defn.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Reviewed | 2026-08-28 |  | TBD | No confirmed findings |
+| C058 | F7MeadowOS/include/meadow/hcom_dfu_mode_entry.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C059 | F7MeadowOS/include/meadow/hcom_dnld_shared.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C060 | F7MeadowOS/include/meadow/hcom_misc_diag.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C061 | F7MeadowOS/include/meadow/hcom_nuttx_shared.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C062 | F7MeadowOS/include/meadow/hcom_protocol.h | *Reviewed | 2026-08-28 | #352 | Peter |  |
 | C063 | F7MeadowOS/include/meadow/hcom_shared_common.h | *Reviewed | 2026-08-28 | #353 | Peter |  |
-| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | *Reviewed | 2026-08-28 | #354 | TBD | Concurrency findings for this transport's kernel-side implementation tracked in #346 (hcom_traverse_ku_kernel.c) |
+| C064 | F7MeadowOS/include/meadow/hcom_traverse_ku.h | *Reviewed | 2026-08-28 | #354 | Peter | Concurrency findings for this transport's kernel-side implementation tracked in #346 (hcom_traverse_ku_kernel.c) |
 | C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Reviewed | 2026-08-28 |  | Peter | mcu_ser_numb_s struct field finding tracked in #393 (meadow-upd.c) |
-| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | Adrian Stevens | No confirmed findings |
+| C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | Syscall UPD | No confirmed findings |
 | C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | *Reviewed | 2026-08-28 | #358 | Peter |  |
-| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #357 | Eduardo Menezes |  |
-| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Alexis Christoforides |  |
+| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #357 | Cell Owner |  |
+| C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Meadow Cloud |  |
 | C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-08-28 | #359 | Mark |  |
 | C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-08-28 | #355 | Mark |  |
 | C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | TBD | No confirmed findings |
-| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | *Reviewed | 2026-08-28 | #361 | TBD |  |
+| C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
+| C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | *Reviewed | 2026-08-28 | #361 | Peter |  |
 | C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | *Reviewed | 2026-08-28 | #360 | Peter | All 3 findings now terminal: port-range comment fixed (PR #533), packed-struct unaligned access Won't Fix, speculative timestamp feature defaulted back off pending confirmed Meadow.Core support; built and smoketested; issue closed via PR |
 | C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
@@ -242,7 +246,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Reviewed | 2026-08-28 | #367 | Mark |  |
 | C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
 | C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Reviewed | 2026-08-28 | #364 | Mark |  |
-| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | *Reviewed | 2026-08-28 | #366 | TBD | Both findings fixed: added missing #include <stdint.h>/<stdbool.h>/<sys/types.h> (header wasn't self-contained), added a compile-time #if guard against MEADOW_FLASH_PART_SIZE_UNUSED_SPACE going negative; built with no warnings and smoketested; issue closed via PR |
+| C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | *Reviewed | 2026-08-28 | #366 | Peter | Both findings fixed: added missing #include <stdint.h>/<stdbool.h>/<sys/types.h> (header wasn't self-contained), added a compile-time #if guard against MEADOW_FLASH_PART_SIZE_UNUSED_SPACE going negative; built with no warnings and smoketested; issue closed via PR |
 | C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | *Reviewed | 2026-08-28 | #368 | Peter |  |
 | C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | *Reviewed | 2026-08-28 | #365 | Peter |  |
 | C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
@@ -250,7 +254,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Reviewed | 2026-09-01 | #421 | Mark |  |
 | C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Reviewed | 2026-09-01 | #422 | Mark | No confirmed findings |
 | C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Reviewed | 2026-09-01 | #423 | Mark |  |
-| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | *Reviewed | 2026-08-28 | #369 | Geoff Norton | 3/5 findings fixed (branch `issue369-stm32-meadow-header-cleanup`): dead `stm32_quadspi_init` declaration removed, `stm32_usbinitialize` and `stm32_spidev_initialize` doc comments corrected (wrong caller/board name, typo); the 2 GPIO-speed findings (`GPIO_OTGFS_PWRON`, LED pins) Won't Fix -- functional today, EMI-margin nitpicks only; issue closed via PR |
+| C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | *Reviewed | 2026-08-28 | #369 | Peter | 3/5 findings fixed (branch `issue369-stm32-meadow-header-cleanup`): dead `stm32_quadspi_init` declaration removed, `stm32_usbinitialize` and `stm32_spidev_initialize` doc comments corrected (wrong caller/board name, typo); the 2 GPIO-speed findings (`GPIO_OTGFS_PWRON`, LED pins) Won't Fix -- functional today, EMI-margin nitpicks only; issue closed via PR |
 | C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | *Reviewed (light) | 2026-08-28 | #370 | Peter |  |
 | C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #372 | Cell Owner | Original-Author corrected from Mark -- git history shows only Alexis Christoforides/Peter; reassigned to Cell Owner per feature-based ownership. Issue number corrected from #371 (mismatch) |
 | C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Cell Owner | Byte-identical stub header, findings tracked in #372 (bg77_tests.c) |
@@ -259,17 +263,17 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Reviewed (light) | 2026-08-28 | #372 | Mark |  |
-| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Reviewed (light) | 2026-08-28 |  | TBD | No confirmed findings |
-| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Reviewed (light) | 2026-08-28 |  | TBD | No confirmed findings |
+| C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
+| C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | *Reviewed (light) | 2026-08-28 | #377 | Peter |  |
-| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Reviewed (light) | 2026-08-28 | #384 | TBD |  |
+| C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Reviewed (light) | 2026-08-28 | #384 | Mark |  |
 | C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Reviewed (light) | 2026-08-28 | #376 | Mark |  |
-| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Reviewed (light) | 2026-08-28 | #375 | TBD |  |
-| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Reviewed (light) | 2026-08-28 |  | TBD | No confirmed findings |
-| C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | *Reviewed | 2026-08-17 | #316 | TBD | Found incidentally during F011 hardware verification, not from a full batch review of this file. |
+| C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | Reviewed (light) | 2026-08-28 | #375 | Mark |  |
+| C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
+| C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | *Reviewed | 2026-08-17 | #316 | Peter |  |
 | C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings (intentional NULL-deref assert test, not a bug) |
-| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Reviewed (light) | 2026-08-28 | #383 | TBD |  |
+| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Reviewed (light) | 2026-08-28 | #383 | Mark |  |
 | C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | *Reviewed (light) | 2026-08-28 | #381 | Peter |  |
 | C115 | F7MeadowOS/kerneltests/network_tests.c | Reviewed (light) | 2026-08-28 | #378 | Mark |  |
@@ -278,9 +282,8 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C119 | F7MeadowOS/kerneltests/sdcard_tests.c | Reviewed (light) | 2026-08-28 | #382 | Mark |  |
 | C120 | F7MeadowOS/kerneltests/timing.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings (dead file, all code commented out, not included anywhere) |
-| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Reviewed | 2026-09-01 | #424 | Alexis Christoforides |  |
-| C122 | F7MeadowOS/meadow_os/meadow-gpio.c | *Reviewed | 2026-08-28 | #387 | Chris Tacke |  |
-| C123 | F7MeadowOS/meadow_os/meadow-upd.c | *Reviewed | 2026-08-28 | #393 | Chris Tacke | 4/9 findings fixed (branch `issue393-meadow-upd-fixes`): dir_enum overflow guard, unreachable EINVAL, dead watchdog/IRQ declarations, pointer-vs-NULL comparison; finding 6 (serial-number ABI gap) Won't Fix; findings 2/3/4/5 (I2C config race, I2C shutdown race, missing SPI_LOCK, I2C NULL check) deferred -- upd_handle_i2c()/upd_handle_spi_*() are only reachable via the /dev/upd ioctl path from Meadow.Core, not yet integrated, and the existing meadow_i2c_tests.c kernel test bypasses this ioctl layer entirely, so there is no way to verify a concurrency fix here today; issue left open pending real I2C/SPI hardware or Mono runtime access |
+| C121 | F7MeadowOS/meadow_cloud/meadow_cloud.c | Reviewed | 2026-09-01 | #424 | Meadow Cloud |  |
+| C123 | F7MeadowOS/meadow_os/meadow-upd.c | *Reviewed | 2026-08-28 | #393 | Syscall UPD | 4/9 findings fixed (branch `issue393-meadow-upd-fixes`): dir_enum overflow guard, unreachable EINVAL, dead watchdog/IRQ declarations, pointer-vs-NULL comparison; finding 6 (serial-number ABI gap) Won't Fix; findings 2/3/4/5 (I2C config race, I2C shutdown race, missing SPI_LOCK, I2C NULL check) deferred -- upd_handle_i2c()/upd_handle_spi_*() are only reachable via the /dev/upd ioctl path from Meadow.Core, not yet integrated, and the existing meadow_i2c_tests.c kernel test bypasses this ioctl layer entirely, so there is no way to verify a concurrency fix here today; issue left open pending real I2C/SPI hardware or Mono runtime access |
 | C124 | F7MeadowOS/meadow_os/meadow_hw_version.c | *Reviewed | 2026-08-28 | #391 | Peter |  |
 | C125 | F7MeadowOS/meadow_os/meadow_interrupt.c | *Reviewed | 2026-08-28 | #394 | Peter |  |
 | C126 | F7MeadowOS/meadow_os/meadow_os.c | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
@@ -293,15 +296,15 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | *Reviewed | 2026-08-28 | #385 | Peter |  |
 | C134 | F7MeadowOS/misc/meadow_adc.c | *Reviewed | 2026-08-29 | #403 | Peter |  |
 | C135 | F7MeadowOS/misc/meadow_cirbuf.c | *Fixed | 2026-08-29 | #400 | Peter | File deleted (dead kernel-space duplicate); see branch issue400-remove-dead-cirbuf-kernel-copy |
-| C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 | Eduardo Menezes |  |
+| C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 | Cell Owner |  |
 | C137 | F7MeadowOS/misc/meadow_logging.c | *Reviewed | 2026-08-29 | #399 | Mark |  |
 | C138 | F7MeadowOS/misc/meadow_logging.h | Reviewed | 2026-08-29 |  | Mark | No confirmed findings |
-| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | *Reviewed | 2026-08-29 | #395 | Peter/Alexis | Both findings fixed (branch `issue395-qspi-reinit-fixes`): DCR FSIZE field now clears QSPI_DCR_FSIZE_MASK before OR-ing in the new value; added a BUSY-wait after ABORT before touching DCR. Hardware-verified on a physical Meadow F7 board; issue closed via PR |
-| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | Peter/Alexis | No confirmed findings |
-| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | *Reviewed | 2026-08-29 | #398 | TBD |  |
-| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | TBD | No confirmed findings |
-| C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 | Eduardo Menezes |  |
-| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 | Eduardo Menezes |  |
+| C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | *Reviewed | 2026-08-29 | #395 | Peter | Both findings fixed (branch `issue395-qspi-reinit-fixes`): DCR FSIZE field now clears QSPI_DCR_FSIZE_MASK before OR-ing in the new value; added a BUSY-wait after ABORT before touching DCR. Hardware-verified on a physical Meadow F7 board; issue closed via PR |
+| C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | Peter | No confirmed findings |
+| C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | *Reviewed | 2026-08-29 | #398 | Peter |  |
+| C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | Peter | No confirmed findings |
+| C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 | Cell Owner |  |
+| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 | Cell Owner |  |
 | C145 | F7MeadowOS/misc/parse_iso8601_time.c | *Reviewed | 2026-08-29 | #402 | Peter | All 3 findings fixed: a live HCOM-reachable heap OOB read (missing length check before offset-15 access), a `uint32_t`-returning-negative-errno type mismatch, and a parameter-name typo + `%ln`/`uint32_t` type mismatch; one sub-finding (dead debug scaffold) was already resolved by an unrelated commit; built (no warnings) and smoketested; issue closed via PR |
 | C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 | Mark |  |
 | C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |
@@ -315,7 +318,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | C155 | F7MeadowOS/pwrmgmt/pwrmgmt_misc.c | *Reviewed | 2026-08-29 | #405 | Peter | All 3 findings fixed, built and smoketested; unit tested via `--unittests=power` test 58 (full sleep/wake cycle exercising both the RTC exitinit and alarm-wakeup fixes, exact 10s sleep, no timeout errors); issue closed via PR |
 | C156 | F7MeadowOS/pwrmgmt/pwrmgmt_switch_rtc_clock.c | *Reviewed | 2026-08-29 | #410 | Peter | 3 of 4 findings fixed (enterinit() fallthrough masking failures, battery-backed-register restore ordering, style/hygiene); 4th (kernel-test semaphore bypass) already resolved by Issue #405's `_rtcAccessLock` mutex, which this file's wprunlock()/wprlock() calls now serialize through; built and smoketested; issue closed via PR |
 | C157 | F7MeadowOS/pwrmgmt/pwrmgmt_time_support.c | *Reviewed | 2026-08-29 | #411 | Peter | Both findings fixed: clock_settime() now serializes against Meadow's own RTC access via the Issue #405 `_rtcAccessLock` mutex; style/hygiene cleanup (tautological NULL check, corrected a backwards UTC-offset comment on a kept dead-code stub); built and smoketested; issue closed via PR |
-| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | *Reviewed | 2026-09-01 | #415 | TBD | All 5 findings fixed, unit tested (`--unittests=gpiocount`), smoketested, merged (PR #557); issue closed |
+| C158 | F7MeadowOS/specialized/meadow_gpio_counter.c | *Reviewed | 2026-09-01 | #415 | Peter | All 5 findings fixed, unit tested (`--unittests=gpiocount`), smoketested, merged (PR #557); issue closed |
 | C159 | F7MeadowOS/specialized/meadow_idle_monitor.c | *Reviewed | 2026-09-01 | #417 | Peter | Style/hygiene finding fixed, smoketested, merged (PR #552); issue closed |
 | C160 | F7MeadowOS/specialized/meadow_measure_freq.c | *Reviewed | 2026-09-01 | #418 | Peter | All 11 findings fixed, unit tested (`--unittests=measfreq`), smoketested; duty-cycle math found separately broken during testing, unrelated to any of these 11 findings, tracked as Issue #560; issue closed via PR |
 | C161 | F7MeadowOS/specialized/meadow_measure_freq_local.h | *Reviewed | 2026-09-01 | #419 | Peter | All 3 findings fixed, smoketested, merged (PR #554); issue closed |
