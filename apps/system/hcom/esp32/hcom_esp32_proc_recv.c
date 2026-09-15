@@ -361,7 +361,8 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     syslog(LOG_ERR, "%s@%d-Msg too small, expected:%d, recvd:%d\n",
               __FILE__, __LINE__, HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH,
               decodedLen);
-    return -EPROTO; 
+    free(decodedMsg);
+    return -EPROTO;
   }
 
   // Populate header
@@ -371,6 +372,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
   {
     syslog(LOG_ERR, "%s@%d-Expected direct of 1, not:%d\n",
               thisFile, __LINE__, mqRecvdData.espMqHdr.direction);
+    free(decodedMsg);
     return -EIO;
   }
 
@@ -383,6 +385,7 @@ int hcom_esp32_recv_handle_bin_packet(uint8_t *binRecvdData, ssize_t binRecvdLen
     syslog(LOG_ERR, "%s@%d-Msg length error, expected:%d, not:%d\n",
               thisFile, __LINE__, decodedLen,
               mqRecvdData.espMqHdr.size + HCOM_ESP32_PROTOCOL_RECV_HDR_LENGTH);
+    free(decodedMsg);
     return -EMSGSIZE;
   }
 
