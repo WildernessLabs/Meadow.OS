@@ -199,16 +199,16 @@ int hcom_esp32_recv_handle_data(uint8_t *esp32_read_buffer, ssize_t bytesToAdd)
       // Wasn't possible to put these bytes in the buffer. We need to
       // process a few packets and then retry to add this data
       ret = hcom_esp32_recv_pull_and_process();
-      if (ret == HCOM_CIR_BUF_GET_FOUND_MSG ||
-          ret == HCOM_CIR_BUF_GET_NONE_FOUND)
+      if (ret == HCOM_CIR_BUF_GET_NONE_FOUND)
           continue;   // There should be room now for the failed add
 
-      if (ret == HCOM_CIR_BUF_GET_DELETED_TOO_BIG)
+      if (ret < 0)
       {
-        // The message is too long and has been deleted
-        syslog(LOG_ERR, "%s@%d-Message too big, was deleted, size:%d\n",
-                thisFile, __LINE__, bytesToAdd);
-        return -EFBIG;
+        // pull_and_process failed (message too big and deleted, or a
+        // protocol error) -- propagate rather than retrying blindly
+        syslog(LOG_ERR, "%s@%d-pull_and_process failed:%d\n",
+                thisFile, __LINE__, ret);
+        return ret;
       }
     }
     else if (ret == HCOM_CIR_BUF_ADD_BAD_ARG)
