@@ -284,6 +284,7 @@ int hcom_esp32_exec_add_flash_end()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-esp32 xmit 2:%d\n", thisFile, __LINE__, ret);
+    return ret;
   }
   else if(recvdData.esp32Status)
   {
