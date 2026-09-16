@@ -87,7 +87,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Reviewed | 2026-09-01 | #437 | Peter | Meadow's own carried-forward Legacy code |
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Reviewed | 2026-09-01 | #432 | Peter | Derived from stm32f769i-disco |
 | A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | Reviewed | 2026-09-01 | #427 | Peter | In include/, not src/; see also #426 (upstream watch item) |
-| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | Reviewed | 2026-09-01 | #428 | Peter | In include/, not src/ |
+| A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | *Reviewed | 2026-09-16 | #428 | Peter | Macro parenthesization fixed (branch `issue428-boardctl-macro-parens`); genuinely Meadow-only file (no upstream/sibling equivalent), bug present unchanged since 2020; issue closed |
 
 ## apps/system/hcom/ (63 files)
 

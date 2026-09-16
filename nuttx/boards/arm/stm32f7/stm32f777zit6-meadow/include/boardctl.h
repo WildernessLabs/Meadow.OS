@@ -48,7 +48,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define BIOC_ENTER_MEMMAP   BOARDIOC_USER+1
-#define BIOC_EXIT_MEMMAP    BOARDIOC_USER+2
+#define BIOC_ENTER_MEMMAP   (BOARDIOC_USER+1)
+#define BIOC_EXIT_MEMMAP    (BOARDIOC_USER+2)
 
 #endif  /* __BOARDS_ARM_STM32F7_STM32F777ZIT6_MEADOW_INCLUDE_BOARDCTL_H */
