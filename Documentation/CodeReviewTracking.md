@@ -82,7 +82,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Reviewed | 2026-09-01 | #438 | Peter | Meadow's own carried-forward Legacy code |
 | A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Reviewed | 2026-09-01 |  | Mark | No confirmed findings; Meadow's own restored file |
 | A19 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_spi.c | Reviewed | 2026-09-01 |  | Peter | No confirmed findings; near-unmodified copy of stm32f769i-disco aside from CONFIG_STM32F7_* naming (see #426); no in-tree caller of its select/cmddata stubs found |
-| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | Reviewed | 2026-09-01 | #434 | Peter | Derived from stm32f769i-disco |
+| A20 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_sporadic.c | *Fixed | 2026-09-16 | #434 | Peter | File deleted (dead code: `GPIO_SCHED_HIGHPRI`/`GPIO_SCHED_RUNNING` never defined, a bug inherited from the upstream stm32f769i-disco template; `CONFIG_SPORADIC_INSTRUMENTATION`/`CONFIG_SCHED_SPORADIC` never enabled on this board, which uses round-robin scheduling); build-verified; see branch `issue434-remove-dead-sporadic`; issue closed |
 | A21 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usb.c | Reviewed | 2026-09-01 | #435 | Peter | Derived from nucleo-f767zi (see also #426) |
 | A22 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_usbmsc.c | Reviewed | 2026-09-01 | #437 | Peter | Meadow's own carried-forward Legacy code |
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | Reviewed | 2026-09-01 | #432 | Peter | Derived from stm32f769i-disco |
