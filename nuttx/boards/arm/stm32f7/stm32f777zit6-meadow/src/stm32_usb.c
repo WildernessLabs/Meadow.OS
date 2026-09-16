@@ -59,12 +59,12 @@
 #  undef HAVE_USB
 #endif
 
-#ifndef CONFIG_STM32F7F4DISCO_USBHOST_PRIO
-#  define CONFIG_STM32F7F4DISCO_USBHOST_PRIO 100
+#ifndef CONFIG_MEADOW_USBHOST_PRIO
+#  define CONFIG_MEADOW_USBHOST_PRIO 100
 #endif
 
-#ifndef CONFIG_STM32F7F4DISCO_USBHOST_STACKSIZE
-#  define CONFIG_STM32F7F4DISCO_USBHOST_STACKSIZE 1024
+#ifndef CONFIG_MEADOW_USBHOST_STACKSIZE
+#  define CONFIG_MEADOW_USBHOST_STACKSIZE 1024
 #endif
 
 /****************************************************************************
@@ -145,12 +145,6 @@ void stm32_usbinitialize(void)
   stm32_configgpio(GPIO_OTGFS_PWRON);
   stm32_configgpio(GPIO_OTGFS_OVER);
 #  endif
-#endif
-    stm32_configgpio(GPIO_OTGFS_VBUS);
-
-#ifdef CONFIG_USBHOST
-      stm32_configgpio(GPIO_OTGFS_PWRON);
-      stm32_configgpio(GPIO_OTGFS_OVER);
 #endif
 }
 
@@ -236,8 +230,8 @@ int stm32_usbhost_initialize(void)
 
       uinfo("Start usbhost_waiter\n");
 
-      ret = kthread_create("usbhost", CONFIG_STM32F7F4DISCO_USBHOST_PRIO,
-                           CONFIG_STM32F7F4DISCO_USBHOST_STACKSIZE,
+      ret = kthread_create("usbhost", CONFIG_MEADOW_USBHOST_PRIO,
+                           CONFIG_MEADOW_USBHOST_STACKSIZE,
                            usbhost_waiter, NULL);
       return ret < 0 ? -ENOEXEC : OK;
     }
@@ -280,7 +274,7 @@ void stm32_usbhost_vbusdrive(int iface, bool enable)
 {
   DEBUGASSERT(iface == 0);
 
-  syslog(LOG_INFO, "USB Drive %i  %i", iface, (int)enable);
+  syslog(LOG_INFO, "USB Drive iface:%i enable:%i", iface, (int)enable);
 
   if (enable)
     {
