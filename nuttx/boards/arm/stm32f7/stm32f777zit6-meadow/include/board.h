@@ -52,6 +52,13 @@
 
 // This is temporary while confirming 216 MHz works.
 // Set to '0' to revert to 192 MHz.
+//
+// TODO: once a final decision is reached (keep 216MHz permanently, or
+// revert), grep the whole codebase for MEADOW_TRY_216_MHz_CLOCK and
+// remove/hardcode this flag and its #if branches accordingly. As of
+// 2026-09-16 the only other reference is a documentation-only mention in
+// nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c -- but
+// don't trust that list without re-checking, since more may be added later.
 #define MEADOW_TRY_216_MHz_CLOCK (1)
 
 /* Clocking *****************************************************************/
