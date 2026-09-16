@@ -135,18 +135,18 @@ static void stm32_sdramcommand(uint32_t command)
   uint32_t  regval;
   volatile  uint32_t timeout = 0xffff;
 
-  regval = getreg32(STM32_FMC_SDSR) & 0x00000020;
+  regval = getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY;
   while ((regval != 0) && timeout-- > 0)
     {
-      regval = getreg32(STM32_FMC_SDSR) & 0x00000020;
+      regval = getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY;
     }
 
   putreg32(command, STM32_FMC_SDCMR);
   timeout = 0xffff;
-  regval = getreg32(STM32_FMC_SDSR) & 0x00000020;
+  regval = getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY;
   while ((regval != 0) && timeout-- > 0)
     {
-      regval = getreg32(STM32_FMC_SDSR) & 0x00000020;
+      regval = getreg32(STM32_FMC_SDSR) & FMC_SDSR_BUSY;
     }
 }
 
@@ -181,9 +181,13 @@ void stm32_sdram_initialize(void)
 
   /* Configure and enable the SDRAM bank1
    *
-   *   FMC clock = 180MHz/2 = 90MHz
-   *   90MHz = 11,11 ns
+   *   FMC clock = STM32_HCLK_FREQUENCY / 2 (FMC_SDCR_SDCLK_2X) -- currently
+   *   216MHz/2 = 108MHz per board.h's MEADOW_TRY_216_MHz_CLOCK; if that
+   *   ever reverts to 192MHz, FMC clock becomes 96MHz, which only widens
+   *   the margins below since these are minimum-cycle-count values.
+   *   108MHz = 9.26 ns
    *   All timings from the datasheet for Speedgrade -7 (=7ns)
+   *   (ISSI IS42S16160J, 16Mx16 SDRAM)
    */
 
   putreg32(FMC_SDCR_RPIPE_1 |
@@ -223,17 +227,17 @@ void stm32_sdram_initialize(void)
 
   /* Set refresh count
    *
-   * FMC_CLK = 90MHz
+   * FMC_CLK = STM32_HCLK_FREQUENCY / 2 -- currently 108MHz, see board.h
    * Refresh_Rate = 7.81us
    * Counter = (FMC_CLK * Refresh_Rate) - 20
    */
 
-  putreg32(683 << 1, STM32_FMC_SDRTR);
+  putreg32(FMC_SDRTR_COUNT(683), STM32_FMC_SDRTR);
 
   /* Disable write protection */
 
   regval = getreg32(STM32_FMC_SDCR1);
-  putreg32(regval & 0xfffffdff, STM32_FMC_SDCR1);
+  putreg32(regval & ~FMC_SDCR_WP, STM32_FMC_SDCR1);
 }
 
 /****************************************************************************
