@@ -70,6 +70,21 @@
                                 FMC_SDCMR_MRD_OPERATING_MODE_STANDARD |\
                                 FMC_SDCMR_MRD_WRITEBURST_MODE_SINGLE
 
+// SDRAM refresh timer count. Computed from STM32_HCLK_FREQUENCY (rather
+// than hardcoded) so this automatically stays correct if the board's
+// clock configuration ever changes -- see #431/#594 for why a stale
+// hardcoded value here went unnoticed for a long time after HCLK changed
+// from 192MHz to 216MHz.
+//
+//   FMC_CLK = STM32_HCLK_FREQUENCY / 2
+//   Refresh_Rate = 7.8125us = 125 / 16,000,000 seconds
+//   Counter = (FMC_CLK * Refresh_Rate) - 20
+//
+// e.g. at the current 216MHz HCLK: FMC_CLK = 108,000,000;
+// (108,000,000 * 125 / 16,000,000) - 20 = 843.75 -> 843 - 20 = 823
+#define STM32_SDRAM_REFRESH_COUNT \
+  ((uint32_t)(((uint64_t)(STM32_HCLK_FREQUENCY / 2) * 125ULL) / 16000000ULL) - 20)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -225,14 +240,12 @@ void stm32_sdram_initialize(void)
   stm32_sdramcommand(STM32_SDRAM_REFRESH);    /* Auto refresh command */
   stm32_sdramcommand(STM32_SDRAM_MODEREG);    /* Mode Register program */
 
-  /* Set refresh count
-   *
-   * FMC_CLK = STM32_HCLK_FREQUENCY / 2 -- currently 108MHz, see board.h
-   * Refresh_Rate = 7.81us
-   * Counter = (FMC_CLK * Refresh_Rate) - 20
+  /* Set refresh count -- see STM32_SDRAM_REFRESH_COUNT's definition above
+   * for the derivation (Counter = (FMC_CLK * Refresh_Rate) - 20, computed
+   * from the board's actual clock config rather than hardcoded).
    */
 
-  putreg32(FMC_SDRTR_COUNT(683), STM32_FMC_SDRTR);
+  putreg32(FMC_SDRTR_COUNT(STM32_SDRAM_REFRESH_COUNT), STM32_FMC_SDRTR);
 
   /* Disable write protection */
 
