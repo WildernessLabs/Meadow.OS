@@ -296,7 +296,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | *Reviewed | 2026-08-28 | #392 | Mark |  |
 | C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Reviewed | 2026-08-28 | #390 | Mark |  |
 | C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | *Reviewed | 2026-08-28 | #385 | Peter |  |
-| C134 | F7MeadowOS/misc/meadow_adc.c | *Reviewed | 2026-08-29 | #403 | Peter |  |
+| C134 | F7MeadowOS/misc/meadow_adc.c | *Reviewed | 2026-09-17 | #403 | Peter | Stale PCLK2=96MHz/ADCCLK=24MHz comments (branch `clock-audit-stale-comments`) corrected to the real 108MHz/27MHz post-216MHz-clock-change values; found during a targeted #431/#594-style audit for hardcoded clock-derived values, comment-accuracy only, no functional bug (DIV4 prescaler selection was already correct either way) |
 | C135 | F7MeadowOS/misc/meadow_cirbuf.c | *Fixed | 2026-08-29 | #400 | Peter | File deleted (dead kernel-space duplicate); see branch issue400-remove-dead-cirbuf-kernel-copy |
 | C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 | Cell Owner |  |
 | C137 | F7MeadowOS/misc/meadow_logging.c | *Reviewed | 2026-08-29 | #399 | Mark |  |
