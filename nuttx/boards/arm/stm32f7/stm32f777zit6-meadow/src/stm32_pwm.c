@@ -52,16 +52,6 @@
 #include <meadow/stm32f777zit6-meadow.h>
 
 /************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-
-#define HAVE_PWM 1
-
-#ifndef CONFIG_PWM
-#  undef HAVE_PWM
-#endif
-
-/************************************************************************************
  * Public Functions
  ************************************************************************************/
 
@@ -77,7 +67,6 @@
 
 int stm32_pwm_setup(void)
 {
-#ifdef HAVE_PWM
   static bool initialized = false;
   struct pwm_lowerhalf_s *pwm;
   int ret;
@@ -110,7 +99,4 @@ int stm32_pwm_setup(void)
     }
 
   return OK;
-#else
-  return -ENODEV;
-#endif
 }
