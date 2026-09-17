@@ -415,17 +415,6 @@
 // #define BOARD_LTDC_WIDTH        800
 // #define BOARD_LTDC_HEIGHT       472
 
-/* Button definitions *******************************************************/
-
-/* The STM32F7 Discovery supports one button:
- *  Pushbutton B1, labelled "User", is connected to GPIO PA0.
- *  A high value will be sensed when the button is depressed.
- */
-
-#define BUTTON_USER        0
-#define NUM_BUTTONS        1
-#define BUTTON_USER_BIT    (1 << BUTTON_USER)
-
 /* ESP32 coprocessor pin definitions *****************************************/
 
 #define MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
