@@ -621,18 +621,15 @@
 #define DMAMAP_SPI5_TX  DMAMAP_SPI5_TX_1
 
 /************************************************************************************
- * Public Data
+ * QSPI/SDMMC2/OTGFS/FMC pin definitions
+ *
+ * (This section was originally an unused "Public Data" template with an
+ * extern "C" wrapper and an EXTERN macro -- neither ever used, since
+ * everything here is a #define, which needs no C linkage protection.
+ * Removed both; only the pin macros below were ever load-bearing.)
  ************************************************************************************/
 #ifndef __ASSEMBLY__
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
 /* QSPI Mapping  */
 
 #define GPIO_QSPI_CS  (GPIO_QUADSPI_BK1_NCS_2 | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz)
@@ -706,11 +703,6 @@ extern "C"
 #define GPIO_FMC_SDNCAS (GPIO_FMC_SDNCAS_0|GPIO_SPEED_100MHz)
 #define GPIO_FMC_SDNRAS (GPIO_FMC_SDNRAS_0|GPIO_SPEED_100MHz)
 #define GPIO_FMC_SDNWE  (GPIO_FMC_SDNWE_3|GPIO_SPEED_100MHz)
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* __ASSEMBLY__ */
 #endif  /* __BOARDS_ARM_STM32F777ZIT6_MEADOW_INCLUDE_BOARD_H */
