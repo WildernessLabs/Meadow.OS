@@ -85,9 +85,6 @@ void pwrmgmt_disable_rtc_alarm_wakeup(void);
 int meadow_pwr_mgmt_use_hse_for_rtc(void);
 int meadow_pwr_mgmt_use_lsi_for_rtc(void);
 
-// This function is in Meadow.OS/pwrmgmt/pwrmgmt_control.c
-void up_idle_pwrmgmt_set_idle_behavior(bool useWaitOps);
-
   // See PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING above before enabling this --
   // it makes pwrmgmt_lsi_calc_prep_thread_func() (pwrmgmt_calib_lsi_clock.c)
   // never exit after calibration, looping forever from boot logging a line

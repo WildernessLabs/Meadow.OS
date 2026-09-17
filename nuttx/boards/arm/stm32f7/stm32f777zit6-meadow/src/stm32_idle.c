@@ -40,21 +40,10 @@
 #include <nuttx/config.h>
 #include <debug.h>
 #include <meadow/hcom_misc_diag.h>
+#include <meadow/meadow_pwr_mgmt.h>
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && !defined (CONFIG_ARCH_IDLE_CUSTOM)
 #error "CONFIG_MEADOW_PWR_MGMT_SUPPORT requires CONFIG_ARCH_IDLE_CUSTOM"
-#endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-// Used to allow/disallow the use of WFE and WFI. This is necessary for
-// entering into the stop low-power mode which uses WFE or WFI. Both sets
-// of WFI/WFE must be done in a controlled manner. If part way through
-// configuring for the stop-mode, up_idle calls WFE or WFI things go
-// very badly.
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined(CONFIG_ARCH_IDLE_CUSTOM)
-static volatile bool _okayToUseWaitOps = true;
 #endif
 
 /****************************************************************************
@@ -90,35 +79,37 @@ void up_idle(void)
     meadow_idle_mon_entering_idle_mode();
 
     #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
-      // Check if it's okay to execute wfi or wfe. If not, just return, which is
-      // the default behavior for the idle loop, but consumes more power.
-      // This is necessary because if WFI or WFE op codes are executed while
-      // the configuration for stop mode is incomplete the MCU can lock up.
+      // If a low-power stop-mode request is pending, perform the entire
+      // hardware transition synchronously right here, on the idle task,
+      // instead of racing a separate task's own hardware configuration
+      // against this function's own wfi/wfe.
       //
-      // KNOWN RACE (Issue #436, deferred pending Issue #601): this
-      // check-then-act is not atomic with respect to preemption -- if
-      // up_idle() is preempted after reading _okayToUseWaitOps as true but
-      // before executing wfi/wfe, pwrmgmt could clear the flag and start
-      // (incomplete) stop-mode configuration before up_idle() resumes and
-      // executes wfi/wfe anyway. Two attempts to close this race by masking
-      // interrupts around the check+wfi/wfe (enter/leave_critical_section(),
-      // then the lighter up_irq_save()/up_irq_restore()) both caused a full
-      // boot failure on real hardware (no syslog output at all), for a
-      // reason not yet understood. Reverted to the original unprotected
-      // form pending a debugger session -- see Issue #601.
-      if(_okayToUseWaitOps)
+      // This replaced a design (Issue #436) where a separate pwrmgmt task
+      // cleared a shared flag to tell up_idle() not to sleep while it
+      // configured stop mode elsewhere -- a check-then-act race, since
+      // up_idle() could be preempted between reading the flag and
+      // executing wfi/wfe. Two attempts to close that race by masking
+      // interrupts around the check+wfi/wfe both caused a full boot
+      // failure on real hardware, for reasons tied to how this specific
+      // silicon's wfi interacts with BASEPRI-based masking (see Issue
+      // #601 for the full investigation). Moving the whole transition
+      // (including the real stop-mode wfi/wfe, inside
+      // pwrmgmt_enter_stop_mode()) onto this same task removes the race
+      // entirely: only the idle task ever executes wfi/wfe now, so
+      // ordinary RTOS preemption of this call is safe by construction.
+      if(pwrmgmt_idle_check_and_enter_lowpower())
       {
-        #ifdef CONFIG_PM_WFE
-          asm volatile ("wfe");
-        #else
-          asm volatile ("wfi");
-        #endif
-      }
-      else
-      {
-        // Don't use wfe/wfi so power managment can setup low-power mode.
+        // The transition above already performed the real stop-mode
+        // wfi/wfe as part of its own sequence; don't also do the plain
+        // one below on this iteration.
         return;
       }
+
+      #ifdef CONFIG_PM_WFE
+        asm volatile ("wfe");
+      #else
+        asm volatile ("wfi");
+      #endif
     #else
       // Only CONFIG_ARCH_IDLE_CUSTOM defined
       #ifdef CONFIG_PM_WFE
@@ -133,12 +124,3 @@ void up_idle(void)
 
 #endif   // #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
 }
-
-//=========================================================================
-// Called from MEADOW pwrmgmt code when entering and leaving low-power modes.
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined(CONFIG_ARCH_IDLE_CUSTOM)
-void up_idle_pwrmgmt_set_idle_behavior(bool useWaitOps)
-{
-  _okayToUseWaitOps = useWaitOps;
-}
-#endif
