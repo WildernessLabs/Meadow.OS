@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-15. Tables A, B, and C are
+**Review timeline:** started 2026-08-13, last updated 2026-09-17. Tables A, B, and C are
 all now fully reviewed (excluding Mark's `F7MeadowOS/espcp/` rows and all Cell-owned rows,
 out of scope -- see the Original Author note below). B21/B22
 (`hcom_esp32_network_monitor.{c,h}`) remain Mark's and out of scope; B19/B20/B23-B26 were
@@ -77,7 +77,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A09 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_composite.c | *Reviewed | 2026-09-01 | #440 | Peter | Derived from nucleo-f767zi |
 | A10 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_extmem.c | *Reviewed | 2026-09-16 | #431 | Peter | Both findings fixed (branch `issue431-extmem-clock-comment-fix`): stale 90MHz clock comment corrected to a symbolic STM32_HCLK_FREQUENCY reference (real value 108MHz), 3 magic numbers replaced with named constants; SDRAM chip identified as ISSI IS42S16160J; hardware-verified; issue closed. Separately-found refresh-counter bug (also derived from the wrong 90MHz assumption) filed as #594, lower priority, no correctness risk |
 | A13 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_idle.c | *Reviewed | 2026-09-16 | #436 | Peter | Intentionally OPEN: 1/2 findings fixed (branch `issue436-idle-race-fix`, hardware-verified incl. 10s low-power stop mode); the check-then-act race between up_idle()'s wfi/wfe and pwrmgmt clearing `_okayToUseWaitOps` is confirmed real but two independent interrupt-masking fixes both caused a full boot failure on hardware for an unknown reason -- reverted, deferred to Issue #601 (needs a debugger session) |
-| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | Reviewed | 2026-09-01 | #441 | Peter | Meadow's own restored file (Issue200 precedent) |
+| A14 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ioctl.c | *Reviewed | 2026-09-17 | #441 | Peter | Both findings addressed (branch `issue441-ioctl-fixes`), hardware-verified (flash filesystem + direct-read areas both worked): board_ioctl() NULL-guarded against g_qspi like other callers; MTD_W25QJV_FLASH_* hardcoded duplicate values (also in vendored w25qxxxjv.c) clarified via comment -- CONFIG_W25QXXXJV_DUMMIES turned out to be only a local file-scoped #ifndef fallback, not a real Kconfig option, so no shared source of truth exists without touching vendored code; issue closed |
 | A15 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_ostest.c | Reviewed | 2026-09-01 | #439 | Peter | Meadow's own carried-forward Legacy code |
 | A16 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_pwm.c | Reviewed | 2026-09-01 | #438 | Peter | Meadow's own carried-forward Legacy code |
 | A17 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_reset.c | Reviewed | 2026-09-01 |  | Mark | No confirmed findings; Meadow's own restored file |

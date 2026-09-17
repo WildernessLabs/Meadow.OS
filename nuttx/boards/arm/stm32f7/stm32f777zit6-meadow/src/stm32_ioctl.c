@@ -73,6 +73,8 @@
 #endif
 #if defined(CONFIG_MTD_W25QXXXJV)
   // Keep in sync with w25qxxxjv.c driver
+  // All three remain a hardcoded duplicate, verified correct for the
+  // currently-shipped W25Q256 and its default 6-cycle dummy count.
   #define MTD_W25QJV_FLASH_QSPI_ADDRLEN       (4)   // W25QxxxJV, xxx < 256 ADDRLEN=3, for xxx >= 256 ADDRLEN=4
   #define MTD_W25QJV_FLASH_READ_QUADIO        (0xeb)
   #define MTD_W25QJV_FLASH_NUMBER_DUMMIES     (6)   // This needs to match the W25QxxxJV driver
@@ -107,6 +109,11 @@ extern struct qspi_dev_s *g_qspi;
 
 int board_ioctl(unsigned int cmd, uintptr_t arg)
 {
+  if (g_qspi == NULL)
+    {
+      return -ENODEV;
+    }
+
   switch (cmd)
     {
       case BIOC_ENTER_MEMMAP:
