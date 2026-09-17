@@ -109,6 +109,14 @@
  *   to 48 MHz to work correctly.
  *
  * 2 <= PLLQ <= 15
+ *
+ * NOTE: this PLLQ path (and STM32_OTGFS_FREQUENCY below, in every branch)
+ * is NOT actually what supplies the 48 MHz clock on this board -- see
+ * STM32_RCC_DCKCFGR2_CK48MSRC below, which selects PLLSAI, not this PLL's
+ * PLLQ output. STM32_OTGFS_FREQUENCY has no references anywhere in this
+ * tree; PLLQ is configured here only because the RCC init code requires
+ * some legal value in that register field, not because anything consumes
+ * the resulting frequency.
  */
  
 #if (MEADOW_TRY_216_MHz_CLOCK == 1)
@@ -117,7 +125,13 @@
  * PLL_VCO = (25,000,000 / 25) * 432 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
  * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
- * DSI CLK = PLL_VCO / PLLR = 432 / 8 = 54 MHz
+ * DSI CLK = PLL_VCO / PLLR = 432 / 8 = 54 MHz (not applicable, no DSI here)
+ *
+ * NOTE: unlike the branches below, this one doesn't define
+ * STM32_PLLCFG_PLLR. Harmless either way: STM32_PLLCFG_PLLR is only ever
+ * read by stm32f40xxx_rcc.c (STM32F4), not stm32f76xx77xx_rcc.c (what
+ * this STM32F7 board actually builds) -- confirmed via grep, zero
+ * references. It's inert for this chip family regardless.
  */
 
 #define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
@@ -200,12 +214,17 @@
 #define STM32_RCC_PLLSAICFGR_PLLSAIQ    RCC_PLLSAICFGR_PLLSAIQ(2)
 #define STM32_RCC_PLLSAICFGR_PLLSAIR    RCC_PLLSAICFGR_PLLSAIR(2)
 
-/* SAIx input frequency = 25 / M * N / Q / P
- *   25000000 / 25 * 384 / 2 / 8
+/* SAIx clock = VCO_SAI / PLLSAIQ / (PLLSAIDIVQ + 1), where
+ * VCO_SAI = (STM32_HSE_FREQUENCY / PLLM) * PLLSAIN, PLLM shared with the
+ * main PLL (25). Note PLLSAIDIVQ's register field is n+1, not n (RM0410:
+ * "00001: PLLSAIDIVQ = /2"), unlike PLLSAIN/PLLSAIQ/PLLSAIP above which
+ * are direct/near-direct divisors -- confirmed against the datasheet
+ * after the two prior hardcoded values here disagreed with each other.
+ *   (25000000 / 25) * 384 / 2 / (1 + 1) = 96000000
  */
 
-#define STM32F7_SAI1_FREQUENCY           (49142857)
-#define STM32F7_SAI2_FREQUENCY           (49142857)
+#define STM32F7_SAI1_FREQUENCY           ((STM32_HSE_FREQUENCY / 25) * 384 / 2 / 2)
+#define STM32F7_SAI2_FREQUENCY           STM32F7_SAI1_FREQUENCY
 
 /* Configure Dedicated Clock Configuration Register */
 
@@ -402,18 +421,7 @@
 // #define BOARD_LTDC_WIDTH        800
 // #define BOARD_LTDC_HEIGHT       472
 
-/* Button definitions *******************************************************/
-
-/* The STM32F7 Discovery supports one button:
- *  Pushbutton B1, labelled "User", is connected to GPIO PA0.
- *  A high value will be sensed when the button is depressed.
- */
-
-#define BUTTON_USER        0
-#define NUM_BUTTONS        1
-#define BUTTON_USER_BIT    (1 << BUTTON_USER)
-
-/* LED definitions **********************************************************/
+/* ESP32 coprocessor pin definitions *****************************************/
 
 #define MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
 #define MEADOW_ESP32_ONBOARD_BOOT_PIN_INPUT   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
@@ -613,18 +621,15 @@
 #define DMAMAP_SPI5_TX  DMAMAP_SPI5_TX_1
 
 /************************************************************************************
- * Public Data
+ * QSPI/SDMMC2/OTGFS/FMC pin definitions
+ *
+ * (This section was originally an unused "Public Data" template with an
+ * extern "C" wrapper and an EXTERN macro -- neither ever used, since
+ * everything here is a #define, which needs no C linkage protection.
+ * Removed both; only the pin macros below were ever load-bearing.)
  ************************************************************************************/
 #ifndef __ASSEMBLY__
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
 /* QSPI Mapping  */
 
 #define GPIO_QSPI_CS  (GPIO_QUADSPI_BK1_NCS_2 | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz)
@@ -698,11 +703,6 @@ extern "C"
 #define GPIO_FMC_SDNCAS (GPIO_FMC_SDNCAS_0|GPIO_SPEED_100MHz)
 #define GPIO_FMC_SDNRAS (GPIO_FMC_SDNRAS_0|GPIO_SPEED_100MHz)
 #define GPIO_FMC_SDNWE  (GPIO_FMC_SDNWE_3|GPIO_SPEED_100MHz)
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
 
 #endif /* __ASSEMBLY__ */
 #endif  /* __BOARDS_ARM_STM32F777ZIT6_MEADOW_INCLUDE_BOARD_H */
