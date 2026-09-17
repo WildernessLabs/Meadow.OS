@@ -109,6 +109,14 @@
  *   to 48 MHz to work correctly.
  *
  * 2 <= PLLQ <= 15
+ *
+ * NOTE: this PLLQ path (and STM32_OTGFS_FREQUENCY below, in every branch)
+ * is NOT actually what supplies the 48 MHz clock on this board -- see
+ * STM32_RCC_DCKCFGR2_CK48MSRC below, which selects PLLSAI, not this PLL's
+ * PLLQ output. STM32_OTGFS_FREQUENCY has no references anywhere in this
+ * tree; PLLQ is configured here only because the RCC init code requires
+ * some legal value in that register field, not because anything consumes
+ * the resulting frequency.
  */
  
 #if (MEADOW_TRY_216_MHz_CLOCK == 1)
