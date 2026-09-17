@@ -125,7 +125,13 @@
  * PLL_VCO = (25,000,000 / 25) * 432 = 432 MHz
  * SYSCLK  = 432 MHz / 2 = 216 MHz
  * USB OTG FS, SDMMC and RNG Clock = 432 MHz / 9 = 48 MHz
- * DSI CLK = PLL_VCO / PLLR = 432 / 8 = 54 MHz
+ * DSI CLK = PLL_VCO / PLLR = 432 / 8 = 54 MHz (not applicable, no DSI here)
+ *
+ * NOTE: unlike the branches below, this one doesn't define
+ * STM32_PLLCFG_PLLR. Harmless either way: STM32_PLLCFG_PLLR is only ever
+ * read by stm32f40xxx_rcc.c (STM32F4), not stm32f76xx77xx_rcc.c (what
+ * this STM32F7 board actually builds) -- confirmed via grep, zero
+ * references. It's inert for this chip family regardless.
  */
 
 #define STM32_PLLCFG_PLLM       RCC_PLLCFG_PLLM(25)
