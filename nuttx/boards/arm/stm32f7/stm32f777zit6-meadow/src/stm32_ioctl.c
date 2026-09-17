@@ -73,12 +73,7 @@
 #endif
 #if defined(CONFIG_MTD_W25QXXXJV)
   // Keep in sync with w25qxxxjv.c driver
-  // NOTE: addresslen/READ_QUADIO are runtime-detected per chip in that driver
-  // (w25qxxxjv.c:727-788), and CONFIG_W25QXXXJV_DUMMIES is only a local
-  // fallback #define scoped to that .c file, not a real Kconfig option --
-  // none of these three values are derivable from a shared source of truth
-  // here without adding a new public accessor to that vendored driver. All
-  // three remain a hardcoded duplicate, verified correct for the
+  // All three remain a hardcoded duplicate, verified correct for the
   // currently-shipped W25Q256 and its default 6-cycle dummy count.
   #define MTD_W25QJV_FLASH_QSPI_ADDRLEN       (4)   // W25QxxxJV, xxx < 256 ADDRLEN=3, for xxx >= 256 ADDRLEN=4
   #define MTD_W25QJV_FLASH_READ_QUADIO        (0xeb)
