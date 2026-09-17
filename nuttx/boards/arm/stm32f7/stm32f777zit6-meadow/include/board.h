@@ -200,12 +200,17 @@
 #define STM32_RCC_PLLSAICFGR_PLLSAIQ    RCC_PLLSAICFGR_PLLSAIQ(2)
 #define STM32_RCC_PLLSAICFGR_PLLSAIR    RCC_PLLSAICFGR_PLLSAIR(2)
 
-/* SAIx input frequency = 25 / M * N / Q / P
- *   25000000 / 25 * 384 / 2 / 8
+/* SAIx clock = VCO_SAI / PLLSAIQ / (PLLSAIDIVQ + 1), where
+ * VCO_SAI = (STM32_HSE_FREQUENCY / PLLM) * PLLSAIN, PLLM shared with the
+ * main PLL (25). Note PLLSAIDIVQ's register field is n+1, not n (RM0410:
+ * "00001: PLLSAIDIVQ = /2"), unlike PLLSAIN/PLLSAIQ/PLLSAIP above which
+ * are direct/near-direct divisors -- confirmed against the datasheet
+ * after the two prior hardcoded values here disagreed with each other.
+ *   (25000000 / 25) * 384 / 2 / (1 + 1) = 96000000
  */
 
-#define STM32F7_SAI1_FREQUENCY           (49142857)
-#define STM32F7_SAI2_FREQUENCY           (49142857)
+#define STM32F7_SAI1_FREQUENCY           ((STM32_HSE_FREQUENCY / 25) * 384 / 2 / 2)
+#define STM32F7_SAI2_FREQUENCY           STM32F7_SAI1_FREQUENCY
 
 /* Configure Dedicated Clock Configuration Register */
 
