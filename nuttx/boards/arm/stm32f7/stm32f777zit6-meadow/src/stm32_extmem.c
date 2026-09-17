@@ -82,6 +82,16 @@
 //
 // e.g. at the current 216MHz HCLK: FMC_CLK = 108,000,000;
 // (108,000,000 * 125 / 16,000,000) - 20 = 843.75 -> 843 - 20 = 823
+//
+// Refresh_Rate source: ISSI IS42S16160J-7BLI datasheet ("42-45S83200J-
+// 16160J", covers IS42S83200J/IS42S16160J/IS45S83200J/IS45S16160J,
+// Rev. C4, 09/17/2020) -- p.1 feature summary and p.18 AC characteristics
+// (tref). The installed part's "-7BLI" suffix decodes (p.60 ordering
+// info) to 143MHz/BGA/Lead-free/Industrial grade (-40C to +85C) -- for
+// Industrial grade, 8192-row refresh is 64ms across its entire rated
+// temperature range (only Automotive-A2 grade drops to 32ms, and only
+// above 85C, which doesn't apply here). 7.8125us = 64ms/8192 is therefore
+// correct for this chip at any temperature within its rated range.
 #define STM32_SDRAM_REFRESH_COUNT \
   ((uint32_t)(((uint64_t)(STM32_HCLK_FREQUENCY / 2) * 125ULL) / 16000000ULL) - 20)
 
