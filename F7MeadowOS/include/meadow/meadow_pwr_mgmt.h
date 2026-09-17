@@ -58,4 +58,11 @@ typedef int (*pwr_mgmt_notify_callback)(bool lpStart);
 int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callback);
 int meadow_power_mgmt_initialize(void);
 
+// Called from up_idle() (Idle_Task only) on every idle iteration -- see
+// F7MeadowOS/pwrmgmt/pwrmgmt_control.c for the full description. Returns
+// true if a pending low-power request was found and handled (in which
+// case the caller should not also execute its own wfi/wfe this
+// iteration), false if there was nothing to do.
+bool pwrmgmt_idle_check_and_enter_lowpower(void);
+
 #endif // __CONFIG_MEADOW_SRC_MEADOW_PWR_MGMT__H

@@ -98,8 +98,23 @@
 
 static sem_t _lowPwrCtrlEntry;
 
+// Posted by the idle task (pwrmgmt_idle_check_and_enter_lowpower()) once it
+// has finished performing a requested low-power transition; the requesting
+// task in pwrmgmt_enter_stm32f7_stop_mode() blocks on this.
+static sem_t _lowPwrRequestComplete;
+
 // Space for callbacks for notification of entering low-power mode
 static pwr_mgmt_notify_callback _regCallback[PWR_MGMT_MAX_CALLBACKS_AVAILABLE];
+
+// The pending low-power request, handed off from whichever task calls
+// pwrmgmt_enter_stm32f7_stop_mode() to the idle task. Only ever written by
+// the requesting task (under _lowPwrCtrlEntry's mutual exclusion) before
+// _lowPwrRequestPending is set, and only ever cleared/read by the idle
+// task -- see Issue #436/#601 for why this replaced the previous
+// _okayToUseWaitOps cross-task flag design.
+static volatile bool _lowPwrRequestPending = false;
+static uint32_t _lowPwrRequestedWakeupPeriod;
+static int _lowPwrRequestResult;
 
 /************************************************************************************
  * Public Data
@@ -153,19 +168,89 @@ static int pwrmgmt_notify_registered_modules(bool lpStart)
   return OK;
 }
 
-//===============================================================
-// This function controls the idle threads behavior by preventing it from
-// using the WFI or WFE op codes until the stop-mode has completed. If this
-// isn't done, when the configuration for stop mode is incomplete the MCU can
-// lock up.
-static void pwrmgmt_idle_behavior_control(bool allowWaitOp)
-{
-  up_idle_pwrmgmt_set_idle_behavior(allowWaitOp);
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+//===============================================================
+// Called from up_idle() (Idle_Task only) on every idle iteration. If a
+// low-power stop-mode request is pending, performs the entire hardware
+// transition synchronously right here -- clock switch, alarm config, the
+// actual stop-mode wfi/wfe (inside pwrmgmt_enter_stop_mode()), and
+// switching back -- then returns true so up_idle() knows not to also
+// execute its own separate wfi/wfe this iteration.
+//
+// This function, and the whole hardware transition it performs, only ever
+// runs on the Idle_Task. There is no longer a second task independently
+// deciding to execute wfi/wfe, so there is nothing left to race: ordinary
+// RTOS preemption of this function by a higher-priority task mid-
+// transition is safe by construction, since execution simply resumes here
+// once the idle task is next scheduled. This replaced the previous
+// _okayToUseWaitOps cross-task flag design after two attempts to close
+// that race with interrupt masking both caused a full boot failure on
+// real hardware -- see Issue #436/#601.
+bool pwrmgmt_idle_check_and_enter_lowpower(void)
+{
+  int ret;
+
+  if(!_lowPwrRequestPending)
+  {
+    return false;
+  }
+
+  _lowPwrRequestPending = false;
+
+  // Switch on LSI clock
+  // Note: this must be early in this configuration process because it does
+  // a backup domain reset, which would otherwise, clear some of the registers
+  // configured in the following steps.
+  ret = meadow_pwr_mgmt_use_lsi_for_rtc();
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    goto done;
+  }
+
+  // Configure Wakeup/Alarm hardware and stop period.
+  // Using the RTC Alarm allows waking up at a future time. However, since
+  // there's no year or month comparison available, only day of the month,
+  // this only allows, at most, a period of one month ahead. This has been
+  // limited to 28 days - 1 second so it is consistent and not different for
+  // each month.
+  ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(_lowPwrRequestedWakeupPeriod);
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    goto done;
+  }
+
+  //---------------------------------------------------------------------
+  // Enter stop mode and wait for specified time to expire. Actually, not
+  // "waiting" but stopped. The pwrmgmt_enter_stop_mode() call returns when
+  // the F7 has returned to normal operation.
+  ret = pwrmgmt_enter_stop_mode();
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    goto done;
+  }
+
+  // Running again
+  //---------------------------------------------------------------------
+
+  // Switch back to crystal controlled HSE clock.
+  ret = meadow_pwr_mgmt_use_hse_for_rtc();
+  if(ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+  }
+
+done:
+  _lowPwrRequestResult = ret;
+  sem_post(&_lowPwrRequestComplete);
+  return true;
+}
+
 // This function is called when a module wants to subscribe for power
 // management notifications.
 int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callback)
@@ -221,6 +306,10 @@ int meadow_power_mgmt_initialize(void)
   // Create semaphore to only allow single threaded access to
   // pwrmgmt_enter_stm32f7_stop_mode()
   sem_init(&_lowPwrCtrlEntry, 0, 1);
+
+  // Posted by the idle task once it completes a requested transition;
+  // starts at 0 so the requesting task blocks until that happens.
+  sem_init(&_lowPwrRequestComplete, 0, 0);
 
   // Initialize internals needed for the LSI clock to be used with RTC
   ret = pwrmgmt_init_lsi_calib();
@@ -302,84 +391,31 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     return -EBUSY;
   }
 
-  // Prevent up_idle from using WFI or WFE commands till we wakeup
-  pwrmgmt_idle_behavior_control(false);
+  // Hand off the actual hardware transition (clock switch, alarm config,
+  // the real stop-mode wfi/wfe, and switching back) to the idle task --
+  // see pwrmgmt_idle_check_and_enter_lowpower(), called from up_idle().
+  // This eliminates the up_idle()/pwrmgmt cross-task race documented in
+  // Issue #436/#601: only the idle task ever executes wfi/wfe or touches
+  // this hardware sequence, so there's nothing left to race against.
+  _lowPwrRequestedWakeupPeriod = wakeupPeriod;
+  _lowPwrRequestPending = true;
 
-  // Switch on LSI clock
-  // Note: this must be early in this configuration process because it does
-  // a backup domain reset, which would otherwise, clear some of the registers
-  // configured in the following steps.
-  ret = meadow_pwr_mgmt_use_lsi_for_rtc();
-  if(ret < 0)
+  // Wait for the idle task to finish the transition and post the result.
+  while(sem_wait(&_lowPwrRequestComplete) != OK)
   {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    (void) pwrmgmt_notify_registered_modules(false);
-    pwrmgmt_idle_behavior_control(true);
-
-    sem_post(&_lowPwrCtrlEntry);
-    return ret;
+    if(errno != EINTR)
+    {
+      break;
+    }
   }
-
-  // Configure Wakeup/Alarm hardware and stop period.
-  // Using the RTC Alarm allows waking up at a future time. However, since
-  // there's no year or month comparison available, only day of the month,
-  // this only allows, at most, a period of one month ahead. This has been
-  // limited to 28 days - 1 second so it is consistent and not different for
-  // each month.
-  ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-
-    (void) pwrmgmt_notify_registered_modules(false);
-    pwrmgmt_idle_behavior_control(true);
-
-    sem_post(&_lowPwrCtrlEntry);
-    return ret;
-  }
-
-  //---------------------------------------------------------------------
-  // Enter stop mode and wait for specified time to expire. Actually, not
-  // "waiting" but stopped. The pwrmgmt_enter_stop_mode() call returns when
-  // the F7 has returned to normal operation.
-  // Note in this function we will leave the critical section just before
-  // entering low-power and re-enter via ISR when time to wakeup.
-  ret = pwrmgmt_enter_stop_mode();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-
-    (void) pwrmgmt_notify_registered_modules(false);
-    pwrmgmt_idle_behavior_control(true);
-
-    sem_post(&_lowPwrCtrlEntry);
-    return ret;
-  }
-  
-  // Running again
-  //---------------------------------------------------------------------
-
-  // Switch back to crystal controlled HSE clock.
-  ret = meadow_pwr_mgmt_use_hse_for_rtc();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-  }
+  ret = _lowPwrRequestResult;
 
   // Notify concerned modules that low-power mode has ended. If a module has
   // a problem restarting it will be returned as an error, which will be output
   // and things will continue.
-  ret = pwrmgmt_notify_registered_modules(false);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-  }
+  (void) pwrmgmt_notify_registered_modules(false);
 
-  // Allow up_idle function to again use WFI and WFE to save power in normal
-  // operation.
-  pwrmgmt_idle_behavior_control(true);
-
-  // Can now be reentered 
+  // Can now be reentered
   sem_post(&_lowPwrCtrlEntry);
   return ret;
 }
