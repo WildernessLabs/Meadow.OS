@@ -180,13 +180,6 @@ void stm32_boardinitialize(void)
   arch_sporadic_initialize();
 #endif
 
-// This is never used -- CONFIG_ARCH_LEDS is not configured.
-#ifdef CONFIG_ARCH_LEDS
-  /* Configure on-board LEDs if LED support has been selected. */
-
-  board_autoled_initialize();
-#endif
-
 // Rebase Note: Nuttx function name changed from stm32_enablefmc() to
 // stm32_sdram_initialize(). The code is also slightly different.
 #ifdef CONFIG_STM32F7_FMC
