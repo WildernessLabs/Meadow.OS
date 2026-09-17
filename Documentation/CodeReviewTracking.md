@@ -231,7 +231,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C065 | F7MeadowOS/include/meadow/hcom_upd_shared.h | Reviewed | 2026-08-28 |  | Peter | mcu_ser_numb_s struct field finding tracked in #393 (meadow-upd.c) |
 | C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | Syscall UPD | No confirmed findings |
 | C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | *Reviewed | 2026-08-28 | #358 | Peter |  |
+| C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | *Reviewed | 2026-08-28 | #359 | Peter | Issue column corrected from stale #358 (that number actually belongs to meadow_client_cert.h/C069, a different Cell-owned file) -- confirmed via live GitHub title; #359 is closed (PR #532) |
 | C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #357 | Cell Owner |  |
 | C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Meadow Cloud |  |
 | C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-08-28 | #359 | Mark |  |
