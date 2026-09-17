@@ -794,15 +794,15 @@ static int meadow_adc_hardware_reg_init (void)
   //------------------------------------------------------------
   // ADC Sample Time Register - Determine how many clock cycles should each
   // conversion wait before beginning? See Ref Man sec 15.5.
-  // With ADCCLK = 24MHz (see ADC_CCR_ADCPRE)
-  // 000: 3 cycles Tconv = 3 + 12 = 15 cycles, 15/24,000,000 = 0.625 us
+  // With ADCCLK = 27MHz (see ADC_CCR_ADCPRE below)
+  // 000: 3 cycles Tconv = 3 + 12 = 15 cycles, 15/27,000,000 = 0.556 us
   // 001: 15 cycles
   // 010: 28 cycles
   // 011: 56 cycles
   // 100: 84 cycles
-  // 101: 112 cycles Tconv = 112 + 12 = 124 cycles 124/24,000,000 = 4.667 us
+  // 101: 112 cycles Tconv = 112 + 12 = 124 cycles 124/27,000,000 = 4.593 us
   // 110: 144 cycles
-  // 111: 480 cycles Tconv = 480 + 12 = 492 cycles 492/24,000,000 = 20.5 us
+  // 111: 480 cycles Tconv = 480 + 12 = 492 cycles 492/27,000,000 = 18.222 us
 
   // Set sample time for channels 10-18
   regval = getreg32(STM32_ADC1_BASE + STM32_ADC_SMPR1_OFFSET);
@@ -874,9 +874,11 @@ static int meadow_adc_hardware_reg_init (void)
   regval &= ~ADC_CCR_TSVREFE;       // 0=disable temperature sensor channel
   regval &= ~ADC_CCR_VBATE;         // 0=disable vbat channel
 
-  // ADCPRE - Calculation based on PCLK2=96MHz (with 192MHz clock). Per Data
-  // Sheet 5.3.24 pp 165, max ADC clock is 36MHz. Therefore, divide by 4
-  // (96/4=24MHz) is the highest freq. For clock details see Meadow's board.h
+  // ADCPRE - Calculation based on PCLK2 = STM32_PCLK2_FREQUENCY (currently
+  // 108MHz, see board.h). Per Data Sheet 5.3.24 pp 165, max ADC clock is
+  // 36MHz. Divide by 4 (108/4=27MHz) is the highest available prescaler
+  // setting that still stays under that max -- divide by 2 (54MHz) would
+  // exceed it. For clock details see Meadow's board.h
   regval &= ~ADC_CCR_ADCPRE_MASK;   // Clear any bits in ADC prescaler
   regval |= ADC_CCR_ADCPRE_DIV4;    // 01=ADC prescaler PCLK2 divided by 4
 
