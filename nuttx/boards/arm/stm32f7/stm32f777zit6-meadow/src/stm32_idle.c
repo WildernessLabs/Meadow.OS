@@ -54,7 +54,7 @@
 // configuring for the stop-mode, up_idle calls WFE or WFI things go
 // very badly.
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT) && defined(CONFIG_ARCH_IDLE_CUSTOM)
-bool _okayToUseWaitOps = true;
+static volatile bool _okayToUseWaitOps = true;
 #endif
 
 /****************************************************************************
@@ -94,6 +94,18 @@ void up_idle(void)
       // the default behavior for the idle loop, but consumes more power.
       // This is necessary because if WFI or WFE op codes are executed while
       // the configuration for stop mode is incomplete the MCU can lock up.
+      //
+      // KNOWN RACE (Issue #436, deferred pending Issue #601): this
+      // check-then-act is not atomic with respect to preemption -- if
+      // up_idle() is preempted after reading _okayToUseWaitOps as true but
+      // before executing wfi/wfe, pwrmgmt could clear the flag and start
+      // (incomplete) stop-mode configuration before up_idle() resumes and
+      // executes wfi/wfe anyway. Two attempts to close this race by masking
+      // interrupts around the check+wfi/wfe (enter/leave_critical_section(),
+      // then the lighter up_irq_save()/up_irq_restore()) both caused a full
+      // boot failure on real hardware (no syslog output at all), for a
+      // reason not yet understood. Reverted to the original unprotected
+      // form pending a debugger session -- see Issue #601.
       if(_okayToUseWaitOps)
       {
         #ifdef CONFIG_PM_WFE
