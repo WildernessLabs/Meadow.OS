@@ -40,6 +40,7 @@
 #ifndef __INCLUDE_MEADOW_POWER_MGMT_LOCAL__H
 #define __INCLUDE_MEADOW_POWER_MGMT_LOCAL__H
 
+#include <arch/board/board.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_thread_config.h>
 
@@ -57,8 +58,32 @@
 
 // This are defined here because they are not in Nuttx. In Nuttx they are
 // hardcoded as 0xff and 7812 or 7182 (an error) in stm32_rtc.c etc.
+//
+// When HSE drives the RTC, the actual RTC input clock is
+// HSE / RTCPRE, where RTCPRE is programmed by NuttX's own
+// nuttx/arch/arm/src/stm32f7/stm32f76xx77xx_rcc.c as:
+//   HSE_DIVISOR = (STM32_HSE_FREQUENCY + 500000) / 1000000
+// That macro is private to that .c file (not exposed via a header), so
+// it's mirrored here -- keep in sync if NuttX's own formula ever
+// changes. At the current 25MHz crystal this rounds to RTCPRE=25,
+// giving exactly 1MHz into the RTC (hence "_FOR_1_MHZ" below).
+#define PWRMGMT_HSE_RTC_DIVISOR ((STM32_HSE_FREQUENCY + 500000) / 1000000)
+#define PWRMGMT_HSE_RTC_INPUT_FREQUENCY \
+  (STM32_HSE_FREQUENCY / PWRMGMT_HSE_RTC_DIVISOR)
+
+// RTC prescalers: (PREDIV_A+1) * (PREDIV_S+1) must equal
+// PWRMGMT_HSE_RTC_INPUT_FREQUENCY for an exact 1Hz calendar tick.
+// PREDIV_A (the asynchronous prescaler) is kept at STMicro's AN4759
+// table 7 choice of 124 -- an independent design choice (maximizing the
+// async prescaler for lower power) unrelated to clock frequency.
+// PREDIV_S is computed so the product comes out exact, rather than
+// hardcoded, so this can't silently go stale the way #431/#594 did if
+// the HSE crystal frequency (currently 25MHz, see STM32_BOARD_XTAL in
+// board.h) is ever changed.
 #define PWRMGMT_CLK_HSE_DIV_A_FACTOR_FOR_1_MHZ (124)    // STMicro's AN4759 table 7
-#define PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ (7999)   // STMicro's AN4759 table 7
+#define PWRMGMT_CLK_HSE_DIV_S_FACTOR_FOR_1_MHZ \
+  ((PWRMGMT_HSE_RTC_INPUT_FREQUENCY / \
+    (PWRMGMT_CLK_HSE_DIV_A_FACTOR_FOR_1_MHZ + 1)) - 1)
 
 // Which RTC Alarm to use 0 = Alarm A or 1 = Alarm B?
 // Note: Alarm B has not been tested
