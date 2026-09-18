@@ -733,74 +733,75 @@ int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
 
           return ret;
         }
-   
+
         // Don't move to next directory, re-evaluate this new one, then move
         // forward.
         dirLevel--;
         continue;
       }
-      else
-      {
-        syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n",
-                  __FILE__, __LINE__, ret, errno);
-      }
 
-      if (! S_ISDIR(pStatBuf->st_mode))
-      {
-        // All entries must be a directory, if not, it's an error
-        char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
-        if(hostMsg == NULL)
-        {
-          syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-                    __FILE__, __LINE__);
-          free(fullFileNamePath);
-          return -ENOMEM;
-        }
-
-        snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                "Pathname '%s' is invalid, last element not a directory\n",
-                 fullFileNamePath);
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                hostMsg, __FILE__, __LINE__);
-        free(hostMsg);
-        free(fullFileNamePath);
-        return -ENOTDIR;
-      }
-
+      // Some failure other than "doesn't exist yet" -- nothing to recover,
+      // report it and give up.
+      syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n",
+                __FILE__, __LINE__, ret, errno);
       free(fullFileNamePath);
       return ret;
     }
-#if defined (CONFIG_DIR_MGMT_TESTS)
-    else
+
+    // stat() succeeded, the entry exists. Every element this loop walks
+    // must be a directory (the filename itself is handled separately, by
+    // the caller, once this function returns) -- if it isn't, that's an
+    // error.
+    if (! S_ISDIR(statBuf.st_mode))
     {
-      syslog(LOG_MTEST, "===> %s@%d- Searching FS found '%s' which is:\n",
-                __FILE__, __LINE__, fullFileNamePath);
+      // All entries must be a directory, if not, it's an error
+      char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
+      if(hostMsg == NULL)
+      {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
+                  __FILE__, __LINE__);
+        free(fullFileNamePath);
+        return -ENOMEM;
+      }
 
-      if (S_ISREG(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: File\n");
-      else if (S_ISDIR(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Directory\n");
-      else if (S_ISCHR(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Character driver\n");
-      else if (S_ISBLK(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Block driver\n");
-      else if (S_ISMQ(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Message queue\n");
-      else if (S_ISSEM(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Named semaphore\n");
-      else if (S_ISSHM(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Shared memory\n");
-      else if (S_ISSOCK(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Socket\n");
-      else if (S_ISMTD(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Named MTD driver\n");
-      else if (S_ISLNK(statBuf.st_mode))
-        syslog(LOG_MTEST, "type: Symbolic link\n");
-      else
-        syslog(LOG_MTEST, "type: Unknown\n");
-
-      usleep(30 * 1000);
+      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
+              "Pathname '%s' is invalid, last element not a directory\n",
+               fullFileNamePath);
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+              hostMsg, __FILE__, __LINE__);
+      free(hostMsg);
+      free(fullFileNamePath);
+      return -ENOTDIR;
     }
+
+#if defined (CONFIG_DIR_MGMT_TESTS)
+    syslog(LOG_MTEST, "===> %s@%d- Searching FS found '%s' which is:\n",
+              __FILE__, __LINE__, fullFileNamePath);
+
+    if (S_ISREG(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: File\n");
+    else if (S_ISDIR(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Directory\n");
+    else if (S_ISCHR(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Character driver\n");
+    else if (S_ISBLK(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Block driver\n");
+    else if (S_ISMQ(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Message queue\n");
+    else if (S_ISSEM(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Named semaphore\n");
+    else if (S_ISSHM(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Shared memory\n");
+    else if (S_ISSOCK(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Socket\n");
+    else if (S_ISMTD(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Named MTD driver\n");
+    else if (S_ISLNK(statBuf.st_mode))
+      syslog(LOG_MTEST, "type: Symbolic link\n");
+    else
+      syslog(LOG_MTEST, "type: Unknown\n");
+
+    usleep(30 * 1000);
 #endif
   }
 
