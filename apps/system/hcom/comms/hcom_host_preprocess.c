@@ -385,6 +385,14 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
             packetSize, true, true);
   if(ret < 0)
   {
+    // Notify CLI that download/delete can't continue because of an error.
+    // A TEXT_ERROR with the specific reason was already sent by
+    // hcom_host_process_init_hcom_dnld_share(); this concludes the
+    // download-init handshake CLI is waiting on, same as the mono-disabled
+    // check above.
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+            __FILE__, __LINE__);
+
     // In case there's some half baked changes
     hcom_dir_mgmt_free_file_info(dnldShared);
     return ret;    // Error already reported via syslog
