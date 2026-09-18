@@ -136,22 +136,43 @@ static void display_frequency_and_friends(
 #if (MEADOW_FREQ_MEAS_TEST_USE_SYSLOG_OUTPUT > 0)
   syslog(LOG_MTEST,
     "Timer %lu, Channel:%lu - Freq:%6.2fHz, DC:%02.2f%%, AvgFreq:%6.2fHz, Input Count:%lu\n",
-    mdwFreqReturnData.timerNumber, 
+    mdwFreqReturnData.timerNumber,
     mdwFreqReturnData.channelNumber,
     ((double)mdwFreqReturnData.frequencyX1000)/1000.0,
     ((double)mdwFreqReturnData.dutyCycleX1000)/1000.0,
     ((double)mdwFreqReturnData.avgFreqX1000)/1000.0,
     mdwFreqReturnData.gpioCountForAvg);
-#else  
+#else
   syslogToHost(LOG_MTEST,
     "Timer %lu, Channel:%lu - Freq:%6.2fHz, DC:%02.2f%%, AvgFreq:%6.2fHz, Input Count:%lu\n",
-    mdwFreqReturnData.timerNumber, 
+    mdwFreqReturnData.timerNumber,
     mdwFreqReturnData.channelNumber,
     ((double)mdwFreqReturnData.frequencyX1000)/1000.0,
     ((double)mdwFreqReturnData.dutyCycleX1000)/1000.0,
     ((double)mdwFreqReturnData.avgFreqX1000)/1000.0,
     mdwFreqReturnData.gpioCountForAvg);
 #endif
+
+  // Issue #560 temporary diagnostic: duty cycle can never legitimately be
+  // over 100%, so flag it loudly and unmissably right here in the CLI
+  // output rather than relying on the human to notice a bad number among
+  // many good ones. meadow_measure_freq.c's own DC-TRACE ANOMALY dump
+  // (gated on the same condition) has the ring-buffer detail; this is just
+  // the "stop and look" flag at the point a human is actually watching.
+  if(mdwFreqReturnData.dutyCycleX1000 > 100000)
+  {
+#if (MEADOW_FREQ_MEAS_TEST_USE_SYSLOG_OUTPUT > 0)
+    syslog(LOG_ERR,
+      "*** ANOMALY *** Timer %lu, Channel:%lu - DC:%02.2f%% is out of range, see DC-TRACE ANOMALY dump\n",
+      mdwFreqReturnData.timerNumber, mdwFreqReturnData.channelNumber,
+      ((double)mdwFreqReturnData.dutyCycleX1000)/1000.0);
+#else
+    syslogToHost(LOG_ERR,
+      "*** ANOMALY *** Timer %lu, Channel:%lu - DC:%02.2f%% is out of range, see DC-TRACE ANOMALY dump\n",
+      mdwFreqReturnData.timerNumber, mdwFreqReturnData.channelNumber,
+      ((double)mdwFreqReturnData.dutyCycleX1000)/1000.0);
+#endif
+  }
 }
 
 /************************************************************************************
@@ -325,6 +346,56 @@ void meadow_kt_measure_freq_tests(uint32_t userData)
       mdwFreqReturnData.channelNumber = 4;
       ret = meadow_measure_freq_return_freq_info(&mdwFreqReturnData);
       display_frequency_and_friends(mdwFreqReturnData, ret);
+      break;
+
+    //--------------------------------------------------------------
+    // Issue #560 temporary diagnostic: fast poll loop '6'. A manual '4041'
+    // typed every few seconds polls far slower than the ISR runs (600+
+    // edges/sec at 300Hz), so if a bad reading only persists until the next
+    // edge overwrites it, a manual poll has almost no chance of landing in
+    // that window. This polls every 20ms instead, for up to a minute,
+    // printing a heartbeat once a second and stopping immediately (with the
+    // usual loud ANOMALY output) if an out-of-range duty cycle appears.
+    case 6041:
+      // Timer 4 channel 1
+    {
+      int fastPollIter;
+      bool fastPollAnomaly = false;
+
+      for(fastPollIter = 0; fastPollIter < 3000 && !fastPollAnomaly; fastPollIter++)
+      {
+        mdwFreqReturnData.timerNumber   = 4;
+        mdwFreqReturnData.channelNumber = 1;
+        ret = meadow_measure_freq_return_freq_info(&mdwFreqReturnData);
+
+        if(ret == MEADOW_MEAS_FREQ_READ_SUCCESSFUL &&
+           mdwFreqReturnData.dutyCycleX1000 > 100000)
+        {
+          fastPollAnomaly = true;
+          display_frequency_and_friends(mdwFreqReturnData, ret);
+          // Also to real syslog (not just the CLI host connection), since
+          // that's the one place all of this loop's other diagnostic output
+          // (DC-TRACE ANOMALY) already goes.
+          syslog(LOG_ERR, "*** ANOMALY *** Fast-poll caught it, iter:%d\n",
+            fastPollIter);
+        }
+        else if((fastPollIter % 50) == 0)
+        {
+          // Heartbeat, roughly once a second, so it's clear the loop is
+          // still alive during an otherwise-quiet run. To real syslog too,
+          // same reason as above.
+          display_frequency_and_friends(mdwFreqReturnData, ret);
+          syslog(LOG_MTEST, "Fast-poll heartbeat, iter:%d/3000\n", fastPollIter);
+        }
+
+        usleep(20 * 1000);
+      }
+
+      syslogToHost(LOG_MTEST, "Fast-poll loop finished, anomaly %s\n",
+        fastPollAnomaly ? "FOUND (see above)" : "not found");
+      syslog(LOG_MTEST, "Fast-poll loop finished, anomaly %s\n",
+        fastPollAnomaly ? "FOUND (see above)" : "not found");
+    }
       break;
 
     //--------------------------------------------------------------
