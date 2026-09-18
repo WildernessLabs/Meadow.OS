@@ -147,7 +147,7 @@ int stm32_sdio_initialize_meadow(void)
   stm32_configgpio(GPIO_MEADOW_SDIO_NCD);
 #endif
 
-  syslog(LOG_DEBUG, "Initializing SDIO slot %d\n", SDIO_SLOTNO);
+  // syslog(LOG_DEBUG, "Initializing SDIO slot %d\n", SDIO_SLOTNO);
 
   _SdioDev = sdio_initialize(SDIO_SLOTNO);
 
@@ -158,17 +158,18 @@ int stm32_sdio_initialize_meadow(void)
   }
 
   // Now bind the SDIO interface to the MMC/SD driver
-  syslog(LOG_DEBUG, "Bind SDIO to the MMC/SD driver, minor=%d\n", SDIO_MINOR);
+  // syslog(LOG_DEBUG, "Bind SDIO to the MMC/SD driver, minor=%d\n", SDIO_MINOR);
 
   // Also setup insert/remove card interrupt callback
   ret = mmcsd_slotinitialize(SDIO_MINOR, _SdioDev);
   if (ret != OK)
   {
-    syslog(LOG_ERR, "ERROR: Failed to bind SDIO to the MMC/SD driver: %d\n", ret);
+    syslog(LOG_ERR, "%s@%d-ERROR: Failed to bind SDIO to the MMC/SD driver: %d\n",
+      __FILE__, __LINE__, ret);
     return ret;
   }
 
-  syslog(LOG_DEBUG, "Successfully bound SDIO to the MMC/SD driver\n");
+  // syslog(LOG_DEBUG, "Successfully bound SDIO to the MMC/SD driver\n");
 
 #ifdef HAVE_MEADOW_NCD
   // Use SD card detect pin to check if a card is inserted
@@ -189,9 +190,6 @@ int stm32_sdio_initialize_meadow(void)
   _PreviousSdInserted = _CurrentSdInserted;
   if(_CurrentSdInserted)
   {
-    syslog(LOG_DEBUG, "%s@%d-At startup SD-Card is inserted, will attempt to mount\n",
-       __FILE__, __LINE__);
-
     ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
       MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
     if(ret < 0)
@@ -200,6 +198,14 @@ int stm32_sdio_initialize_meadow(void)
         __FILE__, __LINE__, ret, errno);
       return ret;
     }
+
+    syslog(LOG_DEBUG, "%s@%d-SD-Card configured, inserted and mounted\n",
+       __FILE__, __LINE__);
+  }
+  else
+  {
+    syslog(LOG_DEBUG, "%s@%d-SD-Card configured but not inserted\n",
+       __FILE__, __LINE__);
   }
 
   // Now that _SdioDev is valid, the block driver is bound, and the initial
