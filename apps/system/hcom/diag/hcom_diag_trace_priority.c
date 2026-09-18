@@ -56,7 +56,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static int _traceLevel;
 
@@ -116,7 +115,7 @@ int hcom_diag_trace_priority_level_init()
     default:
       syslog(LOG_WARNING,
         "%s@%d-Unsupported config trace level of %d ignored\n",
-         thisFile, __LINE__, iniValue);
+         __FILE__, __LINE__, iniValue);
       break;
   }
 
@@ -284,7 +283,7 @@ void hcom_diag_trace_priority_change_trace_level(uint32_t userData)
   }
 
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-    hostMsg, thisFile, __LINE__);
+    hostMsg, __FILE__, __LINE__);
 
-  syslog(LOG_NOTICE, "%s@%d-%s\n\n", thisFile, __LINE__, hostMsg);
+  syslog(LOG_NOTICE, "%s@%d-%s\n\n", __FILE__, __LINE__, hostMsg);
 }

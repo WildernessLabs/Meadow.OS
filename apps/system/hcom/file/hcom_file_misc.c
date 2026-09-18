@@ -52,11 +52,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -77,7 +72,7 @@ uint32_t hcom_file_misc_calc_crc_for_file(char *completeFilePath,
   if (fd < 0)
   {
     syslog(LOG_ERR, "%s@%d-Opening '%s' failed, errno: %d\n",
-                thisFile, __LINE__, completeFilePath, errno);
+                __FILE__, __LINE__, completeFilePath, errno);
     *detectError = -errno;
     return 0;
   }
@@ -88,7 +83,7 @@ uint32_t hcom_file_misc_calc_crc_for_file(char *completeFilePath,
   if (*detectError != OK)
   {
     syslog(LOG_ERR, "%s@%d-CRC32 failed for '%s', errno: %d\n",
-                thisFile, __LINE__, completeFilePath, *detectError);
+                __FILE__, __LINE__, completeFilePath, *detectError);
     crc32Checksum = 0;
   }
 
@@ -96,7 +91,7 @@ uint32_t hcom_file_misc_calc_crc_for_file(char *completeFilePath,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-close %s, errno:%d\n",
-             thisFile, __LINE__, completeFilePath, errno);
+             __FILE__, __LINE__, completeFilePath, errno);
     *detectError = -errno;
     return 0;
   }
@@ -118,7 +113,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
 
   if(fd < 0)
   {
-    syslog(LOG_ERR, "%s@%d-File descriptor is invalid\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-File descriptor is invalid\n", __FILE__, __LINE__);
     *detectError = -EBADF;
     return 0;
   }
@@ -131,7 +126,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
-           thisFile, __LINE__, completeFilePath, errno);
+           __FILE__, __LINE__, completeFilePath, errno);
     *detectError = -errno;
     return 0;
   }
@@ -144,7 +139,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
   if (offset == (off_t)-1)
   {
     syslog(LOG_ERR, "%s@%d-lseek failed %s, errno:%d\n",
-              thisFile, __LINE__, completeFilePath, errno);
+              __FILE__, __LINE__, completeFilePath, errno);
     *detectError = -errno;
     return 0;   // Zero CRC checksum
   }
@@ -154,7 +149,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
   crcReadBuff = malloc(HCOM_FILE_READ_BUFF_SIZE_FOR_CRC);
   if(crcReadBuff == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     *detectError = -ENOMEM;
     return 0;   // Zero checksum
   }
@@ -166,7 +161,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
     if (nbytes < 0)
     {
       syslog(LOG_ERR, "%s@%d-read %s, errno:%d\n",
-                thisFile, __LINE__, completeFilePath, -errno);
+                __FILE__, __LINE__, completeFilePath, -errno);
       free(crcReadBuff);
       *detectError = -errno;
       return 0;
@@ -182,7 +177,7 @@ uint32_t hcom_file_misc_calc_crc_for_file_fd(int fd, char *completeFilePath,
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
   syslog(LOG_DEBUG, "%s@%d-Checksum for '%s' 0x%08x\n",
-            thisFile, __LINE__, completeFilePath, crc32Checksum);
+            __FILE__, __LINE__, completeFilePath, crc32Checksum);
 #endif
 
   return crc32Checksum;
@@ -237,14 +232,14 @@ int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
   char *hostMsg = malloc(HCOM_SHORT_HOST_STRING_BUFF_LENGTH);
   if(hostMsg == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
   char *errorCause = malloc(HCOM_TINY_HOST_STRING_BUFF_LENGTH);
   if(errorCause == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     free(hostMsg);
     return -ENOMEM;
   }
@@ -278,13 +273,13 @@ int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
   }
 
   syslog(LOG_ERR, "%s@%d-Error-failed to delete:'%s' %s (errno:%d)\n",
-      thisFile, __LINE__, dnldShared->dnldFullPathName, errorCause, get_errno());
+      __FILE__, __LINE__, dnldShared->dnldFullPathName, errorCause, get_errno());
 
   // Message to host PC
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
         "Meadow failed to delete file '%s', %s",
         dnldShared->dnldFullPathName, errorCause);
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, thisFile, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
 
   free(errorCause);
   free(hostMsg);

@@ -45,14 +45,6 @@
 
 /* Configuration ************************************************************/
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
-static char *thisFile = __FILE__;
-#endif
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -107,14 +99,14 @@ void hcom_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8_t 
   if(bufLen <= 0)
   {
     logger(msgPriority, "%s@%d-%s() but 'bufLen:%d'\n",
-              thisFile, __LINE__, __func__, bufLen);
+              __FILE__, __LINE__, __func__, bufLen);
     return;
   }
 
   if(buffer == NULL)
   {
     logger(msgPriority, "%s@%d-%s() but 'buffer == NULL'\n",
-              thisFile, __LINE__, __func__);
+              __FILE__, __LINE__, __func__);
     return;
   }
 

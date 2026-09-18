@@ -68,7 +68,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static bool _shutting_down;
 
@@ -115,7 +114,7 @@ int hcom_host_recv_setup()
   _recvDataBuffer = malloc(HCOM_HOST_RECEIVE_BUFFER_SIZE);
   if(_recvDataBuffer == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -130,7 +129,7 @@ int hcom_host_recv_setup()
   ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_host_recv_low_power_notification);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -154,7 +153,7 @@ int hcom_host_recv_setup()
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d, errno:%d\n",
-              thisFile, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
+              __FILE__, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
     return ret;
   }
 
@@ -328,7 +327,7 @@ int hcom_host_recv_restart_concluded()
     hcom_bbreg_clear_bbr_bits(HCOM_BBREG_RESTART_INITIATED_BY_HOST_CMD_BIT);
 
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-      "", thisFile, __LINE__);
+      "", __FILE__, __LINE__);
   }
 
   return OK;
@@ -341,7 +340,7 @@ void hcom_host_recv_open_connection()
   int hostConnectionAttemptCount = HCOM_CONNECTION_STARTUP_ATTEMPTS;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  syslog(LOG_DEBUG, "%s@%d-usb open read %s\n", thisFile, __LINE__,
+  syslog(LOG_DEBUG, "%s@%d-usb open read %s\n", __FILE__, __LINE__,
         HCOM_COMMUNICATIONS_DEVICE_NAME);
 #endif
 
@@ -391,7 +390,7 @@ void hcom_host_recv_open_connection()
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
   syslog(LOG_DEBUG, "%s@%d-%s ready for host comms\n",
-            thisFile, __LINE__, deviceName);
+            __FILE__, __LINE__, deviceName);
 #endif
 }
 
@@ -401,7 +400,7 @@ void hcom_host_recv_open_connection()
 bool hcom_host_recv_received_data()
 {
   // syslog(LOG_DEBUG, "%s@%d-HCOM Waiting for '%s' message\n",
-  //           thisFile, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
+  //           __FILE__, __LINE__, HCOM_COMMUNICATIONS_DEVICE_NAME);
 
   while (!_shutting_down)
   {
@@ -419,7 +418,7 @@ bool hcom_host_recv_received_data()
       int result = hcom_host_enq_deq_enqueue_rcvd_data(_recvDataBuffer, readResult);
       if (result < 0)
       {
-        syslog(LOG_WARNING, "%s@%d-received result:%d \n", thisFile, __LINE__, result);
+        syslog(LOG_WARNING, "%s@%d-received result:%d \n", __FILE__, __LINE__, result);
       }
       continue;
     }
@@ -427,7 +426,7 @@ bool hcom_host_recv_received_data()
     // readResult == 0 (end-of-file). Host PC probably dropped connection
     if (readResult == 0)
     {
-      syslog(LOG_INFO, "%s@%d-HCOM received EOF\n", thisFile, __LINE__);
+      syslog(LOG_INFO, "%s@%d-HCOM received EOF\n", __FILE__, __LINE__);
       continue;
     }
 
@@ -461,7 +460,7 @@ bool hcom_host_recv_received_data()
     }
     else
     {
-      syslog(LOG_ERR, "%s@%d-HCOM recv error:%d, errno:%d\n", thisFile, __LINE__, readResult, errno);
+      syslog(LOG_ERR, "%s@%d-HCOM recv error:%d, errno:%d\n", __FILE__, __LINE__, readResult, errno);
       return(false);    // No retry delay
     }
 

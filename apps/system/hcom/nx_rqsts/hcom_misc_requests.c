@@ -48,12 +48,6 @@
 
 /* Configuration ************************************************************/
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -73,9 +67,9 @@ void hcom_misc_rqst_get_device_info(uint32_t userData)
   char *device_info = malloc(HCOM_LARGE_HOST_STRING_BUFF_LENGTH);
   if (device_info == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Alloc failed\n", __FILE__, __LINE__);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-            "Memory allocation error. No results can be sent", thisFile, __LINE__);
+            "Memory allocation error. No results can be sent", __FILE__, __LINE__);
     return;
   }
 
@@ -84,9 +78,9 @@ void hcom_misc_rqst_get_device_info(uint32_t userData)
   char *buffer = (char *) malloc(buffer_length);
   if (buffer == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Alloc failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Alloc failed\n", __FILE__, __LINE__);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-            "Memory allocation error. No results can be sent", thisFile, __LINE__);
+            "Memory allocation error. No results can be sent", __FILE__, __LINE__);
     free(device_info);
     return;
   }
@@ -147,7 +141,7 @@ void hcom_misc_rqst_get_device_info(uint32_t userData)
     meadow_os_config_free_resources(config);
   }
   strcat(device_info, "\n");
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_DEVICE_INFO, 0, device_info, thisFile, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_DEVICE_INFO, 0, device_info, __FILE__, __LINE__);
 
   free(buffer);
   free(device_info);
@@ -164,7 +158,7 @@ void hcom_misc_rqst_get_device_name(uint32_t userData)
   if ((config == NULL) || (config->device_name == NULL))
   {
     syslog(LOG_ERR, "%s@%d-Cannot obtain the device name\n",
-           thisFile, __LINE__);
+           __FILE__, __LINE__);
     meadow_os_config_free_resources(config);
     return;
   }
@@ -173,7 +167,7 @@ void hcom_misc_rqst_get_device_name(uint32_t userData)
                config->device_name);
   meadow_os_config_free_resources(config);
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_DEVICE_INFO, 0,
-          hostMsg, thisFile, __LINE__);
+          hostMsg, __FILE__, __LINE__);
 }
 
 //======================================================================================

@@ -62,7 +62,6 @@
 #define HCOM_CMUX_TASK_STACKSIZE    (3078)
 #define HCOM_CMUX_TASK_PRIORITY     (150)
 #define HCOM_CMUX_TTY_DEVNODE ("/dev/ttyS1")
-static char *thisFile = __FILE__;
 
 static char  g_cmux_script[] = 
   "ECHO ON "
@@ -89,7 +88,7 @@ int hcom_cmux_start(void)
             hcom_cmux.tty_name = HCOM_CMUX_TTY_DEVNODE;
 
             ret = cmux_create(&hcom_cmux);
-            syslog(LOG_INFO, "%s-%d-Cell CMUX created: %d\n", thisFile, __LINE__, ret);
+            syslog(LOG_INFO, "%s-%d-Cell CMUX created: %d\n", __FILE__, __LINE__, ret);
         }
     }
     meadow_os_config_free_resources(config);

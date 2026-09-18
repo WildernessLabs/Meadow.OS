@@ -52,7 +52,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 static struct work_s wdog_work_queue;
 static bool _shutting_down;
 static hcom_dnld_shared_t *_dnldShared;
@@ -126,7 +125,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
     if(! hcom_host_enq_deq_clear_buffer())
     {
       syslog(LOG_ERR, "%s@%d-ESP32 download failed, clearing buff failed\n",
-               thisFile, __LINE__);
+               __FILE__, __LINE__);
     }
 
     // Tell CLI to restart the download
@@ -134,7 +133,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
     snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
           "ESP32 firmware download failed, resend");
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
-          thisFile, __LINE__);
+          __FILE__, __LINE__);
     return;
   }
 
@@ -153,7 +152,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, dnldFileName,
+             __FILE__, __LINE__, dnldFileName,
              ret, get_errno());
   }
 
@@ -162,7 +161,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
-             thisFile, __LINE__, dnldFileName,
+             __FILE__, __LINE__, dnldFileName,
              ret, get_errno());
   }
 
@@ -170,7 +169,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   if(! hcom_host_enq_deq_clear_buffer())
   {
     syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n",
-             thisFile, __LINE__, dnldFileName);
+             __FILE__, __LINE__, dnldFileName);
   }
 
   // Tell CLI to restart the download
@@ -178,7 +177,7 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
         "File '%s' download failed, resend", dnldFileName);
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
-        thisFile, __LINE__);
+        __FILE__, __LINE__);
 
   // Setting the download state to none allows future downloads.
   _dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;

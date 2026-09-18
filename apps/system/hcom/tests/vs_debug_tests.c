@@ -61,7 +61,6 @@
  ****************************************************************************/
 
 #if HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD > 0
-static char *thisFile = __FILE__;
 
 static int _socksd = -1;
 //static bool _connected = false;
@@ -126,7 +125,7 @@ int MonoDebugTestInitialize()
     ret = pthread_create(&thread, &attr, hcom_vs_debug_test_pthread, NULL);
     if (ret < 0)
     {
-      syslog(LOG_CRIT, "%s@%d-create thread, err:%d\n", thisFile, __LINE__, ret);
+      syslog(LOG_CRIT, "%s@%d-create thread, err:%d\n", __FILE__, __LINE__, ret);
       return ret;
     }
 

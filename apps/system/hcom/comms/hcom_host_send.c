@@ -77,7 +77,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static bool _shutting_down;
 static pid_t _hcomTaskGroup;
@@ -148,7 +147,7 @@ int hcom_host_send_setup()
   _encodedXmitBuff = malloc(HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE);
   if(_encodedXmitBuff == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -162,7 +161,7 @@ int hcom_host_send_setup()
   ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_host_send_low_power_notification);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -487,7 +486,7 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
       _bufferedMsgXmitBuff = malloc(HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE);
       if(_bufferedMsgXmitBuff == NULL)
       {
-        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
         sem_post(&_hostXmitSem);
         return -ENOMEM;
       }
@@ -698,7 +697,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
 
 #if (HCOM_HOST_SEND_ADD_SYSLOG_IN_BUILD > 0)
       syslog_if_safe(LOG_MDIAG, "-->%s@%d-Write success, wrote:%d, remaining:%d\n",
-          thisFile, __LINE__, writeRet, remainingBytes);
+          __FILE__, __LINE__, writeRet, remainingBytes);
 #endif
       continue;   // Loop and check if remainingBytes > 0, else done
     }
@@ -754,7 +753,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
         usleep(HCOM_XMIT_MIN_RETRY_DELAY_USEC);
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-        hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", thisFile, __LINE__, blockedCount);
+        hcom_logging_syslog_x(LOG_DEBUG, "%s@%d-Resend #%d\n", __FILE__, __LINE__, blockedCount);
 #endif
         continue;
       }
@@ -764,7 +763,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
 
       syslog_if_safe(LOG_ERR,
         "%s@%d-Error:Exceeded blockedCount:%d, stalled %ld ms (wrote %d of %d bytes)\n",
-                thisFile, __LINE__, blockedCount, blockedMs,
+                __FILE__, __LINE__, blockedCount, blockedMs,
                 encodedLength - remainingBytes, encodedLength);
 
       // EAGAIN exit. No reason to close fd. The caller can sort out what to do
@@ -823,7 +822,7 @@ int hcom_host_send_transmit_to_host(FAR uint8_t xmitBuffer[],
 
     syslog_if_safe(LOG_NOTICE,
       "%s@%d-Send recovered after blockedCount:%d, total send time %ld ms\n",
-      thisFile, __LINE__, blockedCount, totalMs);
+      __FILE__, __LINE__, blockedCount, totalMs);
   }
 #endif
 
