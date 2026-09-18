@@ -53,7 +53,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 static bool _nsh_enabled;
 
 
@@ -137,7 +136,7 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
   if(_nsh_enabled)
   {
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-             "NSH already enabled",thisFile, __LINE__);
+             "NSH already enabled",__FILE__, __LINE__);
     return;
   }
 
@@ -152,23 +151,23 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
     {
       _nsh_enabled = true;
       syslog(LOG_INFO, "%s@%d-NSH now enabled [pid:%d, pri:%d, stack:%d]\n",
-              thisFile, __LINE__, _nsh_pid, CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE);
+              __FILE__, __LINE__, _nsh_pid, CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE);
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              "NSH enabled until Meadow is restarted", thisFile, __LINE__);
+              "NSH enabled until Meadow is restarted", __FILE__, __LINE__);
     }
     else
     {
-      syslog(LOG_ERR, "%s@%d-NSH could not be created\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-NSH could not be created\n", __FILE__, __LINE__);
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              "NSH could not be created", thisFile, __LINE__);
+              "NSH could not be created", __FILE__, __LINE__);
     }
   }
   else
   {
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-            "It is not possible to disable NSH", thisFile, __LINE__);
+            "It is not possible to disable NSH", __FILE__, __LINE__);
     return;
   }
 }
@@ -240,7 +239,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
       if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
       {
         syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
-          thisFile, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
+          __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
         stdout_fd = -1;
         return 1;
       }
@@ -254,7 +253,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
       return -errno;
     }
 
@@ -275,7 +274,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
       if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
       {
         syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
-          thisFile, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
+          __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
         stderr_fd = -1;
         return 1;
       }
@@ -289,7 +288,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
       return -errno;
     }
     close(stderr_fd);

@@ -82,7 +82,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static bool _stateErrShown;
 
@@ -181,7 +180,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
 
   // Always show this if LOG_INFO
   syslog(LOG_INFO, "%s@%d-Meadow download begin (FileLen:%ld, Crc:0x%08lx, Name:%s)\n",
-          thisFile, __LINE__, dnldShared->dnldTotalFileSize,
+          __FILE__, __LINE__, dnldShared->dnldTotalFileSize,
           dnldShared->dnldInitFileCrc, dnldShared->dnldOrigPathName);
 
 #if (HCOM_FILE_DNLD_CACHE_NO_FILE_ACCESS == 0)
@@ -214,7 +213,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
     if(hostMsg == NULL)
     {
       syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-        thisFile, __LINE__);
+        __FILE__, __LINE__);
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
       return -ENOMEM;
     }
@@ -249,7 +248,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
           "File '%s' Init for download failed because %s",
           dnldShared->dnldOrigPathName, errorCause);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL,
-          0, hostMsg, thisFile, __LINE__);
+          0, hostMsg, __FILE__, __LINE__);
 
     free(hostMsg);
 
@@ -263,7 +262,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   if (dnldShared->dnldTotalFileSize > HCOM_FILE_DNLD_MAX_CACHE_FILE_SIZE)
   {
       syslog(LOG_ERR, "%s@%d-%d bytes. File exceeds the cache limit\n",
-                        thisFile, __LINE__, dnldShared->dnldTotalFileSize);
+                        __FILE__, __LINE__, dnldShared->dnldTotalFileSize);
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
       return -EFBIG;    // File too large
   }
@@ -272,7 +271,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   _dnldCacheMemory = (void *) malloc(dnldShared->dnldTotalFileSize);
   if(_dnldCacheMemory == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
     return -ENOMEM;
   }
@@ -292,7 +291,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
     if(_sdcardWriteBufferRaw == NULL)
     {
       syslog(LOG_ERR, "%s@%d-SD-Card buffer malloc returned NULL\n", 
-                          thisFile, __LINE__);
+                          __FILE__, __LINE__);
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
       hcom_file_dnld_cleanup_cache_memory();
 #endif
@@ -308,7 +307,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
     _sdcardBufferOffset = 0;
 
     syslog(LOG_INFO, "%s@%d-SD-Card aligned write buffer allocated (%d bytes)\n",
-                        thisFile, __LINE__, HCOM_FILE_DNLD_SDCARD_BLOCK_SIZE);
+                        __FILE__, __LINE__, HCOM_FILE_DNLD_SDCARD_BLOCK_SIZE);
   }
 
   // Set current action state
@@ -320,13 +319,13 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
   // Notify CLI that it's okay to send the file's data now
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY,
-            0, "", thisFile, __LINE__);
+            0, "", __FILE__, __LINE__);
   return OK;
 }
 
@@ -344,7 +343,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
     if(! _stateErrShown)
     {
       syslog(LOG_ERR, "%s@%d-Unexpected data packet received\n",
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
       _stateErrShown = true;
     }
 
@@ -368,7 +367,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   // char seqNumMsg[16];
   // snprintf_chk(seqNumMsg, 16, "Sequence:%u\r", hcomDataMsg->seqNumber);
   // hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-  //           0, seqNumMsg, thisFile, __LINE__);
+  //           0, seqNumMsg, __FILE__, __LINE__);
 
   // Compare _xferRecvFullFileSize with _xferCalcFullFileSize and send a message to host
   int percentDone = 0;
@@ -383,7 +382,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
     hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
     if(hostMsg == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
       hcom_file_dnld_cleanup_cache_memory();
 #endif
@@ -398,7 +397,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
     snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
               "File %d%% downloaded", percentDone);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-              0, hostMsg, thisFile, __LINE__);
+              0, hostMsg, __FILE__, __LINE__);
 
 #if HCOM_FILE_DNLD_SYSLOG_FOR_TESTING > 0
     syslog(LOG_MDIAG, "%s\n", hostMsg);
@@ -409,7 +408,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   if(packetSize < HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF)
   {
     syslog(LOG_ERR, "%s@%d-packetSize was out of range:%zu\n",
-             thisFile, __LINE__, packetSize);
+             __FILE__, __LINE__, packetSize);
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
       hcom_file_dnld_cleanup_cache_memory();
 #endif
@@ -435,7 +434,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
 
   if (_dnldCacheOffset + binDataLen > dnldShared->dnldTotalFileSize)
   {
-      syslog(LOG_ERR, "%s@%d-Cache overflow\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-Cache overflow\n", __FILE__, __LINE__);
       hcom_file_dnld_cleanup_cache_memory();
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
       return -EOVERFLOW;
@@ -483,7 +482,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
           hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
           if(hostMsg == NULL)
           {
-            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
             hcom_file_dnld_cleanup_sdcard_buffer();
             dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
             return -ENOMEM;
@@ -491,12 +490,12 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
           uint16_t seqNumb = hcomDataMsg->seqNumber;
 
           syslog(LOG_ERR, "%s@%d-SD-Card write of %s failed:%d seq:%d\n",
-                   thisFile, __LINE__, dnldShared->dnldOrigPathName, ret, seqNumb);
+                   __FILE__, __LINE__, dnldShared->dnldOrigPathName, ret, seqNumb);
 
           snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
                     "SD-Card write of '%s', seq %d failed", dnldShared->dnldOrigPathName, seqNumb);
           hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-                  thisFile, __LINE__);
+                  __FILE__, __LINE__);
 
           free(hostMsg);
           hcom_file_dnld_cleanup_sdcard_buffer();
@@ -520,20 +519,20 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
       hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
       if(hostMsg == NULL)
       {
-        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
         dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
         return -ENOMEM;
       }
       uint16_t seqNumb = hcomDataMsg->seqNumber;
 
       syslog(LOG_ERR, "%s@%d-Write of %s failed:%d seq:%d\n",
-               thisFile, __LINE__, dnldShared->dnldOrigPathName, ret, seqNumb);
+               __FILE__, __LINE__, dnldShared->dnldOrigPathName, ret, seqNumb);
 
       // Notify host
       snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
                 "Write of '%s', seq %d failed", dnldShared->dnldOrigPathName, seqNumb);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
 
       free(hostMsg);
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
@@ -560,7 +559,7 @@ int hcom_file_dnld_stm32f7_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -586,7 +585,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   if(dnldShared->dnldCurrentState != HcomStm32F7DnldStateFileXfer)
   {
     syslog(LOG_WARNING, "%s@%d-Dnld end, unexpected state:%d\n",
-              thisFile, __LINE__, dnldShared->dnldCurrentState);
+              __FILE__, __LINE__, dnldShared->dnldCurrentState);
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
     hcom_file_dnld_cleanup_cache_memory();
 #endif
@@ -605,7 +604,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-File %s write failed:%d\n",
-              thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
+              __FILE__, __LINE__, dnldShared->dnldOrigPathName, ret);
     hcom_file_dnld_cleanup_cache_memory();
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
     syslog(LOG_MDIAG, downloadFailure);
@@ -621,7 +620,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-SD-Card final buffer flush of %s failed:%d\n",
-                thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
+                __FILE__, __LINE__, dnldShared->dnldOrigPathName, ret);
       hcom_file_dnld_cleanup_sdcard_buffer();
       dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
       syslog(LOG_MDIAG, downloadFailure);
@@ -629,7 +628,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
     }
 
     syslog(LOG_INFO, "%s@%d-SD-Card flushed final %u bytes\n",
-                        thisFile, __LINE__, _sdcardBufferOffset);
+                        __FILE__, __LINE__, _sdcardBufferOffset);
   }
 
   // Calculate the CRC checksum
@@ -645,7 +644,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-File %s close failed:%d\n",
-              thisFile, __LINE__, dnldShared->dnldOrigPathName, ret);
+              __FILE__, __LINE__, dnldShared->dnldOrigPathName, ret);
     dnldSuccess = false;
     // Finish cleaning up even if error
   }
@@ -671,7 +670,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   hostMsg = malloc(HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH);
   if(hostMsg == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
     syslog(LOG_MDIAG, downloadFailure);
     return -ENOMEM;
@@ -680,7 +679,7 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   if(crcErrorDetected < 0)
   {
     syslog(LOG_ERR, "%s@%d-Error in Checksum calculation err:%d\n",
-              thisFile, __LINE__, crcErrorDetected);
+              __FILE__, __LINE__, crcErrorDetected);
 
     snprintf_chk(hostMsg, HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH,
             "Download of '%s' state unknown due to checksum calculation fault:%d",
@@ -728,20 +727,20 @@ int hcom_file_dnld_stm32f7_file_end(hcom_dnld_shared_t *dnldShared)
   if(requestType == HCOM_HOST_REQUEST_TEXT_ERROR)
   {
     // Create an appropriate syslog error message to host
-    syslog(LOG_ERR, "%s@%d-%s\n", thisFile, __LINE__, msgToSend);
+    syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, msgToSend);
 
     // Indicate remaining errors
     dnldSuccess = false;
   }
 
   // Send an appropriate message to CLI
-  hcom_host_send_simple_string_msg(requestType, 0, msgToSend, thisFile, __LINE__);
+  hcom_host_send_simple_string_msg(requestType, 0, msgToSend, __FILE__, __LINE__);
   free(hostMsg);
 
 #if HCOM_FILE_DNLD_F7_DEBUG_TIMING > 0
   _dbgReceptionEndedAt = hcom_utils_get_current_time64_ns();
   syslog(LOG_INFO, "%s@%d-File transfer %d packets, took %llu mSec, CalcFileCRC:0x%08lx\n",
-           thisFile, __LINE__, _dbgNumbPacketsRecvd, ((_dbgReceptionEndedAt - _dbgReceptionBeganAt) / 1000000),
+           __FILE__, __LINE__, _dbgNumbPacketsRecvd, ((_dbgReceptionEndedAt - _dbgReceptionBeganAt) / 1000000),
            dnldShared->dnldCalcFileCrc);
 #endif
 

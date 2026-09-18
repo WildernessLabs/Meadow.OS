@@ -69,7 +69,6 @@ extern int hcom_main (int argc, char* argv[]);
  * Private Data
  ****************************************************************************/
 
-static char *thisFile = __FILE__;
 static int _semaphoreRet;
 static sem_t _startupWaitSem;
 
@@ -145,7 +144,7 @@ int hcom_main(int argc, char *argv[])
   ret = sem_init(&_startupWaitSem, 0, 0);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-sem_init startup wait sem:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-sem_init startup wait sem:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -153,7 +152,7 @@ int hcom_main(int argc, char *argv[])
   ret = sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-sem_setprotocol startup wait sem:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-sem_setprotocol startup wait sem:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -167,7 +166,7 @@ int hcom_main(int argc, char *argv[])
   meadow_configuration_t *config = meadow_os_deep_copy_config();
   if (config == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
   #if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
@@ -185,7 +184,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_via_nx_upd_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -199,7 +198,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_diag_trace_priority_level_init();
   if(ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", __FILE__, __LINE__, ret);
     return ret; 
   }
 
@@ -211,7 +210,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_common_utils_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup hcom utils:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup hcom utils:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -223,7 +222,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_diag_misc_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -252,7 +251,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_diag_nsh_support_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-nsh setup %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-nsh setup %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
   
@@ -264,7 +263,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_misc_rqst_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -276,7 +275,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_file_dnld_stm32f7_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup file download %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup file download %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -284,7 +283,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_file_dnld_esp32_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup esp32 file download %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup esp32 file download %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -296,7 +295,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_file_upld_proc_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup file upload %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup file upload %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -308,7 +307,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_file_write_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup file cmds %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup file cmds %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -320,7 +319,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_host_enq_deq_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -332,7 +331,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_host_route_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -350,7 +349,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_mono_stdxxx_read_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
   
@@ -361,7 +360,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_startup_mgr_takesem(&_startupWaitSem);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -375,7 +374,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_mono_remote_dbg_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup remote dbg %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup remote dbg %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -389,7 +388,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_esp32_uart_comms_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup esp32 comms %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup esp32 comms %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 #endif
@@ -401,7 +400,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_host_send_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -418,13 +417,13 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_host_recv_setup();  // Handle CLI commands
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
     return ret;
   }  // Wait, hcom_host_recv_setup creates a new thread that must start before we continue
   ret = hcom_startup_mgr_takesem(&_startupWaitSem);
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -440,7 +439,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_traverse_ku_init_user_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -452,7 +451,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_mono_ctrl_mono_main_setup();  // Handle CLI commands
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup mono main %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup mono main %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -496,7 +495,7 @@ int hcom_main(int argc, char *argv[])
     ret = hcom_pppd_start();
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-start pppd %d\n", thisFile, __LINE__, ret);
+      syslog(LOG_ERR, "%s@%d-start pppd %d\n", __FILE__, __LINE__, ret);
     }
   }
 #endif
@@ -515,7 +514,7 @@ int hcom_main(int argc, char *argv[])
   ret = hcom_host_process_setup();
   if (ret < 0)
   {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", thisFile, __LINE__, ret);
+    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 

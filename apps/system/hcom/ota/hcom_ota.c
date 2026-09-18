@@ -46,7 +46,6 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
 
-static char *thisFile = __FILE__;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +65,7 @@ static void update_info(const char *msg, ...)
     va_start(ap, msg);
     snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
     va_end(ap);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, thisFile, __LINE__);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
 }
 
 static int update_file(const char *srcpath, const char *destpath, const char *rollbackpath)
@@ -407,7 +406,7 @@ void hcom_ota_rqst_register_device(uint32_t userData)
     public_key_len = strlen((char *) public_key_pem);
 
     // Send out public key
-    hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, (char *) public_key_pem, public_key_len, thisFile, __LINE__);
+    hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, (char *) public_key_pem, public_key_len, __FILE__, __LINE__);
 
     meadow_cloud_provision((const char *) private_key_pem, private_key_len + 1, (const char *) public_key_pem, public_key_len + 1, NULL);
 }

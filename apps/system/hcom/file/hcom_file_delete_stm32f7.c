@@ -52,11 +52,6 @@
 #endif
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -90,7 +85,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
   syslog(LOG_MTEST, "%s@%d-DIAG-File:'%s' deleted\n",
-        thisFile, __LINE__, dnldShared->dnldFullPathName);
+        __FILE__, __LINE__, dnldShared->dnldFullPathName);
 #endif
 
   // Once the file has been deleted we must delete any parent, empty
@@ -104,7 +99,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
 
     if(pathNameTemp == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
       return -ENOMEM;
     }
 
@@ -129,14 +124,14 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
         if(errno != ENOTEMPTY)
         {
           syslog(LOG_ERR, "%s@%d-ERROR deleting directory '%s', ret:%d, errno:%d\n",
-                    thisFile, __LINE__, pathNameTemp, ret, errno);
+                    __FILE__, __LINE__, pathNameTemp, ret, errno);
           ret = -errno;
         }
         else
         {
 #if defined (CONFIG_DIR_MGMT_TESTS)
           syslog(LOG_MTEST, "%s@%d-DIAG-Directory '%s' not empty\n",
-                    thisFile, __LINE__, pathNameTemp);
+                    __FILE__, __LINE__, pathNameTemp);
 #endif
           // Directory empty is not an error and a file delete failure has
           // already been reported.
@@ -149,7 +144,7 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
       dnldShared->dnldPathNameEleCount--;
 #if defined (CONFIG_DIR_MGMT_TESTS)
       syslog(LOG_MTEST, "%s@%d-DIAG-Path Name:'%s' last element removed, elements left:%lu.\n",
-                thisFile, __LINE__, pathNameTemp,
+                __FILE__, __LINE__, pathNameTemp,
                 dnldShared->dnldPathNameEleCount);
 #endif
       slashPtr = strrchr(pathNameTemp, '/');
@@ -163,13 +158,13 @@ int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShare
   char *hostMsg = malloc(HCOM_SHORT_HOST_STRING_BUFF_LENGTH);
   if(hostMsg == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
         "File '%s' deleted", dnldShared->dnldFullPathName);
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, thisFile, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
   free(hostMsg);
 
   // Concluded message will be sent by caller

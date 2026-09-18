@@ -50,7 +50,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static mqd_t xmitMsgQueue;
 static struct mq_attr xmitMsgQAttr;
@@ -89,7 +88,7 @@ int hcom_esp32_xmit_setup_lazy()
   if (xmitMsgQueue == (mqd_t)-1)
   {
     int errcode = get_errno();
-    syslog(LOG_ERR, "%s@%d-mq_open(%s) errno:%d\n", thisFile, __LINE__,
+    syslog(LOG_ERR, "%s@%d-mq_open(%s) errno:%d\n", __FILE__, __LINE__,
           HCOM_ESP_COMMS_MSG_QUEUE_NAME, errcode);
     return -errcode;
   }
@@ -97,7 +96,7 @@ int hcom_esp32_xmit_setup_lazy()
   _encodedMsgBuffer = malloc(HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE);
   if (_encodedMsgBuffer == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-encode buffer allocation failed\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-encode buffer allocation failed\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -148,7 +147,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
   if(bufferSize > HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE)
   {
     syslog(LOG_ERR, "%s@%d-encode buffer too small, need:%d, have:%d\n",
-              thisFile, __LINE__, bufferSize, HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE);
+              __FILE__, __LINE__, bufferSize, HCOM_ESP32_XMIT_ENCODE_BUFFER_SIZE);
     return -EFBIG;
   }
   uint8_t *encodedMsg = _encodedMsgBuffer;
@@ -194,7 +193,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
   syslog(LOG_DEBUG, "%s@%d-Transmitting '%s' (0x%02x) cmd to ESP32\n",
-            thisFile, __LINE__,
+            __FILE__, __LINE__,
             hcom_esp32_util_convert_esp32_cmd_to_string(espCommand), espCommand);
 #endif
 
@@ -206,7 +205,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
     // Timeout is assumed to mean nothing received from ESP32
     // not really an error
     if(ret != -ETIMEDOUT)   // ETIMEDOUT = 116
-      syslog(LOG_ERR, "%s@%d-Sending to ESP failed:%d\n", thisFile, __LINE__, ret);
+      syslog(LOG_ERR, "%s@%d-Sending to ESP failed:%d\n", __FILE__, __LINE__, ret);
 
     return ret;
   }
@@ -232,7 +231,7 @@ int hcom_esp32_xmit_build_and_send_msg(uint8_t *msgBody,
       // ESP32-derived length enough to memcpy it unclamped into a
       // fixed-size destination.
       syslog(LOG_ERR, "%s@%d-recvdData size %zu exceeds destination %zu\n",
-                thisFile, __LINE__, sizeOfRealData, sizeof(recvdData->recvdData));
+                __FILE__, __LINE__, sizeOfRealData, sizeof(recvdData->recvdData));
       sizeOfRealData = sizeof(recvdData->recvdData);
     }
     recvdData->recvdDataLen = sizeOfRealData;
@@ -276,7 +275,7 @@ int hcom_esp32_xmit_send_complete_msg(uint8_t *completeMsg, ssize_t completeMsgL
   ret = hcom_esp32_uart_comms_write_serial(completeMsg, completeMsgLen);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-UART write:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-UART write:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -323,7 +322,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
         // A stale response for a different (already-timed-out) command
         // slipped through; discard it and keep waiting for the real one.
         syslog(LOG_WARNING, "%s@%d-Recvd stale cmd:0x%02x while expecting:0x%02x, discarding\n",
-                  thisFile, __LINE__, mqRecvdData->espMqHdr.command, espCommand);
+                  __FILE__, __LINE__, mqRecvdData->espMqHdr.command, espCommand);
         free(mqRecvdData->recvdMqData);
         continue;
       }
@@ -341,7 +340,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
         // 0x0b - "Deflate error" (ESP32 compressed uploads only)
 
         syslog(LOG_ERR, "%s@%d-Msg Cmd:0x%02x ESP32 err:0x%02x, status:%u\n",
-            thisFile, __LINE__, espCommand, mqRecvdData->esp32Status, mqRecvdData->esp32Error);
+            __FILE__, __LINE__, espCommand, mqRecvdData->esp32Status, mqRecvdData->esp32Error);
         ret = -mqRecvdData->esp32Status; // For bootloader 05 - 0b
         free(mqRecvdData->recvdMqData);
         return ret;
@@ -369,7 +368,7 @@ int hcom_esp32_xmit_wait_for_response(struct HcomEsp32MqRecvdData_s *mqRecvdData
       // EPERM (1): Message queue opened not opened for reading.
       // EMSGSIZE (122): msglen was less than the maxmsgsize attribute of the message queue.
       // EINVAL (22): Invalid msg or mqdes or abstime
-      syslog(LOG_ERR, "%s@%d-mq_timedreceive errno:%d\n", thisFile, __LINE__, errn);
+      syslog(LOG_ERR, "%s@%d-mq_timedreceive errno:%d\n", __FILE__, __LINE__, errn);
       ret = -errn;
       break;
     }

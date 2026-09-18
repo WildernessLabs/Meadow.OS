@@ -59,11 +59,6 @@
 #define HCOM_DIR_MGMT_TST_SHOW_FULL_FILE_STATUS (0)
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 static int hcom_dir_mgmt_tst_log_directories_files(const char *initialDir);
@@ -223,7 +218,7 @@ static int hcom_dir_mgmt_find_next_directory(const char *initialDir)
   if(dir[dirLevel] == NULL)
   {
     syslog(LOG_ERR, "%s@%d-opendir failed, errno:%d, Path:'%s', dir level:%d\n",
-              thisFile, __LINE__, errno, currentPath, dirLevel);
+              __FILE__, __LINE__, errno, currentPath, dirLevel);
     return -errno;
   }
 
@@ -262,7 +257,7 @@ static int hcom_dir_mgmt_find_next_directory(const char *initialDir)
         if(dir[dirLevel] == NULL)
         {
           syslog(LOG_ERR, "%s@%d-opendir failed, errno:%d, Path:'%s', dir level:%d\n",
-                    thisFile, __LINE__, errno, currentPath, dirLevel);
+                    __FILE__, __LINE__, errno, currentPath, dirLevel);
           return -errno;
         }
 
@@ -315,7 +310,7 @@ int hcom_dir_mgmt_tst_log_directories_files(const char *initialDir)
   
   if(initialDir == NULL || strlen(initialDir) < 1 || initialDir[0] != '/')
   {
-    syslog(LOG_ERR, "%s@%d-InitialDir was invalid\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-InitialDir was invalid\n", __FILE__, __LINE__);
     return -EINVAL;
   }
 
@@ -324,7 +319,7 @@ int hcom_dir_mgmt_tst_log_directories_files(const char *initialDir)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Listing files failed, ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     return -errno;
   }
 
@@ -345,7 +340,7 @@ int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
   fullPath = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(fullPath == NULL)
   {
-    syslog(1, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(1, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -357,7 +352,7 @@ int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
   if (fd < 0)
   {
     syslog(1, "%s@%d-Opening '%s' failed, errno: %d\n",
-                thisFile, __LINE__, fullPath, errno);
+                __FILE__, __LINE__, fullPath, errno);
     free(fullPath);
     return 0;
   }
@@ -366,7 +361,7 @@ int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-fstat of %s failed errno:%d\n",
-          thisFile, __LINE__, fullPath, errno);
+          __FILE__, __LINE__, fullPath, errno);
     return 0;
   }
 
@@ -376,7 +371,7 @@ int hcom_dir_mgmt_tst_display_file_info(const char *rootDir, char *fileName,
   if (ret < 0)
   {
     syslog(1, "%s@%d-close %s, errno:%d\n",
-              thisFile, __LINE__, fullPath, errno);
+              __FILE__, __LINE__, fullPath, errno);
     return 0;
   }
 
@@ -399,7 +394,7 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories(const char *rootDir,
   if (!(dir = opendir(rootDir)))
   {
     syslog(LOG_ERR, "%s@%d-Could not open:%s as root directory, errno:%d\n",
-              thisFile, __LINE__, rootDir, errno);
+              __FILE__, __LINE__, rootDir, errno);
     return -errno;
   }
 
@@ -480,11 +475,11 @@ static int hcom_dir_mgmt_unmount_sdcard(void)
   if(ret < 0)
   {
     syslog(2, "%s@%d-ERROR:unmount_sdcard failed. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
   }
   else
   {
-    syslog(2, "===> %s@%d-umount successful\n", thisFile, __LINE__);
+    syslog(2, "===> %s@%d-umount successful\n", __FILE__, __LINE__);
     usleep(20 * 1000);
   }
   return ret;
@@ -508,7 +503,7 @@ static int hcom_dir_mgmt_mount_sdcard(void)
     if(ret >= 0)
     {
       syslog(2, "===> %s@%d-Mounted SDCard, Success (attempts:%d)\n",
-        thisFile, __LINE__, attempts);
+        __FILE__, __LINE__, attempts);
       usleep(20 * 1000);
       break; // Successfully mounted, done
     }
@@ -516,7 +511,7 @@ static int hcom_dir_mgmt_mount_sdcard(void)
     {
       // SDCard may not exist(errno = ENODEV)
       syslog(2, "%s@%d-ERROR:Mount failed. ret:%d, errno:%d (attempts:%d)\n",
-        thisFile, __LINE__, ret, errno, attempts);
+        __FILE__, __LINE__, ret, errno, attempts);
 
       // May have been left mounted, so unmount the SD-Card
       // and try to mount again.
@@ -535,7 +530,7 @@ static int hcom_dir_mgmt_mount_sdcard(void)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR:SDCard Mount failed. ret:%d, errno:%d (attempts:%d)\n",
-      thisFile, __LINE__, ret, errno, attempts);
+      __FILE__, __LINE__, ret, errno, attempts);
     return ret;
   }
 
@@ -636,7 +631,7 @@ void meadow_dir_mgmt_tests(uint32_t userData)
     ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
     if(ret < 0)
       syslog(LOG_MTEST, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
 
     syslog(LOG_MTEST, "===> umount successful\n");
   }

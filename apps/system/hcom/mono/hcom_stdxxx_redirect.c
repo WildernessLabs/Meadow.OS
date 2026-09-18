@@ -68,7 +68,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static bool _shutting_down;
 static bool _lowPowerActive;
@@ -125,7 +124,7 @@ int hcom_mono_stdxxx_read_setup()
   int ret = hcom_via_nx_register_pwr_mgmt_callback(hcom_mono_stdxxx_low_power_notification);
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt, ret:%d\n", thisFile, __LINE__, ret);
+    syslog(LOG_ERR, "%s@%d-Registering for pwr mgmt, ret:%d\n", __FILE__, __LINE__, ret);
     return ret;
   }
 
@@ -134,7 +133,7 @@ int hcom_mono_stdxxx_read_setup()
   if (_fifo_read_buffer == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
-      thisFile, __LINE__, errno);
+      __FILE__, __LINE__, errno);
     return -ENOMEM;
   }
 
@@ -145,7 +144,7 @@ int hcom_mono_stdxxx_read_setup()
     if (_stdxxx_syslog_buffer == NULL)
     {
       syslog(LOG_ERR, "%s@%d-Memory allocate error, errno:%d\n",
-        thisFile, __LINE__, errno);
+        __FILE__, __LINE__, errno);
       free(_fifo_read_buffer);
       return -ENOMEM;
     }
@@ -166,7 +165,7 @@ void hcom_mono_stdxxx_read_shutdown()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d stdout close, errno:%d\n",
-      thisFile, __LINE__, errno);
+      __FILE__, __LINE__, errno);
   }
 
   _stdout_read_fd = -1;
@@ -175,7 +174,7 @@ void hcom_mono_stdxxx_read_shutdown()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d stderr close, errno:%d\n",
-      thisFile, __LINE__, errno);
+      __FILE__, __LINE__, errno);
   }
 
   _stderr_read_fd = -1;
@@ -220,7 +219,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
-      thisFile, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
+      __FILE__, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
   }
@@ -230,7 +229,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-%s fifo creation, errno:%d\n",
-      thisFile, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
+      __FILE__, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
   }
@@ -241,7 +240,7 @@ int hcom_mono_stdxxx_create_infrastructure()
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-thread create, errno:%d\n",
-      thisFile, __LINE__, errno);
+      __FILE__, __LINE__, errno);
     
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
@@ -269,7 +268,7 @@ int hcom_mono_stdxxx_make_thread()
   if (ret < 0)
   {
     syslog(LOG_CRIT, "%s@%d-Thread create %s error:%d\n",
-            thisFile, __LINE__, HCOM_THREAD_NAME_STDXXX_REDIRECT, ret);
+            __FILE__, __LINE__, HCOM_THREAD_NAME_STDXXX_REDIRECT, ret);
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
   }
@@ -358,7 +357,7 @@ int hcom_mono_stdout_open_read_fifo()
   if (_stdout_read_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
-      thisFile, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
+      __FILE__, __LINE__, HCOM_MONO_STDOUT_REDIRECT_FIFO, errno);
     return -errno;
   }
 
@@ -380,7 +379,7 @@ int hcom_mono_stderr_open_read_fifo()
   if (_stderr_read_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
-      thisFile, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
+      __FILE__, __LINE__, HCOM_MONO_STDERR_REDIRECT_FIFO, errno);
     return -errno;
   }
 
@@ -588,7 +587,7 @@ int hcom_host_send_stdxxx_to_cli(uint32_t pollOffset, int useableBufSize,
 
   // Send to CLI. Includes ctrl character(s)
   ret = hcom_host_send_raw_string_msg(requestType, 0,
-    (char *) fifo_read_buffer, useableBufSize, thisFile, __LINE__);
+    (char *) fifo_read_buffer, useableBufSize, __FILE__, __LINE__);
   if (ret < 0)
   {
     if(ret == -EAGAIN)
@@ -606,7 +605,7 @@ int hcom_host_send_stdxxx_to_cli(uint32_t pollOffset, int useableBufSize,
     }
 
     syslog(LOG_ERR, "%s@%d-stdxxx to host, ret:%d, errno:%d\n",
-      thisFile, __LINE__, ret, errno);
+      __FILE__, __LINE__, ret, errno);
     return ret;
   }
 
@@ -666,7 +665,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
 
       // All errors exit
       syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
-                          thisFile, __LINE__, fifoRedirect, errno);
+                          __FILE__, __LINE__, fifoRedirect, errno);
       return -errno;
     }
   } while (std_temp_write_fd < 0);
@@ -676,7 +675,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-redirect_writer (%s): dup2 failed ret:%d errno:%d\n",
-                        thisFile, __LINE__, fifoRedirect, ret, errno);
+                        __FILE__, __LINE__, fifoRedirect, ret, errno);
     usleep(50 * 1000);
     close(std_temp_write_fd);
     return -errno;
@@ -707,7 +706,7 @@ int hcom_mono_stdxxx_redirect(void)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d stdout error on open(), ret:%d, errno:%d\n",
-      thisFile, __LINE__, ret, errno);
+      __FILE__, __LINE__, ret, errno);
     return ret;
   }
   
@@ -717,7 +716,7 @@ int hcom_mono_stdxxx_redirect(void)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d stderr error on open(), ret:%d, errno:%d\n",
-      thisFile, __LINE__, ret, errno);
+      __FILE__, __LINE__, ret, errno);
     return ret;
   }
 

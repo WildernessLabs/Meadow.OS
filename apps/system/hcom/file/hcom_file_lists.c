@@ -77,7 +77,6 @@ struct hcom_file_lists_stack_frame_s
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
@@ -116,7 +115,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
   stack = malloc(stackCapacity * sizeof(*stack));
   if(stack == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -125,7 +124,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
   if(stack[0].dir == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
-              thisFile, __LINE__, name);
+              __FILE__, __LINE__, name);
     free(stack);
     return -1;
   }
@@ -169,7 +168,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
       snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
               "%*s%s/\n", top->indent, "", entry->d_name);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-                0, hostMsg, thisFile, __LINE__);
+                0, hostMsg, __FILE__, __LINE__);
 
       char childPath[256];
       snprintf_chk(childPath, sizeof(childPath), "%s/%s", top->path, entry->d_name);
@@ -179,7 +178,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
       if(childDir == NULL)
       {
         syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
-                  thisFile, __LINE__, childPath);
+                  __FILE__, __LINE__, childPath);
         continue; // Skip this subdirectory, keep listing siblings
       }
 
@@ -191,7 +190,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
             realloc(stack, newCapacity * sizeof(*stack));
         if(newStack == NULL)
         {
-          syslog(LOG_ERR, "%s@%d-realloc returned NULL\n", thisFile, __LINE__);
+          syslog(LOG_ERR, "%s@%d-realloc returned NULL\n", __FILE__, __LINE__);
           closedir(childDir);
           while(stackTop > 0)
           {
@@ -238,7 +237,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
                 "%*s%s\n", top->indent, "", entry->d_name);
       }
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-                0, hostMsg, thisFile, __LINE__);
+                0, hostMsg, __FILE__, __LINE__);
     }
   }
 

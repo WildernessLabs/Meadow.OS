@@ -55,7 +55,6 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
-static char *thisFile = __FILE__;
 
 static bool _shutting_down;
 
@@ -83,12 +82,12 @@ static int hcom_host_preprocess_unmount_sdcard(char *MountPointName)
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
   }
 #if defined (CONFIG_DIR_MGMT_TESTS)
   else
   {
-    syslog(2, "===> %s@%d-umount successful\n", thisFile, __LINE__);
+    syslog(2, "===> %s@%d-umount successful\n", __FILE__, __LINE__);
     usleep(20 * 1000);
   }
 #endif
@@ -113,7 +112,7 @@ static int hcom_host_preprocess_mount_sdcard(void)
     if(ret >= 0)
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(2, "===> %s@%d-Mounted SDCard, Success\n", thisFile, __LINE__);
+      syslog(2, "===> %s@%d-Mounted SDCard, Success\n", __FILE__, __LINE__);
       usleep(20 * 1000);
 #endif
       break; // Successfully mounted, done
@@ -126,7 +125,7 @@ static int hcom_host_preprocess_mount_sdcard(void)
 
       if(ret < 0)
       {
-        syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n", thisFile, __LINE__, ret, errno);
+        syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
         return ret;
       }
       continue; // Try to mount again
@@ -137,7 +136,7 @@ static int hcom_host_preprocess_mount_sdcard(void)
   // Ran out of attempts to mount the SD-Card
   if(ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-ERROR: SDCard Mount failed. ret:%d, errno:%d\n", thisFile, __LINE__, ret, errno);
+    syslog(LOG_ERR, "%s@%d-ERROR: SDCard Mount failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
     return ret;
   }
   return ret;
@@ -159,7 +158,7 @@ int hcom_host_process_setup()
   if (_packet_dest_buf == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Packet buffer allocation failed\n",
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
     return -ENOMEM;
   }
   
@@ -167,7 +166,7 @@ int hcom_host_process_setup()
   if (_decode_dest_buf == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Decoded allocation failed\n",
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
     free(_packet_dest_buf);
     return -ENOMEM;
   }
@@ -177,7 +176,7 @@ int hcom_host_process_setup()
   if (_dnldShared == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Download shared allocation failed\n",
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
 
     free(_packet_dest_buf);
     free(_decode_dest_buf);
@@ -196,7 +195,7 @@ int hcom_host_process_setup()
   if(ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-Watchdog init failed:%d\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
 
     free(_packet_dest_buf);
     free(_decode_dest_buf);
@@ -225,7 +224,7 @@ int hcom_host_process_setup()
   {
     
     syslog(LOG_ERR, "%s@%d-sigprocmask() failed:%d\n",
-              thisFile, __LINE__, ret);
+              __FILE__, __LINE__, ret);
               
     free(_packet_dest_buf);
     free(_decode_dest_buf);
@@ -257,7 +256,7 @@ int hcom_dir_mgmt_free_file_info(hcom_dnld_shared_t *dnldShared)
   if(dnldShared->dnldFullPathName != NULL)
   {
     syslog(LOG_MTEST, "===> %s@%d-About to remove any existing dnldShared resources, cat:%s, file'%s'\n",
-              thisFile, __LINE__,
+              __FILE__, __LINE__,
               hcom_file_dir_mgmt_find_category(dnldShared->dnldRqstCat),
               dnldShared->dnldFullPathName);
     usleep(20 * 1000);
@@ -265,7 +264,7 @@ int hcom_dir_mgmt_free_file_info(hcom_dnld_shared_t *dnldShared)
   else
   {
     syslog(LOG_MTEST, "===> %s@%d-About to remove any existing dnldShared resources, cat:%s\n",
-              thisFile, __LINE__,
+              __FILE__, __LINE__,
               hcom_file_dir_mgmt_find_category(dnldShared->dnldRqstCat));
     usleep(20 * 1000);
   }
@@ -278,7 +277,7 @@ int hcom_dir_mgmt_free_file_info(hcom_dnld_shared_t *dnldShared)
     if (ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Close of nldShared->dnldFileFD, ret:%d, errno %d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
     }
   }
 
@@ -363,22 +362,22 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
             "Mono must be disabled for file %s", rqstTypeStr);
 
     syslog(LOG_ERR, "%s@%d-%s\n",
-            thisFile, __LINE__, hostMsg);
+            __FILE__, __LINE__, hostMsg);
 
     // Let CLI user know the problem
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-            hostMsg, thisFile, __LINE__);
+            hostMsg, __FILE__, __LINE__);
 
     // Notify CLI that download/delete can't continue because of an error.
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
-            thisFile, __LINE__);
+            __FILE__, __LINE__);
     return -EPERM;    // Operation not permitted
   }
 
   // Initialize the shared download struct
 #if defined (CONFIG_DIR_MGMT_TESTS)
   syslog(2, "===> %s@%d-Download/delete. Calling hcom_host_process_init_hcom_dnld_share() true,true\n",
-            thisFile, __LINE__);
+            __FILE__, __LINE__);
   usleep(20 * 1000);
 #endif
 
@@ -396,7 +395,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
   {
 #if defined (CONFIG_DIR_MGMT_TESTS)
     syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
-              thisFile, __LINE__,
+              __FILE__, __LINE__,
               dnldShared->dnldFullPathName);
     usleep(20 * 1000);
 #endif
@@ -407,7 +406,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-              thisFile, __LINE__, ret, errno);
+              __FILE__, __LINE__, ret, errno);
       hcom_dir_mgmt_free_file_info(dnldShared);
       return ret;
     }
@@ -425,7 +424,7 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-Processing subdir, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
+                  __FILE__, __LINE__, ret, errno);
         hcom_dir_mgmt_free_file_info(dnldShared);
         return ret;
       }
@@ -453,7 +452,7 @@ int hcom_host_process_run_loop()
       {
         // Watchdog timeout waiting for data
         syslog(LOG_ERR, "%s@%d-Watchdog timeout during download\n",
-                  thisFile, __LINE__);
+                  __FILE__, __LINE__);
 
         // If any download/delete state information, delete it
         hcom_dir_mgmt_free_file_info(_dnldShared);
@@ -461,7 +460,7 @@ int hcom_host_process_run_loop()
       else
       {
         syslog(LOG_ERR, "%s@%d-Failed to dequeue message\n",
-                  thisFile, __LINE__);
+                  __FILE__, __LINE__);
       }
       continue;
     }
@@ -484,10 +483,10 @@ int hcom_host_process_run_loop()
           "Received oversized packet of %lu bytes, ignoring it.",
           decodedPacketSize);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-              hostMsg, thisFile, __LINE__);
+              hostMsg, __FILE__, __LINE__);
 
       syslog(LOG_ERR, "%s@%d-Oversized packet received (%u bytes)\n",
-                thisFile, __LINE__, decodedPacketSize);
+                __FILE__, __LINE__, decodedPacketSize);
       usleep(20 * 1000);    // Make sure syslog finishes
         
       // Don't return because this will kill our processing loop. Just
@@ -507,10 +506,10 @@ int hcom_host_process_run_loop()
         // Let CLI user know the problem
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
                 "Error during download or delete command processing",
-                thisFile, __LINE__);
+                __FILE__, __LINE__);
 
         syslog(LOG_ERR, "%s@%d-Processing data packet, ret:%d\n",
-                  thisFile, __LINE__, ret);
+                  __FILE__, __LINE__, ret);
         usleep(20 * 1000);    // Make sure syslog finishes
       }
 
@@ -533,7 +532,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   uint32_t userData;
 
   // syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
-  //           thisFile, __LINE__, hcomDataMsg->seqNumber, decodedSize);
+  //           __FILE__, __LINE__, hcomDataMsg->seqNumber, decodedSize);
 
   // decodedPacket points into a long-lived, reused buffer that's never
   // cleared between packets. A short/garbled packet must not be cast to a
@@ -542,7 +541,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   if (decodedSize < HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF)
   {
     syslog(LOG_ERR, "%s@%d-Received undersized packet of %u bytes, ignoring it.\n",
-              thisFile, __LINE__, decodedSize);
+              __FILE__, __LINE__, decodedSize);
     return -EBADMSG;
   }
 
@@ -570,7 +569,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-Receiving data, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
+                  __FILE__, __LINE__, ret, errno);
         return ret;
       }
     }
@@ -583,7 +582,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       // CLI is confused or something else is wrong. We should never receive a
       // packet with a sequence number when no download is active.
       syslog(LOG_DEBUG, "%s@%d-Data received but no active download\n",
-                thisFile, __LINE__);
+                __FILE__, __LINE__);
       return -EBADMSG;
     }
 
@@ -600,7 +599,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   if (decodedSize < HCOM_PROTOCOL_HEADER_MSG_LENGTH)
   {
     syslog(LOG_ERR, "%s@%d-Received undersized command packet of %u bytes, ignoring it.\n",
-              thisFile, __LINE__, decodedSize);
+              __FILE__, __LINE__, decodedSize);
     return -EBADMSG;
   }
 
@@ -637,14 +636,14 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       g_current_hcom_protocol_version = hdrMsg->stdHeader.version;
     }
 
-    hcom_host_send_simple_string_msg(textRqstType, 0, hostMsg, thisFile, __LINE__);
+    hcom_host_send_simple_string_msg(textRqstType, 0, hostMsg, __FILE__, __LINE__);
     // If illegal version, exit
     if (textRqstType == HCOM_HOST_REQUEST_TEXT_ERROR)
     {
       // Caller expects a Concluded message for all messages, even for
       // a wrong CLI protocol version.
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-              "", thisFile, __LINE__);
+              "", __FILE__, __LINE__);
       
       // Exit if below HCOM_PROTOCOL_MINIMUM_PROTOCOL_NUMBER
       return -ENOTSUP;
@@ -659,7 +658,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
        requestType != HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END)
     {
       syslog(LOG_ERR, "%s@%d-ERROR:F7 Dnld active, unexpected rqst type:0x%04x, dnld state:%d\n",
-        thisFile, __LINE__, requestType, dnldShared->dnldCurrentState);
+        __FILE__, __LINE__, requestType, dnldShared->dnldCurrentState);
       return -EBADRQC;   // Invalid request code
     }
   }
@@ -674,7 +673,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     // list may be generated.
     #if defined (CONFIG_DIR_MGMT_TESTS)
     syslog(2, "===> %s@%d-File list. Calling hcom_host_process_init_hcom_dnld_share() false,false\n",
-              thisFile, __LINE__);
+              __FILE__, __LINE__);
     usleep(20 * 1000);
 #endif
 
@@ -683,7 +682,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
 
       return ret;   // On error exit
     }
@@ -695,7 +694,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
       syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
-                thisFile, __LINE__, dnldShared->dnldFullPathName);
+                __FILE__, __LINE__, dnldShared->dnldFullPathName);
       usleep(20 * 1000);
 #endif
       // Use the shared helper (also used by the file write/delete and file
@@ -708,7 +707,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
         return ret;
       }
     }
@@ -720,7 +719,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
 #if defined (CONFIG_DIR_MGMT_TESTS)
     syslog(LOG_MTEST,
       "===> %s@%d-Upload. Calling hcom_host_process_init_hcom_dnld_share() false,true\n",
-      thisFile, __LINE__);
+      __FILE__, __LINE__);
     usleep(20 * 1000);
 #endif
     
@@ -729,7 +728,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     if(ret < 0)
     {
       syslog(LOG_ERR, "%s@%d-Init file list, ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
 
       return ret;   // On error exit
     }
@@ -739,7 +738,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
       syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
-                thisFile, __LINE__, dnldShared->dnldFullPathName);
+                __FILE__, __LINE__, dnldShared->dnldFullPathName);
       usleep(20 * 1000);
 #endif
 
@@ -747,7 +746,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-                thisFile, __LINE__, ret, errno);
+                __FILE__, __LINE__, ret, errno);
         return ret;
       }
     }
@@ -768,7 +767,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       if(ret != -EPERM)   // Not Permitted
       {
         syslog(LOG_ERR, "%s@%d-File write/delete, ret:%d, errno:%d\n",
-                  thisFile, __LINE__, ret, errno);
+                  __FILE__, __LINE__, ret, errno);
       }
 
 
@@ -776,7 +775,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       // normal case the End message will do this. But, on an error the End
       // message cannot be expected.
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", thisFile, __LINE__);
+        "", __FILE__, __LINE__);
 
       return ret;   // On error exit
     }
@@ -798,7 +797,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   {
     // Handle the command types that report errors
     syslog(LOG_ERR, "%s@%d-Request Type:%u, ret:%d, errno:%d\n",
-              thisFile, __LINE__, requestType, ret, errno);
+              __FILE__, __LINE__, requestType, ret, errno);
     // No point exiting now, just do the cleanup first
   }
 

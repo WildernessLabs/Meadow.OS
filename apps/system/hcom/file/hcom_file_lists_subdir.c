@@ -68,11 +68,6 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-static char *thisFile = __FILE__;
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -95,27 +90,27 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
   char *fileInformation = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(fileInformation == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
   char *completeNameBuf = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
   if(completeNameBuf == NULL)
   {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", thisFile, __LINE__);
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
     free(fileInformation);
     return -ENOMEM;
   }
 
   // Tell CLI to output a header for the file list
-  hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_LIST_HEADER, 0, thisFile, __LINE__);
+  hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_LIST_HEADER, 0, __FILE__, __LINE__);
 
   // Open the directory
   dirp = opendir(dnldShared->dnldFullPathName);
   if ( !dirp )
   {
     syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
-              thisFile, __LINE__, dnldShared->dnldFullPathName, errno);
+              __FILE__, __LINE__, dnldShared->dnldFullPathName, errno);
     free(fileInformation);
     free(completeNameBuf);
     return -ENOENT;
@@ -133,10 +128,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
 
   // Send to directory to CLI
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-              fileInformation, thisFile, __LINE__);
+              fileInformation, __FILE__, __LINE__);
 
   MEADOW_TRACE_INFORMATION("%s@%d-%s\n",
-              thisFile, __LINE__, dnldShared->dnldFullPathName);
+              __FILE__, __LINE__, dnldShared->dnldFullPathName);
 
   while((direntry = readdir(dirp)) != NULL)
   {
@@ -160,7 +155,7 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
         if(detectError < 0)
         {
           syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
-                    thisFile, __LINE__, detectError);
+                    __FILE__, __LINE__, detectError);
           
           free(completeNameBuf);
           free(fileInformation);
@@ -178,10 +173,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
                   crcChecksum, blockSizeKB, fileSize);
 
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
-                      fileInformation, thisFile, __LINE__);
+                      fileInformation, __FILE__, __LINE__);
 
         MEADOW_TRACE_INFORMATION("%s@%d-%s%s checksum:0x%08x, %lu KB (%d bytes)\n",
-                  thisFile, __LINE__,
+                  __FILE__, __LINE__,
                   useFullPath ? dnldShared->dnldFullPathName : "",
                   direntry->d_name,
                   crcChecksum, blockSizeKB, fileSize);
@@ -196,10 +191,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
 
         // Send to file to CLI
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                  fileInformation, thisFile, __LINE__);
+                  fileInformation, __FILE__, __LINE__);
 
         MEADOW_TRACE_INFORMATION("%s@%d-%s%s\n",
-                  thisFile, __LINE__,
+                  __FILE__, __LINE__,
                   useFullPath ? dnldShared->dnldFullPathName : "",
                   direntry->d_name);
       }
@@ -218,10 +213,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
 
       // Send directory name to CLI
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                fileInformation, thisFile, __LINE__);
+                fileInformation, __FILE__, __LINE__);
 
       MEADOW_TRACE_INFORMATION("%s@%d-/%s\n",
-                thisFile, __LINE__, direntry->d_name);
+                __FILE__, __LINE__, direntry->d_name);
     }
     else if(DIRENT_ISBLK(direntry->d_type) &&
               dnldShared->dnldRqstCat != pathnameOriginal)
@@ -232,10 +227,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
 
       // Send block device to CLI
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                fileInformation, thisFile, __LINE__);
+                fileInformation, __FILE__, __LINE__);
 
       MEADOW_TRACE_INFORMATION("%s@%d-/%s\n",
-                thisFile, __LINE__, direntry->d_name);
+                __FILE__, __LINE__, direntry->d_name);
     }
     // Ignore character devices and links
   }
@@ -251,10 +246,10 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
 
     // Send the totals
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
-                  fileInformation, thisFile, __LINE__);
+                  fileInformation, __FILE__, __LINE__);
 
     MEADOW_TRACE_INFORMATION("%s@%d-A total of %lu file%s using %lu KB (%d bytes) and %d director%s \n",
-              thisFile, __LINE__,
+              __FILE__, __LINE__,
               fileCount, fileCount == 1 ? "" : "s",
               totalFlashSizeKB, totalSizeOfFiles,
               dirCount, dirCount == 1 ? "y" : "ies");
@@ -267,7 +262,7 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
                 dirCount, dirCount == 1 ? "y" : "ies");
 
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                    fileInformation, thisFile, __LINE__);
+                    fileInformation, __FILE__, __LINE__);
   }
 
   closedir(dirp);
