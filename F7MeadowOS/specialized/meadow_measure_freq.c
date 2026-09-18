@@ -145,7 +145,11 @@ static int meadow_measure_freq_isr(int irq, void *context, void *arg)
   // Check UIF (Update Interrupt Flag), which indicates CNT changed.
   // In our case timer rollover. Rollover for 16-bit timer is:
   // 1.08 MHz / 65536 = 16.479 times/second.
-  if(timStatusReg & GTIM_SR_UIF)
+  //
+  // Remembered (before clearing/incrementing below) for the capture-epoch
+  // correction below -- see Issue #560.
+  bool timerJustOverflowed = (timStatusReg & GTIM_SR_UIF) != 0;
+  if(timerJustOverflowed)
   {
     timStatusReg &= ~GTIM_SR_UIF;
 
@@ -196,6 +200,27 @@ static int meadow_measure_freq_isr(int irq, void *context, void *arg)
 
     uint32_t isrCapCount = ccr[chan];
 
+    // Issue #560: a hardware capture and the counter's overflow (UIF) can
+    // both end up pending by the time this ISR actually runs -- e.g. an
+    // edge lands within a couple of ticks of the wrap boundary, or the ISR
+    // is merely delayed. timerOverflow was already incremented above (if
+    // UIF fired), so blindly stamping every capture processed in this call
+    // with that value misattributes any capture that actually happened just
+    // *before* the wrap to the epoch *after* it -- corrupting every
+    // overflow-normalized subtraction downstream by a full counter's worth
+    // of ticks (halfCycle/fullCycle computed from mismatched epochs). A
+    // capture whose raw count is still in the upper half of the counter's
+    // range when a wrap just fired almost certainly belongs to the
+    // pre-increment epoch instead.
+    uint32_t captureOverflow = mdwFreqTimerInfo->timerOverflow;
+    if(timerJustOverflowed &&
+       isrCapCount >= (mdwFreqTimerInfo->timerWidth ?
+                 (MEADOW_FREQ_32_BIT_OVERFLOW_COUNT / 2) :
+                 (MEADOW_FREQ_16_BIT_OVERFLOW_COUNT / 2)))
+    {
+      captureOverflow--;
+    }
+
     //----------------------------------------------------------
     // Lastly capture the needed data for each register. Without duty cycle
     // every capture is a rising edge - shift it in unconditionally. With
@@ -216,16 +241,46 @@ static int meadow_measure_freq_isr(int irq, void *context, void *arg)
 
       // Capture end count and current overflow count
       mdwFreqChanData->endResultCnt = isrCapCount;
-      mdwFreqChanData->endResultOvr = mdwFreqTimerInfo->timerOverflow;
+      mdwFreqChanData->endResultOvr = captureOverflow;
 
       // For calculating average frequency
       mdwFreqChanData->gpioCountForAvg++;
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+      {
+        // Silent -- no syslog() here. Just record the raw edge; the reader
+        // (meadow_measure_freq_return_freq_info()) dumps this ring buffer
+        // when it's actually called, which is at a rate syslog can keep up
+        // with, unlike a 300Hz+ ISR.
+        uint8_t slot = mdwFreqChanData->dcTraceNext;
+        mdwFreqChanData->dcTrace[slot].isRising = true;
+        mdwFreqChanData->dcTrace[slot].cnt = isrCapCount;
+        mdwFreqChanData->dcTrace[slot].ovr = mdwFreqTimerInfo->timerOverflow;
+        mdwFreqChanData->dcTraceNext =
+          (slot + 1) % MEADOW_MEAS_FREQ_DC_TRACE_DEPTH;
+        if(mdwFreqChanData->dcTraceCount < MEADOW_MEAS_FREQ_DC_TRACE_DEPTH)
+          mdwFreqChanData->dcTraceCount++;
+      }
+#endif
     }
     else
     {
       // Duty cycle falling edge
       mdwFreqChanData->midCaptureCnt = isrCapCount;
-      mdwFreqChanData->midCaptureOvr = mdwFreqTimerInfo->timerOverflow;
+      mdwFreqChanData->midCaptureOvr = captureOverflow;
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+      {
+        uint8_t slot = mdwFreqChanData->dcTraceNext;
+        mdwFreqChanData->dcTrace[slot].isRising = false;
+        mdwFreqChanData->dcTrace[slot].cnt = isrCapCount;
+        mdwFreqChanData->dcTrace[slot].ovr = mdwFreqTimerInfo->timerOverflow;
+        mdwFreqChanData->dcTraceNext =
+          (slot + 1) % MEADOW_MEAS_FREQ_DC_TRACE_DEPTH;
+        if(mdwFreqChanData->dcTraceCount < MEADOW_MEAS_FREQ_DC_TRACE_DEPTH)
+          mdwFreqChanData->dcTraceCount++;
+      }
+#endif
     }
   }
 
@@ -1200,6 +1255,11 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   uint32_t endResultCnt, endResultOvr;
   uint64_t gpioCountForAvg;
   uint64_t startTimeForAvg;
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+  mdwFreqDcTraceEntry_t dcTraceSnapshot[MEADOW_MEAS_FREQ_DC_TRACE_DEPTH];
+  uint8_t dcTraceSnapshotCount;
+  uint8_t dcTraceSnapshotNext;
+#endif
 
   irqstate_t flags = enter_critical_section();
 
@@ -1214,6 +1274,12 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   startTimeForAvg = mdwFreqChanData->startTimeForAvg;
 
   mdwFreqChanData->gpioCountForAvg = 0;
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+  memcpy(dcTraceSnapshot, mdwFreqChanData->dcTrace, sizeof(dcTraceSnapshot));
+  dcTraceSnapshotCount = mdwFreqChanData->dcTraceCount;
+  dcTraceSnapshotNext  = mdwFreqChanData->dcTraceNext;
+#endif
 
   leave_critical_section(flags);
 
@@ -1267,6 +1333,42 @@ int meadow_measure_freq_return_freq_info(mdwFreqReturnData_t *returnData)
   // Normalize from the beginning
   fullCycle = endCapture - bgnCapture;
   halfCycle = midCapture - bgnCapture;
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+  // Duty cycle can never legitimately exceed 100%, i.e. halfCycle can never
+  // legitimately exceed fullCycle -- this is the exact, cheap symptom of
+  // Issue #560's bug class (an overflow-epoch mismatch producing a huge
+  // halfCycle). Only dump when it actually fires, so this can run at a fast
+  // poll rate (see 'fast poll' test case) without flooding syslog the way
+  // an unconditional per-call dump would.
+  if(useDutyCycle && halfCycle > fullCycle)
+  {
+    uint8_t i;
+    uint8_t oldest = (dcTraceSnapshotCount < MEADOW_MEAS_FREQ_DC_TRACE_DEPTH) ?
+              0 : dcTraceSnapshotNext;
+
+    syslog(LOG_ERR, "DC-TRACE ANOMALY chan:%lu (%u ring entries, oldest first)\n",
+      (unsigned long)returnData->channelNumber, dcTraceSnapshotCount);
+    for(i = 0; i < dcTraceSnapshotCount; i++)
+    {
+      uint8_t idx = (oldest + i) % MEADOW_MEAS_FREQ_DC_TRACE_DEPTH;
+      syslog(LOG_ERR, "  [%u] %s cnt:%lu ovr:%lu\n", i,
+        dcTraceSnapshot[idx].isRising ? "rising " : "falling",
+        (unsigned long)dcTraceSnapshot[idx].cnt,
+        (unsigned long)dcTraceSnapshot[idx].ovr);
+    }
+
+    syslog(LOG_ERR,
+      "DC-TRACE ANOMALY chan:%lu result(bgnCnt:%lu bgnOvr:%lu midCnt:%lu midOvr:%lu endCnt:%lu endOvr:%lu) capture(bgn:%llu mid:%llu end:%llu) cycle(half:%llu full:%llu)\n",
+      (unsigned long)returnData->channelNumber,
+      (unsigned long)bgnResultCnt, (unsigned long)bgnResultOvr,
+      (unsigned long)midResultCnt, (unsigned long)midResultOvr,
+      (unsigned long)endResultCnt, (unsigned long)endResultOvr,
+      (unsigned long long)bgnCapture, (unsigned long long)midCapture,
+      (unsigned long long)endCapture,
+      (unsigned long long)halfCycle, (unsigned long long)fullCycle);
+  }
+#endif
 
   // A zero-length cycle is only possible if an edge landed exactly on
   // CNT==0 on the very first capture; guard against the divide-by-zero

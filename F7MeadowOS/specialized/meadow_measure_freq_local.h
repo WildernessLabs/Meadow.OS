@@ -75,6 +75,35 @@
 // Diagnostic
 #define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME (0)
 
+// Diagnostic for hunting Issue #560-class bugs (garbage duty cycle/frequency
+// from a capture misattributed to the wrong overflow epoch). The ISR
+// records each capture (rising/falling, cnt, timer overflow count) into a
+// small in-memory ring buffer -- no syslog in the ISR itself, since a 300Hz
+// signal fires this ~600 times/sec and syslog-per-edge both floods the
+// RAMLOG buffer and risks perturbing the very ISR timing being examined.
+// meadow_measure_freq_return_freq_info() dumps that ring buffer plus its
+// own computed bgnCapture/midCapture/endCapture/halfCycle/fullCycle values,
+// but only when halfCycle > fullCycle -- an outcome that's only possible on
+// a real bug -- so this is safe to leave compiled in (like this file's
+// other MEADOW_MEASURE_FREQ_INCLUDE_DIAG_* flags) without flooding normal
+// operation. #560's actual root cause (the overflow-epoch misattribution
+// itself) is fixed unconditionally in the ISR; this flag only controls the
+// diagnostic dump used to find it.
+#define MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE (0)
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+// How many most-recent ISR captures to remember per channel.
+#define MEADOW_MEAS_FREQ_DC_TRACE_DEPTH (16)
+
+struct mdwFreqDcTraceEntry_s
+{
+  bool isRising;
+  uint32_t cnt;
+  uint32_t ovr;
+};
+typedef struct mdwFreqDcTraceEntry_s mdwFreqDcTraceEntry_t;
+#endif
+
 #if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_ISR_TIME > 0)
 // Use pin for timing via scope
 #define DEBUG_GPIO_V2_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | \
@@ -116,6 +145,13 @@ struct mdwFreqChanData_s
   uint32_t inputConfig;         // Nuttx GPIO config for unconfig
   uint64_t gpioCountForAvg;     // GPIO input count for average
   uint64_t startTimeForAvg;     // Meadow start time for average
+
+#if(MEADOW_MEASURE_FREQ_INCLUDE_DIAG_DUTY_CYCLE_TRACE > 0)
+  // Issue #560 temporary diagnostic ring buffer -- see the flag's comment.
+  mdwFreqDcTraceEntry_t dcTrace[MEADOW_MEAS_FREQ_DC_TRACE_DEPTH];
+  uint8_t dcTraceNext;    // Next slot to write (wraps)
+  uint8_t dcTraceCount;   // Number of valid entries (caps at DEPTH)
+#endif
 };
 typedef struct mdwFreqChanData_s mdwFreqChanData_t;
 
