@@ -385,6 +385,14 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
             packetSize, true, true);
   if(ret < 0)
   {
+    // Notify CLI that download/delete can't continue because of an error.
+    // A TEXT_ERROR with the specific reason was already sent by
+    // hcom_host_process_init_hcom_dnld_share(); this concludes the
+    // download-init handshake CLI is waiting on, same as the mono-disabled
+    // check above.
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+            __FILE__, __LINE__);
+
     // In case there's some half baked changes
     hcom_dir_mgmt_free_file_info(dnldShared);
     return ret;    // Error already reported via syslog
@@ -405,8 +413,20 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     ret = hcom_host_preprocess_mount_sdcard();
     if(ret < 0)
     {
+      char hostMsg[HCOM_TINY_HOST_STRING_BUFF_LENGTH];
+
       syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
               __FILE__, __LINE__, ret, errno);
+
+      // Let CLI user know the problem, then conclude the download-init
+      // handshake CLI is waiting on.
+      snprintf_chk(hostMsg, HCOM_TINY_HOST_STRING_BUFF_LENGTH,
+              "SD-Card mount failed, ret:%d, errno:%d\n", ret, errno);
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+              hostMsg, __FILE__, __LINE__);
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+              __FILE__, __LINE__);
+
       hcom_dir_mgmt_free_file_info(dnldShared);
       return ret;
     }
@@ -425,6 +445,13 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
       {
         syslog(LOG_ERR, "%s@%d-Processing subdir, ret:%d, errno:%d\n",
                   __FILE__, __LINE__, ret, errno);
+
+        // A TEXT_ERROR with the specific reason was already sent by
+        // hcom_dir_mgmt_check_and_add_subdir(); this concludes the
+        // download-init handshake CLI is waiting on.
+        hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+                __FILE__, __LINE__);
+
         hcom_dir_mgmt_free_file_info(dnldShared);
         return ret;
       }
