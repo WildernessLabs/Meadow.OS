@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-17. Tables A, B, and C are
+**Review timeline:** started 2026-08-13, last updated 2026-09-18. Tables A, B, and C are
 all now fully reviewed (excluding Mark's `F7MeadowOS/espcp/` rows and all Cell-owned rows,
 out of scope -- see the Original Author note below). B21/B22
 (`hcom_esp32_network_monitor.{c,h}`) remain Mark's and out of scope; B19/B20/B23-B26 were
@@ -22,7 +22,10 @@ open for that team to handle.
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (19 files) - Meadow's board port,
   not vendored NuttX core. Plus `include/board.h` and `include/boardctl.h` (2 files,
-  added 2026-09-01) from the same board port's `include/` directory. 4 files
+  added 2026-09-01) from the same board port's `include/` directory, and
+  `kernel/stm32_userspace.c` (1 file, added 2026-09-18) from the same board port's
+  `kernel/` directory -- picked up as a follow-up to #194, which named this file in its
+  original file-tier survey but it fell outside the initial `src/`-scoped batch. 4 files
   (`stm32_appinit.c`, `stm32_i2c.c`, `stm32_i2c.h`, `stm32_sdmmc.c`) were removed
   2026-09-01 (PR #425): confirmed unreferenced by any build config -- wrong-MCU/wrong-layer
   copy-paste leftovers or superseded by another file, no remaining project value.
@@ -33,7 +36,7 @@ open for that team to handle.
   `F7MeadowOS/timers/` (7 files) was removed 2026-08-29: experimental MCU-timer code,
   never wired into any build config, no remaining project value.
 
-Total in scope: 245 files.
+Total in scope: 246 files.
 
 ## Status legend
 
@@ -59,7 +62,7 @@ on it yet.
 This file is updated automatically by the `review-files` skill after each batch. If you
 review a file some other way, update its row manually to keep this list accurate.
 
-## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (21 files)
+## nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/ (22 files)
 
 4 files removed 2026-09-01 (PR #425), rows retired rather than renumbered: A03
 (`stm32_appinit.c`), A11 (`stm32_i2c.c`), A12 (`stm32_i2c.h`), A18 (`stm32_sdmmc.c`) --
@@ -88,6 +91,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | A23 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_userleds.c | *Fixed | 2026-09-17 | #432 | Peter | File deleted (branch `issue597-remove-dead-led-files`, issue #597), alongside A05's stm32_autoleds.c; #432's own findings (only 1 of 3 LEDs wired, raw literals instead of named constants) no longer apply once the file is gone -- closed as superseded, not fixed in place; hardware-verified |
 | A24 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/board.h | *Reviewed | 2026-09-17 | #427 | Peter | All 7 findings resolved (branch `issue427-board-h-findings`), hardware-verified: STM32F7_SAI1/2_FREQUENCY wrong constant fixed (verified 96MHz via RM0410, was 49142857 vs a differently-wrong documented 24000000); misleading PLLQ/OTGFS_FREQUENCY commentary clarified (real 48MHz source is PLLSAI, macro is unreferenced); duplicated "LED definitions" banner over ESP32 pin macros fixed; stale Discovery-board BUTTON_USER/NUM_BUTTONS/BUTTON_USER_BIT deleted (GPIO_BTN_USER undefined bug flagged separately for A08); STM32_PLLCFG_PLLR 216MHz-branch asymmetry documented (inert for this chip family regardless); MEADOW_TRY_216_MHz_CLOCK dead-branch finding already covered by A10's existing TODO, no new action; unnecessary extern "C"/EXTERN wrapper removed from the pin-definitions section. In include/, not src/; see also #426 (upstream watch item, separate) |
 | A25 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/include/boardctl.h | *Reviewed | 2026-09-16 | #428 | Peter | Macro parenthesization fixed (branch `issue428-boardctl-macro-parens`); genuinely Meadow-only file (no upstream/sibling equivalent), bug present unchanged since 2020; issue closed |
+| A26 | nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/kernel/stm32_userspace.c | Reviewed | 2026-09-18 |  | Peter | Reviewed as follow-up to #194 (named in its original file-tier survey, but in kernel/ not src/); real Meadow-modified file (CONFIG_NUTTX_USERSPACE address history from Peter, us_heapend field from Mark), not vendored/untouchable; No confirmed findings -- 2 candidate items (checkpatch nit, self-documented us_heapend placeholder) both correctly score 0 per the skill's own false-positive exclusions (linter-catchable; explicitly silenced in code), filed as #620 then closed |
 
 ## apps/system/hcom/ (63 files)
 
