@@ -413,8 +413,20 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     ret = hcom_host_preprocess_mount_sdcard();
     if(ret < 0)
     {
+      char hostMsg[HCOM_TINY_HOST_STRING_BUFF_LENGTH];
+
       syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
               __FILE__, __LINE__, ret, errno);
+
+      // Let CLI user know the problem, then conclude the download-init
+      // handshake CLI is waiting on.
+      snprintf_chk(hostMsg, HCOM_TINY_HOST_STRING_BUFF_LENGTH,
+              "SD-Card mount failed, ret:%d, errno:%d\n", ret, errno);
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+              hostMsg, __FILE__, __LINE__);
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+              __FILE__, __LINE__);
+
       hcom_dir_mgmt_free_file_info(dnldShared);
       return ret;
     }
