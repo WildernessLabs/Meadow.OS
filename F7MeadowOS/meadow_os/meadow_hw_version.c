@@ -150,6 +150,24 @@ bool meadow_hw_version_ethernet_supported(void)
 }
 
 //============================================================================
+// Returns true if hardware and software support SD card storage
+bool meadow_hw_version_sdcard_supported(void)
+{
+#if defined(CONFIG_STM32F7_SDMMC2)
+  switch(meadow_hw_version_get())
+  {
+    case MEADOW_F7_HW_VERSION_NUMB_CCMV2:
+      return true;
+
+    default:
+      return false;
+  }
+#else
+  return false;
+#endif    // #if defined(CONFIG_STM32F7_SDMMC2)
+}
+
+//============================================================================
 char *meadow_hw_version_string_return(void)
 {
   char *result;

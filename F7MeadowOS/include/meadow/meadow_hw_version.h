@@ -76,5 +76,6 @@ uint32_t meadow_hw_version_get(void);
 char *meadow_hw_version_string_return(void);
 
 bool meadow_hw_version_ethernet_supported(void);
+bool meadow_hw_version_sdcard_supported(void);
 
 #endif // __CONFIG_MEADOW_SRC_MEADOW_HARDWARE_VERSION__H

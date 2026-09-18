@@ -346,22 +346,29 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 #endif
 
 #if defined (CONFIG_STM32F7_SDMMC2)
-  hcom_nx_config_lock();
-  config = hcom_nx_config_get_pointer();
-  if (config->sd_storage_supported)
+  if (meadow_hw_version_sdcard_supported())
   {
-    ret = stm32_sdio_initialize_meadow();
-    if (ret != OK)
+    hcom_nx_config_lock();
+    config = hcom_nx_config_get_pointer();
+    if (config->sd_storage_supported)
     {
-      config->sd_storage_supported = 0;
-      syslog(LOG_ERR,"ERROR: Failed to initialize MMC/SD driver:%d\n", ret);
+      ret = stm32_sdio_initialize_meadow();
+      if (ret != OK)
+      {
+        config->sd_storage_supported = 0;
+        syslog(LOG_ERR,"ERROR: Failed to initialize MMC/SD driver:%d\n", ret);
+      }
     }
+    else
+    {
+      syslog(LOG_INFO, "CCM device but, SD Card not configured\n");
+    }
+    hcom_nx_config_unlock();
   }
   else
   {
-    syslog(LOG_INFO, "CCM device but, SD Card not configured\n");
+    syslog(LOG_INFO, "SD Card not supported by this device\n");
   }
-  hcom_nx_config_unlock();
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
