@@ -445,6 +445,13 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
       {
         syslog(LOG_ERR, "%s@%d-Processing subdir, ret:%d, errno:%d\n",
                   __FILE__, __LINE__, ret, errno);
+
+        // A TEXT_ERROR with the specific reason was already sent by
+        // hcom_dir_mgmt_check_and_add_subdir(); this concludes the
+        // download-init handshake CLI is waiting on.
+        hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+                __FILE__, __LINE__);
+
         hcom_dir_mgmt_free_file_info(dnldShared);
         return ret;
       }
