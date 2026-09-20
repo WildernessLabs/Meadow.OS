@@ -9,7 +9,7 @@ Meadow.OS is debugged using **OpenOCD** as the GDB server and **gdb** (with Pyth
 - OpenOCD installed and accessible on `PATH` (or referenced via `MEADOW_OPENOCD_COMMAND`)
 - ARM cross-toolchain (`arm-none-eabi-gdb` / `arm-none-eabi-gdb-py`)
 - ST-Link v2/v3 debugger connected to the board's SWD port
-- A completed build (symbol files `nuttx/nuttx` and `nuttx/nuttx_user.elf` must exist)
+- A completed build (symbol files `nuttx/nuttx.elf` and `nuttx/nuttx_user.elf` must exist)
 
 ## Quick Start
 
@@ -44,8 +44,10 @@ GDB will automatically connect to `localhost:4242`, load symbol files, and apply
 source [find interface/stlink.cfg]
 source [find target/stm32f7x.cfg]
 reset_config none separate
-gdb_port 4242
+
+gdb port 4242
 debug_level 1
+tcl port 6666
 
 # NuttX RTOS awareness
 stm32f7x.cpu configure -rtos nuttx
@@ -55,11 +57,26 @@ NuttX RTOS awareness is enabled in OpenOCD. This allows OpenOCD to display NuttX
 
 ### Flash session (`flash.cfg`)
 
-Writes `nuttx.bin` at `0x08040000` and `nuttx_user.bin` at `0x08100000`:
+`flash.cfg` writes whichever image is present, and the first branch is the one
+that normally runs. If `nuttx/Meadow.OS.bin` exists — the combined bootloader and
+OS image that `build.sh` produces — it is written to `0x08000000` and the script
+stops there:
+
+```tcl
+set image nuttx/Meadow.OS.bin
+if {[file exists $image]} {
+  flash write_image erase $image 0x08000000
+  verify_image $image 0x08000000
+  shutdown
+}
+```
+
+Only when that image is absent does it fall back to the separate binaries,
+writing `nuttx.bin` at `0x08000000` and `nuttx_user.bin` at `0x08040000`:
 
 ```tcl
 flash write_image erase nuttx/nuttx.bin 0x08000000
-flash write_image erase nuttx/nuttx_user.bin 0x08100000
+flash write_image erase nuttx/nuttx_user.bin 0x08040000
 ```
 
 > **Note**: `flash.sh` uses `flash.cfg` by default. DFU mode (`--dfu`) is also supported using `dfu-util`.
@@ -73,20 +90,28 @@ The `.gdbinit` file in the `gdb` directory is loaded automatically when GDB is s
    - 4 hardware watchpoints
 2. Defines `load-nuttx-symbols` to load symbol files:
    ```
-   file ../nuttx/nuttx
-   add-symbol-file -readnow ../nuttx/nuttx
+   file ../nuttx/nuttx.elf
+   add-symbol-file -readnow ../nuttx/nuttx.elf
    add-symbol-file -readnow ../nuttx/nuttx_user.elf  (if present)
    ```
 3. Loads Python helper scripts
 4. Connects to the GDB server: `target extended-remote :4242`
-5. Configures NuttX RTOS awareness offsets for OpenOCD:
+5. Configures NuttX RTOS awareness for OpenOCD. The task control block offsets
+   are **derived from the loaded symbols**, not hardcoded, so they cannot go
+   stale when a NuttX change moves a field in `struct tcb_s`:
    ```
-   monitor nuttx.pid_offset 12
-   monitor nuttx.xcpreg_offset 332
-   monitor nuttx.state_offset 26
-   monitor nuttx.name_offset 540
-   monitor nuttx.name_size 64
+   monitor nuttx.g_tasklisttable_size 72
+
+   eval "monitor nuttx.pid_offset %d", &((struct tcb_s *)(0))->pid
+   eval "monitor nuttx.xcpreg_offset %d", &((struct tcb_s *)(0))->xcp.regs
+   eval "monitor nuttx.state_offset %d", &((struct tcb_s *)(0))->task_state
+   eval "monitor nuttx.name_offset %d", &((struct tcb_s *)(0))->name
+   eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
    ```
+   Literal `monitor nuttx.*_offset` lines are present in the file but commented
+   out. Because the offsets come from the symbols, a wrong or missing symbol
+   file produces a wrong task list rather than an error — load the symbols that
+   match the firmware on the board.
 
 ### Useful GDB Macros
 
@@ -115,7 +140,7 @@ Custom Python scripts extend GDB with Meadow-specific commands:
 ./flash.sh
 ```
 
-Writes `nuttx/nuttx.bin` (kernel) and `nuttx/nuttx_user.bin` (user) to internal flash via ST-Link.
+Writes `nuttx/Meadow.OS.bin` to `0x08000000` via ST-Link when that combined image is present, falling back to `nuttx/nuttx.bin` (kernel) and `nuttx/nuttx_user.bin` (user) when it is not.
 
 ### Using DFU
 
