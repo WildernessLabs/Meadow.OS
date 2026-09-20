@@ -6,6 +6,15 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 . $scriptdir/scripts/common_methods.sh
 . $scriptdir/scripts/version_methods.sh
 
+#
+#   generate_build_info rewrites tracked files (user-space.ld,
+#   hcom_nuttx_shared.h, esp32/version.txt, esp32/main/build_info.template)
+#   as scratch space.  This trap restores them on every exit path - success,
+#   an error under set -e, or a signal - so a failed build cannot leave the
+#   tree dirty or poison the next build with stale version data.
+#
+trap restore_versioned_files EXIT
+
 set_os_name
 check_if_interactive
 
@@ -194,7 +203,5 @@ if [ $? -eq 0 ]; then
     $scriptdir/flash.sh
   fi
 fi
-
-restore_versioned_files
 
 print_build_summary

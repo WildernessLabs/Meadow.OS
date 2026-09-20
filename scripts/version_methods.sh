@@ -139,15 +139,19 @@ END
 }
 
 #
-#   Restore auto-versioned files
+#   Restore auto-versioned files.  Registered as an EXIT trap in build.sh and
+#   build-esp32.sh so it also runs when a build fails under set -e, not just
+#   on success - otherwise a failed build leaves these tracked files dirty
+#   and their .bak files behind.  Each step is guarded so the trap is safe to
+#   run even if generate_build_info never got as far as touching a file.
 #
 restore_versioned_files() {
-  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
-  git checkout HEAD $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h
-  git checkout HEAD $scriptdir/esp32/version.txt
-  git checkout HEAD $scriptdir/esp32/main/build_info.template
-  rm $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
-  rm $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h.bak
-  rm $scriptdir/esp32/main/build_info.template.bak
-  rm $scriptdir/esp32/main/build_info.h
+  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld 2>/dev/null || true
+  git checkout HEAD $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h 2>/dev/null || true
+  git checkout HEAD $scriptdir/esp32/version.txt 2>/dev/null || true
+  git checkout HEAD $scriptdir/esp32/main/build_info.template 2>/dev/null || true
+  rm -f $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
+  rm -f $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h.bak
+  rm -f $scriptdir/esp32/main/build_info.template.bak
+  rm -f $scriptdir/esp32/main/build_info.h
 }
