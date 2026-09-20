@@ -7,6 +7,15 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 . $scriptdir/scripts/version_methods.sh
 . $scriptdir/scripts/configuration_tweaks.sh
 
+#
+#   generate_build_info rewrites tracked files (user-space.ld,
+#   hcom_nuttx_shared.h, esp32/version.txt, esp32/main/build_info.template)
+#   as scratch space.  This trap restores them on every exit path - success,
+#   an error under set -e, or a signal - so a failed build cannot leave the
+#   tree dirty or poison the next build with stale version data.
+#
+trap restore_versioned_files EXIT
+
 set_os_name
 check_if_interactive
 #
@@ -505,7 +514,5 @@ if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   dd if=/dev/zero bs=1024 count=3072 of=${MEADOW_OS_RUNTIME_BIN} 2> /dev/null
   dd if=$scriptdir/nuttx/nuttx_user.bin bs=1024 skip=3014400 seek=0 count=3072 of=${MEADOW_OS_RUNTIME_BIN} conv=notrunc 2> /dev/null
 fi
-
-restore_versioned_files
 
 print_build_summary
