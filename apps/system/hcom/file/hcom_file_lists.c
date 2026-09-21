@@ -70,7 +70,7 @@
 struct hcom_file_lists_stack_frame_s
 {
   DIR *dir;
-  char path[256];
+  char path[PATH_MAX];
   int indent;
 };
 
@@ -109,6 +109,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
 {
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
   struct hcom_file_lists_stack_frame_s *stack;
+  char *childPath;
   int stackCapacity = HCOM_FILE_LISTS_INITIAL_STACK_CAPACITY;
   int stackTop;
 
@@ -119,12 +120,24 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
     return -ENOMEM;
   }
 
+  // Allocated once and reused for every subdirectory encountered during the
+  // walk, rather than as a per-iteration automatic variable -- PATH_MAX is
+  // too large for a stack buffer (Documentation/CodeReviewTracking.md, Issue #547).
+  childPath = malloc(PATH_MAX);
+  if(childPath == NULL)
+  {
+    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+    free(stack);
+    return -ENOMEM;
+  }
+
   // Push the root directory to begin the walk.
   stack[0].dir = opendir(name);
   if(stack[0].dir == NULL)
   {
     syslog(LOG_ERR, "%s@%d-Could not open:%s as a directory\n",
               __FILE__, __LINE__, name);
+    free(childPath);
     free(stack);
     return -1;
   }
@@ -157,6 +170,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
           closedir(stack[stackTop - 1].dir);
           stackTop--;
         }
+        free(childPath);
         free(stack);
         return OK; // ignore procfs information
       }
@@ -170,8 +184,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION,
                 0, hostMsg, __FILE__, __LINE__);
 
-      char childPath[256];
-      snprintf_chk(childPath, sizeof(childPath), "%s/%s", top->path, entry->d_name);
+      snprintf_chk(childPath, PATH_MAX, "%s/%s", top->path, entry->d_name);
       int childIndent = top->indent + 3;
 
       DIR *childDir = opendir(childPath);
@@ -197,6 +210,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
             closedir(stack[stackTop - 1].dir);
             stackTop--;
           }
+          free(childPath);
           free(stack);
           return -ENOMEM;
         }
@@ -241,6 +255,7 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
     }
   }
 
+  free(childPath);
   free(stack);
   return OK;
 }
