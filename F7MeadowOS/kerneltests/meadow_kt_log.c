@@ -60,6 +60,10 @@ void syslogToHost(int priority, FAR const IPTR char *fmt, ...)
 {
     size_t maxStringLen = 256;
     char *finalString = malloc(maxStringLen);
+    if (finalString == NULL)
+    {
+        return;
+    }
 
     va_list args;
     va_start(args, fmt);
@@ -67,6 +71,19 @@ void syslogToHost(int priority, FAR const IPTR char *fmt, ...)
     // The Nuttx version of snprintf will truncate the string based on the
     // buffer size but will always place a terminating NULL at the end.
     int stringLen = vsnprintf(finalString, maxStringLen - 1, fmt, args);
+
+    // vsnprintf() returns the untruncated would-be length, not the number of
+    // bytes actually written -- clamp to what was really written before
+    // passing it on, so we never leak uninitialized bytes past the buffer's
+    // true content or silently drop an over-long message downstream.
+    if (stringLen < 0)
+    {
+        stringLen = 0;
+    }
+    else if ((size_t)stringLen >= maxStringLen - 1)
+    {
+        stringLen = maxStringLen - 2;
+    }
 
     hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION, finalString, stringLen);
 
