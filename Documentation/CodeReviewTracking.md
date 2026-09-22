@@ -264,7 +264,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | *Reviewed | 2026-08-28 | #365 | Peter |  |
 | C088 | F7MeadowOS/include/meadow/meadow_sdmmc.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C089 | F7MeadowOS/include/meadow/meadow_syscall_support.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
-| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | Reviewed | 2026-09-01 | #421 | Mark |  |
+| C090 | F7MeadowOS/include/meadow/meadow_thread_config.h | *Reviewed | 2026-09-22 | #421 | Mark | Confirmed genuinely Mark's (wrote original thread-config scheme). Inaccurate comment about priority-120 exclusivity corrected on `issue421-thread-config-comment-fix` -- comment-only, no priority values changed |
 | C091 | F7MeadowOS/include/meadow/meadow_unit_test_framework.h | Reviewed | 2026-09-01 | #422 | Mark | No confirmed findings |
 | C092 | F7MeadowOS/include/meadow/semaphore_lock_unlock.h | Reviewed | 2026-09-01 | #423 | Mark |  |
 | C093 | F7MeadowOS/include/meadow/stm32f777zit6-meadow.h | *Reviewed | 2026-08-28 | #369 | Peter | 3/5 findings fixed (branch `issue369-stm32-meadow-header-cleanup`): dead `stm32_quadspi_init` declaration removed, `stm32_usbinitialize` and `stm32_spidev_initialize` doc comments corrected (wrong caller/board name, typo); the 2 GPIO-speed findings (`GPIO_OTGFS_PWRON`, LED pins) Won't Fix -- functional today, EMI-margin nitpicks only; issue closed via PR |
