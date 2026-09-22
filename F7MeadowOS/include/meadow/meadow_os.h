@@ -38,10 +38,6 @@
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_unit_test_framework.h>
 
-/****************************************************************************
- * Uncomment the #define below to turn on debug help macros.
- ****************************************************************************/
-
 /**
  * The following list of reset codes are derived from RM0410 document from
  * STM.  The values are taken from the RCC-CSR register bits.  Specifically,
