@@ -248,6 +248,7 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
 	if (connect(sd, (struct sockaddr *) &server, sizeof(server)) < 0)
 	{
 		syslog(LOGGING_LEVEL, "    FAIL: connect - Failed to connect server.\n");
+        close(sd);
         return(-1);
 	}
 
@@ -256,14 +257,16 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     if (getpeername(sd, &addr, &addrlen) < 0)
     {
 		syslog(LOGGING_LEVEL, "    FAIL: getpeername - Failed.\n");
+        close(sd);
         return(-1);
     }
     else
     {
         struct sockaddr_in *sin = (struct sockaddr_in *) &addr;
-        if (!((sin->sin_addr.s_addr == address)) && (sin->sin_port == port))
+        if (!((sin->sin_addr.s_addr == address) && (sin->sin_port == port)))
         {
             syslog(LOGGING_LEVEL, "    FAIL: getpeername - Socket address details are incorrect.\n");
+            close(sd);
             return(-1);
         }
     }
@@ -271,18 +274,21 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     if (network_test_wait_for_poll_event(sd, POLLOUT, 10) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: poll - Socket is not ready for output.\n");
+        close(sd);
         return(-1);
     }
 
 	if (send(sd, request, strlen(request), 0) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: send - Failed to send GET request message.\n");
+        close(sd);
         return(-1);
     }
 
     if (network_test_wait_for_poll_event(sd, POLLIN, 10) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: poll - Socket is not ready for input.\n");
+        close(sd);
         return(-1);
     }
 
@@ -295,6 +301,7 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
         if (bytes_read < 0)
         {
             syslog(LOGGING_LEVEL, "    FAIL: recvfrom - Failed to receive server reply.\n");
+            close(sd);
             return(-1);
         }
         total_bytes += bytes_read;
@@ -463,6 +470,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         if (bytes_received < 0)
         {
             syslog(LOGGING_LEVEL, "    FAIL: recv - Failed to receive data.\n");
+            close(sockfd);
             return(ERROR);
         }
 
