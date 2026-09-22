@@ -286,7 +286,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | *Reviewed | 2026-08-17 | #316 | Peter |  |
 | C110 | F7MeadowOS/kerneltests/meadow_measure_freq_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C111 | F7MeadowOS/kerneltests/meadow_os_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings (intentional NULL-deref assert test, not a bug) |
-| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Reviewed (light) | 2026-08-28 | #383 | Mark |  |
+| C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | *Reviewed (light) | 2026-09-22 | #383 | Mark | Confirmed genuinely Mark's (sole author, no Legacy history, created 2026-08-05). Unchecked MUPD_PWM_START return value fixed on `issue383-pwm-tests-check-start`, matching the MUPD_PWM_SETUP pattern just above it |
 | C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | *Reviewed (light) | 2026-08-28 | #381 | Peter |  |
 | C115 | F7MeadowOS/kerneltests/network_tests.c | *Reviewed (light) | 2026-09-22 | #378 | Mark | Confirmed Mark's via Legacy history (8/9 commits). Both filed findings fixed on `issue378-network-tests-fixes`, plus an untracked 3rd fd leak found in network_test_performance() (same bug class, same file) fixed alongside |
