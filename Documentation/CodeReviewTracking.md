@@ -280,7 +280,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | *Reviewed (light) | 2026-08-28 | #377 | Peter |  |
 | C105 | F7MeadowOS/kerneltests/meadow_kt_bluetooth_tests.c | Reviewed (light) | 2026-08-28 | #384 | Mark |  |
-| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | Reviewed (light) | 2026-08-28 | #376 | Mark |  |
+| C106 | F7MeadowOS/kerneltests/meadow_kt_dispatcher.c | *Reviewed (light) | 2026-09-22 | #376 | Mark | File genuinely shared/co-maintained (Mark + Peter both heavy contributors, per git history). Config-leak finding fixed on `issue376-kt-dispatcher-config-leak` -- added free_unit_tests_configuration_file() (hcom_nx_config_manager.c) called before each reassignment |
 | C107 | F7MeadowOS/kerneltests/meadow_kt_log.c | *Reviewed (light) | 2026-09-22 | #375 | Mark | Confirmed Mark's -- file doesn't exist in Legacy repo at all, created directly here 2026-08-05. Both findings fixed on `issue375-kt-log-fixes` with Mark's blanket ok to pick up his files with no logic changes (this one has a small behavior fix, confirmed in scope with him) |
 | C108 | F7MeadowOS/kerneltests/meadow_kt_log.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C109 | F7MeadowOS/kerneltests/meadow_kt_traverse_ku_tests.c | *Reviewed | 2026-08-17 | #316 | Peter |  |

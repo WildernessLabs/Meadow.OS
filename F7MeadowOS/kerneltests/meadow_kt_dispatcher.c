@@ -282,6 +282,7 @@ int meadow_kt_dispatcher(uint32_t param, uint32_t value)
         {
             if (_kernelTests[index].testId == param)
             {
+                free_unit_tests_configuration_file(unit_tests_configuration);
                 unit_tests_configuration = process_unit_tests_configuration_file();
                 _kernelTests[index].testMethod(value);
                 result = TEST_ERR_OK;
