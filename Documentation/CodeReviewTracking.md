@@ -246,7 +246,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | *Reviewed | 2026-09-22 | #358 |  | ESP32/WiFi-coprocessor scope, not Cell (only real caller is espcp/); orig. author Eduardo Menezes no longer active. Finding fixed on `issue358-client-cert-header-cleanup` (removed 3 unused static consts) |
 | C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Meadow Cloud |  |
 | C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-09-22 | #357 | Mark | Confirmed Mark's via Legacy git history (`Add debug breakpoint macros (#657)`, 2024-07-30) despite generic header |
-| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-08-28 | #355 | Mark |  |
+| C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-09-22 | #355 (closed, Won't Fix) | Mark/Peter | All 3 findings verified accurate but judged intentional for debug-only tooling (toggle never defined in any shipped build): (1) MEADOW_TRACE_CRITICAL==LOG_CRIT reflects wanting text output regardless of trace level; (2) unscoped `#pragma GCC optimize "Og"` deliberately de-optimizes the whole including .c file while debugging; (3) identical MEADOW_CRITICAL_LOG/MEADOW_EMERGENCY_LOG branches deliberately keep the text visible regardless of which debug-helpers variant is active |
 | C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C075 | F7MeadowOS/include/meadow/meadow_gpio_counter.h | *Reviewed | 2026-08-28 | #361 | Peter |  |
