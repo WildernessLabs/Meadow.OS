@@ -303,7 +303,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C127 | F7MeadowOS/meadow_os/meadow_os_battery_backed_domain.c | Reviewed | 2026-08-28 | #367 | Mark | Stale doc comments on strdup_to/from_sram tracked in #392 (meadow_os_fault_handling.c) |
 | C128 | F7MeadowOS/meadow_os/meadow_os_config.c | *Reviewed | 2026-08-28 | #389 | Mark |  |
 | C129 | F7MeadowOS/meadow_os/meadow_os_espcp.c | Reviewed | 2026-08-28 | #388 | Mark |  |
-| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | Reviewed | 2026-08-28 | #386 | Mark |  |
+| C130 | F7MeadowOS/meadow_os/meadow_os_exceptions.c | *Reviewed | 2026-09-22 | #386 | Mark | Confirmed genuinely Mark's (all 3 commits, wrote original OS-exceptions feature). NULL-deref-under-OOM fixed on `issue386-os-exceptions-null-check`, matching espcp_dispatch_event()'s `message != NULL` convention (espcp_event_handlers.c, not same file as finding said) |
 | C131 | F7MeadowOS/meadow_os/meadow_os_fault_handling.c | *Reviewed | 2026-08-28 | #392 | Mark |  |
 | C132 | F7MeadowOS/meadow_os/meadow_os_info.c | Reviewed | 2026-08-28 | #390 | Mark |  |
 | C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | *Reviewed | 2026-08-28 | #385 | Peter |  |
