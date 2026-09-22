@@ -43,6 +43,7 @@
 #include <time.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/kstring.h>
+#include <nuttx/kmalloc.h>
 
 #include "hcom_nx_common.h"
 #include <meadow/hcom_upd_shared.h>
@@ -3417,6 +3418,43 @@ unit_tests_configuration_t *process_unit_tests_configuration_file(void)
     }
 
     return(unit_test_configuration);
+}
+
+/****************************************************************************
+ * Name: free_unit_tests_configuration_file
+ *
+ * Description:
+ *  Free the resources (including the structure itself) used by a
+ *  unit_tests_configuration_t returned by process_unit_tests_configuration_
+ *  file().
+ *
+ * Input Parameters:
+ *  config - Pointer to the configuration structure to be released. May be
+ *           NULL, in which case this function does nothing.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None
+ *
+ ****************************************************************************/
+void free_unit_tests_configuration_file(unit_tests_configuration_t *config)
+{
+    if (config != NULL)
+    {
+        kumm_free(config->parameter1);
+        kumm_free(config->parameter2);
+        kumm_free(config->parameter3);
+        kumm_free(config->parameter4);
+        kumm_free(config->parameter5);
+        kumm_free(config->parameter6);
+        kumm_free(config->parameter7);
+        kumm_free(config->parameter8);
+        kumm_free(config->parameter9);
+        kumm_free(config->parameter10);
+        kumm_free(config);
+    }
 }
 
 /****************************************************************************
