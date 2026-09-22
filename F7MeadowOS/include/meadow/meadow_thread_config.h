@@ -209,8 +209,13 @@
 /**
  * This thread works out how far the LSI drifts from real time.  The thread
  * is transient running for about 5 seconds at startup.  The thread priority
- * is set to 120 as this thread should not be running when any of the threads 
- * used for communications with mono are running.
+ * is set to 120, matching the HCOM threads used for communications with mono
+ * (HCOM_THREAD_PRIORITY_TRACE_RAMLOG / _STDXXX_REDIRECT / _RECV_TRAVERSE).
+ * Equal priority only shares CPU time round-robin between these threads; it
+ * does not exclude them from running concurrently with this one. No issue
+ * has been observed from this in practice since the thread is transient and
+ * runs at startup, but this priority value alone should not be relied on for
+ * mutual exclusion if that is ever actually required.
  */
 #define PWRMGMT_CAL_LSI_THREAD_NAME                 "LSI Calibrate"
 #define PWRMGMT_CAL_LSI_THREAD_PRIORITY             (120)
