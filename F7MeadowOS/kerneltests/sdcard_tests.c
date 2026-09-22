@@ -180,6 +180,12 @@ static int hcom_nx_sdcard_read_test_file(void)
 
   // Read up to first 1024 bytes
   buffer = malloc(1024);
+  if(buffer == NULL)
+  {
+    syslog(LOG_MTEST, "%s@%d-ERROR: malloc failed.\n", __FILE__, __LINE__);
+    return -ENOMEM;
+  }
+
   ssize_t nbytes = read(_activeFd, buffer, 1024);
   if(nbytes < 0)
   {
