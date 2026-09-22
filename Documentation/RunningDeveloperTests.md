@@ -43,6 +43,7 @@ The following identifiers can be used with the `-u` flag:
 | `overload` | MCU stress/overload tests | `MCU_OVERLOAD_TESTS` |
 | `power` | Power management tests | `POWER_MANAGEMENT_TESTS` |
 | `pwm` | Per-pin PWM output tests | `PWM_TESTS` |
+| `qspiflash` | QSPI flash raw read/write/erase tests | `QSPI_FLASH_TESTS` |
 | `sdcard` | SD Card peripheral tests | `SD_CARD_TESTS` |
 | `snprintf` | `snprintf` functionality tests | `SNPRINTF_TESTS` |
 | `sotest` | Dynamic loading (dlopen/dlsym/dlclose) tests | `SOTEST_TESTS` |
@@ -375,6 +376,63 @@ Because `MUPD_PWM_SHUTDOWN` stops the whole timer, not a single channel, turning
 (869, or the end of each pin's turn in 870) also stops any other pin sharing the same physical
 timer (e.g. D03/D04/D07/D08 all share TIM4) - calling shutdown again for those pins afterward
 is harmless (idempotent), just redundant.
+
+## QSPI Flash Tests
+
+The `qspiflash` tests (`MEADOW_TEST_QSPI_FLASH_INIT` = 1600, `MEADOW_TEST_QSPI_FLASH_WRITE`
+= 1601, `MEADOW_TEST_QSPI_FLASH_READ` = 1602, all in `meadow_unit_test_framework.h`)
+exercise the onboard QSPI flash chip (`CONFIG_MTD_W25QXXXJV`) directly through its MTD
+interface, bypassing the LittleFS filesystem layer entirely.
+
+### Prerequisites
+
+* Build with `./build.sh -u=qspiflash`. This enables `CONFIG_QSPI_FLASH_TESTS`, which
+  compiles in `F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c`.
+
+### WARNING: Destructive
+
+These tests erase and overwrite the entire QSPI flash chip, which also backs this board's
+LittleFS filesystem (`/meadow0`). Running any of the bulk write/init sub-commands below
+will destroy any files stored there. Only run these against a device you don't mind
+wiping.
+
+### Running It
+
+```bash
+meadow developer -p <id> -v <value>
+```
+
+Each test ID accepts either a small `0`-`n` value (a literal page or sector number) or one
+of a few reserved sentinel sub-commands in the `0xf0000001`-`0xf0000004` range (values
+this high are never valid page/sector numbers on this flash chip, which tops out in the
+low hundreds of thousands):
+
+| ID | Test | `-v` value | Action |
+|----|------|-----------|--------|
+| 1600 | `QspiInit` | `0xf0000001` | Bulk erase entire flash |
+| 1600 | `QspiInit` | `0xf0000002` | Erase only non-erased (used) sectors |
+| 1600 | `QspiInit` | `0`-`n` | Erase one 4k sector `n` |
+| 1601 | `QspiWrite` | `0xf0000001` | Bulk erase, write pattern to every page, then verify |
+| 1601 | `QspiWrite` | `0xf0000002` | Bulk erase, write pattern to every page, no verify |
+| 1601 | `QspiWrite` | `0xf0000003` | Comprehensive per-page write + neighbor-verify test -- **~26.4 years to complete on 512 Mbit flash, not practical to run** |
+| 1601 | `QspiWrite` | `0xf0000004` | Bulk erase/write/verify with `0x55`, then again with `0xaa` (~10 minutes) |
+| 1601 | `QspiWrite` | `0`-`n` | Write test pattern to one page `n` |
+| 1602 | `QspiRead` | `0xf0000001` | Display (via syslog) all non-erased pages |
+| 1602 | `QspiRead` | `0xf0000002` | Display all erased pages |
+| 1602 | `QspiRead` | `0`-`n` | Display contents of page `n` |
+
+### What It Verifies
+
+Reads/writes go through the flash's MTD interface (`MTD_BREAD`/`MTD_BWRITE`/`MTD_ERASE`,
+plus a raw `MTDIOC_BULKERASE` ioctl for the whole-chip erase paths) rather than the
+LittleFS layer, so these tests exercise the flash driver and hardware directly. Each
+written page is filled with a checksummed pattern (page number + offset + CRC8) so a
+subsequent read can detect bit corruption or a driver page-addressing bug. Results (byte
+counts, first failing page/offset, elapsed time) are written to the syslog (`LOG_MTEST`).
+
+Revived from a dormant/unreachable state via issue #347 (PR #625) -- the file's own header
+comment still notes these tests haven't been otherwise re-validated since the
+Legacy->Rebase port; only one hardware smoke test has been run against them so far.
 
 ## Adding New Tests
 
