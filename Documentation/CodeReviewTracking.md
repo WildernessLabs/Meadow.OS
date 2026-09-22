@@ -253,7 +253,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C076 | F7MeadowOS/include/meadow/meadow_hw_version.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C077 | F7MeadowOS/include/meadow/meadow_interrupt.h | *Reviewed | 2026-08-28 | #360 | Peter | All 3 findings now terminal: port-range comment fixed (PR #533), packed-struct unaligned access Won't Fix, speculative timestamp feature defaulted back off pending confirmed Meadow.Core support; built and smoketested; issue closed via PR |
 | C078 | F7MeadowOS/include/meadow/meadow_kernel_tests.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
-| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | Reviewed | 2026-08-28 | #363 | Mark |  |
+| C079 | F7MeadowOS/include/meadow/meadow_kt_dispatcher.h | *Reviewed | 2026-09-22 | #363 | Mark | Originally authored by Mark (Legacy history) but the paired .c is actively co-maintained by Peter. Both findings fixed on `issue363-kt-dispatcher-header-cleanup` -- trivial, fixed directly |
 | C080 | F7MeadowOS/include/meadow/meadow_measure_freq_shared.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C081 | F7MeadowOS/include/meadow/meadow_os.h | *Reviewed | 2026-09-22 | #362 | Mark | Confirmed Mark's via Legacy git history (12+ commits, most recent 2025-07-10). Orphaned-comment finding fixed on `issue362-meadow-os-header-cleanup` -- trivial, fixed directly rather than routing to Mark |
 | C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Reviewed | 2026-08-28 | #367 | Mark |  |
