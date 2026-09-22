@@ -64,6 +64,9 @@ void meadow_kt_bluetooth_tests(uint32_t);
 void hcom_kt_traverse_ku_tests(uint32_t);
 void meadow_kt_i2c1_scan_tests(uint32_t);
 void meadow_kt_i2c3_scan_tests(uint32_t);
+void meadow_kt_qspi_flash_init_tests(uint32_t);
+void meadow_kt_qspi_flash_write_tests(uint32_t);
+void meadow_kt_qspi_flash_read_tests(uint32_t);
 
 //
 //  PWM tests. -v is the output frequency in kHz.

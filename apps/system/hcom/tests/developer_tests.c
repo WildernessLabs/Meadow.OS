@@ -288,6 +288,15 @@ static meadow_test_names_t _testNames[] =
 #if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_BG77, "All BG77 tests" },
 #endif
+
+    //
+    //  QSPI flash tests 1600 - 1799
+    //
+#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_QSPI_FLASH_INIT, "QSPI flash init/erase test (see hcom_nx_qspi_flash_tests.c for -v sub-command values)" },
+    { MEADOW_TEST_QSPI_FLASH_WRITE, "QSPI flash write test (see hcom_nx_qspi_flash_tests.c for -v sub-command values)" },
+    { MEADOW_TEST_QSPI_FLASH_READ, "QSPI flash read/display test (see hcom_nx_qspi_flash_tests.c for -v sub-command values)" },
+#endif
 };
 
 static meadow_test_methods_t _userspaceTests[] =

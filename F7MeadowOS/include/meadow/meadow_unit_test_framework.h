@@ -694,6 +694,21 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
  */
 #define MEADOW_TEST_BG77                            1400
 
+/**
+ * @brief QSPI flash init/erase test ID.
+ */
+#define MEADOW_TEST_QSPI_FLASH_INIT                  1600
+
+/**
+ * @brief QSPI flash write test ID.
+ */
+#define MEADOW_TEST_QSPI_FLASH_WRITE                 1601
+
+/**
+ * @brief QSPI flash read/display test ID.
+ */
+#define MEADOW_TEST_QSPI_FLASH_READ                  1602
+
 //---------------------------------------------------------------------------
 //      Test result codes.
 //---------------------------------------------------------------------------

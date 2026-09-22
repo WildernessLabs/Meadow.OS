@@ -32,23 +32,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-
-// Available tests based on provided user data
-// QspiWrite -1:  Bulk erases and writes data pattern to entire flash and reads to verify
-// QspiWrite -2:  Bulk erases and writes data pattern to entire flash and stops
-// QspiWrite -3:  Bulk erases and writes data pattern to one page and then verifies that all
+// Note: These tests have not been run since porting to the Rebase project.
+//
+// Available tests based on provided user data ('meadow developer -p <id> -v <value>').
+// QspiWrite 0xf0000001: Bulk erases and writes data pattern to entire flash and reads to verify
+// QspiWrite 0xf0000002: Bulk erases and writes data pattern to entire flash and stops
+// QspiWrite 0xf0000003: Bulk erases and writes data pattern to one page and then verifies that all
 //                 pages are correct, before and after the page written, repeats for each page.
 //                 Note: This test will take about 26.4 years to complete for 512 MBit flash.
-// QspiWrite -4:  Bulk erases and writes, flashes and reads to verify 0x55 repeats with 0xaa.
+// QspiWrite 0xf0000004: Bulk erases and writes, flashes and reads to verify 0x55 repeats with 0xaa.
 //                 Note: does everything twice to check each flash cell, take about 10 minutes.
 // QspiWrite 0-n: Fill buffer with test pattern. Page data determined by developerValue 0-n
 //
-// QspiInit -1:   Bulk entire flash
-// QspiInit -2:   Finds any non-erased sectors and erases them (faster than bulk erase)
+// QspiInit 0xf0000001: Bulk entire flash
+// QspiInit 0xf0000002: Finds any non-erased sectors and erases them (faster than bulk erase)
 // QspiInit 0-n:  Erases one 4k sector as determined by developerValue 0-n
 //
-// QspiRead -1:   Displays via syslog the data in any non-erased pages
-// QspiRead -2:   Displays via syslog the data in erased pages (not very useful)
+// QspiRead 0xf0000001: Displays via syslog the data in any non-erased pages
+// QspiRead 0xf0000002: Displays via syslog the data in erased pages (not very useful)
 // QspiRead 0-n:  Displays the data in the page determined by developerValue 0-n
 
 /****************************************************************************
@@ -57,6 +58,7 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_upd_shared.h>
+#include <meadow/meadow_kernel_tests.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
@@ -66,7 +68,7 @@
 #include <nuttx/spi/qspi.h>
 #include <dirent.h>
 
-#if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
+#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -79,6 +81,25 @@
 
 // How often to output syslog information?
 #define FLASH_TEST_DISPLAY_INTERVAL (16 * 1024)
+
+// Sub-command sentinels for the developerValue passed to
+// meadow_kt_qspi_flash_write/init/read_tests(). Real page/sector numbers are
+// always small (0 to a few hundred thousand at most for this flash chip), so
+// the 0xf0000000 range is safely reserved for these -- any other value is
+// treated as a literal page/sector number (see the bounds checks in each
+// function's default: case). Meadow.CLI's 'developer -v' option is a plain
+// uint (0 to 4,294,967,295), so these must not be negative. Numbered 1-n to
+// match the original (Legacy-era) -1/-2/-3/-4 sub-command convention.
+#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY  0xf0000001ul
+#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY    0xf0000002ul
+#define QSPI_FLASH_TEST_WRITE_COMPREHENSIVE            0xf0000003ul
+#define QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE           0xf0000004ul
+
+#define QSPI_FLASH_TEST_INIT_BULK_ERASE                0xf0000001ul
+#define QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS        0xf0000002ul
+
+#define QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES        0xf0000001ul
+#define QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES      0xf0000002ul
 
 /****************************************************************************
  * Private Data
@@ -912,10 +933,16 @@ static int hcom_exec_flash_fs_flash_test_erase_entire_flash(void)
 }
 
 //=======================================================================================
-// This function is used to test the qspi flash
-int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
+// This function is used to test the qspi flash. Dispatched via
+// meadow_kt_dispatcher.c as MEADOW_TEST_QSPI_FLASH_WRITE ('meadow developer
+// -p <id> -v <value>'); developerValue is the same sub-command selector
+// documented at the top of this file (QspiWrite). Switches on developerValue
+// itself (uint32_t) rather than the narrowed userData below, since the
+// sentinels are large unsigned values -- narrowing first would make them
+// collide with small page numbers once reinterpreted as int.
+void meadow_kt_qspi_flash_write_tests(uint32_t developerValue)
 {
-  int userData = (int)cmdData->userData;
+  int userData = (int)developerValue;
   int ret;
 
   _mtdGeoShown = false;
@@ -926,24 +953,24 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
       __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
-    return ret;
+    return;
   }
 
-  switch(userData)
+  switch(developerValue)
   {
-    case -1:
+    case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY:
       ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/true);
       break;
 
-    case -2:
+    case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY:
       ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/false);
       break;
 
-    case -3:
+    case QSPI_FLASH_TEST_WRITE_COMPREHENSIVE:
       ret = hcom_exec_flash_qspi_comprehensive_test();
       break;
 
-    case -4:
+    case QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE:
       ret = hcom_exec_flash_test_qspi_data_rw_2();
       break;
 
@@ -990,15 +1017,19 @@ int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData)
   {
     syslog(LOG_MTEST, "Success-Write test passed 100%% (command:%d)\n", userData);
   }
-
-  return ret;
 }
 
 //=======================================================================================
-// This function is used to test the qspi flash
-int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
+// This function is used to test the qspi flash. Dispatched via
+// meadow_kt_dispatcher.c as MEADOW_TEST_QSPI_FLASH_INIT ('meadow developer
+// -p <id> -v <value>'); developerValue is the same sub-command selector
+// documented at the top of this file (QspiInit). Switches on developerValue
+// itself (uint32_t) rather than the narrowed userData below, since the
+// sentinels are large unsigned values -- narrowing first would make them
+// collide with small sector numbers once reinterpreted as int.
+void meadow_kt_qspi_flash_init_tests(uint32_t developerValue)
 {
-  int userData = (int)cmdData->userData;
+  int userData = (int)developerValue;
   int ret;
 
   _mtdGeoShown = false;
@@ -1009,16 +1040,16 @@ int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
       __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
-    return ret;
+    return;
   }
-  
-  switch(userData)
+
+  switch(developerValue)
   {
-    case -1:
+    case QSPI_FLASH_TEST_INIT_BULK_ERASE:
       ret = hcom_exec_flash_fs_flash_test_erase_entire_flash();
       break;
 
-     case -2:
+    case QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS:
       ret = hcom_exec_flash_fs_flash_test_erase_used_4k_sectors();
       break;
 
@@ -1045,14 +1076,19 @@ int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData)
     syslog(LOG_MTEST, "%s@%d-Init test command:%d Succeeded\n",
       __FILE__, __LINE__, userData);
   }
-  return ret;
 }
 
 //=======================================================================================
-// This function is used to test the qspi flash
-int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData)
+// This function is used to test the qspi flash. Dispatched via
+// meadow_kt_dispatcher.c as MEADOW_TEST_QSPI_FLASH_READ ('meadow developer
+// -p <id> -v <value>'); developerValue is the same sub-command selector
+// documented at the top of this file (QspiRead). Switches on developerValue
+// itself (uint32_t) rather than the narrowed userData below, since the
+// sentinels are large unsigned values -- narrowing first would make them
+// collide with small page numbers once reinterpreted as int.
+void meadow_kt_qspi_flash_read_tests(uint32_t developerValue)
 {
-  int userData = (int)cmdData->userData;
+  int userData = (int)developerValue;
   int ret;
 
   _mtdGeoShown = false;
@@ -1063,16 +1099,16 @@ int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData)
     syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
       __FILE__, __LINE__, __func__, ret);
     usleep(50 * 1000);
-    return ret;
+    return;
   }
 
-  switch((int32_t)userData)
+  switch(developerValue)
   {
-    case -1:
+    case QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES:
       ret = hcom_exec_flash_test_find_display_used_pages(false, false);
       break;
 
-    case -2:
+    case QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES:
       ret = hcom_exec_flash_test_find_display_erased_pages();
       break;
 
@@ -1091,7 +1127,6 @@ int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData)
     syslog(LOG_MTEST, "%s@%d-Read test command:%d Succeeded\n",
       __FILE__, __LINE__, userData);
   }
-  return ret;
 }
 
 #endif

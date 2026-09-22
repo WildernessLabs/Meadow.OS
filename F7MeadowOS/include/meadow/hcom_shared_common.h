@@ -1034,8 +1034,6 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 // Include test code
 #define HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD      0
 
-#define HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD        0
-
 // Include tests related to F7 timers
 #define MEADOW_INCLUDE_TIMER_HARDWARE_TESTS_IN_BUILD  0
 
