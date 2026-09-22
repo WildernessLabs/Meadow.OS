@@ -35,6 +35,7 @@
 
 #include <nuttx/config.h>
 #include <arpa/inet.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -192,7 +193,7 @@ int meadow_os_reset_update_counters(void)
         kmm_free(data);
         return(ERROR);
     }
-    size_t bytes_read = file_read(&f, data, sizeof(meadow_os_persistent_data_t));
+    ssize_t bytes_read = file_read(&f, data, sizeof(meadow_os_persistent_data_t));
     if (bytes_read < 0)
     {
         //
@@ -223,6 +224,9 @@ int meadow_os_reset_update_counters(void)
     _power_cycle_count = data->power_cycle_count;
     _reset_cycle_count = data->reset_count;
 
+    MEADOW_TRACE_INFORMATION("Reset cycle count: %" PRIu32 ", Power cycle count: %" PRIu32 "\n",
+                            data->reset_count, data->power_cycle_count);
+
     int offset = file_seek(&f, 0, SEEK_SET);
     if (offset < 0)
     {
@@ -241,8 +245,6 @@ int meadow_os_reset_update_counters(void)
     kmm_free(data);
     file_close(&f);
 
-    MEADOW_TRACE_INFORMATION("Reset cycle count: %d, Power cycle count: %d\n",
-                            data.reset_count, data.power_cycle_count);
     return(OK);
 }
 
@@ -295,7 +297,9 @@ uint32_t meadow_os_native_protocol_version(void)
  *  Get the gateway address.
  *
  * Input Parameters:
- *  buffer - buffer to store the network information.
+ *  buffer - buffer to store the network information. Must be at least
+ *           INET_ADDRSTRLEN (16) bytes -- copied into via strcpy() with no
+ *           length check.
  *
  * Returned Value:
  *  Length of the buffer.
