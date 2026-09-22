@@ -275,7 +275,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C098 | F7MeadowOS/kerneltests/espcp_tests.c | *Reviewed (light) | 2026-08-28 | #374 | Mark |  |
 | C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
-| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | Reviewed (light) | 2026-08-28 | #372 | Mark |  |
+| C101 | F7MeadowOS/kerneltests/iso8601_time_tests.c | *Reviewed (light) | 2026-09-22 | #371 | Peter | Issue number corrected #372->#371 (mismatch: #372 is bg77_tests.c); Owner corrected Mark->Peter (Legacy history: 3 of 4 commits are Peter Moody, Mark's is incidental). Both findings fixed on `issue371-iso8601-time-tests-fixes` |
 | C102 | F7MeadowOS/kerneltests/meadow_gpio_counter_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C103 | F7MeadowOS/kerneltests/meadow_i2c_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C104 | F7MeadowOS/kerneltests/meadow_interrupt_tests.c | *Reviewed (light) | 2026-08-28 | #377 | Peter |  |
