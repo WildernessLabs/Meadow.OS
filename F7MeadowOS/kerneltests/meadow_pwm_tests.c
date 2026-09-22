@@ -258,7 +258,12 @@ static int meadow_pwm_start_pin(enum meadow_pwm_pin_e pin, uint32_t freqKhz, uin
     syslog(LOG_MTEST, "PWM test: timer %" PRIu32 " channel %" PRIu32 ", %" PRIu32 " kHz, %" PRIu32 "%% duty - started\n",
                       (uint32_t) chan->timer, (uint32_t) chan->channel, freqKhz, (uint32_t) dutyPct);
 
-    upd_handle_pwm(MUPD_PWM_START, (unsigned long) outCmd);
+    int ret = upd_handle_pwm(MUPD_PWM_START, (unsigned long) outCmd);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "PWM test: failed to start timer %" PRIu32 "\n", (uint32_t) chan->timer);
+        return TEST_ERR_FAILED;
+    }
 
     return TEST_ERR_OK;
 }
