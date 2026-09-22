@@ -55,10 +55,6 @@
 #define CLIENT_CERT_PRIVATE_KEY_FILE "private_key.pem"
 #define CLIENT_CERT_PRIVATE_KEY_PASS_FILE "private_key_pass.txt"
 
-static const int KEY_SIZE = 4096;
-static const int PEM_SIZE = 4096;
-static const int PASSWORD_SIZE = 512;
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/

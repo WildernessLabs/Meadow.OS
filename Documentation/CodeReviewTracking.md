@@ -18,6 +18,13 @@ a real person. Cell-owned files are out of scope for this review effort going fo
 same as Mark's esp32/espcp rows: don't pick up new ones, and existing filed issues stay
 open for that team to handle.
 
+**Cell Owner correction (2026-09-22):** `meadow_client_cert.{c,h}` (C069/C136) and
+`meadow_watchdog.{c,h}` (C143/C144) were mistagged "Cell Owner" -- verified via caller
+grep that both are ESP32/WiFi-coprocessor scope (only used from `espcp/`), not Cell, and
+via Legacy git history that their real primary author was Eduardo Menezes (no longer with
+the team), not Mark. Owner column cleared for these four rows; they are back in scope for
+this review effort.
+
 ## Scope
 
 - `nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/src/` (19 files) - Meadow's board port,
@@ -236,7 +243,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | Syscall UPD | No confirmed findings |
 | C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | *Reviewed | 2026-08-28 | #359 | Peter | Issue column corrected from stale #358 (that number actually belongs to meadow_client_cert.h/C069, a different Cell-owned file) -- confirmed via live GitHub title; #359 is closed (PR #532) |
-| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #358 | Cell Owner |  |
+| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | *Reviewed | 2026-09-22 | #358 |  | ESP32/WiFi-coprocessor scope, not Cell (only real caller is espcp/); orig. author Eduardo Menezes no longer active. Finding fixed on `issue358-client-cert-header-cleanup` (removed 3 unused static consts) |
 | C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Meadow Cloud |  |
 | C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-09-22 | #357 | Mark | Confirmed Mark's via Legacy git history (`Add debug breakpoint macros (#657)`, 2024-07-30) despite generic header |
 | C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-08-28 | #355 | Mark |  |
@@ -302,15 +309,15 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C133 | F7MeadowOS/meadow_os/meadow_sdmmc.c | *Reviewed | 2026-08-28 | #385 | Peter |  |
 | C134 | F7MeadowOS/misc/meadow_adc.c | *Reviewed | 2026-09-17 | #403 | Peter | Stale PCLK2=96MHz/ADCCLK=24MHz comments (branch `clock-audit-stale-comments`) corrected to the real 108MHz/27MHz post-216MHz-clock-change values; found during a targeted #431/#594-style audit for hardcoded clock-derived values, comment-accuracy only, no functional bug (DIV4 prescaler selection was already correct either way) |
 | C135 | F7MeadowOS/misc/meadow_cirbuf.c | *Fixed | 2026-08-29 | #400 | Peter | File deleted (dead kernel-space duplicate); see branch issue400-remove-dead-cirbuf-kernel-copy |
-| C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 | Cell Owner |  |
+| C136 | F7MeadowOS/misc/meadow_client_cert.c | *Reviewed | 2026-08-29 | #401 |  | ESP32/WiFi-coprocessor scope, not Cell (only real caller is espcp/); orig. author Eduardo Menezes no longer active |
 | C137 | F7MeadowOS/misc/meadow_logging.c | *Reviewed | 2026-08-29 | #399 | Mark |  |
 | C138 | F7MeadowOS/misc/meadow_logging.h | Reviewed | 2026-08-29 |  | Mark | No confirmed findings |
 | C139 | F7MeadowOS/misc/meadow_reinit_flash_size.c | *Reviewed | 2026-08-29 | #395 | Peter | Both findings fixed (branch `issue395-qspi-reinit-fixes`): DCR FSIZE field now clears QSPI_DCR_FSIZE_MASK before OR-ing in the new value; added a BUSY-wait after ABORT before touching DCR. Hardware-verified on a physical Meadow F7 board; issue closed via PR |
 | C140 | F7MeadowOS/misc/meadow_reinit_flash_size.h | Reviewed | 2026-08-29 |  | Peter | No confirmed findings |
 | C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | *Reviewed | 2026-08-29 | #398 | Peter |  |
 | C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | Peter | No confirmed findings |
-| C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 | Cell Owner |  |
-| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 | Cell Owner |  |
+| C143 | F7MeadowOS/misc/meadow_watchdog.c | Reviewed | 2026-08-29 | #396 |  | ESP32/WiFi-coprocessor scope, not Cell (only includer is espcp/); orig. author Eduardo Menezes no longer active |
+| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 |  | ESP32/WiFi-coprocessor scope, not Cell (only includer is espcp/); orig. author Eduardo Menezes no longer active |
 | C145 | F7MeadowOS/misc/parse_iso8601_time.c | *Reviewed | 2026-08-29 | #402 | Peter | All 3 findings fixed: a live HCOM-reachable heap OOB read (missing length check before offset-15 access), a `uint32_t`-returning-negative-errno type mismatch, and a parameter-name typo + `%ln`/`uint32_t` type mismatch; one sub-finding (dead debug scaffold) was already resolved by an unrelated commit; built (no warnings) and smoketested; issue closed via PR |
 | C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 | Mark |  |
 | C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |
