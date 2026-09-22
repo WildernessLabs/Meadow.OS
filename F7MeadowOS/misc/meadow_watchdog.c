@@ -46,8 +46,10 @@
  * so this is the SysTick handler) in the context of whatever thread happened
  * to be interrupted, and is subject to all ISR restrictions.  Raising the
  * exception allocates from the heap and takes semaphores, neither of which
- * is legal there, so meadow_watchdog_expired() does nothing but queue
- * work on LPWORK and all of that happens on the worker thread instead.
+ * is legal there, so meadow_watchdog_expired() only releases the expired
+ * slot (reads the method, bumps the generation, clears inuse - all legal
+ * under a critical section) before queueing work on LPWORK; raising the
+ * exception itself happens on the worker thread instead.
  */
 
 /****************************************************************************
@@ -175,8 +177,10 @@ static void meadow_watchdog_worker(void *arg)
  * Name: meadow_watchdog_expired
  *
  * Description:
- *   Watchdog expiry callback.  This runs in interrupt context, so it does
- *   nothing but hand the method over to the low priority work queue.
+ *   Watchdog expiry callback.  This runs in interrupt context, so it only
+ *   releases the expired slot (ISR-legal: no heap, no semaphores) before
+ *   handing the method over to the low priority work queue, which raises
+ *   the exception.
  *
  * Input Parameters:
  *   arg - Index of the watchdog slot that expired, as passed to wd_start().
