@@ -212,12 +212,12 @@ extern "C"
 int hcom_nx_exec_test_sdcard_setup(void);
 #endif
 
-// Low-level QSPI flash tests
-#if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
+// Low-level QSPI flash tests. hcom_nx_exec_test_qspi_flash_setup() hooks up
+// the real MTD device for meadow_kt_qspi_flash_init/write/read_tests() (see
+// F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c, dispatched via
+// meadow_kt_dispatcher.c, not through this module's request-code switch).
+#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
   int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd);
-  int hcom_nx_exec_test_qspi_flash_write(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_test_qspi_flash_init(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_test_qspi_flash_read(struct hcom_nx_cmd_data *cmdData);
 #endif
 
 // Access to battery backed registers

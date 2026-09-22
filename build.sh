@@ -399,6 +399,11 @@ if [ ! -z "$UNIT_TESTS" ]; then
             ktweak --enable MEASURE_FREQUENCY_TESTS
             BUILD_TESTS=true
             ;;
+            qspiflash)
+            echo "QSPI flash tests requested."
+            ktweak --enable QSPI_FLASH_TESTS
+            BUILD_TESTS=true
+            ;;
             mint)
             echo "Meadow interrupt tests requested."
             ktweak --enable MEADOW_INTERRUPT_TESTS

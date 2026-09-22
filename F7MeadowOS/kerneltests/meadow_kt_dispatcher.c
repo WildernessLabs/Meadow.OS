@@ -143,6 +143,12 @@ static meadow_test_methods_t _kernelTests[] =
     { MEADOW_TEST_ETHERNET_WEB_PAGE_LOAD_TEST, meadow_kt_ethernet_get_web_resource },
 #endif
 
+#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_QSPI_FLASH_INIT, meadow_kt_qspi_flash_init_tests },
+    { MEADOW_TEST_QSPI_FLASH_WRITE, meadow_kt_qspi_flash_write_tests },
+    { MEADOW_TEST_QSPI_FLASH_READ, meadow_kt_qspi_flash_read_tests },
+#endif
+
 #if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_BG77, meadow_kt_bg77_tests },
 #endif

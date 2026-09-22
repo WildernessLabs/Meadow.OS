@@ -115,23 +115,6 @@ int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData)
       return ret;
 #endif
 
-#if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_INIT:
-      ret = hcom_nx_exec_test_qspi_flash_init(cmdData);
-      return ret;
-      break;
-
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_WRITE:
-      ret = hcom_nx_exec_test_qspi_flash_write(cmdData);
-      return ret;
-      break;
-
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_READ:
-      ret = hcom_nx_exec_test_qspi_flash_read(cmdData);
-      return ret;
-      break;
-#endif
-
     default:
       cmdData->logLevel = LOG_ERR;
       // Don't use snprintf_chk here

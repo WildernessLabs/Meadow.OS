@@ -294,7 +294,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
 #endif
 
-#if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
+#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
   ret = hcom_nx_exec_test_qspi_flash_setup(mtd);
   if (ret < 0)
   {

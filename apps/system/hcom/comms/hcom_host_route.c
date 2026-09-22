@@ -446,32 +446,6 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
         "", __FILE__, __LINE__);
       break;
 
-#if HCOM_INCLUDE_QSPI_FLASH_TESTS_IN_BUILD > 0
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_INIT:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", __FILE__, __LINE__);
-      hcom_via_nx_forward_cli_cmd_to_nx(requestType, userData);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", __FILE__, __LINE__);
-      break;
-
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_WRITE:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", __FILE__, __LINE__);
-      hcom_via_nx_forward_cli_cmd_to_nx(requestType, userData);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", __FILE__, __LINE__);
-      break;
-
-    case HCOM_MDOW_REQUEST_QSPI_FLASH_READ:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", __FILE__, __LINE__);
-      hcom_via_nx_forward_cli_cmd_to_nx(requestType, userData);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", __FILE__, __LINE__);
-      break;
-#endif
-
     // Aug 2022 used for ping and CLI doesn't support it.
     case HCOM_MDOW_REQUEST_EXEC_DIAG_APP_CMD:
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
