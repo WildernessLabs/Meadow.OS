@@ -35,21 +35,21 @@
 // Note: These tests have not been run since porting to the Rebase project.
 //
 // Available tests based on provided user data ('meadow developer -p <id> -v <value>').
-// QspiWrite 0xffffffff: Bulk erases and writes data pattern to entire flash and reads to verify
-// QspiWrite 0xfffffffe: Bulk erases and writes data pattern to entire flash and stops
-// QspiWrite 0xfffffffd: Bulk erases and writes data pattern to one page and then verifies that all
+// QspiWrite 0xf0000001: Bulk erases and writes data pattern to entire flash and reads to verify
+// QspiWrite 0xf0000002: Bulk erases and writes data pattern to entire flash and stops
+// QspiWrite 0xf0000003: Bulk erases and writes data pattern to one page and then verifies that all
 //                 pages are correct, before and after the page written, repeats for each page.
 //                 Note: This test will take about 26.4 years to complete for 512 MBit flash.
-// QspiWrite 0xfffffffc: Bulk erases and writes, flashes and reads to verify 0x55 repeats with 0xaa.
+// QspiWrite 0xf0000004: Bulk erases and writes, flashes and reads to verify 0x55 repeats with 0xaa.
 //                 Note: does everything twice to check each flash cell, take about 10 minutes.
 // QspiWrite 0-n: Fill buffer with test pattern. Page data determined by developerValue 0-n
 //
-// QspiInit 0xffffffff: Bulk entire flash
-// QspiInit 0xfffffffe: Finds any non-erased sectors and erases them (faster than bulk erase)
+// QspiInit 0xf0000001: Bulk entire flash
+// QspiInit 0xf0000002: Finds any non-erased sectors and erases them (faster than bulk erase)
 // QspiInit 0-n:  Erases one 4k sector as determined by developerValue 0-n
 //
-// QspiRead 0xffffffff: Displays via syslog the data in any non-erased pages
-// QspiRead 0xfffffffe: Displays via syslog the data in erased pages (not very useful)
+// QspiRead 0xf0000001: Displays via syslog the data in any non-erased pages
+// QspiRead 0xf0000002: Displays via syslog the data in erased pages (not very useful)
 // QspiRead 0-n:  Displays the data in the page determined by developerValue 0-n
 
 /****************************************************************************
@@ -85,20 +85,21 @@
 // Sub-command sentinels for the developerValue passed to
 // meadow_kt_qspi_flash_write/init/read_tests(). Real page/sector numbers are
 // always small (0 to a few hundred thousand at most for this flash chip), so
-// the top of the uint32_t range is safely reserved for these -- any other
-// value is treated as a literal page/sector number (see the bounds checks in
-// each function's default: case). Meadow.CLI's 'developer -v' option is a
-// plain uint (0 to 4,294,967,295), so these must not be negative.
-#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY  0xfffffffful
-#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY    0xfffffffeul
-#define QSPI_FLASH_TEST_WRITE_COMPREHENSIVE            0xfffffffdul
-#define QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE           0xfffffffcul
+// the 0xf0000000 range is safely reserved for these -- any other value is
+// treated as a literal page/sector number (see the bounds checks in each
+// function's default: case). Meadow.CLI's 'developer -v' option is a plain
+// uint (0 to 4,294,967,295), so these must not be negative. Numbered 1-n to
+// match the original (Legacy-era) -1/-2/-3/-4 sub-command convention.
+#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY  0xf0000001ul
+#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY    0xf0000002ul
+#define QSPI_FLASH_TEST_WRITE_COMPREHENSIVE            0xf0000003ul
+#define QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE           0xf0000004ul
 
-#define QSPI_FLASH_TEST_INIT_BULK_ERASE                0xfffffffful
-#define QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS        0xfffffffeul
+#define QSPI_FLASH_TEST_INIT_BULK_ERASE                0xf0000001ul
+#define QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS        0xf0000002ul
 
-#define QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES        0xfffffffful
-#define QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES      0xfffffffeul
+#define QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES        0xf0000001ul
+#define QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES      0xf0000002ul
 
 /****************************************************************************
  * Private Data
