@@ -4,7 +4,7 @@ Tracks progress of an ongoing file-by-file bug/concurrency/performance review ac
 three source locations below. Reviews are performed with the `review-files` Claude Code
 skill (`.claude/skills/review-files/SKILL.md`), a few files at a time.
 
-**Review timeline:** started 2026-08-13, last updated 2026-09-18. Tables A, B, and C are
+**Review timeline:** started 2026-08-13, last updated 2026-09-22. Tables A, B, and C are
 all now fully reviewed (excluding Mark's `F7MeadowOS/espcp/` rows and all Cell-owned rows,
 out of scope -- see the Original Author note below). B21/B22
 (`hcom_esp32_network_monitor.{c,h}`) remain Mark's and out of scope; B19/B20/B23-B26 were
@@ -236,9 +236,9 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C066 | F7MeadowOS/include/meadow/meadow-upd.h | Reviewed | 2026-08-28 |  | Syscall UPD | No confirmed findings |
 | C067 | F7MeadowOS/include/meadow/meadow_apps_core_share.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C068 | F7MeadowOS/include/meadow/meadow_cirbuf.h | *Reviewed | 2026-08-28 | #359 | Peter | Issue column corrected from stale #358 (that number actually belongs to meadow_client_cert.h/C069, a different Cell-owned file) -- confirmed via live GitHub title; #359 is closed (PR #532) |
-| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #357 | Cell Owner |  |
+| C069 | F7MeadowOS/include/meadow/meadow_client_cert.h | Reviewed | 2026-08-28 | #358 | Cell Owner |  |
 | C070 | F7MeadowOS/include/meadow/meadow_cloud.h | Reviewed | 2026-08-28 | #356 | Meadow Cloud |  |
-| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-08-28 | #359 | Mark |  |
+| C071 | F7MeadowOS/include/meadow/meadow_debug_breakpoint_macro.h | Reviewed | 2026-09-22 | #357 | Mark | Confirmed Mark's via Legacy git history (`Add debug breakpoint macros (#657)`, 2024-07-30) despite generic header |
 | C072 | F7MeadowOS/include/meadow/meadow_debug_helpers.h | Reviewed | 2026-08-28 | #355 | Mark |  |
 | C073 | F7MeadowOS/include/meadow/meadow_ethnet_common.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
 | C074 | F7MeadowOS/include/meadow/meadow_extended_errno.h | Reviewed | 2026-08-28 |  | Peter | No confirmed findings |
