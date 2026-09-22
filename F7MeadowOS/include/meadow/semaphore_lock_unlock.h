@@ -55,7 +55,7 @@
  *  Address of the semaphore to lock.
  *
  ****************************************************************************/
-#define MEADOW_SEMAPHORE_LOCK(s)        sem_wait(s);
+#define MEADOW_SEMAPHORE_LOCK(s)        sem_wait(s)
 
 /****************************************************************************
  * Name: MEADOW_SEMAPHORE_UNLOCK
