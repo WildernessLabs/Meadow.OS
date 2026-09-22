@@ -210,7 +210,7 @@ static int TestParsingISO8601UtcOffset(void)
                   iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
         break;
       case 4:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n, formatOff",
+        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n",
                   iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
 
         if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
@@ -265,74 +265,74 @@ static int TestParsingISO8601TimePeriod(void)
     {
       case 0:  // "P0Y0M0DT0H3M19S",  // Duration = 199
         if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret);}
+                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
         if(secondsTillAlarm != 199) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:199 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:199 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         break;
         
       case 1:  // "P0Y0M0DT0H0M0S",   // Duration = 0
         if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
         if(secondsTillAlarm != 0) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:0 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:0 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         break;
 
       case 2:   // "P0Y0M0D0TH0M0S",   // 'T' in wrong place
         if(ret != -EINVAL) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); }
         break;
 
       case 3:  // "P0Y0M0DT0H3M0S",   // Duration = 180
         if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
         if(secondsTillAlarm != 180) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:180 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:180 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         break;
 
       case 4:  // "P1Y1M0DT0H0M1S",   // Duration = 1
         if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
         if(secondsTillAlarm != 1) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:1 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:1 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         break;
 
       case 5:  // "PDT1M",            // Extra 'D'
         if(ret != -EFTYPE) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); }
         break;
 
       case 6:  // "PT1M",             // Duration = 60
         if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
         if(secondsTillAlarm != 60) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:60 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
         // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:60 Got:%lu\n",
         //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
         break;
