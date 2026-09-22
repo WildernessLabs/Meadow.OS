@@ -289,7 +289,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C112 | F7MeadowOS/kerneltests/meadow_pwm_tests.c | Reviewed (light) | 2026-08-28 | #383 | Mark |  |
 | C113 | F7MeadowOS/kerneltests/meadow_rotary_encoder_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
 | C114 | F7MeadowOS/kerneltests/meadow_spi_dma_tests.c | *Reviewed (light) | 2026-08-28 | #381 | Peter |  |
-| C115 | F7MeadowOS/kerneltests/network_tests.c | Reviewed (light) | 2026-08-28 | #378 | Mark |  |
+| C115 | F7MeadowOS/kerneltests/network_tests.c | *Reviewed (light) | 2026-09-22 | #378 | Mark | Confirmed Mark's via Legacy history (8/9 commits). Both filed findings fixed on `issue378-network-tests-fixes`, plus an untracked 3rd fd leak found in network_test_performance() (same bug class, same file) fixed alongside |
 | C116 | F7MeadowOS/kerneltests/network_tests.h | Reviewed (light) | 2026-08-28 | #379 | Mark |  |
 | C117 | F7MeadowOS/kerneltests/power_management_tests.c | Reviewed (light) | 2026-08-28 | #380 | Mark |  |
 | C118 | F7MeadowOS/kerneltests/quick_misc_tests.c | Reviewed (light) | 2026-08-28 |  | Peter | No confirmed findings |
