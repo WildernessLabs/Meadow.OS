@@ -1,9 +1,9 @@
 /****************************************************************************
- * /include/meadow/meadow_debug_breakpoint_macro.h
- * 
+ * include/meadow/meadow_debug_breakpoint_macro.h
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
- * 
+ *
  *   Provide macros and method definitions to assist in debugging
  *   NuttX and meadow code.
  *
@@ -36,22 +36,30 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_MEADOW_DEBUG_BREAKPOINT_MACRO__H
+#define __INCLUDE_MEADOW_DEBUG_BREAKPOINT_MACRO__H
+
 /**
- * The contents of this file are really a convenience for debugging.  The macros
- * held here will insert debug breakpoints into the code.  They are only meant to
- * be used in debug scenarios and should not be left in production code.
+ * The contents of this file are really a convenience for debugging.  The
+ * macros held here will insert debug breakpoints into the code.  They are
+ * only meant to be used in debug scenarios and should not be left in
+ * production code.
  */
 
 /**
  * @brief Always insert a debug breakpoint into the code.
  */
-#define MEADOW_DEBUG_BREAKPOINT() __asm__ ("bkpt");
+#define MEADOW_DEBUG_BREAKPOINT() do { __asm__ ("bkpt"); } while (0)
 
 /**
  * @brief Insert a debug breakpoint in the code that will trigger only if the
  * condition is met.
  */
 #define MEADOW_DEBUG_BREAKPOINT_IF(condition) \
-    if (condition) { \
-        MEADOW_DEBUG_BREAKPOINT(); \
-    }
+    do { \
+        if (condition) { \
+            MEADOW_DEBUG_BREAKPOINT(); \
+        } \
+    } while (0)
+
+#endif // __INCLUDE_MEADOW_DEBUG_BREAKPOINT_MACRO__H
