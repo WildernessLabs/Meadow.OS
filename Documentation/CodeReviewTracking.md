@@ -317,7 +317,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C141 | F7MeadowOS/misc/meadow_stm32f7_clockenable.c | *Reviewed | 2026-08-29 | #398 | Peter |  |
 | C142 | F7MeadowOS/misc/meadow_stm32f7_clockenable.h | Reviewed | 2026-08-29 |  | Peter | No confirmed findings |
 | C143 | F7MeadowOS/misc/meadow_watchdog.c | *Reviewed | 2026-09-22 | #396 |  | ESP32/WiFi-coprocessor scope, not Cell (only includer is espcp/); orig. author Eduardo Menezes no longer active. Doc-comment finding fixed on `issue396-watchdog-doc-fix` -- comment-only, no behavior change |
-| C144 | F7MeadowOS/misc/meadow_watchdog.h | Reviewed | 2026-08-29 | #397 |  | ESP32/WiFi-coprocessor scope, not Cell (only includer is espcp/); orig. author Eduardo Menezes no longer active |
+| C144 | F7MeadowOS/misc/meadow_watchdog.h | *Reviewed | 2026-09-22 | #397 |  | ESP32/WiFi-coprocessor scope, not Cell (only includer is espcp/); orig. author Eduardo Menezes no longer active. Include guard switched from #pragma once to traditional #ifndef/#define/#endif on `issue397-watchdog-header-guard`, matching sibling convention |
 | C145 | F7MeadowOS/misc/parse_iso8601_time.c | *Reviewed | 2026-08-29 | #402 | Peter | All 3 findings fixed: a live HCOM-reachable heap OOB read (missing length check before offset-15 access), a `uint32_t`-returning-negative-errno type mismatch, and a parameter-name typo + `%ln`/`uint32_t` type mismatch; one sub-finding (dead debug scaffold) was already resolved by an unrelated commit; built (no warnings) and smoketested; issue closed via PR |
 | C146 | F7MeadowOS/ntpclient/meadow_ntpclient.c | Reviewed | 2026-08-29 | #404 | Mark |  |
 | C147 | F7MeadowOS/ntpclient/meadow_ntpclient.h | Reviewed | 2026-08-29 | #404 | Mark | Findings covered in C146 issue |

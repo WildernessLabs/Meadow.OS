@@ -37,7 +37,8 @@
  * coprocessor.  See meadow_watchdog.c for the implementation notes.
  */
 
-#pragma once
+#ifndef __MEADOW_WATCHDOG_H__
+#define __MEADOW_WATCHDOG_H__
 
 /****************************************************************************
  * Included Files
@@ -122,3 +123,5 @@ static inline void meadow_watchdog_deactivate(meadow_watchdog_t watchdog)
 }
 
 #endif /* CONFIG_MEADOW_WATCHDOGS */
+
+#endif /* __MEADOW_WATCHDOG_H__ */
