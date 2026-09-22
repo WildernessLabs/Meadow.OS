@@ -186,19 +186,14 @@ void meadow_kt_power_management_tests(uint32_t userData)
       break;
 
     case 52:
-      // Enter Stop mode with max power savings & slowest restart
+      // Enter Stop mode. pwrmgmt_enter_stop_mode() always configures the
+      // deepest power-savings register bits available in Stop mode (see its
+      // own comments) -- Sleep and Standby (the F7's other 2 low-power
+      // modes) were explored but never adopted, and no separate savings
+      // level was ever wired up within Stop mode itself, so there is only
+      // one variant of this test.
       syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Stop mode MAX savings\n",
-        userData);
-      sleep(1);
-      // Directly execute stop mode with no timer setup
-      ret = pwrmgmt_enter_stop_mode();
-      break;
-
-    case 53:
-      // Enter Stop mode with minimum power savings & fastest restart
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Stop mode Min savings\n",
+        "==>>power mgmt tests received %" PRIu32 " - Stop mode\n",
         userData);
       sleep(1);
       // Directly execute stop mode with no timer setup
