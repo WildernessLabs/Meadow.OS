@@ -118,7 +118,7 @@ static void meadow_os_copy_version_strings(meadow_version_number_t *source, mead
 {
     destination->branch_name = meadow_os_copy_string(source->branch_name);
     destination->short_string = meadow_os_copy_string(source->short_string);
-    destination->long_string = meadow_os_copy_string(source->short_string);
+    destination->long_string = meadow_os_copy_string(source->long_string);
 }
 
 /****************************************************************************
