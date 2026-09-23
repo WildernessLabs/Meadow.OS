@@ -37,22 +37,19 @@
 #define __INCLUDE_MEADOW_BOOTLOADER_MEADOW_OS_PERSISTENT_DATA_H
 
 /****************************************************************************
- * 
- * The persistent data storage is split into two sections.  The first section
- * is considered safe safe data.  The second half of the sector is considered
- * unsafe data.
- * 
- * Safe dat is data that will not prevent the system from starting.  This is
- * data such as the reboot count, power cycle count etc.  So these are simple
- * numbers that provide information.
- * 
- * Unsafe data is data that could prevent the system from starting.  This
- * could be configuration data that may be used at startup.
- * 
- * The split between the two types of data has been made so that safe data
- * will persist even if the flash is erased.  Unsafe data will be reset when
- * the flash is erased.
- * 
+ *
+ * The persistent data storage is currently a single "safe data" blob -- data
+ * that will not prevent the system from starting, such as the reboot count
+ * and power cycle count.  These are simple numbers that provide information.
+ *
+ * A split with a second "unsafe data" section (configuration data that could
+ * prevent the system from starting, reset separately when the flash is
+ * erased) was planned but never implemented -- OS_PERSISTENT_DATA_SAFE_SIZE
+ * currently covers the entire OS_PERSISTENT_DATA_SIZE and no unsafe-data
+ * struct or storage exists anywhere in this repo.  If that split is
+ * introduced later, this comment and OS_PERSISTENT_DATA_SAFE_SIZE's value
+ * will both need updating together.
+ *
  ****************************************************************************/
 
 #include <stdint.h>
