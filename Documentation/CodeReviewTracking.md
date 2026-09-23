@@ -258,7 +258,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C081 | F7MeadowOS/include/meadow/meadow_os.h | *Reviewed | 2026-09-22 | #362 | Mark | Confirmed Mark's via Legacy git history (12+ commits, most recent 2025-07-10). Orphaned-comment finding fixed on `issue362-meadow-os-header-cleanup` -- trivial, fixed directly rather than routing to Mark |
 | C082 | F7MeadowOS/include/meadow/meadow_os_battery_backed_domain.h | Reviewed | 2026-08-28 | #367 | Mark |  |
 | C083 | F7MeadowOS/include/meadow/meadow_os_fault_handling.h | Reviewed | 2026-08-28 |  | Mark | No confirmed findings |
-| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | Reviewed | 2026-08-28 | #364 | Mark |  |
+| C084 | F7MeadowOS/include/meadow/meadow_os_persistent_data.h | *Reviewed | 2026-09-23 | #364 | Mark | Confirmed genuinely Mark's. Stale safe/unsafe-split doc comment corrected on `issue364-persistent-data-doc-fix` to describe reality (single safe blob, unsafe split never implemented); confirmed via grep no unsafe-data infrastructure exists anywhere |
 | C085 | F7MeadowOS/include/meadow/meadow_partition_share.h | *Reviewed | 2026-08-28 | #366 | Peter | Both findings fixed: added missing #include <stdint.h>/<stdbool.h>/<sys/types.h> (header wasn't self-contained), added a compile-time #if guard against MEADOW_FLASH_PART_SIZE_UNUSED_SPACE going negative; built with no warnings and smoketested; issue closed via PR |
 | C086 | F7MeadowOS/include/meadow/meadow_pwr_mgmt.h | *Reviewed | 2026-08-28 | #368 | Peter |  |
 | C087 | F7MeadowOS/include/meadow/meadow_rotary_encoder.h | *Reviewed | 2026-08-28 | #365 | Peter |  |
