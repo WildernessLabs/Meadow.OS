@@ -1,5 +1,5 @@
 /****************************************************************************
- * \apps\examples\hcom\mono\hcom_mono_control.c
+ * apps/system/hcom/mono/hcom_mono_control.c
  *
  *   Copyright (C) 2020-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -203,6 +203,36 @@ char **hcom_mono_ctrl_add_command_line_option(char **current_options, char *opti
 }
 
 /****************************************************************************
+ * Name: hcom_mono_ctrl_free_options
+ *
+ * Description:
+ *  Free an array of options (and each string it holds) built up by
+ *  hcom_mono_ctrl_add_command_line_option().
+ *
+ * Input Parameters:
+ *  options - Array of options to free. May be NULL.
+ *  option_count - Number of valid (non-NULL) entries in the array.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static void hcom_mono_ctrl_free_options(char **options, int option_count)
+{
+  if (options != NULL)
+  {
+    for (int index = 0; index < option_count; index++)
+    {
+      free(options[index]);
+    }
+    free(options);
+  }
+}
+
+/****************************************************************************
  * Name: hcom_mono_ctrl_extract_mono_options
  *
  * Description:
@@ -277,7 +307,12 @@ static char **hcom_mono_ctrl_extract_mono_options(char *options, int *count)
                 }
                 else
                 {
-                  result = hcom_mono_ctrl_add_command_line_option(result, option, &option_count);
+                  char **new_result = hcom_mono_ctrl_add_command_line_option(result, option, &option_count);
+                  if (new_result == NULL)
+                  {
+                    hcom_mono_ctrl_free_options(result, option_count);
+                  }
+                  result = new_result;
                 }
               }
             }
@@ -300,7 +335,7 @@ static char **hcom_mono_ctrl_extract_mono_options(char *options, int *count)
     //    If all three are specified then JIT is used.
     //    If only one is specified then the requested method is used.
     //
-    if (jit ^ aot ^ interp)
+    if (((int) jit + (int) aot + (int) interp) == 1)
     {
       if (!jit)
       {
@@ -310,13 +345,18 @@ static char **hcom_mono_ctrl_extract_mono_options(char *options, int *count)
         }
         else
         {
-          run_method = MONO_OPTION_INTERP;    
+          run_method = MONO_OPTION_INTERP;
         }
-        result = hcom_mono_ctrl_add_command_line_option(result, run_method, &option_count);
+        char **new_result = hcom_mono_ctrl_add_command_line_option(result, run_method, &option_count);
+        if (new_result == NULL)
+        {
+          hcom_mono_ctrl_free_options(result, option_count);
+        }
+        result = new_result;
       }
     }
   }
-  *count = option_count;
+  *count = (result == NULL) ? 0 : option_count;
   return (result);
 }
 
@@ -416,7 +456,7 @@ int hcom_mono_ctrl_start_mono_main()
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
                          (main_t)mono_main_proxy,
 #else
-                         //FIXME: //(main_t)mono_main,
+                         (main_t)NULL,  // TODO: mono_main - not yet defined, Mono runtime not integrated
 #endif
                          (FAR char *const *)argv);
   if (mono_pid > 0)
@@ -536,14 +576,13 @@ bool hcom_mono_ctrl_are_needed_files_here()
     if (fd == -1)
     {
       listCount++;
-      if (offset > 0)
+      const char *separator = (offset > 0) ? ", " : "";
+      int written = snprintf_chk(missingFiles + offset, sizeof(missingFiles) - offset,
+                                  "%s%s", separator, neededApps[listOff]);
+      if (written > 0)
       {
-        missingFiles[offset++] = ',';
-        missingFiles[offset++] = ' ';
+        offset += written;
       }
-
-      strcpy(missingFiles + offset, neededApps[listOff]);
-      offset += strlen(neededApps[listOff]);
     }
     else
     {
