@@ -192,6 +192,10 @@ char **hcom_mono_ctrl_add_command_line_option(char **current_options, char *opti
   if (result != NULL)
   {
     result[*option_count] = strdup(option);
+    if (result[*option_count] == NULL)
+    {
+      return (NULL);
+    }
     (*option_count)++;
     result[*option_count] = NULL;
   }

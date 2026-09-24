@@ -146,7 +146,7 @@ each confirmed unreferenced by any build config; see the Scope section above for
 | B40 | apps/system/hcom/misc/hcom_common_utils.c | *Reviewed | 2026-08-24 | #319 | Peter |  |
 | B41 | apps/system/hcom/misc/meadow_cirbuf.c | *Reviewed | 2026-08-24 | #320 | Peter |  |
 | B42 | apps/system/hcom/misc/meadow_utils.c | Reviewed | 2026-08-24 |  | Mark | No confirmed findings (stub file, no function bodies) |
-| B43 | apps/system/hcom/mono/hcom_mono_control.c | Blocked (runtime) | 2026-08-24 | #325 | Peter |  |
+| B43 | apps/system/hcom/mono/hcom_mono_control.c | Blocked (runtime) | 2026-09-24 | #325 | Peter | Finding 1/8 (unchecked strdup() NULL) fixed on `issue325-mono-control-fixes`; correctness-only, no Mono runtime available to hardware-test (same treatment as #326) |
 | B44 | apps/system/hcom/mono/hcom_remote_vs_debug.c | *Blocked (runtime) | 2026-08-24 | #326 | Peter | Findings addressed on branch issue326-hcom-remote-vs-debug (2026-09); UNTESTED, blocked on Mono runtime |
 | B45 | apps/system/hcom/mono/hcom_stdxxx_redirect.c | Blocked (runtime) | 2026-08-24 | #327 | Peter |  |
 | B46 | apps/system/hcom/nx_rqsts/hcom_bbreg_access.c | *Reviewed | 2026-08-27 | #336 | Peter |  |
