@@ -1,5 +1,5 @@
 /****************************************************************************
- * \examples\hcom\hcom_stdxxx_redirect.c
+ * apps/system/hcom/mono/hcom_stdxxx_redirect.c
  * 
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -70,7 +70,7 @@
  ****************************************************************************/
 
 static bool _shutting_down;
-static bool _lowPowerActive;
+static volatile bool _lowPowerActive;
 static int _stdout_read_fd;
 static int _stderr_read_fd;
 static uint8_t *_fifo_read_buffer;
@@ -339,7 +339,7 @@ void hcom_mono_stdxxx_close_read_fds(bool closeNeeded)
     _stderr_read_fd = -1;
   }
 
-  sleep(100 * 1000);   // Just no prevent hard infinite loop
+  usleep(100 * 1000);   // Just no prevent hard infinite loop
 }
 
 //==========================================================================
@@ -414,7 +414,7 @@ int hcom_mono_stdxxx_read_fifo_loop()
     ret = poll(poll_fds, 2, -1);
     if(ret < 0)
     {
-      if(errno == -EINTR)
+      if(errno == EINTR)
       {
         continue;       // Ignore interruptions
       }
@@ -658,7 +658,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
     std_temp_write_fd = open(fifoRedirect, O_WRONLY);
     if(std_temp_write_fd == -1)
     {
-      if(errno == -EINTR)
+      if(errno == EINTR)
       {
         continue;
       }
