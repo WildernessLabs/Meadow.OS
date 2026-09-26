@@ -9,16 +9,77 @@ the same cable, for developer use only (see issue #457):
 | Board device   | Windows Hardware Id | Linux `/dev/serial/by-id` suffix | Used for                      |
 |----------------|---------------------|----------------------------------|-------------------------------|
 | `/dev/ttyACM0` | `MI_00`             | `-if00`                          | HCOM (unchanged)              |
-| `/dev/ttyACM1` | `MI_02`             | `-if02`                          | Second port (see Status below) |
+| `/dev/ttyACM1` | `MI_02`             | `-if02`                          | Syslog (see below)            |
 
 This option is never used for shipping builds. The tracked `defconfig` carries none of
 it, and the normal build's USB setup is unchanged.
 
-### Status
+### What Uses the Second Port
 
-Phase 1 (this document) brings up the second port only. It enumerates and can be opened
-from the host, but nothing on the board reads from or writes to it yet. Routing syslog
-to it, and optionally NSH, are later phases.
+`HCOM_USB_PORT2_USAGE` in `F7MeadowOS/include/meadow/hcom_shared_common.h` selects it.
+The default, `HCOM_USB_PORT2_SYSLOG`, sends syslog there. `HCOM_USB_PORT2_NSH` is
+reserved for running NSH on the port and is not implemented yet.
+
+## Syslog on the Second Port
+
+In a `--dualcdc` build, syslog always goes to the second port. No CLI command is needed.
+It is sent in addition to the existing outputs: the syslog UART and the CLI
+(`meadow uart trace` and `meadow trace` commands) work as before and are not affected
+by it.
+
+A separate kernel thread, `RamlogUsb` (`F7MeadowOS/hcom_nx/diag/hcom_nx_trace_usb.c`),
+does this. It has its own reader on the NuttX RAMLOG buffer (32 KB), independent of the
+`RamlogRead` thread that feeds the UART and the CLI. A RAMLOG reader starts at the
+oldest data in the buffer and keeps its own position, so:
+
+- **You see the whole boot.** Opening the port shows everything still in RAMLOG, back
+  to the start of boot, then live output.
+- **No gaps while nothing is reading.** When no host program has the port open, the
+  thread waits and RAMLOG keeps the backlog. Output is only lost if more than 32 KB
+  goes unread, and then the oldest part is lost.
+- **Nothing else waits.** Only this thread blocks. The UART and CLI outputs, and the
+  rest of the system, are unaffected.
+- **Survives a USB disconnect.** If the host drops the USB connection while the board
+  stays powered (for example `pnputil /restart-device` on Windows), the thread reopens
+  the port and continues from its RAMLOG position. The few hundred bytes that were in
+  transit at the time are lost.
+- **Same verbosity.** The port shows whatever the current syslog mask allows, the same
+  as the UART.
+
+Each line ends in CR-LF.
+
+### Resets and Terminal Programs
+
+Resetting the board restarts its USB controller, so Windows removes both COM ports and
+adds them back, with the same numbers, once the board is up again. Most terminal
+programs, PuTTY included, report an error and stop when the port disappears. To keep
+watching across resets, use a viewer that reopens the port, such as this PowerShell
+loop:
+
+```powershell
+$Port = "COM5"
+while ($true) {
+  $p = $null
+  try {
+    $p = New-Object System.IO.Ports.SerialPort $Port
+    $p.Open()
+    Write-Host "`n--- connected to $Port ---" -ForegroundColor Green
+    while ($p.IsOpen) {
+      $s = $p.ReadExisting()
+      if ($s) { [Console]::Write($s) } else { Start-Sleep -Milliseconds 20 }
+    }
+  } catch {
+    Write-Host "." -NoNewline -ForegroundColor DarkGray
+  } finally {
+    if ($p) { $p.Dispose() }
+  }
+  Start-Sleep -Milliseconds 250
+}
+```
+
+Paste it at a PowerShell prompt, after setting `$Port` to the `MI_02` port. Stop it with
+Ctrl+C. Grey dots mean it is waiting for the port. If it only prints dots while the
+board is up, another program has the port open.
 
 ## Building
 

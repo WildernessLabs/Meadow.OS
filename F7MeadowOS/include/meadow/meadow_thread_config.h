@@ -186,6 +186,15 @@
 #define HCOM_THREAD_STACKSIZE_TRACE_RAMLOG          2048
 
 /**
+ * Copies syslog from the ramlog to the second USB port, only in a
+ * 'build.sh --dualcdc' developer build. Below RamlogRead so the UART and
+ * host syslog outputs are served first.
+ */
+#define HCOM_THREAD_PRIORITY_TRACE_USB              110
+#define HCOM_THREAD_NAME_TRACE_USB                  "RamlogUsb"
+#define HCOM_THREAD_STACKSIZE_TRACE_USB             2048
+
+/**
  * This thread reads stdout and stderr and forwards text to the Host
  */
 #define HCOM_THREAD_PRIORITY_STDXXX_REDIRECT        120
