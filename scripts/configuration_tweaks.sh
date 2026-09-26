@@ -254,6 +254,76 @@ enable_nsh() {
 #
 
 #
+# Enable a second USB CDC/ACM port (Issue #457).
+#
+# Developer only - never set in the defconfig or CI.  The board enumerates as a
+# USB composite device carrying two CDC/ACM functions over the one physical USB
+# connection:
+#
+#   /dev/ttyACM0 (minor 0) - HCOM, unchanged
+#   /dev/ttyACM1 (minor 1) - second port for developer use
+#
+# The two functions are built by board_composite0_connect() in the board's
+# src/stm32_composite.c, and stm32_boot.c's board_init_usbdev() connects the
+# composite device instead of the single CDC/ACM device when
+# CONFIG_USBDEV_COMPOSITE is set.
+#
+# Meadow.CLI picks a port by USB VID alone and takes the first one it finds, so
+# with two ports it may pick the wrong one.  Pin HCOM to the first port with
+# "meadow config route <port>" when running this build.
+#
+# The vendor ID and the vendor/product strings match the single-port build,
+# since Meadow.CLI matches on them (VID on Windows, the vendor string on Linux,
+# the product string on macOS).  The product ID is deliberately different
+# (0x0002 vs 0x0001): the serial number is shared with the single-port build, so
+# a matching VID/PID would let Windows reuse the driver binding it cached for the
+# single-port device instead of setting the composite device up as two ports.
+#
+# Same kconfig-tweak-never-runs-olddefconfig caveat as enable_nsh(): every
+# symbol Kconfig would have defaulted is written out explicitly, and the
+# non-composite CDC/ACM symbols (hidden by Kconfig once CDCACM_COMPOSITE is set)
+# are removed so they do not linger in the generated config.h.  Build with
+# --force to return to the single-port configuration afterwards.
+#
+enable_dualcdc() {
+    printf "\n\n********** Enabling dual USB CDC/ACM (/dev/ttyACM0 + /dev/ttyACM1). **********\n\n"
+
+    #
+    # Composite device.  COMPOSITE_SERIALSTR is not set: it depends on
+    # !BOARD_USBDEV_SERIALSTR, and this board supplies the serial number through
+    # board_usbdev_serialstr() instead.
+    #
+    ktweak --enable USBDEV_COMPOSITE
+    ktweak --enable COMPOSITE_IAD
+    ktweak --set-val COMPOSITE_EP0MAXPACKET 64
+    ktweak --set-val COMPOSITE_VENDORID 0x2E6A
+    ktweak --set-str COMPOSITE_VENDORSTR "Wilderness Labs"
+    ktweak --set-val COMPOSITE_PRODUCTID 0x0002
+    ktweak --set-str COMPOSITE_PRODUCTSTR "Meadow F7 Micro"
+    ktweak --set-str COMPOSITE_CONFIGSTR "NuttX COMPOSITE config"
+    ktweak --set-val COMPOSITE_VERSIONNO 0x1010
+    ktweak --disable COMPOSITE_MSFT_OS_DESCRIPTORS
+    ktweak --set-val COMPOSITE_DEVICES 8
+
+    #
+    # CDC/ACM as a composite member, twice.
+    #
+    ktweak --enable CDCACM_COMPOSITE
+    ktweak --enable BOARD_DUAL_CDCACM
+
+    #
+    # Only valid for a stand-alone CDC/ACM device.  In a composite device the
+    # descriptors come from the COMPOSITE_* symbols above and the endpoint
+    # numbers are assigned by board_composite0_connect().
+    #
+    for symbol in VENDORID PRODUCTID VENDORSTR PRODUCTSTR \
+                  EP0MAXPACKET EPINTIN EPBULKOUT EPBULKIN
+    do
+        ktweak --undefine CDCACM_$symbol
+    done
+}
+
+#
 # Enable the NuttX debug features (debug output to SYSLOG).
 #
 # These are deliberately off in the board's defconfig - see

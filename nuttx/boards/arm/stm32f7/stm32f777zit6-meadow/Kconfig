@@ -84,6 +84,7 @@ config MEADOW_PWR_MGMT_SUPPORT
 
 config BOARD_DUAL_CDCACM
 	bool "Enable ttyACM0 and ttyACM1"
+	depends on CDCACM_COMPOSITE
 	select ARCH_BOARD_COMMON
 	---help---
 		When this option is enabled the board will register two
