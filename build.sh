@@ -39,6 +39,7 @@ UNIT_TESTS=
 BOOTLOADER_OPTIONS=
 NUTTX_VERBOSE=
 ENABLE_NSH=false
+ENABLE_DUALCDC=false
 
 for i in "$@"
 do
@@ -86,6 +87,9 @@ case $i in
     --nsh)
     ENABLE_NSH=true
     ;;
+    --dualcdc)
+    ENABLE_DUALCDC=true
+    ;;
     --dbc|--debug-bl-cdc)
     DEBUG_BL_CDC=true
     ;;
@@ -123,6 +127,7 @@ if [ "$HELP" = true ]; then
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
   echo "  --nsh                        Enable NSH (NuttX Shell) on USART6 (COM6)"
+  echo "  --dualcdc                    Developer only: add a second USB CDC/ACM port (/dev/ttyACM1)"
   exit 0
 fi
 
@@ -454,6 +459,10 @@ fi
 
 if $ENABLE_NSH; then
   enable_nsh
+fi
+
+if $ENABLE_DUALCDC; then
+  enable_dualcdc
 fi
 
 if $DEBUG; then

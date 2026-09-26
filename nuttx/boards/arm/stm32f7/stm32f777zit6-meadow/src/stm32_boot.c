@@ -77,8 +77,33 @@ static int board_init_usbdev(void)
 #if defined(CONFIG_BOARDCTL_USBDEVCTRL)
   FAR void *handle;
   struct boardioc_usbdev_ctrl_s ctrl;
+  int ret;
 
-#if defined(CONFIG_CDCACM)
+#if defined(CONFIG_USBDEV_COMPOSITE)
+  /* Developer only dual CDC/ACM build, see enable_dualcdc() in
+   * scripts/configuration_tweaks.sh and Issue 457.  With
+   * CONFIG_CDCACM_COMPOSITE set, boardctl() compiles out its stand alone
+   * CDC/ACM connect but still returns OK for it, so without this branch the
+   * board would come up with no USB device at all.  The composite device is
+   * initialized, then connected using configuration 0, which
+   * board_composite_connect() builds.
+   */
+
+  ctrl.usbdev   = BOARDIOC_USBDEV_COMPOSITE;
+  ctrl.action   = BOARDIOC_USBDEV_INITIALIZE;
+  ctrl.instance = 0;
+  ctrl.config   = 0;
+  ctrl.handle   = NULL;
+
+  ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ctrl.action   = BOARDIOC_USBDEV_CONNECT;
+  ctrl.handle   = &handle;
+#elif defined(CONFIG_CDCACM)
   ctrl.usbdev   = BOARDIOC_USBDEV_CDCACM;
   ctrl.action   = BOARDIOC_USBDEV_CONNECT;
   ctrl.instance = 0;
@@ -90,7 +115,7 @@ static int board_init_usbdev(void)
   ctrl.handle   = &handle;
 #endif
 
-  int ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
+  ret = boardctl(BOARDIOC_USBDEV_CONTROL, (uintptr_t)&ctrl);
   if (ret < 0)
     {
       return ret;

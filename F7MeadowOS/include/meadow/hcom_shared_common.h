@@ -989,6 +989,26 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
 //--------------------------------------------------------------------
+// Selects what uses the second USB CDC/ACM port (/dev/ttyACM1). Only has
+// an effect in a developer build made with 'build.sh --dualcdc', which sets
+// CONFIG_BOARD_DUAL_CDCACM; otherwise there is no second port. The first
+// port (/dev/ttyACM0) is always HCOM. See Documentation/DualCdcAcm.md.
+//   HCOM_USB_PORT2_SYSLOG - syslog, in addition to the UART and CLI outputs
+//   HCOM_USB_PORT2_NSH    - reserved for NSH, not yet implemented
+#define HCOM_USB_PORT2_NONE                           0
+#define HCOM_USB_PORT2_SYSLOG                         1
+#define HCOM_USB_PORT2_NSH                            2
+#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_SYSLOG
+
+// Derived from the above, do not edit. 1 when syslog goes to the second port.
+#if defined(CONFIG_RAMLOG_SYSLOG) && defined(CONFIG_BOARD_DUAL_CDCACM) && \
+    (HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_SYSLOG)
+#define HCOM_TRACE_USB_ENABLED                        1
+#else
+#define HCOM_TRACE_USB_ENABLED                        0
+#endif
+
+//--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
 // This will enable debug code in the hcom_nx/create_fs/ files.
 #define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       0

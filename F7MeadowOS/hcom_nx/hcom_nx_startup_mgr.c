@@ -170,6 +170,15 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   {
     syslog(LOG_MDIAG, "%s@%d-setup trace cache reader, err:%d\n", __FILE__, __LINE__, ret);
   }
+
+#if HCOM_TRACE_USB_ENABLED > 0
+  // Copy syslog to the second USB port, 'build.sh --dualcdc' builds only
+  ret = hcom_nx_trace_usb_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "%s@%d-setup USB syslog, err:%d\n", __FILE__, __LINE__, ret);
+  }
+#endif
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
