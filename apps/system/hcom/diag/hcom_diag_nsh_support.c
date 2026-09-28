@@ -89,6 +89,8 @@ int hcom_diag_nsh_support_setup()
 // Information
 // Any of the Meadow UARTs can be used based on the #define
 // HCOM_DIAG_NSH_SERIAL_DEVICE, defined in apps/system/hcom/hcom_common.h
+// A 'build.sh --dualcdc --nsh' build uses the second USB CDC/ACM port
+// (/dev/ttyACM1) instead, see Documentation/DualCdcAcm.md.
 // The CLI command --NshEnable will automatically set userData to the needed
 // value of 1. NSH can only be enabled once from the CLI. After this the
 // _nsh_enable flag will be set true and prevents nsh from being re-started.
@@ -112,6 +114,9 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 {
   int _nsh_pid;
 
+#if HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_NSH
+  // USB CDC/ACM, there are no UART pins to restore
+#else
   // When mono starts it reconfigures all the GPIOs. This call
   // will restore the Tx and Rx configuration to the desired UART.
   if(strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS0") == 0)
@@ -132,6 +137,17 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
               HCOM_DIAG_NSH_SERIAL_DEVICE);
     return;
   }
+#endif
+
+#if defined (CONFIG_NSH_ALTCONDEV)
+  // NSH opens CONFIG_NSH_ALTSTDIN itself, so it must be the same device
+  if(strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN) != 0)
+  {
+    syslog(LOG_ERR, "NSH device '%s' does not match CONFIG_NSH_ALTSTDIN '%s'\n",
+              HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN);
+    return;
+  }
+#endif
 
   if(_nsh_enabled)
   {
@@ -236,7 +252,9 @@ int nsh_main_proxy(int argcx, char *argvx[])
       if(stdout_fd >= 0)
         break;            // Success
 
-      if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
+      // ENOENT = Error No Entity -> No such file or directory
+      // ENOTCONN = USB CDC/ACM port not yet configured by the host
+      if(errno != ENOENT && errno != ENOTCONN)
       {
         syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
           __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
@@ -246,7 +264,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
       
       // All errors sleep and try again
       usleep(100 * 1000);
-    } while (errno == ENOENT);
+    } while (errno == ENOENT || errno == ENOTCONN);
 
     // Assign the serial port write to the stdout fd.
     ret = dup2(stdout_fd, STDOUT_FILENO);
@@ -271,7 +289,9 @@ int nsh_main_proxy(int argcx, char *argvx[])
       if(stderr_fd >= 0)
         break;            // Success
 
-      if(errno != ENOENT)   // ENOENT = Error No Entity -> No such file or directory
+      // ENOENT = Error No Entity -> No such file or directory
+      // ENOTCONN = USB CDC/ACM port not yet configured by the host
+      if(errno != ENOENT && errno != ENOTCONN)
       {
         syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
           __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
@@ -281,7 +301,7 @@ int nsh_main_proxy(int argcx, char *argvx[])
       
       // All errors sleep and try again
       usleep(100 * 1000);
-    } while (errno == ENOENT);
+    } while (errno == ENOENT || errno == ENOTCONN);
 
     // Assign the serial port write to the stderr fd too
     ret = dup2(stderr_fd, STDERR_FILENO);

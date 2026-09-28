@@ -321,6 +321,19 @@ enable_dualcdc() {
     do
         ktweak --undefine CDCACM_$symbol
     done
+
+    #
+    # With --nsh as well ($1 is build.sh's ENABLE_NSH), the second port runs
+    # NSH instead of syslog.  This must run after enable_nsh(): it moves the
+    # NSH console from USART6 to ttyACM1.  BOARD_USB_PORT2_NSH is what the
+    # code tests, see HCOM_USB_PORT2_USAGE in hcom_shared_common.h.
+    #
+    if [ "$1" = true ]; then
+        ktweak --enable BOARD_USB_PORT2_NSH
+        ktweak --set-str NSH_ALTSTDERR "/dev/ttyACM1"
+        ktweak --set-str NSH_ALTSTDIN "/dev/ttyACM1"
+        ktweak --set-str NSH_ALTSTDOUT "/dev/ttyACM1"
+    fi
 }
 
 #

@@ -989,18 +989,25 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 #define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
 
 //--------------------------------------------------------------------
-// Selects what uses the second USB CDC/ACM port (/dev/ttyACM1). Only has
-// an effect in a developer build made with 'build.sh --dualcdc', which sets
-// CONFIG_BOARD_DUAL_CDCACM; otherwise there is no second port. The first
-// port (/dev/ttyACM0) is always HCOM. See Documentation/DualCdcAcm.md.
-//   HCOM_USB_PORT2_SYSLOG - syslog, in addition to the UART and CLI outputs
-//   HCOM_USB_PORT2_NSH    - reserved for NSH, not yet implemented
+// What uses the second USB CDC/ACM port (/dev/ttyACM1). Set by the build,
+// do not edit. The first port (/dev/ttyACM0) is always HCOM.
+// See Documentation/DualCdcAcm.md.
+//   build.sh --dualcdc        -> HCOM_USB_PORT2_SYSLOG, syslog in addition
+//                                to the UART and CLI outputs
+//   build.sh --dualcdc --nsh  -> HCOM_USB_PORT2_NSH, NSH instead of syslog
+//   otherwise                 -> HCOM_USB_PORT2_NONE, no second port
 #define HCOM_USB_PORT2_NONE                           0
 #define HCOM_USB_PORT2_SYSLOG                         1
 #define HCOM_USB_PORT2_NSH                            2
+#if defined(CONFIG_BOARD_USB_PORT2_NSH)
+#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_NSH
+#elif defined(CONFIG_BOARD_DUAL_CDCACM)
 #define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_SYSLOG
+#else
+#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_NONE
+#endif
 
-// Derived from the above, do not edit. 1 when syslog goes to the second port.
+// 1 when syslog goes to the second port.
 #if defined(CONFIG_RAMLOG_SYSLOG) && defined(CONFIG_BOARD_DUAL_CDCACM) && \
     (HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_SYSLOG)
 #define HCOM_TRACE_USB_ENABLED                        1

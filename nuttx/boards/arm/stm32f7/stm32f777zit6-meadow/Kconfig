@@ -90,6 +90,15 @@ config BOARD_DUAL_CDCACM
 		When this option is enabled the board will register two
 		USB CDC/ACM interfaces.
 
+config BOARD_USB_PORT2_NSH
+	bool "Run NSH on ttyACM1 instead of syslog"
+	depends on BOARD_DUAL_CDCACM && SYSTEM_NSH
+	default n
+	---help---
+		Developer builds only, set by 'build.sh --dualcdc --nsh'. The
+		second USB CDC/ACM port (ttyACM1) runs NSH instead of carrying
+		syslog. See Documentation/DualCdcAcm.md.
+
 choice
 	prompt "Select Main Board Model"
 	default BOARD_MEADOW_F7MICRO_DEFAULT

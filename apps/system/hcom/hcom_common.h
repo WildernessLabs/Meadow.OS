@@ -97,7 +97,12 @@
   // #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS1"  // This is UART4
   // Note: /dev/ttyS2 is UART5 used to download to ESP32
   // '/dev/ttyS3' is currently UART6
-  #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"
+  #if HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_NSH
+    // 'build.sh --dualcdc --nsh', the second USB CDC/ACM port
+    #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyACM1"
+  #else
+    #define HCOM_DIAG_NSH_SERIAL_DEVICE "/dev/ttyS3"
+  #endif
 #endif
 
 //---------------------------------------------------------------------

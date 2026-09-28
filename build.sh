@@ -128,6 +128,7 @@ if [ "$HELP" = true ]; then
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
   echo "  --nsh                        Enable NSH (NuttX Shell) on USART6 (COM6)"
   echo "  --dualcdc                    Developer only: add a second USB CDC/ACM port (/dev/ttyACM1)"
+  echo "                               for syslog, or for NSH instead when --nsh is also given"
   exit 0
 fi
 
@@ -462,7 +463,7 @@ if $ENABLE_NSH; then
 fi
 
 if $ENABLE_DUALCDC; then
-  enable_dualcdc
+  enable_dualcdc $ENABLE_NSH
 fi
 
 if $DEBUG; then
