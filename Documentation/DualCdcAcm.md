@@ -9,16 +9,25 @@ the same cable, for developer use only (see issue #457):
 | Board device   | Windows Hardware Id | Linux `/dev/serial/by-id` suffix | Used for                      |
 |----------------|---------------------|----------------------------------|-------------------------------|
 | `/dev/ttyACM0` | `MI_00`             | `-if00`                          | HCOM (unchanged)              |
-| `/dev/ttyACM1` | `MI_02`             | `-if02`                          | Syslog (see below)            |
+| `/dev/ttyACM1` | `MI_02`             | `-if02`                          | Syslog, or NSH (see below)    |
 
 This option is never used for shipping builds. The tracked `defconfig` carries none of
 it, and the normal build's USB setup is unchanged.
 
 ### What Uses the Second Port
 
-`HCOM_USB_PORT2_USAGE` in `F7MeadowOS/include/meadow/hcom_shared_common.h` selects it.
-The default, `HCOM_USB_PORT2_SYSLOG`, sends syslog there. `HCOM_USB_PORT2_NSH` is
-reserved for running NSH on the port and is not implemented yet.
+The build options choose it:
+
+| Build options       | Second USB port | NSH        | Syslog UART (USART1)    |
+|---------------------|-----------------|------------|-------------------------|
+| (none)              | none            | none       | when UART trace is on   |
+| `--nsh`             | none            | USART6     | when UART trace is on   |
+| `--dualcdc`         | syslog          | none       | when UART trace is on   |
+| `--dualcdc --nsh`   | NSH             | USB port 2 | when UART trace is on   |
+
+Syslog to the CLI works the same in all four. The code tests `HCOM_USB_PORT2_USAGE` in
+`F7MeadowOS/include/meadow/hcom_shared_common.h`, which is derived from the build
+(`CONFIG_BOARD_DUAL_CDCACM` and `CONFIG_BOARD_USB_PORT2_NSH`) and not edited by hand.
 
 ## Syslog on the Second Port
 
@@ -87,6 +96,9 @@ board is up, another program has the port open.
 # First build with the second port - --force resets .config to the defconfig first
 ./build.sh --force --dualcdc
 
+# NSH on the second port instead of syslog
+./build.sh --force --dualcdc --nsh
+
 # Back to the normal single-port build
 ./build.sh --force
 ```
@@ -137,6 +149,23 @@ Use `flash.sh` for dual-port builds, not `meadow firmware write`. After a DFU wr
 the CLI reconnects by looking for serial ports that were not there before. When two new
 ports appear, it tries only the first one and gives up if that port isn't HCOM
 (`FindMeadowConnection()` in Meadow.CLI's `FirmwareUpdater.cs`).
+
+## NSH on the Second Port
+
+With `--dualcdc --nsh`, NSH starts at boot on the second port instead of USART6, and
+syslog is not sent there. After `enable_nsh()` has applied the usual NSH settings (see
+`SettingupMeadowNSH.md`), `enable_dualcdc()` sets `CONFIG_BOARD_USB_PORT2_NSH` and
+points `CONFIG_NSH_ALTSTDIN`, `CONFIG_NSH_ALTSTDOUT` and `CONFIG_NSH_ALTSTDERR` at
+`/dev/ttyACM1`. `HCOM_DIAG_NSH_SERIAL_DEVICE` in `apps/system/hcom/hcom_common.h`
+follows. If the two ever disagree, NSH is not started and an error is logged.
+
+Use an interactive terminal such as PuTTY, with local echo turned off (the board
+echoes). Commands and Ctrl+C work as on USART6. Closing and reopening the terminal keeps
+the same NSH session. If the USB connection drops while the board stays powered, NSH
+starts a new session once the port is available again. A board reset drops the
+terminal's connection as described above; reopen the port for a fresh prompt.
+
+USART6 is still enabled in this build but unused.
 
 ## Opening the Second Port
 
