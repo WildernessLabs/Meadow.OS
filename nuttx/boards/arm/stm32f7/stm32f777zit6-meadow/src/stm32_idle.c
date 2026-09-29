@@ -75,9 +75,6 @@ void up_idle(void)
 #else   // #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
 
   #if defined(CONFIG_ARCH_IDLE_CUSTOM)
-    // Count the calls to up_idle
-    meadow_idle_mon_entering_idle_mode();
-
     #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
       // If a low-power stop-mode request is pending, perform the entire
       // hardware transition synchronously right here, on the idle task,
@@ -101,22 +98,29 @@ void up_idle(void)
       {
         // The transition above already performed the real stop-mode
         // wfi/wfe as part of its own sequence; don't also do the plain
-        // one below on this iteration.
+        // one below on this iteration. Stop-mode time is not counted by
+        // the idle monitor.
         return;
       }
 
+      // Time the sleep for the idle monitor (meadow_idle_monitor.c)
+      meadow_idle_mon_before_sleep();
       #ifdef CONFIG_PM_WFE
         asm volatile ("wfe");
       #else
         asm volatile ("wfi");
       #endif
+      meadow_idle_mon_after_sleep();
     #else
       // Only CONFIG_ARCH_IDLE_CUSTOM defined
+      // Time the sleep for the idle monitor (meadow_idle_monitor.c)
+      meadow_idle_mon_before_sleep();
       #ifdef CONFIG_PM_WFE
         asm volatile ("wfe");
       #else
         asm volatile ("wfi");
       #endif
+      meadow_idle_mon_after_sleep();
     #endif
 
   #endif  //  #if defined(CONFIG_ARCH_IDLE_CUSTOM)

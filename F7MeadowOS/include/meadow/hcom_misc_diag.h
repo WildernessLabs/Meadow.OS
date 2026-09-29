@@ -41,7 +41,8 @@
 #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 // Callable from syscall
 int meadow_idle_monitor_get_value(void);
-void meadow_idle_mon_entering_idle_mode(void);
+void meadow_idle_mon_before_sleep(void);
+void meadow_idle_mon_after_sleep(void);
 #endif
 
 #endif      // #ifndef __INCLUDE_HCOM_MISC_DIAG__H
