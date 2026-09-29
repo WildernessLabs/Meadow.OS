@@ -271,7 +271,7 @@ GPIO path is `apps/system/hcom/diag/hcom_diag_gpio.c`.
 | C094 | F7MeadowOS/kerneltests/ana_to_dig_conv_tests.c | *Reviewed (light) | 2026-08-28 | #370 | Peter |  |
 | C095 | F7MeadowOS/kerneltests/bg77_tests.c | Reviewed (light) | 2026-08-28 | #372 | Cell Owner | Original-Author corrected from Mark -- git history shows only Alexis Christoforides/Peter; reassigned to Cell Owner per feature-based ownership. Issue number corrected from #371 (mismatch) |
 | C096 | F7MeadowOS/kerneltests/bg77_tests.h | Reviewed (light) | 2026-08-28 |  | Cell Owner | Byte-identical stub header, findings tracked in #372 (bg77_tests.c) |
-| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | *Reviewed (light) | 2026-08-28 | #373 | Peter |  |
+| C097 | F7MeadowOS/kerneltests/dig_to_ana_conv_tests.c | *Reviewed (light) | 2026-08-28 | #373 | Peter | File deleted on `issue158-dac` (#158): the unfinished placeholder was replaced by the user-space test `apps/system/hcom/tests/meadow_dac_tests.c` |
 | C098 | F7MeadowOS/kerneltests/espcp_tests.c | *Reviewed (light) | 2026-08-28 | #374 | Mark |  |
 | C099 | F7MeadowOS/kerneltests/ethernet_tests.c | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |
 | C100 | F7MeadowOS/kerneltests/ethernet_tests.h | Reviewed (light) | 2026-08-28 |  | Mark | No confirmed findings |

@@ -425,14 +425,14 @@ if [ ! -z "$UNIT_TESTS" ]; then
             # flag:
             #
             #   snprintf, overload, usrwork  - developer_tests.c
-            #   dac                          - meadow_kt_dispatcher.c and
-            #                                  dig_to_ana_conv_tests.c
+            #   dac                          - developer_tests.c and
+            #                                  meadow_dac_tests.c
             #
-            # The DAC test needs a board wired for analogue output, so it stays
-            # out of the "all" sweep; use "-u=dac" for it.  Both the kernel
-            # dispatcher entry and the user-side name table entry are gated the
-            # same way - keep them in step or the test shows up in the menu with
-            # no handler behind it.
+            # The DAC test needs a meter on the analogue output pins, so it stays
+            # out of the "all" sweep; use "-u=dac" for it.  Its name table entry
+            # and its user-space dispatcher entry in developer_tests.c are gated
+            # the same way - keep them in step or the test shows up in the menu
+            # with no handler behind it.
             #
             # sotest builds its .so module here.  The dlopen/dlsym test entry
             # itself is now compiled by ALL_MEADOW_TESTS, so the module has to

@@ -81,6 +81,7 @@ $(MEADOW_OS_DIR)/misc/meadow_client_cert.c \
 $(MEADOW_OS_DIR)/misc/meadow_reinit_flash_size.c \
 $(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c \
 $(MEADOW_OS_DIR)/misc/meadow_adc.c \
+$(MEADOW_OS_DIR)/misc/meadow_dac.c \
 $(MEADOW_OS_DIR)/specialized/meadow_measure_freq.c \
 $(MEADOW_OS_DIR)/specialized/meadow_rotary_encoder.c \
 $(MEADOW_OS_DIR)/specialized/meadow_gpio_counter.c
@@ -156,7 +157,6 @@ $(MEADOW_OS_DIR)/kerneltests/power_management_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/iso8601_time_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/quick_misc_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/ana_to_dig_conv_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/dig_to_ana_conv_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_interrupt_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_spi_dma_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/meadow_rotary_encoder_tests.c \

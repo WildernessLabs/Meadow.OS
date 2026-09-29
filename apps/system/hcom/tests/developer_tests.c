@@ -125,7 +125,7 @@ static meadow_test_names_t _testNames[] =
 #endif
 
 #if defined(CONFIG_DAC_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_DAC, "Digital to Analog tests" },
+    { MEADOW_TEST_DAC, "Digital to Analog tests (-v 1: API checks, 2-4: level steps, 5: hold A00, 6: close all)" },
 #endif
 
 #if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -347,6 +347,10 @@ static meadow_test_methods_t _userspaceTests[] =
 
 #if defined(CONFIG_USR_WORK_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_USRWORK_TESTS, diag_misc_tests_verify_usrwork },
+#endif
+
+#if defined(CONFIG_DAC_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
+    { MEADOW_TEST_DAC, meadow_dac_tests },
 #endif
 
 #if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)

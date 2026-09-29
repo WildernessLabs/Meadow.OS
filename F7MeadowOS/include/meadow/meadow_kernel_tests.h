@@ -53,7 +53,6 @@ void meadow_kt_power_management_tests(uint32_t);
 void meadow_kt_iso8601_tests(uint32_t);
 void meadow_kt_quick_misc_tests(uint32_t);
 void meadow_kt_adc_tests(uint32_t);
-void meadow_kt_dac_tests(uint32_t);
 void meadow_kt_meadow_interrupt_tests(uint32_t);
 void meadow_kt_spi_dma_tests(uint32_t);
 void meadow_kt_rotary_encoder_tests(uint32_t);
