@@ -49,6 +49,8 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
+// Meadow DAC: meadow_dac_open() flags. 0 = output buffer on.
+#define MEADOW_DAC_FLAG_BUFFER_OFF  (1 << 0)
 
 /************************************************************************************
  * Public Functions
@@ -63,6 +65,12 @@ void stm32_gpiowrite(uint32_t pinset, bool value);
 int meadow_adc_configure(uint8_t *gpioList, uint32_t gpioCount, double *userDataBuf);
 int meadow_adc_read_values(void);
 int meadow_adc_read_temp_vbat(double *batteryVoltage, double *temperatureValue);
+
+// Meadow DAC (see Documentation/MeadowDac.md)
+int meadow_dac_open(uint8_t pinid, uint32_t flags);
+int meadow_dac_write(uint8_t pinid, uint32_t value);
+int meadow_dac_read(uint8_t pinid, uint32_t *value);
+int meadow_dac_close(uint8_t pinid);
 
 int pwrmgmt_most_recent_wakeup_reason(void);
 

@@ -14,6 +14,7 @@ For a project overview, architecture summary, build instructions, and hardware s
 | [Rebasing](Rebasing.md) | Rebasing with mainline NuttX and NuttX apps |
 | [Developer Tests](RunningDeveloperTests.md) | How to build and run developer (unit) tests |
 | [Dual USB CDC/ACM](DualCdcAcm.md) | Developer-only `--dualcdc` build: second USB serial port, pinning Meadow.CLI to HCOM |
+| [Meadow DAC](MeadowDac.md) | Draft design: native DAC driver for A00/A01 (issue #158) |
 
 ## In-Tree Documentation
 

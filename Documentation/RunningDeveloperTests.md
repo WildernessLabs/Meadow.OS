@@ -434,6 +434,58 @@ Revived from a dormant/unreachable state via issue #347 (PR #625) -- the file's 
 comment still notes these tests haven't been otherwise re-validated since the
 Legacy->Rebase port; only one hardware smoke test has been run against them so far.
 
+## DAC Tests
+
+The `dac` test (`MEADOW_TEST_DAC` = 15 in `meadow_unit_test_framework.h`) exercises the Meadow
+DAC driver (`F7MeadowOS/misc/meadow_dac.c`, see [MeadowDac.md](MeadowDac.md)). It is a
+user-space test, `apps/system/hcom/tests/meadow_dac_tests.c`, and it uses the DAC only through
+the `meadow_dac_*` kernel calls, the same way Meadow.Core would.
+
+### Prerequisites
+
+* Build with `./build.sh -u=dac`. This enables `CONFIG_DAC_TESTS`. The test is not part of
+  `-u=all`, because most of it needs a meter.
+* For `-v 2` to `-v 5`, a voltmeter between A00 (or A01 for `-v 4`) and GND. `-v 1` needs no
+  wiring.
+* Put a 1.5 MOhm resistor between the pin and GND as well. A pin that is not being driven
+  floats, and a meter alone then shows a few hundred millivolts that take seconds to settle.
+  The resistor holds the undriven pin at 0 V. Do not use a much smaller value: with the
+  buffer off the DAC needs at least 1.5 MOhm to stay within 1%.
+
+### Running It
+
+```bash
+meadow developer -p 15 -v <n> -t 60
+```
+
+The level-step tests hold each level for 5 seconds and take about 30 seconds in all, so pass
+`-t 60` to keep the CLI from timing out.
+
+| `-v` | Test |
+|------|------|
+| 1 | API checks on A00: bad pin, bad flag, bad value, and write, read and close before open. Also checks that the output starts at 0, that a value reads back, and that a second open restarts the channel. Each check logs PASS or FAIL. |
+| 2 | A00, output buffer on: opens the channel, reports the value read back (0), then steps through 0, 1024, 2048, 3072 and 4095. |
+| 3 | The same as 2 with the output buffer off. |
+| 4 | The same as 2 on A01. |
+| 5 | Leaves A00 at 2048 (about 1.65 V for a 3.3 V rail) so it can be measured at leisure. |
+| 6 | Closes both channels. A channel that was not open reports `-EBADF` (-9); that is not a failure. |
+
+### What It Verifies
+
+Results go to the syslog (`LOG_MTEST`). For each step the test logs the value written, the
+voltage it should give, and whether reading the value back matched. The read-back is the value
+the DAC was given, not a measurement; compare the expected voltages with the meter.
+
+* Expected voltages are worked out for exactly 3.3 V. VREF+ is the board's 3.3 V rail, which on
+  some boards is a little lower (3.26 V has been measured), so the readings scale with it.
+  Measure the 3.3 V pin to get the real reference.
+* With the buffer on (`-v 2`, `-v 4`), the datasheet only guarantees the output to within
+  0.2 V of each rail, so the test logs the ends as a range (for example 0-200 mV for 0). That
+  is a worst case; into a meter and a 1.5 MOhm resistor the output reached 0.05 V and 3.22 V.
+* With the buffer off (`-v 3`), the output reaches close to 0 V and the rail, but only into a
+  high-impedance load. Readings into 1.5 MOhm are about 1% low, from the DAC's output
+  resistance.
+
 ## Adding New Tests
 
 To add a new kernel-space test:

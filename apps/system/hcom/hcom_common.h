@@ -440,6 +440,7 @@ void meadow_os_userspace_board_reset_test(uint32_t userdata);
 void meadow_bbd_write_read_test(uint32_t userdata);
 void meadow_bbd_write_and_reset_test(uint32_t userdata);
 void meadow_bbd_read_after_reset_test(uint32_t userdata);
+void meadow_dac_tests(uint32_t userdata);
 void meadow_os_cli_timeout_test(uint32_t userdata);
 void meadow_os_userspace_get_test_configuration_test(uint32_t userdata);
 

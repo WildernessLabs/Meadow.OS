@@ -81,6 +81,7 @@ HCOM_SRCS = comms/hcom_host_encode.c \
 	tests/meadow_sqlite_tests.c \
 	tests/meadow_os_userspace_tests.c \
 	tests/meadow_bbd_tests.c \
+	tests/meadow_dac_tests.c \
 	misc/espcp_utils.c
 
 ifeq ($(CONFIG_MEADOW_CLOUD),y)
