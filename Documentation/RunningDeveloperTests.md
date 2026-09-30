@@ -468,7 +468,16 @@ The level-step tests hold each level for 5 seconds and take about 30 seconds in 
 | 3 | The same as 2 with the output buffer off. |
 | 4 | The same as 2 on A01. |
 | 5 | Leaves A00 at 2048 (about 1.65 V for a 3.3 V rail) so it can be measured at leisure. |
-| 6 | Closes both channels. A channel that was not open reports `-EBADF` (-9); that is not a failure. |
+| 6 | Closes both channels, stopping any waveform. A channel that was not open reports `-EBADF` (-9); that is not a failure. |
+| 7 | Waveform API checks on A00 and A01, no scope needed: bad arguments, write during a waveform, a different rate on the second channel, and that a waveform's output changes and survives stopping the other channel. Each check logs PASS or FAIL. |
+| 8 | 1 kHz sine on A00 (60 samples at 60,000 Hz). |
+| 9 | 100 Hz sawtooth on A00 (250 samples at 25,000 Hz). |
+| 10 | Triangle on A00, amplitude 4095 at 1,000,000 Hz: about 122 Hz. |
+| 11 | Noise on A00, amplitude 4095 at 100,000 Hz. |
+| 12 | 1 kHz sine on A00 and cosine on A01. On a scope in XY mode this draws a circle. |
+
+Tests 8 to 12 start a waveform and return, leaving it playing until `-v 6`. They need a scope
+on A00 (and A01 for 12); a meter only shows the average.
 
 ### What It Verifies
 
