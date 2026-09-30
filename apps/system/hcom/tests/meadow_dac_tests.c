@@ -45,7 +45,17 @@
  *   -v 3  Level steps on A00, output buffer off.
  *   -v 4  Level steps on A01, output buffer on.
  *   -v 5  Leave A00 at mid-scale for measuring. -v 6 releases it.
- *   -v 6  Close both channels.
+ *   -v 6  Close both channels, stopping any waveform.
+ *
+ * Waveforms (issue #658). Each starts a waveform and returns, leaving it
+ * playing until -v 6. Watch A00 (and A01) on a scope.
+ *
+ *   -v 7  Waveform API checks. No scope needed.
+ *   -v 8  1 kHz sine on A00 (60 samples at 60,000 Hz).
+ *   -v 9  100 Hz sawtooth on A00 (250 samples at 25,000 Hz).
+ *   -v 10 Triangle on A00, amplitude 4095 at 1,000,000 Hz (about 122 Hz).
+ *   -v 11 Noise on A00, amplitude 4095 at 100,000 Hz.
+ *   -v 12 1 kHz sine on A00 and cosine on A01: a circle in XY mode.
  */
 
 /****************************************************************************
@@ -59,6 +69,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <errno.h>
 #include <syslog.h>
@@ -98,6 +109,16 @@
 
 #define DAC_TEST_MID_SCALE        2048
 
+/* Waveform tests. The rates divide TIM6's 108 MHz exactly. */
+
+#define DAC_TEST_SINE_SAMPLES     60
+#define DAC_TEST_SINE_RATE        60000     /* 1 kHz sine */
+#define DAC_TEST_SAW_SAMPLES      250
+#define DAC_TEST_SAW_RATE         25000     /* 100 Hz sawtooth */
+#define DAC_TEST_TRI_RATE         1000000   /* 1e6 / (2 * 4095) = 122 Hz */
+#define DAC_TEST_NOISE_RATE       100000
+#define DAC_TEST_WAVE_MAX_SAMPLES 8192
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -108,6 +129,18 @@ static const uint32_t g_dac_test_steps[] =
 };
 
 #define DAC_TEST_NSTEPS  (sizeof(g_dac_test_steps) / sizeof(g_dac_test_steps[0]))
+
+/* One cycle of a full-scale sine wave, 60 samples */
+
+static const uint16_t g_dac_test_sine[DAC_TEST_SINE_SAMPLES] =
+{
+  2048, 2262, 2473, 2680, 2880, 3071, 3251, 3418, 3569, 3704,
+  3821, 3918, 3995, 4050, 4084, 4095, 4084, 4050, 3995, 3918,
+  3821, 3704, 3569, 3418, 3251, 3071, 2880, 2680, 2473, 2262,
+  2048, 1833, 1622, 1415, 1215, 1024,  844,  677,  526,  391,
+  274,  177,  100,   45,   11,    0,   11,   45,  100,  177,
+  274,  391,  526,  677,  844, 1024, 1215, 1415, 1622, 1833
+};
 
 /****************************************************************************
  * Private Functions
@@ -415,6 +448,372 @@ static void dac_test_close_all(void)
 }
 
 /****************************************************************************
+ * Name: dac_test_wave_init
+ *
+ * Description:
+ *   Fill in a waveform description the way Meadow.Core would.
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_init(struct meadow_dac_wave_s *wave,
+                               uint32_t type, uint32_t rate_hz)
+{
+  memset(wave, 0, sizeof(*wave));
+  wave->size    = sizeof(*wave);
+  wave->type    = type;
+  wave->rate_hz = rate_hz;
+}
+
+/****************************************************************************
+ * Name: dac_test_start_buffer
+ *
+ * Description:
+ *   Start a buffer loop and return meadow_dac_wave_start()'s result. The
+ *   actual rate is stored in *actual_hz if it is not NULL.
+ *
+ ****************************************************************************/
+
+static int dac_test_start_buffer(uint8_t pinid, const uint16_t *samples,
+                                 uint32_t count, uint32_t rate_hz,
+                                 uint32_t *actual_hz)
+{
+  struct meadow_dac_wave_s wave;
+  int ret;
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_BUFFER, rate_hz);
+  wave.count   = count;
+  wave.samples = samples;
+
+  ret = meadow_dac_wave_start(pinid, &wave);
+  if (actual_hz != NULL)
+    {
+      *actual_hz = wave.actual_hz;
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: dac_test_output_changes
+ *
+ * Description:
+ *   Read the output repeatedly and return true if it took more than one
+ *   value: a sign that a waveform is playing. The reads are back to back
+ *   rather than spaced with usleep(), which rounds to the 1 ms tick: that is
+ *   exactly one cycle of the 1 kHz test sine, and the tick and TIM6 come
+ *   from the same clock, so every read could see the same point.
+ *
+ ****************************************************************************/
+
+static bool dac_test_output_changes(uint8_t pinid)
+{
+  uint32_t first = 0;
+  uint32_t value = 0;
+  int i;
+
+  if (meadow_dac_read(pinid, &first) < 0)
+    {
+      return false;
+    }
+
+  for (i = 0; i < 1000; i++)
+    {
+      if (meadow_dac_read(pinid, &value) == OK && value != first)
+        {
+          return true;
+        }
+    }
+
+  return false;
+}
+
+/****************************************************************************
+ * Name: dac_test_wave_api
+ *
+ * Description:
+ *   -v 7: check the waveform calls' error handling and basic behaviour. No
+ *   scope is needed.
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_api(void)
+{
+  static uint16_t bad[4] =
+  {
+    0, 1000, DAC_TEST_MAX_VALUE + 1, 0
+  };
+
+  struct meadow_dac_wave_s wave;
+  uint32_t actual = 0;
+  int failures = 0;
+  bool changes;
+
+  syslog(LOG_MTEST, "DAC test 7: waveform API checks on A00 and A01\n");
+
+  /* Start from a known state: both channels closed */
+
+  meadow_dac_close(DAC_TEST_PIN_A00);
+  meadow_dac_close(DAC_TEST_PIN_A01);
+
+  dac_test_check("start before open",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EBADF, &failures);
+  dac_test_check("stop before open", meadow_dac_wave_stop(DAC_TEST_PIN_A00),
+                 -EBADF, &failures);
+
+  dac_test_check("open A00", meadow_dac_open(DAC_TEST_PIN_A00, 0), OK,
+                 &failures);
+
+  dac_test_check("start with NULL wave",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, NULL), -EINVAL,
+                 &failures);
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_TRIANGLE, DAC_TEST_TRI_RATE);
+  wave.amplitude = 4095;
+  wave.size = sizeof(wave) - 4;
+  dac_test_check("wrong struct size",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+
+  dac_test_wave_init(&wave, 0, DAC_TEST_TRI_RATE);
+  dac_test_check("unknown type",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+
+  dac_test_check("rate 0",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES, 0, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("rate above 1,000,000",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES, 1000001,
+                                       NULL),
+                 -EINVAL, &failures);
+  dac_test_check("count 0",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       0, DAC_TEST_SINE_RATE, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("count above 8192",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_WAVE_MAX_SAMPLES + 1,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("NULL samples",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, NULL,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("a sample above 4095",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, bad, 4,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EINVAL, &failures);
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_TRIANGLE, DAC_TEST_TRI_RATE);
+  wave.amplitude = 100;
+  dac_test_check("unsupported amplitude",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+
+  meadow_dac_write(DAC_TEST_PIN_A00, 100);
+  wave.amplitude = 4095;
+  dac_test_check("triangle base + amplitude above 4095",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+  meadow_dac_write(DAC_TEST_PIN_A00, 0);
+
+  dac_test_check("stop with no waveform",
+                 meadow_dac_wave_stop(DAC_TEST_PIN_A00), -EINVAL,
+                 &failures);
+
+  /* A real waveform */
+
+  dac_test_check("start a sine on A00",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, &actual),
+                 OK, &failures);
+  dac_test_check("actual rate is 60000", (int)actual, DAC_TEST_SINE_RATE,
+                 &failures);
+
+  changes = dac_test_output_changes(DAC_TEST_PIN_A00);
+  dac_test_check("A00 output changes while playing", changes, true,
+                 &failures);
+
+  dac_test_check("start again on the same channel",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EBUSY, &failures);
+  dac_test_check("write during a waveform",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 0), -EBUSY, &failures);
+
+  /* The second channel shares TIM6 */
+
+  dac_test_check("open A01", meadow_dac_open(DAC_TEST_PIN_A01, 0), OK,
+                 &failures);
+  dac_test_check("start A01 at a different rate",
+                 dac_test_start_buffer(DAC_TEST_PIN_A01, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES, 50000, NULL),
+                 -EBUSY, &failures);
+  dac_test_check("start A01 at the same rate",
+                 dac_test_start_buffer(DAC_TEST_PIN_A01, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 OK, &failures);
+
+  /* Stopping A00 must leave A01 playing */
+
+  dac_test_check("stop A00", meadow_dac_wave_stop(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("stop A00 again", meadow_dac_wave_stop(DAC_TEST_PIN_A00),
+                 -EINVAL, &failures);
+  changes = dac_test_output_changes(DAC_TEST_PIN_A01);
+  dac_test_check("A01 still playing after A00 stopped", changes, true,
+                 &failures);
+  dac_test_check("write to A00 after stop",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 1234), OK, &failures);
+  dac_test_check_value("A00 static again", DAC_TEST_PIN_A00, 1234,
+                       &failures);
+
+  /* Closing a channel stops its waveform */
+
+  dac_test_check("close A01 while playing",
+                 meadow_dac_close(DAC_TEST_PIN_A01), OK, &failures);
+  dac_test_check("close A00", meadow_dac_close(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  if (failures == 0)
+    {
+      syslog(LOG_MTEST, "DAC test 7: PASSED\n");
+    }
+  else
+    {
+      syslog(LOG_MTEST, "DAC test 7: FAILED, %d check(s) failed\n",
+             failures);
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_wave_report
+ *
+ * Description:
+ *   Log the result of starting a waveform test.
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_report(int test, const char *what, int ret,
+                                 uint32_t actual_hz)
+{
+  if (ret == OK)
+    {
+      syslog(LOG_MTEST, "DAC test %d: %s, sample rate %lu Hz. "
+             "Run -v 6 to stop it.\n", test, what,
+             (unsigned long)actual_hz);
+    }
+  else
+    {
+      syslog(LOG_MTEST, "DAC test %d: FAILED to start %s, returned %d\n",
+             test, what, ret);
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_wave_sine
+ *
+ * Description:
+ *   -v 8: 1 kHz sine on A00. -v 12: also a cosine on A01, the same table
+ *   started a quarter of a cycle in.
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_sine(bool both)
+{
+  static uint16_t cosine[DAC_TEST_SINE_SAMPLES];
+  uint32_t actual = 0;
+  int ret;
+  int i;
+
+  meadow_dac_open(DAC_TEST_PIN_A00, 0);
+  ret = dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                              DAC_TEST_SINE_SAMPLES, DAC_TEST_SINE_RATE,
+                              &actual);
+  if (!both)
+    {
+      dac_test_wave_report(8, "1 kHz sine on A00", ret, actual);
+      return;
+    }
+
+  for (i = 0; i < DAC_TEST_SINE_SAMPLES; i++)
+    {
+      cosine[i] = g_dac_test_sine[(i + DAC_TEST_SINE_SAMPLES / 4) %
+                                  DAC_TEST_SINE_SAMPLES];
+    }
+
+  if (ret == OK)
+    {
+      meadow_dac_open(DAC_TEST_PIN_A01, 0);
+      ret = dac_test_start_buffer(DAC_TEST_PIN_A01, cosine,
+                                  DAC_TEST_SINE_SAMPLES, DAC_TEST_SINE_RATE,
+                                  &actual);
+    }
+
+  dac_test_wave_report(12, "1 kHz sine on A00 and cosine on A01", ret,
+                       actual);
+}
+
+/****************************************************************************
+ * Name: dac_test_wave_saw
+ *
+ * Description:
+ *   -v 9: 100 Hz sawtooth on A00.
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_saw(void)
+{
+  static uint16_t saw[DAC_TEST_SAW_SAMPLES];
+  uint32_t actual = 0;
+  int ret;
+  int i;
+
+  for (i = 0; i < DAC_TEST_SAW_SAMPLES; i++)
+    {
+      saw[i] = (uint16_t)((i * DAC_TEST_MAX_VALUE) /
+                          (DAC_TEST_SAW_SAMPLES - 1));
+    }
+
+  meadow_dac_open(DAC_TEST_PIN_A00, 0);
+  ret = dac_test_start_buffer(DAC_TEST_PIN_A00, saw, DAC_TEST_SAW_SAMPLES,
+                              DAC_TEST_SAW_RATE, &actual);
+  dac_test_wave_report(9, "100 Hz sawtooth on A00", ret, actual);
+}
+
+/****************************************************************************
+ * Name: dac_test_wave_generator
+ *
+ * Description:
+ *   -v 10 and -v 11: the DAC's triangle or noise generator on A00, from a
+ *   base of 0 (a fresh open starts the output at 0).
+ *
+ ****************************************************************************/
+
+static void dac_test_wave_generator(int test, uint32_t type,
+                                    uint32_t rate_hz, const char *what)
+{
+  struct meadow_dac_wave_s wave;
+  int ret;
+
+  meadow_dac_open(DAC_TEST_PIN_A00, 0);
+  dac_test_wave_init(&wave, type, rate_hz);
+  wave.amplitude = DAC_TEST_MAX_VALUE;
+
+  ret = meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave);
+  dac_test_wave_report(test, what, ret, wave.actual_hz);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -457,9 +856,37 @@ void meadow_dac_tests(uint32_t userdata)
         dac_test_close_all();
         break;
 
+      case 7:
+        dac_test_wave_api();
+        break;
+
+      case 8:
+        dac_test_wave_sine(false);
+        break;
+
+      case 9:
+        dac_test_wave_saw();
+        break;
+
+      case 10:
+        dac_test_wave_generator(10, MEADOW_DAC_WAVE_TRIANGLE,
+                                DAC_TEST_TRI_RATE,
+                                "triangle (about 122 Hz) on A00");
+        break;
+
+      case 11:
+        dac_test_wave_generator(11, MEADOW_DAC_WAVE_NOISE,
+                                DAC_TEST_NOISE_RATE, "noise on A00");
+        break;
+
+      case 12:
+        dac_test_wave_sine(true);
+        break;
+
       default:
         syslog(LOG_MTEST, "DAC test: unknown -v %lu. Use 1 (API checks), "
-               "2-4 (level steps), 5 (hold A00), 6 (close all)\n",
+               "2-4 (level steps), 5 (hold A00), 6 (close all), "
+               "7 (waveform API checks), 8-12 (waveforms)\n",
                (unsigned long)userdata);
         break;
     }

@@ -310,20 +310,246 @@ a 1.5 MOhm resistor from the pin to GND. Test 1 passed all 16 checks.
   that it is now a user-space test.
 - `build.sh`: the `-u=dac` comment, which today says the test is in the kernel.
 
-## Later: Waveforms
+## Waveforms (Design, Issue #658)
 
-Waveform output (a timer paces the output from a buffer, looping or streamed) would be
-new calls. The three static-level calls above would not change. Notes for that work:
+> **Status:** buffer loops, triangle and noise implemented (`F7MeadowOS/misc/meadow_dac.c`),
+> with developer tests 7 to 12. Streaming is not implemented.
 
-- **Timers:** the DAC can be triggered from TIM2, TIM4, TIM5, TIM6, TIM7 or TIM8. TIM6 and
-  TIM7 are the only timers with no GPIO, which makes them the natural choice, but both are
-  already in use (TIM6 by the idle monitor). TIM2, TIM4 and TIM8 drive PWM outputs. Finding
-  a trigger timer is an open problem for the waveform work.
-- **DMA:** DAC channel 1 is served by DMA1 stream 5 and channel 2 by DMA1 stream 6
-  (**TODO:** confirm against the reference manual and check they are free). The buffer
-  would come from the caller or be allocated at open, never reserved statically, and it
-  needs data-cache maintenance.
-- A new managed contract would be needed; Meadow.Contracts has nothing for it today.
+A waveform is output paced by a timer instead of set by each `meadow_dac_write()`. The
+first version has two kinds:
+
+- **Buffer loop:** the app supplies up to 8,192 samples and a sample rate. DMA feeds one
+  sample to the DAC per timer pulse and starts again at the first sample after the last,
+  until stopped. One cycle of a sine wave in the buffer gives a continuous sine wave.
+- **Triangle and noise:** the DAC generates these itself. Each timer pulse steps the
+  triangle up or down by one, or loads a new pseudo-random value. No buffer or DMA is
+  needed.
+
+Streaming (continuous new data, such as audio) is left for later. It needs a refill API and
+flow control, and it is the hardest to make safe against a misbehaving app.
+
+### How It Works
+
+1. **TIM6 sets the sample rate.** It runs from 108 MHz with a time base only: prescaler,
+   reload value, and master mode "update" (`CR2.MMS = 010`), so it pulses its trigger output
+   (TRGO) once per sample. It has no pins and no interrupt. TIM6 was freed for this by #657.
+2. **The DAC listens to TIM6.** With `TSELx = 000` (TIM6) and `TENx = 1`, each pulse moves the
+   waiting value to the output.
+3. **For a buffer loop, DMA supplies the next value.** With `DMAENx = 1` each pulse also
+   requests the next sample from DMA1, which reads the kernel's copy of the buffer in
+   circular mode:
+
+   | DAC channel | Pin | DMA          | Request channel | NuttX name    |
+   |-------------|-----|--------------|-----------------|---------------|
+   | 1           | A00 | DMA1 stream 5 | 7              | `DMAMAP_DAC1` |
+   | 2           | A01 | DMA1 stream 6 | 7              | `DMAMAP_DAC2` |
+
+   Nothing else in the Meadow configuration uses these two streams; see
+   [DMA Streams in Use](#dma-streams-in-use).
+4. **For triangle or noise, the DAC does the rest.** `WAVEx` selects triangle or noise and
+   `MAMPx` its amplitude. The output is the value last written plus the generated value.
+
+The CPU does no work per sample in either kind.
+
+### DMA Streams in Use
+
+Checked in the current tree (standard build) and in Legacy (`mono/defconfig`). The NuttX F7
+drivers that can claim a DMA stream are serial, SPI, SDMMC, QSPI, ADC, I2S and SAI; the F7
+I2C driver has no DMA support. In Meadow's own code only `meadow_adc.c` claims one.
+
+| User | DMA stream (request channel) | When it is claimed |
+|------|------------------------------|--------------------|
+| SPI2 RX / TX | DMA1 stream 3 / 4 (ch0) | first use of the bus, then held |
+| SPI3 RX / TX | DMA1 stream 2 / 7 (ch0) | first use of the bus, then held |
+| SPI5 RX / TX | DMA2 stream 3 / 4 (ch2) | first use of the bus, then held |
+| SDMMC2 (SD card) | DMA2 stream 0 (ch11) | at start-up |
+| QSPI flash | DMA2 stream 7 (ch3) | at start-up (current tree only) |
+| Meadow ADC array | DMA2 stream 4 (ch0) | while an ADC array is configured |
+| **DAC channel 1 / 2** | **DMA1 stream 5 / 6 (ch7)** | **only while a waveform plays** |
+
+No serial port has DMA enabled (USART1, UART4 and UART5 have it off), and I2S and SAI are not
+enabled. SPI5 and the ADC array share DMA2 stream 4; that is a separate problem, tracked in
+#660.
+
+**Off limits while the DAC uses DMA1 streams 5 and 6.** These users are mapped to the same two
+streams and must not be enabled without moving the DAC or them:
+
+| User | DMA1 stream (request channel) |
+|------|-------------------------------|
+| I2C1 RX / TX | 5 / 6 (ch1) (no F7 driver support today) |
+| I2C4 TX | 5 (ch2) or 6 (ch8) |
+| USART2 RX / TX | 5 / 6 (ch4) |
+| UART8 RX | 6 (ch5) |
+| SPI3 TX, alternative mapping (`DMAMAP_SPI3_TX_1`) | 5 (ch0) |
+| SPI2 TX, alternative mapping (`DMAMAP_SPI2_TX_1`) | 6 (ch9) |
+| SPDIFRX | 6 (ch0) |
+| TIM2 CH1/CH2/CH4, TIM3 CH2, TIM4 UP, TIM5 UP requests | 5 or 6 (ch2, 3, 5, 6) |
+
+### Sharing TIM6
+
+TIM6 is the only free timer the DAC can use, so both channels share it. If both channels
+play waveforms at once, they run at the same sample rate. Starting a waveform on the second
+channel at a different rate from the one already running fails with `-EBUSY`; the same rate
+is fine. A static level on the other channel is not affected. TIM6 runs only while at least
+one channel is playing a waveform.
+
+### Sample Rate
+
+The requested rate is `rate_hz`, a whole number from 1 Hz to 1,000,000 Hz (the DAC's
+maximum update rate). The driver picks the prescaler and reload value that come closest,
+and reports the rate it actually set in `actual_hz` (rounded to a whole number):
+`actual = 108,000,000 / ((PSC + 1) * (ARR + 1))`. For example, 44,100 Hz is not exact and
+would be reported as the nearest achievable rate.
+
+### API
+
+Waveforms use two calls. The set-up is passed as a struct rather than as separate
+parameters, following the pattern of other Meadow syscalls such as
+`meadow_measure_freq_configure()`. The struct can gain fields later, for example for
+streaming, without changing the syscall, and its `size` field lets the kernel reject a caller
+built against a different layout instead of misreading it.
+
+```c
+/* struct meadow_dac_wave_s types */
+
+#define MEADOW_DAC_WAVE_BUFFER    1   /* Loop a buffer of samples */
+#define MEADOW_DAC_WAVE_TRIANGLE  2   /* DAC triangle generator */
+#define MEADOW_DAC_WAVE_NOISE     3   /* DAC noise generator */
+
+struct meadow_dac_wave_s
+{
+  uint32_t        size;       /* sizeof(struct meadow_dac_wave_s), set by the caller */
+  uint32_t        type;       /* MEADOW_DAC_WAVE_* */
+  uint32_t        rate_hz;    /* Requested sample rate */
+  uint32_t        actual_hz;  /* Out: the rate actually set */
+  uint32_t        amplitude;  /* Triangle and noise only */
+  uint32_t        count;      /* Buffer only: number of samples */
+  const uint16_t *samples;    /* Buffer only: the samples */
+};
+
+int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave);
+int meadow_dac_wave_stop(uint8_t pinid);
+```
+
+Both are syscalls, return `0` or a negative error code like the static-level calls, and need
+the channel to be open first (`meadow_dac_open()`), otherwise `-EBADF`.
+
+On the managed side the struct is a `[StructLayout(LayoutKind.Sequential)]` struct of seven
+32-bit fields, with `samples` as an `IntPtr` to a pinned `ushort[]`. Every field is 32 bits
+(the F7 is a 32-bit MCU), so there is no padding to get wrong. Fields that a type does not
+use are ignored, but should be set to 0.
+
+#### meadow_dac_wave_start
+
+Starts a waveform on an open channel.
+
+1. Copy the struct from the caller and check everything before touching the hardware:
+   - the pin and that the channel is open (`-EBADSLT`, `-EBADF`)
+   - `wave` is not NULL and `size` is `sizeof(struct meadow_dac_wave_s)` (`-EINVAL`)
+   - `type` is one of the `MEADOW_DAC_WAVE_*` values (`-EINVAL`)
+   - `rate_hz` is 1 to 1,000,000 (`-EINVAL`)
+   - no waveform is already running on this channel, and any waveform on the other channel
+     runs at the same rate (`-EBUSY`)
+   - the checks for the type, below
+2. Start the waveform, as described for each type below.
+3. Write the rate actually set into the caller's `actual_hz`.
+
+**`MEADOW_DAC_WAVE_BUFFER`** plays a buffer of samples in a loop.
+
+- `count` is 1 to 8,192, `samples` is not NULL, and every sample is 0 to 4095 (`-EINVAL`).
+- The driver allocates its own copy of the buffer, aligned to the 32-byte data cache line,
+  and copies the samples into it (`-ENOMEM` if there is no memory). The app can free or reuse
+  its own buffer as soon as the call returns.
+- It cleans the copy from the data cache, so DMA reads what was copied (compare #653).
+- It claims the DMA stream, sets it up (memory to peripheral, 16-bit, memory increment,
+  circular, peripheral address `DHR12Rx`) and starts it.
+- It sets `TSELx` to TIM6, and `TENx` and `DMAENx` in `DAC_CR`, then starts TIM6 if it is not
+  already running.
+
+**`MEADOW_DAC_WAVE_TRIANGLE`** and **`MEADOW_DAC_WAVE_NOISE`** use the DAC's own generators.
+
+- `amplitude` is one of 1, 3, 7, 15, 31, 63, 127, 255, 511, 1023, 2047 or 4095, the values the
+  hardware supports (`-EINVAL` otherwise).
+  - **Triangle:** the output ramps from the last value written up to that value plus
+    `amplitude`, one step per pulse, and back down. One cycle takes `2 * amplitude` pulses, so
+    the triangle's frequency is `rate_hz / (2 * amplitude)`. The last value written plus
+    `amplitude` must not exceed 4095 (`-EINVAL`).
+  - **Noise:** each pulse adds a new pseudo-random value, masked to `amplitude`, to the last
+    value written.
+- The driver sets `WAVEx`, `MAMPx`, `TSELx` to TIM6 and `TENx`, then starts TIM6 if it is not
+  already running.
+
+#### meadow_dac_wave_stop
+
+Stops the waveform on a channel.
+
+- Stops TIM6 if the other channel is not playing a waveform, then clears `TENx`, `DMAENx`,
+  `WAVEx` and `MAMPx`, stops and releases the DMA stream, and frees the kernel's copy of the
+  buffer.
+- The channel stays open, back in static mode. With the trigger off, the output takes the
+  value in the holding register: for a buffer loop, the sample DMA had loaded next; for
+  triangle or noise, the base value (the last value written). `meadow_dac_write()` then works
+  as before.
+- Returns `-EBADF` if the channel is not open, and `-EINVAL` if no waveform is running on it.
+
+#### Changes to the Static-Level Calls
+
+- `meadow_dac_write()` during a waveform returns `-EBUSY`: the output register is being fed by
+  DMA or the waveform generator.
+- `meadow_dac_read()` during a waveform returns whatever value is on the output at that
+  moment. The test uses this to check that a waveform is running without a scope.
+- `meadow_dac_open()` of a channel that is playing a waveform stops the waveform first, then
+  restarts the channel as before.
+- `meadow_dac_close()` stops any waveform on the channel first.
+
+### Details and Pitfalls
+
+- **Blocking DMA claim.** NuttX's `stm32_dmachannel()` waits, uninterruptibly, if the stream is
+  already held. The driver claims the stream only while a waveform plays, and nothing else in
+  Meadow may use DMA1 streams 5 and 6. This must be kept in mind if UART or I2C DMA is ever
+  switched on.
+- **Loop interrupts.** In circular mode the NuttX DMA driver always enables the
+  transfer-complete interrupt, which would fire once per loop of the buffer: at 1 MS/s with a
+  short buffer, far too often. So the driver sets the stream up with `stm32_dmasetup()` and
+  then enables it itself, with only the transfer-error interrupt; nothing needs to know when
+  a loop ends.
+- **DMA underrun.** If DMA ever failed to supply a sample in time, the DAC would set
+  `DMAUDRx` in `DAC_SR` and stop requesting. That is not expected at these rates. The first
+  version does not handle it; `meadow_dac_wave_stop()` clears the flag.
+- **Memory.** At most 8,192 samples (16 KB) per channel, 32 KB for both, from the kernel heap,
+  only while a waveform plays.
+- **Locking.** The same mutex as the static-level calls. None of the waveform calls waits for
+  hardware.
+
+### Waveform Tests
+
+Added to developer test 15. Like `-v 5`, each waveform test starts the waveform and returns,
+leaving it playing until `-v 6` closes both channels. Watch A00 (and A01) on a scope.
+
+| `-v` | Test |
+|------|------|
+| 7    | API checks for the waveform calls, no scope needed: wrong struct size, bad count, bad sample, bad rate, bad type and amplitude, write during a waveform, a different rate on the second channel, stop with no waveform. It also checks that `meadow_dac_read()` changes while a buffer loop plays. |
+| 8    | Sine on A00: 60 samples at 60,000 Hz, a 1 kHz sine wave. |
+| 9    | Sawtooth on A00: 250 samples at 25,000 Hz, a 100 Hz sawtooth. |
+| 10   | Triangle on A00: amplitude 4095 from 0 at 1,000,000 Hz, about 122 Hz. |
+| 11   | Noise on A00: amplitude 4095 at 100,000 Hz. |
+| 12   | Sine on A00 and cosine on A01, both 60 samples at 60,000 Hz. On a scope in XY mode this draws a circle, which shows both channels running at the same rate from the shared TIM6. |
+
+The test rates divide 108 MHz exactly, so the frequencies on the scope should match. For
+each test, check the frequency and the voltage range, and that `-v 6` stops the output.
+
+### Waveform Hardware Results
+
+Measured 2026-09-29 on a Core Compute Module, output buffer on, with an oscilloscope.
+
+| Test | Result |
+|------|--------|
+| 7    | All 30 checks passed. The actual rate was reported as exactly 60,000 Hz. A01 kept playing after A00 stopped, so stopping one channel leaves the shared TIM6 running for the other. |
+| 8    | 1 kHz sine, a little over 3 V peak to peak (about 0.05 to 3.2 V, the buffered range). |
+| 9    | 100 Hz sawtooth, the same amplitude. The scope's frequency reading varied from 99.951 to 100.083 Hz when triggered on the ramp; triggering on the falling edge steadied it. The sample timing comes from TIM6 in hardware, so this is the trigger point moving on the 40 us steps and the slewing drop, not the output. |
+| 10   | Triangle at about 122 Hz, from the DAC's generator stepping at 1 MHz, the DAC's maximum. |
+| 11   | Noise across the same full amplitude. |
+| 12   | In XY mode, a steady, non-rotating circle centred at about (1.6 V, 1.6 V), so both channels are locked to the same TIM6 pulses. It is slightly out of round, as expected from the buffered range flattening the extremes, the small gain difference between the channels, and the 60-step staircase. |
 
 ## Decisions
 

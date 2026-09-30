@@ -70,6 +70,8 @@
 "meadow_dac_close","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t"
 "meadow_dac_open","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","uint32_t"
 "meadow_dac_read","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","FAR uint32_t *"
+"meadow_dac_wave_start","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","FAR struct meadow_dac_wave_s *"
+"meadow_dac_wave_stop","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t"
 "meadow_dac_write","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","uint32_t"
 "meadow_cloud_provision","meadow/meadow_cloud.h","defined(CONFIG_MEADOW_CLOUD)","int","FAR const char *","int","FAR const char *","int","FAR void *"
 "meadow_cloud_release_private_key","meadow/meadow_cloud.h","defined(CONFIG_MEADOW_CLOUD)","int","FAR char **"
