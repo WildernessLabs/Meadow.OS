@@ -39,7 +39,7 @@ The combined `Meadow.OS.bin` image is assembled by the build script using `srec_
  +---------------------------------------------------------------------+
  |  External Memory                                                    |
  |  0xC0000000  SDRAM (32 MB)   - heap2 (3 MB exposed to NuttX)        |
- |  QSPI        32 MB Flash     - secondary OS image / FS / runtime    |
+ |  QSPI        64 MB Flash     - secondary OS image / FS / runtime    |
  +---------------------------------------------------------------------+
 ```
 

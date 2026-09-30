@@ -55,6 +55,7 @@
 #endif
 
 #include <meadow/meadow_os.h>
+#include <meadow/meadow_hw_version.h>
 #include <meadow/hcom_traverse_ku.h>
 
 // #pragma GCC optimize("O0")    // Prevent code optimization
@@ -122,6 +123,60 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // https://cwiki.apache.org/confluence/display/NUTTX/Tasks+vs.+Threads+FAQ
 // https://cwiki.apache.org/confluence/pages/viewpage.action?pageId=158862687
 //
+//=========================================================================
+// Start only what is needed to answer the CLI on a board that is not
+// supported, then run CLI request processing. Does not return.
+static int hcom_startup_mgr_unsupported_board(void)
+{
+  int ret;
+
+  // Allocates memory and initializes hcom circular buffer
+  ret = hcom_host_enq_deq_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+    return ret;
+  }
+
+  // Sets one variable
+  ret = hcom_host_route_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+    return ret;
+  }
+
+  // Allocates memory and sets some internal variables
+  ret = hcom_host_send_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
+    return ret;
+  }
+
+  // Reset before spawning the thread that will release this semaphore
+  _semaphoreRet = OK;
+
+  // Creates a thread to run hcom USB serial receive
+  ret = hcom_host_recv_setup();
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+    return ret;
+  }
+
+  ret = hcom_startup_mgr_takesem(&_startupWaitSem);
+  if (ret < 0)
+  {
+    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+    return ret;
+  }
+
+  // Does not return
+  return hcom_host_process_setup();
+}
+
+//=========================================================================
 int hcom_main(int argc, char *argv[])
 {
   int ret;
@@ -186,6 +241,15 @@ int hcom_main(int argc, char *argv[])
   {
     syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", __FILE__, __LINE__, ret);
     return ret;
+  }
+
+  // The F7FeatherV1 is not supported (Issue #453) and the kernel set up no
+  // flash, file system, config or ESP32 for it. Start only host comms, then
+  // process CLI requests, which hcom_host_handle_packet() answers with a
+  // "not supported" error.
+  if (hcom_via_nx_get_hw_version() == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+  {
+    return hcom_startup_mgr_unsupported_board();
   }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0

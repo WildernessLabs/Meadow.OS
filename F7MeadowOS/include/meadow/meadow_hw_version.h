@@ -58,8 +58,8 @@
 #define MEADOW_F7_HW_VERSION_NUMB_F7V2 (2)
 #define MEADOW_F7_HW_VERSION_NUMB_CCMV2 (3)
 
-// Size of each versions flash
-#define MEADOW_F7_HW_VERSION_F7V1_FLASH_SIZE  (33554432)  // 32 MB
+// Size of each versions flash. The F7V1 (32 MB S25FL) is detected but not
+// supported, board_late_initialize() halts on it (Issue #453).
 #define MEADOW_F7_HW_VERSION_F7V2_FLASH_SIZE  (67108864)  // 64 MB
 #define MEADOW_F7_HW_VERSION_CCMV2_FLASH_SIZE (67108864)  // 64 MB
 

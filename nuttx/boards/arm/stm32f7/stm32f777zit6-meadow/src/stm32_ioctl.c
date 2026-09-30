@@ -65,12 +65,6 @@
 // boards/arm/stm32f7/stm32f777zit6-meadow/src/stm32_appinitialize.c and this is
 // more obvious.
 // If the driver is modified then the following must change too
-#if defined(CONFIG_MTD_S25FL)
-  // keep in sync with s25fl.c driver
-  #define MTD_S25FL_FLASH_QSPI_ADDRLEN       (4)
-  #define MTD_S25FL_FLASH_READ_QUADIO        (0xeb)
-  #define MTD_S25FL_FLASH_NUMBER_DUMMIES     (10)
-#endif
 #if defined(CONFIG_MTD_W25QXXXJV)
   // Keep in sync with w25qxxxjv.c driver
   // All three remain a hardcoded duplicate, verified correct for the
@@ -136,14 +130,6 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
           // The following defines are in include\meadow\meadow_hw_version.h
           switch(meadow_hw_ver)
           {
-#if defined(CONFIG_MTD_S25FL)
-            case MEADOW_F7_HW_VERSION_NUMB_F7V1:
-              meminfo.addrlen = MTD_S25FL_FLASH_QSPI_ADDRLEN;
-              meminfo.cmd     = MTD_S25FL_FLASH_READ_QUADIO;
-              meminfo.dummies = MTD_S25FL_FLASH_NUMBER_DUMMIES;
-              break;
-#endif
-
 #if defined(CONFIG_MTD_W25QXXXJV)
             case MEADOW_F7_HW_VERSION_NUMB_F7V2:
             case MEADOW_F7_HW_VERSION_NUMB_CCMV2:

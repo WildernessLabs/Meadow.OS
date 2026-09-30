@@ -44,6 +44,7 @@
 #include <sys/mount.h>
 #include <meadow/meadow_partition_share.h>
 #include <meadow/meadow_extended_errno.h>
+#include <meadow/meadow_hw_version.h>
 #if defined (CONFIG_DIR_MGMT_TESTS)
 #pragma message "(--) hcom_host_preprocess.c"
 #endif
@@ -57,6 +58,10 @@
  ****************************************************************************/
 
 static bool _shutting_down;
+
+// True on a board this release does not support (the F7FeatherV1, Issue
+// #453). Every CLI request is then answered with an error.
+static bool _unsupported_board;
 
 // The following are allocated at startup and continue for the life of Meadow
 static hcom_dnld_shared_t *_dnldShared;
@@ -152,6 +157,8 @@ int hcom_host_process_setup()
 {
   int ret;
   _shutting_down = false;
+  _unsupported_board =
+    (hcom_via_nx_get_hw_version() == MEADOW_F7_HW_VERSION_NUMB_F7V1);
 
   // These allocation continue throughout the life of Meadow
   _packet_dest_buf = (uint8_t *)malloc(HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE);
@@ -675,6 +682,32 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       // Exit if below HCOM_PROTOCOL_MINIMUM_PROTOCOL_NUMBER
       return -ENOTSUP;
     }
+  }
+
+  //------------------------------------------------------------------
+  // On a board this release does not support nothing else was set up, so
+  // no request is processed. The download requests also need a failed
+  // init reply or the CLI keeps waiting.
+  if(_unsupported_board)
+  {
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+            "F7FeatherV1 (S25FL flash) is not supported by this Meadow.OS "
+            "release", __FILE__, __LINE__);
+
+    if(requestType == HCOM_MDOW_REQUEST_START_FILE_TRANSFER ||
+       requestType == HCOM_MDOW_REQUEST_MONO_UPDATE_RUNTIME ||
+       requestType == HCOM_MDOW_REQUEST_DELETE_FILE_BY_NAME)
+    {
+      hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
+              __FILE__, __LINE__);
+    }
+
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
+            "", __FILE__, __LINE__);
+
+    // Fully answered, so OK: an error return would make the caller send
+    // its own generic error message as well
+    return OK;
   }
 
   //------------------------------------------------------------------

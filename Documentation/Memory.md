@@ -14,7 +14,7 @@ nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld
 
 | Region | Name | Origin | Length | Contents |
 |--------|------|--------|--------|----------|
-| Boot | — | `0x08000000` | 256 KB | Bootloader (`Meadow.BL`) |
+| Boot | -- | `0x08000000` | 256 KB | Bootloader (`Meadow.BL`) |
 | Kernel flash | `kflash` | `0x08040000` | 1024 KB | NuttX kernel (`nuttx.bin`) |
 | User flash | `uflash` | `0x08100000` | 1024 KB | NuttX user space (`nuttx_user.bin`) |
 
@@ -46,7 +46,7 @@ Defined in `user-space.ld`:
 
 ## Internal SRAM (512 KB)
 
-### DTCM SRAM — `0x20000000`, 128 KB
+### DTCM SRAM -- `0x20000000`, 128 KB
 
 Tightly coupled to the Cortex-M7 core. Used for fast kernel data and stacks.
 
@@ -54,7 +54,7 @@ Tightly coupled to the Cortex-M7 core. Used for fast kernel data and stacks.
 dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 ```
 
-### SRAM1 — Kernel + User Split
+### SRAM1 -- Kernel + User Split
 
 SRAM1 is 368 KB total but the layout was extended to accommodate the Ethernet DMA buffers:
 
@@ -68,8 +68,8 @@ Approximate kernel SRAM layout:
 | Address | Contents |
 |---------|----------|
 | `0x20020000` | Kernel `.data` region (~0.1 KB typical) |
-| — | Kernel `.bss` region (~1.8 KB typical) |
-| — | Kernel IDLE thread stack (8 KB, sized by `CONFIG_IDLETHREAD_STACKSIZE`) |
+| -- | Kernel `.bss` region (~1.8 KB typical) |
+| -- | Kernel IDLE thread stack (8 KB, sized by `CONFIG_IDLETHREAD_STACKSIZE`) |
 | `0x20022000` | Start of kernel heap (128 KB, `CONFIG_MM_KERNEL_HEAPSIZE`) |
 
 User SRAM layout:
@@ -77,9 +77,9 @@ User SRAM layout:
 | Address | Contents |
 |---------|----------|
 | `0x20040000` | User `.data` and `.bss` regions |
-| — | User heap (remainder of usram) |
+| -- | User heap (remainder of usram) |
 
-### SRAM2 — `0x2007c000`, 16 KB
+### SRAM2 -- `0x2007c000`, 16 KB
 
 ```
 sram2 (rwx) : ORIGIN = 0x2007c000, LENGTH = 16K
@@ -87,7 +87,7 @@ sram2 (rwx) : ORIGIN = 0x2007c000, LENGTH = 16K
 
 Reserved / miscellaneous kernel use.
 
-## External SDRAM — `0xC0000000`, 32 MB
+## External SDRAM -- `0xC0000000`, 32 MB
 
 Managed through the FMC (Flexible Memory Controller). Initialised by both the bootloader and the NuttX board bring-up.
 
@@ -101,7 +101,9 @@ CONFIG_HEAP2_SIZE=33554432   (32 MB physical, 3 MB visible to NuttX heap)
 
 The `MM_REGIONS=3` setting accounts for: ksram heap, usram heap, and SDRAM heap2.
 
-## External QSPI Flash — 32 MB
+## External QSPI Flash -- 64 MB
+
+A 64 MB Winbond W25Q512 on the F7FeatherV2 and CCMv2 (`CONFIG_STM32F7_QSPI_FLASH_SIZE`). The F7FeatherV1 and its 32 MB Spansion S25FL are not supported: `board_late_initialize()` detects the V1 from the flash chip's ID, lights the red LED and sets up nothing more; hcom starts only host comms and answers every CLI request with a "not supported" error (Issue #453).
 
 Not directly memory-mapped by NuttX at runtime but accessed through the QSPI driver. Partition layout (from `bootloader/Core/Inc/partitions.h`):
 
@@ -109,7 +111,7 @@ Not directly memory-mapped by NuttX at runtime but accessed through the QSPI dri
 |-----------|--------|------|----------|
 | Secondary OS image | `0x00300000` (`NUTTX_SEC_QSPI_LOC`) | 1792 KB (`NUTTX_SIZE`) | OTA staging image |
 | OTA data | `NUTTX_SEC_QSPI_LOC + NUTTX_SIZE` | 256 B | OTA flags and state |
-| File system | Remaining | ~29 MB | User files, Mono runtime, configuration |
+| File system | Remaining | ~61 MB | User files, Mono runtime, configuration |
 
 The Mono runtime slice is also extracted separately as `Meadow.OS.Runtime.bin` (3072 KB) at build time.
 
