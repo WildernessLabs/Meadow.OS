@@ -56,6 +56,22 @@
  *   -v 10 Triangle on A00, amplitude 4095 at 1,000,000 Hz (about 122 Hz).
  *   -v 11 Noise on A00, amplitude 4095 at 100,000 Hz.
  *   -v 12 1 kHz sine on A00 and cosine on A01: a circle in XY mode.
+ *
+ * Streaming (issue #662), on A00 at 48,000 Hz. These run for up to 10
+ * seconds, within the CLI's default 60-second test timeout.
+ *
+ *   -v 13 Streaming API checks. No scope needed.
+ *   -v 14 Tones for 10 s (500 Hz, 1 kHz, 2 kHz, changing each second) with
+ *         the default ring. Expect no gaps and 0 underruns.
+ *   -v 15 Deliberate underrun: 2 s of 1 kHz, 2 s of nothing (the fill
+ *         value, mid-scale), 2 s of 1 kHz.
+ *   -v 16 The same tones as 14 with a 256-sample ring (about 5 ms).
+ *   -v 17 The same with a 512-sample ring (about 11 ms).
+ *   -v 18 The same with a 1024-sample ring (about 21 ms).
+ *
+ * Tests 16 to 18 measure how small a ring the test's writer (the HCOM
+ * thread) keeps up with, so they report the underrun count rather than
+ * passing or failing.
  */
 
 /****************************************************************************
@@ -118,6 +134,17 @@
 #define DAC_TEST_TRI_RATE         1000000   /* 1e6 / (2 * 4095) = 122 Hz */
 #define DAC_TEST_NOISE_RATE       100000
 #define DAC_TEST_WAVE_MAX_SAMPLES 8192
+
+/* Streaming tests */
+
+#define DAC_TEST_STREAM_RATE      48000     /* Divides 108 MHz exactly */
+#define DAC_TEST_STREAM_FILL      2048      /* Mid-scale: silence */
+#define DAC_TEST_STREAM_SMALL     256       /* Smallest ring */
+#define DAC_TEST_STREAM_512       512
+#define DAC_TEST_STREAM_1024      1024
+#define DAC_TEST_STREAM_CHUNK     480       /* 10 ms at 48,000 Hz */
+#define DAC_TEST_STREAM_TIMEOUT   100       /* ms per write */
+#define DAC_TEST_TONE_SAMPLES     96        /* One 500 Hz cycle at 48 kHz */
 
 /****************************************************************************
  * Private Data
@@ -446,6 +473,22 @@ static void dac_test_close_all(void)
          meadow_dac_close(DAC_TEST_PIN_A00),
          meadow_dac_close(DAC_TEST_PIN_A01), -EBADF);
 }
+
+/* One cycle of a full-scale sine wave, 96 samples: 500 Hz at 48,000 Hz.
+ * Stepping through it 2 or 4 samples at a time gives 1 kHz or 2 kHz.
+ */
+
+static const uint16_t g_dac_test_tone[DAC_TEST_TONE_SAMPLES] =
+{
+  2048, 2181, 2315, 2447, 2577, 2706, 2831, 2953, 3071, 3185, 3294, 3398,
+  3495, 3587, 3672, 3750, 3821, 3884, 3939, 3986, 4025, 4056, 4077, 4091,
+  4095, 4091, 4077, 4056, 4025, 3986, 3939, 3884, 3821, 3750, 3672, 3587,
+  3495, 3398, 3294, 3185, 3071, 2953, 2831, 2706, 2577, 2447, 2315, 2181,
+  2048, 1914, 1780, 1648, 1518, 1389, 1264, 1142, 1024, 910, 801, 697,
+  600, 508, 423, 345, 274, 211, 156, 109, 70, 39, 18, 4,
+  0, 4, 18, 39, 70, 109, 156, 211, 274, 345, 423, 508,
+  600, 697, 801, 910, 1024, 1142, 1264, 1389, 1518, 1648, 1780, 1914
+};
 
 /****************************************************************************
  * Name: dac_test_wave_init
@@ -814,6 +857,356 @@ static void dac_test_wave_generator(int test, uint32_t type,
 }
 
 /****************************************************************************
+ * Name: dac_test_stream_start
+ *
+ * Description:
+ *   Open A00 and start a stream on it at 48,000 Hz, as Meadow.Core would.
+ *
+ ****************************************************************************/
+
+static int dac_test_stream_start(uint32_t ring)
+{
+  struct meadow_dac_wave_s wave;
+  int ret;
+
+  ret = meadow_dac_open(DAC_TEST_PIN_A00, 0);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_STREAM, DAC_TEST_STREAM_RATE);
+  wave.ring = ring;
+  wave.fill = DAC_TEST_STREAM_FILL;
+  return meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave);
+}
+
+/****************************************************************************
+ * Name: dac_test_stream_status
+ ****************************************************************************/
+
+static int dac_test_stream_status(struct meadow_dac_wave_status_s *status)
+{
+  memset(status, 0, sizeof(*status));
+  status->size = sizeof(*status);
+  return meadow_dac_wave_status(DAC_TEST_PIN_A00, status);
+}
+
+/****************************************************************************
+ * Name: dac_test_stream_tones
+ *
+ * Description:
+ *   Write 'seconds' of tones to the A00 stream: 500 Hz, 1 kHz and 2 kHz,
+ *   changing each second (or 1 kHz only). Returns the number of samples
+ *   written, or a negative error.
+ *
+ ****************************************************************************/
+
+static int dac_test_stream_tones(int seconds, bool change)
+{
+  static uint16_t chunk[DAC_TEST_STREAM_CHUNK];
+  uint32_t total = (uint32_t)seconds * DAC_TEST_STREAM_RATE;
+  uint32_t done = 0;
+  uint32_t phase = 0;
+  uint32_t step;
+  uint32_t i;
+  int ret;
+
+  while (done < total)
+    {
+      /* 500 Hz, 1 kHz, 2 kHz, one second each */
+
+      step = change ? (1u << ((done / DAC_TEST_STREAM_RATE) % 3)) : 2;
+
+      for (i = 0; i < DAC_TEST_STREAM_CHUNK; i++)
+        {
+          chunk[i] = g_dac_test_tone[phase];
+          phase = (phase + step) % DAC_TEST_TONE_SAMPLES;
+        }
+
+      i = 0;
+      while (i < DAC_TEST_STREAM_CHUNK)
+        {
+          ret = meadow_dac_wave_write(DAC_TEST_PIN_A00, chunk + i,
+                                      DAC_TEST_STREAM_CHUNK - i,
+                                      DAC_TEST_STREAM_TIMEOUT);
+          if (ret < 0)
+            {
+              return ret;
+            }
+
+          i += ret;
+        }
+
+      done += DAC_TEST_STREAM_CHUNK;
+    }
+
+  return (int)done;
+}
+
+/****************************************************************************
+ * Name: dac_test_stream_finish
+ *
+ * Description:
+ *   Report the underruns counted while the test was writing, wait (up to a
+ *   second) for everything written to play, report the underruns counted
+ *   while it drained, then stop the stream and close A00.
+ *
+ *   The two are reported separately because they mean different things.
+ *   'during' is the count when the last write returned: those are halves
+ *   DMA reached before the writer had filled them, so the writer was late
+ *   (or, for -v 15, the deliberate gap). Once the data runs out, every half
+ *   DMA starts plays the fill value and counts as an underrun too, until
+ *   the stream is stopped; how many depends only on how long the drain
+ *   takes to notice, so those are expected and not judged.
+ *
+ *   If 'judge' is true the test passes only if 'during' is 0.
+ *
+ ****************************************************************************/
+
+static void dac_test_stream_finish(int test, uint32_t during, bool judge,
+                                   const char *during_note)
+{
+  struct meadow_dac_wave_status_s status;
+  uint32_t after;
+  int i;
+
+  for (i = 0; i < 100; i++)
+    {
+      if (dac_test_stream_status(&status) < 0 || status.queued == 0)
+        {
+          break;
+        }
+
+      usleep(10000);
+    }
+
+  after = status.underruns > during ? status.underruns - during : 0;
+
+  syslog(LOG_MTEST, "DAC test %d: %s, %lu underrun(s) while writing (%s); "
+         "%lu more while the data drained (expected)\n", test,
+         !judge ? "done" : (during == 0 ? "PASSED" : "FAILED"),
+         (unsigned long)during, during_note, (unsigned long)after);
+
+  meadow_dac_wave_stop(DAC_TEST_PIN_A00);
+  meadow_dac_close(DAC_TEST_PIN_A00);
+}
+
+/****************************************************************************
+ * Name: dac_test_stream_api
+ *
+ * Description:
+ *   -v 13: check the streaming calls. No scope is needed.
+ *
+ ****************************************************************************/
+
+static void dac_test_stream_api(void)
+{
+  static uint16_t samples[DAC_TEST_STREAM_SMALL * 4];
+  struct meadow_dac_wave_status_s status;
+  struct meadow_dac_wave_s wave;
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 13: streaming API checks on A00\n");
+
+  for (i = 0; i < DAC_TEST_STREAM_SMALL * 4; i++)
+    {
+      samples[i] = g_dac_test_tone[i % DAC_TEST_TONE_SAMPLES];
+    }
+
+  meadow_dac_close(DAC_TEST_PIN_A00);
+  dac_test_check("open A00", meadow_dac_open(DAC_TEST_PIN_A00, 0), OK,
+                 &failures);
+
+  dac_test_check("write with no stream",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 10, 0),
+                 -ENOTCONN, &failures);
+  dac_test_check("status with no stream", dac_test_stream_status(&status),
+                 OK, &failures);
+  dac_test_check("  state is NONE", (int)status.state,
+                 MEADOW_DAC_STREAM_NONE, &failures);
+
+  status.size = 4;
+  dac_test_check("status with wrong size",
+                 meadow_dac_wave_status(DAC_TEST_PIN_A00, &status), -EINVAL,
+                 &failures);
+
+  /* Bad stream set-ups */
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_STREAM, DAC_TEST_STREAM_RATE);
+  wave.fill = DAC_TEST_STREAM_FILL;
+  wave.ring = DAC_TEST_STREAM_SMALL - 2;
+  dac_test_check("ring below 256",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+  wave.ring = 16386;
+  dac_test_check("ring above 16384",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+  wave.ring = DAC_TEST_STREAM_SMALL + 1;
+  dac_test_check("odd ring size",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+  wave.ring = DAC_TEST_STREAM_SMALL;
+  wave.fill = DAC_TEST_MAX_VALUE + 1;
+  dac_test_check("fill above 4095",
+                 meadow_dac_wave_start(DAC_TEST_PIN_A00, &wave), -EINVAL,
+                 &failures);
+
+  /* Priming */
+
+  dac_test_check("start a 256-sample stream",
+                 dac_test_stream_start(DAC_TEST_STREAM_SMALL), OK,
+                 &failures);
+  dac_test_stream_status(&status);
+  dac_test_check("  state is PRIMING", (int)status.state,
+                 MEADOW_DAC_STREAM_PRIMING, &failures);
+  dac_test_check("  space is 256", (int)status.space,
+                 DAC_TEST_STREAM_SMALL, &failures);
+  dac_test_check("write during a stream",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 0), -EBUSY, &failures);
+
+  samples[5] = DAC_TEST_MAX_VALUE + 1;
+  dac_test_check("write with a sample above 4095",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 10, 0),
+                 -EINVAL, &failures);
+  samples[5] = g_dac_test_tone[5];
+  dac_test_stream_status(&status);
+  dac_test_check("  nothing was taken", (int)status.queued, 0, &failures);
+
+  dac_test_check("write 100, timeout 0",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 100, 0),
+                 100, &failures);
+  dac_test_stream_status(&status);
+  dac_test_check("  queued is 100", (int)status.queued, 100, &failures);
+  dac_test_check("  still PRIMING", (int)status.state,
+                 MEADOW_DAC_STREAM_PRIMING, &failures);
+
+  /* Filling the ring starts output; a full ring takes nothing more */
+
+  dac_test_check("write 156 more, filling the ring",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples + 100, 156,
+                                       0),
+                 156, &failures);
+  dac_test_stream_status(&status);
+  dac_test_check("  state is RUNNING", (int)status.state,
+                 MEADOW_DAC_STREAM_RUNNING, &failures);
+
+  ret = meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 1000, 0);
+  dac_test_check("write 1000, timeout 0, takes less than 1000",
+                 ret >= 0 && ret < 1000, true, &failures);
+
+  dac_test_check("write 512, waiting up to 1 s",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 512,
+                                       1000),
+                 512, &failures);
+
+  /* Stop */
+
+  dac_test_check("stop", meadow_dac_wave_stop(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("write after stop",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 10, 0),
+                 -ENOTCONN, &failures);
+  dac_test_check("static write after stop",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 1234), OK, &failures);
+
+  /* A zero-length write starts a stream that is not full */
+
+  dac_test_check("start another stream",
+                 dac_test_stream_start(DAC_TEST_STREAM_SMALL), OK,
+                 &failures);
+  meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 50, 0);
+  dac_test_check("write 0 starts output",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00, samples, 0, 0), 0,
+                 &failures);
+  dac_test_stream_status(&status);
+  dac_test_check("  state is RUNNING", (int)status.state,
+                 MEADOW_DAC_STREAM_RUNNING, &failures);
+
+  dac_test_check("close while streaming",
+                 meadow_dac_close(DAC_TEST_PIN_A00), OK, &failures);
+
+  if (failures == 0)
+    {
+      syslog(LOG_MTEST, "DAC test 13: PASSED\n");
+    }
+  else
+    {
+      syslog(LOG_MTEST, "DAC test 13: FAILED, %d check(s) failed\n",
+             failures);
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_stream_play
+ *
+ * Description:
+ *   -v 14 and -v 16 to -v 18: stream changing tones for 10 seconds with the
+ *   given ring. -v 15: 2 s of tone, 2 s with nothing written, 2 s of tone.
+ *
+ ****************************************************************************/
+
+static void dac_test_stream_play(int test, uint32_t ring, bool gap,
+                                 bool judge)
+{
+  struct meadow_dac_wave_status_s status;
+  uint32_t size = ring == 0 ? 8192 : ring;
+  const char *note;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test %d: streaming on A00 at %d Hz, ring %lu\n",
+         test, DAC_TEST_STREAM_RATE, (unsigned long)size);
+
+  ret = dac_test_stream_start(ring);
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test %d: FAILED to start, returned %d\n",
+             test, ret);
+      meadow_dac_close(DAC_TEST_PIN_A00);
+      return;
+    }
+
+  if (!gap)
+    {
+      ret  = dac_test_stream_tones(10, true);
+      note = "times the writer was late";
+    }
+  else
+    {
+      ret = dac_test_stream_tones(2, false);
+      if (ret >= 0)
+        {
+          syslog(LOG_MTEST, "    Nothing written for 2 s: expect a flat "
+                 "line at mid-scale, and about %lu underruns\n",
+                 (unsigned long)((2 * DAC_TEST_STREAM_RATE) /
+                                 (size / 2)));
+          sleep(2);
+          ret = dac_test_stream_tones(2, false);
+        }
+
+      note = "mostly the 2 s gap";
+    }
+
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test %d: FAILED, write returned %d\n",
+             test, ret);
+    }
+
+  /* The count now, as the last write returns: before any drain */
+
+  if (dac_test_stream_status(&status) < 0)
+    {
+      status.underruns = 0;
+    }
+
+  dac_test_stream_finish(test, status.underruns, judge, note);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -883,10 +1276,35 @@ void meadow_dac_tests(uint32_t userdata)
         dac_test_wave_sine(true);
         break;
 
+      case 13:
+        dac_test_stream_api();
+        break;
+
+      case 14:
+        dac_test_stream_play(14, 0, false, true);
+        break;
+
+      case 15:
+        dac_test_stream_play(15, 0, true, false);
+        break;
+
+      case 16:
+        dac_test_stream_play(16, DAC_TEST_STREAM_SMALL, false, false);
+        break;
+
+      case 17:
+        dac_test_stream_play(17, DAC_TEST_STREAM_512, false, false);
+        break;
+
+      case 18:
+        dac_test_stream_play(18, DAC_TEST_STREAM_1024, false, false);
+        break;
+
       default:
         syslog(LOG_MTEST, "DAC test: unknown -v %lu. Use 1 (API checks), "
                "2-4 (level steps), 5 (hold A00), 6 (close all), "
-               "7 (waveform API checks), 8-12 (waveforms)\n",
+               "7 (waveform API checks), 8-12 (waveforms), "
+               "13 (streaming API checks), 14-18 (streaming)\n",
                (unsigned long)userdata);
         break;
     }

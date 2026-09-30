@@ -325,8 +325,8 @@ first version has two kinds:
   triangle up or down by one, or loads a new pseudo-random value. No buffer or DMA is
   needed.
 
-Streaming (continuous new data, such as audio) is left for later. It needs a refill API and
-flow control, and it is the hardest to make safe against a misbehaving app.
+Streaming (continuous new data, such as audio) is described separately, in
+[Streaming](#streaming-design-issue-662).
 
 ### How It Works
 
@@ -550,6 +550,240 @@ Measured 2026-09-29 on a Core Compute Module, output buffer on, with an oscillos
 | 10   | Triangle at about 122 Hz, from the DAC's generator stepping at 1 MHz, the DAC's maximum. |
 | 11   | Noise across the same full amplitude. |
 | 12   | In XY mode, a steady, non-rotating circle centred at about (1.6 V, 1.6 V), so both channels are locked to the same TIM6 pulses. It is slightly out of round, as expected from the buffered range flattening the extremes, the small gain difference between the channels, and the 60-step staircase. |
+
+## Streaming (Design, Issue #662)
+
+> **Status:** implemented (`F7MeadowOS/misc/meadow_dac.c`), with developer tests 13 to 18.
+> Stereo (the DAC's dual mode) is not implemented.
+
+Streaming plays samples the app keeps supplying, for example audio or a long signal, instead
+of a fixed buffer that loops. It is a fourth waveform type, `MEADOW_DAC_WAVE_STREAM`, started
+with `meadow_dac_wave_start()` and stopped with `meadow_dac_wave_stop()` like the others, plus
+two new calls: one to write samples and one to read the stream's status.
+
+Meadow cannot know what apps will stream, so the defaults are generous and the caller can
+change them.
+
+### How It Works
+
+The driver keeps its own **ring buffer** for the channel, which DMA plays in circular mode at
+the TIM6 rate, exactly as for a buffer loop. The difference is that the ring is refilled while
+it plays:
+
+1. The ring is handled as **two halves**. DMA interrupts at the half-way point and at the end
+   of the ring, which is when it has just finished playing one half and starts on the other.
+2. When DMA finishes a half, that half becomes free. The interrupt handler first fills it
+   with the **fill value** (see [Underruns](#underruns)), then wakes any writer waiting for
+   space.
+3. `meadow_dac_wave_write()` copies the app's samples into free space in order, and cleans
+   what it copied from the data cache. Samples always go into a half that DMA is not playing.
+
+There are only two interrupts per pass of the ring. At 44,100 Hz with the default ring of
+8,192 samples, that is about 11 a second. The latency from write to output is at most the ring
+size divided by the rate: about 186 ms for the default ring at 44,100 Hz, about 6 ms for a
+256-sample ring.
+
+Two channels can stream at once, each with its own ring and DMA stream, sharing TIM6's rate
+like the other waveforms. Each starts when its own ring is ready, so they can be a few samples
+apart, but they never drift. Stereo (the DAC's dual mode, both channels from one stream) is
+left for later.
+
+### Starting
+
+`meadow_dac_wave_start()` with type `MEADOW_DAC_WAVE_STREAM` allocates the ring and fills it
+with the fill value, but does not start output. The stream is **priming**: the app writes
+samples, and output starts on its own once the ring is full, so playback never begins with
+an underrun.
+
+A clip shorter than the ring would never fill it, so the app can also start output at once by
+calling `meadow_dac_wave_write()` with `count` 0. What has been written plays, followed by the
+fill value if nothing more comes.
+
+### Writing and Waiting
+
+`meadow_dac_wave_write()` takes as many samples as fit.
+
+- If they do not all fit, it waits for DMA to free space, up to `timeout_ms` milliseconds
+  in all. A timeout of 0 means do not wait: take what fits now.
+- It returns the number of samples taken, from 0 to `count`. Taking fewer than `count` is not
+  an error; the app writes the rest later. Only a bad argument, or a stream that is not
+  running, returns an error.
+- It never waits forever, and the wait can be interrupted, for example when the app is
+  stopped. It waits without holding the driver lock, so `meadow_dac_wave_stop()` or
+  `meadow_dac_close()` from another thread ends the wait, and the write then returns what it
+  had taken.
+
+Every sample is checked (0 to 4095) before any is copied; one bad sample fails the whole call
+with `-EINVAL` and nothing is taken.
+
+### Underruns
+
+If the app falls behind, DMA does not stop: it moves into the next half whatever it holds.
+Because each half is filled with the fill value as soon as it is freed, a half the app did not
+refill in time plays the fill value instead of old samples.
+
+- The fill value is chosen by the caller in the struct. For audio it would be 2,048
+  (mid-scale, silence); for a control signal, a safe level.
+- If a half was only partly written when DMA reached it, the written part plays and the rest
+  plays the fill value. The next write then continues in the following free half.
+- Each half that DMA starts without being completely written counts as one **underrun**. The
+  count is reported by `meadow_dac_wave_status()`.
+- The stream keeps running; as soon as the app writes again, its samples play.
+- The driver cannot tell an app that has fallen behind from one that has finished. So once
+  the app's data runs out, every further half counts as an underrun until the stream is
+  stopped. An app that reads the count to judge whether it kept up should read it right after
+  its last write, not after waiting for the stream to drain.
+
+### Stopping
+
+`meadow_dac_wave_stop()` stops at once, like the other types: samples still queued are
+dropped. An app that wants everything played first waits until `meadow_dac_wave_status()`
+reports nothing queued, then stops.
+
+### API Changes
+
+`struct meadow_dac_wave_s` gains two fields at the end, used only by the stream type:
+
+```c
+#define MEADOW_DAC_WAVE_STREAM    4   /* Stream samples written by the app */
+
+struct meadow_dac_wave_s
+{
+  uint32_t        size;       /* sizeof(struct meadow_dac_wave_s), set by the caller */
+  uint32_t        type;       /* MEADOW_DAC_WAVE_* */
+  uint32_t        rate_hz;    /* Requested sample rate */
+  uint32_t        actual_hz;  /* Out: the rate actually set */
+  uint32_t        amplitude;  /* Triangle and noise only */
+  uint32_t        count;      /* Buffer only: number of samples */
+  const uint16_t *samples;    /* Buffer only: the samples */
+  uint32_t        ring;       /* Stream only: ring size in samples (even), 0 = 8,192 */
+  uint32_t        fill;       /* Stream only: value played on underrun, 0 to 4095 */
+};
+```
+
+`size` must match the struct as it is now. A caller built against an out-of-date layout is
+rejected with `-EINVAL` instead of being misread.
+
+Two new syscalls:
+
+```c
+/* struct meadow_dac_wave_status_s states */
+
+#define MEADOW_DAC_STREAM_NONE     0   /* Not streaming */
+#define MEADOW_DAC_STREAM_PRIMING  1   /* Started, waiting for the ring to fill */
+#define MEADOW_DAC_STREAM_RUNNING  2   /* Playing */
+
+struct meadow_dac_wave_status_s
+{
+  uint32_t size;       /* sizeof(struct meadow_dac_wave_status_s), set by the caller */
+  uint32_t state;      /* Out: MEADOW_DAC_STREAM_NONE, _PRIMING or _RUNNING */
+  uint32_t queued;     /* Out: samples written and not yet played */
+  uint32_t space;      /* Out: samples that can be written now without waiting */
+  uint32_t underruns;  /* Out: underruns since the stream started */
+};
+
+int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples, uint32_t count,
+                          uint32_t timeout_ms);
+int meadow_dac_wave_status(uint8_t pinid, struct meadow_dac_wave_status_s *status);
+```
+
+- **`meadow_dac_wave_start()`** with `MEADOW_DAC_WAVE_STREAM` checks, in addition to the
+  common checks:
+  - `ring` is 0 (the default, 8,192) or an even number from 256 to 16,384, since the ring
+    is played in two halves (`-EINVAL`)
+  - `fill` is 0 to 4095 (`-EINVAL`)
+
+  It allocates the ring (`-ENOMEM` if there is no memory) and leaves the stream priming.
+- **`meadow_dac_wave_write()`** returns the number of samples taken, or:
+  - `-EBADSLT` or `-EBADF`, as for the other calls
+  - `-EINVAL` for NULL `samples` with a non-zero `count`, or a sample above 4095
+  - `-ENOTCONN` if the channel is not streaming: no stream was started, or it was stopped
+- **`meadow_dac_wave_status()`** fills in the struct for any open channel. For a channel that is
+  not streaming it reports `MEADOW_DAC_STREAM_NONE` and zeros. A wrong `size` is `-EINVAL`.
+- `meadow_dac_write()` during a stream is `-EBUSY`, as for the other waveforms.
+
+### Details
+
+- **Interrupts:** unlike the buffer loop, the stream wants both DMA interrupts, so it uses
+  NuttX's `stm32_dmastart()` with the half-transfer interrupt. The handler runs in interrupt
+  context and does little: fill one half with the fill value, clean it from the cache, update
+  the counts and wake the writer.
+- **Interrupt rate** at the extremes: a 256-sample ring at 1,000,000 Hz interrupts every
+  128 us, and each interrupt fills 128 samples. That is the worst case, and still small.
+- **Memory:** up to 32 KB per channel (16,384 samples), from the kernel heap, only while the
+  stream exists.
+- **Cache:** the writer cleans each range it copies; the handler cleans each half it refills.
+  DMA only reads the ring, so nothing needs invalidating.
+
+### Streaming Tests
+
+Added to developer test 15.
+
+| `-v` | Test |
+|------|------|
+| 13   | Streaming API checks, no scope needed: bad ring size, bad fill value, write with no stream, a bad sample, write with timeout 0 into a full ring (takes 0), start with `count` 0, status while priming and running, stop and write again. |
+| 14   | Streams tones on A00 for 10 seconds at 48,000 Hz with the default ring: 500 Hz, 1 kHz and 2 kHz, changing every second. On a scope the tone should change cleanly each second with no gaps. Passes if there are no underruns while writing; those counted afterwards, while the data drains, are expected and reported separately. |
+| 15   | Deliberate underrun: streams a 1 kHz tone on A00 for 2 seconds, then stops writing for 2 seconds, then writes again. The scope should show the tone, a flat line at mid-scale (the fill value), then the tone again; the log reports the underruns. |
+| 16   | The same as 14 with a 256-sample ring (about 5 ms). Reports the underruns while writing, which are times the writer (the HCOM thread) was late: a measure of how small a ring a writer keeps up with. |
+| 17   | The same with a 512-sample ring (about 11 ms). |
+| 18   | The same with a 1,024-sample ring (about 21 ms). |
+
+Tests 14 to 18 run for up to 10 seconds, within the CLI's default 60-second test timeout.
+48,000 Hz divides 108 MHz exactly.
+
+### Streaming Hardware Results
+
+Measured 2026-09-30 on a Core Compute Module at 48,000 Hz on A00, with an oscilloscope. The
+test's writer is the HCOM thread, at priority 180.
+
+| Test | Ring | Runs | Underruns while writing | Underruns while draining |
+|------|------|------|-------------------------|--------------------------|
+| 13   | -    | 1    | All 29 API checks passed | - |
+| 14   | 8,192 | 1   | 0 (passed)               | 1 |
+| 15   | 8,192 | 2   | 23 and 23, the 2 s gap   | 1 |
+| 16   | 256  | 3    | 0, 0, 0                  | 3, 2, 2 |
+| 17   | 512  | 3    | 0, 0, 0                  | 1, 2, 2 |
+| 18   | 1,024 | 3   | 0, 0, 0                  | 2, 2, 1 |
+
+- On the scope, 14 and 16 showed the tones stepping cleanly with no gaps. 15 showed the output
+  at 0 V (the level the channel was opened at) until the stream started, the tone, the fill
+  value at mid-scale during the gap, the tone again, and 0 V after the channel was closed.
+- A 10-second run took 10.01 s, so playback runs at the true rate.
+- No run had an underrun while writing, even with the smallest ring (a 2.7 ms refill
+  deadline). The underruns while draining are expected: once the data runs out, each further
+  half plays the fill value until the stream is stopped (see [Underruns](#underruns)).
+- An earlier version of the tests reported a single count that included the drain. Its runs
+  agree with these: 1 underrun in each of four runs of 14, 24 in 15, and 1 to 3 with the small
+  rings, which looked like late writes. Separating the two counts showed they were all drain.
+
+### Choosing a Ring Size
+
+The writer must refill each half of the ring before DMA comes back to it, so the most a
+writer can be late is about one half: `ring / 2 / rate`. With the default ring at 44,100 Hz
+that is about 93 ms; with the largest (16,384), about 186 ms.
+
+The test's writer runs at priority 180, so the results above are a best case. Managed code
+runs differently: in Legacy all managed threads ran at NuttX priority 100 with round-robin
+scheduling, and the same is expected here. That matters in two ways:
+
+- **Higher-priority threads** (HCOM, the trace threads, the ESP32 threads, all above 100) can
+  delay a managed writer. In normal use they run briefly.
+- **Round-robin** shares the CPU between busy threads of equal priority in slices of
+  `CONFIG_RR_INTERVAL`, 200 ms on Meadow. If another managed thread keeps the CPU busy, the
+  writer can wait up to 200 ms, which is more than even the largest ring can cover at audio
+  rates (about 171 ms at 48,000 Hz).
+
+So for Meadow.Core:
+
+- The default ring (8,192) suits most uses, provided the app is not also running CPU-bound
+  managed code.
+- For audio alongside busy code, use the largest ring, run the writer at a higher priority
+  than other managed threads, or use a lower sample rate.
+- Small rings (below about 1,024) are for low latency with a high-priority writer only.
+
+If this proves limiting, the ring could give the writer the whole ring of slack instead of
+half, by tracking DMA's position exactly rather than by halves; that would roughly double the
+tolerance. It is not needed for the results above.
 
 ## Decisions
 

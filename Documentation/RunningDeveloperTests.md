@@ -455,11 +455,11 @@ the `meadow_dac_*` kernel calls, the same way Meadow.Core would.
 ### Running It
 
 ```bash
-meadow developer -p 15 -v <n> -t 60
+meadow developer -p 15 -v <n>
 ```
 
-The level-step tests hold each level for 5 seconds and take about 30 seconds in all, so pass
-`-t 60` to keep the CLI from timing out.
+The longest test (the level steps) takes about 30 seconds, within the CLI's default test
+timeout of 60 seconds (`-t`), so no `-t` is needed.
 
 | `-v` | Test |
 |------|------|
@@ -476,8 +476,16 @@ The level-step tests hold each level for 5 seconds and take about 30 seconds in 
 | 11 | Noise on A00, amplitude 4095 at 100,000 Hz. |
 | 12 | 1 kHz sine on A00 and cosine on A01. On a scope in XY mode this draws a circle. |
 
-Tests 8 to 12 start a waveform and return, leaving it playing until `-v 6`. They need a scope
-on A00 (and A01 for 12); a meter only shows the average.
+| 13 | Streaming API checks on A00, no scope needed: bad set-ups, priming and the automatic start, writes with and without waiting, the start-now zero-length write, stop and close. Each check logs PASS or FAIL. |
+| 14 | Streams 500 Hz, 1 kHz and 2 kHz tones on A00 for 10 seconds at 48,000 Hz (default ring). Logs PASSED if there were no underruns while writing. Underruns while the data drains afterwards are expected, and reported separately. |
+| 15 | Streams 1 kHz for 2 s, writes nothing for 2 s (a flat line at mid-scale, the fill value), then 1 kHz for 2 s. Logs the underruns while writing, about 23 from the gap. |
+| 16 | The same as 14 with a 256-sample ring (about 5 ms). Reports the underruns while writing: times the writer was late. |
+| 17 | The same with a 512-sample ring (about 11 ms). |
+| 18 | The same with a 1,024-sample ring (about 21 ms). |
+
+Tests 8 to 12 start a waveform and return, leaving it playing until `-v 6`. Tests 14 to 18
+run for up to 10 seconds, then stop. Tests 8 to 12 and 14 to 18 need a scope on A00 (and A01 for 12); a
+meter only shows the average.
 
 ### What It Verifies
 
