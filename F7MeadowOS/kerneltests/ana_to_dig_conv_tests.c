@@ -50,6 +50,7 @@
 #include "stm32_adc.h"
 #include "stm32_rcc.h"
 #include "stm32_dma.h"
+#include "stm32_spi.h"
 #include "hardware/stm32f76xx77xx_memorymap.h"
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_syscall_support.h>
@@ -115,7 +116,16 @@ enum
   readGpioAnaOften  = 7,
   readTempBatOften  = 8,
   verifySeqRegs     = 9,    // Configure 16 GPIOs, verify SQR1/2/3 contents
+  dmaClashSpiFirst  = 10,   // Issue #660: SPI5, then an ADC array
+  dmaClashAdcFirst  = 11,   // Issue #660: an ADC array, then SPI5
 };
+
+// Issue #660: SPI5 TX and the ADC array used to share DMA2 stream 4. The
+// step that would hang runs in a helper thread, and the test waits this long
+// for it before reporting a hang. A hung helper stays blocked until reset.
+#define ADC_TESTS_DMA_CLASH_BUS         (5)
+#define ADC_TESTS_DMA_CLASH_WAIT_MS     (3000)
+#define ADC_TESTS_DMA_CLASH_POLL_MS     (100)
 
 /************************************************************************************
  * Private Function Prototypes
@@ -127,6 +137,7 @@ static int adc_test_create_testing_thread(void);
 static void *adc_test_kthread_func(int argc, char *argv[]);
 static void show_all_data_in_buffer(char *headerText, double dataBuffer[],
               uint32_t dataBufElements);
+static void adc_test_dma_clash(bool spiFirst);
 
 /************************************************************************************
  * Private Functions
@@ -221,6 +232,18 @@ void meadow_kt_adc_tests(uint32_t userData)
       syslog(LOG_MTEST, "--------------- verifySeqRegs ---------------\n");
       usleep(20 * 1000);
       adc_test_verify_seq_regs();
+      break;
+
+    case dmaClashSpiFirst: // (10)
+      syslog(LOG_MTEST, "--------------- DMA clash: SPI5 first ---------------\n");
+      usleep(20 * 1000);
+      adc_test_dma_clash(true);
+      break;
+
+    case dmaClashAdcFirst: // (11)
+      syslog(LOG_MTEST, "--------------- DMA clash: ADC first ---------------\n");
+      usleep(20 * 1000);
+      adc_test_dma_clash(false);
       break;
 
     default:
@@ -526,4 +549,107 @@ void show_all_data_in_buffer(char *headerText, double dataBuffer[],
   
   free(lineBuff);
 }
+//===================================================================
+// Issue #660: SPI5 TX and the ADC array (ADC1_DMA_CHAN, DMA2 stream 4 ch0)
+// used to share DMA2 stream 4. stm32_dmachannel() waits, uninterruptibly,
+// until a stream is free, and the SPI driver keeps its streams from the
+// first stm32_spibus_initialize() on, so whichever of the two came second
+// blocked forever. SPI5 TX now uses DMA2 stream 6 (DMAMAP_SPI5_TX_2, see
+// board.h); these tests check that neither order hangs.
+//
+// Each test does the first step directly, then the second in a helper
+// thread, and reports whether the helper finished within
+// ADC_TESTS_DMA_CLASH_WAIT_MS. SPI5 can only be set up once per boot, so
+// reset the board before each of these tests.
+
+static volatile bool _dmaClashDone;
+static volatile int  _dmaClashResult;
+static uint8_t       _dmaClashGpio;
+
+// Step 2 when SPI5 went first: configure a 1-GPIO ADC array
+static int adc_test_dma_clash_adc_proc(int argc, char *argv[])
+{
+  _dmaClashResult = meadow_adc_configure(&_dmaClashGpio, 1,
+                                         _voltageResultBuf);
+  _dmaClashDone = true;
+  return 0;
+}
+
+// Step 2 when the ADC went first: set up SPI5
+static int adc_test_dma_clash_spi_proc(int argc, char *argv[])
+{
+  _dmaClashResult =
+    stm32_spibus_initialize(ADC_TESTS_DMA_CLASH_BUS) != NULL ? OK : -ENODEV;
+  _dmaClashDone = true;
+  return 0;
+}
+
+static void adc_test_dma_clash(bool spiFirst)
+{
+  const char *second = spiFirst ? "meadow_adc_configure()" :
+                                  "stm32_spibus_initialize(5)";
+  int waited;
+  int ret;
+
+  _dmaClashDone   = false;
+  _dmaClashResult = 0;
+  _dmaClashGpio   = GPIO_V2_A00_IN4_PA4 & 0x000000ff;
+  stm32_configgpio(GPIO_V2_A00_IN4_PA4);
+
+  // Step 1, done directly
+  if (spiFirst)
+  {
+    if (stm32_spibus_initialize(ADC_TESTS_DMA_CLASH_BUS) == NULL)
+    {
+      syslog(LOG_MTEST, "DMA clash: FAILED, SPI5 would not initialize\n");
+      return;
+    }
+
+    syslog(LOG_MTEST, "DMA clash: step 1 done, SPI5 initialized "
+      "(holds DMA2 streams 3 and 6)\n");
+  }
+  else
+  {
+    ret = meadow_adc_configure(&_dmaClashGpio, 1, _voltageResultBuf);
+    if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DMA clash: FAILED, meadow_adc_configure() "
+        "returned %d\n", ret);
+      return;
+    }
+
+    syslog(LOG_MTEST, "DMA clash: step 1 done, ADC array configured "
+      "(holds DMA2 stream 4)\n");
+  }
+
+  // Step 2, in a helper thread so a hang does not stop this test
+  ret = kthread_create("DMA clash", 100, 2048,
+                       spiFirst ? adc_test_dma_clash_adc_proc :
+                                  adc_test_dma_clash_spi_proc,
+                       NULL);
+  if (ret <= 0)
+  {
+    syslog(LOG_MTEST, "DMA clash: FAILED to create the helper thread\n");
+    return;
+  }
+
+  for (waited = 0; waited < ADC_TESTS_DMA_CLASH_WAIT_MS && !_dmaClashDone;
+       waited += ADC_TESTS_DMA_CLASH_POLL_MS)
+  {
+    usleep(ADC_TESTS_DMA_CLASH_POLL_MS * 1000);
+  }
+
+  if (_dmaClashDone)
+  {
+    syslog(LOG_MTEST, "DMA clash: step 2, %s returned %d after about %d ms: "
+      "no hang\n", second, _dmaClashResult, waited);
+  }
+  else
+  {
+    syslog(LOG_MTEST, "DMA clash: HANG, %s has not returned after %d ms; "
+      "it is waiting for DMA2 stream 4 (issue #660). Reset the board.\n",
+      second, ADC_TESTS_DMA_CLASH_WAIT_MS);
+  }
+}
+
 #endif    // #if defined (CONFIG_ADC_TESTS)

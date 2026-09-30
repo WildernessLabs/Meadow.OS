@@ -361,15 +361,17 @@ I2C driver has no DMA support. In Meadow's own code only `meadow_adc.c` claims o
 |------|------------------------------|--------------------|
 | SPI2 RX / TX | DMA1 stream 3 / 4 (ch0) | first use of the bus, then held |
 | SPI3 RX / TX | DMA1 stream 2 / 7 (ch0) | first use of the bus, then held |
-| SPI5 RX / TX | DMA2 stream 3 / 4 (ch2) | first use of the bus, then held |
+| SPI5 RX / TX | DMA2 stream 3 (ch2) / stream 6 (ch7) | first use of the bus, then held |
 | SDMMC2 (SD card) | DMA2 stream 0 (ch11) | at start-up |
 | QSPI flash | DMA2 stream 7 (ch3) | at start-up (current tree only) |
 | Meadow ADC array | DMA2 stream 4 (ch0) | while an ADC array is configured |
 | **DAC channel 1 / 2** | **DMA1 stream 5 / 6 (ch7)** | **only while a waveform plays** |
 
 No serial port has DMA enabled (USART1, UART4 and UART5 have it off), and I2S and SAI are not
-enabled. SPI5 and the ADC array share DMA2 stream 4; that is a separate problem, tracked in
-#660.
+enabled. SPI5 TX used to share DMA2 stream 4 with the ADC array, which hung whichever of the
+two was used second; it was moved to stream 6 (`DMAMAP_SPI5_TX_2`) in #660. USART6 TX
+(`DMAMAP_USART6_TX_1`) also maps to DMA2 stream 6, so it must not be given DMA while SPI5
+uses that stream.
 
 **Off limits while the DAC uses DMA1 streams 5 and 6.** These users are mapped to the same two
 streams and must not be enabled without moving the DAC or them:

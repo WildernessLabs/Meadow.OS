@@ -553,8 +553,12 @@
 // #define DMAMAP_SPI5_RX_2  STM32_DMA_MAP(DMA2,DMA_STREAM5,DMA_CHAN7)
 // #define DMAMAP_SPI5_TX_2  STM32_DMA_MAP(DMA2,DMA_STREAM6,DMA_CHAN7)
 // #define DMAMAP_SPI5_RX_3  STM32_DMA_MAP(DMA2,DMA_STREAM5,DMA_CHAN9)
+// SPI5 TX uses DMA2 stream 6 (TX_2), not stream 4 (TX_1): stream 4 is the
+// Meadow ADC array's (ADC1_DMA_CHAN), and the F7 SPI driver holds its streams
+// from the first use of the bus, so sharing stream 4 hung whichever of the
+// two was used second (issue #660).
 #define DMAMAP_SPI5_RX  DMAMAP_SPI5_RX_1
-#define DMAMAP_SPI5_TX  DMAMAP_SPI5_TX_1
+#define DMAMAP_SPI5_TX  DMAMAP_SPI5_TX_2
 
 /************************************************************************************
  * QSPI/SDMMC2/OTGFS/FMC pin definitions
