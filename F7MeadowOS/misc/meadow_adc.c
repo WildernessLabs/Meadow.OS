@@ -481,11 +481,11 @@ static void adc_test_display_basic_adc_regs(uint32_t baseADCAddr)
 
 static void adc_test_display_basic_dma_regs(void)
 {
-  syslog(LOG_MTEST, "S0CR:  0x%08" PRIx32 "  S0NDTR: 0x%08" PRIx32 "\n",
+  syslog(LOG_MTEST, "S4CR:  0x%08" PRIx32 "  S4NDTR: 0x%08" PRIx32 "\n",
         getreg32(STM32_DMA2_S4CR),
         getreg32(STM32_DMA2_S4NDTR));
 
-  syslog(LOG_MTEST, "S0PAR: 0x%08" PRIx32 "  S0M0AR: 0x%08" PRIx32 " S0M1AR: 0x%08" PRIx32 "\n",
+  syslog(LOG_MTEST, "S4PAR: 0x%08" PRIx32 "  S4M0AR: 0x%08" PRIx32 " S4M1AR: 0x%08" PRIx32 "\n",
         getreg32(STM32_DMA2_S4PAR),
         getreg32(STM32_DMA2_S4M0AR),
         getreg32(STM32_DMA2_S4M1AR));
