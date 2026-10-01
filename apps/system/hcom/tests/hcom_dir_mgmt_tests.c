@@ -50,7 +50,7 @@
 #if defined (CONFIG_DIR_MGMT_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
 #pragma message "(--) dir_mgmt_tests.c"
 
-#include <sys/mount.h>
+#include <sys/statfs.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
 #include <sys/ioctl.h>
@@ -464,79 +464,6 @@ static int hcom_dir_mgmt_tst_recurse_nested_directories_start(const char *rootDi
  * Private Types
  ****************************************************************************/
 
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-static int hcom_dir_mgmt_unmount_sdcard(void)
-{
-  int ret;
-
-  ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
-  if(ret < 0)
-  {
-    syslog(2, "%s@%d-ERROR:unmount_sdcard failed. ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-  }
-  else
-  {
-    syslog(2, "===> %s@%d-umount successful\n", __FILE__, __LINE__);
-    usleep(20 * 1000);
-  }
-  return ret;
-}
-
-//=====================================================================
-// This function attempts to mount the SD-Card. If it fails, it will
-// unmount and try again.
-static int hcom_dir_mgmt_mount_sdcard(void)
-{
-  // Attempt to mount, if it fails, unmount and try again.
-  int ret;
-  int attempts = 2;
-  do
-  {
-    // Attempt to mount the SD-Card
-    // mount(source, target, fstype, mountflags, data)
-    // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-    ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-              MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
-    if(ret >= 0)
-    {
-      syslog(2, "===> %s@%d-Mounted SDCard, Success (attempts:%d)\n",
-        __FILE__, __LINE__, attempts);
-      usleep(20 * 1000);
-      break; // Successfully mounted, done
-    }
-    else
-    {
-      // SDCard may not exist(errno = ENODEV)
-      syslog(2, "%s@%d-ERROR:Mount failed. ret:%d, errno:%d (attempts:%d)\n",
-        __FILE__, __LINE__, ret, errno, attempts);
-
-      // May have been left mounted, so unmount the SD-Card
-      // and try to mount again.
-      ret = hcom_dir_mgmt_unmount_sdcard();
-      if(ret < 0)
-      {
-        // Error syslog already displayed
-        return ret;
-      }
-      continue; // Try to mount again
-    }
-  }
-  while(attempts-- > 0);
-
-  // Ran out of attempts to mount the SD-Card
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-ERROR:SDCard Mount failed. ret:%d, errno:%d (attempts:%d)\n",
-      __FILE__, __LINE__, ret, errno, attempts);
-    return ret;
-  }
-
-  return ret;
-}
-
  /****************************************************************************
  * Public Functions
  ***************************************************************************/
@@ -544,7 +471,7 @@ static int hcom_dir_mgmt_mount_sdcard(void)
 void meadow_dir_mgmt_tests(uint32_t userData)
 {
   int ret;
-  bool isMounted = false;
+  struct statfs sfs;
   uint32_t totalBytes;
   uint32_t freeBytes;
   uint32_t usedBytes;
@@ -552,13 +479,10 @@ void meadow_dir_mgmt_tests(uint32_t userData)
   syslog(LOG_MTEST, "Directory management received 'set developer -p 13 -v %lu'\n", userData);
   usleep(20 * 1000);
 
-  // We assume sdcard needs to be mounted
-  ret = hcom_dir_mgmt_mount_sdcard();
-
-  if(ret < 0)
-    syslog(LOG_MTEST, "SD-Card mount attempt failed. ret:%d, errno:%d\n", ret, errno);
-  else
-    isMounted = true;
+  // The NuttX automounter mounts the SD-Card (Issue #88). Without one the
+  // /sdcard cases fail, the others still run.
+  if(statfs(MEADOW_SDCARD_MOUNT_POINT_NAME, &sfs) < 0)
+    syslog(LOG_MTEST, "SD-Card not mounted, errno:%d\n", errno);
 
   switch (userData)
   {
@@ -624,16 +548,6 @@ void meadow_dir_mgmt_tests(uint32_t userData)
 
   default:
     break;
-  }
-
-  if(isMounted)
-  {
-    ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
-    if(ret < 0)
-      syslog(LOG_MTEST, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-
-    syslog(LOG_MTEST, "===> umount successful\n");
   }
 }
 
