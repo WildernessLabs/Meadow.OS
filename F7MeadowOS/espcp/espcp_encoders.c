@@ -1857,6 +1857,34 @@ espcp_get_sock_opt_response_t *espcp_extract_get_sock_opt_response(uint8_t *buff
 }
 
 /****************************************************************************
+* Name: espcp_free_get_sock_opt_response
+*
+* Description:
+*  Release all heap memory associated with an espcp_get_sock_opt_response_t
+*  returned by its espcp_extract_*() function, including the nested
+*  option_value buffer.
+*
+* Input Parameters:
+*  response - response object to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_get_sock_opt_response(espcp_get_sock_opt_response_t *response)
+{
+    if (response == NULL)
+    {
+        return;
+    }
+    free(response->option_value);
+    free(response);
+}
+
+/****************************************************************************
 * Name: espcp_encode_linger
 *
 * Description:
@@ -3187,6 +3215,34 @@ espcp_get_sock_peer_name_response_t *espcp_extract_get_sock_peer_name_response(u
     buffer += 4;
     get_sock_peer_name_response->response_errno = espcp_extract_int32(buffer);
     return(get_sock_peer_name_response);
+}
+
+/****************************************************************************
+* Name: espcp_free_get_sock_peer_name_response
+*
+* Description:
+*  Release all heap memory associated with an espcp_get_sock_peer_name_response_t
+*  returned by its espcp_extract_*() function, including the nested
+*  addr buffer.
+*
+* Input Parameters:
+*  response - response object to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_get_sock_peer_name_response(espcp_get_sock_peer_name_response_t *response)
+{
+    if (response == NULL)
+    {
+        return;
+    }
+    free(response->addr);
+    free(response);
 }
 
 /****************************************************************************
