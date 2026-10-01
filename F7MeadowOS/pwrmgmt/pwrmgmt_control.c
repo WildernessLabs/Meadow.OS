@@ -51,6 +51,7 @@
 #include <syslog.h>
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
+#include <nuttx/semaphore.h>
 
 #include "arm_internal.h"
 #include "stm32_pm.h"
@@ -354,18 +355,11 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   }
 
   // Get the semaphore to insure only one caller at a time
-  do
+  ret = nxsem_trywait(&_lowPwrCtrlEntry);
+  if(ret < 0)
   {
-    ret = sem_trywait(&_lowPwrCtrlEntry);
-    if(ret == OK)
-      break;
-
-    if(errno == -EINTR)
-      continue;
-
     return -EALREADY;    // Error exit
-
-  } while(true);
+  }
 
   // This will route a text message to app side and on to CLI.
   char *lowPowerNext = "Entering low-power mode\n";
@@ -401,13 +395,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   _lowPwrRequestPending = true;
 
   // Wait for the idle task to finish the transition and post the result.
-  while(sem_wait(&_lowPwrRequestComplete) != OK)
-  {
-    if(errno != EINTR)
-    {
-      break;
-    }
-  }
+  nxsem_wait_uninterruptible(&_lowPwrRequestComplete);
   ret = _lowPwrRequestResult;
 
   // Notify concerned modules that low-power mode has ended. If a module has
