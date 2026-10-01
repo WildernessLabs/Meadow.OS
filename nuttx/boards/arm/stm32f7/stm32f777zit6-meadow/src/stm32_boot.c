@@ -34,10 +34,10 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/spi/qspi.h>
 #include <sys/boardctl.h>
+#include "stm32_gpio.h"
 #include "stm32_pwr.h"
 #include "mpu.h"
 
-#include "misc/meadow_reinit_flash_size.h"
 #include <meadow/stm32f777zit6-meadow.h>
 #include <meadow/meadow_hw_version.h>
 #include "hcom_nx/hcom_nx_common.h"
@@ -124,21 +124,6 @@ static int board_init_usbdev(void)
 
   return OK;
 }
-
-#if defined(CONFIG_MTD_S25FL)
-static struct mtd_dev_s * board_init_mtd_s25fl(FAR struct qspi_dev_s *qspi)
-{
-  FAR struct mtd_dev_s *mtd;
-  mtd = s25fl_initialize(qspi, true);
-  if (!mtd)
-  {
-    syslog(LOG_ERR, "ERROR: S25FL Flash initialization failed\n");
-    return 0;
-  }
-
-  return mtd;
-}
-#endif
 
 #if defined(CONFIG_MTD_W25QXXXJV)
 static struct mtd_dev_s * board_init_mtd_w25qxxxjv(FAR struct qspi_dev_s *qspi)
@@ -290,12 +275,10 @@ void board_late_initialize(void)
 
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information
-  // without knowing much about the chip. Thus using the Nuttx function
-  // stm32f7_qspi_initialize(), which assumes the defconfig configuration
-  // CONFIG_STM32F7_QSPI_FLASH_SIZE size, we can initialize any QSPI
-  // flash chip used by Meadow. And we can find the vendor information to
-  // determine the exact chip used. If the chip size is wrong we will fix
-  // it later.
+  // without knowing much about the chip. stm32f7_qspi_initialize() sets the
+  // defconfig CONFIG_STM32F7_QSPI_FLASH_SIZE, the 64 MB of the W25Q512 used
+  // by every supported board, and reading the chip's ID does not depend on
+  // that size.
   qspi = stm32f7_qspi_initialize(0);
   if (!qspi)
     {
@@ -317,18 +300,21 @@ void board_late_initialize(void)
     return;
   }
 
+  // The F7FeatherV1 and its 32 MB S25FL flash are not supported (Issue #453).
+  // Light the red LED (active low) and set up nothing more: no flash
+  // driver, file system or config. hcom_main() then starts only host comms
+  // and answers every CLI request with a "not supported" error.
+  if (meadowHwVer == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+  {
+    syslog(LOG_EMERG, "F7FeatherV1 (S25FL flash) is not supported by this "
+                      "Meadow.OS release\n");
+    stm32_configgpio(GPIO_LED_RED);
+    stm32_gpiowrite(GPIO_LED_RED, false);
+    return;
+  }
+
   // Get the correct flash chip size based on the hardware version
   size_t flashSize = meadow_hw_version_flash_size();
-
-  // Test against the defconfig value of QSPI flash size. If we initially used
-  // the defconfig value that is not the correct flash size we must fix it.
-  if(flashSize != CONFIG_STM32F7_QSPI_FLASH_SIZE)
-  {
-    // Note: the meadow_qspi_hw_reinitialize() updates the stm32f7's internal
-    // register values to correct any flash size error originally introduced by
-    // startup code initializing a different flash chip.
-    meadow_qspi_hw_reinitialize(flashSize);
-  }
 
  #if defined(CONFIG_ARM_MPU)
   // Allow user-space access to the QSPI flash memory region.
@@ -342,16 +328,9 @@ void board_late_initialize(void)
                                                );
  #endif
 
-  // Initialize the correct flash driver. Only one can be initialized even
-  // if multiple built.
+  // Initialize the flash driver
   switch(meadow_hw_version_get())
   {
- #if defined(CONFIG_MTD_S25FL)
-    case MEADOW_F7_HW_VERSION_NUMB_F7V1:
-    mtd = board_init_mtd_s25fl(qspi);
-    break;
- #endif
-
  #if defined(CONFIG_MTD_W25QXXXJV)
     case MEADOW_F7_HW_VERSION_NUMB_F7V2:
     case MEADOW_F7_HW_VERSION_NUMB_CCMV2:

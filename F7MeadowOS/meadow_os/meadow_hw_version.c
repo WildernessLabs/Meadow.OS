@@ -63,7 +63,9 @@
 
 // The following define the Manufacture, type and capacity of the flash
 // memory chips used on the following models of the Meadow F7 Micro.
-// F7v1 uses a spansion flash
+// F7v1 uses a spansion flash. The F7v1 is no longer supported, the ID is kept
+// only so it is still detected and board_late_initialize() can halt on it
+// (Issue #453).
 // Spansion id 0x01, type 0x60, capacity 19 (256K bits of storage = 32MB)
 #define MEADOW_QSPI_FLASH_SPANSION_S25FL256L    (0x00016019)
 
@@ -203,10 +205,6 @@ uint32_t meadow_hw_version_flash_size(void)
 
   switch(_meadowVer)
   {
-    case MEADOW_F7_HW_VERSION_NUMB_F7V1:
-    qspiFlashSize = MEADOW_F7_HW_VERSION_F7V1_FLASH_SIZE;
-    break;
-
     case MEADOW_F7_HW_VERSION_NUMB_F7V2:
     qspiFlashSize = MEADOW_F7_HW_VERSION_F7V2_FLASH_SIZE;
     break;
