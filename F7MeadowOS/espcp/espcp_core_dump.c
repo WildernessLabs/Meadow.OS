@@ -98,6 +98,61 @@ struct work_s g_core_dump_work_struct = {};
  * Private Functions
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: espcp_core_dump_status_to_string
+ *
+ * Description:
+ *  Convert an espcp status code to a human-readable string.
+ *
+ * Input Parameters:
+ *  status - The espcp_status_codes_t status code to convert.
+ *
+ * Returned Value:
+ *  Pointer to a static string describing the status code.
+ *
+ * Assumptions/Limitations:
+ *  The returned pointer points to static storage and should not be freed.
+ *
+ ****************************************************************************/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+static const char *
+espcp_core_dump_status_to_string(espcp_status_codes_t status)
+{
+    switch (status)
+    {
+        case espcp_status_codes_completed_ok:
+            return "COMPLETED_OK";
+        case espcp_status_codes_crc_error:
+            return "CRC_ERROR";
+        case espcp_status_codes_restart:
+            return "RESTART";
+        case espcp_status_codes_failure:
+            return "FAILURE";
+        case espcp_status_codes_invalid_interface:
+            return "INVALID_INTERFACE";
+        case espcp_status_codes_queue_error:
+            return "QUEUE_ERROR";
+        case espcp_status_codes_timeout:
+            return "TIMEOUT";
+        case espcp_status_codes_invalid_packet:
+            return "INVALID_PACKET";
+        case espcp_status_codes_invalid_header:
+            return "INVALID_HEADER";
+        case espcp_status_codes_unexpected_data:
+            return "UNEXPECTED_DATA";
+        case espcp_status_codes_missing_end_of_frame_marker:
+            return "MISSING_END_OF_FRAME_MARKER";
+        case espcp_status_codes_header_body_field_mismatch:
+            return "HEADER_BODY_FIELD_MISMATCH";
+        case espcp_status_codes_esp_out_of_memory:
+            return "ESP_OUT_OF_MEMORY";
+        default:
+            return "UNKNOWN";
+    }
+}
+#pragma GCC diagnostic pop
+
  /****************************************************************************
  * Name: espcp_create_core_dump_file_name
  *
@@ -172,14 +227,27 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
     espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
                                             espcp_system_function_get_core_dump_information, espcp_status_codes_completed_ok,
                                             espcp_get_next_message_id(), NULL, 0);
-    if (message != NULL)
+    if (message == NULL)
     {
-        if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
-        {
-            espcp_delete_message_payload(message);
-            return(NULL);
-        }
+        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: Failed to create message\n");
+        return(NULL);
     }
+
+    if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
+    {
+        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: Failed to queue message\n");
+        espcp_delete_message_and_payload(message);
+        return(NULL);
+    }
+
+    if (message->status_code != espcp_status_codes_completed_ok)
+    {
+        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: ESP32 error response: %d (%s)\n", 
+                          message->status_code, espcp_core_dump_status_to_string(message->status_code));
+        espcp_delete_message_and_payload(message);
+        return(NULL);
+    }
+
     espcp_core_dump_information_response_t *information = espcp_extract_core_dump_information_response(message->payload);
     espcp_delete_message_and_payload(message);
 
@@ -264,14 +332,28 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
         {
             if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
             {
+                MEADOW_TRACE_ERROR("espcp_get_core_dump_from_esp32: Failed to queue fragment request at offset %" PRIu32 "\n", offset);
                 espcp_delete_message_payload(message);
+                free(encoded_fragment_request);
                 free(core_dump);
                 return(NULL);
             }
+
+            if (message->status_code != espcp_status_codes_completed_ok)
+            {
+                MEADOW_TRACE_ERROR("espcp_get_core_dump_from_esp32: ESP32 refused fragment at offset %" PRIu32 ": %d (%s)\n", 
+                                  offset, message->status_code, espcp_core_dump_status_to_string(message->status_code));
+                espcp_delete_message_and_payload(message);
+                free(encoded_fragment_request);
+                free(core_dump);
+                return(NULL);
+            }
+
             espcp_core_dump_fragment_response_t *fragment_response = espcp_extract_core_dump_fragment_response(message->payload);
             espcp_delete_message_and_payload(message);
             if (fragment_response == NULL)
             {
+                free(encoded_fragment_request);
                 free(core_dump);
                 return(NULL);
             }
@@ -287,12 +369,14 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
             {
                 MEADOW_TRACE_ERROR("Bad fragment %" PRIu32 " at offset %" PRIu32 " (%" PRIu32 " left)\n", fragment_response->size, offset, remaining);
                 espcp_delete_core_dump_fragment_response(fragment_response);
+                free(encoded_fragment_request);
                 free(core_dump);
                 return(NULL);
             }
             memcpy(core_dump + offset, fragment_response->data, fragment_response->size);
             offset += fragment_response->size;
             espcp_delete_core_dump_fragment_response(fragment_response);
+            free(encoded_fragment_request);
         }
         else
         {
@@ -422,9 +506,22 @@ void espcp_erase_core_dump_partition(void)
     {
         if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
         {
-            MEADOW_TRACE_INFORMATION("%s: Failed to queue message\n", __func__);
+            MEADOW_TRACE_ERROR("%s: Failed to queue erase message\n", __func__);
+            espcp_delete_message_and_payload(message);
         }
-        espcp_delete_message_payload(message);
+        else
+        {
+            if (message->status_code != espcp_status_codes_completed_ok)
+            {
+                MEADOW_TRACE_INFORMATION("%s: ESP32 refused erase: %d (%s)\n", __func__,
+                                        message->status_code, espcp_core_dump_status_to_string(message->status_code));
+                espcp_delete_message_and_payload(message);
+            }
+            else
+            {
+                espcp_delete_message_and_payload(message);
+            }
+        }
     }
     else
     {

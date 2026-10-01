@@ -1095,7 +1095,7 @@ static int espcp_usrsock_getsockpeername(struct socket *psock, struct sockaddr *
                                 {
                                     result = -response->response_errno;
                                 }
-                                free(response);
+                                espcp_free_get_sock_peer_name_response(response);
                             }
                         }
                         break;
@@ -2156,7 +2156,7 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
                                     free(source);
                                     *value_len = source_size;
                                 }
-                                free(response);
+                                espcp_free_get_sock_opt_response(response);
                             }
                         }
                         break;

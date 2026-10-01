@@ -35,6 +35,7 @@
 
 #include "espcp_encoders.h"
 #include <sys/socket.h>
+#include <meadow/meadow_debug_helpers.h>
 
 //
 //  Temporarily undefine NDEBUG to be able to use assertions in this file.
@@ -1857,6 +1858,34 @@ espcp_get_sock_opt_response_t *espcp_extract_get_sock_opt_response(uint8_t *buff
 }
 
 /****************************************************************************
+* Name: espcp_free_get_sock_opt_response
+*
+* Description:
+*  Release all heap memory associated with an espcp_get_sock_opt_response_t
+*  returned by its espcp_extract_*() function, including the nested
+*  option_value buffer.
+*
+* Input Parameters:
+*  response - response object to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_get_sock_opt_response(espcp_get_sock_opt_response_t *response)
+{
+    if (response == NULL)
+    {
+        return;
+    }
+    free(response->option_value);
+    free(response);
+}
+
+/****************************************************************************
 * Name: espcp_encode_linger
 *
 * Description:
@@ -3190,6 +3219,34 @@ espcp_get_sock_peer_name_response_t *espcp_extract_get_sock_peer_name_response(u
 }
 
 /****************************************************************************
+* Name: espcp_free_get_sock_peer_name_response
+*
+* Description:
+*  Release all heap memory associated with an espcp_get_sock_peer_name_response_t
+*  returned by its espcp_extract_*() function, including the nested
+*  addr buffer.
+*
+* Input Parameters:
+*  response - response object to free.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+void espcp_free_get_sock_peer_name_response(espcp_get_sock_peer_name_response_t *response)
+{
+    if (response == NULL)
+    {
+        return;
+    }
+    free(response->addr);
+    free(response);
+}
+
+/****************************************************************************
 * Name: espcp_encode_event_data
 *
 * Description:
@@ -3735,6 +3792,12 @@ espcp_got_ip_event_data_t *espcp_extract_got_ip_event_data(uint8_t *buffer)
 ****************************************************************************/
 espcp_core_dump_information_response_t *espcp_extract_core_dump_information_response(uint8_t *buffer)
 {
+    if (buffer == NULL)
+    {
+        MEADOW_TRACE_ERROR("espcp_extract_core_dump_information_response: NULL buffer\n");
+        return NULL;
+    }
+
     espcp_core_dump_information_response_t *information = (espcp_core_dump_information_response_t *) malloc(sizeof(espcp_core_dump_information_response_t));
     if (information == NULL)
     {
@@ -3768,6 +3831,12 @@ espcp_core_dump_information_response_t *espcp_extract_core_dump_information_resp
 ****************************************************************************/
 espcp_core_dump_fragment_response_t *espcp_extract_core_dump_fragment_response(uint8_t *buffer)
 {
+    if (buffer == NULL)
+    {
+        MEADOW_TRACE_ERROR("espcp_extract_core_dump_fragment_response: NULL buffer\n");
+        return NULL;
+    }
+
     espcp_core_dump_fragment_response_t *fragment = (espcp_core_dump_fragment_response_t *) malloc(sizeof(espcp_core_dump_fragment_response_t));
     if (fragment == NULL)
     {
