@@ -44,6 +44,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/mtd/mtd.h>
 #include <sys/mount.h>
+#include <sys/statfs.h>
+#include <time.h>
 #include <dirent.h>
 #include <sys/stat.h>
 #include <inttypes.h>
@@ -58,6 +60,10 @@
  ****************************************************************************/
 
 #define HCOM_EX_SDCARD_TEST_FILE_NAME  "/sdcard/testfile.txt"
+
+// Hot plug test (110): how long to watch, and how often to look
+#define HCOM_EX_SDCARD_HOTPLUG_TEST_MS  (30 * 1000)
+#define HCOM_EX_SDCARD_HOTPLUG_POLL_MS  (100)
 
 /* Configuration ************************************************************/
 
@@ -86,23 +92,28 @@ int hcom_nx_exec_test_sdcard_setup()
 }
 
 //===================================================================
-// 101
-static int hcom_nx_sdcard_mount_card(void)
+// True if a file system is mounted on /sdcard. The mount point exists only
+// while the automounter has a card mounted there.
+static bool hcom_nx_sdcard_is_mounted(void)
 {
-  int32_t ret;
+  struct statfs sfs;
 
-  // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-  ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-            MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
-  if(ret < 0)
+  return statfs(MEADOW_SDCARD_MOUNT_POINT_NAME, &sfs) == 0;
+}
+
+//===================================================================
+// 101 The automounter mounts the card (Issue #88), the test only checks
+static int hcom_nx_sdcard_check_mounted(void)
+{
+  if(!hcom_nx_sdcard_is_mounted())
   {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Mount failed. ret:%" PRId32 ", errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
-    return ret;
+    syslog(LOG_MTEST, "%s@%d-ERROR: SD-Card not mounted, errno:%d\n",
+      __FILE__, __LINE__, errno);
+    return -ENODEV;
   }
 
-  syslog(LOG_MTEST, "Mount successful\n");
-  return ret;
+  syslog(LOG_MTEST, "SD-Card mounted by the automounter\n");
+  return OK;
 }
 
 //===================================================================
@@ -239,7 +250,8 @@ static int hcom_nx_sdcard_close_test_file(void)
 }
 
 //===================================================================
-// 106
+// 106 Eject: the same umount() an app's Eject() makes. The automounter
+// mounts the card again only when it is next inserted.
 static int hcom_nx_sdcard_unmount_card(void)
 {
   int ret;
@@ -348,6 +360,57 @@ static int hcom_nx_sdcard_fsync_file(void)
 }
 
 //===================================================================
+// 110 Hot plug: for HCOM_EX_SDCARD_HOTPLUG_TEST_MS log every change of the
+// mount state while the card is removed and re-inserted. Passes when both an
+// unmount and a mount were seen.
+static int hcom_nx_sdcard_hotplug_test(void)
+{
+  struct timespec start;
+  struct timespec now;
+  uint32_t elapsedMs = 0;
+  bool mounted;
+  bool sawUnmount = false;
+  bool sawMount = false;
+
+  mounted = hcom_nx_sdcard_is_mounted();
+  syslog(LOG_MTEST, "Hot plug: SD-Card %s. Remove and re-insert it within %d s\n",
+    mounted ? "mounted" : "not mounted", HCOM_EX_SDCARD_HOTPLUG_TEST_MS / 1000);
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  while(elapsedMs < HCOM_EX_SDCARD_HOTPLUG_TEST_MS && !(sawUnmount && sawMount))
+  {
+    usleep(HCOM_EX_SDCARD_HOTPLUG_POLL_MS * 1000);
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    elapsedMs = (uint32_t)((now.tv_sec - start.tv_sec) * 1000 +
+                           (now.tv_nsec - start.tv_nsec) / 1000000);
+
+    if(hcom_nx_sdcard_is_mounted() != mounted)
+    {
+      mounted = !mounted;
+      if(mounted)
+        sawMount = true;
+      else
+        sawUnmount = true;
+
+      syslog(LOG_MTEST, "Hot plug: %" PRIu32 " ms, SD-Card %s\n",
+        elapsedMs, mounted ? "mounted" : "unmounted");
+    }
+  }
+
+  if(!(sawUnmount && sawMount))
+  {
+    syslog(LOG_MTEST, "Hot plug FAIL: saw %s unmount and %s mount\n",
+      sawUnmount ? "an" : "no", sawMount ? "a" : "no");
+    return -ETIMEDOUT;
+  }
+
+  syslog(LOG_MTEST, "Hot plug PASS\n");
+  return OK;
+}
+
+//===================================================================
 // 'set developer -p 7' for these tests
 // Route the test to the correct destination
 int meadow_kt_sd_card_tests(uint32_t userData)
@@ -361,12 +424,12 @@ int meadow_kt_sd_card_tests(uint32_t userData)
       userData);
     break;
 
-    case 101: // mount
-    // As of the Rebase there is no need to mount this before using it. The
-    // mounting and unmounting is handled by hcom_host_preprocess.c now.
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mount test\n",
+    case 101: // Check mounted
+    // The NuttX automounter mounts the card when it is inserted and
+    // unmounts it when it is removed (Issue #88)
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mounted check\n",
       userData);
-    return hcom_nx_sdcard_mount_card();
+    return hcom_nx_sdcard_check_mounted();
     break;
 
     case 102: // Open test file
@@ -393,7 +456,7 @@ int meadow_kt_sd_card_tests(uint32_t userData)
     return hcom_nx_sdcard_close_test_file();
     break;
 
-    case 106: // umount
+    case 106: // umount (eject)
     syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute umount test\n",
       userData);
     return hcom_nx_sdcard_unmount_card();
@@ -415,6 +478,12 @@ int meadow_kt_sd_card_tests(uint32_t userData)
     syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fsync test\n",
       userData);
     return hcom_nx_sdcard_fsync_file();
+    break;
+
+    case 110: // Hot plug
+    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute hot plug test\n",
+      userData);
+    return hcom_nx_sdcard_hotplug_test();
     break;
 
     default:

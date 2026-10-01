@@ -475,7 +475,6 @@ timeout of 60 seconds (`-t`), so no `-t` is needed.
 | 10 | Triangle on A00, amplitude 4095 at 1,000,000 Hz: about 122 Hz. |
 | 11 | Noise on A00, amplitude 4095 at 100,000 Hz. |
 | 12 | 1 kHz sine on A00 and cosine on A01. On a scope in XY mode this draws a circle. |
-
 | 13 | Streaming API checks on A00, no scope needed: bad set-ups, priming and the automatic start, writes with and without waiting, the start-now zero-length write, stop and close. Each check logs PASS or FAIL. |
 | 14 | Streams 500 Hz, 1 kHz and 2 kHz tones on A00 for 10 seconds at 48,000 Hz (default ring). Logs PASSED if there were no underruns while writing. Underruns while the data drains afterwards are expected, and reported separately. |
 | 15 | Streams 1 kHz for 2 s, writes nothing for 2 s (a flat line at mid-scale, the fill value), then 1 kHz for 2 s. Logs the underruns while writing, about 23 from the gap. |
@@ -502,6 +501,68 @@ the DAC was given, not a measurement; compare the expected voltages with the met
 * With the buffer off (`-v 3`), the output reaches close to 0 V and the rail, but only into a
   high-impedance load. Readings into 1.5 MOhm are about 1% low, from the DAC's output
   resistance.
+
+## SD Card Tests
+
+Two tests use the SD card. The card is mounted on `/sdcard` by the NuttX automounter, not by
+the tests (see [SdCard.md](SdCard.md)).
+
+* The `sdcard` test (`MEADOW_TEST_SD_CARD` = 7) is a kernel test,
+  `F7MeadowOS/kerneltests/sdcard_tests.c`. It checks the mount, works with a test file
+  (`/sdcard/testfile.txt`), ejects the card, and watches the card being removed and re-inserted.
+* The `dirmgmt` test (`MEADOW_TEST_DIRECTORY_MANAGEMENT` = 13) is a user-space test,
+  `apps/system/hcom/tests/hcom_dir_mgmt_tests.c`. It lists directories, including `/sdcard`.
+
+### Prerequisites
+
+* A CCM. It is the only board with an SD card slot.
+* SD storage turned on in `meadow.config.yaml` (`Device:` `SdStorageSupported: true`). It is off
+  by default.
+* A FAT-formatted card.
+* Build with `./build.sh -u=sdcard` for test 7 and `-u=dirmgmt` for test 13, or
+  `-u=sdcard,dirmgmt` for both.
+
+### Running It
+
+```bash
+meadow developer -p 7 -v <n>
+meadow developer -p 13 -v <n>
+```
+
+Test 7:
+
+| `-v` | Test |
+|------|------|
+| 100 | Format the card. Not supported; format it on a PC. |
+| 101 | Checks that the automounter has mounted the card. Logs "SD-Card mounted by the automounter", or an error with no card. |
+| 102 | Opens (creating if needed) `/sdcard/testfile.txt` for appending. |
+| 103 | Writes a line of text to the test file. |
+| 104 | Reads back up to 1 KB of the test file. |
+| 105 | Closes the test file. |
+| 106 | Ejects the card: unmounts `/sdcard`, as an app's `Eject()` does. The automounter mounts it again only when it is next inserted. |
+| 107 | Deletes the test file. |
+| 108 | Logs the open test file's size (`fstat`). |
+| 109 | Flushes the open test file (`fsync`). |
+| 110 | Hot plug: for 30 seconds, logs each time the card is unmounted or mounted. Remove the card and re-insert it during the test. Logs PASS once it has seen both, or FAIL at the end. |
+
+A sensible order is 101, 102, 103, 104, 108, 109, 105 and 107. Tests 103, 104, 108 and 109
+need the file open (102) first. After 106, re-insert the card before running the others.
+
+Test 13 with the card: `-v 3` lists every directory below `/sdcard`, and `-v 8` lists each
+directory below `/sdcard` with its file count. The other `-v` values list other places and do
+not need a card.
+
+### What It Verifies
+
+Results go to the syslog (`LOG_MTEST`).
+
+* `-v 101` and `-v 110` show that the automounter mounts the card at boot and on insertion,
+  and unmounts it on removal. In `-v 110` the times logged for a mount are about 1 second after
+  the card goes in: the automounter waits that long for the card detect pin to settle.
+* `-v 106` followed by `-v 101` shows that an eject leaves the card unmounted until it is
+  re-inserted.
+* Without a card, test 13 logs "SD-Card not mounted" and still runs; the `/sdcard` cases then
+  report that they could not open `/sdcard`.
 
 ## Adding New Tests
 

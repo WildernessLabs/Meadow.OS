@@ -125,7 +125,7 @@ Source: `F7MeadowOS/meadow_os`
 | `meadow_os_info.c` | Board hardware version string, OS version string |
 | `meadow_os_espcp.c` | Glue between meadow_os and the ESP32 coprocessor |
 | `meadow_os_exceptions.c` | Pass erroro conditions through to .NET applications |
-| `meadow_sdmmc.c` | SD/MMC card initialisation and mount |
+| `meadow_sdmmc.c` | SD/MMC card initialisation; the NuttX automounter mounts `/sdcard` (see [SdCard.md](SdCard.md)) |
 | `meadow_hw_version.c` | Runtime detection of board hardware revision |
 | `meadow-gpio.c` | GPIO configuration, Meadow-specific pin multiplexing |
 | `meadow_interrupt.c` | External interrupt routing and management |
