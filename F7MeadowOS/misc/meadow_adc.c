@@ -453,12 +453,7 @@ static int meadow_adc_conversion_isr(int irq, FAR void *context,
 //==========================================================================
 static void meadow_adc_buffer_takesem(sem_t *semaphore)
 {
-  int ret;
-  do
-  {
-    ret = sem_wait(semaphore);
-  }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(semaphore);
 }
 
 //==========================================================================
