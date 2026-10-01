@@ -52,9 +52,10 @@
 #if defined (CONFIG_STM32F7_SDMMC2)
 
 #include <nuttx/irq.h>
+#include <nuttx/clock.h>
 #include <nuttx/sdio.h>
 #include <nuttx/mmcsd.h>
-#include <sys/mount.h>
+#include <nuttx/fs/automount.h>
 
 #include "stm32_sdmmc.h"
 #include <meadow/hcom_shared_common.h>
@@ -70,6 +71,14 @@
  ****************************************************************************/
 /* Configuration ************************************************************/
 
+#ifdef HAVE_MEADOW_NCD
+// The NuttX automounter mounts and unmounts the SD-Card (Issue #88). It waits
+// for the card detect pin to be stable for DDELAY before acting, and retries
+// an unmount every UDELAY while files on the card are still open.
+#define MEADOW_SDCARD_AUTOMOUNT_DDELAY  MSEC2TICK(1000)
+#define MEADOW_SDCARD_AUTOMOUNT_UDELAY  MSEC2TICK(2000)
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -79,6 +88,29 @@ static struct sdio_dev_s *_SdioDev;
 #ifdef HAVE_MEADOW_NCD
 static bool _PreviousSdInserted = false;
 static bool _CurrentSdInserted;
+
+// Set by the automounter through the hooks below
+static automount_handler_t _AutomountHandler;
+static FAR void *_AutomountArg;
+static bool _AutomountEnabled;
+
+static int meadow_sdcard_am_attach(FAR const struct automount_lower_s *lower,
+                                   automount_handler_t isr, FAR void *arg);
+static void meadow_sdcard_am_enable(FAR const struct automount_lower_s *lower,
+                                    bool enable);
+static bool meadow_sdcard_am_inserted(FAR const struct automount_lower_s *lower);
+
+static const struct automount_lower_s _AutomountLower =
+{
+  .fstype     = MEADOW_SDCARD_FILE_SYS_TYPE,
+  .blockdev   = MEADOW_SDCARD_BLOCK_NAME,
+  .mountpoint = MEADOW_SDCARD_MOUNT_POINT_NAME,
+  .ddelay     = MEADOW_SDCARD_AUTOMOUNT_DDELAY,
+  .udelay     = MEADOW_SDCARD_AUTOMOUNT_UDELAY,
+  .attach     = meadow_sdcard_am_attach,
+  .enable     = meadow_sdcard_am_enable,
+  .inserted   = meadow_sdcard_am_inserted,
+};
 #endif
 
 /****************************************************************************
@@ -86,10 +118,48 @@ static bool _CurrentSdInserted;
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: meadow_sdcard_am_attach, meadow_sdcard_am_enable,
+ *       meadow_sdcard_am_inserted
+ *
+ * Description:
+ *   The automounter's hooks. The card detect interrupt is Meadow's own (see
+ *   stm32_ncd_interrupt()), so attach only saves the automounter's handler
+ *   and enable only gates the call to it.
+ *
+ ****************************************************************************/
+
+#ifdef HAVE_MEADOW_NCD
+static int meadow_sdcard_am_attach(FAR const struct automount_lower_s *lower,
+                                   automount_handler_t isr, FAR void *arg)
+{
+  irqstate_t flags = enter_critical_section();
+  _AutomountHandler = isr;
+  _AutomountArg = arg;
+  leave_critical_section(flags);
+  return OK;
+}
+
+static void meadow_sdcard_am_enable(FAR const struct automount_lower_s *lower,
+                                    bool enable)
+{
+  irqstate_t flags = enter_critical_section();
+  _AutomountEnabled = enable;
+  leave_critical_section(flags);
+}
+
+static bool meadow_sdcard_am_inserted(FAR const struct automount_lower_s *lower)
+{
+  // The pin is pulled low when a card is inserted
+  return !stm32_gpioread(GPIO_MEADOW_SDIO_NCD);
+}
+#endif
+
+/****************************************************************************
  * Name: stm32_ncd_interrupt
  *
  * Description:
- *   Card detect interrupt handler.
+ *   Card detect interrupt handler. Tells the MMC/SD driver about a change
+ *   at once, and passes every edge to the automounter, which debounces it.
  *
  ****************************************************************************/
 
@@ -98,15 +168,21 @@ static int stm32_ncd_interrupt(int irq, FAR void *context, void *arg)
 {
   _CurrentSdInserted = !stm32_gpioread(GPIO_MEADOW_SDIO_NCD);
 
-  syslog(LOG_INFO, "%s@%d-SDMMC interrupt. Card was %s, now is %s\n",
-              __FILE__, __LINE__,
-              _PreviousSdInserted ? "In" : "Out",
-              _CurrentSdInserted ? "In" : "Out");
-
+  // Contact bounce gives extra edges with no change, only log a real one
   if (_CurrentSdInserted != _PreviousSdInserted)
   {
+    syslog(LOG_INFO, "%s@%d-SDMMC interrupt. Card was %s, now is %s\n",
+                __FILE__, __LINE__,
+                _PreviousSdInserted ? "In" : "Out",
+                _CurrentSdInserted ? "In" : "Out");
+
     sdio_mediachange(_SdioDev, _CurrentSdInserted);
     _PreviousSdInserted = _CurrentSdInserted;
+  }
+
+  if (_AutomountEnabled && _AutomountHandler != NULL)
+  {
+    _AutomountHandler(&_AutomountLower, _AutomountArg, _CurrentSdInserted);
   }
 
   return OK;
@@ -181,32 +257,21 @@ int stm32_sdio_initialize_meadow(void)
   //           _CurrentSdInserted ? "In" : "Out");
 
   sdio_mediachange(_SdioDev, _CurrentSdInserted);
-
-  // Note: I found no way to auto-mount via the interrupts, directly or using
-  // Nuttx work threads. I think it might be possible to send a signal to HCOM
-  // and use it's thread, but I didn't have time to attempt implementing this.
-  // Nuttx does have an Automount feature but with the rehosting to Nuttx V12
-  // in progress decided to wait for it. (12Dec23 Peter)
   _PreviousSdInserted = _CurrentSdInserted;
-  if(_CurrentSdInserted)
-  {
-    ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-      MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-ERROR: Startup - SDCard mount failed. ret:%d, errno:%d\n",
-        __FILE__, __LINE__, ret, errno);
-      return ret;
-    }
 
-    syslog(LOG_DEBUG, "%s@%d-SD-Card configured, inserted and mounted\n",
-       __FILE__, __LINE__);
-  }
-  else
+  // From here on the automounter owns mounting the SD-Card on /sdcard. It
+  // reads the card detect pin itself and does the first mount after
+  // MEADOW_SDCARD_AUTOMOUNT_DDELAY on the low priority work queue, so boot
+  // does not wait for it. Nothing else should mount or unmount the card.
+  if (automount_initialize(&_AutomountLower) == NULL)
   {
-    syslog(LOG_DEBUG, "%s@%d-SD-Card configured but not inserted\n",
-       __FILE__, __LINE__);
+    syslog(LOG_ERR, "%s@%d-ERROR: SD-Card automounter initialization failed\n",
+      __FILE__, __LINE__);
+    return -ENOMEM;
   }
+
+  syslog(LOG_DEBUG, "%s@%d-SD-Card configured, card %s\n",
+     __FILE__, __LINE__, _CurrentSdInserted ? "inserted" : "not inserted");
 
   // Now that _SdioDev is valid, the block driver is bound, and the initial
   // card state matches real hardware, it's safe to register the interrupt
