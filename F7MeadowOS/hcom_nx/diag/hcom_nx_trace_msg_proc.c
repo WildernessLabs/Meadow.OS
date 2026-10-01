@@ -47,6 +47,7 @@
 
 #include <nuttx/kthread.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 
 #include <sys/stat.h>
 #include <ctype.h>
@@ -709,15 +710,9 @@ int hcom_nx_trace_msg_send_msg_to_uart(const char *toUartBuf, size_t numbBytes)
 
 //===========================================================================
 // Wait for the thread holding the semaphore to release it
-void hcom_nx_trace_msg_wait_sem(sem_t *semaphore)
+static void hcom_nx_trace_msg_wait_sem(sem_t *semaphore)
 {
-  int ret;  
-
-  do
-  {
-    ret = sem_wait(semaphore);    // Take the semaphore (perhaps waiting)
-  }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(semaphore);
 }
 
 #endif    // #if defined (CONFIG_RAMLOG_SYSLOG)
