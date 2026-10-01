@@ -41,7 +41,7 @@
  ****************************************************************************/
 #include "../hcom_common.h"
 #include <meadow/hcom_dnld_shared.h>
-#include <sys/mount.h>
+#include <sys/statfs.h>
 #include <meadow/meadow_partition_share.h>
 #include <meadow/meadow_extended_errno.h>
 #include <meadow/meadow_hw_version.h>
@@ -79,72 +79,22 @@ static int hcom_host_process_run_loop(void);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-static int hcom_host_preprocess_unmount_sdcard(char *MountPointName)
-{
-  int ret;
-
-  ret = umount(MountPointName);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-  }
-#if defined (CONFIG_DIR_MGMT_TESTS)
-  else
-  {
-    syslog(2, "===> %s@%d-umount successful\n", __FILE__, __LINE__);
-    usleep(20 * 1000);
-  }
-#endif
-  return ret;
-}
-
 //=====================================================================
-// This function attempts to mount the SD-Card. If it fails, it will
-// unmount and try again.
-static int hcom_host_preprocess_mount_sdcard(void)
+// The NuttX automounter mounts the SD-Card on /sdcard when one is inserted
+// and unmounts it when it is removed (meadow_sdmmc.c, Issue #88), so hcom
+// only checks that it is there. /sdcard exists only while a card is mounted.
+static int hcom_host_preprocess_sdcard_mounted(void)
 {
-  // Attempt to mount, if it fails, unmount and try again.
-  int ret;
-  int attempts = 2;
-  do
-  {
-    // Attempt to mount the SD-Card
-    // mount(source, target, fstype, mountflags, data)
-    // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-    ret = mount(MEADOW_SDCARD_BLOCK_NAME, MEADOW_SDCARD_MOUNT_POINT_NAME,
-              MEADOW_SDCARD_FILE_SYS_TYPE, 0, NULL);
-    if(ret >= 0)
-    {
-#if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(2, "===> %s@%d-Mounted SDCard, Success\n", __FILE__, __LINE__);
-      usleep(20 * 1000);
-#endif
-      break; // Successfully mounted, done
-    }
-    else
-    {
-      // May have been left mounted, so unmount the SD-Card
-      // and try to mount again.
-      ret = hcom_host_preprocess_unmount_sdcard(MEADOW_SDCARD_MOUNT_POINT_NAME);
+  struct statfs sfs;
 
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
-        return ret;
-      }
-      continue; // Try to mount again
-    }
-  }
-  while(attempts-- > 0);
-
-  // Ran out of attempts to mount the SD-Card
-  if(ret < 0)
+  if(statfs(MEADOW_SDCARD_MOUNT_POINT_NAME, &sfs) < 0)
   {
-    syslog(LOG_ERR, "%s@%d-ERROR: SDCard Mount failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
-    return ret;
+    syslog(LOG_ERR, "%s@%d-ERROR: SD-Card not mounted, errno:%d\n",
+              __FILE__, __LINE__, errno);
+    return -ENODEV;
   }
-  return ret;
+
+  return OK;
 }
 
 /****************************************************************************
@@ -405,32 +355,23 @@ static int hcom_host_process_init_write_or_del(hcom_dnld_shared_t *dnldShared,
     return ret;    // Error already reported via syslog
   }
 
-  // SD-Card file activity must be mounted before it can be accessed
+  // SD-Card file activity needs the card to be mounted
   if(dnldShared->dnldRqstCat == pathnameSdcard)
   {
 #if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
+    syslog(LOG_MTEST, "===> %s@%d-Must have SDCard for file:%s\n",
               __FILE__, __LINE__,
               dnldShared->dnldFullPathName);
     usleep(20 * 1000);
 #endif
 
-    // mount(source, target, fstype, mountflags, data)
-    // e.g. mount("/dev/mmcsd0", "/sdcard", "vfat", 0, NULL);
-    ret = hcom_host_preprocess_mount_sdcard();
+    ret = hcom_host_preprocess_sdcard_mounted();
     if(ret < 0)
     {
-      char hostMsg[HCOM_TINY_HOST_STRING_BUFF_LENGTH];
-
-      syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-
       // Let CLI user know the problem, then conclude the download-init
       // handshake CLI is waiting on.
-      snprintf_chk(hostMsg, HCOM_TINY_HOST_STRING_BUFF_LENGTH,
-              "SD-Card mount failed, ret:%d, errno:%d\n", ret, errno);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-              hostMsg, __FILE__, __LINE__);
+              "SD-Card not inserted", __FILE__, __LINE__);
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0,
               __FILE__, __LINE__);
 
@@ -747,27 +688,19 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       return ret;   // On error exit
     }
 
-    // SD-Card file activity must be mounted before it can be accessed
+    // SD-Card file activity needs the card to be mounted
     // Note: if the file list command contains a single '\' this will
-    // not mount the SD-Card.
+    // not check the SD-Card.
     if(dnldShared->dnldRqstCat == pathnameSdcard)
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
+      syslog(LOG_MTEST, "===> %s@%d-Must have SDCard for file:%s\n",
                 __FILE__, __LINE__, dnldShared->dnldFullPathName);
       usleep(20 * 1000);
 #endif
-      // Use the shared helper (also used by the file write/delete and file
-      // read paths below) rather than a raw mount() call: it retries via
-      // unmount-then-remount if the SD-Card is already mounted (e.g. from
-      // the boot-time auto-mount in meadow_sdmmc.c), which a bare mount()
-      // call here would otherwise fail with -ENOTDIR on every subsequent
-      // file-list request.
-      ret = hcom_host_preprocess_mount_sdcard();
+      ret = hcom_host_preprocess_sdcard_mounted();
       if(ret < 0)
       {
-        syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
         return ret;
       }
     }
@@ -793,20 +726,18 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       return ret;   // On error exit
     }
 
-    // If SD-Card file read must be mounted before it can be used
+    // SD-Card file read needs the card to be mounted
     if(dnldShared->dnldRqstCat == pathnameSdcard)
     {
 #if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(LOG_MTEST, "===> %s@%d-Must mount SDCard for file:%s\n",
+      syslog(LOG_MTEST, "===> %s@%d-Must have SDCard for file:%s\n",
                 __FILE__, __LINE__, dnldShared->dnldFullPathName);
       usleep(20 * 1000);
 #endif
 
-      ret = hcom_host_preprocess_mount_sdcard();
+      ret = hcom_host_preprocess_sdcard_mounted();
       if(ret < 0)
       {
-        syslog(LOG_ERR, "%s@%d-ERROR: Mount failed. ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
         return ret;
       }
     }
@@ -818,7 +749,8 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
     // Starting a file transfer or delete needs special pre-processing
     // before being routed to the various write and delete functions.
     // This function calls hcom_host_process_init_hcom_dnld_share() to
-    // initialize the dnldShared information and if an SD-Card mounts it.
+    // initialize the dnldShared information and, for an SD-Card, checks
+    // that it is mounted.
     ret = hcom_host_process_init_write_or_del(dnldShared, hdrMsg,
           decodedSize, requestType);
     if(ret < 0)
@@ -874,24 +806,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
       requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR ||
       requestType == HCOM_MDOW_REQUEST_LIST_FILES_SUBDIR_CRC)
   {
-    // SD Card's need to be unmounted when a command has mounted it
-    if(dnldShared->dnldRqstCat == pathnameSdcard)
-    {
-#if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(LOG_MTEST, "===> %s@%d-umount successful, cat:%d', file:%s\n",
-              __FILE__, __LINE__,
-              hcom_file_dir_mgmt_find_category(dnldShared->dnldRqstCat),
-              dnldShared->dnldFullPathName);
-      usleep(20 * 1000);
-#endif
-      ret = hcom_host_preprocess_unmount_sdcard(MEADOW_SDCARD_MOUNT_POINT_NAME);
-      if(ret < 0)
-      {
-        // Insure that all allocated memory in dnldShared is freed.
-        hcom_dir_mgmt_free_file_info(dnldShared);
-        return ret;
-      }
-    }
+    // The SD-Card is left mounted, the automounter owns it
 
     // All finished with the shared download data, time to free the info
     hcom_dir_mgmt_free_file_info(dnldShared);
