@@ -72,6 +72,20 @@
  * Tests 16 to 18 measure how small a ring the test's writer (the HCOM
  * thread) keeps up with, so they report the underrun count rather than
  * passing or failing.
+ *
+ * One-shot clips (issue #664), played once at 16,000 Hz unless noted. With
+ * an amplified speaker on the pin, each test logs what should be heard.
+ * They leave the channels open; -v 6 closes them.
+ *
+ *   -v 19 One-shot API checks, on A00 and A01. No scope needed.
+ *   -v 20 A 0.25 s, 1 kHz beep on A00.
+ *   -v 21 A 0.25 s rising chirp on A00 at 8,000, 16,000 and 32,000 Hz:
+ *         half, normal and double speed.
+ *   -v 22 A 0.5 s low tone on A00, replaced after 0.2 s by a high one.
+ *   -v 23 A 500 Hz sine loops on A01 at 32,000 Hz while the chirp plays
+ *         on A00 at 16,000 Hz, resampled to 32,000 Hz.
+ *   -v 24 20 short clips on A00, each replacing the last, 50 to 300 ms
+ *         apart.
  */
 
 /****************************************************************************
@@ -85,7 +99,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <errno.h>
 #include <syslog.h>
@@ -145,6 +161,20 @@
 #define DAC_TEST_STREAM_CHUNK     480       /* 10 ms at 48,000 Hz */
 #define DAC_TEST_STREAM_TIMEOUT   100       /* ms per write */
 #define DAC_TEST_TONE_SAMPLES     96        /* One 500 Hz cycle at 48 kHz */
+
+/* One-shot tests. The rates divide 108 MHz exactly. */
+
+#define DAC_TEST_CLIP_RATE        16000
+#define DAC_TEST_CLIP_FILL        2048      /* Mid-scale: silence */
+#define DAC_TEST_BEEP_SAMPLES     4000      /* 0.25 s at 16,000 Hz */
+#define DAC_TEST_LOW_SAMPLES      8000      /* 0.5 s */
+#define DAC_TEST_BURST_SAMPLES    2400      /* 0.15 s */
+#define DAC_TEST_CHIRP_SAMPLES    4000      /* 0.25 s at normal speed */
+#define DAC_TEST_CHIRP_FROM       300       /* Hz, at normal speed */
+#define DAC_TEST_CHIRP_TO         3000
+#define DAC_TEST_RESAMPLE_RATE    48000     /* A01's rate in -v 19 */
+#define DAC_TEST_TWO_RATE         32000     /* A01's rate in -v 23 */
+#define DAC_TEST_TWO_SINE_SAMPLES 64        /* 500 Hz at 32,000 Hz */
 
 /****************************************************************************
  * Private Data
@@ -1207,6 +1237,696 @@ static void dac_test_stream_play(int test, uint32_t ring, bool gap,
 }
 
 /****************************************************************************
+ * Name: dac_test_make_tone
+ *
+ * Description:
+ *   Fill a clip with a full-scale tone that sweeps from f0 to f1 Hz (a
+ *   steady tone if they are equal) at rate_hz, from the 96-sample sine
+ *   table. The first and last 5 ms fade in and out from mid-scale, so the
+ *   clip starts and ends without a click.
+ *
+ ****************************************************************************/
+
+static void dac_test_make_tone(uint16_t *clip, uint32_t count, uint32_t f0,
+                               uint32_t f1, uint32_t rate_hz)
+{
+  uint32_t fade = rate_hz / 200;
+  uint32_t phase = 0;   /* Table position, 16.16 fixed point */
+  uint32_t freq;
+  uint32_t edge;
+  uint32_t j;
+  int32_t  s;
+
+  for (j = 0; j < count; j++)
+    {
+      s = g_dac_test_tone[(phase >> 16) % DAC_TEST_TONE_SAMPLES];
+
+      edge = j < count - 1 - j ? j : count - 1 - j;
+      if (edge < fade)
+        {
+          s = DAC_TEST_MID_SCALE +
+              ((s - DAC_TEST_MID_SCALE) * (int32_t)edge) / (int32_t)fade;
+        }
+
+      clip[j] = (uint16_t)s;
+
+      freq  = f0 + (uint32_t)(((int64_t)f1 - f0) * j / count);
+      phase += (uint32_t)(((uint64_t)freq * DAC_TEST_TONE_SAMPLES << 16) /
+                          rate_hz);
+      phase %= DAC_TEST_TONE_SAMPLES << 16;
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_new_clip
+ *
+ * Description:
+ *   Allocate and fill a clip; NULL if there is no memory. The kernel copies
+ *   a clip when it starts, so the caller frees it right after.
+ *
+ ****************************************************************************/
+
+static uint16_t *dac_test_new_clip(uint32_t count, uint32_t f0, uint32_t f1,
+                                   uint32_t rate_hz)
+{
+  uint16_t *clip = malloc(count * sizeof(uint16_t));
+
+  if (clip == NULL)
+    {
+      syslog(LOG_MTEST, "    FAILED to allocate a %lu-sample clip\n",
+             (unsigned long)count);
+      return NULL;
+    }
+
+  dac_test_make_tone(clip, count, f0, f1, rate_hz);
+  return clip;
+}
+
+/****************************************************************************
+ * Name: dac_test_start_oneshot
+ *
+ * Description:
+ *   Start a one-shot and return meadow_dac_wave_start()'s result. The
+ *   actual rate is stored in *actual_hz if it is not NULL.
+ *
+ ****************************************************************************/
+
+static int dac_test_start_oneshot(uint8_t pinid, const uint16_t *clip,
+                                  uint32_t count, uint32_t rate_hz,
+                                  uint32_t fill, uint32_t *actual_hz)
+{
+  struct meadow_dac_wave_s wave;
+  int ret;
+
+  dac_test_wave_init(&wave, MEADOW_DAC_WAVE_ONESHOT, rate_hz);
+  wave.count   = count;
+  wave.samples = clip;
+  wave.fill    = fill;
+
+  ret = meadow_dac_wave_start(pinid, &wave);
+  if (actual_hz != NULL)
+    {
+      *actual_hz = wave.actual_hz;
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: dac_test_pin_state
+ *
+ * Description:
+ *   Return a channel's waveform state (MEADOW_DAC_STREAM_NONE or
+ *   MEADOW_DAC_ONESHOT_PLAYING for a one-shot), or a negative error.
+ *
+ ****************************************************************************/
+
+static int dac_test_pin_state(uint8_t pinid)
+{
+  struct meadow_dac_wave_status_s status;
+  int ret;
+
+  memset(&status, 0, sizeof(status));
+  status.size = sizeof(status);
+
+  ret = meadow_dac_wave_status(pinid, &status);
+  return ret < 0 ? ret : (int)status.state;
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_wait
+ *
+ * Description:
+ *   Wait up to timeout_ms for the one-shot on a channel to end. Returns its
+ *   final state (MEADOW_DAC_STREAM_NONE once it has ended) and, in
+ *   *elapsed_ms, about how long it took, to the nearest 5 ms.
+ *
+ ****************************************************************************/
+
+static int dac_test_oneshot_wait(uint8_t pinid, uint32_t timeout_ms,
+                                 uint32_t *elapsed_ms)
+{
+  struct timespec start;
+  struct timespec now;
+  uint32_t ms = 0;
+  int state;
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  for (; ; )
+    {
+      state = dac_test_pin_state(pinid);
+
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      ms = (uint32_t)((now.tv_sec - start.tv_sec) * 1000 +
+                      (now.tv_nsec - start.tv_nsec) / 1000000);
+
+      if (state != MEADOW_DAC_ONESHOT_PLAYING || ms >= timeout_ms)
+        {
+          break;
+        }
+
+      usleep(5000);
+    }
+
+  if (elapsed_ms != NULL)
+    {
+      *elapsed_ms = ms;
+    }
+
+  return state;
+}
+
+/****************************************************************************
+ * Name: dac_test_open_audio
+ *
+ * Description:
+ *   Open a channel for audio: buffer on, output at mid-scale (silence), so
+ *   the first clip does not start with a click.
+ *
+ ****************************************************************************/
+
+static int dac_test_open_audio(uint8_t pinid)
+{
+  int ret = meadow_dac_open(pinid, 0);
+
+  if (ret == OK)
+    {
+      ret = meadow_dac_write(pinid, DAC_TEST_MID_SCALE);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: dac_test_report_end
+ *
+ * Description:
+ *   Log PASS or FAIL for a one-shot test from its failure count.
+ *
+ ****************************************************************************/
+
+static void dac_test_report_end(int test, int failures, const char *note)
+{
+  if (failures == 0)
+    {
+      syslog(LOG_MTEST, "DAC test %d: PASSED%s\n", test, note);
+    }
+  else
+    {
+      syslog(LOG_MTEST, "DAC test %d: FAILED, %d check(s) failed\n", test,
+             failures);
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_api
+ *
+ * Description:
+ *   -v 19: check the one-shot calls' error handling and basic behaviour. No
+ *   scope is needed.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_api(void)
+{
+  static uint16_t bad[4] =
+  {
+    2048, 1000, DAC_TEST_MAX_VALUE + 1, 2048
+  };
+
+  uint16_t *clip;
+  uint32_t actual = 0;
+  uint32_t ms = 0;
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 19: one-shot API checks on A00 and A01\n");
+
+  meadow_dac_close(DAC_TEST_PIN_A00);
+  meadow_dac_close(DAC_TEST_PIN_A01);
+
+  clip = dac_test_new_clip(DAC_TEST_BEEP_SAMPLES, 1000, 1000,
+                           DAC_TEST_CLIP_RATE);
+  if (clip == NULL)
+    {
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  /* Bad arguments */
+
+  dac_test_check("fill above 4095",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_MAX_VALUE + 1, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("count 0",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip, 0,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("count above 8192",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_WAVE_MAX_SAMPLES + 1,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("NULL samples",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, NULL,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("a sample above 4095",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, bad, 4,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EINVAL, &failures);
+
+  /* A clip, left at fill value 1000 so the end is visible on readback */
+
+  dac_test_check("start a 0.25 s clip on A00",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE, 1000, &actual),
+                 OK, &failures);
+  dac_test_check("actual rate is 16000", (int)actual, DAC_TEST_CLIP_RATE,
+                 &failures);
+  dac_test_check("status while playing",
+                 dac_test_pin_state(DAC_TEST_PIN_A00),
+                 MEADOW_DAC_ONESHOT_PLAYING, &failures);
+  dac_test_check("write during a clip",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 0), -EBUSY, &failures);
+  dac_test_check("start a buffer loop over a clip",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_SINE_RATE, NULL),
+                 -EBUSY, &failures);
+  dac_test_check("replace the playing clip",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE, 1000, NULL),
+                 OK, &failures);
+
+  ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 1000, &ms);
+  dac_test_check("status after the clip ends", ret, MEADOW_DAC_STREAM_NONE,
+                 &failures);
+  syslog(LOG_MTEST, "    The clip played for about %lu ms (expect about "
+         "250)\n", (unsigned long)ms);
+  dac_test_check_value("output left at the fill value", DAC_TEST_PIN_A00,
+                       1000, &failures);
+  dac_test_check("stop after the clip ended",
+                 meadow_dac_wave_stop(DAC_TEST_PIN_A00), -EINVAL,
+                 &failures);
+  dac_test_check("write after the clip ended",
+                 meadow_dac_write(DAC_TEST_PIN_A00, DAC_TEST_MID_SCALE), OK,
+                 &failures);
+
+  /* The clip's rate was released when it ended: A01 can use another */
+
+  dac_test_check("open A01", meadow_dac_open(DAC_TEST_PIN_A01, 0), OK,
+                 &failures);
+  dac_test_check("A01 at another rate after the clip",
+                 dac_test_start_buffer(DAC_TEST_PIN_A01, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_RESAMPLE_RATE, NULL),
+                 OK, &failures);
+
+  /* A01 now holds TIM6 at 48,000 Hz: a clip at 16,000 Hz is resampled */
+
+  dac_test_check("4000-sample clip too long once resampled (12000)",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EINVAL, &failures);
+  dac_test_check("2000-sample clip resampled (6000)",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip, 2000,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, &actual),
+                 OK, &failures);
+  dac_test_check("actual rate is A01's 48000", (int)actual,
+                 DAC_TEST_RESAMPLE_RATE, &failures);
+
+  ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 1000, &ms);
+  dac_test_check("resampled clip ends", ret, MEADOW_DAC_STREAM_NONE,
+                 &failures);
+  syslog(LOG_MTEST, "    The resampled clip played for about %lu ms "
+         "(expect about 125)\n", (unsigned long)ms);
+  dac_test_check("A01 still playing after the clip",
+                 dac_test_output_changes(DAC_TEST_PIN_A01), true,
+                 &failures);
+
+  /* A buffer loop at A01's rate on A00, then a clip over it: -EBUSY */
+
+  dac_test_check("buffer loop on A00",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_RESAMPLE_RATE, NULL),
+                 OK, &failures);
+  dac_test_check("clip over a buffer loop",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip, 2000,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 -EBUSY, &failures);
+
+  /* A clip still playing when its channel closes */
+
+  meadow_dac_wave_stop(DAC_TEST_PIN_A00);
+  dac_test_check("start a clip to close",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip, 2000,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 OK, &failures);
+  dac_test_check("close A00 while a clip plays",
+                 meadow_dac_close(DAC_TEST_PIN_A00), OK, &failures);
+  dac_test_check("close A01", meadow_dac_close(DAC_TEST_PIN_A01), OK,
+                 &failures);
+
+  free(clip);
+  dac_test_report_end(19, failures, "");
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_beep
+ *
+ * Description:
+ *   -v 20: one 0.25 s, 1 kHz beep on A00.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_beep(void)
+{
+  uint16_t *clip;
+  uint32_t actual = 0;
+  uint32_t ms = 0;
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 20: a 0.25 s, 1 kHz beep on A00 at %d Hz. "
+         "Listen: one short beep. Scope: the burst, then flat at "
+         "mid-scale\n", DAC_TEST_CLIP_RATE);
+
+  clip = dac_test_new_clip(DAC_TEST_BEEP_SAMPLES, 1000, 1000,
+                           DAC_TEST_CLIP_RATE);
+  if (clip == NULL)
+    {
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("start the beep",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, &actual),
+                 OK, &failures);
+  free(clip);
+
+  ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 1000, &ms);
+  dac_test_check("the beep ends", ret, MEADOW_DAC_STREAM_NONE, &failures);
+  syslog(LOG_MTEST, "    Played for about %lu ms (expect about 250) at "
+         "%lu Hz\n", (unsigned long)ms, (unsigned long)actual);
+  dac_test_check_value("output left at mid-scale", DAC_TEST_PIN_A00,
+                       DAC_TEST_CLIP_FILL, &failures);
+
+  dac_test_report_end(20, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_speed
+ *
+ * Description:
+ *   -v 21: the same rising chirp on A00 at half, normal and double speed,
+ *   a second apart.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_speed(void)
+{
+  static const uint32_t rates[3] =
+  {
+    DAC_TEST_CLIP_RATE / 2, DAC_TEST_CLIP_RATE, DAC_TEST_CLIP_RATE * 2
+  };
+
+  uint16_t *clip;
+  uint32_t actual = 0;
+  uint32_t ms = 0;
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 21: a chirp on A00 at 8000, 16000 and 32000 "
+         "Hz. Listen: the same sound at half speed (an octave lower), "
+         "normal, then double speed (an octave higher). Scope: bursts of "
+         "about 500, 250 and 125 ms\n");
+
+  clip = dac_test_new_clip(DAC_TEST_CHIRP_SAMPLES, DAC_TEST_CHIRP_FROM,
+                           DAC_TEST_CHIRP_TO, DAC_TEST_CLIP_RATE);
+  if (clip == NULL)
+    {
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  for (i = 0; i < 3; i++)
+    {
+      ret = dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                   DAC_TEST_CHIRP_SAMPLES, rates[i],
+                                   DAC_TEST_CLIP_FILL, &actual);
+      dac_test_check("start the chirp", ret, OK, &failures);
+      dac_test_check("actual rate as asked", (int)actual, (int)rates[i],
+                     &failures);
+
+      ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 2000, &ms);
+      dac_test_check("the chirp ends", ret, MEADOW_DAC_STREAM_NONE,
+                     &failures);
+      syslog(LOG_MTEST, "    At %lu Hz it played for about %lu ms "
+             "(expect about %lu)\n", (unsigned long)rates[i],
+             (unsigned long)ms,
+             (unsigned long)((DAC_TEST_CHIRP_SAMPLES * 1000) / rates[i]));
+
+      sleep(1);
+    }
+
+  free(clip);
+  dac_test_report_end(21, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_replace
+ *
+ * Description:
+ *   -v 22: a 0.5 s low tone on A00, replaced after 0.2 s by a 0.25 s high
+ *   tone.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_replace(void)
+{
+  uint16_t *low;
+  uint16_t *high;
+  uint32_t ms = 0;
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 22: a 0.5 s, 400 Hz tone on A00, replaced "
+         "after 0.2 s by a 0.25 s, 1.5 kHz tone. Listen: the low tone cut "
+         "off by the high one. Scope: about 0.2 s low, 0.25 s high, then "
+         "mid-scale\n");
+
+  low  = dac_test_new_clip(DAC_TEST_LOW_SAMPLES, 400, 400,
+                           DAC_TEST_CLIP_RATE);
+  high = dac_test_new_clip(DAC_TEST_BEEP_SAMPLES, 1500, 1500,
+                           DAC_TEST_CLIP_RATE);
+  if (low == NULL || high == NULL)
+    {
+      free(low);
+      free(high);
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("start the low tone",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, low,
+                                        DAC_TEST_LOW_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 OK, &failures);
+
+  usleep(200 * 1000);
+
+  dac_test_check("replace it with the high tone",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, high,
+                                        DAC_TEST_BEEP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, NULL),
+                 OK, &failures);
+  free(low);
+  free(high);
+
+  ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 1000, &ms);
+  dac_test_check("the high tone ends", ret, MEADOW_DAC_STREAM_NONE,
+                 &failures);
+  syslog(LOG_MTEST, "    The high tone played for about %lu ms (expect "
+         "about 250: the whole clip)\n", (unsigned long)ms);
+
+  dac_test_report_end(22, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_two_rates
+ *
+ * Description:
+ *   -v 23: a 500 Hz sine loops on A01 at 32,000 Hz; the chirp from -v 21 is
+ *   played on A00 at 16,000 Hz, resampled to 32,000 Hz.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_two_rates(void)
+{
+  uint16_t *chirp;
+  uint16_t *sine;
+  uint32_t actual = 0;
+  uint32_t ms = 0;
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 23: a 500 Hz sine loops on A01 at %d Hz, "
+         "then the chirp from -v 21 plays on A00 at %d Hz, resampled. "
+         "Listen on A00: the same as the normal-speed chirp in 21. Scope: "
+         "A01's sine undisturbed\n", DAC_TEST_TWO_RATE, DAC_TEST_CLIP_RATE);
+
+  chirp = dac_test_new_clip(DAC_TEST_CHIRP_SAMPLES, DAC_TEST_CHIRP_FROM,
+                            DAC_TEST_CHIRP_TO, DAC_TEST_CLIP_RATE);
+  sine  = malloc(DAC_TEST_TWO_SINE_SAMPLES * sizeof(uint16_t));
+  if (chirp == NULL || sine == NULL)
+    {
+      syslog(LOG_MTEST, "DAC test 23: FAILED to allocate the clips\n");
+      free(chirp);
+      free(sine);
+      return;
+    }
+
+  /* One full 500 Hz cycle at 32,000 Hz (64 samples, every 1.5th entry of
+   * the 96-sample table) with no fade, so the loop is seamless.
+   */
+
+  for (i = 0; i < DAC_TEST_TWO_SINE_SAMPLES; i++)
+    {
+      sine[i] = g_dac_test_tone[(i * 3 / 2) % DAC_TEST_TONE_SAMPLES];
+    }
+
+  dac_test_check("open A01", meadow_dac_open(DAC_TEST_PIN_A01, 0), OK,
+                 &failures);
+  dac_test_check("start the sine on A01",
+                 dac_test_start_buffer(DAC_TEST_PIN_A01, sine,
+                                       DAC_TEST_TWO_SINE_SAMPLES,
+                                       DAC_TEST_TWO_RATE, NULL),
+                 OK, &failures);
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("start the chirp on A00",
+                 dac_test_start_oneshot(DAC_TEST_PIN_A00, chirp,
+                                        DAC_TEST_CHIRP_SAMPLES,
+                                        DAC_TEST_CLIP_RATE,
+                                        DAC_TEST_CLIP_FILL, &actual),
+                 OK, &failures);
+  dac_test_check("A00 plays at A01's rate", (int)actual, DAC_TEST_TWO_RATE,
+                 &failures);
+  free(chirp);
+  free(sine);
+
+  ret = dac_test_oneshot_wait(DAC_TEST_PIN_A00, 2000, &ms);
+  dac_test_check("the chirp ends", ret, MEADOW_DAC_STREAM_NONE, &failures);
+  syslog(LOG_MTEST, "    The chirp played for about %lu ms (expect about "
+         "250, as at normal speed)\n", (unsigned long)ms);
+  dac_test_check("A01 still playing",
+                 dac_test_output_changes(DAC_TEST_PIN_A01), true,
+                 &failures);
+
+  dac_test_report_end(23, failures,
+                      ". A01's sine keeps playing; run -v 6 to stop it.");
+}
+
+/****************************************************************************
+ * Name: dac_test_oneshot_burst
+ *
+ * Description:
+ *   -v 24: 20 short clips on A00, each replacing the last, at 50 to 300 ms
+ *   intervals, as a game would fire effects.
+ *
+ ****************************************************************************/
+
+static void dac_test_oneshot_burst(void)
+{
+  uint16_t *clip;
+  uint32_t seed = 12345;
+  uint32_t wait_ms;
+  uint32_t f;
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 24: 20 clips on A00, each replacing the "
+         "last, 50 to 300 ms apart. Listen: a rapid, uninterrupted series "
+         "of beeps\n");
+
+  clip = malloc(DAC_TEST_BURST_SAMPLES * sizeof(uint16_t));
+  if (clip == NULL)
+    {
+      syslog(LOG_MTEST, "DAC test 24: FAILED to allocate the clip\n");
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  for (i = 0; i < 20; i++)
+    {
+      /* A simple pseudo-random pitch and interval */
+
+      seed    = seed * 1103515245 + 12345;
+      f       = 600 + ((seed >> 16) % 1800);
+      seed    = seed * 1103515245 + 12345;
+      wait_ms = 50 + ((seed >> 16) % 251);
+
+      dac_test_make_tone(clip, DAC_TEST_BURST_SAMPLES, f, f,
+                         DAC_TEST_CLIP_RATE);
+      ret = dac_test_start_oneshot(DAC_TEST_PIN_A00, clip,
+                                   DAC_TEST_BURST_SAMPLES,
+                                   DAC_TEST_CLIP_RATE, DAC_TEST_CLIP_FILL,
+                                   NULL);
+      if (ret != OK)
+        {
+          syslog(LOG_MTEST, "    FAIL: clip %d returned %d\n", i + 1, ret);
+          failures++;
+        }
+
+      usleep(wait_ms * 1000);
+    }
+
+  free(clip);
+
+  sleep(1);
+  dac_test_check("no clip playing 1 s after the last",
+                 dac_test_pin_state(DAC_TEST_PIN_A00),
+                 MEADOW_DAC_STREAM_NONE, &failures);
+
+  dac_test_report_end(24, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -1300,11 +2020,36 @@ void meadow_dac_tests(uint32_t userdata)
         dac_test_stream_play(18, DAC_TEST_STREAM_1024, false, false);
         break;
 
+      case 19:
+        dac_test_oneshot_api();
+        break;
+
+      case 20:
+        dac_test_oneshot_beep();
+        break;
+
+      case 21:
+        dac_test_oneshot_speed();
+        break;
+
+      case 22:
+        dac_test_oneshot_replace();
+        break;
+
+      case 23:
+        dac_test_oneshot_two_rates();
+        break;
+
+      case 24:
+        dac_test_oneshot_burst();
+        break;
+
       default:
         syslog(LOG_MTEST, "DAC test: unknown -v %lu. Use 1 (API checks), "
                "2-4 (level steps), 5 (hold A00), 6 (close all), "
                "7 (waveform API checks), 8-12 (waveforms), "
-               "13 (streaming API checks), 14-18 (streaming)\n",
+               "13 (streaming API checks), 14-18 (streaming), "
+               "19 (one-shot API checks), 20-24 (one-shots)\n",
                (unsigned long)userdata);
         break;
     }

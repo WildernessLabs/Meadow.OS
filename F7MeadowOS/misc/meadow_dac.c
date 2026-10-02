@@ -53,6 +53,14 @@
  * fill value so that a half the app does not refill in time plays that
  * value instead of old samples.
  *
+ * A one-shot (issue #664) plays a clip once: DMA runs in normal mode instead
+ * of circular, and its transfer-complete interrupt turns the channel's
+ * trigger off, leaving the output at the fill value. The DMA stream and the
+ * clip's buffer are released by work on the low-priority work queue, or by
+ * the next DAC call, whichever comes first. A clip asked for at a different
+ * rate from a waveform on the other channel is resampled to that rate,
+ * since both channels share TIM6.
+ *
  * The NuttX DAC driver is not used; the design document explains why.
  * NuttX has no STM32F7 DAC register header, so the few registers needed
  * are defined here.
@@ -80,6 +88,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
 #include <nuttx/semaphore.h>
+#include <nuttx/wqueue.h>
 
 #include <arch/board/board.h>
 
@@ -174,6 +183,17 @@
                                    DMA_SCR_MSIZE_16BITS | DMA_SCR_CIRC | \
                                    DMA_SCR_PRIHI)
 
+/* The same for a one-shot, played once: normal mode instead of circular */
+
+#define MEADOW_DAC_DMA_SCR_ONCE   (MEADOW_DAC_DMA_SCR & ~DMA_SCR_CIRC)
+
+/* Fill values added after a one-shot clip. When DMA reports the last one
+ * delivered, the first is already on the output, so every sample of the
+ * clip has played for a full sample period (see MeadowDac.md).
+ */
+
+#define MEADOW_DAC_ONESHOT_TAIL   2
+
 /* TIM6, the waveform trigger timer */
 
 #define MEADOW_DAC_TIM_CLKIN      STM32_APB1_TIM6_CLKIN
@@ -203,8 +223,15 @@ struct meadow_dac_chan_s
 struct meadow_dac_wave_state_s
 {
   uint32_t    type;  /* MEADOW_DAC_WAVE_*, or 0 when none is playing */
-  DMA_HANDLE  dma;   /* Buffer loop and stream: the claimed DMA stream */
-  uint16_t   *buf;   /* Buffer loop: the kernel's copy; stream: the ring */
+  DMA_HANDLE  dma;   /* Buffer loop, stream, one-shot: the DMA stream */
+  uint16_t   *buf;   /* Buffer loop, one-shot: the kernel's copy;
+                      * stream: the ring */
+
+  /* One-shot only: set by the DMA handler when the clip has played to the
+   * end. The clip's resources are released later, under the driver lock.
+   */
+
+  volatile bool done;
 
   /* Stream only. The ring is played in two halves. While running, at most
    * one half belongs to the app (target): the one DMA freed most recently.
@@ -274,6 +301,16 @@ static sem_t g_dac_space[MEADOW_DAC_NCHANNELS] =
   NXSEM_INITIALIZER(0, SEM_PRIO_NONE)
 };
 
+/* Queued by the DMA handler when a one-shot ends, to release its resources */
+
+static struct work_s g_dac_oneshot_work;
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+static void meadow_dac_oneshot_reap_locked(void);
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -308,7 +345,8 @@ static int meadow_dac_find_chan(uint8_t pinid)
  * Description:
  *   Find the channel for pinid, take the driver lock, and check that the
  *   channel is open. On success the lock is held and the channel index is
- *   returned. On failure the lock is not held.
+ *   returned. On failure the lock is not held. Any one-shot that has ended
+ *   is cleaned up first, so the caller never sees one half-finished.
  *
  ****************************************************************************/
 
@@ -328,6 +366,8 @@ static int meadow_dac_lock_open_chan(uint8_t pinid)
     {
       return ret;
     }
+
+  meadow_dac_oneshot_reap_locked();
 
   if ((g_dac_open & (1 << chan)) == 0)
     {
@@ -697,7 +737,14 @@ static int meadow_dac_wave_stop_locked(int index)
       meadow_dac_tim_stop();
     }
 
-  meadow_dac_set_mode(chan, 0);
+  /* A one-shot that has ended was already returned to static mode by its
+   * DMA handler; doing it again would briefly disable the output.
+   */
+
+  if (!(wave->type == MEADOW_DAC_WAVE_ONESHOT && wave->done))
+    {
+      meadow_dac_set_mode(chan, 0);
+    }
 
   if (wave->dma != NULL)
     {
@@ -722,11 +769,91 @@ static int meadow_dac_wave_stop_locked(int index)
 
   wave->type   = 0;
   wave->sstate = MEADOW_DAC_STREAM_NONE;
+  wave->done   = false;
 
   /* Wake a writer waiting for space; it sees the stream has gone */
 
   meadow_dac_space_post(index);
   return OK;
+}
+
+/****************************************************************************
+ * Name: meadow_dac_oneshot_reap_locked
+ *
+ * Description:
+ *   Release the resources of any one-shot that has played to the end, and
+ *   stop TIM6 if nothing else needs it. Called with the driver lock held,
+ *   by every call that takes it and by the work its DMA handler queues.
+ *
+ ****************************************************************************/
+
+static void meadow_dac_oneshot_reap_locked(void)
+{
+  int index;
+
+  for (index = 0; index < MEADOW_DAC_NCHANNELS; index++)
+    {
+      if (g_dac_wave[index].type == MEADOW_DAC_WAVE_ONESHOT &&
+          g_dac_wave[index].done)
+        {
+          meadow_dac_wave_stop_locked(index);
+        }
+    }
+}
+
+/****************************************************************************
+ * Name: meadow_dac_oneshot_work
+ *
+ * Description:
+ *   Low-priority work queued when a one-shot ends: clean it up promptly
+ *   rather than waiting for the next DAC call.
+ *
+ ****************************************************************************/
+
+static void meadow_dac_oneshot_work(void *arg)
+{
+  UNUSED(arg);
+
+  if (nxmutex_lock(&g_dac_lock) < 0)
+    {
+      return;   /* The next DAC call cleans up instead */
+    }
+
+  meadow_dac_oneshot_reap_locked();
+  nxmutex_unlock(&g_dac_lock);
+}
+
+/****************************************************************************
+ * Name: meadow_dac_oneshot_dma
+ *
+ * Description:
+ *   DMA callback for a one-shot: the clip has been delivered (or DMA
+ *   failed). Turn the channel's trigger and DMA requests off, which leaves
+ *   the fill value on the output, mark the clip done and queue its
+ *   clean-up. Interrupt context.
+ *
+ ****************************************************************************/
+
+static void meadow_dac_oneshot_dma(DMA_HANDLE handle, uint8_t status,
+                                   void *arg)
+{
+  int index = (int)(uintptr_t)arg;
+  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+
+  UNUSED(handle);
+  UNUSED(status);
+
+  /* Ignore an interrupt for a clip that was stopped or replaced */
+
+  if (st->type != MEADOW_DAC_WAVE_ONESHOT || st->done)
+    {
+      return;
+    }
+
+  meadow_dac_set_mode(&g_dac_chan[index], 0);
+  st->done = true;
+
+  work_queue(LPWORK, &g_dac_oneshot_work, meadow_dac_oneshot_work, NULL, 0);
 }
 
 /****************************************************************************
@@ -799,6 +926,124 @@ static int meadow_dac_copy_samples(const uint16_t *samples, uint32_t count,
 }
 
 /****************************************************************************
+ * Name: meadow_dac_copy_oneshot
+ *
+ * Description:
+ *   Allocate and fill the kernel's copy of a one-shot clip: the samples,
+ *   resampled if the channel plays at a different rate, followed by
+ *   MEADOW_DAC_ONESHOT_TAIL fill values. Aligned and cleaned from the data
+ *   cache as for meadow_dac_copy_samples(). Called with the driver lock
+ *   held; the fill value has already been checked.
+ *
+ * Input Parameters:
+ *   samples - The caller's clip.
+ *   count   - Its length, 1 to MEADOW_DAC_WAVE_MAX_SAMPLES.
+ *   rate_hz - The rate the clip was asked to play at.
+ *   div     - TIM6's divider for rate_hz.
+ *   outdiv  - TIM6's divider for the rate the channel will play at. If it
+ *             equals div, the clip is copied as it is.
+ *   fill    - The value the output is left at when the clip ends.
+ *   bufout  - The kernel's copy.
+ *   lenout  - Its length in samples, including the fill values.
+ *
+ * Returned Value:
+ *   0 on success, -EINVAL for a sample above 4095 or a clip longer than
+ *   MEADOW_DAC_WAVE_MAX_SAMPLES once resampled, or -ENOMEM.
+ *
+ ****************************************************************************/
+
+static int meadow_dac_copy_oneshot(const uint16_t *samples, uint32_t count,
+                                   uint32_t rate_hz, uint32_t div,
+                                   uint32_t outdiv, uint16_t fill,
+                                   uint16_t **bufout, uint32_t *lenout)
+{
+  uint64_t  step = 0;
+  uint64_t  pos;
+  uint32_t  nout;
+  uint32_t  i;
+  uint32_t  j;
+  size_t    bytes;
+  uint16_t *buf;
+  int32_t   a;
+  int32_t   b;
+
+  /* Check every sample first: resampling reads them out of order */
+
+  for (i = 0; i < count; i++)
+    {
+      if (samples[i] > MEADOW_DAC_MAX_VALUE)
+        {
+          return -EINVAL;
+        }
+    }
+
+  if (outdiv == div)
+    {
+      nout = count;
+    }
+  else
+    {
+      /* Input samples per output sample, in 16.16 fixed point: the clip's
+       * rate divided by the channel's actual rate.
+       */
+
+      step = (((uint64_t)rate_hz * outdiv) << 16) / MEADOW_DAC_TIM_CLKIN;
+      if (step == 0)
+        {
+          return -EINVAL;
+        }
+
+      pos = ((uint64_t)(count - 1) << 16) / step + 1;
+      if (pos > MEADOW_DAC_WAVE_MAX_SAMPLES)
+        {
+          return -EINVAL;
+        }
+
+      nout = (uint32_t)pos;
+    }
+
+  bytes = (nout + MEADOW_DAC_ONESHOT_TAIL) * sizeof(uint16_t);
+  bytes = (bytes + MEADOW_DAC_WAVE_ALIGN - 1) &
+          ~(size_t)(MEADOW_DAC_WAVE_ALIGN - 1);
+
+  buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, bytes);
+  if (buf == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  if (outdiv == div)
+    {
+      memcpy(buf, samples, count * sizeof(uint16_t));
+    }
+  else
+    {
+      /* Linear interpolation between neighbouring input samples */
+
+      for (j = 0; j < nout; j++)
+        {
+          pos = (uint64_t)j * step;
+          i   = (uint32_t)(pos >> 16);
+          a   = samples[i];
+          b   = (i + 1 < count) ? samples[i + 1] : a;
+          buf[j] = (uint16_t)(a + (((b - a) * (int32_t)(pos & 0xffff)) /
+                                   65536));
+        }
+    }
+
+  for (j = nout; j < nout + MEADOW_DAC_ONESHOT_TAIL; j++)
+    {
+      buf[j] = fill;
+    }
+
+  up_clean_dcache((uintptr_t)buf, (uintptr_t)buf + bytes);
+
+  *bufout = buf;
+  *lenout = nout + MEADOW_DAC_ONESHOT_TAIL;
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -846,6 +1091,8 @@ int meadow_dac_open(uint8_t pinid, uint32_t flags)
     {
       return ret;
     }
+
+  meadow_dac_oneshot_reap_locked();
 
   if (g_dac_open == 0)
     {
@@ -1034,9 +1281,11 @@ int meadow_dac_close(uint8_t pinid)
  *
  * Description:
  *   Start a waveform on an open channel: a buffer of samples played in a
- *   loop, or the DAC's triangle or noise generator, paced by TIM6. See
- *   struct meadow_dac_wave_s. The caller's samples are copied, so the
- *   caller may reuse its buffer as soon as this returns.
+ *   loop, a stream, a one-shot clip, or the DAC's triangle or noise
+ *   generator, paced by TIM6. See struct meadow_dac_wave_s. The caller's
+ *   samples are copied, so the caller may reuse its buffer as soon as this
+ *   returns. A one-shot replaces a one-shot already playing on the channel,
+ *   and is resampled if the other channel plays at a different rate.
  *
  * Input Parameters:
  *   pinid - Pin identifier, as for meadow_dac_open().
@@ -1045,9 +1294,10 @@ int meadow_dac_close(uint8_t pinid)
  * Returned Value:
  *   0 on success, -EBADSLT for a pin with no DAC output, -EBADF if the
  *   channel is not open, -EINVAL for a bad argument, -EBUSY if a waveform
- *   is already playing on this channel or the other channel plays at a
- *   different rate, -ENOMEM if the samples cannot be copied, or an error
- *   passed back from a lower-level call.
+ *   (other than a one-shot being replaced) is already playing on this
+ *   channel, or the other channel plays at a different rate (except for a
+ *   one-shot), -ENOMEM if the samples cannot be copied, or an error passed
+ *   back from a lower-level call.
  *
  ****************************************************************************/
 
@@ -1060,6 +1310,8 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
   DMA_HANDLE dma = NULL;
   uint32_t bits;
   uint32_t div;
+  uint32_t outdiv;
+  uint32_t len;
   uint32_t psc;
   uint32_t arr;
   int mamp = 0;
@@ -1127,6 +1379,16 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
         bits = 0;   /* Set when the stream starts playing */
         break;
 
+      case MEADOW_DAC_WAVE_ONESHOT:
+        if (w.count == 0 || w.count > MEADOW_DAC_WAVE_MAX_SAMPLES ||
+            w.samples == NULL || w.fill > MEADOW_DAC_MAX_VALUE)
+          {
+            return -EINVAL;
+          }
+
+        bits = MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN;
+        break;
+
       default:
         return -EINVAL;
     }
@@ -1142,9 +1404,22 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
   chan  = &g_dac_chan[index];
   state = &g_dac_wave[index];
 
-  /* One waveform per channel, and both channels share TIM6's rate */
+  /* A one-shot replaces a one-shot already playing on this channel */
 
-  if (state->type != 0 || (g_dac_tim_div != 0 && g_dac_tim_div != div))
+  if (w.type == MEADOW_DAC_WAVE_ONESHOT &&
+      state->type == MEADOW_DAC_WAVE_ONESHOT)
+    {
+      meadow_dac_wave_stop_locked(index);
+    }
+
+  /* One waveform per channel, and both channels share TIM6's rate. A
+   * one-shot asked for at another rate is resampled to TIM6's instead.
+   */
+
+  outdiv = g_dac_tim_div != 0 ? g_dac_tim_div : div;
+
+  if (state->type != 0 ||
+      (outdiv != div && w.type != MEADOW_DAC_WAVE_ONESHOT))
     {
       ret = -EBUSY;
       goto errout;
@@ -1187,6 +1462,32 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
       stm32_dmasetup(dma, chan->dhr, (uint32_t)(uintptr_t)buf, w.count,
                      MEADOW_DAC_DMA_SCR);
       modifyreg32(chan->dmacr, 0, DMA_SCR_TEIE | DMA_SCR_EN);
+    }
+
+  if (w.type == MEADOW_DAC_WAVE_ONESHOT)
+    {
+      ret = meadow_dac_copy_oneshot(w.samples, w.count, w.rate_hz, div,
+                                    outdiv, (uint16_t)w.fill, &buf, &len);
+      if (ret < 0)
+        {
+          goto errout;
+        }
+
+      dma = stm32_dmachannel(chan->dmamap);
+      if (dma == NULL)
+        {
+          kmm_free(buf);
+          ret = -EBUSY;
+          goto errout;
+        }
+
+      /* Played once, in normal mode; started below, once the channel's
+       * state is set, since its handler checks it.
+       */
+
+      stm32_dmasetup(dma, chan->dhr, (uint32_t)(uintptr_t)buf, len,
+                     MEADOW_DAC_DMA_SCR_ONCE);
+      state->done = false;
     }
 
   if (w.type == MEADOW_DAC_WAVE_STREAM)
@@ -1246,13 +1547,19 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
   state->buf  = buf;
   state->type = w.type;
 
+  if (w.type == MEADOW_DAC_WAVE_ONESHOT)
+    {
+      stm32_dmastart(dma, meadow_dac_oneshot_dma,
+                     (void *)(uintptr_t)index, false);
+    }
+
   if (w.type != MEADOW_DAC_WAVE_STREAM)
     {
       meadow_dac_set_mode(chan, bits);
       meadow_dac_tim_run();
     }
 
-  wave->actual_hz = (MEADOW_DAC_TIM_CLKIN + (div / 2)) / div;
+  wave->actual_hz = (MEADOW_DAC_TIM_CLKIN + (outdiv / 2)) / outdiv;
 
   nxmutex_unlock(&g_dac_lock);
   return OK;
@@ -1410,8 +1717,9 @@ int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
  *
  * Description:
  *   Report a channel's stream state: samples queued, space free and
- *   underruns. A channel that is not streaming reports
- *   MEADOW_DAC_STREAM_NONE and zeros.
+ *   underruns. A channel playing a one-shot reports
+ *   MEADOW_DAC_ONESHOT_PLAYING and the samples left to play. Any other
+ *   channel reports MEADOW_DAC_STREAM_NONE and zeros.
  *
  * Input Parameters:
  *   pinid  - Pin identifier, as for meadow_dac_open().
@@ -1491,6 +1799,17 @@ int meadow_dac_wave_status(uint8_t pinid,
 
           leave_critical_section(flags);
         }
+    }
+  else if (st->type == MEADOW_DAC_WAVE_ONESHOT)
+    {
+      /* Not yet ended, or the lock would have cleaned it up. The count
+       * left includes the fill values after the clip.
+       */
+
+      pos        = (uint32_t)stm32_dmaresidual(st->dma);
+      out.state  = MEADOW_DAC_ONESHOT_PLAYING;
+      out.queued = pos > MEADOW_DAC_ONESHOT_TAIL ?
+                   pos - MEADOW_DAC_ONESHOT_TAIL : 0;
     }
 
   memcpy(status, &out, sizeof(out));

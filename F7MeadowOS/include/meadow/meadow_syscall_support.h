@@ -57,6 +57,7 @@
 #define MEADOW_DAC_WAVE_TRIANGLE    2   // DAC triangle generator
 #define MEADOW_DAC_WAVE_NOISE       3   // DAC noise generator
 #define MEADOW_DAC_WAVE_STREAM      4   // Stream samples written by the app
+#define MEADOW_DAC_WAVE_ONESHOT     5   // Play a clip of samples once
 
 // Meadow DAC: a waveform for meadow_dac_wave_start(). Every field is 32 bits,
 // so the managed side can mirror it with a sequential struct. Fields a type
@@ -68,24 +69,26 @@ struct meadow_dac_wave_s
   uint32_t        rate_hz;    // Requested sample rate, 1 to 1,000,000
   uint32_t        actual_hz;  // Out: the rate actually set
   uint32_t        amplitude;  // Triangle and noise only: 2^n - 1, n = 1 to 12
-  uint32_t        count;      // Buffer only: number of samples, 1 to 8192
-  const uint16_t *samples;    // Buffer only: the samples, 0 to 4095 each
+  uint32_t        count;      // Buffer and one-shot: number of samples, 1 to 8192
+  const uint16_t *samples;    // Buffer and one-shot: the samples, 0 to 4095 each
   uint32_t        ring;       // Stream only: ring size in samples, even, 256 to
                               //   16384; 0 = 8192
-  uint32_t        fill;       // Stream only: value played on underrun, 0 to 4095
+  uint32_t        fill;       // Stream: value played on underrun; one-shot: value
+                              //   the output is left at when the clip ends; 0 to 4095
 };
 
 // Meadow DAC: struct meadow_dac_wave_status_s states
 #define MEADOW_DAC_STREAM_NONE      0   // Not streaming
 #define MEADOW_DAC_STREAM_PRIMING   1   // Started, waiting for the ring to fill
 #define MEADOW_DAC_STREAM_RUNNING   2   // Playing
+#define MEADOW_DAC_ONESHOT_PLAYING  3   // A one-shot clip is playing
 
-// Meadow DAC: a stream's status, from meadow_dac_wave_status()
+// Meadow DAC: a stream's or one-shot's status, from meadow_dac_wave_status()
 struct meadow_dac_wave_status_s
 {
   uint32_t size;       // sizeof(struct meadow_dac_wave_status_s), set by the caller
-  uint32_t state;      // Out: MEADOW_DAC_STREAM_*
-  uint32_t queued;     // Out: samples written and not yet played
+  uint32_t state;      // Out: MEADOW_DAC_STREAM_* or MEADOW_DAC_ONESHOT_PLAYING
+  uint32_t queued;     // Out: samples written (or, for a one-shot, left) to play
   uint32_t space;      // Out: samples that can be written now without waiting
   uint32_t underruns;  // Out: underruns since the stream started
 };

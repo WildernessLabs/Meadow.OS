@@ -1,7 +1,8 @@
 # Meadow DAC
 
-> **Status:** static-level output implemented (`F7MeadowOS/misc/meadow_dac.c`), with developer
-> test 15 (`apps/system/hcom/tests/meadow_dac_tests.c`). Waveform output is not implemented.
+> **Status:** static levels, waveforms (#658) and streaming (#662) implemented
+> (`F7MeadowOS/misc/meadow_dac.c`), with developer test 15
+> (`apps/system/hcom/tests/meadow_dac_tests.c`). One-shot clips (#664) are implemented too.
 > Tracked by issue #158. The customer request is Meadow_Issues #281.
 
 ## Overview
@@ -786,6 +787,197 @@ So for Meadow.Core:
 If this proves limiting, the ring could give the writer the whole ring of slack instead of
 half, by tracking DMA's position exactly rather than by halves; that would roughly double the
 tolerance. It is not needed for the results above.
+
+## One-Shot Clips (Design, Issue #664)
+
+> **Status:** implemented (`F7MeadowOS/misc/meadow_dac.c`), with developer tests 19 to 24.
+> Part 1 of #664. Part 2, a native `.WAV` file player, is not covered here.
+
+A one-shot plays a clip of samples **once** and then stops by itself. It is meant for sound
+effects in games: the app loads each effect into memory at start-up, when timing does not
+matter, and then plays one with a single call. The kernel copies the clip and DMA plays it,
+so no app code runs during playback, and a busy app, round-robin scheduling or a Mono
+garbage collection cannot cause clicks or gaps. A streamed sound (#662) needs the app to keep
+writing samples; a one-shot does not.
+
+A clip is an array of 12-bit samples, 0 to 4095, as for a buffer loop; 2048 is mid-scale,
+which is silence for audio. The app converts from whatever it loaded, for example a 16-bit
+`.WAV` sample `s` becomes `(s + 32768) >> 4` and an 8-bit one becomes `s << 4`.
+
+### Hardware Notes
+
+- **A speaker needs an amplifier.** With the output buffer on, the DAC drives only about
+  0.6 mA, into a minimum load of 5 kOhm (see [Hardware Summary](#hardware-summary)). Put an
+  audio amplifier, such as a small class-D amp, between the pin and the speaker.
+- **Only A00 and A01** have DAC outputs, so the amplifiers go on those pins. The two
+  channels are independent: for example music on A00 and effects on A01.
+- **Avoid a click at the start.** A channel opens with its output at 0. For audio, write
+  2048 with `meadow_dac_write()` after opening, so the first clip starts from mid-scale.
+
+### How It Works
+
+1. **Start.** `meadow_dac_wave_start()` with type `MEADOW_DAC_WAVE_ONESHOT` copies the clip
+   into a kernel buffer, as for a buffer loop, and adds two copies of the fill value at the
+   end (see [Ending Cleanly](#ending-cleanly)). DMA plays the buffer in **normal** mode,
+   once from start to end, instead of circular mode, paced by TIM6 as for every waveform.
+2. **End.** When DMA has delivered the last sample it stops by itself and raises its
+   transfer-complete interrupt. The handler turns the channel's trigger and DMA requests off,
+   so the output stays at the fill value, and marks the clip finished. The CPU does no work
+   per sample, and there is one interrupt per clip.
+3. **Clean-up.** Releasing the DMA stream and freeing the kernel buffer are not done in the
+   interrupt handler. The handler queues a work item on the low-priority work queue, which
+   takes the driver lock and does both, and stops TIM6 if the other channel is not playing a
+   waveform. Every DAC call also does any clean-up still pending, under the lock, before
+   anything else, so a call made just after a clip ends never sees it half-finished.
+
+#### Ending Cleanly
+
+With the trigger on, each TIM6 pulse moves the value waiting in the holding register to the
+output, and DMA then loads the next sample into the holding register. So when DMA reports
+that it has delivered the last sample, that sample is only waiting; it reaches the output at
+the next pulse. If the handler turned the trigger off at that moment, the last sample would
+be cut short.
+
+That is why the copy ends with two fill values. When DMA reports the last one delivered, the
+first fill value is already on the output and every real sample has played for a full
+sample period. Turning the trigger off then leaves the fill value on the output. The two
+extra samples add 2 sample periods to the clip, 125 us at 16 kHz.
+
+### Replacing a Clip
+
+Starting a one-shot on a channel that is already playing a one-shot **replaces** it: the old
+clip stops at once and the new one starts. A game must be able to play an effect whenever it
+happens, without first checking whether the last one has finished.
+
+Replacing applies only to one-shots. Starting a one-shot on a channel that plays any other
+waveform (a buffer loop, triangle, noise or a stream) still fails with `-EBUSY`, as starting
+any waveform there does today.
+
+### Playback Speed and Sharing TIM6
+
+The clip's `rate_hz` sets its playback speed: the same clip at half the rate plays at half
+speed, an octave lower; at twice the rate, twice as fast and an octave higher.
+
+Both channels are paced by TIM6, the only timer the DAC can use that Meadow leaves free:
+TIM2, TIM4, TIM5 and TIM8 are PWM timers, and TIM7 is the GPIO interrupt timer
+(`meadow_interrupt.c`). So both channels always run at one sample rate. Other waveforms
+started at a different rate from the other channel's fail with `-EBUSY`
+(see [Sharing TIM6](#sharing-tim6)). A one-shot does not fail; it is **resampled** instead:
+
+- **If the other channel is not playing a waveform,** TIM6 is set to the clip's own rate,
+  exactly as for other waveforms. This includes a replaced clip: the old one is stopped
+  first, so its rate no longer counts.
+- **If the other channel is playing at a different rate,** the clip is converted to that
+  rate while it is copied into the kernel buffer, by linear interpolation between
+  neighbouring samples. It then plays at the speed it asked for, alongside the other
+  channel. For example, music streamed at 16,000 Hz on A00 and an effect recorded at
+  22,050 Hz on A01: the effect is converted to 16,000 Hz and sounds as recorded.
+- **Quality.** Linear interpolation without a low-pass filter adds a little aliasing when a
+  clip is converted to a much lower rate (sped up relative to the output). For game effects
+  this is normally inaudible; the listening tests below check it.
+- `actual_hz` reports the rate the channel actually plays at, TIM6's rate. If it is not the
+  rate asked for, the clip was resampled.
+- The rate is fixed for the length of a clip. Changing the speed of a sound while it plays
+  is left to part 2 (the file player), if it is needed there.
+
+### Size
+
+- A clip is 1 to 8,192 samples, the buffer loop's limit: about half a second at 16 kHz.
+- When a clip is resampled, the limit applies to the **converted** clip. Converting to a
+  higher rate makes a clip longer, so a clip near the limit can be too long once converted;
+  that fails with `-EINVAL` and nothing plays.
+- The kernel buffer is the clip plus the two fill values, rounded up to the 32-byte cache
+  line: at most about 16 KB per channel, from the kernel heap, held only while the clip
+  plays.
+
+### API Changes
+
+A new waveform type and a new status state; the structs and the syscalls do not change.
+
+```c
+#define MEADOW_DAC_WAVE_ONESHOT       5   /* Play a clip of samples once */
+
+#define MEADOW_DAC_ONESHOT_PLAYING    3   /* struct meadow_dac_wave_status_s state */
+```
+
+**`meadow_dac_wave_start()`** with `MEADOW_DAC_WAVE_ONESHOT` uses these fields of
+`struct meadow_dac_wave_s`:
+
+| Field       | Use                                                               |
+|-------------|-------------------------------------------------------------------|
+| `rate_hz`   | The clip's sample rate: its playback speed                        |
+| `actual_hz` | Out: the rate the channel plays at; different means resampled     |
+| `count`     | Number of samples, 1 to 8,192                                     |
+| `samples`   | The clip                                                          |
+| `fill`      | The value the output is left at when the clip ends, 0 to 4095; 2048 for audio |
+
+`amplitude` and `ring` are not used and should be 0. Beyond the common checks:
+
+- `count` is 1 to 8,192, `samples` is not NULL, every sample is 0 to 4095, and `fill` is
+  0 to 4095 (`-EINVAL`)
+- the clip, once converted to the channel's rate, is at most 8,192 samples (`-EINVAL`)
+- `-EBUSY` only if this channel plays a waveform other than a one-shot
+- `-ENOMEM` if the kernel buffer cannot be allocated
+
+It returns as soon as the clip has started.
+
+**`meadow_dac_wave_status()`** reports `MEADOW_DAC_ONESHOT_PLAYING` while a clip plays, with
+`queued` set to the samples still to play. Once the clip has ended it reports
+`MEADOW_DAC_STREAM_NONE`, as for a channel with no waveform. The other fields are 0.
+
+**Other calls**, the same as for other waveforms:
+
+- `meadow_dac_wave_stop()` stops a playing clip at once. As for a buffer loop, the output
+  takes the sample DMA had loaded next; it is not set to the fill value. After a clip has ended by itself there is
+  nothing to stop, so this returns `-EINVAL`; an app that stops an effect as it ends can
+  ignore that.
+- `meadow_dac_write()` returns `-EBUSY` while a clip plays, and works again once it ends.
+- `meadow_dac_read()` returns the value on the output at that moment.
+- `meadow_dac_open()` and `meadow_dac_close()` stop a playing clip first.
+
+### Details
+
+- **Interrupts.** The DMA stream is started with `stm32_dmastart()` in normal mode, which
+  enables the transfer-complete and transfer-error interrupts. The handler runs in interrupt
+  context and only clears the channel's trigger and DMA-request bits, marks the clip finished
+  and queues the clean-up work.
+- **Races with stop and replace.** Stopping or replacing a clip stops its DMA stream with
+  interrupts disabled before anything is released, as `meadow_dac_wave_stop()` does now. The
+  handler and the clean-up work both check that the clip they were raised for is still the
+  channel's current one, so a late interrupt or work item for a replaced clip does nothing.
+- **Clean-up latency.** The low-priority work queue runs at priority 100, the same as managed
+  threads, so with busy managed code the clean-up can wait up to the 200 ms round-robin
+  slice. Nothing depends on it being prompt: the output is already at the fill value, and the
+  next DAC call does any clean-up still pending.
+- **DMA underrun.** After the last sample the DAC may request one more sample that DMA no
+  longer supplies, setting `DMAUDRx`. The clean-up clears it, as `meadow_dac_wave_stop()` does.
+- **Resampling cost.** Converting is done in the start call while the clip is copied, at most
+  8,192 output samples of fixed-point arithmetic, well under a millisecond.
+
+### One-Shot Tests
+
+Added to developer test 15. The scope tests leave the channels open; `-v 6` closes them. With
+an amplified speaker on the pin, the listening checks say what should be heard.
+
+| `-v` | Test |
+|------|------|
+| 19   | One-shot API checks, no scope needed: bad fill value, `count` 0 and 8,193, a bad sample, a clip too long once resampled, start over a buffer loop on the same channel (`-EBUSY`), replace a playing clip (succeeds), status while playing and after the end, write during and after a clip, stop after the end (`-EINVAL`), and `actual_hz` when resampled. |
+| 20   | A 0.25 s, 1 kHz tone burst on A00 at 16,000 Hz, played once. Scope: the burst, then flat at mid-scale. Listen: one short beep. |
+| 21   | Speed: a rising chirp of 4,000 samples (0.25 s at 16,000 Hz) on A00, played at 8,000, 16,000 and 32,000 Hz, a second apart. Listen: the same sound at half speed and an octave lower, normal, then double speed and an octave higher. Scope: the bursts last 0.5 s, 0.25 s and 0.125 s. |
+| 22   | Replace: a 0.5 s low tone on A00, replaced after 0.2 s by a 0.25 s high tone. Listen: the low tone cut off by the high one. Scope: about 0.2 s of low tone, then the full high tone, then mid-scale. |
+| 23   | Two channels at different rates: a 500 Hz sine loops on A01 at 32,000 Hz (64 samples), then the chirp from 21 is played on A00 at 16,000 Hz, resampled to 32,000 Hz (8,000 samples, within the limit). Listen on A00: the same as the normal-speed chirp in 21. Scope: A01's sine is undisturbed. The log reports `actual_hz` = 32,000. |
+| 24   | Game-like burst: 20 clips on A00, each replacing the last, at intervals of 50 to 300 ms. Passes if every start succeeds and the status reports no clip playing 1 s after the last one. Listen: a rapid, uninterrupted series of beeps. |
+
+### One-Shot Hardware Results
+
+Tested 2026-10-02 with an oscilloscope and an amplified speaker on the output.
+
+- **One-shot tests 19 to 24:** all passed. That covers the API checks, the single beep, the
+  chirp at three speeds, replacing a playing clip, a clip resampled to the other channel's
+  rate while that channel kept playing, and the 20-clip burst.
+- **Regression:** the earlier tests were rerun on the new driver and all passed: 1 and 7 (API
+  checks), 8 and 12 (sine, and the XY circle on both channels), 13 (streaming API checks) and
+  14 (10 s of streamed tones).
 
 ## Decisions
 
