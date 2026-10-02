@@ -126,7 +126,7 @@ static meadow_test_names_t _testNames[] =
 #endif
 
 #if defined(CONFIG_DAC_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_DAC, "Digital to Analog tests (-v 1: API checks, 2-4: level steps, 5: hold A00, 6: close all, 7: waveform API checks, 8-12: waveforms, 13: streaming API checks, 14-18: streaming)" },
+    { MEADOW_TEST_DAC, "Digital to Analog tests (-v 1: API checks, 2-4: level steps, 5: hold A00, 6: close all, 7: waveform API checks, 8-12: waveforms, 13: streaming API checks, 14-18: streaming, 19: one-shot API checks, 20-24: one-shots, 25: file player API checks, 26-32: file player)" },
 #endif
 
 #if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
