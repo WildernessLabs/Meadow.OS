@@ -353,7 +353,7 @@ void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
  *
  ****************************************************************************/
 
-static int meadow_dac_wave_stop_locked(int index)
+int meadow_dac_wave_stop_locked(int index)
 {
   const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
   struct meadow_dac_wave_state_s *wave = &g_dac_wave[index];
@@ -401,9 +401,11 @@ static int meadow_dac_wave_stop_locked(int index)
 
   putreg32(MEADOW_DAC_SR_DMAUDR << chan->shift, MEADOW_DAC_SR);
 
-  wave->type   = 0;
-  wave->sstate = MEADOW_DAC_STREAM_NONE;
-  wave->done   = false;
+  wave->type    = 0;
+  wave->sstate  = MEADOW_DAC_STREAM_NONE;
+  wave->done    = false;
+  wave->owner   = 0;
+  wave->ufrozen = false;
 
   /* Wake a writer waiting for space; it sees the stream has gone */
 
@@ -921,9 +923,16 @@ int meadow_dac_close(uint8_t pinid)
  *   returns. A one-shot replaces a one-shot already playing on the channel,
  *   and is resampled if the other channel plays at a different rate.
  *
+ *   meadow_dac_wave_start_owned() is the same, for the file player: a
+ *   stream started with a non-zero owner belongs to it (see
+ *   meadow_dac_stream_write()), starts from the fill value, and replaces a
+ *   stream another file is playing on the channel.
+ *
  * Input Parameters:
  *   pinid - Pin identifier, as for meadow_dac_open().
  *   wave  - The waveform. actual_hz is set to the rate actually used.
+ *   owner - meadow_dac_wave_start_owned() only: the player's number for the
+ *           stream, never 0.
  *
  * Returned Value:
  *   0 on success, -EBADSLT for a pin with no DAC output, -EBADF if the
@@ -936,6 +945,13 @@ int meadow_dac_close(uint8_t pinid)
  ****************************************************************************/
 
 int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
+{
+  return meadow_dac_wave_start_owned(pinid, wave, 0);
+}
+
+int meadow_dac_wave_start_owned(uint8_t pinid,
+                                struct meadow_dac_wave_s *wave,
+                                uint32_t owner)
 {
   const struct meadow_dac_chan_s *chan;
   struct meadow_dac_wave_state_s *state;
@@ -1038,10 +1054,14 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
   chan  = &g_dac_chan[index];
   state = &g_dac_wave[index];
 
-  /* A one-shot replaces a one-shot already playing on this channel */
+  /* A one-shot replaces a one-shot already playing on this channel, and a
+   * file replaces a file
+   */
 
-  if (w.type == MEADOW_DAC_WAVE_ONESHOT &&
-      state->type == MEADOW_DAC_WAVE_ONESHOT)
+  if ((w.type == MEADOW_DAC_WAVE_ONESHOT &&
+       state->type == MEADOW_DAC_WAVE_ONESHOT) ||
+      (owner != 0 && state->type == MEADOW_DAC_WAVE_STREAM &&
+       state->owner != 0))
     {
       meadow_dac_wave_stop_locked(index);
     }
@@ -1131,6 +1151,16 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
       if (ret < 0)
         {
           goto errout;
+        }
+
+      /* A file starts from the fill value (mid-scale), so a channel opened
+       * at 0 does not click when the music starts
+       */
+
+      state->owner = owner;
+      if (owner != 0)
+        {
+          putreg32(w.fill, chan->dhr);
         }
     }
 

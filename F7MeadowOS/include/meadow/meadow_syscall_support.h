@@ -82,12 +82,16 @@ struct meadow_dac_wave_s
 #define MEADOW_DAC_STREAM_PRIMING   1   // Started, waiting for the ring to fill
 #define MEADOW_DAC_STREAM_RUNNING   2   // Playing
 #define MEADOW_DAC_ONESHOT_PLAYING  3   // A one-shot clip is playing
+#define MEADOW_DAC_FILE_PLAYING     4   // meadow_dac_play_file() is playing
+
+// Meadow DAC: meadow_dac_play_file() flags
+#define MEADOW_DAC_PLAY_LOOP        (1 << 0)  // Start again at the end
 
 // Meadow DAC: a stream's or one-shot's status, from meadow_dac_wave_status()
 struct meadow_dac_wave_status_s
 {
   uint32_t size;       // sizeof(struct meadow_dac_wave_status_s), set by the caller
-  uint32_t state;      // Out: MEADOW_DAC_STREAM_* or MEADOW_DAC_ONESHOT_PLAYING
+  uint32_t state;      // Out: MEADOW_DAC_STREAM_*, _ONESHOT_ or _FILE_PLAYING
   uint32_t queued;     // Out: samples written (or, for a one-shot, left) to play
   uint32_t space;      // Out: samples that can be written now without waiting
   uint32_t underruns;  // Out: underruns since the stream started
@@ -118,6 +122,7 @@ int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
                           uint32_t count, uint32_t timeout_ms);
 int meadow_dac_wave_status(uint8_t pinid,
                            struct meadow_dac_wave_status_s *status);
+int meadow_dac_play_file(uint8_t pinid, const char *path, uint32_t flags);
 
 int pwrmgmt_most_recent_wakeup_reason(void);
 
