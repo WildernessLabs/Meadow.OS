@@ -81,6 +81,7 @@ $(MEADOW_OS_DIR)/misc/meadow_client_cert.c \
 $(MEADOW_OS_DIR)/misc/meadow_stm32f7_clockenable.c \
 $(MEADOW_OS_DIR)/misc/meadow_adc.c \
 $(MEADOW_OS_DIR)/misc/meadow_dac.c \
+$(MEADOW_OS_DIR)/misc/meadow_dac_stream.c \
 $(MEADOW_OS_DIR)/specialized/meadow_measure_freq.c \
 $(MEADOW_OS_DIR)/specialized/meadow_rotary_encoder.c \
 $(MEADOW_OS_DIR)/specialized/meadow_gpio_counter.c
