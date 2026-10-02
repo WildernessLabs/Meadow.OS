@@ -2,7 +2,8 @@
 
 > **Status:** static levels, waveforms (#658) and streaming (#662) implemented
 > (`F7MeadowOS/misc/meadow_dac.c`, with streaming in `meadow_dac_stream.c`), with developer test 15
-> (`apps/system/hcom/tests/meadow_dac_tests.c`). One-shot clips (#664) are implemented too.
+> (`apps/system/hcom/tests/meadow_dac_tests.c`). One-shot clips and the `.WAV` file player
+> (#664) are implemented too.
 > Tracked by issue #158. The customer request is Meadow_Issues #281.
 
 ## Overview
@@ -768,11 +769,12 @@ writer can be late is about one half: `ring / 2 / rate`. With the default ring a
 that is about 93 ms; with the largest (16,384), about 186 ms.
 
 The test's writer runs at priority 180, so the results above are a best case. Managed code
-runs differently: in Legacy all managed threads ran at NuttX priority 100 with round-robin
-scheduling, and the same is expected here. That matters in two ways:
+runs differently: in Legacy all managed threads ran at NuttX priority 80
+(`MONO_TASK_PRIORITY`, also in `meadow_thread_config.h`) with round-robin scheduling, and the
+same is expected here. That matters in two ways:
 
-- **Higher-priority threads** (HCOM, the trace threads, the ESP32 threads, all above 100) can
-  delay a managed writer. In normal use they run briefly.
+- **Higher-priority threads** (HCOM, the trace threads, the ESP32 threads and the work
+  queues, all above 80) can delay a managed writer. In normal use they run briefly.
 - **Round-robin** shares the CPU between busy threads of equal priority in slices of
   `CONFIG_RR_INTERVAL`, 200 ms on Meadow. If another managed thread keeps the CPU busy, the
   writer can wait up to 200 ms, which is more than even the largest ring can cover at audio
@@ -793,7 +795,7 @@ tolerance. It is not needed for the results above.
 ## One-Shot Clips (Design, Issue #664)
 
 > **Status:** implemented (`F7MeadowOS/misc/meadow_dac.c`), with developer tests 19 to 24.
-> Part 1 of #664. Part 2, a native `.WAV` file player, is not covered here.
+> Part 1 of #664. Part 2, the `.WAV` file player, is in [File Player](#file-player-design-issue-664).
 
 A one-shot plays a clip of samples **once** and then stops by itself. It is meant for sound
 effects in games: the app loads each effect into memory at start-up, when timing does not
@@ -947,9 +949,9 @@ It returns as soon as the clip has started.
   interrupts disabled before anything is released, as `meadow_dac_wave_stop()` does now. The
   handler and the clean-up work both check that the clip they were raised for is still the
   channel's current one, so a late interrupt or work item for a replaced clip does nothing.
-- **Clean-up latency.** The low-priority work queue runs at priority 100, the same as managed
-  threads, so with busy managed code the clean-up can wait up to the 200 ms round-robin
-  slice. Nothing depends on it being prompt: the output is already at the fill value, and the
+- **Clean-up latency.** The low-priority work queue runs at priority 100, above managed
+  threads (80), so busy managed code does not delay the clean-up; other work on the queue
+  can. Nothing depends on it being prompt: the output is already at the fill value, and the
   next DAC call does any clean-up still pending.
 - **DMA underrun.** After the last sample the DAC may request one more sample that DMA no
   longer supplies, setting `DMAUDRx`. The clean-up clears it, as `meadow_dac_wave_stop()` does.
@@ -980,6 +982,216 @@ Tested 2026-10-02 with an oscilloscope and an amplified speaker on the output.
 - **Regression:** the earlier tests were rerun on the new driver and all passed: 1 and 7 (API
   checks), 8 and 12 (sine, and the XY circle on both channels), 13 (streaming API checks) and
   14 (10 s of streamed tones).
+
+## File Player (Design, Issue #664)
+
+> **Status:** implemented (`F7MeadowOS/misc/meadow_dac_player.c`), with developer tests 25
+> to 32. Part 2 of #664.
+
+The file player plays a `.WAV` file from Meadow's file system on a DAC channel. It is meant
+for music and long sounds, which are too big to load as one-shot clips. One call starts it; a
+kernel thread then reads the file, converts its samples to 12 bits and feeds a stream (#662)
+at the file's sample rate. No managed code runs while it plays, so a busy app, round-robin
+scheduling or a Mono garbage collection cannot cause gaps.
+
+The [Hardware Notes](#hardware-notes) for one-shots apply here too: a speaker needs an
+amplifier, and only A00 and A01 have DAC outputs. A typical game plays music from a file on
+one channel and one-shot effects on the other.
+
+### How It Works
+
+1. **Start.** `meadow_dac_play_file()` checks its arguments, opens the file and reads its
+   header, all before returning, so a missing file or an unsupported format is reported to
+   the caller at once (see [API Changes](#api-changes-2)).
+2. It then sets the channel's output to mid-scale (2048), starts a stream at the file's
+   sample rate with the default ring (8,192 samples) and fill value 2048, and creates a
+   kernel thread for the channel. The call returns once the thread is running.
+3. **Play.** The thread reads the file a block at a time, converts each block (see
+   [WAV Files](#wav-files)) and writes it to the stream, waiting for space as an app would.
+   Output starts when the ring is full, as for any stream.
+4. **End.** At the end of the file the thread starts output if the ring never filled (a file
+   shorter than the ring), waits until everything written has played, then stops the stream
+   and exits. The output is left at mid-scale. With `MEADOW_DAC_PLAY_LOOP` it goes back to
+   the start of the sample data instead, without a gap, until stopped.
+
+### WAV Files
+
+A `.WAV` file is a RIFF file: a `RIFF` header with form type `WAVE`, then chunks. The player
+reads the `fmt ` chunk, skips any others (`LIST`, `fact` and so on, padded to an even
+length), and plays the `data` chunk.
+
+**Supported:**
+
+| Field | Supported |
+|---|---|
+| Format | PCM (format tag 1), or `WAVE_FORMAT_EXTENSIBLE` (0xFFFE) with the PCM sub-format |
+| Bits per sample | 8 (unsigned) or 16 (signed) |
+| Channels | 1, or 2 (mixed down to mono) |
+| Sample rate | 1 to 1,000,000 Hz, the DAC's limit |
+
+Each sample is converted to 12 bits as in the one-shot section: a 16-bit sample `s` becomes
+`(s + 32768) >> 4` and an 8-bit one `s << 4`. For a stereo file the two channels are
+averaged first, `(l + r) / 2`, so the result cannot overflow; a sound only on one side plays
+at half level.
+
+**Rejected:** compressed formats (ADPCM, MP3 and others), 24- and 32-bit and floating-point
+samples, more than two channels, a file with no `fmt ` or `data` chunk, and anything that is
+not a RIFF `WAVE` file. If the `data` chunk claims to be longer than the file, the player
+plays to the end of the file.
+
+### Sample Rate and Sharing TIM6
+
+The file plays at its own sample rate, set on TIM6. Both channels share TIM6
+(see [Sharing TIM6](#sharing-tim6)), so if the other channel is playing a waveform at a
+different rate, `meadow_dac_play_file()` fails with `-EBUSY`. Unlike a one-shot, a file is
+**not** resampled. For music on one channel and effects on the other, record both at the same
+rate; effects are one-shots, so they are resampled to the music's rate anyway.
+
+Rates that do not divide TIM6's 108 MHz clock exactly play at the nearest rate it can make.
+44,100 Hz plays at about 44,099.6 Hz, 0.001% slow, which cannot be heard.
+
+### Stopping and Replacing
+
+- `meadow_dac_wave_stop()` stops a playing file at once, as it stops any waveform. So do
+  `meadow_dac_close()` and `meadow_dac_open()`. The thread notices that its stream has gone,
+  closes the file and exits by itself.
+- Starting a file on a channel that is already playing a file **replaces** it: the old file
+  stops at once and the new one starts. A game changes its music this way without stopping
+  it first, as it does with one-shots.
+- Starting a file on a channel that plays any other waveform fails with `-EBUSY`. So does
+  starting another waveform, or writing to the stream, on a channel playing a file: the
+  stream belongs to the player.
+
+### The Player Thread
+
+- **Priority 110,** a new `DAC_PLAYER_THREAD_PRIORITY` in `meadow_thread_config.h`. That is
+  above managed code (80, `MONO_TASK_PRIORITY`) and the low-priority work queue (100), so
+  neither busy managed threads nor round-robin can delay it, and below HCOM (180) and the
+  ESP32 threads (125 and above).
+- **One thread per playing channel,** created by the start call and exiting when its file
+  ends or is stopped. Its stack is 2 KB.
+- **Reading.** The thread reads blocks of up to 2 KB and converts them into a buffer of up to
+  1,024 12-bit samples, which it writes to the stream. It opens the file with `file_open()`
+  (NuttX's kernel-side file calls, with its own `struct file`), not `open()`, so the file is
+  not in the calling app's file table and stays open after the start call returns.
+- **How long a read may take.** As for any stream writer, the thread must refill each half of
+  the ring before DMA comes back to it: `8,192 / 2 / rate`. That is 85 ms at 48,000 Hz, 93 ms
+  at 44,100 Hz and 256 ms at 16,000 Hz. A file-system read that stalls for longer than that
+  causes an underrun, which plays as a short silence and is counted in the status.
+- **No priority inheritance.** `CONFIG_PRIORITY_INHERITANCE` is off, so if a managed thread
+  holds a file-system lock the player needs and is itself delayed by other managed threads,
+  the player waits too. Reading the same file system from the app while a file plays is the
+  case to watch; the throughput tests below measure it.
+- **Data rate.** 16-bit stereo at 48,000 Hz is 192 KB/s, the most a supported file needs.
+  16-bit mono at 16,000 Hz is 32 KB/s.
+
+### API Changes
+
+One new syscall, one flag and one status state:
+
+```c
+#define MEADOW_DAC_PLAY_LOOP          (1 << 0)   /* meadow_dac_play_file() flag */
+
+#define MEADOW_DAC_FILE_PLAYING       4   /* struct meadow_dac_wave_status_s state */
+
+int meadow_dac_play_file(uint8_t pinid, const char *path, uint32_t flags);
+```
+
+**`meadow_dac_play_file()`** returns 0 once the file has started, or:
+
+- `-EBADSLT` or `-EBADF`, as for the other calls
+- `-EINVAL` for a NULL or relative `path` (it must start with `/`), unknown `flags`, or a
+  file that is not a RIFF `WAVE` file or has no `fmt ` or `data` chunk
+- `-ENAMETOOLONG` for a path longer than `PATH_MAX` (1,024)
+- `-ENOTSUP` for a `WAVE` file in a format the player does not support (see
+  [WAV Files](#wav-files))
+- `-EBUSY` if the channel plays a waveform other than a file, or the other channel plays at
+  a different rate
+- `-ENOMEM` if the ring, buffers or thread cannot be allocated
+- the error from opening or reading the file, such as `-ENOENT`
+
+**`meadow_dac_wave_status()`** reports `MEADOW_DAC_FILE_PLAYING` while a file plays, with
+`queued`, `space` and `underruns` as for a stream: `underruns` shows whether the file system
+kept up. Once the file has ended it reports `MEADOW_DAC_STREAM_NONE`.
+
+**Other calls** on a channel playing a file:
+
+- `meadow_dac_wave_stop()`, `meadow_dac_close()` and `meadow_dac_open()` stop it.
+- `meadow_dac_wave_start()`, `meadow_dac_wave_write()` and `meadow_dac_write()` fail with
+  `-EBUSY`.
+- `meadow_dac_read()` returns the value on the output at that moment.
+
+### Details
+
+- **Where the code goes.** A new file, `F7MeadowOS/misc/meadow_dac_player.c`, holds the WAV
+  reader, the thread and `meadow_dac_play_file()`. The stream gains an owner, so the player's
+  writes go through an internal call that checks the stream is still the one it started,
+  while the public `meadow_dac_wave_write()` refuses a stream the player owns.
+- **The path** is copied into the kernel before use, so the app cannot change it while it is
+  checked.
+- **Races with stop and replace.** Each stream the player starts gets a new sequence number.
+  The thread checks it under the driver lock before every write and before stopping the
+  stream at the end, so a thread whose file was stopped or replaced never touches the new
+  stream; it only closes its file and frees its own memory.
+- **Draining at the end.** The thread polls the status every 10 ms until nothing is queued,
+  then stops the stream. The extra underruns counted while it drains are expected, as for
+  any stream (see [Underruns](#underruns)), and are not reported as the file system falling
+  behind: the status keeps the count from when the last block was written.
+- **Memory,** from the kernel heap while a file plays: the 16 KB ring, a 2 KB read buffer, a
+  2 KB sample buffer and the 2 KB thread stack, about 22 KB per channel. The kernel heap is
+  128 KB (`CONFIG_MM_KERNEL_HEAPSIZE`).
+- **No click at the start.** Setting the output to mid-scale before the stream starts means a
+  channel opened at 0 does not jump to mid-scale when the music starts.
+
+### File Player Tests
+
+Added to developer test 15. The test writes the `.WAV` files it needs to `/meadow0/dactest/`
+the first time it runs, so nothing has to be copied to the board. With an amplified speaker
+on the pin, the listening checks say what should be heard.
+
+| `-v` | Test |
+|------|------|
+| 25   | File player API checks, no scope needed: missing file (`-ENOENT`), relative path, not a WAV file, a 24-bit file (`-ENOTSUP`), channel not open (`-EBADF`), a rate different from the other channel's (`-EBUSY`), `meadow_dac_wave_write()` and `meadow_dac_wave_start()` during playback (`-EBUSY`), status while playing, stop, status after stopping, and replacing a playing file. |
+| 26   | 16-bit mono at 16,000 Hz on A00: 3 s of 500 Hz, 1 kHz and 2 kHz, a second each. Listen: three clean tones. Scope: the tones, then flat at mid-scale. Passes if there are no underruns while playing. |
+| 27   | The same as 26 from an 8-bit file at 8,000 Hz. |
+| 28   | Stereo mix-down: 16-bit stereo at 22,050 Hz, 500 Hz on the left and 750 Hz on the right. Listen: both tones together. Scope: their sum. |
+| 29   | Loop: a 0.5 s file played with `MEADOW_DAC_PLAY_LOOP` for 3 s, then stopped. Listen: an unbroken sound with no click where it loops. |
+| 30   | Music and effects: the file from 26 looped on A00, with a one-shot beep on A01 every 300 ms. Passes if A00 has no underruns while playing. |
+| 31   | Throughput: 5 s of 16-bit stereo at 48,000 Hz from `/meadow0`, then from `/sdcard` if a card is inserted. Reports the underruns for each. |
+| 32   | Plays `/meadow0/dactest.wav` on A00 for up to 30 s, if it exists: copy any music file there with `meadow file write` for a listening test. |
+
+### File Player Hardware Results
+
+Tested 2026-10-02 with an amplified speaker on A00 (and A01 for 30).
+
+- **File player tests 25 to 31:** all passed. That covers the API checks, 16-bit and 8-bit
+  mono files, a stereo file mixed down, a seamless loop, and a looping file on A00 with
+  one-shot effects on A01 every 300 ms, with no underruns on A00.
+- **Throughput (31):** 16-bit stereo at 48,000 Hz, 192 KB/s, the most a supported file needs:
+
+  | Source | Underruns while playing | 5 s file played in |
+  |---|---|---|
+  | `/meadow0` (QSPI flash, LittleFS) | 0 | about 5,019 ms |
+  | `/sdcard` (FAT) | 0 | about 5,040 ms |
+
+  The times include the drain at the end. Writing the 960 KB test file took about 17 s to
+  flash and about 4 s to the SD card; that is the test setting up, not the player.
+- **A real music file (32):** a user's own `.WAV` copied to `/meadow0/dactest.wav` played as
+  expected.
+- **Regression:** the streaming tests 13 and 14 and the one-shot tests 19 and 20 were rerun on
+  the new driver and passed. Tests 13 to 18 now close A01 before they start: a waveform an
+  earlier test left on A01 holds TIM6 at its own rate, and a first run of 13 and 14 after
+  other tests failed with `-EBUSY` for that reason.
+
+### Settled in Review
+
+1. **Replacing:** starting a file on a channel already playing a file replaces it, as for
+   one-shots, rather than failing with `-EBUSY`.
+2. **Ring size:** the default 8,192 samples is enough; the player does not use a larger ring.
+3. **Rate reporting:** `meadow_dac_play_file()` does not report the rate it plays at.
+
+Left for later: loading a `.WAV` into a kernel-held one-shot clip with the player's WAV
+reader, and changing speed while a file plays.
 
 ## Decisions
 
