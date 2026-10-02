@@ -45,6 +45,7 @@
 #include <nuttx/kthread.h>
 #include <nuttx/clock.h>
 #include <nuttx/net/mii.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/syslog/syslog.h>
 
 #include "meadow_ethnet_local.h"
@@ -160,11 +161,11 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
   memset(_dhcp_info, 0, sizeof(struct dhcp_info_s));
 
   // Initialize the connection semaphore
-  ret = sem_init(&_connectSem, 0, 0);
+  ret = nxsem_init(&_connectSem, 0, 0);
   if (ret < 0)
   {
-    syslog(LOG_ERR, "%s@%d-sem_init failed, ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
+    syslog(LOG_ERR, "%s@%d-nxsem_init failed, ret:%d\n",
+                __FILE__, __LINE__, ret);
     return NULL;
   }
 
@@ -195,7 +196,7 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
     if(_configUseDhcp)
     {
       sched_lock();
-      ret = clock_gettime(CLOCK_REALTIME, &waketime);
+      ret = clock_gettime(CLOCK_MONOTONIC, &waketime);
       if(ret < 0)
       {
         syslog(LOG_ERR, "%s@%d-clock_gettime, ret:%d, errno:%d\n",
@@ -219,7 +220,8 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       // Wait for lease time to expire or the link status to change
       syslog(LOG_INFO, "%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
                 __FILE__, __LINE__);
-      ret = sem_timedwait(&_connectSem, &waketime);
+      ret = nxsem_clockwait_uninterruptible(&_connectSem, CLOCK_MONOTONIC,
+                                            &waketime);
       sched_unlock();
     }
     else
@@ -227,12 +229,12 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       // No, least time to worry about so just wait for interrupt from LAN Chip
       syslog(LOG_INFO, "%s@%d-Static addressing. Waiting on status change\n",
                 __FILE__, __LINE__);
-      ret = sem_wait(&_connectSem);
+      ret = nxsem_wait_uninterruptible(&_connectSem);
     }
 
     if(ret < 0) 
     {
-      if (errno == ETIMEDOUT)
+      if (ret == -ETIMEDOUT)
       {
         if(! _configUseDhcp)
           continue;       // Nothing to do
@@ -244,8 +246,8 @@ void *meadow_ethnet_connect_kthread(int argc, char *argv[])
       }
       else
       {
-        syslog(LOG_ERR, "%s@%d-sem_timedwait() Failed, ret:%d, errno:%d\n",
-                    __FILE__, __LINE__, ret, errno);
+        syslog(LOG_ERR, "%s@%d-semaphore wait failed, ret:%d\n",
+                    __FILE__, __LINE__, ret);
       }
     }
 
@@ -606,7 +608,7 @@ int meadow_eth_conn_link_status_changed(bool linkStatusUp)
   leave_critical_section(flags);
 
   // Set the action and then wakeup our thread
-  (void)sem_post(&_connectSem);
+  (void)nxsem_post(&_connectSem);
 
   return OK;
 }
