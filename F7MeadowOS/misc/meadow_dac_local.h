@@ -238,5 +238,9 @@ void meadow_dac_tim_run(void);
 /* meadow_dac_stream.c */
 
 void meadow_dac_space_post(int index);
+int  meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
+                               uint16_t **pbuf, DMA_HANDLE *pdma);
+void meadow_dac_stream_status(int index,
+                              struct meadow_dac_wave_status_s *out);
 
 #endif /* __F7MEADOWOS_MISC_MEADOW_DAC_LOCAL_H */

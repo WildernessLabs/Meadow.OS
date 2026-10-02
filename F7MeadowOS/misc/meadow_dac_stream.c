@@ -42,8 +42,9 @@
  * handler resets to the fill value so that a half the app does not refill
  * in time plays that value instead of old samples.
  *
- * The stream is started by meadow_dac_wave_start() in meadow_dac.c; this
- * file feeds it.
+ * meadow_dac_wave_start() and meadow_dac_wave_status() in meadow_dac.c
+ * check the caller's arguments and take the driver lock, then hand a stream
+ * to meadow_dac_stream_prepare() and meadow_dac_stream_status() here.
  */
 
 /****************************************************************************
@@ -62,6 +63,7 @@
 #include <nuttx/cache.h>
 #include <nuttx/clock.h>
 #include <nuttx/irq.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
 #include <nuttx/semaphore.h>
 
@@ -303,6 +305,132 @@ static uint32_t meadow_dac_stream_put(int index, const uint16_t *samples,
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: meadow_dac_stream_prepare
+ *
+ * Description:
+ *   Set up a stream for meadow_dac_wave_start(): allocate its ring, take
+ *   the channel's DMA stream and reset the stream's state to priming. The
+ *   caller records the ring and DMA stream in the channel's state. Called
+ *   with the driver lock held; the ring size and fill value have already
+ *   been checked.
+ *
+ * Input Parameters:
+ *   index - Channel index.
+ *   ring  - Ring size in samples.
+ *   fill  - The fill value.
+ *   pbuf  - Set to the ring on success.
+ *   pdma  - Set to the DMA stream on success.
+ *
+ * Returned Value:
+ *   0 on success, -ENOMEM if the ring cannot be allocated, or -EBUSY if the
+ *   channel's DMA stream is in use. On failure nothing is left allocated
+ *   and the stream's state is unchanged.
+ *
+ ****************************************************************************/
+
+int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
+                              uint16_t **pbuf, DMA_HANDLE *pdma)
+{
+  const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
+  struct meadow_dac_wave_state_s *state = &g_dac_wave[index];
+  DMA_HANDLE dma;
+  uint16_t *buf;
+  uint32_t i;
+
+  /* The ring starts full of the fill value; output starts once the app
+   * has filled it (or asks for it with a zero-length write).
+   */
+
+  buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, ring * sizeof(uint16_t));
+  if (buf == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  for (i = 0; i < ring; i++)
+    {
+      buf[i] = fill;
+    }
+
+  up_clean_dcache((uintptr_t)buf, (uintptr_t)(buf + ring));
+
+  dma = stm32_dmachannel(chan->dmamap);
+  if (dma == NULL)
+    {
+      kmm_free(buf);
+      return -EBUSY;
+    }
+
+  state->ring      = ring;
+  state->half      = ring / 2;
+  state->fill      = fill;
+  state->target    = -1;
+  state->count[0]  = 0;
+  state->count[1]  = 0;
+  state->played[0] = 0;
+  state->played[1] = 0;
+  state->underruns = 0;
+  state->seq       = 0;
+  state->sstate    = MEADOW_DAC_STREAM_PRIMING;
+
+  *pbuf = buf;
+  *pdma = dma;
+  return OK;
+}
+
+/****************************************************************************
+ * Name: meadow_dac_stream_status
+ *
+ * Description:
+ *   Fill in a stream's part of meadow_dac_wave_status(): its state,
+ *   underruns, samples queued and space free. Called with the driver lock
+ *   held, on a channel that is streaming; 'out' has been zeroed.
+ *
+ ****************************************************************************/
+
+void meadow_dac_stream_status(int index,
+                              struct meadow_dac_wave_status_s *out)
+{
+  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+  irqstate_t flags;
+  uint32_t pos;
+  uint32_t off;
+  int playing;
+
+  out->state     = st->sstate;
+  out->underruns = st->underruns;
+
+  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+    {
+      out->queued = st->count[0] + st->count[1];
+      out->space  = st->ring - out->queued;
+      return;
+    }
+
+  /* App samples left in the half DMA is playing, from its position in the
+   * ring, plus those written into the app's half.
+   */
+
+  flags   = enter_critical_section();
+  pos     = st->ring - (uint32_t)stm32_dmaresidual(st->dma);
+  playing = pos < st->half ? 0 : 1;
+  off     = pos - (playing * st->half);
+
+  if (st->played[playing] > off)
+    {
+      out->queued = st->played[playing] - off;
+    }
+
+  if (st->target >= 0 && st->target != playing)
+    {
+      out->queued += st->count[st->target];
+      out->space   = st->half - st->count[st->target];
+    }
+
+  leave_critical_section(flags);
+}
 
 /****************************************************************************
  * Name: meadow_dac_wave_write

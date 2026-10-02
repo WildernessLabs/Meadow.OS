@@ -1126,46 +1126,12 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
 
   if (w.type == MEADOW_DAC_WAVE_STREAM)
     {
-      uint32_t i;
-
-      /* The ring starts full of the fill value; output starts once the app
-       * has filled it (or asks for it with a zero-length write).
-       */
-
-      buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN,
-                         w.ring * sizeof(uint16_t));
-      if (buf == NULL)
+      ret = meadow_dac_stream_prepare(index, w.ring, (uint16_t)w.fill,
+                                      &buf, &dma);
+      if (ret < 0)
         {
-          ret = -ENOMEM;
           goto errout;
         }
-
-      for (i = 0; i < w.ring; i++)
-        {
-          buf[i] = (uint16_t)w.fill;
-        }
-
-      up_clean_dcache((uintptr_t)buf, (uintptr_t)(buf + w.ring));
-
-      dma = stm32_dmachannel(chan->dmamap);
-      if (dma == NULL)
-        {
-          kmm_free(buf);
-          ret = -EBUSY;
-          goto errout;
-        }
-
-      state->ring      = w.ring;
-      state->half      = w.ring / 2;
-      state->fill      = (uint16_t)w.fill;
-      state->target    = -1;
-      state->count[0]  = 0;
-      state->count[1]  = 0;
-      state->played[0] = 0;
-      state->played[1] = 0;
-      state->underruns = 0;
-      state->seq       = 0;
-      state->sstate    = MEADOW_DAC_STREAM_PRIMING;
     }
 
   /* Reserve TIM6's rate for this channel */
@@ -1263,10 +1229,7 @@ int meadow_dac_wave_status(uint8_t pinid,
 {
   struct meadow_dac_wave_state_s *st;
   struct meadow_dac_wave_status_s out;
-  irqstate_t flags;
   uint32_t pos;
-  uint32_t off;
-  int playing;
   int index;
 
   index = meadow_dac_find_chan(pinid);
@@ -1293,38 +1256,7 @@ int meadow_dac_wave_status(uint8_t pinid,
 
   if (st->type == MEADOW_DAC_WAVE_STREAM)
     {
-      out.state     = st->sstate;
-      out.underruns = st->underruns;
-
-      if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
-        {
-          out.queued = st->count[0] + st->count[1];
-          out.space  = st->ring - out.queued;
-        }
-      else
-        {
-          /* App samples left in the half DMA is playing, from its position
-           * in the ring, plus those written into the app's half.
-           */
-
-          flags   = enter_critical_section();
-          pos     = st->ring - (uint32_t)stm32_dmaresidual(st->dma);
-          playing = pos < st->half ? 0 : 1;
-          off     = pos - (playing * st->half);
-
-          if (st->played[playing] > off)
-            {
-              out.queued = st->played[playing] - off;
-            }
-
-          if (st->target >= 0 && st->target != playing)
-            {
-              out.queued += st->count[st->target];
-              out.space   = st->half - st->count[st->target];
-            }
-
-          leave_critical_section(flags);
-        }
+      meadow_dac_stream_status(index, &out);
     }
   else if (st->type == MEADOW_DAC_WAVE_ONESHOT)
     {
