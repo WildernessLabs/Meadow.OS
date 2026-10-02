@@ -79,7 +79,7 @@
 #include <inttypes.h>
 #include <string.h>
 #include <stdio.h>
-#include <semaphore.h>
+#include <nuttx/semaphore.h>
 #include <time.h>
 #include <nuttx/kthread.h>
 
@@ -240,7 +240,7 @@ static void *kt_traverse_ku_test_opener_kthread(int argc, char *argv[])
       "KU Traverse test 8: opener kthread send FAIL (ret %d)\n", ret);
   }
 
-  sem_post(&_kt_traverse_ku_opener_done);
+  nxsem_post(&_kt_traverse_ku_opener_done);
   return NULL;
 }
 
@@ -265,7 +265,6 @@ static void kt_traverse_ku_test_cross_context(void)
   static const char msg[] = KUT_TAG ":cross-context/sent-by-this-task\n";
   int ret;
   int pid;
-  struct timespec abstime;
 
   syslog(LOG_INFO,
     "KU Traverse test 8: cross-context (kthread opens+sends first, "
@@ -282,7 +281,7 @@ static void kt_traverse_ku_test_cross_context(void)
     return;
   }
 
-  sem_init(&_kt_traverse_ku_opener_done, 0, 0);
+  nxsem_init(&_kt_traverse_ku_opener_done, 0, 0);
 
   pid = kthread_create("KUTraverseOpener", 100, 2048,
     (main_t) kt_traverse_ku_test_opener_kthread, (char * const *)NULL);
@@ -290,17 +289,16 @@ static void kt_traverse_ku_test_cross_context(void)
   {
     syslog(LOG_ERR,
       "KU Traverse test 8: FAIL (kthread_create returned %d)\n", pid);
-    sem_destroy(&_kt_traverse_ku_opener_done);
+    nxsem_destroy(&_kt_traverse_ku_opener_done);
     return;
   }
 
   // Reader must already be connected for either send to complete at all
   // (same precondition as every other test in this file) - this timeout
   // is just to keep the test from hanging forever if that's not true.
-  clock_gettime(CLOCK_REALTIME, &abstime);
-  abstime.tv_sec += 5;
-  ret = sem_timedwait(&_kt_traverse_ku_opener_done, &abstime);
-  sem_destroy(&_kt_traverse_ku_opener_done);
+  ret = nxsem_tickwait_uninterruptible(&_kt_traverse_ku_opener_done,
+                                       SEC2TICK(5));
+  nxsem_destroy(&_kt_traverse_ku_opener_done);
   if (ret < 0)
   {
     syslog(LOG_ERR,

@@ -139,7 +139,7 @@ int hcom_nx_trace_msg_proc_setup()
   _trace_kthread_running = false;
   _ramlog_reader_kthread_pid = 0;
   _txRxReCfgStopTime = 0;
-  sem_init(&_startupSem, 0, 1);
+  nxsem_init(&_startupSem, 0, 1);
 
   // Check the BBR to determine if initialization is needed, but only
   // during startup. After startup, this is controlled by CLI command
@@ -208,7 +208,7 @@ int hcom_nx_trace_msg_lazy_initialization()
   hcom_nx_trace_msg_wait_sem(&_startupSem);
   if(_trace_kthread_running)  // Already running? Don't restart
   {
-    sem_post(&_startupSem);
+    nxsem_post(&_startupSem);
     return OK;
   }
 
@@ -230,7 +230,7 @@ int hcom_nx_trace_msg_lazy_initialization()
     ret = up_rtc_getdatetime(&tmNow);
     if(ret < 0)
     {
-      sem_post(&_startupSem);
+      nxsem_post(&_startupSem);
       return -EINVAL;
     }
 
@@ -254,7 +254,7 @@ int hcom_nx_trace_msg_lazy_initialization()
   if (_syslogMsgBuf == NULL)
   {
     hcom_nx_uart_direct(LOG_ERR, "%s@%d-cir buf malloc\n", __FILE__, __LINE__);
-    sem_post(&_startupSem);
+    nxsem_post(&_startupSem);
     return -ENOMEM;
   }
 
@@ -267,7 +267,7 @@ int hcom_nx_trace_msg_lazy_initialization()
 
     free(_syslogMsgBuf);
     _syslogMsgBuf = NULL;
-    sem_post(&_startupSem);
+    nxsem_post(&_startupSem);
     return -1;
   }
 
@@ -302,7 +302,7 @@ void *hcom_nx_trace_msg_kthread(int argc, char *argv[])
 
   _trace_kthread_running = true;
   _haltingMsgProcessing = false;
-  sem_post(&_startupSem);
+  nxsem_post(&_startupSem);
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
@@ -399,9 +399,6 @@ void hcom_nx_trace_kthread_exit_initiate()
     syslog(LOG_ERR, "%s@%d: ramlog kthread did not exit within %u ms\n",
             __FILE__, __LINE__, (unsigned)HCOM_NX_TRACE_KTHREAD_EXIT_TIMEOUT_MS);
   }
-
-  // sem_destroy(&_readNxtSem);
-  // sem_destroy(&_sendCliSem);
 }
 
 //==========================================================================

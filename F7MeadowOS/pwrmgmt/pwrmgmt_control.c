@@ -248,7 +248,7 @@ bool pwrmgmt_idle_check_and_enter_lowpower(void)
 
 done:
   _lowPwrRequestResult = ret;
-  sem_post(&_lowPwrRequestComplete);
+  nxsem_post(&_lowPwrRequestComplete);
   return true;
 }
 
@@ -306,11 +306,11 @@ int meadow_power_mgmt_initialize(void)
 
   // Create semaphore to only allow single threaded access to
   // pwrmgmt_enter_stm32f7_stop_mode()
-  sem_init(&_lowPwrCtrlEntry, 0, 1);
+  nxsem_init(&_lowPwrCtrlEntry, 0, 1);
 
   // Posted by the idle task once it completes a requested transition;
   // starts at 0 so the requesting task blocks until that happens.
-  sem_init(&_lowPwrRequestComplete, 0, 0);
+  nxsem_init(&_lowPwrRequestComplete, 0, 0);
 
   // Initialize internals needed for the LSI clock to be used with RTC
   ret = pwrmgmt_init_lsi_calib();
@@ -381,7 +381,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   if(ret != OK)
   {
     // Some code module is busy.
-    sem_post(&_lowPwrCtrlEntry);
+    nxsem_post(&_lowPwrCtrlEntry);
     return -EBUSY;
   }
 
@@ -404,7 +404,7 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   (void) pwrmgmt_notify_registered_modules(false);
 
   // Can now be reentered
-  sem_post(&_lowPwrCtrlEntry);
+  nxsem_post(&_lowPwrCtrlEntry);
   return ret;
 }
 
