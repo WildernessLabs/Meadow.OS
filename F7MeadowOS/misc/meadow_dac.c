@@ -1,5 +1,5 @@
 /****************************************************************************
- * Meadow.OS/misc/meadow_dac.c
+ * F7MeadowOS/misc/meadow_dac.c
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
@@ -52,6 +52,8 @@
  * ring, each freeing the half just played, which the handler resets to the
  * fill value so that a half the app does not refill in time plays that
  * value instead of old samples.
+ * Feeding a stream is in meadow_dac_stream.c; the definitions both files
+ * share are in meadow_dac_local.h.
  *
  * A one-shot (issue #664) plays a clip once: DMA runs in normal mode instead
  * of circular, and its transfer-complete interrupt turns the channel's
@@ -101,160 +103,13 @@
 
 #include <meadow/meadow_syscall_support.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define MEADOW_DAC_NCHANNELS      2
-
-/* The largest value for 12-bit right-aligned data */
-
-#define MEADOW_DAC_MAX_VALUE      4095
-
-/* Pin identifiers use the meadow_adc_configure() encoding:
- * (port << 4) | pin, with port A = 0.
- */
-
-#define MEADOW_DAC_PINID_PA4      0x04
-#define MEADOW_DAC_PINID_PA5      0x05
-
-#define MEADOW_DAC_GPIO_PA4       (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | \
-                                   GPIO_PIN4)
-#define MEADOW_DAC_GPIO_PA5       (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | \
-                                   GPIO_PIN5)
-
-/* DAC registers (RM0410, DAC chapter) */
-
-#define MEADOW_DAC_CR             (STM32_DAC_BASE + 0x00)
-#define MEADOW_DAC_DHR12R1        (STM32_DAC_BASE + 0x08)
-#define MEADOW_DAC_DHR12R2        (STM32_DAC_BASE + 0x14)
-#define MEADOW_DAC_DOR1           (STM32_DAC_BASE + 0x2c)
-#define MEADOW_DAC_DOR2           (STM32_DAC_BASE + 0x30)
-#define MEADOW_DAC_SR             (STM32_DAC_BASE + 0x34)
-
-/* DAC_CR bits for channel 1. The channel 2 bits are the same, 16 bits up. */
-
-#define MEADOW_DAC_CR_EN          (1 << 0)  /* Channel enable */
-#define MEADOW_DAC_CR_BOFF        (1 << 1)  /* Output buffer disable */
-#define MEADOW_DAC_CR_TEN         (1 << 2)  /* Trigger enable */
-#define MEADOW_DAC_CR_TSEL_MASK   (7 << 3)  /* Trigger select; 0 = TIM6 */
-#define MEADOW_DAC_CR_WAVE_NOISE  (1 << 6)  /* Noise generator */
-#define MEADOW_DAC_CR_WAVE_TRI    (2 << 6)  /* Triangle generator */
-#define MEADOW_DAC_CR_WAVE_MASK   (3 << 6)
-#define MEADOW_DAC_CR_MAMP_SHIFT  8         /* Mask / amplitude selector */
-#define MEADOW_DAC_CR_MAMP_MASK   (15 << 8)
-#define MEADOW_DAC_CR_DMAEN       (1 << 12) /* DMA enable */
-#define MEADOW_DAC_CR_CH_SHIFT    16
-
-/* All the DAC_CR bits a waveform sets, for one channel */
-
-#define MEADOW_DAC_CR_WAVE_BITS   (MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_TSEL_MASK | \
-                                   MEADOW_DAC_CR_WAVE_MASK | \
-                                   MEADOW_DAC_CR_MAMP_MASK | \
-                                   MEADOW_DAC_CR_DMAEN)
-
-/* DAC_SR DMA underrun flag for channel 1; channel 2 is 16 bits up */
-
-#define MEADOW_DAC_SR_DMAUDR      (1 << 13)
-
-#define MEADOW_DAC_DATA_MASK      0x0fff
-
-/* Waveform limits */
-
-#define MEADOW_DAC_WAVE_MAX_SAMPLES  8192
-#define MEADOW_DAC_WAVE_MAX_RATE     1000000   /* The DAC's maximum update rate */
-
-/* Stream ring sizes, in samples */
-
-#define MEADOW_DAC_STREAM_DEF_RING   8192
-#define MEADOW_DAC_STREAM_MIN_RING   256
-#define MEADOW_DAC_STREAM_MAX_RING   16384
-
-/* The kernel's copy of a sample buffer is aligned to the data cache line */
-
-#define MEADOW_DAC_WAVE_ALIGN     32
-
-/* DMA set-up for a buffer loop: memory to peripheral, 16-bit on both sides,
- * memory increment, circular, high priority.
- */
-
-#define MEADOW_DAC_DMA_SCR        (DMA_SCR_DIR_M2P | DMA_SCR_MINC | \
-                                   DMA_SCR_PSIZE_16BITS | \
-                                   DMA_SCR_MSIZE_16BITS | DMA_SCR_CIRC | \
-                                   DMA_SCR_PRIHI)
-
-/* The same for a one-shot, played once: normal mode instead of circular */
-
-#define MEADOW_DAC_DMA_SCR_ONCE   (MEADOW_DAC_DMA_SCR & ~DMA_SCR_CIRC)
-
-/* Fill values added after a one-shot clip. When DMA reports the last one
- * delivered, the first is already on the output, so every sample of the
- * clip has played for a full sample period (see MeadowDac.md).
- */
-
-#define MEADOW_DAC_ONESHOT_TAIL   2
-
-/* TIM6, the waveform trigger timer */
-
-#define MEADOW_DAC_TIM_CLKIN      STM32_APB1_TIM6_CLKIN
-#define MEADOW_DAC_TIM_CR1        (STM32_TIM6_BASE + STM32_BTIM_CR1_OFFSET)
-#define MEADOW_DAC_TIM_CR2        (STM32_TIM6_BASE + STM32_BTIM_CR2_OFFSET)
-#define MEADOW_DAC_TIM_EGR        (STM32_TIM6_BASE + STM32_BTIM_EGR_OFFSET)
-#define MEADOW_DAC_TIM_PSC        (STM32_TIM6_BASE + STM32_BTIM_PSC_OFFSET)
-#define MEADOW_DAC_TIM_ARR        (STM32_TIM6_BASE + STM32_BTIM_ARR_OFFSET)
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-struct meadow_dac_chan_s
-{
-  uint8_t   pinid;  /* meadow_adc_configure() style pin identifier */
-  uint32_t  gpio;   /* stm32_configgpio() pin configuration */
-  uint32_t  dhr;    /* 12-bit right-aligned data holding register */
-  uint32_t  dor;    /* Data output register */
-  uint8_t   shift;  /* Position of this channel's bits in DAC_CR */
-  uint32_t  dmamap; /* stm32_dmachannel() stream and channel */
-  uint32_t  dmacr;  /* That DMA stream's configuration register */
-};
-
-/* A waveform playing on one channel */
-
-struct meadow_dac_wave_state_s
-{
-  uint32_t    type;  /* MEADOW_DAC_WAVE_*, or 0 when none is playing */
-  DMA_HANDLE  dma;   /* Buffer loop, stream, one-shot: the DMA stream */
-  uint16_t   *buf;   /* Buffer loop, one-shot: the kernel's copy;
-                      * stream: the ring */
-
-  /* One-shot only: set by the DMA handler when the clip has played to the
-   * end. The clip's resources are released later, under the driver lock.
-   */
-
-  volatile bool done;
-
-  /* Stream only. The ring is played in two halves. While running, at most
-   * one half belongs to the app (target): the one DMA freed most recently.
-   * The counts are updated from the DMA handler, so they are read and
-   * changed with interrupts disabled.
-   */
-
-  uint32_t    sstate;     /* MEADOW_DAC_STREAM_* */
-  uint32_t    ring;       /* Ring size in samples */
-  uint32_t    half;       /* Half the ring */
-  uint16_t    fill;       /* Value a half is reset to when freed */
-  int8_t      target;     /* Half the app writes into; -1 = none yet */
-  uint32_t    count[2];   /* App samples written into each half */
-  uint32_t    played[2];  /* App samples in a half when DMA started it */
-  uint32_t    underruns;  /* Halves DMA started without being full */
-  uint32_t    seq;        /* Counts DMA half events */
-};
+#include "meadow_dac_local.h"
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static const struct meadow_dac_chan_s g_dac_chan[MEADOW_DAC_NCHANNELS] =
+const struct meadow_dac_chan_s g_dac_chan[MEADOW_DAC_NCHANNELS] =
 {
   {
     MEADOW_DAC_PINID_PA4, MEADOW_DAC_GPIO_PA4,
@@ -270,7 +125,7 @@ static const struct meadow_dac_chan_s g_dac_chan[MEADOW_DAC_NCHANNELS] =
 
 /* Protects g_dac_open and DAC_CR, which both channels share */
 
-static mutex_t g_dac_lock = NXMUTEX_INITIALIZER;
+mutex_t g_dac_lock = NXMUTEX_INITIALIZER;
 
 /* Bit n set = channel n is open */
 
@@ -278,7 +133,7 @@ static uint8_t g_dac_open;
 
 /* The waveform on each channel, if any */
 
-static struct meadow_dac_wave_state_s g_dac_wave[MEADOW_DAC_NCHANNELS];
+struct meadow_dac_wave_state_s g_dac_wave[MEADOW_DAC_NCHANNELS];
 
 /* TIM6's divider, (PSC + 1) * (ARR + 1), reserved while any channel has a
  * waveform (including a stream that is still priming); 0 when none has.
@@ -289,17 +144,6 @@ static uint32_t g_dac_tim_div;
 static uint32_t g_dac_tim_psc;
 static uint32_t g_dac_tim_arr;
 static bool     g_dac_tim_running;
-
-/* Posted by the DMA handler when a stream half is freed, to wake a writer
- * waiting for space. Never destroyed, so a writer may still be waiting on
- * it when its stream is stopped.
- */
-
-static sem_t g_dac_space[MEADOW_DAC_NCHANNELS] =
-{
-  NXSEM_INITIALIZER(0, SEM_PRIO_NONE),
-  NXSEM_INITIALIZER(0, SEM_PRIO_NONE)
-};
 
 /* Queued by the DMA handler when a one-shot ends, to release its resources */
 
@@ -324,7 +168,7 @@ static void meadow_dac_oneshot_reap_locked(void);
  *
  ****************************************************************************/
 
-static int meadow_dac_find_chan(uint8_t pinid)
+int meadow_dac_find_chan(uint8_t pinid)
 {
   int chan;
 
@@ -350,7 +194,7 @@ static int meadow_dac_find_chan(uint8_t pinid)
  *
  ****************************************************************************/
 
-static int meadow_dac_lock_open_chan(uint8_t pinid)
+int meadow_dac_lock_open_chan(uint8_t pinid)
 {
   int chan;
   int ret;
@@ -467,7 +311,7 @@ static void meadow_dac_tim_stop(void)
 
 /* Start TIM6 at the reserved rate, if it is not already running */
 
-static void meadow_dac_tim_run(void)
+void meadow_dac_tim_run(void)
 {
   if (!g_dac_tim_running)
     {
@@ -487,223 +331,13 @@ static void meadow_dac_tim_run(void)
  *
  ****************************************************************************/
 
-static void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
-                                uint32_t bits)
+void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
+                         uint32_t bits)
 {
   modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << chan->shift, 0);
   modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_WAVE_BITS << chan->shift,
               bits << chan->shift);
   modifyreg32(MEADOW_DAC_CR, 0, MEADOW_DAC_CR_EN << chan->shift);
-}
-
-/****************************************************************************
- * Name: meadow_dac_space_post
- *
- * Description:
- *   Wake a writer waiting for space on a channel. The semaphore is kept at
- *   no more than 1, so posts with nobody waiting do not pile up.
- *
- ****************************************************************************/
-
-static void meadow_dac_space_post(int index)
-{
-  int value = 0;
-
-  nxsem_get_value(&g_dac_space[index], &value);
-  if (value < 1)
-    {
-      nxsem_post(&g_dac_space[index]);
-    }
-}
-
-/****************************************************************************
- * Name: meadow_dac_stream_half
- *
- * Description:
- *   DMA has finished playing half 'done' of a stream's ring and started on
- *   half 'next'. Count an underrun if the app had not filled 'next', reset
- *   'done' to the fill value, and hand it to the app. Interrupt context.
- *
- ****************************************************************************/
-
-static void meadow_dac_stream_half(int index, int done, int next)
-{
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  uint16_t *half = st->buf + (done * st->half);
-  uint32_t i;
-
-  if (st->target == next && st->count[next] < st->half)
-    {
-      st->underruns++;
-    }
-
-  st->played[next] = st->count[next];
-
-  for (i = 0; i < st->half; i++)
-    {
-      half[i] = st->fill;
-    }
-
-  up_clean_dcache((uintptr_t)half,
-                  (uintptr_t)(half + st->half));
-
-  st->count[done]  = 0;
-  st->played[done] = 0;
-  st->target       = done;
-  st->seq++;
-
-  meadow_dac_space_post(index);
-}
-
-/****************************************************************************
- * Name: meadow_dac_stream_dma
- *
- * Description:
- *   DMA callback for a stream: the half-transfer interrupt means half 0 has
- *   been played, the transfer-complete interrupt means half 1 has.
- *
- ****************************************************************************/
-
-static void meadow_dac_stream_dma(DMA_HANDLE handle, uint8_t status,
-                                  void *arg)
-{
-  int index = (int)(uintptr_t)arg;
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-
-  UNUSED(handle);
-
-  if (st->type != MEADOW_DAC_WAVE_STREAM ||
-      st->sstate != MEADOW_DAC_STREAM_RUNNING)
-    {
-      return;
-    }
-
-  if ((status & DMA_STATUS_HTIF) != 0)
-    {
-      meadow_dac_stream_half(index, 0, 1);
-    }
-
-  if ((status & DMA_STATUS_TCIF) != 0)
-    {
-      meadow_dac_stream_half(index, 1, 0);
-    }
-}
-
-/****************************************************************************
- * Name: meadow_dac_stream_run
- *
- * Description:
- *   Start playing a primed stream. Called with the driver lock held.
- *
- ****************************************************************************/
-
-static void meadow_dac_stream_run(int index)
-{
-  const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  irqstate_t flags;
-
-  flags = enter_critical_section();
-  st->played[0] = st->count[0];
-  st->played[1] = st->count[1];
-  st->target    = -1;
-  st->sstate    = MEADOW_DAC_STREAM_RUNNING;
-  leave_critical_section(flags);
-
-  /* Both DMA interrupts are wanted here, so use stm32_dmastart() with the
-   * half-transfer interrupt.
-   */
-
-  stm32_dmasetup(st->dma, chan->dhr, (uint32_t)(uintptr_t)st->buf,
-                 st->ring, MEADOW_DAC_DMA_SCR);
-  stm32_dmastart(st->dma, meadow_dac_stream_dma, (void *)(uintptr_t)index,
-                 true);
-
-  meadow_dac_set_mode(chan, MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN);
-  meadow_dac_tim_run();
-}
-
-/****************************************************************************
- * Name: meadow_dac_stream_put
- *
- * Description:
- *   Copy as many samples as fit into a stream's ring and return how many
- *   were taken. Starts output once priming fills the ring. Called with the
- *   driver lock held; the samples have already been checked.
- *
- ****************************************************************************/
-
-static uint32_t meadow_dac_stream_put(int index, const uint16_t *samples,
-                                      uint32_t count)
-{
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  irqstate_t flags;
-  uint16_t *dest;
-  uint32_t written;
-  uint32_t space;
-  uint32_t seq;
-  uint32_t n;
-  int target;
-
-  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
-    {
-      /* Fill the ring from the start, half 0 then half 1 */
-
-      written = st->count[0] + st->count[1];
-      n = st->ring - written;
-      if (n > count)
-        {
-          n = count;
-        }
-
-      dest = st->buf + written;
-      memcpy(dest, samples, n * sizeof(uint16_t));
-      up_clean_dcache((uintptr_t)dest, (uintptr_t)(dest + n));
-
-      written += n;
-      st->count[0] = written < st->half ? written : st->half;
-      st->count[1] = written > st->half ? written - st->half : 0;
-
-      if (written == st->ring)
-        {
-          meadow_dac_stream_run(index);
-        }
-
-      return n;
-    }
-
-  /* Running: write into the half DMA freed most recently */
-
-  flags  = enter_critical_section();
-  target = st->target;
-  seq    = st->seq;
-  space  = target < 0 ? 0 : st->half - st->count[target];
-  n      = target < 0 ? 0 : st->count[target];
-  leave_critical_section(flags);
-
-  if (space == 0)
-    {
-      return 0;
-    }
-
-  dest  = st->buf + (target * st->half) + n;   /* n = samples already there */
-  n     = space < count ? space : count;
-  memcpy(dest, samples, n * sizeof(uint16_t));
-  up_clean_dcache((uintptr_t)dest, (uintptr_t)(dest + n));
-
-  /* If DMA moved on during the copy, this half is already playing and the
-   * handler has handed the app the other one; the samples just copied play
-   * if DMA has not passed them, and are counted as taken either way.
-   */
-
-  flags = enter_critical_section();
-  if (st->seq == seq)
-    {
-      st->count[target] += n;
-    }
-
-  leave_critical_section(flags);
-  return n;
 }
 
 /****************************************************************************
@@ -1492,46 +1126,12 @@ int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
 
   if (w.type == MEADOW_DAC_WAVE_STREAM)
     {
-      uint32_t i;
-
-      /* The ring starts full of the fill value; output starts once the app
-       * has filled it (or asks for it with a zero-length write).
-       */
-
-      buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN,
-                         w.ring * sizeof(uint16_t));
-      if (buf == NULL)
+      ret = meadow_dac_stream_prepare(index, w.ring, (uint16_t)w.fill,
+                                      &buf, &dma);
+      if (ret < 0)
         {
-          ret = -ENOMEM;
           goto errout;
         }
-
-      for (i = 0; i < w.ring; i++)
-        {
-          buf[i] = (uint16_t)w.fill;
-        }
-
-      up_clean_dcache((uintptr_t)buf, (uintptr_t)(buf + w.ring));
-
-      dma = stm32_dmachannel(chan->dmamap);
-      if (dma == NULL)
-        {
-          kmm_free(buf);
-          ret = -EBUSY;
-          goto errout;
-        }
-
-      state->ring      = w.ring;
-      state->half      = w.ring / 2;
-      state->fill      = (uint16_t)w.fill;
-      state->target    = -1;
-      state->count[0]  = 0;
-      state->count[1]  = 0;
-      state->played[0] = 0;
-      state->played[1] = 0;
-      state->underruns = 0;
-      state->seq       = 0;
-      state->sstate    = MEADOW_DAC_STREAM_PRIMING;
     }
 
   /* Reserve TIM6's rate for this channel */
@@ -1605,114 +1205,6 @@ int meadow_dac_wave_stop(uint8_t pinid)
 }
 
 /****************************************************************************
- * Name: meadow_dac_wave_write
- *
- * Description:
- *   Write samples to a stream started with MEADOW_DAC_WAVE_STREAM. Takes as
- *   many as fit, waiting up to timeout_ms in all for DMA to free space. A
- *   count of 0 starts output of a priming stream at once. Waits without the
- *   driver lock, so a stop or close from another thread ends the wait.
- *
- * Input Parameters:
- *   pinid      - Pin identifier, as for meadow_dac_open().
- *   samples    - The samples, 0 to 4095 each.
- *   count      - Number of samples.
- *   timeout_ms - Longest wait for space, in ms; 0 = do not wait.
- *
- * Returned Value:
- *   The number of samples taken (0 to count), or -EBADSLT for a pin with no
- *   DAC output, -EBADF if the channel is not open, -EINVAL for NULL samples
- *   or a sample above 4095, -ENOTCONN if the channel is not streaming, or
- *   an error passed back from a lower-level call.
- *
- ****************************************************************************/
-
-int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
-                          uint32_t count, uint32_t timeout_ms)
-{
-  struct meadow_dac_wave_state_s *st;
-  clock_t deadline;
-  clock_t now;
-  uint32_t taken = 0;
-  uint32_t i;
-  int index;
-  int ret;
-
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
-    {
-      return index;
-    }
-
-  if (count != 0 && samples == NULL)
-    {
-      return -EINVAL;
-    }
-
-  /* Check every sample before any is taken */
-
-  for (i = 0; i < count; i++)
-    {
-      if (samples[i] > MEADOW_DAC_MAX_VALUE)
-        {
-          return -EINVAL;
-        }
-    }
-
-  st = &g_dac_wave[index];
-  deadline = clock_systime_ticks() + MSEC2TICK(timeout_ms);
-
-  for (; ; )
-    {
-      index = meadow_dac_lock_open_chan(pinid);
-      if (index < 0)
-        {
-          return taken > 0 ? (int)taken : index;
-        }
-
-      if (st->type != MEADOW_DAC_WAVE_STREAM)
-        {
-          nxmutex_unlock(&g_dac_lock);
-          return taken > 0 ? (int)taken : -ENOTCONN;
-        }
-
-      if (count == 0)
-        {
-          if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
-            {
-              meadow_dac_stream_run(index);
-            }
-
-          nxmutex_unlock(&g_dac_lock);
-          return 0;
-        }
-
-      taken += meadow_dac_stream_put(index, samples + taken,
-                                     count - taken);
-      nxmutex_unlock(&g_dac_lock);
-
-      if (taken == count || timeout_ms == 0)
-        {
-          return (int)taken;
-        }
-
-      now = clock_systime_ticks();
-      if (now >= deadline)
-        {
-          return (int)taken;
-        }
-
-      ret = nxsem_tickwait(&g_dac_space[index], (uint32_t)(deadline - now));
-      if (ret < 0 && ret != -ETIMEDOUT)
-        {
-          /* Interrupted, for example because the app is being stopped */
-
-          return taken > 0 ? (int)taken : ret;
-        }
-    }
-}
-
-/****************************************************************************
  * Name: meadow_dac_wave_status
  *
  * Description:
@@ -1737,10 +1229,7 @@ int meadow_dac_wave_status(uint8_t pinid,
 {
   struct meadow_dac_wave_state_s *st;
   struct meadow_dac_wave_status_s out;
-  irqstate_t flags;
   uint32_t pos;
-  uint32_t off;
-  int playing;
   int index;
 
   index = meadow_dac_find_chan(pinid);
@@ -1767,38 +1256,7 @@ int meadow_dac_wave_status(uint8_t pinid,
 
   if (st->type == MEADOW_DAC_WAVE_STREAM)
     {
-      out.state     = st->sstate;
-      out.underruns = st->underruns;
-
-      if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
-        {
-          out.queued = st->count[0] + st->count[1];
-          out.space  = st->ring - out.queued;
-        }
-      else
-        {
-          /* App samples left in the half DMA is playing, from its position
-           * in the ring, plus those written into the app's half.
-           */
-
-          flags   = enter_critical_section();
-          pos     = st->ring - (uint32_t)stm32_dmaresidual(st->dma);
-          playing = pos < st->half ? 0 : 1;
-          off     = pos - (playing * st->half);
-
-          if (st->played[playing] > off)
-            {
-              out.queued = st->played[playing] - off;
-            }
-
-          if (st->target >= 0 && st->target != playing)
-            {
-              out.queued += st->count[st->target];
-              out.space   = st->half - st->count[st->target];
-            }
-
-          leave_critical_section(flags);
-        }
+      meadow_dac_stream_status(index, &out);
     }
   else if (st->type == MEADOW_DAC_WAVE_ONESHOT)
     {

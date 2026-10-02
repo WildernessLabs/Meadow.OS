@@ -1,7 +1,7 @@
 # Meadow DAC
 
 > **Status:** static levels, waveforms (#658) and streaming (#662) implemented
-> (`F7MeadowOS/misc/meadow_dac.c`), with developer test 15
+> (`F7MeadowOS/misc/meadow_dac.c`, with streaming in `meadow_dac_stream.c`), with developer test 15
 > (`apps/system/hcom/tests/meadow_dac_tests.c`). One-shot clips (#664) are implemented too.
 > Tracked by issue #158. The customer request is Meadow_Issues #281.
 
@@ -134,7 +134,8 @@ not use the NuttX ADC driver.
 ## API
 
 New file `F7MeadowOS/misc/meadow_dac.c`, built next to `meadow_adc.c` from the board
-`src/Make.defs`. The prototypes go in `F7MeadowOS/include/meadow/meadow_syscall_support.h`
+`src/Make.defs`. Streaming was later moved into `meadow_dac_stream.c` (#664), with the
+definitions both files share in the private header `meadow_dac_local.h`. The prototypes go in `F7MeadowOS/include/meadow/meadow_syscall_support.h`
 with the ADC calls, and each call gets a line in `nuttx/syscall/syscall.csv` so user space
 (Meadow.Core, or the test) can reach it.
 
@@ -556,7 +557,8 @@ Measured 2026-09-29 on a Core Compute Module, output buffer on, with an oscillos
 
 ## Streaming (Design, Issue #662)
 
-> **Status:** implemented (`F7MeadowOS/misc/meadow_dac.c`), with developer tests 13 to 18.
+> **Status:** implemented (`F7MeadowOS/misc/meadow_dac_stream.c`, started from
+> `meadow_dac.c`), with developer tests 13 to 18.
 > Stereo (the DAC's dual mode) is not implemented.
 
 Streaming plays samples the app keeps supplying, for example audio or a long signal, instead
