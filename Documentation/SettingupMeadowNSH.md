@@ -320,3 +320,22 @@ similar) device, and on Linux typically `/dev/ttyUSB0` or `/dev/ttyACM0`.
 ## Step 3: Enable and use NSH
 
 NSH is started automatically on USART6 when the `--nsh` flag is used in the build.
+## Running the developer tests: `meadowtest`
+
+`--nsh` also builds the `meadowtest` command (`apps/system/meadowtest`), which runs the
+same developer tests Meadow.CLI can trigger, from the `nsh>` prompt:
+
+```
+nsh> meadowtest -p 0          # list the tests built into the system
+nsh> meadowtest -p 12 -v 3    # run test 12 passing the value 3
+```
+
+- `-p <uint32_t>` selects the test and defaults to 0 (list the tests).  The test
+  dispatcher takes a 16-bit ID, so values above 65535 are rejected.
+- `-v <uint32_t>` is the value handed to the test and defaults to 0.
+- Numbers may be decimal, octal (leading 0) or hex (leading 0x).
+
+The command calls `hcom_developer_tests_developer()`.  With `--nsh`, that function
+(`apps/system/hcom/tests/developer_tests.c`) also uses `printf` for the test list and
+the test result, keyed off `CONFIG_SYSTEM_MEADOWTEST`.  Output written by an
+individual test through syslog is unchanged.

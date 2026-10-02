@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <stdio.h>
 
 #include <meadow/meadow_unit_test_framework.h>
 #include "../hcom_common.h"
@@ -372,6 +373,30 @@ static meadow_test_methods_t _userspaceTests[] =
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: developer_tests_report
+ *
+ * Description:
+ *  Send a test list or result message to the host (Meadow CLI).  When the
+ *  meadowtest command is built in (build.sh --nsh) the message is also
+ *  written to stdout with printf so it appears at the nsh> prompt.
+ *
+ * Input Parameters:
+ *  msg - The message to report.
+ *
+ * Returned Value:
+ *  None.
+ *
+ ****************************************************************************/
+static void developer_tests_report(char *msg)
+{
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, msg, __FILE__, __LINE__);
+
+    #if defined(CONFIG_SYSTEM_MEADOWTEST)
+    printf("%s", msg);
+    #endif
+}
+
+/****************************************************************************
  * Name: hcom_developer_tests_userspace_dispatcher
  *
  * Description:
@@ -461,18 +486,18 @@ void hcom_developer_tests_developer(uint16_t param, uint32_t value)
 
     if (param == 0)
     {
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Available tests:\n", __FILE__, __LINE__);
+        developer_tests_report("Available tests:\n");
         if (sizeof(_testNames) > 0)
         {
             for (int index = 0; index < sizeof(_testNames) / sizeof(meadow_test_names_t); index++)
             {
                 snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "    %d - %s\n", _testNames[index].testId, _testNames[index].description);
-                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+                developer_tests_report(hostMsg);
             }
         }
         else
         {
-            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "    No tests built into the system.\n", __FILE__, __LINE__);
+            developer_tests_report("    No tests built into the system.\n");
         }
     }
     else
@@ -482,7 +507,7 @@ void hcom_developer_tests_developer(uint16_t param, uint32_t value)
             if (_testNames[index].testId == param)
             {
                 snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Executing %s\n", _testNames[index].description);
-                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+                developer_tests_report(hostMsg);
                 break;
             }
         }
@@ -510,7 +535,7 @@ void hcom_developer_tests_developer(uint16_t param, uint32_t value)
                 snprintf_chk(hostMsg, HCOM_LARGE_HOST_STRING_BUFF_LENGTH, "Unknown error.\n");
                 break;
         }
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+        developer_tests_report(hostMsg);
     }
 
     free(hostMsg);
