@@ -65,6 +65,18 @@ enable_nsh() {
     ktweak --enable NSH_BUILTIN_APPS
 
     #
+    # The meadowtest command runs the hcom developer tests from the nsh>
+    # prompt.  It also makes developer_tests.c printf the test list and
+    # results, which only reach the console when NSH is present.  The
+    # sub-options are written out because kconfig-tweak does not apply Kconfig
+    # defaults; an empty PROGNAME would rename main() to "_main".
+    #
+    ktweak --enable SYSTEM_MEADOWTEST
+    ktweak --set-str SYSTEM_MEADOWTEST_PROGNAME "meadowtest"
+    ktweak --set-val SYSTEM_MEADOWTEST_PRIORITY 100
+    ktweak --set-val SYSTEM_MEADOWTEST_STACKSIZE 8192
+
+    #
     # NOTE: CONFIG_FDCLONE_STDIO is NOT set here -- it lives permanently in the
     # base defconfig instead, since it's not actually NSH-specific. Every
     # task_create()/task_spawn() in the system (not just NSH's own builtin

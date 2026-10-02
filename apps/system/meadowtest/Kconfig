@@ -1,0 +1,40 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config SYSTEM_MEADOWTEST
+	tristate "Meadow developer test command"
+	default n
+	depends on SYSTEM_HCOM
+	---help---
+		Enable the meadowtest NSH command.  It runs the developer tests
+		that are built into hcom (see apps/system/hcom/tests/developer_tests.c)
+		from the NSH prompt:
+
+		  meadowtest [-p <uint32_t>] [-v <uint32_t>]
+
+		-p selects the test (0 lists the available tests) and -v is the
+		value passed to the test.  Both default to 0.
+
+		This is enabled by build.sh --nsh.  When enabled the developer
+		tests also report their test list and results using printf.
+
+if SYSTEM_MEADOWTEST
+
+config SYSTEM_MEADOWTEST_PROGNAME
+	string "Program name"
+	default "meadowtest"
+	---help---
+		This is the name of the program that will be use when the NSH ELF
+		program is installed.
+
+config SYSTEM_MEADOWTEST_PRIORITY
+	int "Task priority"
+	default 100
+
+config SYSTEM_MEADOWTEST_STACKSIZE
+	int "Stack size"
+	default DEFAULT_TASK_STACKSIZE
+
+endif
