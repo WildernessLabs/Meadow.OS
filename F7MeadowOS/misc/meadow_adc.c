@@ -380,7 +380,7 @@ static void meadow_adc_dma_isr(DMA_HANDLE handle, uint8_t status,
     putreg32(regval, STM32_ADC1_BASE + STM32_ADC_CR2_OFFSET);
 
     // Wakeup caller's thread
-    sem_post(&_gpioDoneSem);
+    nxsem_post(&_gpioDoneSem);
   }
 }
 
@@ -440,7 +440,7 @@ static int meadow_adc_conversion_isr(int irq, FAR void *context,
   if ((adcStatusReg & ADC_SR_JEOC) != 0)
   {
     // Wakeup caller's thread, injected data is ready
-    sem_post(&_injectionDoneSem);
+    nxsem_post(&_injectionDoneSem);
   }
 
   // Clear any interrupts
@@ -1073,12 +1073,10 @@ static int meadow_adc_check_first_func_call()
     _hardwareConfigDone = false;
 
     // Signaling semaphore for GPIO conversion
-    sem_init(&_gpioDoneSem, 0, 0);
-    sem_setprotocol(&_gpioDoneSem, SEM_PRIO_NONE);
+    nxsem_init(&_gpioDoneSem, 0, 0);
 
     // Signaling semaphore for Vbat and Temperature conversion
-    sem_init(&_injectionDoneSem, 0, 0);
-    sem_setprotocol(&_injectionDoneSem, SEM_PRIO_NONE);
+    nxsem_init(&_injectionDoneSem, 0, 0);
   }
   else
   {
@@ -1099,8 +1097,8 @@ static int meadow_adc_free_configuration_resources()
   }
 
   // Semaphores for GPIO conversion and for Vbat and Temperature
-  sem_destroy(&_gpioDoneSem);
-  sem_destroy(&_injectionDoneSem);
+  nxsem_destroy(&_gpioDoneSem);
+  nxsem_destroy(&_injectionDoneSem);
 
   // An active configuration will have an active DMA handle from Nuttx
   if(_dmaHandle != NULL)
