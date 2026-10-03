@@ -79,6 +79,11 @@
 #define TEST_PIN_V2_D04_IN    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN9)
 #endif
 
+// Holds the onboard ESP32 in reset (EN low) on F7FeatherV2. Open drain,
+// because EN already has a 10K pull-up (R8) to 3V3. Used by test 59.
+#define TEST_PIN_V2_ESP32_RESET_LOW (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_OUTPUT_CLEAR | \
+          GPIO_SPEED_2MHz | GPIO_PORTF | GPIO_PIN7)
+
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
@@ -246,6 +251,37 @@ void meadow_kt_power_management_tests(uint32_t userData)
 
       up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
       syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
+                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
+                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+      usleep(20 * 1000);
+      break;
+
+    case 59:
+      // Same as 58, but holds the ESP32 in reset (PF7 low) while in Stop
+      // mode. Running 58 then 59 measures the ESP32's share of the Stop
+      // current (Issue #681). On release the ESP32 reboots, which the
+      // ESP32 driver doesn't expect, so reset Meadow after this test.
+      syslog(LOG_MTEST,
+        "==>>power mgmt tests received %" PRIu32
+        " - Sleeping for 10 seconds, ESP32 held in reset\n",
+        userData);
+      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
+      syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
+                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
+                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+      usleep(20 * 1000);
+
+      // ESP32 EN low; the F7 keeps driving it low in Stop mode
+      stm32_configgpio(TEST_PIN_V2_ESP32_RESET_LOW);
+
+      // Wakeup after x seconds
+      ret = pwrmgmt_enter_stm32f7_stop_mode(10);
+
+      // Release EN, R8 pulls it high and the ESP32 reboots
+      stm32_configgpio(MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT);
+
+      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
+      syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d, ESP32 released\n",
                 tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
                 tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
       usleep(20 * 1000);
