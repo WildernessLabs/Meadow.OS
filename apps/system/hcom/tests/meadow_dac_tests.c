@@ -86,6 +86,20 @@
  *         on A00 at 16,000 Hz, resampled to 32,000 Hz.
  *   -v 24 20 short clips on A00, each replacing the last, 50 to 300 ms
  *         apart.
+ *
+ * File player (issue #664). The tests write the .WAV files they need to
+ * /meadow0/dactest/ the first time they run. They leave the channels open;
+ * -v 6 closes them.
+ *
+ *   -v 25 File player API checks, on A00 and A01. No scope needed.
+ *   -v 26 16-bit mono at 16,000 Hz: 500 Hz, 1 kHz and 2 kHz, 1 s each.
+ *   -v 27 The same from an 8-bit file at 8,000 Hz.
+ *   -v 28 16-bit stereo at 22,050 Hz, 500 Hz left and 750 Hz right, mixed
+ *         down.
+ *   -v 29 A 0.5 s file looped for 3 s, then stopped.
+ *   -v 30 The file from 26 looped on A00, a beep on A01 every 300 ms.
+ *   -v 31 5 s of 16-bit stereo at 48,000 Hz from flash, then the SD card.
+ *   -v 32 Plays /meadow0/dactest.wav for up to 30 s, if it exists.
  */
 
 /****************************************************************************
@@ -104,7 +118,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <syslog.h>
+#include <sys/stat.h>
 
 #include "../hcom_common.h"
 #include <meadow/hcom_shared_common.h>
@@ -176,6 +192,43 @@
 #define DAC_TEST_TWO_RATE         32000     /* A01's rate in -v 23 */
 #define DAC_TEST_TWO_SINE_SAMPLES 64        /* 500 Hz at 32,000 Hz */
 
+/* File player tests (issue #664): the .WAV files they write, under each
+ * directory, and the user's own file for -v 32
+ */
+
+#define DAC_TEST_WAV_FLASH        "/meadow0"
+#define DAC_TEST_WAV_SUBDIR       "dactest"
+#define DAC_TEST_USER_WAV         "/meadow0/dactest.wav"
+
+/* Indexes into g_dac_test_wavs[] */
+
+#define DAC_TEST_WAV_T16          0   /* -v 25, 26, 30 */
+#define DAC_TEST_WAV_T8           1   /* -v 27 */
+#define DAC_TEST_WAV_ST           2   /* -v 28 */
+#define DAC_TEST_WAV_LOOP         3   /* -v 29 */
+#define DAC_TEST_WAV_FAST         4   /* -v 31 */
+
+/****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+/* A .WAV file the file player tests write. Each second plays the next of
+ * the left tones; a stereo file plays 'right' on the right.
+ */
+
+struct dac_test_wav_s
+{
+  const char *name;
+  uint16_t    channels;
+  uint16_t    bits;
+  uint32_t    rate;
+  uint32_t    frames;
+  uint16_t    left1;   /* Left (or mono) tone in the 1st, 4th... second */
+  uint16_t    left2;   /* In the 2nd, 5th... second; 0 = left1 throughout */
+  uint16_t    left3;   /* In the 3rd, 6th... second; 0 = only two */
+  uint16_t    right;   /* Right tone, stereo only */
+};
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -197,6 +250,29 @@ static const uint16_t g_dac_test_sine[DAC_TEST_SINE_SAMPLES] =
   2048, 1833, 1622, 1415, 1215, 1024,  844,  677,  526,  391,
   274,  177,  100,   45,   11,    0,   11,   45,  100,  177,
   274,  391,  526,  677,  844, 1024, 1215, 1415, 1622, 1833
+};
+
+/* The file player tests' .WAV files. 1 kHz at 16,000 Hz is 16 samples a
+ * cycle, so the 0.5 s loop file holds whole cycles and loops seamlessly.
+ */
+
+static const struct dac_test_wav_s g_dac_test_wavs[] =
+{
+  {
+    "t16.wav", 1, 16, 16000, 3 * 16000, 500, 1000, 2000, 0
+  },
+  {
+    "t8.wav", 1, 8, 8000, 3 * 8000, 500, 1000, 2000, 0
+  },
+  {
+    "st.wav", 2, 16, 22050, 3 * 22050, 500, 0, 0, 750
+  },
+  {
+    "loop.wav", 1, 16, 16000, 8000, 1000, 0, 0, 0
+  },
+  {
+    "fast.wav", 2, 16, 48000, 5 * 48000, 500, 0, 0, 1000
+  }
 };
 
 /****************************************************************************
@@ -891,6 +967,8 @@ static void dac_test_wave_generator(int test, uint32_t type,
  *
  * Description:
  *   Open A00 and start a stream on it at 48,000 Hz, as Meadow.Core would.
+ *   A01 is closed first: a waveform an earlier test left on it would hold
+ *   TIM6 at its own rate and the stream would fail with -EBUSY.
  *
  ****************************************************************************/
 
@@ -899,6 +977,7 @@ static int dac_test_stream_start(uint32_t ring)
   struct meadow_dac_wave_s wave;
   int ret;
 
+  meadow_dac_close(DAC_TEST_PIN_A01);
   ret = meadow_dac_open(DAC_TEST_PIN_A00, 0);
   if (ret < 0)
     {
@@ -1046,7 +1125,10 @@ static void dac_test_stream_api(void)
       samples[i] = g_dac_test_tone[i % DAC_TEST_TONE_SAMPLES];
     }
 
+  /* A waveform left on A01 by an earlier test would hold TIM6 at its rate */
+
   meadow_dac_close(DAC_TEST_PIN_A00);
+  meadow_dac_close(DAC_TEST_PIN_A01);
   dac_test_check("open A00", meadow_dac_open(DAC_TEST_PIN_A00, 0), OK,
                  &failures);
 
@@ -1927,6 +2009,699 @@ static void dac_test_oneshot_burst(void)
 }
 
 /****************************************************************************
+ * Name: dac_test_le16 / dac_test_le32
+ *
+ * Description:
+ *   Store a little-endian value, for a .WAV header.
+ *
+ ****************************************************************************/
+
+static void dac_test_le16(uint8_t *p, uint32_t v)
+{
+  p[0] = (uint8_t)v;
+  p[1] = (uint8_t)(v >> 8);
+}
+
+static void dac_test_le32(uint8_t *p, uint32_t v)
+{
+  dac_test_le16(p, v);
+  dac_test_le16(p + 2, v >> 16);
+}
+
+/****************************************************************************
+ * Name: dac_test_wav_header
+ *
+ * Description:
+ *   Fill in the 44-byte header of a PCM .WAV file.
+ *
+ ****************************************************************************/
+
+static void dac_test_wav_header(uint8_t *h, uint32_t channels, uint32_t bits,
+                                uint32_t rate, uint32_t datalen)
+{
+  uint32_t align = channels * (bits / 8);
+
+  memcpy(h, "RIFF", 4);
+  dac_test_le32(h + 4, 36 + datalen);
+  memcpy(h + 8, "WAVEfmt ", 8);
+  dac_test_le32(h + 16, 16);
+  dac_test_le16(h + 20, 1);              /* PCM */
+  dac_test_le16(h + 22, channels);
+  dac_test_le32(h + 24, rate);
+  dac_test_le32(h + 28, rate * align);
+  dac_test_le16(h + 32, align);
+  dac_test_le16(h + 34, bits);
+  memcpy(h + 36, "data", 4);
+  dac_test_le32(h + 40, datalen);
+}
+
+/****************************************************************************
+ * Name: dac_test_write_file
+ *
+ * Description:
+ *   Write a small file in one go. Returns 0 or a negative error.
+ *
+ ****************************************************************************/
+
+static int dac_test_write_file(const char *path, const void *data,
+                               size_t len)
+{
+  int fd;
+  int ret = OK;
+
+  fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (fd < 0)
+    {
+      return -errno;
+    }
+
+  if (write(fd, data, len) != (ssize_t)len)
+    {
+      ret = -EIO;
+    }
+
+  close(fd);
+  return ret;
+}
+
+/****************************************************************************
+ * Name: dac_test_wav_path
+ *
+ * Description:
+ *   Build the path of a test file in a directory, creating the directory.
+ *
+ ****************************************************************************/
+
+static void dac_test_wav_path(char *path, size_t size, const char *dir,
+                              const char *name)
+{
+  snprintf(path, size, "%s/%s", dir, DAC_TEST_WAV_SUBDIR);
+  mkdir(path, 0777);   /* Usually exists already */
+  snprintf(path, size, "%s/%s/%s", dir, DAC_TEST_WAV_SUBDIR, name);
+}
+
+/****************************************************************************
+ * Name: dac_test_wav_ensure
+ *
+ * Description:
+ *   Make sure a test .WAV file exists in a directory, writing it if it is
+ *   missing or the wrong size, and put its path in 'path'. Each second
+ *   plays the next of the file's left tones; a stereo file has another
+ *   tone on the right. The tones keep their phase across changes, and a
+ *   file of whole cycles loops seamlessly. Returns 0 or a negative error.
+ *
+ ****************************************************************************/
+
+static int dac_test_wav_ensure(int which, const char *dir, char *path,
+                               size_t size)
+{
+  const struct dac_test_wav_s *wav = &g_dac_test_wavs[which];
+  uint32_t frame = wav->channels * (wav->bits / 8);
+  uint32_t datalen = wav->frames * frame;
+  uint32_t phase[2];
+  uint16_t left[3];
+  uint32_t ntones;
+  uint32_t i;
+  uint32_t c;
+  uint32_t n;
+  uint32_t f;
+  uint8_t buf[1024];
+  struct stat sb;
+  uint8_t *p;
+  int32_t v;
+  int fd;
+  int ret = OK;
+
+  phase[0] = 0;
+  phase[1] = 0;
+  dac_test_wav_path(path, size, dir, wav->name);
+
+  if (stat(path, &sb) == 0 && sb.st_size == (off_t)(44 + datalen))
+    {
+      return OK;
+    }
+
+  syslog(LOG_MTEST, "    Writing %s (%lu bytes), once\n", path,
+         (unsigned long)(44 + datalen));
+
+  left[0] = wav->left1;
+  left[1] = wav->left2;
+  left[2] = wav->left3;
+  ntones  = left[1] == 0 ? 1 : (left[2] == 0 ? 2 : 3);
+
+  fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  if (fd < 0)
+    {
+      return -errno;
+    }
+
+  dac_test_wav_header(buf, wav->channels, wav->bits, wav->rate, datalen);
+  if (write(fd, buf, 44) != 44)
+    {
+      ret = -EIO;
+    }
+
+  for (i = 0; i < wav->frames && ret == OK; )
+    {
+      p = buf;
+      for (n = 0; n + frame <= sizeof(buf) && i < wav->frames; n += frame)
+        {
+          for (c = 0; c < wav->channels; c++)
+            {
+              f = c == 0 ? left[(i / wav->rate) % ntones] : wav->right;
+              v = g_dac_test_tone[(phase[c] >> 16) % DAC_TEST_TONE_SAMPLES];
+              phase[c] += (uint32_t)(((uint64_t)f * DAC_TEST_TONE_SAMPLES
+                                      << 16) / wav->rate);
+              phase[c] %= DAC_TEST_TONE_SAMPLES << 16;
+
+              if (wav->bits == 16)
+                {
+                  dac_test_le16(p,
+                                (uint32_t)((v - DAC_TEST_MID_SCALE) * 16));
+                  p += 2;
+                }
+              else
+                {
+                  *p++ = (uint8_t)(v >> 4);
+                }
+            }
+
+          i++;
+        }
+
+      if (write(fd, buf, n) != (ssize_t)n)
+        {
+          ret = -EIO;
+        }
+    }
+
+  close(fd);
+  if (ret < 0)
+    {
+      unlink(path);
+    }
+
+  return ret;
+}
+
+/****************************************************************************
+ * Name: dac_test_play_wait
+ *
+ * Description:
+ *   Wait up to timeout_ms for the file playing on a channel to end. Returns
+ *   its final state (MEADOW_DAC_STREAM_NONE once it has ended), and in
+ *   *underruns the count last reported while it played: halves the file
+ *   system did not fill in time. *elapsed_ms is about how long it took.
+ *
+ ****************************************************************************/
+
+static int dac_test_play_wait(uint8_t pinid, uint32_t timeout_ms,
+                              uint32_t *underruns, uint32_t *elapsed_ms)
+{
+  struct meadow_dac_wave_status_s status;
+  struct timespec start;
+  struct timespec now;
+  uint32_t ms = 0;
+  int state;
+
+  *underruns = 0;
+  clock_gettime(CLOCK_MONOTONIC, &start);
+
+  for (; ; )
+    {
+      memset(&status, 0, sizeof(status));
+      status.size = sizeof(status);
+      state = meadow_dac_wave_status(pinid, &status);
+      if (state == OK)
+        {
+          state = (int)status.state;
+          if (state == MEADOW_DAC_FILE_PLAYING)
+            {
+              *underruns = status.underruns;
+            }
+        }
+
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      ms = (uint32_t)((now.tv_sec - start.tv_sec) * 1000 +
+                      (now.tv_nsec - start.tv_nsec) / 1000000);
+
+      if (state != MEADOW_DAC_FILE_PLAYING || ms >= timeout_ms)
+        {
+          break;
+        }
+
+      usleep(20000);
+    }
+
+  if (elapsed_ms != NULL)
+    {
+      *elapsed_ms = ms;
+    }
+
+  return state;
+}
+
+/****************************************************************************
+ * Name: dac_test_file_api
+ *
+ * Description:
+ *   -v 25: check the file player's error handling and basic behaviour. No
+ *   scope is needed.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_api(void)
+{
+  static const char notwav[] = "This is not a WAV file.\n";
+
+  struct meadow_dac_wave_status_s status;
+  uint8_t hdr[44 + 6];
+  char path[64];
+  char bad[64];
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 25: file player API checks on A00\n");
+
+  meadow_dac_close(DAC_TEST_PIN_A00);
+  meadow_dac_close(DAC_TEST_PIN_A01);
+
+  ret = dac_test_wav_ensure(DAC_TEST_WAV_T16, DAC_TEST_WAV_FLASH, path,
+                            sizeof(path));
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test 25: FAILED to write %s, %d\n", path, ret);
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  /* Bad arguments and files */
+
+  dac_test_check("pin with no DAC output",
+                 meadow_dac_play_file(DAC_TEST_PIN_NOT_DAC, path, 0),
+                 -EBADSLT, &failures);
+  dac_test_check("channel not open (A01)",
+                 meadow_dac_play_file(DAC_TEST_PIN_A01, path, 0), -EBADF,
+                 &failures);
+  dac_test_check("NULL path",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, NULL, 0), -EINVAL,
+                 &failures);
+  dac_test_check("relative path",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, "dactest/t16.wav",
+                                      0),
+                 -EINVAL, &failures);
+  dac_test_check("unknown flag",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0x80), -EINVAL,
+                 &failures);
+
+  dac_test_wav_path(bad, sizeof(bad), DAC_TEST_WAV_FLASH, "missing.wav");
+  unlink(bad);
+  dac_test_check("missing file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, bad, 0), -ENOENT,
+                 &failures);
+
+  dac_test_wav_path(bad, sizeof(bad), DAC_TEST_WAV_FLASH, "notwav.wav");
+  dac_test_write_file(bad, notwav, sizeof(notwav) - 1);
+  dac_test_check("not a WAV file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, bad, 0), -EINVAL,
+                 &failures);
+
+  /* A 24-bit header (two frames of silence) */
+
+  dac_test_wav_header(hdr, 1, 24, DAC_TEST_CLIP_RATE, 6);
+  memset(hdr + 44, 0, 6);
+  dac_test_wav_path(bad, sizeof(bad), DAC_TEST_WAV_FLASH, "t24.wav");
+  dac_test_write_file(bad, hdr, sizeof(hdr));
+  dac_test_check("24-bit file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, bad, 0), -ENOTSUP,
+                 &failures);
+
+  /* Playing */
+
+  dac_test_check("play a file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0), OK,
+                 &failures);
+  dac_test_check("status while playing",
+                 dac_test_pin_state(DAC_TEST_PIN_A00),
+                 MEADOW_DAC_FILE_PLAYING, &failures);
+  dac_test_check("app write to the player's stream",
+                 meadow_dac_wave_write(DAC_TEST_PIN_A00,
+                                       g_dac_test_tone, 10, 0),
+                 -EBUSY, &failures);
+  dac_test_check("start a buffer loop over a file",
+                 dac_test_start_buffer(DAC_TEST_PIN_A00, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_CLIP_RATE, NULL),
+                 -EBUSY, &failures);
+  dac_test_check("static write during a file",
+                 meadow_dac_write(DAC_TEST_PIN_A00, 0), -EBUSY, &failures);
+  dac_test_check("replace the playing file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0), OK,
+                 &failures);
+  dac_test_check("status after replacing",
+                 dac_test_pin_state(DAC_TEST_PIN_A00),
+                 MEADOW_DAC_FILE_PLAYING, &failures);
+
+  memset(&status, 0, sizeof(status));
+  status.size = sizeof(status);
+  meadow_dac_wave_status(DAC_TEST_PIN_A00, &status);
+  syslog(LOG_MTEST, "    Status: queued %lu, space %lu, underruns %lu\n",
+         (unsigned long)status.queued, (unsigned long)status.space,
+         (unsigned long)status.underruns);
+
+  dac_test_check("stop", meadow_dac_wave_stop(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("status after stopping",
+                 dac_test_pin_state(DAC_TEST_PIN_A00),
+                 MEADOW_DAC_STREAM_NONE, &failures);
+  usleep(100 * 1000);   /* Let the player thread exit */
+
+  /* A01 holds TIM6 at another rate: a 16,000 Hz file cannot play */
+
+  dac_test_check("open A01", meadow_dac_open(DAC_TEST_PIN_A01, 0), OK,
+                 &failures);
+  dac_test_check("buffer loop on A01 at 48000 Hz",
+                 dac_test_start_buffer(DAC_TEST_PIN_A01, g_dac_test_sine,
+                                       DAC_TEST_SINE_SAMPLES,
+                                       DAC_TEST_RESAMPLE_RATE, NULL),
+                 OK, &failures);
+  dac_test_check("file at a different rate from A01",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0), -EBUSY,
+                 &failures);
+  dac_test_check("close A01", meadow_dac_close(DAC_TEST_PIN_A01), OK,
+                 &failures);
+
+  /* A file still playing when its channel closes */
+
+  dac_test_check("play a file to close",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0), OK,
+                 &failures);
+  usleep(200 * 1000);
+  dac_test_check("close A00 while a file plays",
+                 meadow_dac_close(DAC_TEST_PIN_A00), OK, &failures);
+
+  dac_test_report_end(25, failures, "");
+}
+
+/****************************************************************************
+ * Name: dac_test_file_play
+ *
+ * Description:
+ *   -v 26 to 28: play one of the test files on A00 to the end. Passes if it
+ *   ends by itself with no underruns while it played.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_play(int test, int which, const char *listen)
+{
+  const struct dac_test_wav_s *wav = &g_dac_test_wavs[which];
+  uint32_t underruns = 0;
+  uint32_t ms = 0;
+  char path[64];
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test %d: %s on A00 (%u-bit %s, %lu Hz, %lu ms). "
+         "Listen: %s\n", test, wav->name, wav->bits,
+         wav->channels == 1 ? "mono" : "stereo", (unsigned long)wav->rate,
+         (unsigned long)((uint64_t)wav->frames * 1000 / wav->rate), listen);
+
+  ret = dac_test_wav_ensure(which, DAC_TEST_WAV_FLASH, path, sizeof(path));
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test %d: FAILED to write %s, %d\n", test, path,
+             ret);
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("play the file",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0), OK,
+                 &failures);
+
+  ret = dac_test_play_wait(DAC_TEST_PIN_A00, 10000, &underruns, &ms);
+  dac_test_check("the file ends", ret, MEADOW_DAC_STREAM_NONE, &failures);
+  dac_test_check("no underruns while playing", (int)underruns, 0,
+                 &failures);
+  syslog(LOG_MTEST, "    Played for about %lu ms, including the drain\n",
+         (unsigned long)ms);
+  dac_test_check_value("output left at mid-scale", DAC_TEST_PIN_A00,
+                       DAC_TEST_MID_SCALE, &failures);
+
+  dac_test_report_end(test, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
+ * Name: dac_test_file_loop
+ *
+ * Description:
+ *   -v 29: a 0.5 s file of whole cycles looped for 3 s, then stopped.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_loop(void)
+{
+  struct meadow_dac_wave_status_s status;
+  char path[64];
+  int failures = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 29: a 0.5 s, 1 kHz file looped on A00 for 3 "
+         "s. Listen: an unbroken tone with no click where it loops\n");
+
+  ret = dac_test_wav_ensure(DAC_TEST_WAV_LOOP, DAC_TEST_WAV_FLASH, path,
+                            sizeof(path));
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test 29: FAILED to write %s, %d\n", path, ret);
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("play the file looped",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path,
+                                      MEADOW_DAC_PLAY_LOOP),
+                 OK, &failures);
+
+  sleep(3);
+
+  memset(&status, 0, sizeof(status));
+  status.size = sizeof(status);
+  meadow_dac_wave_status(DAC_TEST_PIN_A00, &status);
+  dac_test_check("still playing after 3 s (6 loops)", (int)status.state,
+                 MEADOW_DAC_FILE_PLAYING, &failures);
+  dac_test_check("no underruns", (int)status.underruns, 0, &failures);
+  dac_test_check("stop", meadow_dac_wave_stop(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  dac_test_report_end(29, failures, ". Run -v 6 to close A00.");
+}
+
+/****************************************************************************
+ * Name: dac_test_file_effects
+ *
+ * Description:
+ *   -v 30: music and effects. The file from -v 26 loops on A00 while a
+ *   one-shot beep plays on A01 every 300 ms, both at 16,000 Hz.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_effects(void)
+{
+  struct meadow_dac_wave_status_s status;
+  uint16_t *clip;
+  char path[64];
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 30: the tones from -v 26 loop on A00 while a "
+         "beep plays on A01 every 300 ms. Listen on A00: the tones, "
+         "unbroken; on A01: 12 beeps\n");
+
+  ret = dac_test_wav_ensure(DAC_TEST_WAV_T16, DAC_TEST_WAV_FLASH, path,
+                            sizeof(path));
+  if (ret < 0)
+    {
+      syslog(LOG_MTEST, "DAC test 30: FAILED to write %s, %d\n", path, ret);
+      return;
+    }
+
+  clip = dac_test_new_clip(DAC_TEST_BURST_SAMPLES, 1500, 1500,
+                           DAC_TEST_CLIP_RATE);
+  if (clip == NULL)
+    {
+      return;
+    }
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+  dac_test_check("open A01", dac_test_open_audio(DAC_TEST_PIN_A01), OK,
+                 &failures);
+  dac_test_check("play the file looped on A00",
+                 meadow_dac_play_file(DAC_TEST_PIN_A00, path,
+                                      MEADOW_DAC_PLAY_LOOP),
+                 OK, &failures);
+
+  for (i = 0; i < 12; i++)
+    {
+      usleep(300 * 1000);
+      ret = dac_test_start_oneshot(DAC_TEST_PIN_A01, clip,
+                                   DAC_TEST_BURST_SAMPLES,
+                                   DAC_TEST_CLIP_RATE, DAC_TEST_CLIP_FILL,
+                                   NULL);
+      if (ret != OK)
+        {
+          syslog(LOG_MTEST, "    FAIL: beep %d returned %d\n", i + 1, ret);
+          failures++;
+        }
+    }
+
+  free(clip);
+  usleep(300 * 1000);
+
+  memset(&status, 0, sizeof(status));
+  status.size = sizeof(status);
+  meadow_dac_wave_status(DAC_TEST_PIN_A00, &status);
+  dac_test_check("A00 still playing", (int)status.state,
+                 MEADOW_DAC_FILE_PLAYING, &failures);
+  dac_test_check("no underruns on A00", (int)status.underruns, 0,
+                 &failures);
+  dac_test_check("stop A00", meadow_dac_wave_stop(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  dac_test_report_end(30, failures, ". Run -v 6 to close A00 and A01.");
+}
+
+/****************************************************************************
+ * Name: dac_test_file_throughput
+ *
+ * Description:
+ *   -v 31: the most data a supported file needs, 16-bit stereo at 48,000
+ *   Hz (192 KB/s), from flash and then from the SD card if one is mounted.
+ *   Reports the underruns; not judged.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_throughput(void)
+{
+  static const char *dirs[2] =
+  {
+    DAC_TEST_WAV_FLASH, MEADOW_SDCARD_MOUNT_POINT_NAME
+  };
+
+  struct stat sb;
+  uint32_t underruns;
+  uint32_t ms;
+  char path[64];
+  int failures = 0;
+  int ret;
+  int i;
+
+  syslog(LOG_MTEST, "DAC test 31: 5 s of 16-bit stereo at 48000 Hz (500 Hz "
+         "left, 1 kHz right) on A00, from flash, then from the SD card if "
+         "one is mounted\n");
+
+  dac_test_check("open A00", dac_test_open_audio(DAC_TEST_PIN_A00), OK,
+                 &failures);
+
+  for (i = 0; i < 2; i++)
+    {
+      if (i == 1 && stat(dirs[i], &sb) < 0)
+        {
+          syslog(LOG_MTEST, "    No SD card mounted: skipped\n");
+          break;
+        }
+
+      ret = dac_test_wav_ensure(DAC_TEST_WAV_FAST, dirs[i], path,
+                                sizeof(path));
+      if (ret < 0)
+        {
+          syslog(LOG_MTEST, "    FAIL: could not write %s, %d\n", path, ret);
+          failures++;
+          continue;
+        }
+
+      ret = meadow_dac_play_file(DAC_TEST_PIN_A00, path, 0);
+      if (ret != OK)
+        {
+          syslog(LOG_MTEST, "    FAIL: %s returned %d\n", path, ret);
+          failures++;
+          continue;
+        }
+
+      ret = dac_test_play_wait(DAC_TEST_PIN_A00, 10000, &underruns, &ms);
+      syslog(LOG_MTEST, "    %s: %lu underrun(s) while playing, %s after "
+             "about %lu ms\n", path, (unsigned long)underruns,
+             ret == MEADOW_DAC_STREAM_NONE ? "ended" : "still playing",
+             (unsigned long)ms);
+      meadow_dac_wave_stop(DAC_TEST_PIN_A00);
+    }
+
+  if (failures == 0)
+    {
+      syslog(LOG_MTEST, "DAC test 31: done. Run -v 6 to close A00.\n");
+    }
+  else
+    {
+      dac_test_report_end(31, failures, "");
+    }
+}
+
+/****************************************************************************
+ * Name: dac_test_file_user
+ *
+ * Description:
+ *   -v 32: play the user's own file, /meadow0/dactest.wav, on A00 for up
+ *   to 30 s, for a listening test.
+ *
+ ****************************************************************************/
+
+static void dac_test_file_user(void)
+{
+  uint32_t underruns = 0;
+  uint32_t ms = 0;
+  int ret;
+
+  syslog(LOG_MTEST, "DAC test 32: playing %s on A00 for up to 30 s\n",
+         DAC_TEST_USER_WAV);
+
+  ret = dac_test_open_audio(DAC_TEST_PIN_A00);
+  if (ret == OK)
+    {
+      ret = meadow_dac_play_file(DAC_TEST_PIN_A00, DAC_TEST_USER_WAV, 0);
+    }
+
+  if (ret == -ENOENT)
+    {
+      syslog(LOG_MTEST, "DAC test 32: no file. Copy a .WAV file there with "
+             "'meadow file write -f <file> -t dactest.wav'\n");
+      return;
+    }
+
+  if (ret != OK)
+    {
+      syslog(LOG_MTEST, "DAC test 32: FAILED, play returned %d\n", ret);
+      return;
+    }
+
+  ret = dac_test_play_wait(DAC_TEST_PIN_A00, 30000, &underruns, &ms);
+  if (ret == MEADOW_DAC_FILE_PLAYING)
+    {
+      meadow_dac_wave_stop(DAC_TEST_PIN_A00);
+    }
+
+  syslog(LOG_MTEST, "DAC test 32: done, %s after about %lu ms, %lu "
+         "underrun(s) while playing. Run -v 6 to close A00.\n",
+         ret == MEADOW_DAC_FILE_PLAYING ? "stopped" : "ended",
+         (unsigned long)ms, (unsigned long)underruns);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -2044,12 +2819,48 @@ void meadow_dac_tests(uint32_t userdata)
         dac_test_oneshot_burst();
         break;
 
+      case 25:
+        dac_test_file_api();
+        break;
+
+      case 26:
+        dac_test_file_play(26, DAC_TEST_WAV_T16,
+                           "500 Hz, 1 kHz and 2 kHz, a second each");
+        break;
+
+      case 27:
+        dac_test_file_play(27, DAC_TEST_WAV_T8,
+                           "the same three tones as 26, a little rougher");
+        break;
+
+      case 28:
+        dac_test_file_play(28, DAC_TEST_WAV_ST,
+                           "500 Hz and 750 Hz together, for 3 s");
+        break;
+
+      case 29:
+        dac_test_file_loop();
+        break;
+
+      case 30:
+        dac_test_file_effects();
+        break;
+
+      case 31:
+        dac_test_file_throughput();
+        break;
+
+      case 32:
+        dac_test_file_user();
+        break;
+
       default:
         syslog(LOG_MTEST, "DAC test: unknown -v %lu. Use 1 (API checks), "
                "2-4 (level steps), 5 (hold A00), 6 (close all), "
                "7 (waveform API checks), 8-12 (waveforms), "
                "13 (streaming API checks), 14-18 (streaming), "
-               "19 (one-shot API checks), 20-24 (one-shots)\n",
+               "19 (one-shot API checks), 20-24 (one-shots), "
+               "25 (file player API checks), 26-32 (file player)\n",
                (unsigned long)userdata);
         break;
     }

@@ -34,8 +34,9 @@
  ****************************************************************************/
 
 /* Definitions shared by the files of the Meadow DAC driver: meadow_dac.c
- * (static levels, buffer loops, triangle, noise and one-shots) and
- * meadow_dac_stream.c (streams). Not for use outside the driver.
+ * (static levels, buffer loops, triangle, noise and one-shots),
+ * meadow_dac_stream.c (streams) and meadow_dac_player.c (the file player).
+ * Not for use outside the driver.
  */
 
 #ifndef __F7MEADOWOS_MISC_MEADOW_DAC_LOCAL_H
@@ -205,6 +206,16 @@ struct meadow_dac_wave_state_s
   uint32_t    played[2];  /* App samples in a half when DMA started it */
   uint32_t    underruns;  /* Halves DMA started without being full */
   uint32_t    seq;        /* Counts DMA half events */
+
+  /* Stream only, for the file player. A stream with a non-zero owner was
+   * started by the player and only the player writes to it. Once the
+   * player has written the whole file it freezes the underrun count, so
+   * the halves that underrun while the stream drains are not reported.
+   */
+
+  uint32_t    owner;      /* The player's number for the stream; 0 = app */
+  bool        ufrozen;    /* The underrun count is frozen at uend */
+  uint32_t    uend;       /* Underruns when the last block was written */
 };
 
 /****************************************************************************
@@ -234,6 +245,10 @@ int  meadow_dac_lock_open_chan(uint8_t pinid);
 void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
                          uint32_t bits);
 void meadow_dac_tim_run(void);
+int  meadow_dac_wave_stop_locked(int index);
+int  meadow_dac_wave_start_owned(uint8_t pinid,
+                                 struct meadow_dac_wave_s *wave,
+                                 uint32_t owner);
 
 /* meadow_dac_stream.c */
 
@@ -242,5 +257,11 @@ int  meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
                                uint16_t **pbuf, DMA_HANDLE *pdma);
 void meadow_dac_stream_status(int index,
                               struct meadow_dac_wave_status_s *out);
+int  meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples,
+                             uint32_t count, uint32_t timeout_ms,
+                             uint32_t owner);
+int  meadow_dac_stream_end(uint8_t pinid, uint32_t owner);
+int  meadow_dac_stream_queued(uint8_t pinid, uint32_t owner);
+void meadow_dac_stream_stop(uint8_t pinid, uint32_t owner);
 
 #endif /* __F7MEADOWOS_MISC_MEADOW_DAC_LOCAL_H */

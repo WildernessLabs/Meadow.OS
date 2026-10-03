@@ -195,6 +195,16 @@
 #define HCOM_THREAD_STACKSIZE_TRACE_USB             2048
 
 /**
+ * Plays a .WAV file on a DAC channel (meadow_dac_play_file(), issue #664),
+ * one thread per playing channel. Above managed code (MONO_TASK_PRIORITY)
+ * and the low-priority work queue so neither can delay it, below the ESP32
+ * and HCOM threads. See Documentation/MeadowDac.md, "File Player".
+ */
+#define DAC_PLAYER_THREAD_PRIORITY                  110
+#define DAC_PLAYER_THREAD_NAME                      "DacPlayer"
+#define DAC_PLAYER_THREAD_STACKSIZE                 2048
+
+/**
  * This thread reads stdout and stderr and forwards text to the Host
  */
 #define HCOM_THREAD_PRIORITY_STDXXX_REDIRECT        120

@@ -437,7 +437,7 @@ Legacy->Rebase port; only one hardware smoke test has been run against them so f
 ## DAC Tests
 
 The `dac` test (`MEADOW_TEST_DAC` = 15 in `meadow_unit_test_framework.h`) exercises the Meadow
-DAC driver (`F7MeadowOS/misc/meadow_dac.c`, see [MeadowDac.md](MeadowDac.md)). It is a
+DAC driver (`F7MeadowOS/misc/meadow_dac*.c`, see [MeadowDac.md](MeadowDac.md)). It is a
 user-space test, `apps/system/hcom/tests/meadow_dac_tests.c`, and it uses the DAC only through
 the `meadow_dac_*` kernel calls, the same way Meadow.Core would.
 
@@ -481,10 +481,30 @@ timeout of 60 seconds (`-t`), so no `-t` is needed.
 | 16 | The same as 14 with a 256-sample ring (about 5 ms). Reports the underruns while writing: times the writer was late. |
 | 17 | The same with a 512-sample ring (about 11 ms). |
 | 18 | The same with a 1,024-sample ring (about 21 ms). |
+| 19 | One-shot API checks on A00 and A01, no scope needed: bad arguments, status while playing and after the end, replacing a playing clip, a clip resampled to the other channel's rate, and a clip over a buffer loop (`-EBUSY`). Each check logs PASS or FAIL. |
+| 20 | A 0.25 s, 1 kHz beep on A00, played once. |
+| 21 | A 0.25 s rising chirp on A00 at 8,000, 16,000 and 32,000 Hz: half, normal and double speed. |
+| 22 | A 0.5 s low tone on A00, replaced after 0.2 s by a 0.25 s high tone. |
+| 23 | A 500 Hz sine loops on A01 at 32,000 Hz while the chirp from 21 plays on A00, resampled to 32,000 Hz. |
+| 24 | 20 short clips on A00, each replacing the last, 50 to 300 ms apart. Passes if every start succeeds. |
+| 25 | File player API checks on A00 and A01, no scope needed: bad pin, channel not open, bad path, unknown flag, missing file, not a WAV file, a 24-bit file (`-ENOTSUP`), writing or starting a waveform during playback (`-EBUSY`), replacing a playing file, stop, a file at a different rate from the other channel (`-EBUSY`), and closing during playback. Each check logs PASS or FAIL. |
+| 26 | Plays a 3 s, 16-bit mono file at 16,000 Hz on A00: 500 Hz, 1 kHz and 2 kHz, a second each. Passes if it ends by itself with no underruns while playing. |
+| 27 | The same from an 8-bit file at 8,000 Hz. |
+| 28 | A 3 s, 16-bit stereo file at 22,050 Hz, 500 Hz on the left and 750 Hz on the right, mixed down: both tones together. |
+| 29 | A 0.5 s, 1 kHz file looped for 3 s, then stopped: an unbroken tone. Passes if there are no underruns. |
+| 30 | The file from 26 loops on A00 while a one-shot beep plays on A01 every 300 ms. Passes if A00 has no underruns. |
+| 31 | 5 s of 16-bit stereo at 48,000 Hz from `/meadow0`, then from `/sdcard` if a card is mounted. Reports the underruns for each. |
+| 32 | Plays `/meadow0/dactest.wav` on A00 for up to 30 s, if it exists. Copy any `.WAV` file there with `meadow file write -f <file> -t dactest.wav` for a listening test. |
 
 Tests 8 to 12 start a waveform and return, leaving it playing until `-v 6`. Tests 14 to 18
 run for up to 10 seconds, then stop. Tests 8 to 12 and 14 to 18 need a scope on A00 (and A01 for 12); a
-meter only shows the average.
+meter only shows the average. Tests 20 to 24 and 26 to 32 are best checked with an amplified
+speaker on the pin (see [MeadowDac.md](MeadowDac.md), "Hardware Notes"); each logs what should
+be heard. They leave the channels open; `-v 6` closes them.
+
+The file player tests write the `.WAV` files they need to `/meadow0/dactest/` (and
+`/sdcard/dactest/` for 31) the first time they run, which can take a while for the 960 KB file
+in 31. If 31 times out the first time, run it again, or give it a longer timeout with `-t`.
 
 ### What It Verifies
 

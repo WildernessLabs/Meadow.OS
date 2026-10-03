@@ -373,6 +373,8 @@ int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
   state->played[1] = 0;
   state->underruns = 0;
   state->seq       = 0;
+  state->ufrozen   = false;
+  state->uend      = 0;
   state->sstate    = MEADOW_DAC_STREAM_PRIMING;
 
   *pbuf = buf;
@@ -399,8 +401,8 @@ void meadow_dac_stream_status(int index,
   uint32_t off;
   int playing;
 
-  out->state     = st->sstate;
-  out->underruns = st->underruns;
+  out->state     = st->owner != 0 ? MEADOW_DAC_FILE_PLAYING : st->sstate;
+  out->underruns = st->ufrozen ? st->uend : st->underruns;
 
   if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
     {
@@ -433,36 +435,27 @@ void meadow_dac_stream_status(int index,
 }
 
 /****************************************************************************
- * Name: meadow_dac_wave_write
+ * Name: meadow_dac_stream_write
  *
  * Description:
- *   Write samples to a stream started with MEADOW_DAC_WAVE_STREAM. Takes as
- *   many as fit, waiting up to timeout_ms in all for DMA to free space. A
- *   count of 0 starts output of a priming stream at once. Waits without the
- *   driver lock, so a stop or close from another thread ends the wait.
- *
- * Input Parameters:
- *   pinid      - Pin identifier, as for meadow_dac_open().
- *   samples    - The samples, 0 to 4095 each.
- *   count      - Number of samples.
- *   timeout_ms - Longest wait for space, in ms; 0 = do not wait.
+ *   Write samples to the stream on a channel, as meadow_dac_wave_write()
+ *   describes, if the stream belongs to 'owner': the app's (0) or one the
+ *   file player started. The samples have already been checked.
  *
  * Returned Value:
- *   The number of samples taken (0 to count), or -EBADSLT for a pin with no
- *   DAC output, -EBADF if the channel is not open, -EINVAL for NULL samples
- *   or a sample above 4095, -ENOTCONN if the channel is not streaming, or
- *   an error passed back from a lower-level call.
+ *   As for meadow_dac_wave_write(), and -EBUSY if the app writes to a
+ *   stream the file player owns.
  *
  ****************************************************************************/
 
-int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
-                          uint32_t count, uint32_t timeout_ms)
+int meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples,
+                            uint32_t count, uint32_t timeout_ms,
+                            uint32_t owner)
 {
   struct meadow_dac_wave_state_s *st;
   clock_t deadline;
   clock_t now;
   uint32_t taken = 0;
-  uint32_t i;
   int index;
   int ret;
 
@@ -470,21 +463,6 @@ int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
   if (index < 0)
     {
       return index;
-    }
-
-  if (count != 0 && samples == NULL)
-    {
-      return -EINVAL;
-    }
-
-  /* Check every sample before any is taken */
-
-  for (i = 0; i < count; i++)
-    {
-      if (samples[i] > MEADOW_DAC_MAX_VALUE)
-        {
-          return -EINVAL;
-        }
     }
 
   st = &g_dac_wave[index];
@@ -498,10 +476,12 @@ int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
           return taken > 0 ? (int)taken : index;
         }
 
-      if (st->type != MEADOW_DAC_WAVE_STREAM)
+      if (st->type != MEADOW_DAC_WAVE_STREAM || st->owner != owner)
         {
+          ret = st->type == MEADOW_DAC_WAVE_STREAM && owner == 0 ?
+                -EBUSY : -ENOTCONN;
           nxmutex_unlock(&g_dac_lock);
-          return taken > 0 ? (int)taken : -ENOTCONN;
+          return taken > 0 ? (int)taken : ret;
         }
 
       if (count == 0)
@@ -538,4 +518,168 @@ int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
           return taken > 0 ? (int)taken : ret;
         }
     }
+}
+
+/****************************************************************************
+ * Name: meadow_dac_stream_lock_owned
+ *
+ * Description:
+ *   Take the driver lock if the channel is open and streams for 'owner'.
+ *   Returns the channel index with the lock held, or a negative error with
+ *   it not held: -ENOTCONN if the stream has gone or belongs to another.
+ *
+ ****************************************************************************/
+
+static int meadow_dac_stream_lock_owned(uint8_t pinid, uint32_t owner)
+{
+  int index;
+
+  index = meadow_dac_lock_open_chan(pinid);
+  if (index < 0)
+    {
+      return index;
+    }
+
+  if (g_dac_wave[index].type != MEADOW_DAC_WAVE_STREAM ||
+      g_dac_wave[index].owner != owner)
+    {
+      nxmutex_unlock(&g_dac_lock);
+      return -ENOTCONN;
+    }
+
+  return index;
+}
+
+/****************************************************************************
+ * Name: meadow_dac_stream_end
+ *
+ * Description:
+ *   The file player has written the whole file to its stream: freeze the
+ *   underrun count, so the halves that underrun while the stream drains are
+ *   not reported, and start output if the ring never filled.
+ *
+ * Returned Value:
+ *   0, or -ENOTCONN if the stream has gone, or the error from taking the
+ *   channel.
+ *
+ ****************************************************************************/
+
+int meadow_dac_stream_end(uint8_t pinid, uint32_t owner)
+{
+  struct meadow_dac_wave_state_s *st;
+  int index;
+
+  index = meadow_dac_stream_lock_owned(pinid, owner);
+  if (index < 0)
+    {
+      return index;
+    }
+
+  st = &g_dac_wave[index];
+  st->uend    = st->underruns;
+  st->ufrozen = true;
+
+  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+    {
+      meadow_dac_stream_run(index);
+    }
+
+  nxmutex_unlock(&g_dac_lock);
+  return OK;
+}
+
+/****************************************************************************
+ * Name: meadow_dac_stream_queued
+ *
+ * Description:
+ *   Return the samples written to the file player's stream and not yet
+ *   played, or -ENOTCONN if the stream has gone (or an error from taking
+ *   the channel).
+ *
+ ****************************************************************************/
+
+int meadow_dac_stream_queued(uint8_t pinid, uint32_t owner)
+{
+  struct meadow_dac_wave_status_s out;
+  int index;
+
+  index = meadow_dac_stream_lock_owned(pinid, owner);
+  if (index < 0)
+    {
+      return index;
+    }
+
+  memset(&out, 0, sizeof(out));
+  meadow_dac_stream_status(index, &out);
+
+  nxmutex_unlock(&g_dac_lock);
+  return (int)out.queued;
+}
+
+/****************************************************************************
+ * Name: meadow_dac_stream_stop
+ *
+ * Description:
+ *   Stop the file player's stream, if it is still the one on the channel.
+ *   A stream that has been stopped or replaced is left alone.
+ *
+ ****************************************************************************/
+
+void meadow_dac_stream_stop(uint8_t pinid, uint32_t owner)
+{
+  int index;
+
+  index = meadow_dac_stream_lock_owned(pinid, owner);
+  if (index >= 0)
+    {
+      meadow_dac_wave_stop_locked(index);
+      nxmutex_unlock(&g_dac_lock);
+    }
+}
+
+/****************************************************************************
+ * Name: meadow_dac_wave_write
+ *
+ * Description:
+ *   Write samples to a stream started with MEADOW_DAC_WAVE_STREAM. Takes as
+ *   many as fit, waiting up to timeout_ms in all for DMA to free space. A
+ *   count of 0 starts output of a priming stream at once. Waits without the
+ *   driver lock, so a stop or close from another thread ends the wait.
+ *
+ * Input Parameters:
+ *   pinid      - Pin identifier, as for meadow_dac_open().
+ *   samples    - The samples, 0 to 4095 each.
+ *   count      - Number of samples.
+ *   timeout_ms - Longest wait for space, in ms; 0 = do not wait.
+ *
+ * Returned Value:
+ *   The number of samples taken (0 to count), or -EBADSLT for a pin with no
+ *   DAC output, -EBADF if the channel is not open, -EINVAL for NULL samples
+ *   or a sample above 4095, -ENOTCONN if the channel is not streaming,
+ *   -EBUSY if the file player owns the stream, or an error passed back from
+ *   a lower-level call.
+ *
+ ****************************************************************************/
+
+int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
+                          uint32_t count, uint32_t timeout_ms)
+{
+  uint32_t i;
+
+  if (count != 0 && samples == NULL)
+    {
+      return -EINVAL;
+    }
+
+  /* Check every sample before any is taken */
+
+  for (i = 0; i < count; i++)
+    {
+      if (samples[i] > MEADOW_DAC_MAX_VALUE)
+        {
+          return -EINVAL;
+        }
+    }
+
+  return meadow_dac_stream_write(pinid, samples, count, timeout_ms, 0);
 }
