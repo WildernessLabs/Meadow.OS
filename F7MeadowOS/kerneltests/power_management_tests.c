@@ -79,11 +79,6 @@
 #define TEST_PIN_V2_D04_IN    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN9)
 #endif
 
-// Holds the onboard ESP32 in reset (EN low) on F7FeatherV2. Open drain,
-// because EN already has a 10K pull-up (R8) to 3V3. Used by test 59.
-#define TEST_PIN_V2_ESP32_RESET_LOW (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_OUTPUT_CLEAR | \
-          GPIO_SPEED_2MHz | GPIO_PORTF | GPIO_PIN7)
-
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
@@ -119,6 +114,9 @@ static void pwmmgmt_test_interrupt_wakeup_from_sleep(void);
 
 static int pwrmgmt_enter_test_sleep_x_times_for_y_seconds(void);
 
+// Stop mode for 10 seconds, logging the RTC time before and after
+static int pwrmgmt_test_stop_for_10_seconds(void);
+
 // Needed for testing rtc alarm wakeup
 static int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod);
 static void *pwrmgmt_test_sleep_kthread_func(int argc, char *argv[]);
@@ -148,7 +146,6 @@ static int pwmmgmt_test_rtc_alarm_isr_handler(int irq, FAR void *context, FAR vo
 void meadow_kt_power_management_tests(uint32_t userData)
 {
   int ret = OK;
-  struct tm tmNowRtc;
   static uint32_t testCount = 0;
 
   syslog(LOG_MTEST,
@@ -237,55 +234,36 @@ void meadow_kt_power_management_tests(uint32_t userData)
 
     case 58:
       // Set alarm for X sec, switch to LSI, enter Stop-mode, after alarm wake up switch to HSE.
+      // The ESP32 is held in reset during Stop mode (Issue #680).
       syslog(LOG_MTEST,
         "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds\n",
         userData);
-      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-      syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
-                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-      usleep(20 * 1000);
-
-      // Wakeup after x seconds
-      ret = pwrmgmt_enter_stm32f7_stop_mode(10);
-
-      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-      syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
-                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-      usleep(20 * 1000);
+      ret = pwrmgmt_test_stop_for_10_seconds();
       break;
 
     case 59:
-      // Same as 58, but holds the ESP32 in reset (PF7 low) while in Stop
-      // mode. Running 58 then 59 measures the ESP32's share of the Stop
-      // current (Issue #681). On release the ESP32 reboots, which the
-      // ESP32 driver doesn't expect, so reset Meadow after this test.
+      // Same as 58. Before Issue #680 this test held the ESP32 in reset
+      // itself; Stop mode now always does that, so 58 and 59 match.
       syslog(LOG_MTEST,
         "==>>power mgmt tests received %" PRIu32
         " - Sleeping for 10 seconds, ESP32 held in reset\n",
         userData);
-      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-      syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
-                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-      usleep(20 * 1000);
-
-      // ESP32 EN low; the F7 keeps driving it low in Stop mode
-      stm32_configgpio(TEST_PIN_V2_ESP32_RESET_LOW);
-
-      // Wakeup after x seconds
-      ret = pwrmgmt_enter_stm32f7_stop_mode(10);
-
-      // Release EN, R8 pulls it high and the ESP32 reboots
-      stm32_configgpio(MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT);
-
-      up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-      syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d, ESP32 released\n",
-                tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-                tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-      usleep(20 * 1000);
+      ret = pwrmgmt_test_stop_for_10_seconds();
       break;
+
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+    case 60:
+      // Same as 58, but the ESP32 is left running during Stop mode. Running
+      // 58 then 60 measures the ESP32's share of the Stop current.
+      syslog(LOG_MTEST,
+        "==>>power mgmt tests received %" PRIu32
+        " - Sleeping for 10 seconds, ESP32 left running\n",
+        userData);
+      pwrmgmt_set_esp32_reset_in_stop(false);
+      ret = pwrmgmt_test_stop_for_10_seconds();
+      pwrmgmt_set_esp32_reset_in_stop(true);
+      break;
+#endif
 
     default:
     syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_power_mgmt_tests()\n", userData);
@@ -339,6 +317,32 @@ int pwrmgmt_enter_test_alarm_timer_parsing()
 #endif
 
 //=========================================================
+// Stop mode for 10 seconds, logging the RTC time before and after.
+// Used by tests 58, 59 and 60.
+int pwrmgmt_test_stop_for_10_seconds(void)
+{
+  int ret;
+  struct tm tmNowRtc;
+
+  up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
+  syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
+            tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
+            tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+  usleep(20 * 1000);
+
+  // Wakeup after x seconds
+  ret = pwrmgmt_enter_stm32f7_stop_mode(10);
+
+  up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
+  syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
+            tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
+            tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+  usleep(20 * 1000);
+
+  return ret;
+}
+
+//=======================================================================
 // Verify that repeated sleeps sessions are possible.
 // This thread allows the HCOM processor thread to return.
 int pwrmgmt_enter_test_sleep_x_times_for_y_seconds()

@@ -110,6 +110,11 @@ void pwrmgmt_disable_rtc_alarm_wakeup(void);
 int meadow_pwr_mgmt_use_hse_for_rtc(void);
 int meadow_pwr_mgmt_use_lsi_for_rtc(void);
 
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+// Developer test support (test 60): hold the ESP32 in reset in Stop mode?
+void pwrmgmt_set_esp32_reset_in_stop(bool holdInReset);
+#endif
+
   // See PWRMGMT_RTC_SOURCE_CLK_CHANGED_TESTING above before enabling this --
   // it makes pwrmgmt_lsi_calc_prep_thread_func() (pwrmgmt_calib_lsi_clock.c)
   // never exit after calibration, looping forever from boot logging a line
