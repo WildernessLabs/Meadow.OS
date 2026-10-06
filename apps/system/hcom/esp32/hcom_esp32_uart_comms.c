@@ -63,6 +63,7 @@
 
 static bool _shutting_down;
 static pthread_t _esp32_recv_thread;
+static bool _esp32_recv_thread_running;   // true from pthread_create() until joined
 static int _esp32_read_fd;
 static int _esp32_write_fd;
 static sem_t _initalizeWaitSem;    /* Implements event waiting */
@@ -91,6 +92,7 @@ int hcom_esp32_uart_comms_setup()
 {
   _shutting_down = false;
   _esp_uart_initialized = false;
+  _esp32_recv_thread_running = false;
   _esp32_write_fd = -1;
   _esp32_read_fd = -1;
   _esp32_read_buffer = NULL;
@@ -118,18 +120,34 @@ void hcom_esp32_uart_comms_shutdown()
 {
   int ret;
 
+  // Nothing to tear down if lazy initialization never ran, e.g. an ESP32
+  // restart from the host before any flash or MAC read (Issue #685).
+  if(!_esp_uart_initialized)
+  {
+    return;
+  }
+
   _shutting_down = true;
 
   // Stop the receive thread first -- it's the only thing that touches
   // the message queues and circular buffer torn down below, so nothing
-  // may free/close them until it's confirmed stopped.
-  pthread_cancel(_esp32_recv_thread);
-
-  ret = pthread_join(_esp32_recv_thread, NULL);
-  if(ret != 0)
+  // may free/close them until it's confirmed stopped. Only if it was
+  // created: cancelling a stale thread id could hit an unrelated thread.
+  if(_esp32_recv_thread_running)
   {
-    syslog(LOG_ERR, "%s@%d-pthread join failed:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
-    return;
+    pthread_cancel(_esp32_recv_thread);
+
+    ret = pthread_join(_esp32_recv_thread, NULL);
+    if(ret != 0)
+    {
+      // pthread_join() returns its error; it doesn't set errno. Clear
+      // _shutting_down, or a later receive thread would exit at once.
+      syslog(LOG_ERR, "%s@%d-pthread join failed:%d\n", __FILE__, __LINE__, ret);
+      _shutting_down = false;
+      return;
+    }
+
+    _esp32_recv_thread_running = false;
   }
 
   hcom_esp32_recv_shutdown();
@@ -259,13 +277,18 @@ int hcom_esp32_uart_comms_make_thread()
     (void)pthread_attr_setschedparam(&attr, &param);
     (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_ESP32_RECEIVE);
 
+    // pthread_create() returns 0 or a positive error number, never < 0.
+    // Return it negated, as the caller checks for ret < 0.
     ret = pthread_create(&_esp32_recv_thread, &attr, hcom_esp32_uart_comms_pthread, NULL);
-    if (ret < 0)
+    if (ret != 0)
     {
       syslog(LOG_CRIT, "%s@%d-Failed to create %s thread. Error:%d\n",
                 __FILE__, __LINE__, HCOM_THREAD_NAME_ESP32_RECEIVE, ret);
+      return -ret;
     }
-    return ret;
+
+    _esp32_recv_thread_running = true;
+    return OK;
 }
 
 //=================================================================
