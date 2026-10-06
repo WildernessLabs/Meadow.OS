@@ -281,7 +281,8 @@ int pwrmgmt_enter_stop_mode(void)
   // don't want any on going SD Card activity to corrupt the SD Card's data.
 
   // ESP32 POWER DOWN
-  // ToDo: espcp_low_power_sleep();
+  // Done before this point, in thread context: pwrmgmt_enter_stm32f7_stop_mode()
+  // holds the ESP32 in reset (Issue #680).
 
   // Disable System tick early so the scheduler won't do any context switching
   up_disable_irq(STM32_IRQ_SYSTICK);
@@ -442,7 +443,8 @@ int pwrmgmt_enter_stop_mode(void)
   putreg32(regval, STM32_OTG_GCCFG);
 
   // Put ESP32 into its normal running mode
-  // ToDo: espcp_low_power_wakeup();
+  // Done after this returns, in thread context: pwrmgmt_enter_stm32f7_stop_mode()
+  // releases the ESP32 from reset (Issue #680).
 
   // Restore Ethernet to operation
 

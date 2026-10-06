@@ -359,8 +359,10 @@
 
 /* ESP32 coprocessor pin definitions *****************************************/
 
-#define MEADOW_ESP32_ONBOARD_RESET_PIN_INPUT  (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
-#define MEADOW_ESP32_ONBOARD_BOOT_PIN_INPUT   (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
+/* The ESP32 EN (PF7) and BOOT (PI10) pins are defined and owned by the ESP32
+ * driver: ESP32CP_RESET_PIN_OUTPUT and ESP32CP_BOOT_PIN_OUTPUT in
+ * F7MeadowOS/espcp/espcp_coprocessor.h (open-drain outputs).
+ */
 
 /* Alternate function pin selections ************************************************/
 
