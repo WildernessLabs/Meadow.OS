@@ -206,34 +206,6 @@ typedef struct HcomProtoTextMsg_s HcomProtoTextMsg_t;
 #define HCOM_PROTOCOL_TEXT_MSG_START_OFF (offsetof(HcomProtoTextMsg_t, textData))
 
 //--------------------------------------------------------------------
-// This diagnostic command message was originally created to allow HCOM to use
-// code designed to be used with NSH. Some apps side code is not be able to be
-// built/used because Meadow is using the Nuttx protected build. This is
-// initially being done to support the 'ping' command.
-// Note: The name HcomProtoDiagCmdMsg_s is poor. What's diagnostic about it?
-struct HcomProtoDiagCmdMsg_s
-{
-  HcomProtoStdHdr_t stdHeader;
-
-  // By convention the argument list is comma separated and the first entry
-  // is the name of the application to execute. (e.g. ping, wildernesslabs.co)
-
-  // Argument list length. Note: this is the only difference between this
-  // struct and struct HcomProtoTextMsg_s. Therefore, they could/should be
-  // combined. This would reduce the clutter.
-  uint16_t argListLen;
-
-  // Argument list field
-  char argListText[0];
-
-} __attribute__((packed));
-
-typedef struct HcomProtoDiagCmdMsg_s HcomProtoDiagCmdMsg_t;
-
-#define HCOM_PROTOCOL_DIAG_CMD_ARG_LIST_LEN_OFFSET (offsetof(HcomProtoDiagCmdMsg_t, argListLen))
-#define HCOM_PROTOCOL_DIAG_CMD_ARG_LIST_TEXT_OFFSET (offsetof(HcomProtoDiagCmdMsg_t, argListText))
-
-//--------------------------------------------------------------------
 // Header plus Binary Info
 struct HcomProtoBinMsg_s
 {
@@ -355,7 +327,8 @@ enum HcomMeadowRequestType
 
   // These message are a header followed by text
   HCOM_MDOW_REQUEST_UPLOAD_FILE_INIT        = 0x01 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
-  HCOM_MDOW_REQUEST_EXEC_DIAG_APP_CMD       = 0x02 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
+  // 0x02 was HCOM_MDOW_REQUEST_EXEC_DIAG_APP_CMD (command line, e.g. ping, for
+  // Ethernet). Removed: its kernel side was never ported from Legacy. Don't reuse.
   HCOM_MDOW_REQUEST_RTC_SET_TIME_CMD        = 0x03 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   HCOM_MDOW_REQUEST_RTC_READ_TIME_CMD       = 0x04 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,
   HCOM_MDOW_REQUEST_RTC_WAKEUP_TIME_CMD     = 0x05 | HCOM_PROTOCOL_HEADER_SIMPLE_TEXT_TYPE,

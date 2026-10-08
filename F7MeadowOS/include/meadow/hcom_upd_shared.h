@@ -157,13 +157,6 @@ typedef struct hcom_nx_upd_get_hw_ver_s
 
 } hcom_nx_upd_get_hw_ver_t;
 
-typedef struct hcom_nx_upd_diag_app_command_s
-{
-  const HcomProtoHdrMsg_t *hdrMsg;
-  size_t msgLen;
-
-} hcom_nx_upd_diag_app_command_t;
-
 typedef struct hcom_nx_upd_rtc_set_time_s
 {
   // Use ISO 8601 format
@@ -225,7 +218,7 @@ typedef struct hcom_nx_upd_host_send_cb_s
 
 // Host / CLI command routing
 #define HCOM_NX_UPD_CLI_COMMAND                 (HCOM_NX_UPD_BASE + 0x30)
-#define HCOM_NX_UPD_DIAG_APP_CMD                (HCOM_NX_UPD_BASE + 0x31)
+// 0x31 was HCOM_NX_UPD_DIAG_APP_CMD (removed, never handled). Don't reuse.
 
 // Restart, DFU and power management
 #define HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU     (HCOM_NX_UPD_BASE + 0x40)

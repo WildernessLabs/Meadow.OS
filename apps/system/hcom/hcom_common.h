@@ -406,8 +406,6 @@ void hcom_diag_misc_build_info_from_recvd_msg(uint8_t buffer[],
           const int bufLen, bool isEncoded);
 void hcom_diag_misc_build_info_from_send_msg(uint8_t buffer[],
           const int bufLen, bool isEncoded);
-void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize);
 
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0
 void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,

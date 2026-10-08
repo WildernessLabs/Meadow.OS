@@ -446,15 +446,6 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
         "", __FILE__, __LINE__);
       break;
 
-    // Aug 2022 used for ping and CLI doesn't support it.
-    case HCOM_MDOW_REQUEST_EXEC_DIAG_APP_CMD:
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0,
-        "", __FILE__, __LINE__);
-      hcom_via_nx_exec_diag_app_cmd(hdrMsg, packetSize);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
-        "", __FILE__, __LINE__);
-      break;
-
     //------------------------------------------------------
     // The following currently does nothing
     case HCOM_MDOW_REQUEST_ENABLE_DISABLE_NSH:
