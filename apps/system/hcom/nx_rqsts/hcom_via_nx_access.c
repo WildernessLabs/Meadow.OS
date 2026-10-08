@@ -373,25 +373,6 @@ uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd)
 }
 
 //=============================================================
-// Routes a command to execute a diagnostic event
-void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize)
-{
-  int ret;
-  hcom_nx_upd_diag_app_command_t diagAppCmd;
-
-  diagAppCmd.hdrMsg = hdrMsg;
-  diagAppCmd.msgLen = packetSize;
-
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_DIAG_APP_CMD, (unsigned long) &diagAppCmd);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed diag app cmd, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-  }
-}
-
-//=============================================================
 // CLI requests that can be directly executed on the OS side are
 // routed through here
 void hcom_via_nx_forward_cli_cmd_to_nx(uint16_t hcomCmd, uint32_t userData)

@@ -174,6 +174,9 @@ void hcom_host_send_simple_string_msg(uint16_t requestType, uint32_t userData,
 int hcom_host_send_raw_string_msg(uint16_t requestType, uint32_t userData,
           char *shortText,size_t msgLength, char *sourceFileName,
           int sourceLineNumber);
+void hcom_host_send_conclude_pending_set(uint16_t rqstType);
+bool hcom_host_send_conclude_is_pending(uint16_t *rqstType);
+void hcom_host_send_conclude_pending_clear(void);
 // Matches typedef in /nuttx/include/meadow/hcom_shared_common.h
 // typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 //   size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
@@ -403,8 +406,6 @@ void hcom_diag_misc_build_info_from_recvd_msg(uint8_t buffer[],
           const int bufLen, bool isEncoded);
 void hcom_diag_misc_build_info_from_send_msg(uint8_t buffer[],
           const int bufLen, bool isEncoded);
-void hcom_via_nx_exec_diag_app_cmd(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize);
 
 #if HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD > 0
 void hcom_diag_decode_recvd_message_type(const HcomProtoHdrMsg_t *hdrMsg,

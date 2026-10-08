@@ -85,6 +85,10 @@
 
 static bool _stateErrShown;
 
+// Set when a download start failure has already been reported to the host
+// with INIT_DOWNLOAD_FAIL (see hcom_file_dnld_stm32f7_file_begin())
+static bool _initFailSent;
+
 #if (HCOM_FILE_DNLD_F7_DEBUG_TIMING) > 0 || (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
 static int _dbgNumbPacketsRecvd = 0;        // Only used in LOG_INFO & LOG_DEBUG messages
 #endif
@@ -147,9 +151,9 @@ static void hcom_file_dnld_cleanup_sdcard_buffer(void)
 }
 
 //==========================================================================
-// Beginning of a file download into the flash file system.
-// Called from hcom_host_route.c. The incomplete file name has been supplied.
-int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
+// The steps of hcom_file_dnld_stm32f7_file_begin(). On failure returns < 0
+// with the download state reset to none.
+static int hcom_file_dnld_stm32f7_file_begin_steps(const HcomProtoHdrMsg_t *hdrMsg,
           hcom_dnld_shared_t *dnldShared)
 {
 #if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
@@ -249,6 +253,7 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
           dnldShared->dnldOrigPathName, errorCause);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL,
           0, hostMsg, __FILE__, __LINE__);
+    _initFailSent = true;
 
     free(hostMsg);
 
@@ -320,6 +325,14 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
               __FILE__, __LINE__, ret, errno);
+
+    // Without its watchdog the download must not be left in the transfer
+    // state: every later request would be refused as 'download active'
+#if (HCOM_FILE_DNLD_CREATE_MEMORY_CACHE == 1)
+    hcom_file_dnld_cleanup_cache_memory();
+#endif
+    hcom_file_dnld_cleanup_sdcard_buffer();
+    dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
     return ret;
   }
 
@@ -327,6 +340,29 @@ int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY,
             0, "", __FILE__, __LINE__);
   return OK;
+}
+
+//==========================================================================
+// Beginning of a file download into the flash file system.
+// Called from hcom_host_route.c. The incomplete file name has been supplied.
+// The host waits for INIT_DOWNLOAD_OKAY or INIT_DOWNLOAD_FAIL, so every
+// failure is answered with INIT_DOWNLOAD_FAIL (once).
+int hcom_file_dnld_stm32f7_file_begin(const HcomProtoHdrMsg_t *hdrMsg,
+          hcom_dnld_shared_t *dnldShared)
+{
+  _initFailSent = false;
+
+  int ret = hcom_file_dnld_stm32f7_file_begin_steps(hdrMsg, dnldShared);
+  if(ret < 0 && !_initFailSent)
+  {
+    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+          "File download could not start, error %d", ret);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL,
+          0, hostMsg, __FILE__, __LINE__);
+  }
+
+  return ret;
 }
 
 //============================================================================

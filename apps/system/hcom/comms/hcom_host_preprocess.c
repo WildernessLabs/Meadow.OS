@@ -68,6 +68,9 @@ static hcom_dnld_shared_t *_dnldShared;
 static uint8_t *_packet_dest_buf = NULL;
 static uint8_t *_decode_dest_buf = NULL;
 
+// Was the packet just handled a command (request) rather than file data?
+static bool _lastPacketWasCommand;
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -75,6 +78,8 @@ static uint8_t *_decode_dest_buf = NULL;
 static int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
           const uint8_t *packet, const size_t packetSize);
 static int hcom_host_process_run_loop(void);
+static bool hcom_host_process_is_stm32f7_dnld_active(hcom_dnld_shared_t *dnldShared);
+static void hcom_host_conclude_if_pending(hcom_dnld_shared_t *dnldShared);
 
 /****************************************************************************
  * Private Functions
@@ -271,6 +276,54 @@ void hcom_host_process_shutdown()
 
   hcom_dir_mgmt_free_file_info(_dnldShared);
   free(_dnldShared);
+}
+
+//==========================================================================
+// Called by the receive loop after each packet. If the request (command
+// packet) hasn't been concluded, send the Concluded now: early returns and
+// error paths can no longer leave the host waiting. Exceptions are the
+// requests that conclude later on purpose:
+// - starting a file transfer concludes with its End request, so only conclude
+//   now if the transfer did not start
+// - debugger data never concludes
+// Requests that restart Meadow need no exception: on success they never
+// return here, and Concluded is sent after the restart.
+static void hcom_host_conclude_if_pending(hcom_dnld_shared_t *dnldShared)
+{
+  uint16_t rqstType;
+
+  if(!hcom_host_send_conclude_is_pending(&rqstType))
+    return;
+
+  switch(rqstType)
+  {
+    case HCOM_MDOW_REQUEST_START_FILE_TRANSFER:
+    case HCOM_MDOW_REQUEST_MONO_UPDATE_RUNTIME:
+      if(hcom_host_process_is_stm32f7_dnld_active(dnldShared))
+      {
+        hcom_host_send_conclude_pending_clear();
+        return;
+      }
+      break;
+
+    case HCOM_MDOW_REQUEST_START_ESP_FILE_TRANSFER:
+      if(hcom_file_dnld_esp32_is_active())
+      {
+        hcom_host_send_conclude_pending_clear();
+        return;
+      }
+      break;
+
+    case HCOM_MDOW_REQUEST_DEBUGGING_DEBUGGER_DATA:
+      hcom_host_send_conclude_pending_clear();
+      return;
+
+    default:
+      break;
+  }
+
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
+          "", __FILE__, __LINE__);
 }
 
 //==========================================================================
@@ -478,10 +531,25 @@ int hcom_host_process_run_loop()
       // Error message already logged for -EOWNERDEAD errors
       if(ret != -EOWNERDEAD)
       {
-        // Let CLI user know the problem
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                "Error during download or delete command processing",
-                __FILE__, __LINE__);
+        // Let CLI user know the problem. A request that already concluded
+        // has reported its own error.
+        char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+        uint16_t pendingRqstType;
+
+        if(!_lastPacketWasCommand)
+        {
+          snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+                "File data processing failed, error %d", ret);
+          hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+                hostMsg, __FILE__, __LINE__);
+        }
+        else if(hcom_host_send_conclude_is_pending(&pendingRqstType))
+        {
+          snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+                "Request 0x%04x failed, error %d", pendingRqstType, ret);
+          hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+                hostMsg, __FILE__, __LINE__);
+        }
 
         syslog(LOG_ERR, "%s@%d-Processing data packet, ret:%d\n",
                   __FILE__, __LINE__, ret);
@@ -491,6 +559,9 @@ int hcom_host_process_run_loop()
       // On error, if any download/delete state information, delete it
       hcom_dir_mgmt_free_file_info(_dnldShared);
     }
+
+    // Every request ends with a Concluded, whatever path it took
+    hcom_host_conclude_if_pending(_dnldShared);
   }
 
   // Thread is exiting, this is not good
@@ -505,6 +576,9 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   int ret;
   uint16_t requestType;
   uint32_t userData;
+
+  // Set to true below once the packet is known to be a command
+  _lastPacketWasCommand = false;
 
   // syslog(LOG_DEBUG, "%s@%d-Data seq:%d, len:%d\n",
   //           __FILE__, __LINE__, hcomDataMsg->seqNumber, decodedSize);
@@ -567,6 +641,12 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
 
   // Process Command packet
   //----------------------------------------------------------------------
+  // From here on this request must end with a Concluded message. Set before
+  // any of the checks below can exit early; the receive loop sends the
+  // Concluded if nothing else did (hcom_host_conclude_if_pending()).
+  _lastPacketWasCommand = true;
+  hcom_host_send_conclude_pending_set(0);   // Type not known yet
+
   // Since sequence number is '0', must be a command (non-data packet)
   // message. And these always have the full HCOM header -- verify enough
   // bytes were actually decoded before reading the rest of it, for the same
@@ -588,6 +668,7 @@ int hcom_host_handle_packet(hcom_dnld_shared_t *dnldShared,
   // Pull out useful command related values
   userData = hdrMsg->stdHeader.userData;
   requestType = hdrMsg->stdHeader.rqstType;
+  hcom_host_send_conclude_pending_set(requestType);
 
   // Verify protocol version
   if(hdrMsg->stdHeader.version < HCOM_PROTOCOL_PREFERRED_VERSION_NUMBER)

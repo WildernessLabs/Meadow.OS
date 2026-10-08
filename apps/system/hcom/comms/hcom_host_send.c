@@ -99,6 +99,14 @@ static bool _lastXmitBlocked;
 static bool _notInitialized = true;
 static bool _lowPowerActive;
 
+// Every request from the host must end with a TEXT_CONCLUDED message. This
+// flag is set when a request (command packet) arrives and cleared whenever a
+// TEXT_CONCLUDED is sent, so after the request has been handled the receive
+// loop can send the missing Concluded (hcom_host_conclude_if_pending()).
+// Only the hcom receive thread sets and checks it.
+static volatile bool _concludePending;
+static volatile uint16_t _concludePendingRqstType;
+
 /****************************************************************************
  * Global Data
  ****************************************************************************/
@@ -447,6 +455,11 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
         uint32_t userData, uint8_t *origMsg, size_t msgLength)
 {
   int ret;
+
+  // The current request is answered, even if this send fails (a retry
+  // wouldn't fare better)
+  if(requestType == HCOM_HOST_REQUEST_TEXT_CONCLUDED)
+    _concludePending = false;
 
   if(_notInitialized)
     return -EAGAIN;
@@ -872,4 +885,33 @@ void hcom_host_send_transmit_takesem(sem_t *semaphore)
     ret = sem_wait(semaphore);
   }
   while (ret == -EINTR);
+}
+
+//=====================================================================
+// A request (command packet) has arrived; it is not concluded yet.
+// rqstType is 0 when the request type is unknown (undersized packet).
+// Public
+void hcom_host_send_conclude_pending_set(uint16_t rqstType)
+{
+  _concludePendingRqstType = rqstType;
+  _concludePending = true;
+}
+
+//=====================================================================
+// Has the current request not been concluded yet? If so, *rqstType is the
+// request's type. Public
+bool hcom_host_send_conclude_is_pending(uint16_t *rqstType)
+{
+  if(rqstType != NULL)
+    *rqstType = _concludePendingRqstType;
+  return _concludePending;
+}
+
+//=====================================================================
+// Forget the pending request without sending Concluded (the request
+// concludes later, e.g. a file transfer start concludes with its End).
+// Public
+void hcom_host_send_conclude_pending_clear(void)
+{
+  _concludePending = false;
 }

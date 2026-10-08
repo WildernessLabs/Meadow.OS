@@ -46,6 +46,7 @@
 
 #include <nuttx/arch.h>
 #include <limits.h>
+#include <sys/stat.h>
 
 #if defined (CONFIG_DIR_MGMT_TESTS)
 #pragma message "(--) hcom_file_upld_proc.c"
@@ -94,6 +95,57 @@ int hcom_file_upld_proc_setup()
   return OK;
 }
 
+
+//==========================================================================
+// Report to the host that the requested file can't be read (TEXT_ERROR
+// followed by INIT_UPLOAD_FAIL) and release the request's file information
+// (closing the file if it was opened).
+static void hcom_file_upld_proc_report_fail(hcom_dnld_shared_t *dnldShared,
+          char *hostMsg)
+{
+  syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
+
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR,
+    0, hostMsg, __FILE__, __LINE__);
+
+  hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_UPLOAD_FAIL, 0,
+            __FILE__, __LINE__);
+
+  hcom_dir_mgmt_free_file_info(dnldShared);
+}
+
+//==========================================================================
+// File Initial and File Read need a file name: with none, the path is the
+// Meadow root directory. Returns -EINVAL (already reported) if there is none.
+static int hcom_file_upld_proc_check_name(hcom_dnld_shared_t *dnldShared)
+{
+  if(dnldShared->dnldOrigPathName == NULL ||
+     dnldShared->dnldOrigPathName[0] == '\0')
+  {
+    hcom_file_upld_proc_report_fail(dnldShared, "No Meadow file name given");
+    return -EINVAL;
+  }
+  return OK;
+}
+
+//==========================================================================
+// open() succeeds on a directory and read() then returns directory entries
+// (struct dirent), so check the opened path is a regular file. Returns
+// -EISDIR (already reported) if it isn't.
+static int hcom_file_upld_proc_check_regular_file(hcom_dnld_shared_t *dnldShared)
+{
+  char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+  struct stat fileStat;
+
+  if(fstat(dnldShared->dnldFileFD, &fileStat) == 0 && S_ISREG(fileStat.st_mode))
+    return OK;
+
+  snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+        "'%s' is a directory, not a file", dnldShared->dnldFullPathName);
+  hcom_file_upld_proc_report_fail(dnldShared, hostMsg);
+  return -EISDIR;
+}
+
 //==========================================================================
 // The hcom_file_upld_proc_initial_bytes_in_file() feature is rarely used.
 // Originally, it was a way to identify if a file was already downloaded
@@ -107,7 +159,10 @@ int hcom_file_upld_proc_setup()
 void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
 {
   char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];   // 128 bytes
-  
+
+  if(hcom_file_upld_proc_check_name(dnldShared) < 0)
+    return;
+
   // Open the file to upload
   set_errno(0);
 
@@ -144,6 +199,9 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
 
     return;
   }
+
+  if(hcom_file_upld_proc_check_regular_file(dnldShared) < 0)
+    return;
 
   // Seek to beginning
   off_t offset = lseek(dnldShared->dnldFileFD, 0, SEEK_SET);
@@ -269,6 +327,7 @@ void hcom_file_upld_proc_initial_bytes_in_file(hcom_dnld_shared_t *dnldShared)
 // This call is from hcom_host_route.c to start the file read operation
 int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 {
+  int ret;
   int detectError;
   uint32_t blockSizeKB;   // Required for call but not used
   uint32_t crc32Checksum = 0;
@@ -288,6 +347,10 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 #endif
 
   _uploadAction = HcomUpldActionNone;
+
+  ret = hcom_file_upld_proc_check_name(dnldShared);
+  if(ret < 0)
+    return ret;
 
   // Open the file to upload
   set_errno(0);
@@ -325,6 +388,10 @@ int hcom_file_upld_proc_start_file_upload(hcom_dnld_shared_t *dnldShared)
 
     return -savedErrno;
   }
+
+  ret = hcom_file_upld_proc_check_regular_file(dnldShared);
+  if(ret < 0)
+    return ret;
 
   // Calculate the CRC checksum
   crc32Checksum = hcom_file_misc_calc_crc_for_file_fd(dnldShared->dnldFileFD,
@@ -590,9 +657,11 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 }
 
 //==========================================================================
-// NOT IMPLEMENTED
+// NOT IMPLEMENTED: say so, so the host doesn't believe the upload was
+// aborted (the router still sends Accepted and Concluded)
 void hcom_file_upld_proc_abort_file_upload(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t packetSize, uint32_t partitionId)
 {
-  
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+          "File Read Abort is not implemented", __FILE__, __LINE__);
 }
