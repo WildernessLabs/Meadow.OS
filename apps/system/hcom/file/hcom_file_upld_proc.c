@@ -657,9 +657,11 @@ int hcom_file_upld_proc_build_upload_packet(int fd, char *fileName)
 }
 
 //==========================================================================
-// NOT IMPLEMENTED
+// NOT IMPLEMENTED: say so, so the host doesn't believe the upload was
+// aborted (the router still sends Accepted and Concluded)
 void hcom_file_upld_proc_abort_file_upload(const HcomProtoHdrMsg_t *hdrMsg,
           const size_t packetSize, uint32_t partitionId)
 {
-  
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+          "File Read Abort is not implemented", __FILE__, __LINE__);
 }

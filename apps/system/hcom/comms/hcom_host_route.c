@@ -468,6 +468,10 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
       hcom_ota_rqst_register_device(userData);
       hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CONCLUDED, 0,
         "", __FILE__, __LINE__);
+      #else
+      // The receive loop sends the Concluded
+      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_REJECTED, 0,
+        "OTA not available in this build", __FILE__, __LINE__);
       #endif
       break;
 
