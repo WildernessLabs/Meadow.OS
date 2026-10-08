@@ -175,9 +175,9 @@ int hcom_host_route_request_by_cmd_type(const HcomProtoHdrMsg_t *hdrMsg,
         "", __FILE__, __LINE__);
       break;
 
-    // This case is 'undocumented' and intended for the development team.
-    // However, I think, CLI or the VS and/or VSCode extensions use this to
-    // get a nested list of files. So, don't remove it.
+    // Nested list of every device, directory and file from '/'; userData
+    // non-zero also lists /proc (hcom_file_lists.c). Used by HcomDiagUi
+    // ('File List - Nested'); current Meadow.CLI doesn't send it.
     case HCOM_MDOW_REQUEST_GET_FILES_AND_FOLDERS:
       hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_ACCEPTED, 0, __FILE__, __LINE__);
       hcom_file_lists_all_dev_dir_and_files_start(userData);

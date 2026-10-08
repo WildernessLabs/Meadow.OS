@@ -91,8 +91,12 @@ static int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, u
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-// This undocumented feature is being used by some part of CLI, unsure of
-// usage. Another /Meadow.OS/apps/system/hcom/tests/hcom_dir_mgmt_tests.c
+// GET_FILES_AND_FOLDERS ('File List - Nested' in HcomDiagUi): lists every
+// device, directory and file from '/'. NuttX procfs (/proc: tasks, memory,
+// uptime, ...) is only included when userData is non-zero. /proc is only
+// mounted in builds with both CONFIG_FS_PROCFS and NSH, so normally it isn't
+// there at all. Current Meadow.CLI doesn't send this request (its old name
+// was DEVELOPER_4).
 int hcom_file_lists_all_dev_dir_and_files_start(uint32_t userData)
 {
   // Changing "/" to "meadow0" will only show meadow files
@@ -161,19 +165,11 @@ int hcom_file_lists_all_dev_dir_and_files(const char *name, int indent, uint32_t
 
     if(DIRENT_ISDIRECTORY(entry->d_type))
     {
-      // Only show procfs information if userData == 1234
-      if(userData != 1234 && strcmp(entry->d_name, "proc") == 0)
-      {
-        // Stop the whole walk here; close every level still open first.
-        while(stackTop > 0)
-        {
-          closedir(stack[stackTop - 1].dir);
-          stackTop--;
-        }
-        free(childPath);
-        free(stack);
-        return OK; // ignore procfs information
-      }
+      // Skip procfs (the top-level 'proc') unless userData is non-zero. Only
+      // this directory: the rest of the walk continues, and a directory
+      // named 'proc' deeper down (e.g. /meadow0/proc) is listed.
+      if(userData == 0 && stackTop == 1 && strcmp(entry->d_name, "proc") == 0)
+        continue;
 
       // Don't display /. and /..
       if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
