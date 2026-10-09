@@ -109,8 +109,18 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
   dirp = opendir(dnldShared->dnldFullPathName);
   if ( !dirp )
   {
+    int savedErrno = errno;
     syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
-              __FILE__, __LINE__, dnldShared->dnldFullPathName, errno);
+              __FILE__, __LINE__, dnldShared->dnldFullPathName, savedErrno);
+
+    // Without this the host just sees an empty list
+    snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
+              "'%s' is not a directory or can't be opened, errno %d",
+              dnldShared->dnldOrigPathName != NULL ? dnldShared->dnldOrigPathName : "",
+              savedErrno);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
+              fileInformation, __FILE__, __LINE__);
+
     free(fileInformation);
     free(completeNameBuf);
     return -ENOENT;

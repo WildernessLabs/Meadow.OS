@@ -443,7 +443,8 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
  *  the file system appear as if it is new and no files are present.
  *
  * Input Parameters:
- *  cmdData - userData in cmdData contains the partition id.
+ *  cmdData - for the error log message. Its userData is not used: the file
+ *            system partition is always the one erased.
  *
  * Returned Value:
  *  OK on success, negative error code on error.
@@ -465,6 +466,16 @@ int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData)
   // restrict the caller. Where MTD_ERASE would.
   ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_OFFSET_FILE_SYS,
             &partInfo);
+  if (ret < 0)
+  {
+    // partInfo is not valid, so don't erase through it
+    cmdData->logLevel = LOG_ERR;
+    // Don't use snprintf_chk here
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+          "%s@%d-get partition %d info, err:%d\n",
+          __FILE__, __LINE__, MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
+    return ret;
+  }
 
   // Erase the first few sectors of the file system partition and restart
   ret = MTD_ERASE(partInfo.mtdPart, 0, 16);
@@ -640,7 +651,6 @@ int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock,
 int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
 {
   int ret;
-  cmdData->userData = 0;
   int lastPercentSent = 0;
 
   // Check for Mono runtime binary on filesystem.

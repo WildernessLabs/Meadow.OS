@@ -84,19 +84,15 @@ All commands run from the **workspace root**, not from `nuttx/`:
 See `Documentation/Debugging.md` for flashing and hardware-debug workflows (`flash.sh`,
 `debug.sh`, GDB helper scripts); see `esp32/CLAUDE.md` for ESP32 coprocessor build commands.
 
-## Linting
+## Coding Style
 
-NuttX enforces a strict coding style. Check all files you touch before committing:
-
-```bash
-# Check recent commits (run from nuttx/)
-./tools/checkpatch.sh -g HEAD~...HEAD
-
-# Check a single file
-./tools/checkpatch.sh -f path/to/file.c
-```
-
-Lint failures are caught by CI (`lint/*` step). Fix pre-existing issues in every file you touch.
+Do not apply the NuttX coding style or `tools/checkpatch.sh` to Meadow's own code: `F7MeadowOS/`,
+`apps/system/hcom/`, the Meadow board directory (`nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/`)
+and the other Wilderness Labs additions. This code was written without the NuttX style and the team
+does not follow it, so a whole-file checkpatch run reports thousands of findings that would bury the
+real changes. Match the style of the surrounding code instead, and do not restyle or "fix"
+pre-existing lint findings in the files you touch. If a CI lint check flags Meadow code, report it
+rather than restyling the code.
 
 ## Character Encoding
 

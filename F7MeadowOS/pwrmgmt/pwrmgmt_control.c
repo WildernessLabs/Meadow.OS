@@ -117,6 +117,12 @@ static volatile bool _lowPwrRequestPending = false;
 static uint32_t _lowPwrRequestedWakeupPeriod;
 static int _lowPwrRequestResult;
 
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+// Hold the ESP32 in reset while in Stop mode (Issue #680). Only developer
+// test 60 clears this, to measure Stop current with the ESP32 left running.
+static bool _holdEsp32InResetInStop = true;
+#endif
+
 /************************************************************************************
  * Public Data
  ************************************************************************************/
@@ -329,6 +335,16 @@ int meadow_power_mgmt_initialize(void)
   return ret;
 }
 
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+//=======================================================================
+// Developer test support: choose whether the ESP32 is held in reset during
+// the next Stop mode. Normally true; test 60 sets it false for one sleep.
+void pwrmgmt_set_esp32_reset_in_stop(bool holdInReset)
+{
+  _holdEsp32InResetInStop = holdInReset;
+}
+#endif
+
 //=======================================================================
 // This is the public entry point for mono to initiate entering stop mode.
 // It contains the steps to put F7 into Stop mode and recover. If a
@@ -385,6 +401,20 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
     return -EBUSY;
   }
 
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+  // Hold the ESP32 in reset (EN low) while in Stop mode. Left running it
+  // draws about 18 mA, more than half of Meadow's Stop current (Issue #680).
+  // The F7 keeps driving the pin low in Stop mode. Skipped when a debugger is
+  // attached to the ESP32 (reset_esp32_at_startup is 0).
+  // Note: anything using the network when Meadow sleeps is not torn down
+  // first. That needs an espcp teardown API (Issue #683).
+  bool esp32HeldInReset = _holdEsp32InResetInStop;
+  if(esp32HeldInReset)
+  {
+    espcp_hold_in_reset();
+  }
+#endif
+
   // Hand off the actual hardware transition (clock switch, alarm config,
   // the real stop-mode wfi/wfe, and switching back) to the idle task --
   // see pwrmgmt_idle_check_and_enter_lowpower(), called from up_idle().
@@ -397,6 +427,15 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   // Wait for the idle task to finish the transition and post the result.
   nxsem_wait_uninterruptible(&_lowPwrRequestComplete);
   ret = _lowPwrRequestResult;
+
+#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+  // Release the ESP32 from reset. It reboots, and espcp_reset() marks the
+  // reset as expected so it isn't reported as an ESP32 fault.
+  if(esp32HeldInReset)
+  {
+    espcp_reset();
+  }
+#endif
 
   // Notify concerned modules that low-power mode has ended. If a module has
   // a problem restarting it will be returned as an error, which will be output

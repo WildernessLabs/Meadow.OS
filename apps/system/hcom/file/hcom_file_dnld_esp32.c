@@ -218,6 +218,10 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   {
     hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
     syslog(LOG_ERR, "%s@%d-Failed to allocate storage\n", __FILE__, __LINE__);
+
+    // Not started: leave the 'starting' state, or every later request is
+    // refused and the start request never concludes
+    hcom_file_dnld_esp32_set_to_inactive();
     return;
   }
   _nextStorageAddress = _esp32FileBuffer;
@@ -232,6 +236,11 @@ void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
   {
     syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
               __FILE__, __LINE__, ret, errno);
+
+    // Without its watchdog the download must not be left in the transfer
+    // state; tell the host it can't start
+    hcom_file_dnld_esp32_abort_active_download();
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
     return;
   }
 
