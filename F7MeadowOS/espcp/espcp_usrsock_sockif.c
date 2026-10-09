@@ -2149,13 +2149,23 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
                                             }
                                             break;
                                     }
-                                    if (*value_len < source_size)
+                                    if ((result == 0) && (source != NULL))
                                     {
-                                        source_size = *value_len;
+                                        if (*value_len < (socklen_t) source_size)
+                                        {
+                                            source_size = *value_len;
+                                        }
+                                        memcpy(value, source, source_size);
+                                        *value_len = source_size;
                                     }
-                                    memcpy(value, source, source_size);
+                                    else
+                                    {
+                                        if (result == 0)
+                                        {
+                                            result = -ENOPROTOOPT;
+                                        }
+                                    }
                                     free(source);
-                                    *value_len = source_size;
                                 }
                                 espcp_free_get_sock_opt_response(response);
                             }
