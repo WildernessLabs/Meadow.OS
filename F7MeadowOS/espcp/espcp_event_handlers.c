@@ -464,22 +464,28 @@ void espcp_dispatch_event(espcp_message_t *message)
  ****************************************************************************/
 static void espcp_send_logging_configuration(void)
 {
+    uint8_t *payload = NULL;
+    int payload_length = 0;
+
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    espcp_logging_configuration_t logging_config;
-    logging_config.interface = config->esp_log_destination;
-    logging_config.udp_port = config->esp_log_udp_port;
-    //
-    //  Note that we do not need to strdup the string as it will be copied
-    //  when the payload is encoded.  Also, the config is still locked at
-    //  this point.
-    //
-    logging_config.components_to_log = config->esp_log_components;
-    int payload_length = espcp_encoded_logging_configuration_buffer_size(&logging_config);
-    uint8_t *payload = (uint8_t *) zalloc(payload_length);
-    if (payload != NULL)
+    if (config != NULL)
     {
-        espcp_encode_logging_configuration(&logging_config, payload);
+        espcp_logging_configuration_t logging_config;
+        logging_config.interface = config->esp_log_destination;
+        logging_config.udp_port = config->esp_log_udp_port;
+        //
+        //  Note that we do not need to strdup the string as it will be copied
+        //  when the payload is encoded.  Also, the config is still locked at
+        //  this point.
+        //
+        logging_config.components_to_log = config->esp_log_components;
+        payload_length = espcp_encoded_logging_configuration_buffer_size(&logging_config);
+        payload = (uint8_t *) zalloc(payload_length);
+        if (payload != NULL)
+        {
+            espcp_encode_logging_configuration(&logging_config, payload);
+        }
     }
     hcom_nx_config_unlock();
 
@@ -513,9 +519,9 @@ static void espcp_send_wifi_country_code(void)
 {
     char *country_code = NULL;
 
-    meadow_configuration_t *config = hcom_nx_config_get_pointer();
     hcom_nx_config_lock();
-    if (config != NULL)
+    meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    if ((config != NULL) && (config->country_code != NULL))
     {
         country_code = kmm_strdup(config->country_code);
     }
@@ -559,7 +565,10 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
                 hcom_nx_config_process_wifi_credentials_file();
                 hcom_nx_config_lock();
                 config = hcom_nx_config_get_pointer();
-                syslog(LOG_INFO, "ESP32 Coprocessor ready, firmware version %s\n", config->esp_version.long_string); 
+                if (config != NULL)
+                {
+                    syslog(LOG_INFO, "ESP32 Coprocessor ready, firmware version %s\n", config->esp_version.long_string);
+                }
                 hcom_nx_config_unlock();
             }
             //
@@ -628,19 +637,26 @@ static void espcp_network_connected_event_handler(espcp_message_t *message)
 
     if (message->status_code == espcp_status_codes_completed_ok)
     {
-        bool get_time;
+        bool get_time = false;
 
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
-        get_time = config->get_network_time_at_startup;
-
-        if (message->payload != NULL)
+        if (config != NULL)
         {
-            espcp_connect_event_data_t *connect_data = espcp_extract_connect_event_data(message->payload);
-            hcom_nx_config_add_default_gateway_dns_file(config, connect_data->gateway);
-            hcom_nx_config_update_network_interface(config, connect_data->ip_address,
-                                                    connect_data->gateway,
-                                                    connect_data->subnet_mask);
+            get_time = config->get_network_time_at_startup;
+
+            if (message->payload != NULL)
+            {
+                espcp_connect_event_data_t *connect_data = espcp_extract_connect_event_data(message->payload);
+                if (connect_data != NULL)
+                {
+                    hcom_nx_config_add_default_gateway_dns_file(config, connect_data->gateway);
+                    hcom_nx_config_update_network_interface(config, connect_data->ip_address,
+                                                            connect_data->gateway,
+                                                            connect_data->subnet_mask);
+                    free(connect_data);
+                }
+            }
         }
         hcom_nx_config_unlock();
 
@@ -671,12 +687,18 @@ static void espcp_network_disconnected_event_handler(espcp_message_t *message)
 
     if (message->status_code == espcp_status_codes_completed_ok)
     {
-        bool get_time;
+        bool get_time = false;
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
-        get_time = config->get_network_time_at_startup;
-        config->default_interface->gateway_changed = false;
-        hcom_nx_config_clear_network_interface(config);
+        if (config != NULL)
+        {
+            get_time = config->get_network_time_at_startup;
+            if (config->default_interface != NULL)
+            {
+                config->default_interface->gateway_changed = false;
+            }
+            hcom_nx_config_clear_network_interface(config);
+        }
         hcom_nx_config_unlock();
         if (get_time)
         {
@@ -799,13 +821,17 @@ static void espcp_network_got_ip_event_handler(espcp_message_t *message)
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
 
-        if (message->payload != NULL)
+        if ((config != NULL) && (config->default_interface != NULL) && (message->payload != NULL))
         {
             espcp_got_ip_event_data_t *espcp_got_ip_data = espcp_extract_got_ip_event_data(message->payload);
-            if (config->default_interface->dns_address != espcp_got_ip_data->dns_address)
+            if (espcp_got_ip_data != NULL)
             {
-                hcom_nx_config_update_dns_address(config, espcp_got_ip_data->dns_address);
-                hcom_nx_config_add_dns_address_into_file(espcp_got_ip_data->dns_address);
+                if (config->default_interface->dns_address != espcp_got_ip_data->dns_address)
+                {
+                    hcom_nx_config_update_dns_address(config, espcp_got_ip_data->dns_address);
+                    hcom_nx_config_add_dns_address_into_file(espcp_got_ip_data->dns_address);
+                }
+                free(espcp_got_ip_data);
             }
         }
         hcom_nx_config_unlock();

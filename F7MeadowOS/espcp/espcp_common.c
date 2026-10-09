@@ -150,12 +150,24 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
         espcp_connect_event_data_t *data = (espcp_connect_event_data_t *) zalloc(sizeof(espcp_connect_event_data_t));
         if (data != NULL)
         {
+            bool have_address = false;
+
             hcom_nx_config_lock();
             meadow_configuration_t *meadow_config = hcom_nx_config_get_pointer();
-            data->ip_address = meadow_config->default_interface->ip_address;
-            data->gateway = meadow_config->default_interface->gateway;
-            data->subnet_mask = meadow_config->default_interface->netmask;
+            if ((meadow_config != NULL) && (meadow_config->default_interface != NULL))
+            {
+                data->ip_address = meadow_config->default_interface->ip_address;
+                data->gateway = meadow_config->default_interface->gateway;
+                data->subnet_mask = meadow_config->default_interface->netmask;
+                have_address = true;
+            }
             hcom_nx_config_unlock();
+            if (!have_address)
+            {
+                free(data);
+                free(connection_message);
+                return;
+            }
             connection_message->payload_length = espcp_connect_event_data_buffer_size(data);
             connection_message->payload = (uint8_t *) zalloc(connection_message->payload_length);
             if (connection_message->payload == NULL)

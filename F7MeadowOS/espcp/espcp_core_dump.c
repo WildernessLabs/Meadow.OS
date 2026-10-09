@@ -561,10 +561,14 @@ void espcp_get_core_dump(void *argument)
 
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    bool retrieve_core_dump = config->esp_retrieve_core_dump;
-    if (retrieve_core_dump)
+    bool retrieve_core_dump = false;
+    if (config != NULL)
     {
-        version = kmm_strdup(config->esp_version.short_string);
+        retrieve_core_dump = config->esp_retrieve_core_dump;
+        if (retrieve_core_dump)
+        {
+            version = kmm_strdup(config->esp_version.short_string);
+        }
     }
     hcom_nx_config_unlock();
 

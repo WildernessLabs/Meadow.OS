@@ -1040,6 +1040,10 @@ espcp_connect_event_data_t *espcp_extract_connect_event_data(uint8_t *buffer)
 {
     espcp_connect_event_data_t *connect_event_data = (espcp_connect_event_data_t *) malloc(sizeof(espcp_connect_event_data_t));
 
+    if (connect_event_data == NULL)
+    {
+        return(NULL);
+    }
     connect_event_data->ip_address = espcp_extract_uint32(buffer);
     buffer += 4;
     connect_event_data->subnet_mask = espcp_extract_uint32(buffer);
@@ -3770,6 +3774,10 @@ void espcp_encode_log_message(espcp_log_message_t *log_message, uint8_t *buffer)
 espcp_got_ip_event_data_t *espcp_extract_got_ip_event_data(uint8_t *buffer)
 {
     espcp_got_ip_event_data_t *got_ip_event_data = (espcp_got_ip_event_data_t*)malloc(sizeof(espcp_got_ip_event_data_t));
+    if (got_ip_event_data == NULL)
+    {
+        return NULL;
+    }
     got_ip_event_data->dns_address = espcp_extract_uint32(buffer);
     return got_ip_event_data;
 }

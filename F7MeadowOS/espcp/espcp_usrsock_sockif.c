@@ -356,7 +356,8 @@ void espcp_usrsock_init()
 
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    if ((config != NULL) && (config->default_interface->interface_type == MEADOW_IFT_ESP32))
+    if ((config != NULL) && (config->default_interface != NULL) &&
+        (config->default_interface->interface_type == MEADOW_IFT_ESP32))
     {
         _esp32_selected = true;
     }
