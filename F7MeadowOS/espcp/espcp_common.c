@@ -102,16 +102,19 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     espcp_configuration_t *configuration = espcp_get_configuration();
     if (espcp_add_message_to_queue(&configuration->request_queue, message) == espcp_status_codes_completed_ok)
     {
+        result = espcp_status_codes_completed_ok;
         if (block)
         {
             //
-            //  We wait in a loop and check the result code for the sem_wait method
-            //  as it is possible to have a return from a sem_wait as a result of a
-            //  signal as well as a sem_post.  In the case of a signal we simply wait
-            //  again.
-            while ((net_sem_wait(message->semaphore) != 0) && (get_errno() == EINTR));
+            //  net_sem_wait_uninterruptible() waits again if a signal interrupts the
+            //  wait, so it only returns once the semaphore has been taken or on a
+            //  genuine failure.  It returns a negated errno and does not set errno.
+            //
+            if (net_sem_wait_uninterruptible(message->semaphore) != 0)
+            {
+                result = espcp_status_codes_failure;
+            }
         }
-        result = espcp_status_codes_completed_ok;
     }
     return (result);
 }
