@@ -3236,13 +3236,19 @@ void hcom_nx_config_refresh_mono_version(meadow_configuration_t *config)
         }
         else
         {
-            if ((mono_signature->build & 0x00ffff00) != 0)
+            if ((mono_signature->build & 0xff000000) != 0)
             {
                 //
                 //  For older versions of Meadow.OS.Runtime.bin the version number
-                //  was encoded as a single uint32_t.
-                //
-                //  TODO: Change this after version 1.0 and before version 256.0.
+                //  was encoded as a single uint32_t: major.minor.revision.build
+                //  packed into one byte each, so the top byte holds the major
+                //  version.  In the current format build is the build number
+                //  (a commit count), which stays far below 2^24.  The previous
+                //  test, (build & 0x00ffff00) != 0, misread any build number
+                //  above 255 as the packed format and left the version strings
+                //  unset, so Mono reported "version unavailable".  Packed
+                //  versions with a major of 0 (pre-1.0 runtimes) are no longer
+                //  recognised.
                 //
                 config->mono_version.revision = (mono_signature->build >> 8) & 0xff;
                 config->mono_version.minor = (mono_signature->build >> 16) & 0xff;

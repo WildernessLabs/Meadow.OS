@@ -1,0 +1,29 @@
+############################################################################
+# apps/system/mono/Make.defs
+#
+#   Copyright (C) 2026 Wilderness Labs. All rights reserved.
+#
+############################################################################
+
+ifneq ($(CONFIG_SYSTEM_MONO),)
+CONFIGURED_APPS += $(APPDIR)/system/mono
+
+# The Mono runtime archives, built by build-mono.sh into monoruntime/ at the
+# repository root.  MONO_BUILD_TYPE selects the configuration (release by
+# default, debug for build-mono.sh --debug).  The board's kernel/Makefile
+# links these into the user image, and user-space.ld places them in the
+# SDRAM runtime image.
+
+MONO_BUILD_TYPE ?= release
+MONO_RUNTIME_LIB_DIR = $(APPDIR)/../monoruntime/$(MONO_BUILD_TYPE)
+
+MONO_AOBJS = $(MONO_RUNTIME_LIB_DIR)/mono/mini/libmonosgen-2.0.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/mini/libmono-component-marshal-ilgen-static.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/mini/libmono-component-hot_reload-stub-static.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/mini/libmono-component-debugger-stub-static.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/mini/libmono-component-diagnostics_tracing-stub-static.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/minipal/minipal/libminipal.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/minipal/minipal/libaotminipal.a \
+             $(MONO_RUNTIME_LIB_DIR)/mono/sgen/libsgen_objects.a \
+             $(MONO_RUNTIME_LIB_DIR)/system_native/libSystem.Native.a
+endif

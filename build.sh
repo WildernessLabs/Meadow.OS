@@ -488,6 +488,27 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+#
+#   Build the Mono runtime archives (build-mono.sh) when the runtime is part
+#   of this configuration.  They are linked into the user image in the user
+#   pass below.  MONO_BUILD_TYPE=debug selects the Debug runtime; it is
+#   release otherwise, and the same variable tells the link which archives
+#   to use (apps/system/mono/Make.defs).
+#
+if grep -q "^CONFIG_SYSTEM_MONO=y" $scriptdir/nuttx/.config; then
+  MONO_BUILD_OPTIONS=
+  if [ "${MONO_BUILD_TYPE:-release}" = "debug" ]; then
+    MONO_BUILD_OPTIONS+="--debug "
+  fi
+  if $CLEAN; then
+    MONO_BUILD_OPTIONS+="--clean "
+  fi
+  $scriptdir/build-mono.sh $MONO_BUILD_OPTIONS
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+fi
+
 printf "Building NuttX (kernel pass)...\n"
 # Build mksyscall first due to issues with concurrency and makefile dependencies
 run_command "make -C $scriptdir/nuttx/tools $NUTTX_VERBOSE $MAKE_OPTIONS -f Makefile.host mksyscall"

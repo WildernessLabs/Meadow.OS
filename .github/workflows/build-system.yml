@@ -34,11 +34,26 @@ jobs:
         git config --global url."https://github.com/".insteadOf "git@github.com:"
         git submodule update --init --depth 1 mbedtls mono/external/corefx
 
+    #
+    #   The Mono runtime is built from the WildernessLabs/runtime commit
+    #   recorded in MONO_RUNTIME_COMMIT.  Fetch only that commit, into the
+    #   workspace so that the build container can see it; build-mono.sh
+    #   checks that the checkout matches the pin.
+    #
+    - name: Fetch the pinned Mono runtime
+      run: |
+        repository=$(sed -n 's/^repository=//p' MONO_RUNTIME_COMMIT)
+        commit=$(sed -n 's/^commit=//p' MONO_RUNTIME_COMMIT)
+        git init -q runtime-src
+        git -C runtime-src fetch -q --depth 1 "$repository" "$commit"
+        git -C runtime-src checkout -q FETCH_HEAD
+        git -C runtime-src log -1 --format='Runtime: %H %s'
+
     - name: Build Docker image for the OS build.
       run: docker build -t nuttx-build -f ./DockerFiles/Build/Dockerfile .
 
     - name: Build the OS and RT
-      run: docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" nuttx-build ./build.sh --force --clean
+      run: docker run --rm -v $PWD:/project -w /project -e MEADOW_RUNTIME_DIR=/project/runtime-src --user "$(id -u):$(id -g)" nuttx-build ./build.sh --force --clean
 
     #
     #   Artifacts match those published by the Azure pipeline (azure-pipelines.yml).

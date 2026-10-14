@@ -67,6 +67,8 @@
 "meadow_adc_configure","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t *","uint32_t","double *"
 "meadow_adc_read_values","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int"
 "meadow_adc_read_temp_vbat","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","double *","double *"
+"meadow_client_cert_release_credentials","meadow/meadow_client_cert.h","defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","FAR char **","FAR char **","FAR char **"
+"meadow_client_cert_retrieve_credentials","meadow/meadow_client_cert.h","defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","FAR const uint8_t **","FAR int *","FAR const uint8_t **","FAR int *","FAR const uint8_t **","FAR int *"
 "meadow_dac_close","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t"
 "meadow_dac_open","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","uint32_t"
 "meadow_dac_play_file","meadow/meadow_syscall_support.h","defined (CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","uint8_t","FAR const char *","uint32_t"

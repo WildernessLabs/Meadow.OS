@@ -23,6 +23,10 @@
 include $(TOPDIR)/Make.defs
 include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/hcom/Make.defs
 
+# MONO_AOBJS: the Mono runtime archives, linked into the user image below when
+# CONFIG_SYSTEM_MONO is enabled.
+include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/mono/Make.defs
+
 # APPDIR is normally set up by the top-level apps build (nuttx/tools/Make.defs), which
 # this board Makefile never includes - define it here so the mbedTLS object lookup
 # below resolves correctly.

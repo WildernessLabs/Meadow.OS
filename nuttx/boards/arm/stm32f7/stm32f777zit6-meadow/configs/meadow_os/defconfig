@@ -53,6 +53,8 @@ CONFIG_CDCACM_VENDORID=0x2E6A
 CONFIG_CDCACM_VENDORSTR="Wilderness Labs"
 CONFIG_CRYPTO=y
 CONFIG_CRYPTO_MBEDTLS=y
+CONFIG_MBEDTLS_THREADING_C=y
+CONFIG_MBEDTLS_THREADING_PTHREAD=y
 CONFIG_CRYPTO_RANDOM_POOL=y
 CONFIG_DEBUG_FULLOPT=y
 CONFIG_DEBUG_SYMBOLS=y
@@ -313,10 +315,13 @@ CONFIG_BOARDCTL_IOCTL=y
 # CONFIG_LIBC_ENVPATH=y
 
 #
-#   Leaving here as a reference for when Mono is integrated.
+#   The Mono .NET runtime (apps/system/mono).  The runtime archives are built
+#   by build-mono.sh.  The Mono task's stack is MONO_TASK_STACKSIZE
+#   (meadow_thread_config.h).
 #
-# CONFIG_EXAMPLES_MONO=y
-# CONFIG_EXAMPLES_MONO_STACKSIZE=65536
+CONFIG_SYSTEM_MONO=y
+# setlocale(), called by the Mono runtime.
+CONFIG_LIBC_LOCALE=y
 
 #
 #   Not sure if we need this.
@@ -334,9 +339,10 @@ CONFIG_BOARDCTL_IOCTL=y
 # CONFIG_IOEXPANDER=y
 
 #
-#   This turn on mmap and I don't know if we use this.
+#   File mmap() for file systems without their own mmap (LittleFS): the file is
+#   read into a heap buffer.  The Mono runtime maps assemblies this way.
 #
-# CONFIG_FS_RAMMAP=y
+CONFIG_FS_RAMMAP=y
 
 #
 #   Described as a client to fetch files from a web server.
