@@ -51,7 +51,12 @@ generate_build_info() {
 
   echo Calculated version: ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION}.${VERSION_BUILD} '('${MEADOW_GIT_HASH:0-8}:${MEADOW_GIT_REF}')'
 
-  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+  #
+  # The version is stamped into a copy of user-space.ld, which the user-space
+  # link uses (see boards/.../kernel/Makefile).  The tracked file is never
+  # rewritten, so uncommitted edits to it survive a build.
+  #
+  cp $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld
   git checkout HEAD $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h
   git checkout HEAD $scriptdir/esp32/main/version.h
 
@@ -81,7 +86,7 @@ generate_build_info() {
 
   for s in $(echo VERSION_MAJOR VERSION_MINOR VERSION_REVISION VERSION_BUILD BUILD_DAY BUILD_TWO_DIGIT_DAY BUILD_MONTH BUILD_TWO_DIGIT_MONTH BUILD_MONTH_NAME BUILD_YEAR BUILD_HOUR BUILD_TWO_DIGIT_HOUR HOUR BUILD_MINUTE BUILD_TWO_DIGIT_MINUTE BUILD_SECOND BUILD_TWO_DIGIT_SECOND BUILD_HASH MEADOW_GIT_REF BUILD_EPOCH_TIME BUILD_HASH_STRING)
   do
-    inject_value $s $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+    inject_value $s $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld
     inject_value $s $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h
     inject_value $s $scriptdir/esp32/main/build_info.template
   done
@@ -106,7 +111,7 @@ generate_build_info() {
       fi
     done
     MONO_GIT_REF+="BYTE(00)"
-    sed -i.bak 's/###MONO_GIT_REF###/'$MONO_GIT_REF'/g' $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld
+    sed -i.bak 's/###MONO_GIT_REF###/'$MONO_GIT_REF'/g' $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld
   fi
 
   #
@@ -146,11 +151,10 @@ END
 #   run even if generate_build_info never got as far as touching a file.
 #
 restore_versioned_files() {
-  git checkout HEAD $scriptdir/nuttx//boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld 2>/dev/null || true
   git checkout HEAD $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h 2>/dev/null || true
   git checkout HEAD $scriptdir/esp32/version.txt 2>/dev/null || true
   git checkout HEAD $scriptdir/esp32/main/build_info.template 2>/dev/null || true
-  rm -f $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
+  rm -f $scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld.bak
   rm -f $scriptdir/F7MeadowOS/include/meadow/hcom_nuttx_shared.h.bak
   rm -f $scriptdir/esp32/main/build_info.template.bak
   rm -f $scriptdir/esp32/main/build_info.h
