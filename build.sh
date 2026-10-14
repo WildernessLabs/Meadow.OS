@@ -8,11 +8,12 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 . $scriptdir/scripts/configuration_tweaks.sh
 
 #
-#   generate_build_info rewrites tracked files (user-space.ld,
-#   hcom_nuttx_shared.h, esp32/version.txt, esp32/main/build_info.template)
-#   as scratch space.  This trap restores them on every exit path - success,
-#   an error under set -e, or a signal - so a failed build cannot leave the
-#   tree dirty or poison the next build with stale version data.
+#   generate_build_info rewrites tracked files (hcom_nuttx_shared.h,
+#   esp32/version.txt, esp32/main/build_info.template) as scratch space.  This
+#   trap restores them on every exit path - success, an error under set -e, or
+#   a signal - so a failed build cannot leave the tree dirty or poison the next
+#   build with stale version data.  (user-space.ld is not rewritten: the
+#   version is stamped into the untracked copy user-space.stamped.ld.)
 #
 trap restore_versioned_files EXIT
 
@@ -509,9 +510,70 @@ run_command "make -C $scriptdir/nuttx $NUTTX_VERBOSE $MEADOW_ADDITIONAL_MAKE_OPT
 check_command_status
 
 #
+#   The Mono runtime image is linked to the start of SDRAM and the user heap
+#   follows it.  Four places describe that layout:
+#     - HCOM_NX_MONO_RUNTIME_SDRAM_ADDR and HCOM_NX_FS_MONO_RAW_PARTITION_SIZE
+#       (hcom_shared_common.h), where the kernel copies the image to and the
+#       size of the QSPI partition it is stored in;
+#     - the sdram region in memory.ld, which the image is linked into;
+#     - CONFIG_HEAP2_BASE / CONFIG_HEAP2_SIZE, the user heap after the image.
+#   Stop the build if they disagree, and work out where the image sits in
+#   nuttx_user.bin for the packaging step below.
+#
+check_mono_sdram_layout()
+{
+  local memory_ld=$scriptdir/nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld
+  local shared_h=$scriptdir/F7MeadowOS/include/meadow/hcom_shared_common.h
+  local partitions_h=$scriptdir/F7MeadowOS/include/meadow/bootloader/meadow_os_partitions.h
+
+  local image_addr=$(( $(sed -n 's/^#define HCOM_NX_MONO_RUNTIME_SDRAM_ADDR[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p' $shared_h) ))
+  local image_size=$(( $(sed -n 's/^#define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p' $shared_h) ))
+  local sdram_size=$(( $(sed -n 's/^#define SDRAM_SIZE[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p' $partitions_h) ))
+  local sdram_region=$(grep -E '^[[:space:]]*sdram[[:space:]]*\(' $memory_ld)
+  local uflash_region=$(grep -E '^[[:space:]]*uflash[[:space:]]*\(' $memory_ld)
+  local sdram_origin=$(( $(echo "$sdram_region" | sed -n 's/.*ORIGIN[[:space:]]*=[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p') ))
+  local sdram_length=$(( $(echo "$sdram_region" | sed -n 's/.*LENGTH[[:space:]]*=[[:space:]]*\([0-9]*\)K.*/\1/p') * 1024 ))
+  local uflash_origin=$(( $(echo "$uflash_region" | sed -n 's/.*ORIGIN[[:space:]]*=[[:space:]]*\(0x[0-9a-fA-F]*\).*/\1/p') ))
+  local heap_base=$(( $(sed -n 's/^CONFIG_HEAP2_BASE=//p' $scriptdir/nuttx/.config) ))
+  local heap_size=$(( $(sed -n 's/^CONFIG_HEAP2_SIZE=//p' $scriptdir/nuttx/.config) ))
+
+  local errors=0
+  if [ $image_size -eq 0 ] || [ $sdram_length -eq 0 ] || [ $uflash_origin -eq 0 ] || [ $heap_base -eq 0 ]; then
+    printf "${red}ERROR: could not read the SDRAM layout (hcom_shared_common.h, memory.ld, .config).${reset}\n"
+    exit 1
+  fi
+  if [ $sdram_origin -ne $image_addr ]; then
+    printf "${red}ERROR: memory.ld sdram ORIGIN 0x%x is not HCOM_NX_MONO_RUNTIME_SDRAM_ADDR 0x%x.${reset}\n" $sdram_origin $image_addr
+    errors=1
+  fi
+  if [ $sdram_length -ne $image_size ]; then
+    printf "${red}ERROR: memory.ld sdram LENGTH 0x%x is not HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x%x.${reset}\n" $sdram_length $image_size
+    errors=1
+  fi
+  if [ $heap_base -ne $(( image_addr + image_size )) ]; then
+    printf "${red}ERROR: CONFIG_HEAP2_BASE 0x%x does not start straight after the runtime image (0x%x).${reset}\n" $heap_base $(( image_addr + image_size ))
+    errors=1
+  fi
+  if [ $(( heap_base + heap_size )) -ne $(( image_addr + sdram_size )) ]; then
+    printf "${red}ERROR: CONFIG_HEAP2_BASE + CONFIG_HEAP2_SIZE (0x%x) is not the end of SDRAM (0x%x).${reset}\n" $(( heap_base + heap_size )) $(( image_addr + sdram_size ))
+    errors=1
+  fi
+  if [ $errors -ne 0 ]; then
+    exit 1
+  fi
+
+  #   objcopy writes the SDRAM sections into nuttx_user.bin at their offset
+  #   from the start of uflash.
+  MONO_IMAGE_OFFSET_KB=$(( (image_addr - uflash_origin) / 1024 ))
+  MONO_IMAGE_SIZE_KB=$(( image_size / 1024 ))
+}
+
+#
 #   Package Meadow.OS
 #
 if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
+  check_mono_sdram_layout
+
   MEADOW_OS_BIN=$scriptdir/nuttx/Meadow.OS.Update.bin
   MEADOW_BL_BIN=$scriptdir/bootloader/Debug/Meadow.BL.bin
   MEADOW_OS_BL_BIN=$scriptdir/nuttx/Meadow.OS.bin
@@ -526,8 +588,8 @@ if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   srec_cat ${MEADOW_BL_BIN} -Binary ${MEADOW_OS_BIN} -Binary -offset 0x00040000 -o ${MEADOW_OS_BL_BIN} -Binary
 
   MEADOW_OS_RUNTIME_BIN=$scriptdir/nuttx/Meadow.OS.Runtime.bin
-  dd if=/dev/zero bs=1024 count=3072 of=${MEADOW_OS_RUNTIME_BIN} 2> /dev/null
-  dd if=$scriptdir/nuttx/nuttx_user.bin bs=1024 skip=3014400 seek=0 count=3072 of=${MEADOW_OS_RUNTIME_BIN} conv=notrunc 2> /dev/null
+  dd if=/dev/zero bs=1024 count=${MONO_IMAGE_SIZE_KB} of=${MEADOW_OS_RUNTIME_BIN} 2> /dev/null
+  dd if=$scriptdir/nuttx/nuttx_user.bin bs=1024 skip=${MONO_IMAGE_OFFSET_KB} seek=0 count=${MONO_IMAGE_SIZE_KB} of=${MEADOW_OS_RUNTIME_BIN} conv=notrunc 2> /dev/null
 fi
 
 print_build_summary

@@ -40,6 +40,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <malloc.h>
+
 #include "hcom_common.h"
 #include <meadow/hcom_shared_common.h>
 
@@ -265,6 +267,13 @@ int hcom_main(int argc, char *argv[])
     syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", __FILE__, __LINE__, ret);
     return ret; 
   }
+
+  // Report the user heap once at startup, so that changes to the memory
+  // layout (for example the SDRAM reserved for the Mono runtime image) and
+  // memory use across releases can be checked from the log.
+  struct mallinfo heapInfo = mallinfo();
+  syslog(LOG_NOTICE, "User heap: %d bytes in total, %d bytes free\n",
+         heapInfo.arena, heapInfo.fordblks);
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG, "Apps startup manager 3\n"); usleep(20 * 1000);

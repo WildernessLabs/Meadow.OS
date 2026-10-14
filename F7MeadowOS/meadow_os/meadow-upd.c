@@ -373,7 +373,7 @@ static int upd_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         uint32_t number_of_blocks =
                   HCOM_NX_FS_MONO_RAW_PARTITION_SIZE / block_size;
         return hcom_nx_exec_ex_flash_copy_blocks_to_memory(0,
-                  (void *) CONFIG_HEAP2_BASE, number_of_blocks);
+                  (void *) HCOM_NX_MONO_RUNTIME_SDRAM_ADDR, number_of_blocks);
       }
 
 #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
