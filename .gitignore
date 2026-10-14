@@ -340,6 +340,8 @@ tmp/**
 apps/database/sqlite/sqlite-vesion*
 
 #
-#   Mono runtime archives built by build-mono.sh.
+#   Mono runtime archives built by build-mono.sh, and the runtime checkout CI
+#   fetches for it.
 #
 monoruntime/
+runtime-src/
