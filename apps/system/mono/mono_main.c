@@ -1151,6 +1151,70 @@ static void *meadow_pinvoke_override(const char *libraryName,
 }
 
 /****************************************************************************
+ * Name: set_mono_env_options
+ *
+ * Description:
+ *   Pass the Mono options from meadow.config.yaml (MonoControl: Options,
+ *   which hcom filters and passes as the task arguments) to the runtime.
+ *   monovm_execute_assembly() puts the entry assembly first on the
+ *   mono_main() command line, and mono_main() stops reading runtime options
+ *   at the assembly, so the options cannot be passed as arguments.  It does
+ *   read the MONO_ENV_OPTIONS environment variable first, so the options
+ *   are joined into that.  Arguments that do not start with '-' (the task
+ *   name, when there is one) are skipped.
+ *
+ * Input Parameters:
+ *   argc - Number of task arguments
+ *   argv - Task arguments
+ *
+ ****************************************************************************/
+
+static void set_mono_env_options(int argc, char *argv[])
+{
+  size_t length = 0;
+  int i;
+
+  for (i = 0; i < argc; i++)
+    {
+      if ((argv[i] != NULL) && (argv[i][0] == '-'))
+        {
+          length += strlen(argv[i]) + 1;
+        }
+    }
+
+  if (length == 0)
+    {
+      syslog(LOG_INFO, "Mono options: none\n");
+      return;
+    }
+
+  char *options = malloc(length);
+  if (options == NULL)
+    {
+      syslog(LOG_ERR, "Mono options: out of memory, options ignored\n");
+      return;
+    }
+
+  options[0] = '\0';
+  for (i = 0; i < argc; i++)
+    {
+      if ((argv[i] != NULL) && (argv[i][0] == '-'))
+        {
+          if (options[0] != '\0')
+            {
+              strcat(options, " ");
+            }
+
+          strcat(options, argv[i]);
+        }
+    }
+
+  setenv("MONO_ENV_OPTIONS", options, 1);
+  syslog(LOG_NOTICE, "Mono options: %s\n", options);
+  free(options);
+}
+
+/****************************************************************************
  * Name: build_tpa_list
  *
  * Description:
@@ -1322,6 +1386,10 @@ int meadow_mono_main(int hcom_argc, char *hcom_argv[])
    * without this, the first Console.Write deadlocks on re-entrant
    * Monitor.Enter through EnsureInitializedCore -> lock(Console.Out). */
   setenv("DOTNET_SYSTEM_CONSOLE_SKIP_TERMINAL_INIT", "1", 1);
+
+  /* Runtime options from meadow.config.yaml, e.g. --interp. */
+
+  set_mono_env_options(hcom_argc, hcom_argv);
 
   /* Constrain GC heap for limited SDRAM (~29MB user heap).
    * SDRAM budget: GC heap + CoreLib cache (6MB) + thread stacks + Mono metadata.
