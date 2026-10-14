@@ -41,7 +41,11 @@ SECTIONS
     /* Mono runtime image, linked to the start of SDRAM.
      *
      * The runtime archives built by build-mono.sh are placed here instead of
-     * in uflash.  build.sh extracts this region of nuttx_user.bin into
+     * in uflash, together with System.Native and the TLS shim from
+     * apps/system/mono (mono_mbedtls.c, which holds the root CA table, and
+     * pal_ssl_mbedtls.c).  The rest of the host code (mono_main.c and its
+     * P/Invoke tables) stays in uflash: it runs before the image has been
+     * copied into SDRAM.  build.sh extracts this region of nuttx_user.bin into
      * Meadow.OS.Runtime.bin; hcom flashes that to the raw QSPI partition and
      * the HCOM_NX_UPD_COPY_RUNTIME_TO_RAM ioctl copies it back to
      * 0xC0000000 before the runtime starts.  The user heap begins after the
@@ -69,6 +73,9 @@ SECTIONS
         *libminipal.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
         *libaotminipal.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
         *libsgen_objects.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libSystem.Native.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libapps.a:mono_mbedtls.c.*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libapps.a:pal_ssl_mbedtls.c.*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
     }
 
     .mono_signature : {
@@ -104,6 +111,9 @@ SECTIONS
         *libminipal.a:*(.text .text.*)
         *libaotminipal.a:*(.text .text.*)
         *libsgen_objects.a:*(.text .text.*)
+        *libSystem.Native.a:*(.text .text.*)
+        *libapps.a:mono_mbedtls.c.*(.text .text.*)
+        *libapps.a:pal_ssl_mbedtls.c.*(.text .text.*)
         _e_mono = ABSOLUTE(.);
     } > sdram :mono_text
 
@@ -118,6 +128,9 @@ SECTIONS
         *libminipal.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
         *libaotminipal.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
         *libsgen_objects.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libSystem.Native.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libapps.a:mono_mbedtls.c.*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libapps.a:pal_ssl_mbedtls.c.*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
         _e_mono_data = ABSOLUTE(.);
     } > sdram :mono_data
 
@@ -135,6 +148,9 @@ SECTIONS
         *libminipal.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
         *libaotminipal.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
         *libsgen_objects.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libSystem.Native.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libapps.a:mono_mbedtls.c.*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libapps.a:pal_ssl_mbedtls.c.*(.bss .bss.* .gnu.linkonce.b.* COMMON)
         . = ALIGN(8);
         _e_mono_bss = ABSOLUTE(.);
     } > sdram :NONE

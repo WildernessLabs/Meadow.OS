@@ -551,10 +551,9 @@ int hcom_main(int argc, char *argv[])
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:473: undefined reference to `hcom_pppd_start'
 
 // Last stop, start mono
-// MEADOW.OS REBASE - Besides a build error without mono built attempting to
-// start it is not possible.
-#if(0)
+#if defined(CONFIG_SYSTEM_MONO)
   int monoStartResult = hcom_mono_ctrl_start_mono_main();
+  (void)monoStartResult;    // Only used by the cell (PPPD) start below.
 #endif
 // The above line cause the following build errors:
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':

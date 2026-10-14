@@ -33,18 +33,22 @@ route) -> mono (gated by config) -> esp32 UART comms -> comms (send/receive thre
 
 ### Currently Disabled Subsystems
 
-The OTA, cellular/PPP, and Mono startup calls shown above are wrapped in `#if(0)` blocks in
+The OTA and cellular/PPP startup calls shown above are wrapped in `#if(0)` blocks in
 `hcom_startup_manager.c`, with comments noting they are not usable without further work (e.g.
 "undefined reference to `hcom_pppd_start`"). In the current build:
 
-- **`mono/`, `cell/`, `ota/` are not started at boot.** Their source is present and compiled, but
-  the calls that would launch them are compiled out.
+- **`cell/` and `ota/` are not started at boot.** Their source is present and compiled, but the
+  calls that would launch them are compiled out.
+- **`mono/` starts the Mono .NET runtime when `CONFIG_SYSTEM_MONO` is enabled.**
+  `hcom_mono_ctrl_start_mono_main()` creates the "Mono" task, running `meadow_mono_main()` from
+  `apps/system/mono/`, but only when the runtime is enabled, its version matches the OS, and the
+  required assemblies (`System.Private.CoreLib.dll`, `Meadow.dll`) are present in `/meadow0`.
 - `cell/hcom_pppd.c` and `ota/hcom_ota.c` have no corresponding object files in a normal build -
   they are effectively dead code paths until re-enabled.
 - OTA update requests are still reachable *reactively*: `comms/hcom_host_route.c` can call into
   `ota/` in response to a host command, independent of the boot-time startup sequence.
 
-Treat any reasoning about "what runs on this board" as excluding these three subsystems unless
+Treat any reasoning about "what runs on this board" as excluding cell and OTA unless
 `hcom_startup_manager.c` has been changed to re-enable them.
 
 ## Module Structure
@@ -58,7 +62,7 @@ apps/system/hcom/
 +-- nx_rqsts/                NuttX syscall request wrappers
 +-- diag/                    Diagnostics, tracing, logging, and a kernel/user IPC channel
 +-- esp32/                   ESP32 coprocessor protocol stack (execute, network monitor, UART)
-+-- mono/                    .NET Mono runtime management (currently not started, see below)
++-- mono/                    .NET Mono runtime management (starts apps/system/mono, see below)
 +-- ota/                     OTA update initiation (currently not started, see below)
 +-- cell/                    Cellular/PPP support incl. cmux/ (currently not started, see below)
 +-- misc/                    Shared utilities (circular buffer, utils)
