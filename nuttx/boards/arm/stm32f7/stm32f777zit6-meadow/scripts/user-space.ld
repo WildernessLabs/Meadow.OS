@@ -33,13 +33,112 @@ PHDRS
   data PT_LOAD;
   comment PT_LOAD;
   mono_text PT_LOAD;
-  /*
   mono_data PT_LOAD;
-  mono_comment PT_LOAD; */
 }
 
 SECTIONS
 {
+    /* Mono runtime image, linked to the start of SDRAM.
+     *
+     * The runtime archives built by build-mono.sh are placed here instead of
+     * in uflash.  build.sh extracts this region of nuttx_user.bin into
+     * Meadow.OS.Runtime.bin; hcom flashes that to the raw QSPI partition and
+     * the HCOM_NX_UPD_COPY_RUNTIME_TO_RAM ioctl copies it back to
+     * 0xC0000000 before the runtime starts.  The user heap begins after the
+     * region (CONFIG_HEAP2_BASE), and the sdram region in memory.ld limits
+     * the image to HCOM_NX_FS_MONO_RAW_PARTITION_SIZE (build.sh checks that
+     * the three agree).
+     *
+     * These output sections come before .text and friends on purpose: the
+     * linker gives each input section to the first pattern that matches it,
+     * so the uflash sections below need no EXCLUDE_FILE lists.
+     *
+     * .mono_signature must stay first: the configuration manager reads it
+     * from the first block of the runtime partition.
+     */
+
+    /DISCARD/ : {
+        /* Unwind tables for the runtime archives.  .ARM.exidx entries are
+         * 31-bit offsets (R_ARM_PREL31) and cannot reach from uflash to
+         * SDRAM. */
+        *libmonosgen-2.0.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libmono-component-marshal-ilgen-static.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libmono-component-hot_reload-stub-static.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libmono-component-debugger-stub-static.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libmono-component-diagnostics_tracing-stub-static.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libminipal.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libaotminipal.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+        *libsgen_objects.a:*(.ARM.exidx .ARM.exidx.* .ARM.extab .ARM.extab.*)
+    }
+
+    .mono_signature : {
+        _s_mono_signature = ABSOLUTE(.);
+        FILL(0xDEADC0DE)
+        BYTE(0xAA)
+        BYTE(0xBB)
+        BYTE(0xCC)
+        BYTE(0xDD)
+        /* Meadow OS version */
+        LONG(###VERSION_BUILD###)
+        LONG(###VERSION_REVISION###)
+        LONG(###VERSION_MINOR###)
+        LONG(###VERSION_MAJOR###)
+        BYTE(###BUILD_DAY###)
+        BYTE(###BUILD_MONTH###)
+        BYTE(###BUILD_YEAR###)
+        BYTE(###BUILD_HOUR###)
+        BYTE(###BUILD_MINUTE###)
+        BYTE(###BUILD_SECOND###)
+        LONG(###BUILD_HASH###)
+        ###MONO_GIT_REF###
+        _e_mono_signature = ABSOLUTE(.);
+    } > sdram :mono_text
+
+    .mono : {
+        _s_mono = ABSOLUTE(.);
+        *libmonosgen-2.0.a:*(.text .text.*)
+        *libmono-component-marshal-ilgen-static.a:*(.text .text.*)
+        *libmono-component-hot_reload-stub-static.a:*(.text .text.*)
+        *libmono-component-debugger-stub-static.a:*(.text .text.*)
+        *libmono-component-diagnostics_tracing-stub-static.a:*(.text .text.*)
+        *libminipal.a:*(.text .text.*)
+        *libaotminipal.a:*(.text .text.*)
+        *libsgen_objects.a:*(.text .text.*)
+        _e_mono = ABSOLUTE(.);
+    } > sdram :mono_text
+
+    .mono_data : {
+        . = ALIGN(8);
+        _s_mono_data = ABSOLUTE(.);
+        *libmonosgen-2.0.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libmono-component-marshal-ilgen-static.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libmono-component-hot_reload-stub-static.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libmono-component-debugger-stub-static.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libmono-component-diagnostics_tracing-stub-static.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libminipal.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libaotminipal.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        *libsgen_objects.a:*(.rodata .rodata.* .data .data.* .gnu.linkonce.d.*)
+        _e_mono_data = ABSOLUTE(.);
+    } > sdram :mono_data
+
+    /* Not loaded: the runtime host zeroes it before starting the runtime,
+     * because a warm reset leaves stale pointers in SDRAM. */
+
+    .mono_bss (NOLOAD) : {
+        . = ALIGN(8);
+        _s_mono_bss = ABSOLUTE(.);
+        *libmonosgen-2.0.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libmono-component-marshal-ilgen-static.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libmono-component-hot_reload-stub-static.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libmono-component-debugger-stub-static.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libmono-component-diagnostics_tracing-stub-static.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libminipal.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libaotminipal.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        *libsgen_objects.a:*(.bss .bss.* .gnu.linkonce.b.* COMMON)
+        . = ALIGN(8);
+        _e_mono_bss = ABSOLUTE(.);
+    } > sdram :NONE
+
     .userspace : {
         _stext = ABSOLUTE(.);
         . += 512;
@@ -118,103 +217,4 @@ SECTIONS
     .debug_pubnames 0 : { *(.debug_pubnames) }
     .debug_aranges 0 : { *(.debug_aranges) }
 
-    .mono_signature : {
-        _s_mono_signature = ABSOLUTE(.);
-        FILL(0xDEADC0DE)
-        BYTE(0xAA)
-        BYTE(0xBB)
-        BYTE(0xCC)
-        BYTE(0xDD)
-        /* Meadow OS version */
-        LONG(###VERSION_BUILD###)
-        LONG(###VERSION_REVISION###)
-        LONG(###VERSION_MINOR###)
-        LONG(###VERSION_MAJOR###)
-        BYTE(###BUILD_DAY###)
-        BYTE(###BUILD_MONTH###)
-        BYTE(###BUILD_YEAR###)
-        BYTE(###BUILD_HOUR###)
-        BYTE(###BUILD_MINUTE###)
-        BYTE(###BUILD_SECOND###)
-        LONG(###BUILD_HASH###)
-        ###MONO_GIT_REF###
-        _e_mono_signature = ABSOLUTE(.);
-    } > sdram :mono_text
-
-    /* .mono : {
-        _s_mono = ABSOLUTE(.);
-        *libmonosgen.a:* (.text .text.*)
-        *libmini.a:* (.text .text.*)
-        *libmono-dbg.a:* (.text .text.*)
-        *libmono-ee-interp.a:* (.text .text.*)
-        *libeglib.a:* (.text .text.*)
-        *libmonoruntime-config.a:* (.text .text.*)
-        *libmonoruntimesgen.a:* (.text .text.*)
-        *libmonoutils.a:* (.text .text.*)
-        *libmonodis.a:* (.text .text.*)
-        *libmono-native.a:* (.text .text.*)
-        *libmonoruntime-support.a:* (.text .text.*)
-        *libz.a:* (.text .text.*)
-        *libmono-mbedtls.a:* (.text .text.*)
-        _e_mono = ABSOLUTE(.);
-    } > sdram
-
-    .mono_data : {
-        . = ALIGN(8192);
-        _s_mono_data = ABSOLUTE(.);
-        *libmonosgen.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmini.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmono-dbg.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmono-ee-interp.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libeglib.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmonoruntime-config.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmonoruntimesgen.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmonoutils.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmonodis.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmono-native.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmonoruntime-support.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libz.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        *libmono-mbedtls.a:* (.data .data.* .rodata .rodata.* .gnu.linkonce.d.*)
-        CONSTRUCTORS
-        _e_mono_data = ABSOLUTE(.);
-    } > sdram :mono_data
-
-    .mono_comment : {
-        . = ALIGN(1024);
-        _s_mono_comment = ABSOLUTE(.);
-        *libmonosgen.a:* (.comment)
-        *libmini.a:* (.comment)
-        *libmono-dbg.a:* (.comment)
-        *libmono-ee-interp.a:* (.comment)
-        *libeglib.a:* (.comment)
-        *libmonoruntime-config.a:* (.comment)
-        *libmonoruntimesgen.a:* (.comment)
-        *libmonoutils.a:* (.comment)
-        *libmonodis.a:* (.comment)
-        *libmono-native.a:* (.comment)
-        *libmonoruntime-support.a:* (.comment)
-        *libz.a:* (.comment)
-        *libmono-mbedtls.a:* (.comment)
-        _e_mono_comment = ABSOLUTE(.);
-    } > sdram
-
-    .mono_bss : {
-        . = ALIGN(1024);
-        _s_mono_bss = ABSOLUTE(.);
-        *libmonosgen.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmini.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmono-dbg.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmono-ee-interp.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libeglib.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmonoruntime-config.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmonoruntimesgen.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmonoutils.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmonodis.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmono-native.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmonoruntime-support.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libz.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        *libmono-mbedtls.a:* (.bss .bss.* .gnu.linkonce.b.* )
-        . = ALIGN(1048576);
-        _e_mono_bss = ABSOLUTE(.);
-    } > sdram */
 }

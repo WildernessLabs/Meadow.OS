@@ -15,8 +15,8 @@ nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld
 | Region | Name | Origin | Length | Contents |
 |--------|------|--------|--------|----------|
 | Boot | -- | `0x08000000` | 256 KB | Bootloader (`Meadow.BL`) |
-| Kernel flash | `kflash` | `0x08040000` | 1024 KB | NuttX kernel (`nuttx.bin`) |
-| User flash | `uflash` | `0x08100000` | 1024 KB | NuttX user space (`nuttx_user.bin`) |
+| User flash | `uflash` | `0x08040000` | 1024 KB | NuttX user space (`nuttx_user.bin`); the kernel vector table occupies its first 512 bytes |
+| Kernel flash | `kflash` | `0x08140000` | 768 KB | NuttX kernel (`nuttx.bin`) |
 
 > The ITCM bus alias maps internal flash at `0x00200000`. NuttX boots through the `0x08xxxxxx` AXIM interface.
 
@@ -91,13 +91,23 @@ Reserved / miscellaneous kernel use.
 
 Managed through the FMC (Flexible Memory Controller). Initialised by both the bootloader and the NuttX board bring-up.
 
-NuttX exposes **3 MB** (3,072 KB) of SDRAM as heap region 2:
+SDRAM is split between the Mono runtime image and the user heap:
+
+| Range | Size | Contents |
+|-------|------|----------|
+| `0xC0000000` - `0xC02FFFFF` | 3 MB | Mono runtime image (`sdram` region in `memory.ld`) |
+| `0xC0300000` - `0xC1FFFFFF` | 29 MB | User heap region 2 (`CONFIG_HEAP2_BASE` / `CONFIG_HEAP2_SIZE`) |
 
 ```
-sdram  (rwx) : ORIGIN = 0xC0000000, LENGTH = 3072K
-CONFIG_HEAP2_BASE=0xC0000000
-CONFIG_HEAP2_SIZE=33554432   (32 MB physical, 3 MB visible to NuttX heap)
+sdram  (rwx) : ORIGIN = 0xC0000000, LENGTH = 3072K     (memory.ld)
+CONFIG_HEAP2_BASE=0xc0300000                            (defconfig)
+CONFIG_HEAP2_SIZE=30408704                              (29 MB, to the end of SDRAM)
 ```
+
+- **Runtime image.** The runtime archives are linked into the `.mono*` sections of `user-space.ld`, starting with the `.mono_signature` version block. `build.sh` extracts them from `nuttx_user.bin` into `Meadow.OS.Runtime.bin` (3 MB). hcom writes that file to the raw runtime partition at the start of QSPI flash, and the `HCOM_NX_UPD_COPY_RUNTIME_TO_RAM` ioctl copies it back to `0xC0000000` (`HCOM_NX_MONO_RUNTIME_SDRAM_ADDR`) before the runtime starts. `.mono_bss` is not part of the image and is zeroed by the runtime host.
+- **Heap.** The user heap starts straight after the image, so copying the runtime never overwrites live heap memory.
+- **One layout, four places.** The layout is described by `HCOM_NX_MONO_RUNTIME_SDRAM_ADDR` and `HCOM_NX_FS_MONO_RAW_PARTITION_SIZE` (`hcom_shared_common.h`), the `sdram` region in `memory.ld`, and `CONFIG_HEAP2_BASE`/`CONFIG_HEAP2_SIZE`. `build.sh` (`check_mono_sdram_layout`) stops the build if they disagree, and takes the image's position in `nuttx_user.bin` from them.
+- **MPU.** User space can read, write and execute the whole of SDRAM: the heap region is mapped by `stm32_mpu_uheap()`, and the runtime image area by an explicit region in `stm32_boot.c`.
 
 The `MM_REGIONS=3` setting accounts for: ksram heap, usram heap, and SDRAM heap2.
 
@@ -109,11 +119,10 @@ Not directly memory-mapped by NuttX at runtime but accessed through the QSPI dri
 
 | Partition | Offset | Size | Contents |
 |-----------|--------|------|----------|
+| Mono runtime image | `0x00000000` | 3 MB (`HCOM_NX_FS_MONO_RAW_PARTITION_SIZE`) | Raw copy of `Meadow.OS.Runtime.bin`, copied to SDRAM when the runtime starts |
 | Secondary OS image | `0x00300000` (`NUTTX_SEC_QSPI_LOC`) | 1792 KB (`NUTTX_SIZE`) | OTA staging image |
 | OTA data | `NUTTX_SEC_QSPI_LOC + NUTTX_SIZE` | 256 B | OTA flags and state |
-| File system | Remaining | ~61 MB | User files, Mono runtime, configuration |
-
-The Mono runtime slice is also extracted separately as `Meadow.OS.Runtime.bin` (3072 KB) at build time.
+| File system | Remaining | ~61 MB | User files, managed assemblies, configuration |
 
 ## Combined `Meadow.OS.bin` Layout
 
