@@ -29,6 +29,7 @@ jobs:
     #   public so rewrite them to anonymous HTTPS.
     #
     - name: Checkout required submodules
+      if: false    # temporarily disabled
       run: |
         git config --global url."https://github.com/".insteadOf "git@github.com:"
         git submodule update --init --depth 1 mbedtls mono/external/corefx
