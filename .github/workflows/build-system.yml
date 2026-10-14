@@ -3,9 +3,9 @@ name: Build OS and RT
 on:
   repository_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, MergeManagedCode ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, MergeManagedCode ]
 
 jobs:
   build:
