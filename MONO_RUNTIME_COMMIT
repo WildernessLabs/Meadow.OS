@@ -13,6 +13,6 @@
 # To move to a new runtime commit, update both values in the same change.
 
 repository=https://github.com/WildernessLabs/runtime
-branch=Phase1
-commit=a76e66e60c194eadcd111245720c038d3b902812
+branch=MergeManagedCode
+commit=c668e4a3aea1ee2f0ab78de3a5fe416b2e6e67d4
 tree=5cf48371256376f5c39d94a6e3ab29e3487a6072
