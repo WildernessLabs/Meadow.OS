@@ -352,8 +352,11 @@ int hcom_mono_stdout_open_read_fifo()
     _stdout_read_fd = -1;
   }
 
-  // Don't wait until the writer opens the pipe
-  _stdout_read_fd = open(HCOM_MONO_STDOUT_REDIRECT_FIFO, O_RDONLY | O_NONBLOCK);
+  // Don't wait until the writer opens the pipe.  Open it read/write so that
+  // this end also counts as a writer: NuttX reports POLLHUP on every poll of
+  // an empty FIFO with no writers (drivers/pipes/pipe_common.c), which made
+  // the read loop below spin while Mono is not running.
+  _stdout_read_fd = open(HCOM_MONO_STDOUT_REDIRECT_FIFO, O_RDWR | O_NONBLOCK);
   if (_stdout_read_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
@@ -374,8 +377,11 @@ int hcom_mono_stderr_open_read_fifo()
     _stderr_read_fd = -1;
   }
 
-  // Don't wait until the writer opens the pipe
-  _stderr_read_fd = open(HCOM_MONO_STDERR_REDIRECT_FIFO, O_RDONLY | O_NONBLOCK);
+  // Don't wait until the writer opens the pipe.  Open it read/write so that
+  // this end also counts as a writer: NuttX reports POLLHUP on every poll of
+  // an empty FIFO with no writers (drivers/pipes/pipe_common.c), which made
+  // the read loop below spin while Mono is not running.
+  _stderr_read_fd = open(HCOM_MONO_STDERR_REDIRECT_FIFO, O_RDWR | O_NONBLOCK);
   if (_stderr_read_fd < 0)
   {
     syslog(LOG_ERR, "%s@%d-open %s, errno:%d\n",
@@ -671,7 +677,7 @@ static int hcom_mono_open_mono_fifo(char *fifoRedirect, int stdxxxFileNo)
   } while (std_temp_write_fd < 0);
 
   // Assign the fifo's write end to the stdxxx fd.
-  ret = dup2(std_temp_write_fd, STDOUT_FILENO);
+  ret = dup2(std_temp_write_fd, stdxxxFileNo);
   if (ret < 0)
   {
     syslog(LOG_ERR, "%s@%d-redirect_writer (%s): dup2 failed ret:%d errno:%d\n",

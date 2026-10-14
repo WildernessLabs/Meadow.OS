@@ -13,7 +13,6 @@
 # CONFIG_DISABLE_POSIX_TIMERS is not set
 # CONFIG_DISABLE_PSEUDOFS_OPERATIONS is not set
 # CONFIG_DISABLE_PTHREAD is not set
-# CONFIG_HCOM_MONO_STDERR_STDOUT is not set
 # CONFIG_LIBC_STRSIGNAL_SHORT is not set
 # CONFIG_MMCSD_MMCSUPPORT is not set
 # CONFIG_MMCSD_SPI is not set
@@ -320,6 +319,8 @@ CONFIG_BOARDCTL_IOCTL=y
 #   (meadow_thread_config.h).
 #
 CONFIG_SYSTEM_MONO=y
+# Route the Mono stdout and stderr to the host through HCOM (meadow listen).
+CONFIG_HCOM_MONO_STDERR_STDOUT=y
 # setlocale(), called by the Mono runtime.
 CONFIG_LIBC_LOCALE=y
 
