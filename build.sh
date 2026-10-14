@@ -220,7 +220,7 @@ NUTTX_CONFIG_FILE=$scriptdir/nuttx/.config
 if $FORCE; then
     if [ -r "$scriptdir/nuttx/.config" ]; then
         printf "Cleaning NuttX (already configured)..."
-        run_command "make -C $scriptdir/nuttx distclean -j8 $MAKE_OPTIONS"
+        run_command "make -C $scriptdir/nuttx distclean $MEADOW_ADDITIONAL_MAKE_OPTIONS $MAKE_OPTIONS"
         check_command_status
     fi
 fi
