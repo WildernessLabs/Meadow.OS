@@ -336,3 +336,8 @@ tmp/**
 .github/context-mode/sessions/
 # bootloader/Debug/Meadow.BL.map
 apps/database/sqlite/sqlite-vesion*
+
+#
+#   Mono runtime archives built by build-mono.sh.
+#
+monoruntime/
