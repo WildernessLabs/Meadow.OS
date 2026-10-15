@@ -1231,8 +1231,35 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
     struct ifconf *ifc = (struct ifconf *) arg;
     struct lifreq *lifr = (struct lifreq *) arg;
 
-    int payload_length = espcp_ioctl_request_buffer_size(request);
-    uint8_t *payload = (uint8_t *) zalloc(payload_length);
+    //
+    //  SIOCSESPNONBLOCK is the only ioctl that applies to one socket, so its payload also
+    //  carries the ESP socket and the requested state: [command][ESP socket][nonblock].  It
+    //  is built here so that the generated, single field espcp_ioctl_request_t and its
+    //  encoder stay as they are; every other ioctl sends just the command.
+    //
+    int payload_length;
+    uint8_t *payload;
+    if (cmd == SIOCSESPNONBLOCK)
+    {
+        payload_length = 3 * sizeof(int32_t);
+        payload = (uint8_t *) zalloc(payload_length);
+        if (payload != NULL)
+        {
+            int nonblock = ((arg != NULL) && (arglen >= sizeof(int))) ? *((const int *) arg) : 0;
+            espcp_encode_int32(cmd, payload);
+            espcp_encode_int32(espcp_sockfd(psock), payload + sizeof(int32_t));
+            espcp_encode_int32(nonblock, payload + (2 * sizeof(int32_t)));
+        }
+    }
+    else
+    {
+        payload_length = espcp_ioctl_request_buffer_size(request);
+        payload = (uint8_t *) zalloc(payload_length);
+        if (payload != NULL)
+        {
+            espcp_encode_ioctl_request(request, payload);
+        }
+    }
     if (payload == NULL)
     {
         free(request);
@@ -1241,7 +1268,6 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
     }
     else
     {
-        espcp_encode_ioctl_request(request, payload);
         free(request);
 
         espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
@@ -1297,6 +1323,8 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                     case SIOCGIFFLAGS:
                                         lifr->lifr_flags = response->flags;
                                         lifr->lifr_flags |= IFF_WIFI;
+                                        break;
+                                    case SIOCSESPNONBLOCK:  /* The ESP socket's O_NONBLOCK has been set */
                                         break;
                                     default:
                                         MEADOW_TRACE_CRITICAL("%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
@@ -1388,6 +1416,22 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg)
                 //  The sa structure has been filled with zeroes so the address will be 0.0.0.0.
                 //
                 memset((void *) &lifr->lifr_ifru.lifru_dstaddr, 0, sizeof(struct sockaddr));
+                break;
+            case FIONBIO:
+                //
+                //  NuttX passes fcntl(F_SETFL) O_NONBLOCK changes to the socket interface as
+                //  FIONBIO.  The socket that matters is the lwip socket on the ESP32, so push
+                //  the state there.  On success netdev_ioctl() goes on to set the local
+                //  _SF_NONBLOCK flag.  If the ESP32 rejects it (firmware without
+                //  SIOCSESPNONBLOCK), return -ENOTTY so that the local flag is still set
+                //  and fcntl() succeeds, with the ESP32 socket left blocking as before.
+                //
+                result = espcp_usrsock_send_ioctl_to_esp(psock, SIOCSESPNONBLOCK, argp, sizeof(int));
+                if (result < 0)
+                {
+                    MEADOW_TRACE_INFORMATION("ioctl - ESP32 did not accept SIOCSESPNONBLOCK (%d), socket stays blocking on the ESP32\n", result);
+                    result = -ENOTTY;
+                }
                 break;
             default:
                 result = espcp_usrsock_send_ioctl_to_esp(psock, cmd, argp, sizeof(unsigned long));

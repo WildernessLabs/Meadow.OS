@@ -86,6 +86,15 @@
 #define IFF_NOARP           (1 << 7)    /* ARP is not required for this packet */
 #define IFF_WIFI            (1 << 6)    /* Indicate tht this is a WiFi interface */
 
+/* Push a socket's O_NONBLOCK state to the ESP32, where the lwip socket lives.
+ * espcp sends it when NuttX passes FIONBIO (from fcntl(F_SETFL)) to the
+ * socket interface.  Its payload is [command][ESP socket][nonblock] (three
+ * int32s); the value must match SIOCSESPNONBLOCK in the Meadow-ESP32
+ * firmware (WiFiRequestHandler.hpp).  Firmware without it rejects the ioctl.
+ */
+
+#define SIOCSESPNONBLOCK    _SIOC(0x00f0)
+
 /* Socket ioctl definitions */
 
 // #define _SIOCBASE       (0x0700) /* Socket ioctl commands */
