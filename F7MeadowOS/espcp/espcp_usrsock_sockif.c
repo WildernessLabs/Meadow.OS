@@ -1830,7 +1830,11 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
         if (pr != NULL)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08" PRIx32 "\n", request_id);
-            pr->fd->revents = ipr->returned_events;
+            //
+            //  poll_notify() sets revents and wakes the poll() waiting on this descriptor;
+            //  setting revents alone left the waiter asleep until its timeout.
+            //
+            poll_notify(&pr->fd, 1, ipr->returned_events);
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%" PRIu32 " revents=%" PRIu32 "\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
         }
         else
