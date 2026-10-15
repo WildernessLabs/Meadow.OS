@@ -1,0 +1,20 @@
+[
+  {
+    "target_name": "meadow-kernel",
+    "setup_cmd": "docker build -t nuttx-build -f ./DockerFiles/Build/Dockerfile .",
+    "build_cmd": "docker run --rm -v $PWD:/project -w /project --user \"$(id -u):$(id -g)\" nuttx-build ./build.sh --force --clean",
+    "elf": "nuttx/nuttx.elf",
+    "ld": "nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/kernel-space.ld",
+    "map_file": "",
+    "linker_vars": ""
+  },
+  {
+    "target_name": "meadow-user",
+    "setup_cmd": "docker build -t nuttx-build -f ./DockerFiles/Build/Dockerfile .",
+    "build_cmd": "docker run --rm -v $PWD:/project -w /project --user \"$(id -u):$(id -g)\" nuttx-build ./build.sh --force --clean",
+    "elf": "nuttx/nuttx_user.elf",
+    "ld": "nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/memory.ld nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld",
+    "map_file": "",
+    "linker_vars": ""
+  }
+]
