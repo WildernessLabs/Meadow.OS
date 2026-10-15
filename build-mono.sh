@@ -14,6 +14,7 @@
 scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 
 . $scriptdir/scripts/common_methods.sh
+. $scriptdir/scripts/runtime_methods.sh
 
 check_if_interactive
 
@@ -82,41 +83,7 @@ fi
 #
 #   Locate the runtime checkout and check it against MONO_RUNTIME_COMMIT.
 #
-RUNTIME_DIR="${MEADOW_RUNTIME_DIR:-$scriptdir/../runtime}"
-if [ ! -f "$RUNTIME_DIR/src/mono/build-nuttx.sh" ]; then
-  fail "No runtime checkout at $RUNTIME_DIR.  Set MEADOW_RUNTIME_DIR to the WildernessLabs/runtime checkout."
-fi
-RUNTIME_DIR="$( cd "$RUNTIME_DIR" ; pwd -P )"
-
-PIN_FILE=$scriptdir/MONO_RUNTIME_COMMIT
-PIN_COMMIT=$(sed -n 's/^commit=//p' "$PIN_FILE")
-PIN_TREE=$(sed -n 's/^tree=//p' "$PIN_FILE")
-if [ -z "$PIN_COMMIT" ] || [ -z "$PIN_TREE" ]; then
-  fail "Cannot read the commit and tree from $PIN_FILE."
-fi
-
-RUNTIME_COMMIT=$(git -C "$RUNTIME_DIR" rev-parse HEAD 2> /dev/null)
-RUNTIME_TREE=$(git -C "$RUNTIME_DIR" rev-parse "HEAD^{tree}" 2> /dev/null)
-RUNTIME_CHANGES=$(git -C "$RUNTIME_DIR" status --porcelain --untracked-files=no 2> /dev/null)
-
-printf "Runtime:   %s\n" "$RUNTIME_DIR"
-printf "Commit:    %s\n" "$RUNTIME_COMMIT"
-
-PINNED=true
-if [ "$RUNTIME_COMMIT" != "$PIN_COMMIT" ] || [ "$RUNTIME_TREE" != "$PIN_TREE" ]; then
-  PINNED=false
-  printf "${red}The runtime checkout is not at the MONO_RUNTIME_COMMIT commit %s.${reset}\n" "$PIN_COMMIT"
-fi
-if [ -n "$RUNTIME_CHANGES" ]; then
-  PINNED=false
-  printf "${red}The runtime checkout has local changes.${reset}\n"
-fi
-if ! $PINNED; then
-  if [ "${MEADOW_RUNTIME_ALLOW_UNPINNED:-0}" != "1" ]; then
-    fail "Check out the pinned runtime commit, or set MEADOW_RUNTIME_ALLOW_UNPINNED=1 while developing the runtime."
-  fi
-  printf "${red}WARNING:${reset} building an unpinned runtime (MEADOW_RUNTIME_ALLOW_UNPINNED=1).\n"
-fi
+locate_runtime_checkout
 
 #
 #   The runtime is compiled against the NuttX headers of this repository.
