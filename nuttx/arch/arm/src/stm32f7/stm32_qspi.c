@@ -36,6 +36,7 @@
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
+#include <syslog.h>
 
 #include <arch/barriers.h>
 #include <arch/board/board.h>
@@ -1026,6 +1027,98 @@ static void qspi_abort(struct stm32f7_qspidev_s *priv)
 }
 
 /****************************************************************************
+ * Name: qspi_waitstatusflags_timed
+ *
+ * Description:
+ *   Bounded variant of qspi_waitstatusflags().  The BUSY flag can stay set
+ *   for ever after a DMA transfer that completes without draining the FIFO
+ *   (SR TCF=1, BUSY=1, FLEVEL=32 observed on hardware); an unbounded wait
+ *   there hangs the calling thread, and with it the file system.
+ *
+ * Input Parameters:
+ *   priv       - Device-specific state data
+ *   mask       - bits to check, can be multiple
+ *   polarity   - true wait if any set, false to wait if all reset
+ *   timeout_us - maximum time to wait, in microseconds
+ *
+ * Returned Value:
+ *   true if the condition was met within the timeout, false otherwise.
+ *
+ ****************************************************************************/
+
+static bool qspi_waitstatusflags_timed(struct stm32f7_qspidev_s *priv,
+                                       uint32_t mask, int polarity,
+                                       uint32_t timeout_us)
+{
+  uint32_t elapsed_us = 0;
+  uint32_t regval;
+  bool met;
+
+  for (; ; )
+    {
+      regval = qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET);
+      if (polarity)
+        {
+          met = ((regval & mask) != 0);
+        }
+      else
+        {
+          met = ((regval & mask) == 0);
+        }
+
+      if (met)
+        {
+          return true;
+        }
+
+      if (elapsed_us >= timeout_us)
+        {
+          return false;
+        }
+
+      up_udelay(10);
+      elapsed_us += 10;
+    }
+}
+
+/****************************************************************************
+ * Name: qspi_recover_busy_hang
+ *
+ * Description:
+ *   Recover the controller from a stuck BUSY flag with an ABORT, which also
+ *   flushes the FIFO.  Every wait is bounded.
+ *
+ * Input Parameters:
+ *   priv - Device-specific state data
+ *
+ * Returned Value:
+ *   true if BUSY cleared after the abort.
+ *
+ ****************************************************************************/
+
+static bool qspi_recover_busy_hang(struct stm32f7_qspidev_s *priv)
+{
+  uint32_t elapsed_us;
+
+  syslog(LOG_ERR, "QSPI: BUSY stuck (SR=%08" PRIx32 "), aborting\n",
+         qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET));
+
+  qspi_abort(priv);
+
+  /* ABORT clears itself when the abort has completed */
+
+  for (elapsed_us = 0;
+       ((qspi_getreg(priv, STM32_QUADSPI_CR_OFFSET) & QSPI_CR_ABORT) != 0) &&
+       (elapsed_us < 100000);
+       elapsed_us += 10)
+    {
+      up_udelay(10);
+    }
+
+  return qspi_waitstatusflags_timed(priv, QSPI_SR_BUSY, 0, 100000);
+}
+
+/****************************************************************************
  * Name: qspi_ccrconfig
  *
  * Description:
@@ -1545,10 +1638,34 @@ static int qspi_memory_dma(struct stm32f7_qspidev_s *priv,
     }
   while (priv->result == -EBUSY);
 
-  /* Wait for Transfer complete, and not busy */
+  /* Wait for transfer complete, and not busy, with a bound.  BUSY has been
+   * seen to stay set for ever after the DMA completes with data left in the
+   * FIFO (SR TCF=1, BUSY=1, FLEVEL=32): the transfer counter has finished
+   * but the last FIFO chunk was never drained, and BUSY holds until the
+   * FIFO is empty.  This is known STM32 QSPI behaviour:
+   * https://community.st.com/s/question/0D50X00009XkXMHSA3
+   * Mapping the QSPI region strongly ordered (AN4838) makes it rarer but
+   * does not prevent it.  On a timeout, abort (which flushes the FIFO) and
+   * fail the transfer with -EIO; qspi_memory() retries it.  Ported from
+   * Meadow Legacy 3fff51802c9.
+   */
 
-  qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  if ((!qspi_waitstatusflags_timed(priv, QSPI_SR_TCF, 1, 500000)) ||
+      (!qspi_waitstatusflags_timed(priv, QSPI_SR_BUSY, 0, 500000)))
+    {
+      bool recovered = qspi_recover_busy_hang(priv);
+
+      stm32_dmastop(priv->dmach);
+
+      regval = qspi_getreg(priv, STM32_QUADSPI_CR_OFFSET);
+      regval &= ~QSPI_CR_DMAEN;
+      qspi_putreg(priv, regval, STM32_QUADSPI_CR_OFFSET);
+
+      syslog(LOG_ERR, "QSPI: DMA wait timed out, controller %s\n",
+             recovered ? "recovered" : "still busy");
+      return -EIO;
+    }
+
   UP_MB();
 
   /* Dump the sampled DMA registers */
@@ -2259,7 +2376,24 @@ static int qspi_memory(struct qspi_dev_s *dev,
       IS_ALIGNED((uintptr_t)meminfo->buffer, 4) &&
       IS_ALIGNED(meminfo->buflen, 4))
     {
-      ret = qspi_memory_dma(priv, meminfo, &xctn);
+      int attempt;
+
+      /* Retry a transfer that failed on the stuck BUSY flag: after the
+       * abort the controller is idle again, and the transfer is repeated
+       * from the start (a read, or a program or erase command).
+       */
+
+      for (attempt = 0; ; attempt++)
+        {
+          ret = qspi_memory_dma(priv, meminfo, &xctn);
+          if ((ret != -EIO) || (attempt >= 2))
+            {
+              break;
+            }
+
+          syslog(LOG_ERR, "QSPI: retrying memory transfer (attempt %d)\n",
+                 attempt + 2);
+        }
     }
   else
     {
