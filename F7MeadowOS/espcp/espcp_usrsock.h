@@ -84,7 +84,12 @@
 #define IFF_RUNNING         (1 << 2)    /* Carrier is available */
 #define IFF_IPv6            (1 << 3)    /* Configured for IPv6 packet (vs ARP or IPv4) */
 #define IFF_NOARP           (1 << 7)    /* ARP is not required for this packet */
-#define IFF_WIFI            (1 << 6)    /* Indicate tht this is a WiFi interface */
+//
+//  Meadow specific: marks the interface reported by espcp as WiFi.  NuttX 12 uses (1 << 6)
+//  for IFF_POINTOPOINT, so this uses a bit that <net/if.h> leaves free.  The runtime reads
+//  it as MEADOW_IFF_WIFI (src/mono/cmake/nuttx-compat.h) and the values must match.
+//
+#define IFF_WIFI            (1 << 14)   /* Indicate that this is a WiFi interface */
 
 /* Push a socket's O_NONBLOCK state to the ESP32, where the lwip socket lives.
  * espcp sends it when NuttX passes FIONBIO (from fcntl(F_SETFL)) to the
