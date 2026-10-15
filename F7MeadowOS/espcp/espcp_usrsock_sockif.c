@@ -2763,6 +2763,16 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     request->domain = domain;
     request->type = type;
     request->protocol = protocol;
+    //
+    //  Since NuttX 12.1 (abba05a934) getifaddrs() and the other users of NET_SOCK_TYPE
+    //  open a SOCK_CTRL socket just to issue interface ioctls.  lwIP on the ESP32 has no
+    //  SOCK_CTRL and rejects it with EINVAL, so ask for a datagram socket instead (as
+    //  NET_SOCK_TYPE was before 12.1).  The local socket keeps the SOCK_CTRL type.
+    //
+    if (type == SOCK_CTRL)
+    {
+        request->type = SOCK_DGRAM;
+    }
 
     int payload_length = espcp_socket_request_buffer_size(request);
     uint8_t *payload = (uint8_t *) zalloc(payload_length);
