@@ -318,12 +318,19 @@ void board_late_initialize(void)
 
  #if defined(CONFIG_ARM_MPU)
   // Allow user-space access to the QSPI flash memory region.
+  //
+  // The region is strongly ordered (TEX=000, C=0, B=0) as AN4838 (Managing
+  // memory protection unit in STM32 MCUs) recommends for QSPI: speculative
+  // reads of the region can leave the QSPI BUSY flag set after a transfer.
+  // See https://community.st.com/s/question/0D50X00009XkXMHSA3 and Meadow
+  // Legacy 21c33c52169.  With MPU_RASR_C set, as it was, TEX=000 C=1 B=0 is
+  // Normal write-through memory, not strongly ordered.
   mpu_configure_region(STM32_FMC_BANK4, flashSize,
-                           MPU_RASR_TEX_SO   | // Ordered            
-                           MPU_RASR_C        | // Cacheable          
-                                               // Not Bufferable     
-                           MPU_RASR_S        | // Shareable          
-                           MPU_RASR_AP_RWRW    // P:RW   U:RW        
+                           MPU_RASR_TEX_SO   | // Strongly ordered
+                                               // Not Cacheable
+                                               // Not Bufferable
+                           MPU_RASR_S        | // Shareable
+                           MPU_RASR_AP_RWRW    // P:RW   U:RW
                                                // Instruction access
                                                );
  #endif
