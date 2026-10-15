@@ -81,43 +81,36 @@ jobs:
           nuttx/User.map
           bootloader/Debug/Meadow.BL.elf
 
-  bcl:
-    if: false    # temporarily disabled
+  #
+  #   The managed assemblies (meadow_assemblies) that Meadow apps are trimmed
+  #   against and deployed with, built from the same pinned runtime as the OS.
+  #
+  assemblies:
+
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout source code
       uses: actions/checkout@v4
 
-    #
-    #   The BCL needs the mbedtls headers and the Mono external submodules.
-    #   llvm-project is skipped as it is large and not used by the BCL.
-    #   Recursive because some (e.g. api-doc-tools) have nested submodules.
-    #
-    - name: Checkout required submodules
+    - name: Fetch the pinned Mono runtime
       run: |
-        git config --global url."https://github.com/".insteadOf "git@github.com:"
-        git submodule update --init --recursive --depth 1 mbedtls \
-          $(git config -f .gitmodules --get-regexp '\.path$' | awk '{print $2}' | grep '^mono/external/' | grep -v llvm-project)
+        repository=$(sed -n 's/^repository=//p' MONO_RUNTIME_COMMIT)
+        commit=$(sed -n 's/^commit=//p' MONO_RUNTIME_COMMIT)
+        git init -q runtime-src
+        git -C runtime-src fetch -q --depth 1 "$repository" "$commit"
+        git -C runtime-src checkout -q FETCH_HEAD
+        git -C runtime-src log -1 --format='Runtime: %H %s'
 
-    - name: Build Docker image for the BCL build.
-      run: docker build -t nuttx-build -f ./DockerFiles/Build/Dockerfile .
+    - name: Build the managed assemblies
+      run: MEADOW_RUNTIME_DIR=$PWD/runtime-src ./build-managed-assemblies.sh --verbose
 
-    - name: Build the BCL
-      run: docker run --rm -v $PWD:/project -w /project --user "$(id -u):$(id -g)" nuttx-build ./build-mono-bcl.sh --verbose
-
-    #
-    #   Match the Azure pipeline (azure-pipelines-bcl.yml), which flattens the
-    #   BCL into a meadow_assemblies folder.
-    #
-    - name: Stage the BCL
-      run: |
-        mkdir -p artifacts/meadow_assemblies
-        find monobcl/libs/bcl -type f -exec cp {} artifacts/meadow_assemblies/ \;
-
-    - name: Upload the BCL
+    - name: Upload the managed assemblies
       uses: actions/upload-artifact@v4
       with:
-        name: BCL
+        name: meadow_assemblies
         if-no-files-found: error
-        path: artifacts
+        path: |
+          meadow_assemblies/*.dll
+          meadow_assemblies/ILLink.Descriptors.xml
+          meadow_assemblies/build-info.txt

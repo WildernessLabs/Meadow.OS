@@ -344,4 +344,10 @@ apps/database/sqlite/sqlite-vesion*
 #   fetches for it.
 #
 monoruntime/
+
+#
+#   Managed assemblies built by build-managed-assemblies.sh.
+#
+meadow_assemblies/
+meadow_assemblies.log
 runtime-src/
