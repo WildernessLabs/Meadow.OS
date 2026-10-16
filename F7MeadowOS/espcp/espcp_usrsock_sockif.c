@@ -2993,15 +2993,20 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
  * Name: espcp_usrsock_shutdown
  *
  * Description:
- *  TODO: Implement this method and complete the comment header.
- * 
+ *  Shut down part or all of a full-duplex connection on the ESP32 socket.
+ *
+ *  .NET calls shutdown() (or disconnects) before close() so that operations
+ *  blocked on the socket return; on the ESP32 this ends any poll waiting on
+ *  the socket, which lets the socket engine's poll() return and the file be
+ *  closed straight away.
+ *
  * Input Parameters:
- * 
- *  psock - Pointer to the socket structure to read from
- *  how - Indicate how the socket should be shutdown.
+ *  psock - Pointer to the socket structure.
+ *  how   - SHUT_RD, SHUT_WR or SHUT_RDWR (NuttX values; the ESP32 translates
+ *          them to lwIP's).
  *
  * Returned Value:
- *  -1
+ *  0 on success, negated errno on error.
  *
  * Assumptions/Limitations:
  *  None
@@ -3009,8 +3014,91 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
  ****************************************************************************/
 int espcp_usrsock_shutdown(struct socket *psock, int how)
 {
-  espcp_usrsock_not_implemented(__func__);
-  return(-EOPNOTSUPP);
+    MEADOW_TRACE_INFORMATION("shutdown(%d, %d)\n", espcp_sockfd(psock), how);
+
+    if (espcp_get_configuration()->esp_not_responding)
+    {
+        MEADOW_TRACE_DEBUG("shutdown - result ENETDOWN\n");
+        return(-ENETDOWN);
+    }
+
+    int32_t result = -1;
+    espcp_message_t *message = NULL;
+
+    espcp_shutdown_request_t *request = (espcp_shutdown_request_t *) zalloc(sizeof(espcp_shutdown_request_t));
+    if (request == NULL)
+    {
+        MEADOW_TRACE_DEBUG("shutdown - result ENOMEM\n");
+        return(-ENOMEM);
+    }
+    request->socket_handle = espcp_sockfd(psock);
+    request->how = how;
+
+    int payload_length = espcp_shutdown_request_buffer_size(request);
+    uint8_t *payload = (uint8_t *) zalloc(payload_length);
+    if (payload == NULL)
+    {
+        free(request);
+        result = -ENOMEM;
+    }
+    else
+    {
+        espcp_encode_shutdown_request(request, payload);
+        free(request);
+
+        message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
+                                               espcp_wi_fi_function_shutdown, espcp_status_codes_completed_ok,
+                                               espcp_get_next_message_id(), payload, payload_length);
+        if (message == NULL)
+        {
+            free(payload);
+            result = -ENOMEM;
+        }
+        else
+        {
+            if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+            {
+                switch (message->status_code)
+                {
+                    case espcp_status_codes_completed_ok:
+                        {
+                            espcp_integer_and_errno_response_t *response = espcp_extract_integer_and_errno_response(message->payload);
+                            if (response == NULL)
+                            {
+                                result = -ENOMEM;
+                            }
+                            else
+                            {
+                                result = response->result;
+                                if (result < 0)
+                                {
+                                    result = -response->response_errno;
+                                }
+                                free(response);
+                            }
+                        }
+                        break;
+                    case espcp_status_codes_thread_pool_is_full:
+                    case espcp_status_codes_esp_out_of_memory:
+                        result = -ENOMEM;
+                        break;
+                    default:
+                        //
+                        //  An ESP32 without a Shutdown handler answers with an error status;
+                        //  report EOPNOTSUPP as before so the caller still goes on to close().
+                        //
+                        result = -EOPNOTSUPP;
+                        break;
+                }
+            }
+        }
+    }
+
+    espcp_delete_message_and_payload(message);
+
+    MEADOW_TRACE_INFORMATION("shutdown - socket %d result %" PRId32 "\n", espcp_sockfd(psock), result);
+
+    return (result);
 }
 
 /****************************************************************************
