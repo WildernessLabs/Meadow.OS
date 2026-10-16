@@ -242,6 +242,13 @@ int mono_mbedtls_init(void)
 
     mbedtls_ssl_conf_authmode(&conf, server_cert_authmode);
 
+    /* Negotiate TLS 1.2 at most.  With mbedTLS 3.6.2 the TLS 1.3 client handshake
+     * fails with MBEDTLS_ERR_SSL_INTERNAL_ERROR while computing the Finished
+     * verify data, and the failure moves when diagnostics are added (a race or a
+     * stack problem, not yet found).  Legacy Meadow's mbedTLS 3.2.1 had TLS 1.3
+     * compiled out, so TLS 1.2 is what the shim was validated with. */
+    mbedtls_ssl_conf_max_tls_version(&conf, MBEDTLS_SSL_VERSION_TLS1_2);
+
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
     /* No mbedtls_ssl_conf_dbg() debug callback: one that uses fprintf+fflush can block on
        a full HCOM stdout buffer mid-handshake, causing intermittent TLS hangs. Leave
