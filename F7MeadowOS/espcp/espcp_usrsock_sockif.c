@@ -1677,6 +1677,22 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
         return(0);
     }
 
+    //
+    //  A poll that asks for neither POLLIN nor POLLOUT is not sent to the ESP32.  The .NET
+    //  socket engine leaves every registered socket in its blocking poll(), and a socket whose
+    //  read and write readiness have both been reported is polled with no events at all.  Sent
+    //  to the ESP32, each such poll held a poll worker and a wake socket (an lwIP socket) and
+    //  cost a setup and a teardown message on every pass of the engine, yet it could only end
+    //  on a hang-up or an error.  A hang-up or error already known is reported above; one that
+    //  arrives later is picked up by the next poll that asks for POLLIN or POLLOUT, which the
+    //  engine makes as soon as a read or write on the socket would block.  Teardown finds no
+    //  request for the socket and treats that as success.
+    //
+    if ((fds->events & (POLLIN | POLLOUT)) == 0)
+    {
+        return(0);
+    }
+
     int result = 0;
 
     espcp_poll_request_t *request = (espcp_poll_request_t *) zalloc(sizeof(espcp_poll_request_t));
