@@ -45,12 +45,23 @@
 #include "fs_heap.h"
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* The number of descriptors whose file pointers poll() keeps on the stack.
+ * Larger sets are held in a heap allocation.
+ */
+
+#define POLL_STACK_FILES 16
+
+/****************************************************************************
  * Private Types
  ****************************************************************************/
 
 struct pollfd_s
 {
   FAR struct pollfd *fds;
+  FAR struct file **filep;
   nfds_t nfds;
 };
 
@@ -65,9 +76,18 @@ struct pollfd_s
  *   Teardown the poll operation for each descriptor in the list and return
  *   the count of non-zero poll events.
  *
+ *   The poll is torn down on the file that poll_setup() set it up on, and
+ *   the reference poll_setup() took on that file is released.  The
+ *   descriptor is not looked up again: another thread may have closed it
+ *   while the poll waited, and the number may already belong to a new
+ *   file.  Looking it up tore down the new file and dropped two references
+ *   from it, while the original file kept its reference for ever and was
+ *   never closed.
+ *
  ****************************************************************************/
 
-static inline void poll_teardown(FAR struct pollfd *fds, nfds_t nfds,
+static inline void poll_teardown(FAR struct pollfd *fds,
+                                 FAR struct file **filep, nfds_t nfds,
                                  FAR int *count)
 {
   unsigned int i;
@@ -77,24 +97,19 @@ static inline void poll_teardown(FAR struct pollfd *fds, nfds_t nfds,
   *count = 0;
   for (i = 0; i < nfds; i++)
     {
-      if (fds[i].fd >= 0)
+      if (filep[i] != NULL)
         {
-          FAR struct file *filep;
           int ret;
 
-          ret = file_get(fds[i].fd, &filep);
-          if (ret >= 0)
-            {
-              ret = file_poll(filep, &fds[i], false);
+          ret = file_poll(filep[i], &fds[i], false);
 
-              /* Calling putfilep twice to ensure reference counting
-               * for filep remains consistent with its state for
-               * before the poll.
-               */
+          /* Release the reference taken by poll_setup().  If the
+           * descriptor was closed during the poll, this is the last
+           * reference and the file is closed now.
+           */
 
-              file_put(filep);
-              file_put(filep);
-            }
+          file_put(filep[i]);
+          filep[i] = NULL;
 
           if (ret < 0)
             {
@@ -124,7 +139,8 @@ static inline void poll_teardown(FAR struct pollfd *fds, nfds_t nfds,
  *
  ****************************************************************************/
 
-static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
+static inline int poll_setup(FAR struct pollfd *fds,
+                             FAR struct file **filep, nfds_t nfds,
                              FAR sem_t *sem)
 {
   unsigned int i;
@@ -148,6 +164,7 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
       fds[i].cb      = poll_default_cb;
       fds[i].revents = 0;
       fds[i].priv    = NULL;
+      filep[i]       = NULL;
 
       /* Check for invalid descriptors. "If the value of fd is less than 0,
        * events shall be ignored, and revents shall be set to 0 in that entry
@@ -160,21 +177,27 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
 
       if (fds[i].fd >= 0)
         {
-          FAR struct file *filep;
+          FAR struct file *file;
 
-          ret = file_get(fds[i].fd, &filep);
+          ret = file_get(fds[i].fd, &file);
           if (ret >= 0)
             {
-              ret = file_poll(filep, &fds[i], true);
+              ret = file_poll(file, &fds[i], true);
               if (ret < 0)
                 {
-                  file_put(filep);
+                  file_put(file);
+                }
+              else
+                {
+                  /* Keep the reference and the file until teardown */
+
+                  filep[i] = file;
                 }
             }
 
           if (ret < 0)
             {
-              poll_teardown(fds, i, &count);
+              poll_teardown(fds, filep, i, &count);
               fds[i].revents |= POLLERR;
               fds[i].arg = NULL;
               fds[i].cb = NULL;
@@ -193,7 +216,7 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
        * we execute teardown and return immediately.
        */
 
-      poll_teardown(fds, i, &count);
+      poll_teardown(fds, filep, i, &count);
     }
 
   return count;
@@ -212,7 +235,7 @@ static void poll_cleanup(FAR void *arg)
   FAR struct pollfd_s *fdsinfo = (FAR struct pollfd_s *)arg;
   int count;
 
-  poll_teardown(fdsinfo->fds, fdsinfo->nfds, &count);
+  poll_teardown(fdsinfo->fds, fdsinfo->filep, fdsinfo->nfds, &count);
 }
 
 /****************************************************************************
@@ -416,6 +439,8 @@ int file_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 
 int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 {
+  FAR struct file *stackfilep[POLL_STACK_FILES];
+  FAR struct file **filep = stackfilep;
   FAR struct pollfd *kfds;
   sem_t sem;
   int count = 0;
@@ -426,6 +451,19 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
   /* poll() is a cancellation point */
 
   enter_cancellation_point();
+
+  /* The files the poll is set up on, kept from setup to teardown */
+
+  if (nfds > POLL_STACK_FILES)
+    {
+      filep = fs_heap_malloc(nfds * sizeof(FAR struct file *));
+      if (filep == NULL)
+        {
+          leave_cancellation_point();
+          set_errno(ENOMEM);
+          return ERROR;
+        }
+    }
 
 #ifdef CONFIG_BUILD_KERNEL
   /* Allocate kernel memory for the fds */
@@ -456,7 +494,7 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
    * we return immediately
    */
 
-  count = poll_setup(kfds, nfds, &sem);
+  count = poll_setup(kfds, filep, nfds, &sem);
   if (count == 0)
     {
       struct pollfd_s fdsinfo;
@@ -466,6 +504,7 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
        */
 
       fdsinfo.fds = kfds;
+      fdsinfo.filep = filep;
       fdsinfo.nfds = nfds;
       tls_cleanup_push(tls_get_info(), poll_cleanup, &fdsinfo);
 
@@ -514,7 +553,7 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
        * Preserve ret, if negative, since it holds the result of the wait.
        */
 
-      poll_teardown(kfds, nfds, &count);
+      poll_teardown(kfds, filep, nfds, &count);
 
       /* Pop the cancellation point */
 
@@ -541,6 +580,11 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 
 out_with_cancelpt:
 #endif
+
+  if (filep != stackfilep)
+    {
+      fs_heap_free(filep);
+    }
 
   leave_cancellation_point();
 

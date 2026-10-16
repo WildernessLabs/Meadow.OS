@@ -48,11 +48,34 @@ Defined in `user-space.ld`:
 
 ### DTCM SRAM -- `0x20000000`, 128 KB
 
-Tightly coupled to the Cortex-M7 core. Used for fast kernel data and stacks.
+Tightly coupled to the Cortex-M7 core: zero wait states and not cached.
 
 ```
 dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 ```
+
+**Currently unused.** The linker places nothing in DTCM and `CONFIG_STM32F7_DTCMEXCLUDE=y` keeps
+it out of every heap. NuttX excludes it by default when ELF loading is enabled
+(`default LIBC_ARCH_ELF`), because ELF modules cannot execute from DTCM.
+
+**Option: kernel heap headroom.** If the kernel heap (128 KB in SRAM1) runs out, DTCM can be added
+to it, taking it to 256 KB. espcp allocates every socket operation from the kernel heap, so it is
+the main consumer. Legacy Meadow did this in f0b7762b4f7 after espcp ENOMEM ("Unknown socket error")
+under TLS/MQTT reconnect churn. It has not been needed on Rebase: no kernel-heap ENOMEM has been
+seen, including in the Phase 6 TLS soak and with 15 concurrent sockets.
+
+There is no speed cost. Before doing it:
+
+- **DMA:** check every kernel driver that DMAs into `kmm_malloc()` buffers (espcp SPI, QSPI,
+  SDMMC, USB, Ethernet). Legacy states that DTCM cannot be DMA'd and moved espcp's two SPI DMA
+  buffers to static `.bss`. Confirm whether DMA can reach DTCM on the F7 (through the AHBS port;
+  see RM0410) before relying on either answer.
+- **Kernel heap only:** NuttX's `arm_addregion()` would add DTCM to the user heap with user MPU
+  access. Add it to the kernel heap instead, with `kmm_addregion()` from the Meadow board
+  initialisation rather than by changing `stm32_allocateheap.c`. That also keeps it away from
+  ELF modules.
+- **Reserve the black box:** the deferred fault recorder (issue #709) uses the last 256 bytes
+  (`0x2001FF00`); keep them out of the heap.
 
 ### SRAM1 -- Kernel + User Split
 

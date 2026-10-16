@@ -446,6 +446,15 @@ int CryptoNative_SslDoHandshake(void *ssl_ptr, int *error)
         if (error) *error = PAL_SSL_ERROR_WANT_WRITE;
         return -1;  /* managed expects -1 for WANT_WRITE, not 0 */
     } else {
+        char errbuf[128];
+        mbedtls_strerror(ret, errbuf, sizeof(errbuf));
+        printf("pal_ssl: SslDoHandshake error -0x%04x: %s\n", -ret, errbuf);
+        if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+            uint32_t flags = mbedtls_ssl_get_verify_result(&ssl->ssl);
+            char verifybuf[256];
+            mbedtls_x509_crt_verify_info(verifybuf, sizeof(verifybuf), "pal_ssl:   ", flags);
+            printf("pal_ssl: certificate verify flags 0x%08lx\n%s", (unsigned long)flags, verifybuf);
+        }
         ssl->last_error = ret;
         if (error) *error = PAL_SSL_ERROR_SSL;
         return -1;

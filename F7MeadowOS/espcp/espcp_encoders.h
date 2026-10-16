@@ -401,6 +401,13 @@ struct espcp_listen_request_s
 };
 typedef struct espcp_listen_request_s espcp_listen_request_t;
 
+struct espcp_shutdown_request_s
+{
+    int32_t socket_handle;
+    int32_t how;
+};
+typedef struct espcp_shutdown_request_s espcp_shutdown_request_t;
+
 struct espcp_bind_request_s
 {
     int32_t socket_handle;
@@ -725,6 +732,8 @@ espcp_poll_response_t *espcp_extract_poll_response(uint8_t *);
 espcp_interrupt_poll_response_t *espcp_extract_interrupt_poll_response(uint8_t *);
 void espcp_encode_listen_request(espcp_listen_request_t *, uint8_t *);
 int espcp_listen_request_buffer_size(espcp_listen_request_t *);
+void espcp_encode_shutdown_request(espcp_shutdown_request_t *, uint8_t *);
+int espcp_shutdown_request_buffer_size(espcp_shutdown_request_t *);
 void espcp_encode_bind_request(espcp_bind_request_t *, uint8_t *);
 int espcp_bind_request_buffer_size(espcp_bind_request_t *);
 void espcp_encode_accept_request(espcp_accept_request_t *, uint8_t *);
