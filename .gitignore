@@ -329,6 +329,8 @@ esp32/main/build_info.h
 esp32/main/build_info.template.bak
 F7MeadowOS/include/meadow/hcom_nuttx_shared.h.bak
 nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.ld.bak
+nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld
+nuttx/boards/arm/stm32f7/stm32f777zit6-meadow/scripts/user-space.stamped.ld.bak
 nuttx/boards/arm/stm32f7/common/F7MeadowOSLink
 **/*.o
 **/Meadow.BL.*
@@ -336,3 +338,16 @@ tmp/**
 .github/context-mode/sessions/
 # bootloader/Debug/Meadow.BL.map
 apps/database/sqlite/sqlite-vesion*
+
+#
+#   Mono runtime archives built by build-mono.sh, and the runtime checkout CI
+#   fetches for it.
+#
+monoruntime/
+
+#
+#   Managed assemblies built by build-managed-assemblies.sh.
+#
+meadow_assemblies/
+meadow_assemblies.log
+runtime-src/

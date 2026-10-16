@@ -1,0 +1,18 @@
+# Pinned Mono runtime used to build Meadow.OS.
+#
+# The .NET Mono runtime is built from a fork of dotnet/runtime kept outside this
+# repository.  Its location is taken from the MEADOW_RUNTIME_DIR environment
+# variable, or ../runtime (relative to the directory holding build.sh) when
+# MEADOW_RUNTIME_DIR is not set.
+#
+# The runtime build must refuse to run unless that checkout is at the commit
+# below.  The tree hash is recorded as well because the branch history has been
+# rewritten once (backup/meadow-3.0-pre-cleanup holds the same tree under
+# different commit hashes).
+#
+# To move to a new runtime commit, update both values in the same change.
+
+repository=https://github.com/WildernessLabs/runtime
+branch=MergeManagedCode
+commit=300006899fb075ad0ec677a65d12d58bd56a70ff
+tree=e5888e3c96f907e0b64278c1864e8a48c9933f76

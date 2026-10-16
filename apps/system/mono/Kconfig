@@ -1,0 +1,18 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config SYSTEM_MONO
+	bool "Mono .NET runtime"
+	default n
+	depends on SYSTEM_HCOM && BUILD_PROTECTED && CRYPTO_MBEDTLS
+	---help---
+		Link the Mono .NET runtime into the user image, with the host code
+		that starts it (meadow_mono_main, run by hcom as the "Mono" task)
+		and the P/Invoke tables that connect managed code to System.Native,
+		the TLS shim and the Meadow APIs.
+
+		The runtime archives are built by build-mono.sh from the runtime
+		checkout given by MEADOW_RUNTIME_DIR (default ../runtime beside
+		the repository) and are linked into the SDRAM runtime image.

@@ -2907,6 +2907,53 @@ int espcp_listen_request_buffer_size(espcp_listen_request_t *listen_request)
 }
 
 /****************************************************************************
+* Name: espcp_encode_shutdown_request
+*
+* Description:
+*  Convert the espcp_shutdown_request_t object into a byte stream that can
+*  be sent to the ESP32.
+*
+* Input Parameters:
+*  shutdown_request - object to be encoded.
+*
+* Returned Value:
+*  None
+*
+* Assumptions/Limitations:
+*  how is sent with the NuttX values (SHUT_RD, SHUT_WR, SHUT_RDWR); the ESP32
+*  translates them to the lwIP values.
+*
+****************************************************************************/
+void espcp_encode_shutdown_request(espcp_shutdown_request_t *shutdown_request, uint8_t *buffer)
+{
+    espcp_encode_int32(shutdown_request->socket_handle, buffer);
+    buffer += 4;
+    espcp_encode_int32(shutdown_request->how, buffer);
+}
+
+/****************************************************************************
+* Name: espcp_shutdown_request_buffer_size
+*
+* Description:
+*  Calculate the amount of memory needed to store an encoded version of an
+*  espcp_shutdown_request_t object.
+*
+* Input Parameters:
+*  shutdown_request - espcp_shutdown_request_t object to be encoded.
+*
+* Returned Value:
+*  Number of bytes required to hold the encoded espcp_shutdown_request_t object.
+*
+* Assumptions/Limitations:
+*  None
+*
+****************************************************************************/
+int espcp_shutdown_request_buffer_size(espcp_shutdown_request_t *shutdown_request)
+{
+    return(8);
+}
+
+/****************************************************************************
 * Name: espcp_encode_bind_request
 *
 * Description:

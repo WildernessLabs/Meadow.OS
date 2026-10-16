@@ -81,6 +81,10 @@ GLOBALS="libs/libc/elf/elf_globals.S"
 #
 # Generate the elf_xxxx_globals.S file
 #
+# Each entry is a weak reference.  The table is generated from the symbols of
+# one build, and a configuration that does not link one of them (a developer
+# test, an optional feature) must get a NULL entry instead of a failed link.
+#
 cat >${GLOBALS} <<__EOF__
 #ifdef __CYGWIN__
 #  define SYMBOL(s) _##s
@@ -115,12 +119,14 @@ cat >${GLOBALS} <<__EOF__
 
 #if __SIZEOF_POINTER__ == 8
 	.macro globalEntry index, ep
+	.weak	\ep
 	.quad	.l\index
 	.quad	\ep
 	.endm
 # define ALIGN 8
 #else
 	.macro globalEntry index, ep
+	.weak	\ep
 	.long	.l\index
 	.long	\ep
 	.endm
@@ -137,7 +143,8 @@ cat >${GLOBALS} <<__EOF__
 #endif
 	.thumb
 #endif
-	.data
+	/* Read-only: keep the table in flash, not in user SRAM. */
+	.section .rodata
 	.align	ALIGN
 	GLOBAL	globalNames
 
