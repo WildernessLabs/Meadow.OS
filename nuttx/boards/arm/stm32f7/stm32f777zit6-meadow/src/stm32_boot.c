@@ -41,6 +41,7 @@
 #include <meadow/stm32f777zit6-meadow.h>
 #include <meadow/meadow_hw_version.h>
 #include "hcom_nx/hcom_nx_common.h"
+#include <meadow/hcom_shared_common.h>
 
 #ifdef CONFIG_STM32F7_QUADSPI
 #  include "stm32_qspi.h"
@@ -255,6 +256,22 @@ void board_late_initialize(void)
   // registers open to user code as well.
   size_t size = 1 << mpu_log2regionceil(STM32_GPIOK_BASE - STM32_GPIOA_BASE);
   mpu_user_peripheral(STM32_GPIOA_BASE, size);
+
+  // Map the Mono runtime image area at the start of SDRAM for user space:
+  // the runtime is copied there from QSPI flash and executes in place, and
+  // the user heap (CONFIG_HEAP2_BASE) starts above it.  The heap's own MPU
+  // region happens to cover this area too, because MPU regions are rounded
+  // to 4 MB subregions, but that would stop being true if the reserved size
+  // became a multiple of 4 MB.  Same attributes as the user heap.
+  mpu_configure_region(HCOM_NX_MONO_RUNTIME_SDRAM_ADDR,
+                       HCOM_NX_FS_MONO_RAW_PARTITION_SIZE,
+                       MPU_RASR_TEX_SO   | // Ordered
+                       MPU_RASR_C        | // Cacheable
+                                           // Not Bufferable
+                                           // Not Shareable
+                       MPU_RASR_AP_RWRW    // P:RW   U:RW
+                                           // Instruction access
+                       );
  #endif
 #endif
 

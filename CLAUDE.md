@@ -34,8 +34,10 @@ export MEADOW_OPENOCD_DIR=/path/to/openocd
 export CUBE_APP=/Applications/STMicroelectronics/STM32CubeProgrammer.app/Contents/MacOs/bin/STM32_Programmer_CLI
 ```
 
-The ARM cross-toolchain is installed under `toolchain/macos/` (or `toolchain/linux/`).
-`build.sh` adds it to `PATH` automatically; no manual setup needed for builds.
+The ARM cross-toolchain (`arm-none-eabi-gcc`, Arm GNU Toolchain 15.3.Rel1) must be on `PATH`, for
+example from Homebrew on macOS; the CI Docker image provides the same version. `build.sh` would also
+prepend `toolchain/macos/` (or `toolchain/linux/`, `toolchain/windows/`) to `PATH`, but those
+directories are not in the repository.
 
 ## Build Workflow
 

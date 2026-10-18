@@ -88,6 +88,12 @@
 
 // These are copied from Legacy Meadow and can be somewhat misleading
 #define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
+
+// The Mono runtime image is copied from the raw QSPI partition above to the start of
+// SDRAM, and the user heap (CONFIG_HEAP2_BASE) begins straight after it.  These values
+// must agree with CONFIG_HEAP2_BASE/CONFIG_HEAP2_SIZE in the defconfig and with the
+// sdram region in scripts/memory.ld; build.sh checks this.
+#define HCOM_NX_MONO_RUNTIME_SDRAM_ADDR    0xC0000000
 #define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
 #define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
 #define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb

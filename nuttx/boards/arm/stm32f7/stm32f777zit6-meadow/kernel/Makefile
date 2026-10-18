@@ -23,6 +23,10 @@
 include $(TOPDIR)/Make.defs
 include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/hcom/Make.defs
 
+# MONO_AOBJS: the Mono runtime archives, linked into the user image below when
+# CONFIG_SYSTEM_MONO is enabled.
+include $(TOPDIR)/$(patsubst "%",%,$(CONFIG_APPS_DIR))/system/mono/Make.defs
+
 # APPDIR is normally set up by the top-level apps build (nuttx/tools/Make.defs), which
 # this board Makefile never includes - define it here so the mbedTLS object lookup
 # below resolves correctly.
@@ -52,7 +56,9 @@ ENTRYPT = $(patsubst "%",%,$(CONFIG_INIT_ENTRYPOINT))
 
 USER_LIBPATHS = $(addprefix -L,$(call CONVERT_PATH,$(addprefix $(TOPDIR)$(DELIM),$(dir $(USERLIBS)))))
 USER_LDSCRIPT = -T $(call CONVERT_PATH,$(BOARD_DIR)$(DELIM)scripts$(DELIM)memory.ld)
-USER_LDSCRIPT += -T $(call CONVERT_PATH,$(BOARD_DIR)$(DELIM)scripts$(DELIM)user-space.ld)
+# user-space.stamped.ld is user-space.ld with the version information filled
+# in; build.sh (generate_build_info) creates it before every build.
+USER_LDSCRIPT += -T $(call CONVERT_PATH,$(BOARD_DIR)$(DELIM)scripts$(DELIM)user-space.stamped.ld)
 USER_HEXFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.hex)
 USER_SRECFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.srec)
 USER_BINFILE += $(call CONVERT_PATH,$(TOPDIR)$(DELIM)nuttx_user.bin)

@@ -7,11 +7,12 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 . $scriptdir/scripts/version_methods.sh
 
 #
-#   generate_build_info rewrites tracked files (user-space.ld,
-#   hcom_nuttx_shared.h, esp32/version.txt, esp32/main/build_info.template)
-#   as scratch space.  This trap restores them on every exit path - success,
-#   an error under set -e, or a signal - so a failed build cannot leave the
-#   tree dirty or poison the next build with stale version data.
+#   generate_build_info rewrites tracked files (hcom_nuttx_shared.h,
+#   esp32/version.txt, esp32/main/build_info.template) as scratch space.  This
+#   trap restores them on every exit path - success, an error under set -e, or
+#   a signal - so a failed build cannot leave the tree dirty or poison the next
+#   build with stale version data.  (user-space.ld is not rewritten: the
+#   version is stamped into the untracked copy user-space.stamped.ld.)
 #
 trap restore_versioned_files EXIT
 

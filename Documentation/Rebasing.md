@@ -1,6 +1,6 @@
 # Rebasing
 
-The following notes discuss practical experience of rebasing NuttX OS and Apps into this repository.  The assumption is that we will be rebasing from release/12.10 to release/12.11.
+The following notes discuss practical experience of rebasing NuttX OS and Apps into this repository.  They were written for the rebase from release/12.10 to release/12.11; the tree has since been moved to 12.12 (subtree merge f962d875631), so substitute the release numbers for the rebase you are doing.
 
 ## Directory Structure
 
@@ -8,12 +8,12 @@ The following directory structure is assumed:
 
 ```
 OS/
-├─ MainlineApps/
-├─ Mainline/
-├─ Rebase/
-│  ├─ apps
-│  ├─ nuttx
-│  ├─ <other files>
++- MainlineApps/
++- Mainline/
++- Rebase/
+|  +- apps
+|  +- nuttx
+|  +- <other files>
 ```
 
 The names of the _Mainline_, _MainlineApps_ and _Rebase_ directories can be changed if desired, just adjust the instructions to your needs.

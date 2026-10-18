@@ -73,6 +73,10 @@ RUN set -eux; \
 
 ENV PATH="/opt/arm-gnu-toolchain/bin:${PATH}"
 
+# CMake and ninja for the Mono runtime build (build-mono.sh).  The runtime
+# needs CMake 3.26 or later, newer than Ubuntu 22.04's package.
+RUN pip3 install --no-cache-dir cmake==3.31.6 ninja==1.11.1.4
+
 RUN groupadd -g 1000 dev \
         && useradd -u 1000 -g dev -d /home/dev dev \
         && mkdir /home/dev \

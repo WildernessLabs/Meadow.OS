@@ -31,12 +31,14 @@
 
 #if __SIZEOF_POINTER__ == 8
 	.macro globalEntry index, ep
+	.weak	\ep
 	.quad	.l\index
 	.quad	\ep
 	.endm
 # define ALIGN 8
 #else
 	.macro globalEntry index, ep
+	.weak	\ep
 	.long	.l\index
 	.long	\ep
 	.endm
@@ -53,7 +55,8 @@
 #endif
 	.thumb
 #endif
-	.data
+	/* Read-only: keep the table in flash, not in user SRAM. */
+	.section .rodata
 	.align	ALIGN
 	GLOBAL	globalNames
 
