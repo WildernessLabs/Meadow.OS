@@ -1,0 +1,30 @@
+#
+#   Managed tests run on the board by tools/testrunner/testrunner.py.
+#
+#   Each test runs once for each of its modes.  A mode is a set of Mono options, written into the
+#   meadow.config.yaml the app is deployed with.
+#
+defaults:
+    timeout_s: 900
+
+modes:
+    jit:
+        options: ""
+    jit-debug:
+        options: "--debug"
+    interp:
+        options: "--interp"
+
+tests:
+    #
+    #   Mono's mini test suite (issue #726): 733 tests in 10 suites, 2 excluded.
+    #
+    - name: minitests
+      project: tests/managed/MiniTests/MiniTests.csproj
+      modes: [jit, interp]
+      expected_s: 240
+      timeout_s: 900
+      known_failures:
+          exceptions.test_0_ldflda_null_pointer: >-
+              Mono throws NullReferenceException for the address of a field through a null
+              unmanaged pointer; the test expects no exception (MS.NET behaviour).  Same in Legacy.
