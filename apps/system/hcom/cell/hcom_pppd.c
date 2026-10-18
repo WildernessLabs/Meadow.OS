@@ -693,6 +693,7 @@ int hcom_pppd_start()
         ret = pthread_create(&pppd_thread_id, &attr, pppd_thread, (void *) cell_settings);
         if (ret == OK)
         {
+            (void) pthread_setname_np(pppd_thread_id, HCOM_THREAD_NAME_CELL_PPPD);
             syslog(LOG_INFO, "%s@%d-PPPD thread launched\n", __FILE__, __LINE__);
 
             meadow_os_config_free_resources(config);

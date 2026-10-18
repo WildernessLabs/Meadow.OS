@@ -286,6 +286,7 @@ int hcom_esp32_uart_comms_make_thread()
                 __FILE__, __LINE__, HCOM_THREAD_NAME_ESP32_RECEIVE, ret);
       return -ret;
     }
+    (void)pthread_setname_np(_esp32_recv_thread, HCOM_THREAD_NAME_ESP32_RECEIVE);
 
     _esp32_recv_thread_running = true;
     return OK;

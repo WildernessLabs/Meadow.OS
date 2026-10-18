@@ -282,6 +282,7 @@ int hcom_traverse_ku_init_user_setup(void)
     _thread_running = false;
     return -ret;
   }
+  (void)pthread_setname_np(_recv_pthread, HCOM_THREAD_NAME_RECV_TRAVERSE);
 
   return OK;
 }
