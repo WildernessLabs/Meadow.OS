@@ -52,6 +52,21 @@ jobs:
         with:
           python-version: '3.13'
 
+      #
+      #   The OS build includes the Mono runtime, built from the
+      #   WildernessLabs/runtime commit recorded in MONO_RUNTIME_COMMIT (same
+      #   as build-system.yml).  The build command passes
+      #   MEADOW_RUNTIME_DIR=/project/runtime-src to the build container.
+      #
+      - name: Fetch the pinned Mono runtime
+        run: |
+          repository=$(sed -n 's/^repository=//p' MONO_RUNTIME_COMMIT)
+          commit=$(sed -n 's/^commit=//p' MONO_RUNTIME_COMMIT)
+          git init -q runtime-src
+          git -C runtime-src fetch -q --depth 1 "$repository" "$commit"
+          git -C runtime-src checkout -q FETCH_HEAD
+          git -C runtime-src log -1 --format='Runtime: %H %s'
+
       - name: Install packages
         run: ${{ matrix.setup_cmd }}
 
