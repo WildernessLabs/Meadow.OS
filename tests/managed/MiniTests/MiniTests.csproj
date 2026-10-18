@@ -1,0 +1,65 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+      Mono's mini test suite (the runtime's JIT regression tests) as a Meadow app.
+
+      The test sources are compiled from the runtime checkout, the same one the OS build uses:
+      MEADOW_RUNTIME_DIR, or ../runtime beside this repository.  Meadow.Core comes from the
+      meadow-3.0 checkout: MEADOW_CORE_DIR, or ../../meadow-3.0/Meadow.Core.
+
+      The runner (tools/testrunner) chooses the Mono options by setting MEADOW_TEST_CONFIG to a
+      generated meadow.config.yaml; without it the app ships meadow.config.yaml from this folder.
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>App</AssemblyName>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DefineConstants>$(DefineConstants);__MOBILE__</DefineConstants>
+    <!-- The upstream test sources trigger many warnings by design (unused values, obsolete APIs). -->
+    <NoWarn>$(NoWarn);CS0028;CS0162;CS0168;CS0169;CS0219;CS0252;CS0253;CS0414;CS0612;CS0618;CS0649;CS0659;CS0660;CS0661;CS0665;CS0675;CS1717;CS1718;CS7022;CS8073;CS8981</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RepositoryRoot>
+    <MeadowRuntimeDir Condition="'$(MEADOW_RUNTIME_DIR)' != ''">$(MEADOW_RUNTIME_DIR)</MeadowRuntimeDir>
+    <MeadowRuntimeDir Condition="'$(MeadowRuntimeDir)' == ''">$(RepositoryRoot)/../runtime</MeadowRuntimeDir>
+    <MeadowCoreDir Condition="'$(MEADOW_CORE_DIR)' != ''">$(MEADOW_CORE_DIR)</MeadowCoreDir>
+    <MeadowCoreDir Condition="'$(MeadowCoreDir)' == ''">$(RepositoryRoot)/../../meadow-3.0/Meadow.Core</MeadowCoreDir>
+    <MiniTestsDir>$(MeadowRuntimeDir)/src/mono/mono/mini</MiniTestsDir>
+    <MeadowTestConfig Condition="'$(MEADOW_TEST_CONFIG)' != ''">$(MEADOW_TEST_CONFIG)</MeadowTestConfig>
+    <MeadowTestConfig Condition="'$(MeadowTestConfig)' == ''">$(MSBuildThisFileDirectory)meadow.config.yaml</MeadowTestConfig>
+  </PropertyGroup>
+
+  <Target Name="CheckMiniTestsSources" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(MiniTestsDir)/basic.cs')" Text="No mini test sources at $(MiniTestsDir).  Set MEADOW_RUNTIME_DIR to the WildernessLabs/runtime checkout." />
+    <Error Condition="!Exists('$(MeadowCoreDir)/Source/implementations/f7/Meadow.F7/Meadow.F7.csproj')" Text="No Meadow.Core at $(MeadowCoreDir).  Set MEADOW_CORE_DIR to the meadow-3.0 Meadow.Core checkout." />
+  </Target>
+
+  <!--
+      The ten suites Legacy ran (conductor/tracks/mono-upgrade-09-tests on Legacy origin/meadow-3.0).
+      gc-test.cs and devirtualization.cs were left out there too.
+  -->
+  <ItemGroup>
+    <Compile Include="$(MiniTestsDir)/TestHelpers.cs" Link="mini/TestHelpers.cs" />
+    <Compile Include="$(MiniTestsDir)/basic.cs" Link="mini/basic.cs" />
+    <Compile Include="$(MiniTestsDir)/arrays.cs" Link="mini/arrays.cs" />
+    <Compile Include="$(MiniTestsDir)/basic-calls.cs" Link="mini/basic-calls.cs" />
+    <Compile Include="$(MiniTestsDir)/basic-float.cs" Link="mini/basic-float.cs" />
+    <Compile Include="$(MiniTestsDir)/basic-long.cs" Link="mini/basic-long.cs" />
+    <Compile Include="$(MiniTestsDir)/basic-math.cs" Link="mini/basic-math.cs" />
+    <Compile Include="$(MiniTestsDir)/objects.cs" Link="mini/objects.cs" />
+    <Compile Include="$(MiniTestsDir)/exceptions.cs" Link="mini/exceptions.cs" />
+    <Compile Include="$(MiniTestsDir)/generics.cs" Link="mini/generics.cs" />
+    <Compile Include="$(MiniTestsDir)/gshared.cs" Link="mini/gshared.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MeadowCoreDir)/Source/implementations/f7/Meadow.F7/Meadow.F7.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MeadowTestConfig)" Link="meadow.config.yaml" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+</Project>

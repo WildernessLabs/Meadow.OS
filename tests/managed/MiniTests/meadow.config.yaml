@@ -1,0 +1,11 @@
+#
+#   Configuration shipped when the app is deployed by hand: the JIT, no Mono options.  The test
+#   runner replaces this file with one generated for each mode (tools/testrunner).
+#
+Device:
+    Name: MeadowTests
+#
+#   Mono options, for example the interpreter:
+#
+# MonoControl:
+#     Options: --interp
