@@ -214,7 +214,7 @@ static bool _esp32_selected = false;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: espcp_conn
+ * Name: espcp_usrsock_conn_s
  *
  * Description:
  *   Simplify the code accessing the espcp connection structure.
@@ -1387,8 +1387,7 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                         lifr->lifr_flags = response->flags;
                                         lifr->lifr_flags |= IFF_WIFI;
                                         //
-                                        //  The ESP32 reports IFF_UP when the station has an IP
-                                        //  address.  There is no separate carrier state, so up
+                                        //  The ESP32 reports IFF_UP when the station has an IP address.  There is no separate carrier state, so up
                                         //  also means running (POSIX callers want both).
                                         //
                                         if ((lifr->lifr_flags & IFF_UP) != 0)
