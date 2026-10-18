@@ -120,8 +120,8 @@ refuse a mismatched release with a clear message.
    own tag, because Azure artifacts expire).
 2. Edit `release.toml` in the Releases repository: the Meadow.OS ref, the Meadow-ESP32 ref, and
    the runtime pin (the same repository, commit and tree as Meadow.OS `MONO_RUNTIME_COMMIT`).
-3. Merge that change, then tag the Releases repository `v3.0.0.<build>`. The tag is the release
-   decision.
+3. Merge that change (reviewed, see "Access control"), then tag the Releases repository
+   `v3.0.0.<build>`. The tag is the release decision, and only authorised people can create it.
 
 ### The release workflow (runs on a `v*` tag)
 
@@ -129,6 +129,7 @@ refuse a mismatched release with a clear message.
 2. Obtain the OS binaries and assemblies, and the ESP32 binaries.
 3. Stage the zips with the flat layout above, and write `manifest.json` with hashes and pins.
 4. Create the GitHub Release (prerelease unless the tag is marked final) and attach the assets.
+   This step runs in a protected environment that needs approval (see "Access control").
 
 Open decision (see below): obtain by rebuilding from the pins, or by collecting already-built CI
 artifacts. The packaging script in `tools/` is the same either way.
@@ -138,6 +139,31 @@ artifacts. The packaging script in `tools/` is the same either way.
 The CLI asks the GitHub API for the newest release of its own generation:
 `/releases/latest` excludes prereleases by default, and the manifest `generation` field filters
 out the other line. Imported legacy releases are created with `make_latest=false`.
+
+## Access control
+
+Tags and releases are what the CLI downloads, so creating them is restricted. Releases are created
+only by the release workflow, never by hand.
+
+- **Tag ruleset.** A repository ruleset targets tags matching `v*` (and the legacy tag pattern)
+  and restricts creation, update and deletion to a small release-manager team. Everyone else,
+  including people with write access, cannot create, move or delete a release tag. Creating a
+  release creates its tag, so this also blocks hand-made releases.
+- **Release workflow.** The workflow is the only thing that creates releases. Its `contents: write`
+  permission is granted to the release job only, and the job runs in a GitHub Environment
+  (`release`) with required reviewers from the release-manager team. A tag push alone does not
+  publish; an approver must approve the run.
+- **Source of truth is reviewed.** The default branch is protected: changes need a pull request
+  and a review, and `release.toml`, the workflow and the packaging script are covered by
+  CODEOWNERS owned by the release-manager team. Force pushes and branch deletion are blocked.
+- **Immutability.** Enable GitHub's immutable releases setting so published assets and tags cannot
+  be altered or replaced afterwards. A bad release is superseded by a new version, or deleted by a
+  release manager, never edited in place.
+- **Least privilege.** Repository write access is limited to people who need it. The legacy import
+  runs once, under a release manager's account, and uses the same tag rules.
+- **Both source repositories.** The ESP32 and OS refs in `release.toml` should be tags, and those
+  tags are covered by a tag ruleset in their own repositories, so a pinned ref cannot be moved
+  after the fact. The `sha256` values in `manifest.json` let the CLI detect tampering with assets.
 
 ## Legacy
 
