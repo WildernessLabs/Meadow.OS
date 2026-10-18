@@ -206,6 +206,7 @@ int hcom_mono_remote_dbg_create_thread()
                 __FILE__, __LINE__, HCOM_THREAD_NAME_REMOTE_DBG, ret, errno);
       return ret;
     }
+    (void)pthread_setname_np(thread, HCOM_THREAD_NAME_REMOTE_DBG);
 
   return OK;
 }

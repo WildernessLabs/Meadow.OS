@@ -272,6 +272,7 @@ int hcom_mono_stdxxx_make_thread()
     hcom_startup_mgr_release_sem_err(ret);
     return ret;
   }
+  (void)pthread_setname_np(thread, HCOM_THREAD_NAME_STDXXX_REDIRECT);
 
   return OK;
 }

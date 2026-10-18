@@ -391,6 +391,9 @@ static void start_monitoring_thread(int mono_pid)
         perror("Failed to create monitoring thread");
         free(pid_arg);
     }
+    else {
+        (void) pthread_setname_np(monitor_thread, HCOM_THREAD_NAME_MONO_MONITOR);
+    }
 }
 
 //====================================================================

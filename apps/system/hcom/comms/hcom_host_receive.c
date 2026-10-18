@@ -156,6 +156,7 @@ int hcom_host_recv_setup()
               __FILE__, __LINE__, HCOM_THREAD_NAME_HCOM_RECEIVE, ret, errno);
     return ret;
   }
+  (void)pthread_setname_np(thread, HCOM_THREAD_NAME_HCOM_RECEIVE);
 
   return OK;
 }

@@ -46,8 +46,9 @@
  *      2. Thread name
  *      3. Thread stack size
  * 
- * The thread name is only used by kthreads at the moment but is provided for all
- * threads for reference and future use.
+ * The thread name is given to kthreads when they are created, and to the hcom
+ * pthreads with pthread_setname_np() straight after pthread_create(), so that
+ * ps, the debugger and the crash dump (task list) show it.
  * 
  * This file has been put together to make it easier to change the properties of
  * any single thread in context with the other threads in the system.
@@ -259,6 +260,14 @@
  * 
  * See nx_bringup.c
  */
+
+/**
+ * This thread waits for the Mono task to exit and records how it ended.  It is
+ * created without attributes, so it inherits the priority of the thread that
+ * starts Mono (the hcom bring-up, CONFIG_USERMAIN_PRIORITY) and has the default
+ * pthread stack size; only its name is set here.
+ */
+#define HCOM_THREAD_NAME_MONO_MONITOR               "MonoMonitor"
 
 
 /**

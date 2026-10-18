@@ -376,6 +376,7 @@ int hcom_esp32_network_monitor_start(void)
     {
         return (-result);
     }
+    (void) pthread_setname_np(_uart_thread_handle, ESPCP_NETWORK_MONITOR_NAME);
 
     return(result);
 }
