@@ -65,6 +65,7 @@
 #include "generic_list.h"
 #include "espcp_event_handlers.h"
 #include "espcp_message_dispatcher.h"
+#include "espcp_mapping.h"
 #include "../hcom_nx/hcom_nx_config_manager.h"
 
 // #define USE_MEADOW_DEBUG_HELPERS
@@ -2180,6 +2181,12 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
     {
         return(-EFAULT);
     }
+    int32_t esp_level;
+    int level_result = espcp_mapping_level_to_esp(level, &esp_level);
+    if (level_result < 0)
+    {
+        return(level_result);
+    }
     switch (option)
     {
         case SO_LINGER:
@@ -2232,7 +2239,7 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
     }
     request->socket_handle = espcp_sockfd(psock);
     request->option_name = option;
-    request->level = level;
+    request->level = esp_level;
     int payload_length = espcp_get_sock_opt_request_buffer_size(request);
     uint8_t *payload = (uint8_t *) zalloc(payload_length);
     espcp_message_t *message = NULL;
@@ -2344,7 +2351,17 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
                                                     }
                                                     else
                                                     {
-                                                        *((int *) source) = esp_iv->result;
+                                                        //
+                                                        //  SO_ERROR is an errno value in the ESP32 numbering.
+                                                        //
+                                                        if (option == SO_ERROR)
+                                                        {
+                                                            *((int *) source) = espcp_mapping_errno_from_esp(esp_iv->result);
+                                                        }
+                                                        else
+                                                        {
+                                                            *((int *) source) = esp_iv->result;
+                                                        }
                                                     }
                                                     free(esp_iv);
                                                 }
@@ -2622,6 +2639,13 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
         return(-ENETDOWN);
     }
 
+    int32_t esp_level;
+    int level_result = espcp_mapping_level_to_esp(level, &esp_level);
+    if (level_result < 0)
+    {
+        return(level_result);
+    }
+
     espcp_set_sock_opt_request_t *request = (espcp_set_sock_opt_request_t *) zalloc(sizeof(espcp_set_sock_opt_request_t));
     if (request == NULL)
     {
@@ -2653,7 +2677,7 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
     if (request->option_value != NULL)
     {
         request->socket_handle = espcp_sockfd(psock);
-        request->level = level;
+        request->level = esp_level;
         request->option_name = option;
 
         int payload_length = espcp_set_sock_opt_request_buffer_size(request);

@@ -129,6 +129,7 @@ ifeq ($(CONFIG_MEADOW_ESPCP_MANAGER),y)
 CSRCS += $(MEADOW_OS_DIR)/espcp/espcp_thread.c \
 $(MEADOW_OS_DIR)/espcp/espcp_queue.c \
 $(MEADOW_OS_DIR)/espcp/espcp_encoders.c \
+$(MEADOW_OS_DIR)/espcp/espcp_mapping.c \
 $(MEADOW_OS_DIR)/espcp/espcp_message.c \
 $(MEADOW_OS_DIR)/espcp/espcp_message_dispatcher.c \
 $(MEADOW_OS_DIR)/espcp/generic_list.c \
