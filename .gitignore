@@ -351,3 +351,6 @@ monoruntime/
 meadow_assemblies/
 meadow_assemblies.log
 runtime-src/
+
+# Hardware test runner output (tools/testrunner)
+test-runs/
