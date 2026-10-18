@@ -34,6 +34,7 @@
  ****************************************************************************/
 
 #include "espcp_encoders.h"
+#include "espcp_mapping.h"
 #include <sys/socket.h>
 #include <meadow/meadow_debug_helpers.h>
 
@@ -1408,7 +1409,7 @@ espcp_get_addr_info_response_t *espcp_extract_get_addr_info_response(uint8_t *bu
 {
     espcp_get_addr_info_response_t *get_addr_info_response = (espcp_get_addr_info_response_t *) malloc(sizeof(espcp_get_addr_info_response_t));
 
-    get_addr_info_response->addr_info_response_errno = espcp_extract_int32(buffer);
+    get_addr_info_response->addr_info_response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     buffer += 4;
     get_addr_info_response->res_length = espcp_extract_uint32(buffer);
     buffer += 4;
@@ -1531,7 +1532,7 @@ espcp_integer_and_errno_response_t *espcp_extract_integer_and_errno_response(uin
 
     integer_and_errno_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    integer_and_errno_response->response_errno = espcp_extract_int32(buffer);
+    integer_and_errno_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(integer_and_errno_response);
 }
 
@@ -1843,7 +1844,7 @@ espcp_get_sock_opt_response_t *espcp_extract_get_sock_opt_response(uint8_t *buff
 
     get_sock_opt_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    get_sock_opt_response->response_errno = espcp_extract_int32(buffer);
+    get_sock_opt_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     buffer += 4;
     get_sock_opt_response->option_value_length = espcp_extract_uint32(buffer);
     buffer += 4;
@@ -2106,7 +2107,7 @@ espcp_read_response_t *espcp_extract_read_response(uint8_t *buffer)
     }
     read_response->read_response_result = espcp_extract_int32(buffer);
     buffer += 4;
-    read_response->read_response_errno = espcp_extract_int32(buffer);
+    read_response->read_response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(read_response);
 }
 
@@ -2337,7 +2338,7 @@ espcp_recv_from_response_t *espcp_extract_recv_from_response(uint8_t *buffer)
     }
     recv_from_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    recv_from_response->response_errno = espcp_extract_int32(buffer);
+    recv_from_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     buffer += 4;
     recv_from_response->source_address_length = espcp_extract_uint32(buffer);
     buffer += 4;
@@ -2660,7 +2661,7 @@ espcp_recvmsg_response_t *espcp_extract_recvmsg_response(uint8_t *buffer)
 
     recvmsg_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    recvmsg_response->response_errno = espcp_extract_int32(buffer);
+    recvmsg_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     buffer += 4;
 
     recvmsg_response->source_address_length = espcp_extract_uint32(buffer);
@@ -2819,7 +2820,7 @@ espcp_poll_response_t *espcp_extract_poll_response(uint8_t *buffer)
     buffer += 2;
     poll_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    poll_response->response_errno = espcp_extract_int32(buffer);
+    poll_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(poll_response);
 }
 
@@ -2852,7 +2853,7 @@ espcp_interrupt_poll_response_t *espcp_extract_interrupt_poll_response(uint8_t *
     buffer += 4;
     interrupt_poll_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    interrupt_poll_response->response_errno = espcp_extract_int32(buffer);
+    interrupt_poll_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     buffer += 4;
     interrupt_poll_response->returned_events = espcp_extract_uint16(buffer);
     buffer += 2;
@@ -3089,7 +3090,7 @@ espcp_accept_response_t *espcp_extract_accept_response(uint8_t *buffer)
     }
     accept_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    accept_response->response_errno = espcp_extract_int32(buffer);
+    accept_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(accept_response);
 }
 
@@ -3178,7 +3179,7 @@ espcp_ioctl_response_t *espcp_extract_ioctl_response(uint8_t *buffer)
     buffer += 4;
     ioctl_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    ioctl_response->response_errno = espcp_extract_int32(buffer);
+    ioctl_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(ioctl_response);
 }
 
@@ -3265,7 +3266,7 @@ espcp_get_sock_peer_name_response_t *espcp_extract_get_sock_peer_name_response(u
     }
     get_sock_peer_name_response->result = espcp_extract_int32(buffer);
     buffer += 4;
-    get_sock_peer_name_response->response_errno = espcp_extract_int32(buffer);
+    get_sock_peer_name_response->response_errno = espcp_mapping_errno_from_esp(espcp_extract_int32(buffer));
     return(get_sock_peer_name_response);
 }
 
