@@ -213,18 +213,12 @@
 #define HCOM_THREAD_NAME_STDXXX_REDIRECT            "MonoStdxxx"
 
 /**
- * 
+ * This thread receives HCOM messages from the kernel side and forwards them
+ * to CLI via HCOM.
  */
 #define HCOM_THREAD_PRIORITY_RECV_TRAVERSE          120
 #define HCOM_THREAD_NAME_RECV_TRAVERSE              "Traverse"
 #define HCOM_THREAD_STACKSIZE_RECV_TRAVERSE         2048
-
-/**
- * 
- */
-// #define HCOM_THREAD_PRIORITY_HOST_TRANSPORT         120
-// #define HCOM_THREAD_NAME_HOST_TRANSPORT             "HostXport"
-// #define HCOM_THREAD_STACKSIZE_HOST_TRANSPORT        2048
 
 /**
  * This thread works out how far the LSI drifts from real time.  The thread
