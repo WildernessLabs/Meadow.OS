@@ -134,6 +134,9 @@ refuse a mismatched release with a clear message.
 Open decision (see below): obtain by rebuilding from the pins, or by collecting already-built CI
 artifacts. The packaging script in `tools/` is the same either way.
 
+***MS:*** I'd like to script what ever we decide for the process so a release becomes easier and 
+automatic.  Maybe use a branch name in the repository.
+
 ### What "latest" means
 
 The CLI asks the GitHub API for the newest release of its own generation:
