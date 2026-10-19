@@ -158,6 +158,40 @@ The production flash image assembled by `build.sh` using `srec_cat` and `dd`:
 
 Total image: up to ~2 MB of internal flash consumption.
 
+## Tracking Memory Use with MemBrowse
+
+[MemBrowse](https://membrowse.com) records how much of each memory region the build uses, for
+every commit on `main` and every pull request into `main`, so that growth can be seen as it
+happens instead of when a region overflows. It reads the ELF files and the linker scripts after
+a CI build.
+
+Two targets are tracked (`.github/membrowse-targets.json`):
+
+| Target | ELF | Linker scripts |
+|--------|-----|----------------|
+| `meadow-kernel` | `nuttx/nuttx.elf` | `memory.ld`, `kernel-space.ld` |
+| `meadow-user` | `nuttx/nuttx_user.elf` | `memory.ld`, `user-space.ld` |
+
+The `meadow-user` figures include the Mono runtime image. Its `.mono*` sections are linked into
+`nuttx_user.elf`, in the `sdram` region (see "External SDRAM" above).
+
+The workflows:
+
+- **`.github/workflows/membrowse.yml` ("MemBrowse Memory Report"):** builds the OS in the CI
+  Docker image, using the runtime pinned in `MONO_RUNTIME_COMMIT`, and uploads one report per
+  target.
+- **`.github/workflows/membrowse-comment.yml` ("MemBrowse PR Comment"):** runs when the report
+  workflow finishes for a pull request and posts the combined result as a comment on the PR. It
+  is triggered by `workflow_run`, so GitHub runs the copy on `main`; a change to it takes effect
+  only after it is merged.
+- **`.github/workflows/membrowse-onboard.yml`:** run by hand (`workflow_dispatch`) to build and
+  upload reports for a number of past commits, to fill in history. Commits from the managed-code
+  merge onwards need the pinned runtime, which this workflow does not fetch.
+
+The workflows need the `MEMBROWSE_API_KEY` repository secret (and optionally the
+`MEMBROWSE_API_URL` variable). When a memory budget set in MemBrowse is exceeded, the report job
+fails.
+
 ## MPU Configuration
 
 The ARM MPU enforces the kernel/user boundary at runtime. Key rules enforced:
