@@ -1,0 +1,49 @@
+name: MemBrowse PR Comment
+
+#
+#   Posts the MemBrowse memory report as a PR comment once the "MemBrowse Memory
+#   Report" workflow (membrowse.yml) has finished.  It runs from the default
+#   branch with the repository's secrets, so it also works for PRs from forks,
+#   which cannot see secrets themselves.
+#
+#   The workflows: value must match the name: of membrowse.yml exactly, or this
+#   workflow never triggers.
+#
+on:
+  workflow_run:
+    workflows: [MemBrowse Memory Report]
+    types:
+      - completed
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    #
+    #   Run even if some builds failed, but skip cancelled and skipped runs
+    #   (nothing was uploaded, so the summary lookup would fail).
+    #
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'cancelled' &&
+      github.event.workflow_run.conclusion != 'skipped'
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      #
+      #   The comment action posts with "gh pr comment", which needs a git
+      #   checkout to find the repository.  Without it the post fails with "not
+      #   a git repository", logged only as a warning.
+      #
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Post combined PR comment
+        if: ${{ env.MEMBROWSE_API_KEY != '' }}
+        uses: membrowse/membrowse-action/comment-action@v1
+        with:
+          api_key: ${{ secrets.MEMBROWSE_API_KEY }}
+          commit: ${{ github.event.workflow_run.head_sha }}
+        env:
+          MEMBROWSE_API_KEY: ${{ secrets.MEMBROWSE_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
