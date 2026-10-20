@@ -2045,7 +2045,12 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
 
     meadow_watchdog_t watchdog_poll = meadow_watchdog_activate(WATCHDOG_POLL_TIMEOUT_MILLISECONDS, POLL_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    //
+    //  Teardown always runs, even when the ESP32 is not responding: it removes the request from
+    //  the list, and a request left there points at a pollfd that is about to be freed.  Teardown
+    //  deals with the not-responding case itself, after that clean up.
+    //
+    if (setup && espcp_get_configuration()->esp_not_responding)
     {
         meadow_watchdog_deactivate(watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
