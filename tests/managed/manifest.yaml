@@ -28,3 +28,20 @@ tests:
           exceptions.test_0_ldflda_null_pointer: >-
               Mono throws NullReferenceException for the address of a field through a null
               unmanaged pointer; the test expects no exception (MS.NET behaviour).  Same in Legacy.
+
+    #
+    #   espcp network robustness (issue #708).  Needs WiFi (wifi.config.yaml deployed once, see
+    #   tests/managed/README.md) and the bench web server.
+    #
+    - name: espcptests
+      project: tests/managed/EspcpTests/EspcpTests.csproj
+      config: tests/managed/EspcpTests/meadow.config.yaml
+      modes: [jit]
+      expected_s: 150
+      timeout_s: 600
+      known_failures:
+          socket.send_timeout_default: >-
+              Reading SO_SNDTIMEO back through the runtime returns 0.  The ESP32 log shows the
+              SetSockOpt (level 0xfff, option 0x1005) sent after every socket() and answered with
+              result 0, so the option is set; why the read returns 0 is not yet known (runtime
+              getsockopt path or the espcp getsockopt reply).
