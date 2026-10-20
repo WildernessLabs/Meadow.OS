@@ -35,6 +35,13 @@ public class MeadowApp : App<F7CoreComputeV2>
     const string LocalServer = "192.168.1.65";
     const string Blackhole = "10.255.255.1";
 
+    //
+    //  A machine on the bench network running idle_server.py, which keeps an idle connection open
+    //  for as long as the client likes (the web server above closes one after 60 s).
+    //
+    const string IdleServer = "192.168.1.65";
+    const int IdleServerPort = 8081;
+
     int cases;
     int failures;
 
@@ -48,6 +55,7 @@ public class MeadowApp : App<F7CoreComputeV2>
             await Case("http.get_local", HttpGetLocal);
             await Case("http.repeat_local_x30", () => HttpRepeat(30));
             await Case("tcp.connect_close_x40", () => ConnectCloseRounds(10, 4));
+            await Case("tcp.idle_receive_70s", IdleReceive);
             await Case("tcp.connect_blackhole_bounded", ConnectBlackholeBounded);
             await Case("http.get_local_after_blackhole", HttpGetLocal);
             await Case("tcp.connect_close_after_blackhole", () => ConnectCloseRounds(3, 4));
@@ -230,6 +238,62 @@ public class MeadowApp : App<F7CoreComputeV2>
             await Task.Delay(300);
         }
         return $"sockets={rounds * perRound}";
+    }
+
+    //
+    //  A receive left pending on an idle socket for longer than the 60 s poll timeout must still complete
+    //  when data arrives.
+    //
+    //  What this does and does not show: the .NET socket engine re-polls an idle socket every fraction of a
+    //  second (about 480 poll teardowns in a run), so no poll lives for 60 s and the ESP32's poll timeout
+    //  does not fire here (the ESP32 log has no "timed out after" line).  The timeout is reached only by a
+    //  poll whose teardown was lost, which a test cannot make happen; the ESP32 unit test "A poll with a
+    //  timeout ends when it runs out" covers that path.  This case is a check that an idle connection stays
+    //  usable across the 60 s mark.
+    //
+    //
+    //  Needs idle_server.py running at IdleServer.
+    //
+    async Task<string> IdleReceive()
+    {
+        const int idleSeconds = 70;
+        using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+        {
+            using (var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(15)))
+            {
+                await socket.ConnectAsync(new IPEndPoint(IPAddress.Parse(IdleServer), IdleServerPort), cancel.Token);
+            }
+
+            var buffer = new byte[1024];
+            var watch = Stopwatch.StartNew();
+            long endedAt = -1;
+            var receive = socket.ReceiveAsync(new ArraySegment<byte>(buffer), SocketFlags.None);
+            _ = receive.ContinueWith(task => { endedAt = watch.ElapsedMilliseconds; }, TaskScheduler.Default);
+            await Task.Delay(idleSeconds * 1000);
+            if (receive.IsCompleted)
+            {
+                //
+                //  The time it ended at says who ended it: close to 60 s is the poll timeout, anything else is
+                //  more likely the web server closing an idle connection.
+                //
+                throw new InvalidOperationException($"the receive ended after {endedAt} ms with nothing sent (faulted={receive.IsFaulted}, bytes={(receive.IsCompletedSuccessfully ? receive.Result : -1)})");
+            }
+
+            var request = System.Text.Encoding.ASCII.GetBytes($"GET / HTTP/1.0\r\nHost: {IdleServer}\r\n\r\n");
+            await socket.SendAsync(new ArraySegment<byte>(request), SocketFlags.None);
+
+            var finished = await Task.WhenAny(receive, Task.Delay(20000));
+            if (finished != receive)
+            {
+                throw new TimeoutException($"no response 20 s after the request, following {idleSeconds} s idle");
+            }
+            int count = await receive;
+            if ((count < 5) || (System.Text.Encoding.ASCII.GetString(buffer, 0, 5) != "HTTP/"))
+            {
+                throw new InvalidOperationException($"unexpected response, {count} bytes");
+            }
+            return $"idle={idleSeconds}s response_bytes={count}";
+        }
     }
 
     //

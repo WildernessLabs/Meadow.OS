@@ -49,10 +49,12 @@ Meadow.Core does not connect to the default access point.
 - **Order:** `wifi.connected` runs first and the other cases are skipped if it fails, so a WiFi failure
   never reaches the web server. The web server at `LocalServer` must be running for the HTTP and
   socket cases.
+- **Idle server:** run `python3 tests/managed/EspcpTests/idle_server.py` on a machine on the bench network and set `IdleServer` in `MeadowApp.cs` to its address (192.168.1.65 today).
 - **Constants:** `LocalServer` (192.168.1.65, a small web page) and `Blackhole` (10.255.255.1, an
   address nobody answers) are at the top of `MeadowApp.cs`.
 - **Cases:** `wifi.connected`, `socket.send_timeout_default` (reads SO_SNDTIMEO back with
   `GetSocketOption`, expects 10 s; currently a known failure, see the manifest), `http.get_local`, `http.repeat_local_x30`, `tcp.connect_close_x40` (4 sockets at a time: the bench web server queues only five connections),
+  `tcp.idle_receive_70s` (a receive left pending for 70 s, past the 60 s poll timeout, still completes; needs `idle_server.py` running, because the bench web server closes an idle connection after 60 s. The poll timeout itself does not fire here: the socket engine re-polls every fraction of a second),
   `tcp.connect_blackhole_bounded` (a connect that is never answered must end within 90 s),
   and the same HTTP and socket cases again afterwards to show the ESP32 still works.
 - **Limit:** the 30 second response timeout in `espcp_queue_message()` is reached only when the
