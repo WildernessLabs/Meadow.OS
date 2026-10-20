@@ -122,6 +122,7 @@ struct espcp_usrsock_conn_s
     uint8_t esp_state;
 };
 
+#define ESPCP_POLL_TIMEOUT_MILLISECONDS  60000  /* limit on how long the ESP32 holds a poll worker */
 #define ESPCP_SEND_TIMEOUT_SECONDS       10     /* SO_SNDTIMEO set on every new ESP32 socket */
 
 /*
@@ -1704,7 +1705,13 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     }
     request->socket_handle = espcp_sockfd(psock);
     request->events = fds->events;
-    request->timeout = -1;
+    //
+    //  Bound how long the ESP32 holds a poll worker.  An ESP32 that honours the timeout ends an
+    //  orphaned poll (one whose teardown was lost) instead of keeping its worker for ever; the
+    //  current Meadow-ESP32 ignores the field and polls with no timeout, as it always did.
+    //  Teardown normally comes within a fraction of a second, so this only limits the orphan case.
+    //
+    request->timeout = ESPCP_POLL_TIMEOUT_MILLISECONDS;
     request->setup = 1;
     request->setup_message_id = espcp_get_next_message_id();
 
