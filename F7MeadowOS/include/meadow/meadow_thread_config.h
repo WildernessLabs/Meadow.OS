@@ -246,16 +246,6 @@
 */
 
 /**
- *      CONFIG_USERMAIN_PRIORITY and SCHED_PRIORITY_DEFAULT
- * 
- * This value is set using the NuttX configuration system.
- * 
- * Default value: 100
- * 
- * See nx_bringup.c
- */
-
-/**
  * This thread waits for the Mono task to exit and then resets the board.  It
  * sleeps in waitpid() for the life of Mono, so the priority only decides how
  * quickly the reset follows an exit.  100 matches the hcom bring-up thread that
