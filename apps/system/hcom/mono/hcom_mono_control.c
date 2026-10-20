@@ -366,6 +366,8 @@ static void *monitor_mono_task(void *arg)
     int mono_pid = *((int *)arg);
     int status;
 
+    free(arg);
+
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
   syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
     gettid(), getpid(), "hcom_mono_control");
@@ -383,12 +385,30 @@ static void *monitor_mono_task(void *arg)
 static void start_monitoring_thread(int mono_pid)
 {
     pthread_t monitor_thread;
+    pthread_attr_t attr;
+    struct sched_param param;
+    int ret;
     int *pid_arg = malloc(sizeof(int));
+
+    if (pid_arg == NULL) {
+        syslog(LOG_CRIT, "%s@%d-no memory for %s\n",
+               __FILE__, __LINE__, HCOM_THREAD_NAME_MONO_MONITOR);
+        return;
+    }
     *pid_arg = mono_pid;
 
-    // Create the monitoring thread
-    if (pthread_create(&monitor_thread, NULL, monitor_mono_task, pid_arg) != 0) {
-        perror("Failed to create monitoring thread");
+    param.sched_priority = HCOM_THREAD_PRIORITY_MONO_MONITOR;
+    (void) pthread_attr_init(&attr);
+    (void) pthread_attr_setschedparam(&attr, &param);
+    (void) pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_MONO_MONITOR);
+    (void) pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    // Create the monitoring thread, which frees pid_arg
+    ret = pthread_create(&monitor_thread, &attr, monitor_mono_task, pid_arg);
+    (void) pthread_attr_destroy(&attr);
+    if (ret != 0) {
+        syslog(LOG_CRIT, "%s@%d-create thread %s, ret:%d\n",
+               __FILE__, __LINE__, HCOM_THREAD_NAME_MONO_MONITOR, ret);
         free(pid_arg);
     }
     else {

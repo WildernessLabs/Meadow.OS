@@ -256,12 +256,20 @@
  */
 
 /**
- * This thread waits for the Mono task to exit and records how it ended.  It is
- * created without attributes, so it inherits the priority of the thread that
- * starts Mono (the hcom bring-up, CONFIG_USERMAIN_PRIORITY) and has the default
- * pthread stack size; only its name is set here.
+ * This thread waits for the Mono task to exit and then resets the board.  It
+ * sleeps in waitpid() for the life of Mono, so the priority only decides how
+ * quickly the reset follows an exit.  100 matches the hcom bring-up thread that
+ * used to be inherited, and is above MONO_TASK_PRIORITY.
+ *
+ * The stack size is a measured value, not a guess: see "Measuring a thread
+ * stack" in Documentation/Debugging.md.  Peak use while waiting in waitpid()
+ * was 704 bytes (measured with CONFIG_STACK_COLORATION, Mono running).  The
+ * code that runs after Mono exits (the reset syscall) is not measured, so the
+ * size keeps about 1100 bytes of margin, as the other 2048 byte hcom threads do.
  */
+#define HCOM_THREAD_PRIORITY_MONO_MONITOR           100
 #define HCOM_THREAD_NAME_MONO_MONITOR               "MonoMonitor"
+#define HCOM_THREAD_STACKSIZE_MONO_MONITOR          2048
 
 
 /**

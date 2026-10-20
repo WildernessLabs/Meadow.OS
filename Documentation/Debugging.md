@@ -205,6 +205,34 @@ To get kernel panic stack dumps on USART1 (COM1) instead of using RAMLOG:
 
 This reconfigures the build to route syslog output to USART1 and disables RAMLOG. Useful for post-mortem analysis of crashes where the RAMLOG cannot be retrieved via the debugger.
 
+## Measuring a thread stack
+
+The NSH `ps` command reports stack use per thread when stack coloration is on. The default
+configuration does not enable it, so measure on a developer build:
+
+```bash
+./build.sh --clean --force --configure --nsh --dualcdc
+kconfig-tweak --file nuttx/.config --enable STACK_COLORATION
+./build.sh --nsh --dualcdc
+```
+
+Flash it, write the matching Mono runtime (`Meadow.OS.Runtime.bin`) and reset the board. NSH runs on
+the second Meadow CDC port (`/dev/cu.usbmodem<serial>3`). Send `ps` and read the thread's row:
+
+```
+  TID   PID  PPID PRI POLICY   TYPE    NPX STATE    EVENT     SIGMASK            STACK    USED FILLED    CPU COMMAND
+   15     9     0 100 RR       pthread   - Waiting  Semaphore 0000000000000000 0003880 0000704  18.1%   0.0% MonoMonitor 0x808bfc9 0x2007fe28
+```
+
+`STACK` is the usable size in bytes, `USED` is the peak so far and `FILLED` is `USED` as a percentage.
+
+- Measure while the thread does its real work, not only while it waits. `USED` is a high-water
+  mark, so a path that has not run yet is not counted.
+- Choose the size from `USED` plus a margin, and record the measurement in the comment next to the
+  size in `F7MeadowOS/include/meadow/meadow_thread_config.h`.
+- `CONFIG_SYSTEM_MONO` is only set when the generated `apps/system/Kconfig` knows about
+  `apps/system/mono`. If a build has no `Mono` task, run the `--clean --force` configure above.
+
 ## Tips
 
 - If GDB fails to connect, ensure the OpenOCD server is running in Terminal 1 first. The script checks port 4242 with `nc` before launching GDB.
