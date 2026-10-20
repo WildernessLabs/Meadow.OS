@@ -55,6 +55,7 @@
 #include <poll.h>
 #include <strings.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <nuttx/arch.h>
 #include <netdb.h>
@@ -123,6 +124,7 @@ struct espcp_usrsock_conn_s
 };
 
 #define ESPCP_POLL_TIMEOUT_MILLISECONDS  60000  /* limit on how long the ESP32 holds a poll worker */
+#define ESPCP_POLL_TEARDOWN_ATTEMPTS     3      /* tries at sending a poll teardown message */
 #define ESPCP_SEND_TIMEOUT_SECONDS       10     /* SO_SNDTIMEO set on every new ESP32 socket */
 
 /*
@@ -1901,7 +1903,22 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
             return (-ENOMEM);
         }
 
-        if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+        //
+        //  A lost teardown leaves the poll armed on the ESP32 until the polled socket closes, and enough
+        //  of those use up its poll workers.  So try the teardown message a few times before giving up.
+        //
+        uint32_t queue_result = espcp_status_codes_failure;
+        for (int attempt = 0; attempt < ESPCP_POLL_TEARDOWN_ATTEMPTS; attempt++)
+        {
+            queue_result = espcp_queue_message(message, true);
+            if (queue_result == espcp_status_codes_completed_ok)
+            {
+                break;
+            }
+            usleep(10000);
+        }
+
+        if (queue_result == espcp_status_codes_completed_ok)
         {
             espcp_integer_and_errno_response_t *response = espcp_extract_integer_and_errno_response(message->payload);
             if (response == NULL)
