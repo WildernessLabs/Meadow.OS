@@ -42,10 +42,15 @@
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
+#include <syslog.h>
+#include <unistd.h>
+#include <semaphore.h>
 
 #include <nuttx/semaphore.h>
+#include <nuttx/net/net.h>
 
 #include "espcp_common.h"
+#include "espcp_message_dispatcher.h"
 #include <meadow/hcom_shared_common.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 
@@ -59,13 +64,90 @@
  * Definitions
  ****************************************************************************/
 
+/**
+ *  How long to wait for the ESP32 to answer a blocking request, and the number of
+ *  consecutive unanswered requests after which the ESP32 is declared not responding
+ *  (later calls then fail fast with ENETDOWN instead of each waiting out a timeout).
+ */
+#define ESPCP_RESPONSE_TIMEOUT_MILLISECONDS     30000
+#define ESPCP_RESPONSE_TIMEOUT_LIMIT            3
+
 /****************************************************************************
  * Private Data / Variables
  ****************************************************************************/
 
+/**
+ *  Number of requests in a row that the ESP32 has not answered.
+ */
+static volatile int g_espcp_response_timeouts = 0;
+
 /****************************************************************************
  * Function Implementation
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: espcp_queue_message_timed_out
+ *
+ * Description:
+ *  Deal with a blocking request that has not been answered in time.
+ *
+ *  The message is detached from the dispatcher's waiting list before this
+ *  returns, so a late response can no longer post the caller's stack
+ *  semaphore or write into a message the caller is about to free.
+ *
+ * Input Parameters:
+ *  message - Pointer to the unanswered espcp_message_t object.
+ *
+ * Returned Value:
+ *  espcp_status_codes_timeout if the request was sent and never answered,
+ *  espcp_status_codes_completed_ok if the response arrived after all.
+ *
+ ****************************************************************************/
+static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
+{
+    if (espcp_cancel_waiting_message(message))
+    {
+        //
+        //  Sent but never answered.  Count the losses and, after enough of them in a row, mark
+        //  the ESP32 as not responding so later calls fail fast.
+        //
+        g_espcp_response_timeouts++;
+        if (g_espcp_response_timeouts >= ESPCP_RESPONSE_TIMEOUT_LIMIT)
+        {
+            syslog(LOG_ERR, "espcp: %d consecutive response timeouts, marking the ESP32 as not responding\n",
+                   g_espcp_response_timeouts);
+            espcp_config_lock();
+            espcp_get_configuration()->esp_not_responding = true;
+            espcp_config_unlock();
+        }
+        return (espcp_status_codes_timeout);
+    }
+
+    //
+    //  Not on the waiting list: either the response raced the timeout (the semaphore has already
+    //  been posted) or the message has not been transmitted yet.  Allow a little time for the post.
+    //  If the message is still unsent after that, fall back to waiting for ever, as returning would
+    //  free a message that the espcp thread still owns.
+    //
+    for (int i = 0; i < 100; i++)
+    {
+        if (sem_trywait(message->semaphore) == 0)
+        {
+            g_espcp_response_timeouts = 0;
+            return (espcp_status_codes_completed_ok);
+        }
+        usleep(100000);
+    }
+
+    syslog(LOG_ERR, "espcp: message 0x%08x is stuck before transmission, waiting for it\n",
+           (unsigned int) message->message_id);
+    if (net_sem_wait_uninterruptible(message->semaphore) != 0)
+    {
+        return (espcp_status_codes_failure);
+    }
+    g_espcp_response_timeouts = 0;
+    return (espcp_status_codes_completed_ok);
+}
 
 /****************************************************************************
  * Name: espcp_queue_message
@@ -106,13 +188,28 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
         if (block)
         {
             //
-            //  net_sem_wait_uninterruptible() waits again if a signal interrupts the
-            //  wait, so it only returns once the semaphore has been taken or on a
-            //  genuine failure.  It returns a negated errno and does not set errno.
+            //  Wait for the response, but not for ever.  If the ESP32 stops answering, an unbounded
+            //  wait strands every caller: the semaphore is on this stack frame and the message belongs
+            //  to the caller, so nothing can ever recover them.
             //
-            if (net_sem_wait_uninterruptible(message->semaphore) != 0)
+            //  net_sem_timedwait_uninterruptible() waits again if a signal interrupts the wait.  It
+            //  returns a negated errno and does not set errno.
+            //
+            int wait_result = net_sem_timedwait_uninterruptible(message->semaphore, ESPCP_RESPONSE_TIMEOUT_MILLISECONDS);
+            if (wait_result == 0)
             {
-                result = espcp_status_codes_failure;
+                g_espcp_response_timeouts = 0;
+            }
+            else
+            {
+                if (wait_result == -ETIMEDOUT)
+                {
+                    result = espcp_queue_message_timed_out(message);
+                }
+                else
+                {
+                    result = espcp_status_codes_failure;
+                }
             }
         }
     }
