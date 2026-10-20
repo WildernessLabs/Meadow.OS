@@ -86,6 +86,12 @@ All commands run from the **workspace root**, not from `nuttx/`:
 See `Documentation/Debugging.md` for flashing and hardware-debug workflows (`flash.sh`,
 `debug.sh`, GDB helper scripts); see `esp32/CLAUDE.md` for ESP32 coprocessor build commands.
 
+## Flashing and Debugging
+
+This repository is designed for Meadow boards, and the `embedded-debugger` skill contains the
+instructions for flashing and debugging them. Load that skill (via the Skill tool) whenever you
+flash a board or debug code on one.
+
 ## Coding Style
 
 Do not apply the NuttX coding style or `tools/checkpatch.sh` to Meadow's own code: `F7MeadowOS/`,
