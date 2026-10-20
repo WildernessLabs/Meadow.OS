@@ -122,6 +122,8 @@ struct espcp_usrsock_conn_s
     uint8_t esp_state;
 };
 
+#define ESPCP_SEND_TIMEOUT_SECONDS       10     /* SO_SNDTIMEO set on every new ESP32 socket */
+
 /*
  *  Readiness cache bits (espcp_usrsock_conn_s.esp_state).
  *
@@ -2881,6 +2883,17 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
                                 {
                                     conn->esp_sockfd = result;
                                     psock->s_conn = conn;
+
+                                    //
+                                    //  Bound how long an ESP32 send can block.  The ESP32 serves requests from
+                                    //  a small pool of workers, and a send stuck on a dead peer (TCP retransmits
+                                    //  for minutes) holds one.  A few of those use up the pool and every request
+                                    //  then fails with thread pool is full (seen as ENOMEM).  Best effort.
+                                    //
+                                    struct timeval send_timeout;
+                                    send_timeout.tv_sec = ESPCP_SEND_TIMEOUT_SECONDS;
+                                    send_timeout.tv_usec = 0;
+                                    (void) espcp_usrsock_setsockopt(psock, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(send_timeout));
                                 }
                             }
                         }
