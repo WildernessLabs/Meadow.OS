@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+      espcp network robustness tests (issue #708) as a Meadow app.
+
+      Meadow.Core comes from the meadow-3.0 checkout: MEADOW_CORE_DIR, or ../../meadow-3.0/Meadow.Core.
+      The runner (tools/testrunner) chooses the Mono options and the network settings by setting
+      MEADOW_TEST_CONFIG to a generated meadow.config.yaml; without it the app ships the
+      meadow.config.yaml from this folder.
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>App</AssemblyName>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepositoryRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../..'))</RepositoryRoot>
+    <MeadowCoreDir Condition="'$(MEADOW_CORE_DIR)' != ''">$(MEADOW_CORE_DIR)</MeadowCoreDir>
+    <MeadowCoreDir Condition="'$(MeadowCoreDir)' == ''">$(RepositoryRoot)/../../meadow-3.0/Meadow.Core</MeadowCoreDir>
+    <MeadowTestConfig Condition="'$(MEADOW_TEST_CONFIG)' != ''">$(MEADOW_TEST_CONFIG)</MeadowTestConfig>
+    <MeadowTestConfig Condition="'$(MeadowTestConfig)' == ''">$(MSBuildThisFileDirectory)meadow.config.yaml</MeadowTestConfig>
+  </PropertyGroup>
+
+  <Target Name="CheckMeadowCore" BeforeTargets="BeforeBuild">
+    <Error Condition="!Exists('$(MeadowCoreDir)/Source/implementations/f7/Meadow.F7/Meadow.F7.csproj')" Text="No Meadow.Core at $(MeadowCoreDir).  Set MEADOW_CORE_DIR to the meadow-3.0 Meadow.Core checkout." />
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="$(MeadowCoreDir)/Source/implementations/f7/Meadow.F7/Meadow.F7.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(MeadowTestConfig)" Link="meadow.config.yaml" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+  </ItemGroup>
+</Project>

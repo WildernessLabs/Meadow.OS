@@ -69,7 +69,11 @@ tests:
       timeout_s: 900
       known_failures:
           exceptions.test_0_ldflda_null_pointer: <reason>
+      config: tests/managed/EspcpTests/meadow.config.yaml   # optional
 ```
+
+`config` names the test's own `meadow.config.yaml` (for example one with a `Network` section). The
+runner uses it as the base for each mode and replaces only its `MonoControl` section.
 
 For each mode the runner writes a `meadow.config.yaml` with that mode's options. It passes the
 file to the build in `MEADOW_TEST_CONFIG`, and the test app's project ships that file in place of

@@ -55,6 +55,7 @@
 #include <poll.h>
 #include <strings.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include <nuttx/arch.h>
 #include <netdb.h>
@@ -121,6 +122,10 @@ struct espcp_usrsock_conn_s
      */
     uint8_t esp_state;
 };
+
+#define ESPCP_POLL_TIMEOUT_MILLISECONDS  60000  /* limit on how long the ESP32 holds a poll worker */
+#define ESPCP_POLL_TEARDOWN_ATTEMPTS     3      /* tries at sending a poll teardown message */
+#define ESPCP_SEND_TIMEOUT_SECONDS       10     /* SO_SNDTIMEO set on every new ESP32 socket */
 
 /*
  *  Readiness cache bits (espcp_usrsock_conn_s.esp_state).
@@ -1702,7 +1707,13 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     }
     request->socket_handle = espcp_sockfd(psock);
     request->events = fds->events;
-    request->timeout = -1;
+    //
+    //  Bound how long the ESP32 holds a poll worker.  An ESP32 that honours the timeout ends an
+    //  orphaned poll (one whose teardown was lost) instead of keeping its worker for ever; the
+    //  current Meadow-ESP32 ignores the field and polls with no timeout, as it always did.
+    //  Teardown normally comes within a fraction of a second, so this only limits the orphan case.
+    //
+    request->timeout = ESPCP_POLL_TIMEOUT_MILLISECONDS;
     request->setup = 1;
     request->setup_message_id = espcp_get_next_message_id();
 
@@ -1892,7 +1903,22 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
             return (-ENOMEM);
         }
 
-        if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
+        //
+        //  A lost teardown leaves the poll armed on the ESP32 until the polled socket closes, and enough
+        //  of those use up its poll workers.  So try the teardown message a few times before giving up.
+        //
+        uint32_t queue_result = espcp_status_codes_failure;
+        for (int attempt = 0; attempt < ESPCP_POLL_TEARDOWN_ATTEMPTS; attempt++)
+        {
+            queue_result = espcp_queue_message(message, true);
+            if (queue_result == espcp_status_codes_completed_ok)
+            {
+                break;
+            }
+            usleep(10000);
+        }
+
+        if (queue_result == espcp_status_codes_completed_ok)
         {
             espcp_integer_and_errno_response_t *response = espcp_extract_integer_and_errno_response(message->payload);
             if (response == NULL)
@@ -2019,7 +2045,12 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
 
     meadow_watchdog_t watchdog_poll = meadow_watchdog_activate(WATCHDOG_POLL_TIMEOUT_MILLISECONDS, POLL_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    //
+    //  Teardown always runs, even when the ESP32 is not responding: it removes the request from
+    //  the list, and a request left there points at a pollfd that is about to be freed.  Teardown
+    //  deals with the not-responding case itself, after that clean up.
+    //
+    if (setup && espcp_get_configuration()->esp_not_responding)
     {
         meadow_watchdog_deactivate(watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
@@ -2881,6 +2912,17 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
                                 {
                                     conn->esp_sockfd = result;
                                     psock->s_conn = conn;
+
+                                    //
+                                    //  Bound how long an ESP32 send can block.  The ESP32 serves requests from
+                                    //  a small pool of workers, and a send stuck on a dead peer (TCP retransmits
+                                    //  for minutes) holds one.  A few of those use up the pool and every request
+                                    //  then fails with thread pool is full (seen as ENOMEM).  Best effort.
+                                    //
+                                    struct timeval send_timeout;
+                                    send_timeout.tv_sec = ESPCP_SEND_TIMEOUT_SECONDS;
+                                    send_timeout.tv_usec = 0;
+                                    (void) espcp_usrsock_setsockopt(psock, SOL_SOCKET, SO_SNDTIMEO, &send_timeout, sizeof(send_timeout));
                                 }
                             }
                         }
