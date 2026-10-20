@@ -271,16 +271,21 @@
 
 /**
  * This task runs the mono runtime system and any threads created as part of
- * application execution.  Note that threads launched by Mono will also run at
- * this priority.  This has the effect of putting in a round-robin scheduling
- * pattern.  Care should be taken when creating any other threads at this priority
- * as they will be impacted by the number of threads created by mono and the user
- * application.
+ * application execution.  Note that threads launched by Mono run at this priority
+ * too, for a managed ThreadPriority of Normal.  This has the effect of putting in a
+ * round-robin scheduling pattern.  Care should be taken when creating any other
+ * threads at this priority as they will be impacted by the number of threads created
+ * by mono and the user application.
+ * 
+ * The other managed priorities are spread over a band around this one, 70 (Lowest)
+ * to 90 (Highest) in steps of 5, which is below every other thread in this file.
  * 
  * **** IMPORTANT ****
- * There is also a definition for MONO_THREAD_PRIORITY in the file
- * mono/mono/metadata/threads.c any change to this priority must be replicated in
- * both files.
+ * The runtime has its own definitions of these priorities,
+ * MONO_NUTTX_THREAD_PRIORITY_LOWEST, _NORMAL and _HIGHEST in
+ * mono/mono/utils/mono-threads.h.  _NORMAL must equal this priority, and the band
+ * must stay below the lowest priority of the system threads above (100 today).  Any
+ * change here must be replicated there.
  */
 #define MONO_TASK_PRIORITY                          80
 #define MONO_TASK_NAME                              "Mono"
