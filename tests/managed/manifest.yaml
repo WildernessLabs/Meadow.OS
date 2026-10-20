@@ -37,7 +37,7 @@ tests:
       project: tests/managed/EspcpTests/EspcpTests.csproj
       config: tests/managed/EspcpTests/meadow.config.yaml
       modes: [jit]
-      expected_s: 150
+      expected_s: 420
       timeout_s: 600
       known_failures:
           socket.send_timeout_default: >-
