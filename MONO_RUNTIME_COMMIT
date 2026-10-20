@@ -14,5 +14,5 @@
 
 repository=https://github.com/WildernessLabs/runtime
 branch=MergeManagedCode
-commit=7c72ee399ddf0cad8fad058cb58b3872a6083d81
-tree=0d77e6d228e8a6422423e33cf8eaf3a12f5fa890
+commit=82d0a523ea709568b4d51fde5b5de1c9fefea65e
+tree=b087b7ea091793b60b3c70f47585a60c48178d2c
