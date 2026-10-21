@@ -70,7 +70,6 @@ Rebase/
 +-- nuttx/              NuttX kernel source tree
 +-- F7MeadowOS/         Wilderness Labs kernel extensions and board support
 +-- apps/               NuttX applications (hcom lives in apps/system/hcom/)
-+-- esp32/              ESP32 coprocessor firmware
 +-- mbedtls/            mbedTLS library for TLS support
 +-- gdb/                GDB init scripts and Python helpers
 +-- scripts/            Build helper scripts (common_methods.sh, etc.)
@@ -81,6 +80,9 @@ Rebase/
 +-- debug.cfg           OpenOCD configuration for debugging
 +-- flash.cfg           OpenOCD configuration for flashing
 ```
+
+The ESP32 coprocessor firmware is not in this repository; it is built from the separate
+Meadow-ESP32 repository.
 
 ## Build System
 

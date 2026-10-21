@@ -8,8 +8,8 @@ scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
 . $scriptdir/scripts/configuration_tweaks.sh
 
 #
-#   generate_build_info rewrites tracked files (hcom_nuttx_shared.h,
-#   esp32/version.txt, esp32/main/build_info.template) as scratch space.  This
+#   generate_build_info rewrites the tracked file hcom_nuttx_shared.h as
+#   scratch space.  This
 #   trap restores them on every exit path - success, an error under set -e, or
 #   a signal - so a failed build cannot leave the tree dirty or poison the next
 #   build with stale version data.  (user-space.ld is not rewritten: the
