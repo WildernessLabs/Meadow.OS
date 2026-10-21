@@ -25,3 +25,8 @@ Some source directories have their own, more detailed documentation that isn't d
 | [`F7MeadowOS/espcp/readme.md`](../F7MeadowOS/espcp/readme.md) | ESP32 coprocessor overview |
 | [`F7MeadowOS/espcp/doc/coprocessor.md`](../F7MeadowOS/espcp/doc/coprocessor.md) | ESP32/STM32 wire protocol and GPIO handshake lines |
 | [`F7MeadowOS/espcp/doc/ImplementingPoll.md`](../F7MeadowOS/espcp/doc/ImplementingPoll.md) | Cross-layer `poll()` implementation (Mono/NuttX/usrsock/ESP32) |
+| [`tools/testrunner/README.md`](../tools/testrunner/README.md) | Managed test runner: manifest format, modes, output contract |
+| [`tests/managed/README.md`](../tests/managed/README.md) | Managed test apps (`MiniTests`, `EspcpTests`) and their bench requirements |
+
+The ESP32 coprocessor firmware is not in this repository; it is built from the separate
+Meadow-ESP32 repository.

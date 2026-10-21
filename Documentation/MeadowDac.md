@@ -770,11 +770,13 @@ that is about 93 ms; with the largest (16,384), about 186 ms.
 
 The test's writer runs at priority 180, so the results above are a best case. Managed code
 runs differently: in Legacy all managed threads ran at NuttX priority 80
-(`MONO_TASK_PRIORITY`, also in `meadow_thread_config.h`) with round-robin scheduling, and the
-same is expected here. That matters in two ways:
+(`MONO_TASK_PRIORITY`, also in `meadow_thread_config.h`) with round-robin scheduling. Since
+issue #698 a managed thread with the default `ThreadPriority.Normal` still runs at 80, and the
+other managed priorities map to a band from 70 (Lowest) to 90 (Highest) in steps of 5. That
+matters in two ways:
 
 - **Higher-priority threads** (HCOM, the trace threads, the ESP32 threads and the work
-  queues, all above 80) can delay a managed writer. In normal use they run briefly.
+  queues, all at 100 or above) can delay a managed writer. In normal use they run briefly.
 - **Round-robin** shares the CPU between busy threads of equal priority in slices of
   `CONFIG_RR_INTERVAL`, 200 ms on Meadow. If another managed thread keeps the CPU busy, the
   writer can wait up to 200 ms, which is more than even the largest ring can cover at audio
@@ -784,8 +786,9 @@ So for Meadow.Core:
 
 - The default ring (8,192) suits most uses, provided the app is not also running CPU-bound
   managed code.
-- For audio alongside busy code, use the largest ring, run the writer at a higher priority
-  than other managed threads, or use a lower sample rate.
+- For audio alongside busy code, use the largest ring, run the writer at a higher managed
+  priority than other managed threads (for example `ThreadPriority.Highest`, NuttX 90), or use
+  a lower sample rate.
 - Small rings (below about 1,024) are for low latency with a high-priority writer only.
 
 If this proves limiting, the ring could give the writer the whole ring of slack instead of
@@ -1065,7 +1068,8 @@ Rates that do not divide TIM6's 108 MHz clock exactly play at the nearest rate i
 ### The Player Thread
 
 - **Priority 110,** a new `DAC_PLAYER_THREAD_PRIORITY` in `meadow_thread_config.h`. That is
-  above managed code (80, `MONO_TASK_PRIORITY`) and the low-priority work queue (100), so
+  above managed code (70-90, Normal = 80 = `MONO_TASK_PRIORITY`) and the low-priority work
+  queue (100), so
   neither busy managed threads nor round-robin can delay it, and below HCOM (180) and the
   ESP32 threads (125 and above).
 - **One thread per playing channel,** created by the start call and exiting when its file

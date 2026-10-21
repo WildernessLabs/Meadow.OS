@@ -155,6 +155,10 @@ driver on `/dev/nxupd` until the two were consolidated.
 
 Custom protocol layer that communicates with the ESP32 WiFi coprocessor over a dedicated UART and SPI. Exposes network connectivity to NuttX via the `usrsock` interface.
 
+The ESP32 firmware itself is not part of this repository: it is built and released from the
+separate Meadow-ESP32 repository. This repository contains only the STM32 side (`espcp` in the
+kernel and `esp32/` in `hcom`).
+
 ## User Space
 
 The single user-space application is `hcom` (entry point `hcom_main`). See [Userspace.md](Userspace.md) for a detailed breakdown.
