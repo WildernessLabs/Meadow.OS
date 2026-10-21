@@ -584,6 +584,26 @@ Results go to the syslog (`LOG_MTEST`).
 * Without a card, test 13 logs "SD-Card not mounted" and still runs; the `/sdcard` cases then
   report that they could not open `/sdcard`.
 
+## Managed Tests (Test Runner)
+
+The tests above are native tests built into the OS. Managed (C#) test apps are separate: they
+live under `tests/managed/` and are built, deployed and scored by `tools/testrunner/testrunner.py`
+from the entries in `tests/managed/manifest.yaml`. See `tools/testrunner/README.md` for the
+runner and its output contract, and `tests/managed/README.md` for the apps.
+
+| App | What it covers |
+|-----|----------------|
+| `MiniTests` | Mono's mini JIT regression suite (issue #726), under the JIT and the interpreter |
+| `EspcpTests` | espcp network robustness (issue #708): WiFi, `SO_SNDTIMEO` on new sockets, repeated HTTP and socket open/close (poll setup and teardown), a 70 s idle receive, and a connect that is never answered |
+
+A manifest entry may name its own `meadow.config.yaml` with the `config` key (for example one with
+a `Network` section, as `EspcpTests` does). The runner uses that file as the base for each mode and
+replaces only its `MonoControl` section.
+
+`EspcpTests` needs the board on WiFi (`wifi.config.yaml` deployed once beforehand), the bench web
+server, and `tests/managed/EspcpTests/idle_server.py` running on the bench network. Known failures,
+such as `socket.send_timeout_default`, are listed with their reasons in the manifest.
+
 ## Adding New Tests
 
 To add a new kernel-space test:

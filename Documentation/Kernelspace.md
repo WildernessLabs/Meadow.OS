@@ -135,6 +135,7 @@ Source: `F7MeadowOS/meadow_os`
 Source: `F7MeadowOS/espcp`
 
 The ESP32 coprocessor provides WiFi connectivity. The STM32 communicates with it over a dedicated UART and SPI interface using a custom binary protocol.
+The ESP32 firmware is built from the separate Meadow-ESP32 repository; only the STM32 side lives here.
 
 ### Architecture
 
@@ -180,6 +181,23 @@ full wire protocol, GPIO handshake lines, firmware upload procedure, and the cro
 implementation (Mono/NuttX/usrsock/ESP32), see `F7MeadowOS/espcp/readme.md` and the docs under
 `F7MeadowOS/espcp/doc/` (`coprocessor.md`, `ImplementingPoll.md`) - these are more detailed than
 this summary and are not duplicated here.
+
+### Timeouts and Recovery (Issue #708)
+
+espcp bounds the waits that previously could block a caller for ever when the ESP32 stopped
+answering or a remote peer went away:
+
+| Limit | Where | Behaviour |
+|-------|-------|-----------|
+| 30 s response timeout | `espcp_queue_message()` in `espcp_common.c` (`ESPCP_RESPONSE_TIMEOUT_MILLISECONDS`) | A blocking request that gets no response returns a timeout. The message is first removed from the dispatcher's waiting list (`espcp_cancel_waiting_message()`), so a late response cannot touch the caller's freed message or stack semaphore. |
+| 3 consecutive timeouts | `espcp_common.c` (`ESPCP_RESPONSE_TIMEOUT_LIMIT`) | The ESP32 is marked not responding (`esp_not_responding`); later calls fail fast with `ENETDOWN`. Any answered request resets the count. |
+| 60 s poll timeout | `espcp_usrsock_poll_setup()` (`ESPCP_POLL_TIMEOUT_MILLISECONDS`) | Sent with each poll request so that an ESP32 firmware that honours it ends an orphaned poll instead of holding a worker. |
+| 3 teardown attempts | `espcp_usrsock_poll_teardown()` (`ESPCP_POLL_TEARDOWN_ATTEMPTS`) | A lost teardown leaves a poll armed on the ESP32, so it is retried. Teardown also runs when the ESP32 is not responding, so the request is always removed from the list before its `pollfd` is freed. |
+| 10 s `SO_SNDTIMEO` | `espcp_usrsock_socket()` (`ESPCP_SEND_TIMEOUT_SECONDS`) | Set on every new ESP32 socket (best effort) so a send to a dead peer cannot hold one of the ESP32's small pool of workers for minutes and exhaust it (seen as `ENOMEM`, "thread pool is full"). |
+
+The `EspcpTests` managed test app (see [RunningDeveloperTests.md](RunningDeveloperTests.md))
+exercises these paths on hardware, except the 30 s response timeout, which needs an ESP32 that
+stops answering altogether.
 
 ## `ethernet` - Wired Ethernet
 

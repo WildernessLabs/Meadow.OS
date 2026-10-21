@@ -180,6 +180,11 @@ QEMU support allows debugging without physical hardware.
 ./debug.sh --server --qemu --esp
 ```
 
+The ESP32 firmware is no longer in this repository; it is built from the separate Meadow-ESP32
+repository. `debug.sh` boots the image from `Meadow-ESP32/Source/MeadowComms/MeadowComms-qemu.bin`
+and runs QEMU from `qemu-esp32/build/xtensa-softmmu/qemu-system-xtensa`, both relative to the
+workspace root, so clone (or symlink) Meadow-ESP32 and build its QEMU image there first.
+
 QEMU ARM machine configuration:
 - Machine: `meadow`
 - Boot image: `nuttx/Meadow.OS.bin` (or `nuttx.bin` fallback)
