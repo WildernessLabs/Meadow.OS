@@ -35,6 +35,7 @@
 
 #include <nuttx/config.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -109,12 +110,13 @@ extern char *ramlog_get_sysbuffer_pointer(void);
  *  then start of the line is found or the endstop is reached.
  * 
  * Input Parameters:
- *  buffer - buffer to search.
+ *  start - point in the buffer from which to search backwards.
  *  endstop - point where we will always stop even if we have not found the
  *            start of the line.
  *
  * Returned Value:
- *  None.
+ *  Pointer to the first character of the line containing start, or endstop
+ *  if the start of the line was not found before reaching it.
  *
  * Assumptions/Limitations:
  *  None.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The single user-space application is **hcom** (Host Communication). It is the primary application running on Meadow.OS and provides all communication between the Meadow board and a host computer. It runs entirely in unprivileged ARM mode and calls into the kernel only via the NuttX syscall interface.
+The single user-space application is **hcom** (Host Communication). It is the primary application running on Meadow.OS and provides all communication between the Meadow board and a host computer. It runs entirely in unprivileged ARM mode and calls into the kernel through the NuttX syscall interface and through `ioctl()` calls on the `/dev/upd` driver.
 
 - **Source**: `apps/system/hcom`
 - **Entry point**: `hcom_main()` in `hcom_startup_manager.c`
@@ -12,24 +12,41 @@ The single user-space application is **hcom** (Host Communication). It is the pr
 ## Startup Sequence
 
 ```
-NuttX kernel creates hcom task
+NuttX starts the hcom task (CONFIG_INIT_ENTRYPOINT)
         |
         v
 hcom_main()          hcom_startup_manager.c
         |
-        +-> Initialise ESP32 comms threads (if CONFIG_HCOM_ESP32_COMMS)
-        +-> Start OTA subsystem (if CONFIG_MEADOW_CLOUD)
-        +-> Start cellular PPP daemon (hcom_pppd_start, if enabled)
+        +-> Open the kernel driver (/dev/upd): hcom_via_nx_upd_setup()
+        |   (a board that is not supported starts host comms only, see below)
+        +-> Diagnostics setup (trace priority level, common utils, misc)
+        +-> Start the ESP32 UART network monitor thread, reset the ESP32
+        +-> NSH support, misc request, file transfer and file write setup
+        +-> Host enqueue/dequeue and route setup
+        +-> Mono stdout/stderr read thread  (if CONFIG_HCOM_MONO_STDERR_STDOUT)
+        +-> Mono remote-debug setup         (if CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
+        +-> ESP32 UART comms setup          (if CONFIG_HCOM_ESP32_COMMS)
+        +-> Host send setup (no thread: allocates a buffer and a semaphore,
+        |   registers a power-management callback)
         +-> Start host USB receive thread
-        +-> Start host USB send thread
-        +-> Enter main protocol dispatch loop
+        +-> Start kernel-to-user traverse thread
+        +-> Mono main setup
+        +-> Start Mono                      (if CONFIG_SYSTEM_MONO)
+        +-> Launch NSH                      (if CONFIG_SYSTEM_NSH)
+        +-> hcom_host_process_setup(): hcom_main itself becomes the
+            request-processing thread and never returns
 ```
 
-Real dependency/start order as implemented in `hcom_startup_manager.c`: diag (trace priority)
--> esp32 network monitor -> file (STM32/ESP32 download/upload setup) -> comms (enqueue/dequeue,
-route) -> mono (gated by config) -> esp32 UART comms -> comms (send/receive threads).
-`comms/hcom_host_route.c` depends on both `ota/` and `esp32/`; `mono/` depends on
-`diag/hcom_diag_gpio.h`.
+There is no host send thread. The only thread created in `comms/` is the receive thread
+(`hcom_host_receive.c`). Messages are sent synchronously by whichever thread calls the send
+functions, serialised by a semaphore (`hcom_host_send.c`).
+
+The diagram is a summary; `hcom_startup_manager.c` is the authority on the exact order. The OTA
+and cellular/PPP start-up calls are `#if(0)` blocks in that file, so they are not shown (see
+below).
+
+Module dependencies: `comms/hcom_host_route.c` depends on both `ota/` and `esp32/`, and `mono/`
+depends on `diag/hcom_diag_gpio.h`.
 
 ### Currently Disabled Subsystems
 
@@ -59,7 +76,7 @@ apps/system/hcom/
 +-- hcom_common.h            Common includes and type definitions
 +-- comms/                   USB host communication protocol - full protocol state machine
 +-- file/                    File transfer - two parallel subsystems (STM32-side and ESP32-side)
-+-- nx_rqsts/                NuttX syscall request wrappers
++-- nx_rqsts/                Wrappers around ioctl() calls on the /dev/upd kernel driver
 +-- diag/                    Diagnostics, tracing, logging, and a kernel/user IPC channel
 +-- esp32/                   ESP32 coprocessor protocol stack (execute, network monitor, UART)
 +-- mono/                    .NET Mono runtime management (starts apps/system/mono, see below)

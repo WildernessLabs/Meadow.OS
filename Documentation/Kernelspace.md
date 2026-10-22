@@ -13,27 +13,41 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 
 | File | Purpose |
 |------|---------|
-| `stm32_boot.c` | Early board initialisation, clock setup |
-| `stm32_bringup.c` | Late initialisation: mounts procfs, initialises PWM |
-| `stm32_appinitialize.c` | Launches user-space application after kernel is ready |
+| `stm32_boot.c` | `stm32_boardinitialize()` (very early: SPI chip selects, SDRAM, USB GPIO) and `board_late_initialize()` (backup SRAM, PWM, USB CDC/ACM, MPU regions, QSPI flash MTD/FTL, then `meadow_upd_initialize()` and `hcom_nx_setup_mgr()`) |
+| `stm32_bringup.c` | `stm32_bringup()`: mounts procfs, sets up PWM and CS4344 audio, and calls `init_corecomp()` / `init_projectlab()` for the board variant. Only reached when `CONFIG_BOARD_LATE_INITIALIZE` is not set (see below) |
+| `stm32_appinitialize.c` | `board_app_initialize()`: returns OK immediately when `CONFIG_BOARD_LATE_INITIALIZE=y` (the `meadow_os` defconfig), otherwise calls `stm32_bringup()` |
 | `stm32_extmem.c` | FMC/SDRAM initialisation |
 | `stm32_spi.c` | SPI bus configuration |
 | `stm32_usb.c` | USB OTG FS initialisation |
-| `stm32_idle.c` | Idle thread hook (power management integration) |
-| `stm32_autoleds.c` | Tri-colour LED (PA1=Green, PA0=Blue, PA2=Red) |
+| `stm32_usbmsc.c` | USB mass storage class initialisation |
+| `stm32_composite.c` | USB composite device (CDC/ACM plus mass storage) |
+| `stm32_idle.c` | Idle thread hook (`up_idle()`, power management integration) |
 | `stm32_reset.c` | Board reset implementation |
+| `stm32_ioctl.c` | `board_ioctl()`: boardctl commands that enter and exit QSPI flash memory-mapped mode |
+| `stm32_fat_dma.c` | `fat_dma_alloc()` / `fat_dma_free()`: 32-byte aligned FAT volume buffers so SD card DMA works (Issue #653) |
+| `stm32_pwm.c` | `stm32_pwm_setup()`: registers the PWM devices |
+| `board_corecomp.c` | `init_corecomp()`: fixed devices of the F7 Core Compute variant (SD card) |
+| `board_projlab.c` | `init_projectlab()`: fixed devices of the ProjectLab variant (BH1750 light sensor, BMI270 inertial sensor) |
 
 ## Kernel Startup Flow
 
 ```
 Reset
-  +-> stm32_boot()            - clocks, early SRAM init
-        +-> board_late_initialize()
-              +-> stm32_bringup()   - procfs, PWM
-                    +-> stm32_appinitialize()
-                          +-> hcom_nx_setup_mgr()   - Meadow kernel init
-                                +-> task_create("hcom_main")  - launch user app
+  +-> stm32_boardinitialize()    - very early: SPI chip selects, SDRAM, USB GPIO
+  +-> (NuttX nx_start)
+        +-> board_late_initialize()   - Meadow does most of its board setup here
+              +-> backup SRAM, PWM, USB CDC/ACM, MPU regions
+              +-> QSPI flash MTD + FTL
+              +-> meadow_upd_initialize()   - registers /dev/upd
+              +-> hcom_nx_setup_mgr()       - Meadow kernel init
+        +-> user-space init entry point: hcom_main (CONFIG_INIT_ENTRYPOINT)
 ```
+
+`stm32_bringup()` is not on this path. Its only caller is `board_app_initialize()`
+(`stm32_appinitialize.c`), and that call is compiled out when `CONFIG_BOARD_LATE_INITIALIZE=y`,
+which the `meadow_os` defconfig sets. `hcom_nx_setup_mgr()` does not launch `hcom_main`; it
+returns to `board_late_initialize()`, and NuttX then starts `hcom_main` as the user-space
+init entry point.
 
 `hcom_nx_setup_mgr()` is the main Wilderness Labs kernel entry point. It:
 
@@ -51,7 +65,7 @@ Source: `F7MeadowOS/hcom_nx`
 
 ### Config Manager (`hcom_nx_config_manager.c`)
 
-Parses a YAML configuration file stored on the QSPI file system using the embedded `libyaml` library. Configuration includes:
+Parses a YAML configuration file stored on the QSPI file system using the vendored `libcyaml` library (see below). Configuration includes:
 
 - Network interface selection (ESP32 WiFi or Ethernet)
 - WiFi credentials (SSID/password)
@@ -75,7 +89,7 @@ kernel to do arrives as an `ioctl` on this node. Key responsibilities:
 - Exposes board control operations to user space (reset, sleep, version query)
 - Exposes peripherals the protected build puts out of user space's reach (I2C, SPI, PWM,
   GPIO interrupts, ESP32 coprocessor messaging)
-- Relays OTA and CLI requests to `hcom_nx/hcom_nx_upd_route_cmd.c`
+- Relays CLI requests to `hcom_nx/hcom_nx_upd_route_cmd.c`
 - Ensures user-space cannot directly manipulate privileged hardware
 
 It serves two command sets, distinguished by number:
@@ -94,9 +108,9 @@ the header explains the constraint. The HCOM command block is compiled only when
 Until recently the HCOM commands lived in a second driver, `hcom_nx/hcom_nx_upd.c`, on a
 separate node (`/dev/nxupd`). That driver has been removed and its commands merged here.
 
-### OTA Update Router (`hcom_nx_upd_route_cmd.c`)
+### CLI Request Router (`hcom_nx_upd_route_cmd.c`)
 
-Handles the kernel-side of OS update requests received from user space. Writes OTA state flags to the RTC battery-backed registers, which are read by the bootloader on the next boot.
+Despite the name, this file does not handle OS update requests or write OTA state flags. `hcom_nx_route_in_bound_cli_command()` is a switch that forwards CLI requests received from user space to their kernel handlers: `MONO_FLASH`, `BULK_FLASH_ERASE`, `VERIFY_ERASED_FLASH`, `PART_RENEW_FILE_SYS`, the trace and profiler routing requests (to the host or to the UART) and `RTC_READ_TIME`.
 
 ### Battery-Backed Register Access (`hcom_nx_bbreg_access.c`)
 
@@ -104,13 +118,12 @@ Provides safe read/write access to the STM32 RTC `BKxxR` registers for inter-boo
 
 ### Subdirectories
 
-`hcom_nx` also contains three subdirectories not covered by the flat-file list above:
+`hcom_nx` also contains two subdirectories not covered by the flat-file list above:
 
 | Directory | Purpose |
 |-----------|---------|
 | `create_fs/` | Creates and formats the LittleFS QSPI filesystem partitions at first boot |
 | `diag/` | Kernel-side trace/traverse diagnostics support |
-| `tests/` | QSPI flash test cases |
 
 ## `meadow_os` - Core OS Services
 
@@ -127,7 +140,6 @@ Source: `F7MeadowOS/meadow_os`
 | `meadow_os_exceptions.c` | Pass erroro conditions through to .NET applications |
 | `meadow_sdmmc.c` | SD/MMC card initialisation; the NuttX automounter mounts `/sdcard` (see [SdCard.md](SdCard.md)) |
 | `meadow_hw_version.c` | Runtime detection of board hardware revision |
-| `meadow-gpio.c` | GPIO configuration, Meadow-specific pin multiplexing |
 | `meadow_interrupt.c` | External interrupt routing and management |
 
 ## `espcp` - ESP32 Coprocessor
