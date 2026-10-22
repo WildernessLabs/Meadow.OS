@@ -192,7 +192,7 @@ static uint32_t inline *meadow_os_bbd_bbr_number_to_address(uint32_t number)
  *  message - String to be saved.
  *
  * Returned Value:
- *  OK if successful, ERROR otherwise.
+ *  None.
  *
  * Assumptions/Limitations:
  *  None
@@ -222,7 +222,7 @@ void meadow_os_bbd_strdup_to_sram(const char *message)
  *           bytes.
  *
  * Returned Value:
- *  Pointer to destination.
+ *  None.
  *
  * Assumptions/Limitations:
  *  None
