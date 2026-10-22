@@ -102,6 +102,7 @@ static valid_mono_options_t _mono_options[] =
   { "--optimize=", false },
   { "--gc-params=", false },
   { MONO_OPTION_INTERP, true },
+  { MONO_OPTION_INTERP "=", false },
   { MONO_OPTION_AOT, true },
   { MONO_OPTION_JIT, true },
   { "-v", true },
@@ -307,6 +308,16 @@ static char **hcom_mono_ctrl_extract_mono_options(char *options, int *count)
                 }
                 else
                 {
+                  //
+                  //  --interp=<options> passes options to the interpreter (for example
+                  //  jit=<class> for mixed mode).  Mono stores them but does not switch to the
+                  //  interpreter for this form, so it also selects the interpreter: the
+                  //  --interp added below does that.
+                  //
+                  if (strnicmp(option, MONO_OPTION_INTERP "=", strlen(MONO_OPTION_INTERP "=")) == 0)
+                  {
+                    interp = true;
+                  }
                   char **new_result = hcom_mono_ctrl_add_command_line_option(result, option, &option_count);
                   if (new_result == NULL)
                   {
