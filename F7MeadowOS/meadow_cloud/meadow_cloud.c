@@ -10,6 +10,7 @@
 #include "../espcp/espcp_file_system.h"
 
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_cloud.h>
 
 #define MEADOW_CLOUD_PRIVATE_KEY_FILE "meadow_cloud_private.pem"
 #define MEADOW_CLOUD_PUBLIC_KEY_FILE "meadow_cloud_public.pem"
