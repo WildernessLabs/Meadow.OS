@@ -68,7 +68,11 @@ int init_corecomp(void)
     }
 #endif
 
-  /* Initialize Ethernet */
+  /* Ethernet is not initialized here.  It is not enabled for the Core Compute
+   * variant (CONFIG_STM32F7_ETHMAC and CONFIG_NETINIT are not set in
+   * configs/f7corecomp/defconfig).  If Ethernet is ever enabled for this
+   * variant, the initialization must be added here.
+   */
 
   return ret;
 }
