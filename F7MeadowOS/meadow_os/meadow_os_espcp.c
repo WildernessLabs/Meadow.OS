@@ -118,7 +118,7 @@ uint32_t meadow_os_espcp_enter_programming_mode(void)
 }
 
 /****************************************************************************
- * Name: meadow_os_network_monitor_process_line
+ * Name: meadow_os_espcp_monitor_process_line
  *
  * Description:
  *  Process the line of data received from the UART connected to the ESP32.

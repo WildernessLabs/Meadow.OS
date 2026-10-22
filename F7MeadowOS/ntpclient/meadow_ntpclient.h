@@ -1,5 +1,5 @@
 /****************************************************************************
- * apps/include/netutils/meadow_ntpclient.h
+ * F7MeadowOS/ntpclient/meadow_ntpclient.h
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  * 
@@ -35,8 +35,8 @@
  *
  ****************************************************************************/
 
-#ifndef __APPS_INCLUDE_NETUTILS_NTPCLIENT_H
-#define __APPS_INCLUDE_NETUTILS_NTPCLIENT_H 1
+#ifndef __F7MEADOWOS_NTPCLIENT_MEADOW_NTPCLIENT_H
+#define __F7MEADOWOS_NTPCLIENT_MEADOW_NTPCLIENT_H 1
 
 /****************************************************************************
  * Included Files
@@ -108,4 +108,4 @@ void ntpc_stop(void);
 }
 #endif
 
-#endif /* __APPS_INCLUDE_NETUTILS_NTPCLIENT_H */
+#endif /* __F7MEADOWOS_NTPCLIENT_MEADOW_NTPCLIENT_H */
