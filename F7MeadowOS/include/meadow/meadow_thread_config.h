@@ -291,4 +291,15 @@
 #define MONO_TASK_NAME                              "Mono"
 #define MONO_TASK_STACKSIZE                         CONFIG_PTHREAD_STACK_DEFAULT
 
+/**
+ * Warms up mbedTLS (root CA parse and RNG seed, seconds of CPU) once at Mono start-up
+ * (apps/system/mono/mono_main.c), so that the app's first TLS connection does not pay
+ * for it.  It runs below the Mono task and every managed thread, so it only uses CPU
+ * time nothing else wants; the app's own first TLS call does the work itself if it
+ * gets there first (mono_mbedtls_init is mutex-guarded and idempotent).
+ */
+#define MONO_TLS_WARMUP_THREAD_PRIORITY             50
+#define MONO_TLS_WARMUP_THREAD_NAME                 "TLS-Warm-up"
+#define MONO_TLS_WARMUP_THREAD_STACKSIZE            16384
+
 #endif // __MEADOW_THREAD_CONFIG_H
