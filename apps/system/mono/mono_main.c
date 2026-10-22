@@ -44,6 +44,7 @@ extern int mount(const char *source, const char *target,
                  const void *data);
 
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_thread_config.h>
 #include "../hcom/hcom_common.h"
 
 #include <meadow/hcom_bbreg_defn.h>
@@ -1665,13 +1666,17 @@ int meadow_mono_main(int hcom_argc, char *hcom_argv[])
     extern int mono_mbedtls_init(void);
     pthread_t tls_warmup;
     pthread_attr_t attr;
-    struct sched_param sp = { .sched_priority = 50 };  /* below Mono default */
+    struct sched_param sp =
+      {
+        .sched_priority = MONO_TLS_WARMUP_THREAD_PRIORITY
+      };
     pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, 16384);
+    pthread_attr_setstacksize(&attr, MONO_TLS_WARMUP_THREAD_STACKSIZE);
     pthread_attr_setschedparam(&attr, &sp);
     if (pthread_create(&tls_warmup, &attr,
                        (void *(*)(void *))mono_mbedtls_init, NULL) == 0)
       {
+        pthread_setname_np(tls_warmup, MONO_TLS_WARMUP_THREAD_NAME);
         pthread_detach(tls_warmup);
       }
     pthread_attr_destroy(&attr);
