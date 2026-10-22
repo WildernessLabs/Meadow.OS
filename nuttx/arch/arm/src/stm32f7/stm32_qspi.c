@@ -1119,6 +1119,48 @@ static bool qspi_recover_busy_hang(struct stm32f7_qspidev_s *priv)
 }
 
 /****************************************************************************
+ * Name: qspi_waitstatusflags_bounded
+ *
+ * Description:
+ *   Wait for status flags with the same bound as the DMA path, and recover
+ *   the controller if the wait times out.  The unbounded waits this
+ *   replaces could spin for ever with BUSY set (issue #753), hanging the
+ *   calling task, and the file system behind the flash lock, with no fault
+ *   and no log.
+ *
+ * Input Parameters:
+ *   priv     - Device-specific state data
+ *   mask     - bits to check, can be multiple
+ *   polarity - true wait if any set, false to wait if all reset
+ *   what     - name of the wait, for the log
+ *
+ * Returned Value:
+ *   OK if the condition was met, -EIO if the wait timed out (the controller
+ *   has then been aborted).
+ *
+ ****************************************************************************/
+
+static int qspi_waitstatusflags_bounded(struct stm32f7_qspidev_s *priv,
+                                        uint32_t mask, int polarity,
+                                        const char *what)
+{
+  bool recovered;
+
+  if (qspi_waitstatusflags_timed(priv, mask, polarity, 500000))
+    {
+      return OK;
+    }
+
+  syslog(LOG_ERR, "QSPI: %s wait timed out (SR=%08" PRIx32 ")\n", what,
+         qspi_getreg(priv, STM32_QUADSPI_SR_OFFSET));
+
+  recovered = qspi_recover_busy_hang(priv);
+  syslog(LOG_ERR, "QSPI: controller %s\n",
+         recovered ? "recovered" : "still busy");
+  return -EIO;
+}
+
+/****************************************************************************
  * Name: qspi_ccrconfig
  *
  * Description:
@@ -1744,7 +1786,12 @@ static int qspi_receive_blocking(struct stm32f7_qspidev_s *priv,
         {
           /* Wait for Fifo Threshold, or Transfer Complete, to read data */
 
-          qspi_waitstatusflags(priv, QSPI_SR_FTF | QSPI_SR_TCF, 1);
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_FTF | QSPI_SR_TCF,
+                                             1, "receive FIFO");
+          if (ret != OK)
+            {
+              return ret;
+            }
 
           *dest = *(volatile uint8_t *)datareg;
           dest++;
@@ -1755,7 +1802,13 @@ static int qspi_receive_blocking(struct stm32f7_qspidev_s *priv,
         {
           /* Wait for transfer complete, then clear it */
 
-          qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_TCF, 1,
+                                             "receive complete");
+          if (ret != OK)
+            {
+              return ret;
+            }
+
           qspi_putreg(priv, QSPI_FCR_CTCF, STM32_QUADSPI_FCR_OFFSET);
 
           /* Use Abort to clear the busy flag, and ditch any extra bytes in
@@ -1808,7 +1861,12 @@ static int qspi_transmit_blocking(struct stm32f7_qspidev_s *priv,
         {
           /* Wait for Fifo Threshold to write data */
 
-          qspi_waitstatusflags(priv, QSPI_SR_FTF, 1);
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_FTF, 1,
+                                             "transmit FIFO");
+          if (ret != OK)
+            {
+              return ret;
+            }
 
           *(volatile uint8_t *)datareg = *src++;
           remaining--;
@@ -1818,7 +1876,13 @@ static int qspi_transmit_blocking(struct stm32f7_qspidev_s *priv,
         {
           /* Wait for transfer complete, then clear it */
 
-          qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_TCF, 1,
+                                             "transmit complete");
+          if (ret != OK)
+            {
+              return ret;
+            }
+
           qspi_putreg(priv, QSPI_FCR_CTCF, STM32_QUADSPI_FCR_OFFSET);
 
           /* Use Abort to clear the Busy flag */
@@ -2118,7 +2182,12 @@ static int qspi_command(struct qspi_dev_s *dev,
   /* Wait 'till non-busy */
 
   qspi_abort(priv);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0,
+                                     "pre-transfer BUSY");
+  if (ret != OK)
+    {
+      return ret;
+    }
 
   /* Clear flags */
 
@@ -2246,8 +2315,17 @@ static int qspi_command(struct qspi_dev_s *dev,
 
   /* Wait for Transfer complete, and not busy */
 
-  qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  if (ret == OK)
+    {
+      ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_TCF, 1,
+                                         "command complete");
+    }
+
+  if (ret == OK)
+    {
+      ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0,
+                                         "command BUSY");
+    }
 
 #endif
 
@@ -2299,7 +2377,12 @@ static int qspi_memory(struct qspi_dev_s *dev,
   /* Wait 'till non-busy */
 
   qspi_abort(priv);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0,
+                                     "pre-transfer BUSY");
+  if (ret != OK)
+    {
+      return ret;
+    }
 
   /* Clear flags */
 
@@ -2423,8 +2506,17 @@ static int qspi_memory(struct qspi_dev_s *dev,
 
       /* Wait for Transfer complete, and not busy */
 
-      qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
-      qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+      if (ret == OK)
+        {
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_TCF, 1,
+                                             "memory complete");
+        }
+
+      if (ret == OK)
+        {
+          ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0,
+                                             "memory BUSY");
+        }
 
       UP_MB();
     }
@@ -2454,8 +2546,17 @@ static int qspi_memory(struct qspi_dev_s *dev,
 
   /* Wait for Transfer complete, and not busy */
 
-  qspi_waitstatusflags(priv, QSPI_SR_TCF, 1);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  if (ret == OK)
+    {
+      ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_TCF, 1,
+                                         "memory complete");
+    }
+
+  if (ret == OK)
+    {
+      ret = qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0,
+                                         "memory BUSY");
+    }
 
   UP_MB();
 
