@@ -1972,12 +1972,15 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
         request_id = ipr->setup_message_id;
 
         //
-        //  Remove the request from the list so taking ownership.  This preents teardown or a second interrupt from trying use this item.
+        //  Remove the request from the list so taking ownership.  This prevents teardown or a second interrupt from trying use this item.
+        //
+        //  The list lock is held until the pollfd has been used.  Teardown takes the same lock before it
+        //  looks for the request, so it cannot return (letting the caller's pollfd go out of scope) while
+        //  this handler is still using it.
         //
         espcp_lock_poll_requests_queue();
         espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
                                                     request_id, espcp_usrsock_poll_request_compare_message_id);
-        espcp_unlock_poll_requests_queue();
         if (pr != NULL)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08" PRIx32 "\n", request_id);
@@ -2010,10 +2013,12 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
             //
             poll_notify(&pr->fd, 1, ipr->returned_events);
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%" PRIu32 " revents=%" PRIu32 "\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
+            espcp_unlock_poll_requests_queue();
         }
         else
         {
-            MEADOW_TRACE_INFORMATION("poll interrupt handler - Cannot find request %08" PRIx32 "\n", request_id);
+            espcp_unlock_poll_requests_queue();
+            syslog(LOG_INFO, "Poll interrupt for request %08" PRIx32 " did not match a poll request (late or duplicate).\n", request_id);
         }
         free(pr);
         free(ipr);
