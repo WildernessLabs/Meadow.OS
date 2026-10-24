@@ -50,6 +50,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/ioctl.h>
 #include <poll.h>
@@ -270,25 +271,10 @@ static inline int espcp_sockfd(const struct socket * const psock)
  ****************************************************************************/
 static inline void espcp_lock_poll_requests_queue(void)
 {
-    //
-    //  Ideally we would use the line below (commented out) but for now we will
-    //  use the block of code following this in order to see if we are getting an interrupt
-    //  signal when we are waiting for the semaphore.  This may be causing the poll
-    //  timeout issue.
-    //
-    // while ((sem_wait(&_espcp_poll_requests_mutex) != 0) && (get_errno() == EINTR));
-    while (sem_wait(&_espcp_poll_requests_mutex) != 0)
+    int ret = nxsem_wait_uninterruptible(&_espcp_poll_requests_mutex);
+    if (ret < 0)
     {
-        int error = get_errno();
-        if (error != EINTR)
-        {
-            syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", error);
-            break;
-        }
-        else
-        {
-            syslog(LOG_INFO, "Interrupted waiting for poll requests mutex, retrying mutex\n");
-        }
+        syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", ret);
     }
 }
 
@@ -307,7 +293,7 @@ static inline void espcp_lock_poll_requests_queue(void)
  ****************************************************************************/
 static inline void espcp_unlock_poll_requests_queue(void)
 {
-    sem_post(&_espcp_poll_requests_mutex);
+    nxsem_post(&_espcp_poll_requests_mutex);
 }
 
 /****************************************************************************
