@@ -590,6 +590,29 @@ static bool meadow_kt_bluetooth_test_stop_bluetooth(struct file *event_queue)
 }
 
 /****************************************************************************
+ * Name: meadow_kt_bluetooth_test_log_summary
+ *
+ * Description:
+ *  Log the running totals of the tests run, passed and failed.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *   The counters accumulate for the life of the system so the totals cover
+ *   every Bluetooth test run since boot.
+ *
+ ****************************************************************************/
+static void meadow_kt_bluetooth_test_log_summary(void)
+{
+    syslog(LOGGING_LEVEL, "    BT test summary: %u run, %u passed, %u failed\n",
+           tests_run, tests_passed, tests_failed);
+}
+
+/****************************************************************************
  * Name: meadow_kt_bluetooth_test_start_service_a
  *
  * Description:
@@ -611,7 +634,11 @@ void meadow_kt_bluetooth_test_start_service_a(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -624,6 +651,8 @@ void meadow_kt_bluetooth_test_start_service_a(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -648,7 +677,11 @@ void meadow_kt_bluetooth_test_start_service_b(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -661,6 +694,8 @@ void meadow_kt_bluetooth_test_start_service_b(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -685,7 +720,11 @@ void meadow_kt_bluetooth_test_start_service_c(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -698,6 +737,8 @@ void meadow_kt_bluetooth_test_start_service_c(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -722,7 +763,11 @@ void meadow_kt_bluetooth_test_start_service_d(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -735,6 +780,8 @@ void meadow_kt_bluetooth_test_start_service_d(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -759,7 +806,11 @@ void meadow_kt_bluetooth_test_start_service_meadow_f7(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -772,6 +823,8 @@ void meadow_kt_bluetooth_test_start_service_meadow_f7(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -796,7 +849,11 @@ void meadow_kt_bluetooth_test_stop_service(uint32_t value)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -809,6 +866,8 @@ void meadow_kt_bluetooth_test_stop_service(uint32_t value)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -856,6 +915,8 @@ void meadow_kt_bluetooth_test_stop_not_started(void)
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
@@ -880,7 +941,11 @@ void meadow_kt_bluetooth_start_stop(void)
 
     struct file eq;
     int eq_result = meadow_kt_bluetooth_test_open_event_queue(&eq);
-    DEBUGASSERT(eq_result >= 0);
+    if (eq_result < 0)
+    {
+        syslog(LOG_ERR, "    FAIL: Unable to open the event queue: %d\n", eq_result);
+        return;
+    }
 
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
@@ -897,6 +962,8 @@ void meadow_kt_bluetooth_start_stop(void)
     HEAP_USAGE_PASS_OR_FAIL;
 
     file_mq_close(&eq);
+
+    meadow_kt_bluetooth_test_log_summary();
 }
 
 /****************************************************************************
