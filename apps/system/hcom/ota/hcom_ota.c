@@ -283,6 +283,7 @@ int firmware_update(void)
 #include "mbedtls/error.h"
 #include "mbedtls/entropy.h"
 #include "mbedtls/ctr_drbg.h"
+#include "mbedtls/platform_util.h"
 
 #include "meadow/meadow_cloud.h"
 
@@ -413,8 +414,13 @@ void hcom_ota_rqst_register_device(uint32_t userData)
 
 int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_len, unsigned char *decrypted_buf)
 {
-    unsigned char *private_key;
-    int len, ret;
+    unsigned char *private_key = NULL;
+    int len = 0;
+    int ret;
+    int result = -1;
+    unsigned char decrypted[MBEDTLS_MPI_MAX_SIZE];
+    size_t olen = 0;
+
     meadow_cloud_retrieve_private_key((const char **) &private_key, &len);
 
     mbedtls_pk_init(&key);
@@ -424,34 +430,51 @@ int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_l
     if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll, NULL, DEV_URANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
     {
         printf(" failed\n  ! mbedtls_entropy_add_source returned -0x%04x\n", (unsigned int) -ret);
-        return -3;
+        result = -3;
+        goto cleanup;
     }
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0)
     {
         printf(" failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret);
-        return -4;
+        result = -4;
+        goto cleanup;
     }
     if ((ret = mbedtls_pk_parse_key(&key, private_key, len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
     {
         printf(" failed\n  ! mbedtls_pk_parse_key returned -0x%04x\n", -ret);
-        return -1;
+        result = -1;
+        goto cleanup;
     }
 
     meadow_cloud_release_private_key((char **) &private_key);
-
-    unsigned char result[MBEDTLS_MPI_MAX_SIZE];
-    size_t olen = 0;
+    private_key = NULL;
 
     fflush(stdout);
 
-    if ((ret = mbedtls_pk_decrypt(&key, encrypted_buf, encrypted_len, result, &olen, sizeof(result), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
+    if ((ret = mbedtls_pk_decrypt(&key, encrypted_buf, encrypted_len, decrypted, &olen, sizeof(decrypted), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
     {
         printf(" failed\n  ! mbedtls_pk_decrypt returned -0x%04x\n", -ret);
-        return -2;
+        result = -2;
+        goto cleanup;
     }
 
-    memcpy(decrypted_buf, result, olen);
-    return olen;
+    memcpy(decrypted_buf, decrypted, olen);
+    result = olen;
+
+cleanup:
+    //
+    //  Every exit releases the key, the DRBG and the entropy state.  The private key buffer is
+    //  released as well on the paths that failed before it was.
+    //
+    if (private_key != NULL)
+    {
+        meadow_cloud_release_private_key((char **) &private_key);
+    }
+    mbedtls_platform_zeroize(decrypted, sizeof(decrypted));
+    mbedtls_pk_free(&key);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    mbedtls_entropy_free(&entropy);
+    return result;
 }
 
 int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypted_len, const unsigned char *aes_key, unsigned char *iv, unsigned char *decrypted_buf)
