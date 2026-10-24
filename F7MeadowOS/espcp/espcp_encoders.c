@@ -77,9 +77,9 @@ uint32_t espcp_calculate_spi_buffer_size(uint32_t requestedSize)
     //
     //  The final buffer must be a multiple of 4 bytes so round up if necessary.
     //
-    if ((requestedSize & 3) != 0)
+    if ((result & 3) != 0)
     {
-        result = (requestedSize & 0xfffffffc) + 4;
+        result = (result & 0xfffffffc) + 4;
     }
     //
     //  There is an issue with the SPI interface that can corrupt the last
