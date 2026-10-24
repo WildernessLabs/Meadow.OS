@@ -864,13 +864,28 @@ int espcp_late_init(void)
 
     if (g_espcp_configuration != NULL)
     {
-        espcp_usrsock_init();
-        result = espcp_thread_start(g_espcp_configuration);
+        //
+        //  The hardware is set up before the thread that uses it is started.  If any
+        //  step fails the coprocessor is marked as not responding so that the socket
+        //  layer returns -ENETDOWN instead of using a bus that does not exist.
+        //
+        result = espcp_gpio_init();
+        if (result == OK)
+        {
+            result = espcp_spi_init();
+        }
 
-        espcp_gpio_init();
-        espcp_spi_init();
+        if (result == OK)
+        {
+            espcp_usrsock_init();
+            result = espcp_thread_start(g_espcp_configuration);
+        }
 
-        result = OK;
+        if (result != OK)
+        {
+            MEADOW_TRACE_CRITICAL("%s@%d Late initialisation of the coprocessor failed:%d\n", __FILE__, __LINE__, result);
+            g_espcp_configuration->esp_not_responding = true;
+        }
     }
     
     return result;
