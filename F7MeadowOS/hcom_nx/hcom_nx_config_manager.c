@@ -596,7 +596,7 @@ void hcom_nx_config_map_cell_turn_on_pin(meadow_configuration_t *config)
  ****************************************************************************/
 void hcom_nx_config_lock(void)
 {
-    sem_wait(&config_lock);
+    nxsem_wait_uninterruptible(&config_lock);
 }
 
 /****************************************************************************
@@ -617,7 +617,7 @@ void hcom_nx_config_lock(void)
  ****************************************************************************/
 void hcom_nx_config_unlock(void)
 {
-    sem_post(&config_lock);
+    nxsem_post(&config_lock);
 }
 
 /****************************************************************************

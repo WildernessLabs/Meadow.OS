@@ -199,7 +199,7 @@ sem_t espcp_spi_lock;
  ****************************************************************************/
 void espcp_config_lock()
 {
-    sem_wait(&config_lock);
+    nxsem_wait_uninterruptible(&config_lock);
 }
 
 /****************************************************************************
@@ -220,7 +220,7 @@ void espcp_config_lock()
  ****************************************************************************/
 void espcp_config_unlock()
 {
-    sem_post(&config_lock);
+    nxsem_post(&config_lock);
 }
 
 /****************************************************************************
@@ -241,7 +241,7 @@ void espcp_config_unlock()
  ****************************************************************************/
 void espcp_spi_interface_lock(void)
 {
-    sem_wait(&espcp_spi_lock);
+    nxsem_wait_uninterruptible(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -262,7 +262,7 @@ void espcp_spi_interface_lock(void)
  ****************************************************************************/
 void espcp_spi_interface_unlock(void)
 {
-    sem_post(&espcp_spi_lock);
+    nxsem_post(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -754,7 +754,7 @@ void espcp_deep_sleep(void)
     //
     //  Lastly, wait for the message to have been sent.
     //
-    sem_wait(&sent);
+    nxsem_wait_uninterruptible(&sent);
     espcp_delete_message_and_payload(message);
 }
 
