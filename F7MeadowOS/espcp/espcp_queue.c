@@ -123,7 +123,7 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
     espcp_config_lock();
 
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
-    queue_attributes.mq_msgsize = sizeof(struct message_and_semaphore_s *);
+    queue_attributes.mq_msgsize = sizeof(espcp_message_t *);
     queue_attributes.mq_flags = 0;
     request_queue_result = file_mq_open(&config->request_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
@@ -144,7 +144,7 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
         syslog(LOG_ERR, "%s@%d-file_mq_open(%s) failed:%d\n", __FILE__, __LINE__, ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, incoming_event_queue_result);
     }
 
-    return ((request_queue_result == OK) && (event_queue_result == OK));
+    return ((request_queue_result == OK) && (event_queue_result == OK) && (incoming_event_queue_result == OK));
 }
 
 /****************************************************************************
