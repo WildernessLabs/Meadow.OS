@@ -468,7 +468,7 @@ static int espcp_gpio_init(void)
  ****************************************************************************/
 void espcp_send_data_over_spi(void *tx, void *rx, size_t buffer_length)
 {
-    if ((tx == NULL) && (rx == NULL))
+    if (((tx == NULL) && (rx == NULL)) || (g_esp_spi_dev == NULL))
     {
         return;
     }
