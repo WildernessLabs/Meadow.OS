@@ -197,11 +197,11 @@ void espcp_delete_message_and_payload(espcp_message_t *message)
     {
         if (message->semaphore != NULL)
         {
-            sem_destroy(message->semaphore);
+            nxsem_destroy(message->semaphore);
         }
         if (message->message_sent != NULL)
         {
-            sem_destroy(message->message_sent);
+            nxsem_destroy(message->message_sent);
         }
         espcp_delete_message_payload(message);
         free(message);

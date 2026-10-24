@@ -3308,8 +3308,8 @@ void hcom_nx_config_init(void)
 {
     if (meadow_configuration == NULL)
     {
-        sem_init(&config_lock, 0, 1);                   // Create the config lock.
-        sem_setprotocol(&config_lock, SEM_PRIO_NONE);
+        nxsem_init(&config_lock, 0, 1);                   // Create the config lock.
+        nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
         hcom_nx_config_process_meadow_config_file();
 
         hcom_nx_config_lock();

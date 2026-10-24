@@ -131,7 +131,7 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
     //
     for (int i = 0; i < 100; i++)
     {
-        if (sem_trywait(message->semaphore) == 0)
+        if (nxsem_trywait(message->semaphore) == 0)
         {
             g_espcp_response_timeouts = 0;
             return (espcp_status_codes_completed_ok);
@@ -174,8 +174,8 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     if (block)
     {
         message->semaphore = &sem; // cppcheck-suppress autoVariables
-        sem_init(message->semaphore, 0, 0);
-        sem_setprotocol(&sem, SEM_PRIO_NONE);
+        nxsem_init(message->semaphore, 0, 0);
+        nxsem_set_protocol(&sem, SEM_PRIO_NONE);
     }
     else
     {

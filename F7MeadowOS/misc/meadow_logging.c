@@ -314,8 +314,8 @@ void meadow_logging_send_os_log_file_to_syslog(void)
  ****************************************************************************/
 void meadow_logging_init_os_logging(void)
 {
-    sem_init(&log_file_lock, 0, 1);
-    sem_setprotocol(&log_file_lock, SEM_PRIO_NONE);
+    nxsem_init(&log_file_lock, 0, 1);
+    nxsem_set_protocol(&log_file_lock, SEM_PRIO_NONE);
     meadow_logging_clear_os_logfile();
     meadow_logging_write(mfl_info, "Logging started");
 }

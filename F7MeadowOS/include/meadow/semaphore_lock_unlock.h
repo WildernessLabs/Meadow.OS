@@ -55,7 +55,11 @@
  *  Address of the semaphore to lock.
  *
  ****************************************************************************/
+#ifdef __KERNEL__
+#define MEADOW_SEMAPHORE_LOCK(s)        nxsem_wait_uninterruptible(s)
+#else
 #define MEADOW_SEMAPHORE_LOCK(s)        sem_wait(s)
+#endif
 
 /****************************************************************************
  * Name: MEADOW_SEMAPHORE_UNLOCK
@@ -67,6 +71,10 @@
  *  Address of the semaphore to unlock.
  *
  ****************************************************************************/
+#ifdef __KERNEL__
+#define MEADOW_SEMAPHORE_UNLOCK(s)      nxsem_post(s)
+#else
 #define MEADOW_SEMAPHORE_UNLOCK(s)      sem_post(s)
+#endif
 
 #endif  // __MEADOW_SEMAPHORE_LOCK_UNLOCK_H__
