@@ -234,7 +234,7 @@ int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
 }
 
 //=============================================================
-// Is this partition mounted in the file system?
+// Is this partition mounted in the file system?  Returns false if the ioctl fails.
 bool hcom_via_nx_is_mounted(uint32_t partitionId)
 {
   int ret;
@@ -247,7 +247,7 @@ bool hcom_via_nx_is_mounted(uint32_t partitionId)
   {
     syslog(LOG_ERR, "%s@%d-%s Failed nx mount, ret:%d, errno:%d\n",
             __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-    return -errno;      // ioctl puts returned int into errno
+    return false;       // Cannot tell, so callers treat the partition as not mounted
   }
 
   return is_mounted.isMounted;

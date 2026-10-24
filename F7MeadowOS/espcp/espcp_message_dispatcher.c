@@ -164,19 +164,19 @@ int espcp_setup_message_dispatcher(void)
         return (result);
     }
 
-    result = sem_init(&g_message_id_mutex, 0, 1);
+    result = nxsem_init(&g_message_id_mutex, 0, 1);
     if (result != OK)
     {
         return (result);
     }
 
-    result = sem_setprotocol(&g_message_id_mutex, SEM_PRIO_NONE);
+    result = nxsem_set_protocol(&g_message_id_mutex, SEM_PRIO_NONE);
     if (result != OK)
     {
         return (result);
     }
 
-    result = sem_wait(&g_message_id_mutex);
+    result = nxsem_wait_uninterruptible(&g_message_id_mutex);
     if (result != OK)
     {
         return (result);
@@ -184,7 +184,7 @@ int espcp_setup_message_dispatcher(void)
 
     g_last_message_id = 0;
 
-    result = sem_post(&g_message_id_mutex);
+    result = nxsem_post(&g_message_id_mutex);
     if (result != OK)
     {
         return (result);
@@ -249,7 +249,7 @@ uint32_t espcp_get_next_message_id()
     uint32_t message_id = OK;
     int result = OK;
 
-    result = sem_wait(&g_message_id_mutex);
+    result = nxsem_wait_uninterruptible(&g_message_id_mutex);
     if (result != OK)
     {
         return (0);
@@ -258,7 +258,7 @@ uint32_t espcp_get_next_message_id()
     g_last_message_id++;
     message_id = (g_last_message_id | ESP32_MESSAGE_ID_MASK);
 
-    result = sem_post(&g_message_id_mutex);
+    result = nxsem_post(&g_message_id_mutex);
     if (result != OK)
     {
         return (0);
@@ -548,7 +548,7 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                 if (message->message_sent != NULL)
                 {
                     MEADOW_TRACE_INFORMATION("********************** message_sent is not NULL");
-                    // sem_post(message->message_sent);
+                    // nxsem_post(message->message_sent);
                 }
                 if (message->semaphore != NULL)
                 {
@@ -631,7 +631,7 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
                 waiting_message->status_code = message->status_code;
                 if (waiting_message->semaphore != NULL)
                 {
-                    sem_post(waiting_message->semaphore);
+                    nxsem_post(waiting_message->semaphore);
                 }
                 else
                 {

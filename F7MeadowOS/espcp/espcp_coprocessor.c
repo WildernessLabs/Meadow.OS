@@ -199,7 +199,7 @@ sem_t espcp_spi_lock;
  ****************************************************************************/
 void espcp_config_lock()
 {
-    sem_wait(&config_lock);
+    nxsem_wait_uninterruptible(&config_lock);
 }
 
 /****************************************************************************
@@ -220,7 +220,7 @@ void espcp_config_lock()
  ****************************************************************************/
 void espcp_config_unlock()
 {
-    sem_post(&config_lock);
+    nxsem_post(&config_lock);
 }
 
 /****************************************************************************
@@ -241,7 +241,7 @@ void espcp_config_unlock()
  ****************************************************************************/
 void espcp_spi_interface_lock(void)
 {
-    sem_wait(&espcp_spi_lock);
+    nxsem_wait_uninterruptible(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -262,7 +262,7 @@ void espcp_spi_interface_lock(void)
  ****************************************************************************/
 void espcp_spi_interface_unlock(void)
 {
-    sem_post(&espcp_spi_lock);
+    nxsem_post(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -285,14 +285,14 @@ void espcp_spi_interface_unlock(void)
  ****************************************************************************/
 static espcp_configuration_t *espcp_get_default_configuration(void)
 {
-    sem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
-    sem_setprotocol(&config_lock, SEM_PRIO_NONE);
+    nxsem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
+    nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
 
     espcp_configuration_t *config = (espcp_configuration_t *) kmm_zalloc(sizeof(espcp_configuration_t));
     if (config != NULL)
     {
-        sem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
-        sem_setprotocol(&espcp_spi_lock, SEM_PRIO_NONE);
+        nxsem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
+        nxsem_set_protocol(&espcp_spi_lock, SEM_PRIO_NONE);
         config->current_mode = espcp_mode_unknown;
         config->thread_running = false;
         config->esp_not_responding = true;
@@ -738,8 +738,8 @@ void espcp_deep_sleep(void)
     //  message and entering sleep mode before the message is actually sent.
     //
     sem_t sent = { };
-    sem_init(&sent, 0, 0);
-    sem_setprotocol(&sent, SEM_PRIO_NONE);
+    nxsem_init(&sent, 0, 0);
+    nxsem_set_protocol(&sent, SEM_PRIO_NONE);
     message->message_sent = &sent;
     espcp_queue_message(message, false);
     //
@@ -754,7 +754,7 @@ void espcp_deep_sleep(void)
     //
     //  Lastly, wait for the message to have been sent.
     //
-    sem_wait(&sent);
+    nxsem_wait_uninterruptible(&sent);
     espcp_delete_message_and_payload(message);
 }
 
@@ -864,13 +864,28 @@ int espcp_late_init(void)
 
     if (g_espcp_configuration != NULL)
     {
-        espcp_usrsock_init();
-        result = espcp_thread_start(g_espcp_configuration);
+        //
+        //  The hardware is set up before the thread that uses it is started.  If any
+        //  step fails the coprocessor is marked as not responding so that the socket
+        //  layer returns -ENETDOWN instead of using a bus that does not exist.
+        //
+        result = espcp_gpio_init();
+        if (result == OK)
+        {
+            result = espcp_spi_init();
+        }
 
-        espcp_gpio_init();
-        espcp_spi_init();
+        if (result == OK)
+        {
+            espcp_usrsock_init();
+            result = espcp_thread_start(g_espcp_configuration);
+        }
 
-        result = OK;
+        if (result != OK)
+        {
+            MEADOW_TRACE_CRITICAL("%s@%d Late initialisation of the coprocessor failed:%d\n", __FILE__, __LINE__, result);
+            g_espcp_configuration->esp_not_responding = true;
+        }
     }
     
     return result;

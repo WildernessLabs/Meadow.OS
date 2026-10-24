@@ -50,6 +50,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/ioctl.h>
 #include <poll.h>
@@ -270,25 +271,10 @@ static inline int espcp_sockfd(const struct socket * const psock)
  ****************************************************************************/
 static inline void espcp_lock_poll_requests_queue(void)
 {
-    //
-    //  Ideally we would use the line below (commented out) but for now we will
-    //  use the block of code following this in order to see if we are getting an interrupt
-    //  signal when we are waiting for the semaphore.  This may be causing the poll
-    //  timeout issue.
-    //
-    // while ((sem_wait(&_espcp_poll_requests_mutex) != 0) && (get_errno() == EINTR));
-    while (sem_wait(&_espcp_poll_requests_mutex) != 0)
+    int ret = nxsem_wait_uninterruptible(&_espcp_poll_requests_mutex);
+    if (ret < 0)
     {
-        int error = get_errno();
-        if (error != EINTR)
-        {
-            syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", error);
-            break;
-        }
-        else
-        {
-            syslog(LOG_INFO, "Interrupted waiting for poll requests mutex, retrying mutex\n");
-        }
+        syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", ret);
     }
 }
 
@@ -307,7 +293,7 @@ static inline void espcp_lock_poll_requests_queue(void)
  ****************************************************************************/
 static inline void espcp_unlock_poll_requests_queue(void)
 {
-    sem_post(&_espcp_poll_requests_mutex);
+    nxsem_post(&_espcp_poll_requests_mutex);
 }
 
 /****************************************************************************
@@ -405,8 +391,8 @@ void espcp_usrsock_init()
     if (_espcp_poll_requests == NULL)
     {
         _espcp_poll_requests = gl_create_empty_linked_list();
-        sem_init(&_espcp_poll_requests_mutex, 0, 1);
-        sem_setprotocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
+        nxsem_init(&_espcp_poll_requests_mutex, 0, 1);
+        nxsem_set_protocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
     }
 
     hcom_nx_config_lock();
@@ -1972,12 +1958,15 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
         request_id = ipr->setup_message_id;
 
         //
-        //  Remove the request from the list so taking ownership.  This preents teardown or a second interrupt from trying use this item.
+        //  Remove the request from the list so taking ownership.  This prevents teardown or a second interrupt from trying use this item.
+        //
+        //  The list lock is held until the pollfd has been used.  Teardown takes the same lock before it
+        //  looks for the request, so it cannot return (letting the caller's pollfd go out of scope) while
+        //  this handler is still using it.
         //
         espcp_lock_poll_requests_queue();
         espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
                                                     request_id, espcp_usrsock_poll_request_compare_message_id);
-        espcp_unlock_poll_requests_queue();
         if (pr != NULL)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08" PRIx32 "\n", request_id);
@@ -2010,10 +1999,12 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
             //
             poll_notify(&pr->fd, 1, ipr->returned_events);
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%" PRIu32 " revents=%" PRIu32 "\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
+            espcp_unlock_poll_requests_queue();
         }
         else
         {
-            MEADOW_TRACE_INFORMATION("poll interrupt handler - Cannot find request %08" PRIx32 "\n", request_id);
+            espcp_unlock_poll_requests_queue();
+            syslog(LOG_INFO, "Poll interrupt for request %08" PRIx32 " did not match a poll request (late or duplicate).\n", request_id);
         }
         free(pr);
         free(ipr);

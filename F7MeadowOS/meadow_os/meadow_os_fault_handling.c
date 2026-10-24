@@ -35,6 +35,7 @@
 
 #include <nuttx/config.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -89,6 +90,39 @@ static uint32_t _fault_status = 0;
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: find_line_start
+ *
+ * Description:
+ *  Find the start of a line in the buffer moving back from the start until
+ *  then start of the line is found or the endstop is reached.
+ * 
+ * Input Parameters:
+ *  start - point in the buffer from which to search backwards.
+ *  endstop - point where we will always stop even if we have not found the
+ *            start of the line.
+ *
+ * Returned Value:
+ *  Pointer to the first character of the line containing start, or endstop
+ *  if the start of the line was not found before reaching it.
+ *
+ * Assumptions/Limitations:
+ *  None.
+ *
+ ****************************************************************************/
+static char *find_line_start(const char *start, const char *endstop)
+{
+    while ((start > endstop) && ((*start != '\n') && (*start != '\r')))
+    {
+        start--;
+    }
+    if ((*start == '\n') || (*start == '\r'))
+    {
+        start++;
+    }
+    return((char *) start);
+}
 
 /****************************************************************************
  * Name: find_line_end

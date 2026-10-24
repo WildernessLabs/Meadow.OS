@@ -1,5 +1,5 @@
 /****************************************************************************
- * /Meadow.OS/Meadow.OS/ntpclient/meadow_ntpclient.c
+ * F7MeadowOS/ntpclient/meadow_ntpclient.c
  *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *

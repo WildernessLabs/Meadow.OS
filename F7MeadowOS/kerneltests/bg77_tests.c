@@ -1,5 +1,5 @@
 /****************************************************************************
- * ethernet_tests.c
+ * bg77_tests.c
  * 
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs

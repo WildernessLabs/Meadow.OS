@@ -519,7 +519,7 @@ espcp_message_t *espcp_extract_message(uint8_t *buffer, uint32_t bufferLength, b
     {
         return(NULL);
     }
-    if (bufferLength < (ESPCP_MESSAGE_HEADER_SIZE + ESPCP_SPI_MESSAGE_OVERHEAD))
+    if ((bufferLength < (ESPCP_MESSAGE_HEADER_SIZE + ESPCP_SPI_MESSAGE_OVERHEAD)) || (bufferLength > ESPCP_MAXIMUM_SPI_FRAME_SIZE))
     {
         return(NULL);
     }
