@@ -2739,15 +2739,23 @@ void hcom_nx_config_process_esp_configuration(espcp_system_configuration_t *esp_
         {
             configuration->default_access_point = NULL;
         }
-        if ((!configuration->default_interface->use_dhcp) && (configuration->default_interface->interface_type == MEADOW_IFT_ESP32))
+        if (configuration->default_interface->interface_type == MEADOW_IFT_ESP32)
         {
             //
-            //  Using the ESP32 and static IP address so let the ESP32 know about this.
+            //  Always tell the ESP32 whether DHCP is in use.  It defaults to false and only raises
+            //  NetworkGotIpEvent when it is true, so without this the DHCP supplied DNS server
+            //  is never learned.
             //
             hcom_nx_config_set_esp_boolean_value(espcp_configuration_items_use_dhcp, configuration->default_interface->use_dhcp);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_static_ip_address, configuration->default_interface->ip_address);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_subnet_mask, configuration->default_interface->netmask);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_default_gateway, configuration->default_interface->gateway);
+            if (!configuration->default_interface->use_dhcp)
+            {
+                //
+                //  Static IP address so let the ESP32 know the address as well.
+                //
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_static_ip_address, configuration->default_interface->ip_address);
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_subnet_mask, configuration->default_interface->netmask);
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_default_gateway, configuration->default_interface->gateway);
+            }
         }
         //
         configuration->esp_version.major = esp_config->version_major;
