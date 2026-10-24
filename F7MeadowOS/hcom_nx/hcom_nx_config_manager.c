@@ -2582,6 +2582,11 @@ int hcom_nx_config_get_set_config_value(int item, uint8_t direction, uint8_t *bu
 
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    if (config == NULL)
+    {
+        hcom_nx_config_unlock();
+        return -ENOMEM;
+    }
     if (direction == 0)
     {
         switch (item)
@@ -3309,6 +3314,12 @@ void hcom_nx_config_init(void)
 
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
+        if (config == NULL)
+        {
+            hcom_nx_config_unlock();
+            syslog(LOG_ERR, "Unable to allocate the configuration object.\n");
+            return;
+        }
         hcom_nx_config_set_host_name(config, config->device_name);
         config->hardware_version = meadow_hw_version_get();
         hcom_nx_config_refresh_mono_version(config);
