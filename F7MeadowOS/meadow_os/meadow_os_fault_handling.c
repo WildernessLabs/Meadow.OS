@@ -87,51 +87,8 @@
 static uint32_t _fault_status = 0;
 
 /****************************************************************************
- * External Functions
- ****************************************************************************/
-
-/**
- * @brief Get a pointer to the system logging buffer.
- * 
- * @return Pointer to the system logging buffer.
- */
-extern char *ramlog_get_sysbuffer_pointer(void);
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: find_line_start
- *
- * Description:
- *  Find the start of a line in the buffer moving back from the start until
- *  then start of the line is found or the endstop is reached.
- * 
- * Input Parameters:
- *  buffer - buffer to search.
- *  endstop - point where we will always stop even if we have not found the
- *            start of the line.
- *
- * Returned Value:
- *  None.
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-static char *find_line_start(const char *start, const char *endstop)
-{
-    while ((start > endstop) && ((*start != '\n') && (*start != '\r')))
-    {
-        start--;
-    }
-    if ((*start == '\n') || (*start == '\r'))
-    {
-        start++;
-    }
-    return((char *) start);
-}
 
 /****************************************************************************
  * Name: find_line_end
@@ -159,117 +116,8 @@ static char *find_line_end(const char *buffer)
 }
 
 /****************************************************************************
- * Name: remove_stack_dump
- *
- * Description:
- *  Remove the stack trace from the OS error message.  Depending upon options
- *  this may compile to an empty method.
- * 
- * Input Parameters:
- *  hard_fault - Pointer to the hard fault message.
- *
- * Returned Value:
- *  None.
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-static void remove_stack_dump(const char *hard_fault)
-{
-#if !defined(CONFIG_MEADOW_LOGGING_ENABLE_STACK_DUMP)
-    //
-    //  Stack dump is disabled so we find the stack dump and then the task list and move
-    //  the task list over the stack dump and truncate the data.
-    //
-    char *stackdump = strstr(hard_fault, "up_stackdump");
-    if (stackdump)
-    {
-        stackdump = find_line_start(stackdump, hard_fault);
-        char *showtasks = strstr(stackdump, "up_showtasks");
-        if (showtasks)
-        {
-            showtasks = find_line_start(showtasks, stackdump);
-            while (*showtasks != '\0')
-            {
-                *stackdump++ = *showtasks++;
-            }
-        }
-        *stackdump = '\0';
-    }
-#endif
-}
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: meadow_os_fault_handler_save_os_state
- *
- * Description:
- *  Save as much of the OS state as possible.
- * 
- *  At the moment this does not save the stack trace, it merely records the
- *  fact that an OS fault has occurred.
- *
- * Input Parameters:
- *  None.
- *
- * Returned Value:
- *  None.
- *
- * Assumptions/Limitations:
- *  None.
- *
- ****************************************************************************/
-void meadow_os_fault_handler_save_os_state(void)
-{
-    //
-    //  First we check to see if Mono has recorded a fault.  If it has then
-    //  there is nothing for us to do.
-    //
-    uint32_t fault_status;
-    if (meadow_os_bbd_register_get_value(HCOM_NX_MEADOW_RESET_SOURCE_INFO_BBR_NUM, &fault_status) != 0)
-    {
-        return;
-    }
-    //
-    //  Now we need to save as much of the OS fault information as possible.
-    //
-    fault_status |= (FAULT_LOGGING_OS_COMPONENT_ERRORED | FAULT_LOGGING_OS_PHASE1_STARTED);
-    meadow_os_bbd_register_set_value(HCOM_NX_MEADOW_RESET_SOURCE_INFO_BBR_NUM, fault_status);
-    const char *sysbuffer = ramlog_get_sysbuffer_pointer();
-    const char *hard_fault = NULL;
-    if (sysbuffer != NULL)
-    {
-        char *my_copy = kmm_strdup(sysbuffer);
-        if (my_copy)
-        {
-            char *up_hard_fault = strstr(my_copy, "up_hardfault");
-            if (up_hard_fault)
-            {
-                hard_fault = find_line_start(up_hard_fault, my_copy);
-            }
-            else
-            {
-                hard_fault = my_copy;
-            }
-        }
-        else
-        {
-            hard_fault = sysbuffer;
-        }
-        remove_stack_dump(hard_fault);
-    }
-    else
-    {
-        hard_fault = "Unable to save OS fault information.";
-    }
-    meadow_os_bbd_strdup_to_sram(hard_fault);
-    fault_status |= FAULT_LOGGING_OS_PHASE1_COMPLETED;
-    meadow_os_bbd_register_set_value(HCOM_NX_MEADOW_RESET_SOURCE_INFO_BBR_NUM, fault_status);
-}
 
 /****************************************************************************
  * Name: meadow_os_fault_logging_phase_string
