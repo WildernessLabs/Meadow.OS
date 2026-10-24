@@ -86,7 +86,7 @@
  ****************************************************************************/
 static void gl_lock(gl_linked_list_t *list)
 {
-    sem_wait(&list->lock);
+    nxsem_wait_uninterruptible(&list->lock);
 }
 
 /****************************************************************************
@@ -107,7 +107,7 @@ static void gl_lock(gl_linked_list_t *list)
  ****************************************************************************/
 static void gl_unlock(gl_linked_list_t *list)
 {
-    sem_post(&list->lock);
+    nxsem_post(&list->lock);
 }
 
 
