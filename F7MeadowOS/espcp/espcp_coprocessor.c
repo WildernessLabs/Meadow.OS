@@ -629,8 +629,15 @@ void espcp_process_reset_control_signal(const char *line)
         int len = strlen(line);
         if (len > 7)        // "+++RST,1" valid codes can be 0 through 10.
         {
-            int reset_code = strtoul(line + 7, NULL, 10);
-            code = (espcp_status_codes_t) (((int) espcp_status_codes_esp_reset_unknown) + reset_code);
+            unsigned long reset_code = strtoul(line + 7, NULL, 10);
+            if (reset_code <= (espcp_status_codes_esp_reset_sdio - espcp_status_codes_esp_reset_unknown))
+            {
+                code = (espcp_status_codes_t) (((int) espcp_status_codes_esp_reset_unknown) + (int) reset_code);
+            }
+            else
+            {
+                code = espcp_status_codes_esp_reset_unknown;
+            }
         }
         meadow_os_raise_simple_exception(code);
     }
