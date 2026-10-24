@@ -391,8 +391,8 @@ void espcp_usrsock_init()
     if (_espcp_poll_requests == NULL)
     {
         _espcp_poll_requests = gl_create_empty_linked_list();
-        sem_init(&_espcp_poll_requests_mutex, 0, 1);
-        sem_setprotocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
+        nxsem_init(&_espcp_poll_requests_mutex, 0, 1);
+        nxsem_set_protocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
     }
 
     hcom_nx_config_lock();

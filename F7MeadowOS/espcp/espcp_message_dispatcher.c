@@ -164,13 +164,13 @@ int espcp_setup_message_dispatcher(void)
         return (result);
     }
 
-    result = sem_init(&g_message_id_mutex, 0, 1);
+    result = nxsem_init(&g_message_id_mutex, 0, 1);
     if (result != OK)
     {
         return (result);
     }
 
-    result = sem_setprotocol(&g_message_id_mutex, SEM_PRIO_NONE);
+    result = nxsem_set_protocol(&g_message_id_mutex, SEM_PRIO_NONE);
     if (result != OK)
     {
         return (result);

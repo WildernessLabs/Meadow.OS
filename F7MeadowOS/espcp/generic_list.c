@@ -139,7 +139,7 @@ gl_linked_list_t *gl_create_empty_linked_list(void)
 
     if (new_list != NULL)
     {
-        sem_init(&new_list->lock, 0, 1);
+        nxsem_init(&new_list->lock, 0, 1);
         new_list->head = NULL;
         new_list->tail = NULL;
     }

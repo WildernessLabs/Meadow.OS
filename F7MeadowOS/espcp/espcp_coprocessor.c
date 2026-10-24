@@ -285,14 +285,14 @@ void espcp_spi_interface_unlock(void)
  ****************************************************************************/
 static espcp_configuration_t *espcp_get_default_configuration(void)
 {
-    sem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
-    sem_setprotocol(&config_lock, SEM_PRIO_NONE);
+    nxsem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
+    nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
 
     espcp_configuration_t *config = (espcp_configuration_t *) kmm_zalloc(sizeof(espcp_configuration_t));
     if (config != NULL)
     {
-        sem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
-        sem_setprotocol(&espcp_spi_lock, SEM_PRIO_NONE);
+        nxsem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
+        nxsem_set_protocol(&espcp_spi_lock, SEM_PRIO_NONE);
         config->current_mode = espcp_mode_unknown;
         config->thread_running = false;
         config->esp_not_responding = true;
@@ -738,8 +738,8 @@ void espcp_deep_sleep(void)
     //  message and entering sleep mode before the message is actually sent.
     //
     sem_t sent = { };
-    sem_init(&sent, 0, 0);
-    sem_setprotocol(&sent, SEM_PRIO_NONE);
+    nxsem_init(&sent, 0, 0);
+    nxsem_set_protocol(&sent, SEM_PRIO_NONE);
     message->message_sent = &sent;
     espcp_queue_message(message, false);
     //
