@@ -438,7 +438,14 @@ int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_l
     unsigned char decrypted[MBEDTLS_MPI_MAX_SIZE];
     size_t olen = 0;
 
-    meadow_cloud_retrieve_private_key((const char **) &private_key, &len);
+    if (meadow_cloud_retrieve_private_key((const char **) &private_key, &len) != 0)
+    {
+        //
+        //  There is no key, and len has not been set, so nothing can be decrypted.
+        //
+        printf(" failed\n  ! the private key could not be retrieved\n");
+        return -5;
+    }
 
     mbedtls_pk_init(&key);
     mbedtls_ctr_drbg_init(&ctr_drbg);
