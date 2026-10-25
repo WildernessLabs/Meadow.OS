@@ -747,6 +747,10 @@ int espcp_enter_run_mode(void)
 void espcp_deep_sleep(void)
 {
     espcp_message_t *message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
+    if (message == NULL)
+    {
+        return;
+    }
     message->message_type = espcp_message_types_header;
     message->interface = espcp_esp32_interfaces_system;
     message->function = espcp_system_function_deep_sleep;
@@ -755,12 +759,12 @@ void espcp_deep_sleep(void)
     //  We need to explicitly wait for the message to be sent to the ESP before
     //  returning.  This is necessary as we could find ourselves queuing the
     //  message and entering sleep mode before the message is actually sent.
+    //  The normal blocking path does that and, unlike a private semaphore, it
+    //  is bounded by the response timeout and the dispatcher knows who owns
+    //  the message.
     //
-    sem_t sent = { };
-    nxsem_init(&sent, 0, 0);
-    nxsem_set_protocol(&sent, SEM_PRIO_NONE);
-    message->message_sent = &sent;
-    espcp_queue_message(message, false);
+    espcp_queue_message(message, true);
+
     //
     //  Now clear all of the socket information held by NuttX as putting the
     //  ESP into deep sleep will destroy all of the sockets.
@@ -770,10 +774,6 @@ void espcp_deep_sleep(void)
     //  TODO: This functionality has changed.  Bring this up to date with the latest NuttX code.
     //
 
-    //
-    //  Lastly, wait for the message to have been sent.
-    //
-    nxsem_wait_uninterruptible(&sent);
     espcp_delete_message_and_payload(message);
 }
 
