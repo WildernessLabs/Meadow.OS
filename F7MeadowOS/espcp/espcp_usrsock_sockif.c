@@ -659,6 +659,7 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
                                 {
                                     result = -response->response_errno;
                                 }
+                                free(response->addr);
                                 free(response);
                             }
                         }
@@ -1480,6 +1481,7 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                             {
                                 result = -response->response_errno;
                             }
+                            free(response->addr);
                             free(response);
                         }
                         else
