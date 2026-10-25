@@ -212,7 +212,7 @@ static void hcom_host_receive_takesem(sem_t *semaphore)
     /* Take the semaphore (perhaps waiting) */
     ret = sem_wait(semaphore);
   }
-  while (ret == -EINTR);
+  while ((ret < 0) && (errno == EINTR));
 }
 
 //=======================================================================
