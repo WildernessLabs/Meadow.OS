@@ -536,10 +536,12 @@ void hcom_mono_stdxxx_publish_message(uint32_t pollOffset,
   int ret;
   int useableBufSize;
 
-  // Make sure message fits in allocated fifo_read_buffer, if not, truncate
-  if(msgLength >= HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE)
+  // The buffer is allocated with room for HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE
+  // bytes (plus a terminator) and a read returns at most that many, so a full
+  // read is sent in its entirety.  Only truncate a (longer) message to fit.
+  if(msgLength > HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE)
   {
-    useableBufSize = HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE - 1;
+    useableBufSize = HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE;
   }
   else
   {
