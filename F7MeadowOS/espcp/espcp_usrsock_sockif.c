@@ -2808,6 +2808,7 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
         //
         //  For non-supported options, pretend we have succeeded.
         //
+        free(request);
         result = 0;
     }
 
