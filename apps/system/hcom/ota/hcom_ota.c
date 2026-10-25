@@ -422,6 +422,11 @@ void hcom_ota_rqst_register_device(uint32_t userData)
     hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, (char *) public_key_pem, public_key_len, __FILE__, __LINE__);
 
     meadow_cloud_provision((const char *) private_key_pem, private_key_len + 1, (const char *) public_key_pem, public_key_len + 1, NULL);
+
+    //
+    //  The private key must not be left on the stack for the next function to find.
+    //
+    mbedtls_platform_zeroize(private_key_pem, sizeof(private_key_pem));
 }
 
 int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_len, unsigned char *decrypted_buf)
