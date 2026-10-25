@@ -809,6 +809,24 @@ espcp_configuration_t *espcp_get_configuration(void)
 }
 
 /****************************************************************************
+ *  Name: espcp_is_ready
+ *
+ *  Description:
+ *      Check that the coprocessor configuration exists and that the ESP32
+ *      is responding.  Socket operations use this to return -ENETDOWN early
+ *      instead of dereferencing a missing configuration.
+ *
+ *  Returned Value:
+ *      true if the coprocessor can be used, false otherwise.
+ *
+ ****************************************************************************/
+bool espcp_is_ready(void)
+{
+    espcp_configuration_t *config = g_espcp_configuration;
+    return ((config != NULL) && !config->esp_not_responding);
+}
+
+/****************************************************************************
  *  Name: espcp_early_init
  *
  *  Description:

@@ -543,7 +543,7 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
 {
     MEADOW_TRACE_INFORMATION("accept(%d, %p, %p, %p)\n", espcp_sockfd(psock), addr, addrlen, newsock);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("accept - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -694,7 +694,7 @@ int espcp_usrsock_bind(struct socket *psock, const struct sockaddr *addr, sockle
 {
     MEADOW_TRACE_INFORMATION("bind(%d, %p, %d)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("bind - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -823,7 +823,7 @@ int espcp_usrsock_close(struct socket *psock)
 
     meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENETDOWN\n");
@@ -928,7 +928,7 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
 {
     MEADOW_TRACE_INFORMATION("connect(%d, %p, %d)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("connect - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1073,7 +1073,7 @@ static int espcp_usrsock_getsockpeername(struct socket *psock, struct sockaddr *
 {
     MEADOW_TRACE_INFORMATION("getsockpeername - socket %d\n", espcp_sockfd(psock));
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockpeername - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1203,7 +1203,7 @@ int espcp_usrsock_getpeername(struct socket *psock, struct sockaddr *addr, sockl
 {
     MEADOW_TRACE_INFORMATION("getpeername(%d, %p, %p)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getpeername - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1244,7 +1244,7 @@ int espcp_usrsock_getsockname(struct socket *psock, struct sockaddr *addr, sockl
 {
     MEADOW_TRACE_INFORMATION("getsockname(%d, %p, %p)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockname - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1444,7 +1444,7 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg)
 
     int result = 0;
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("ioctl - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1540,7 +1540,7 @@ int espcp_usrsock_listen(struct socket *psock, int backlog)
 {
     MEADOW_TRACE_INFORMATION("listen(%d, %d)\n", espcp_sockfd(psock), backlog);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("listen - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1633,7 +1633,7 @@ int espcp_usrsock_listen(struct socket *psock, int backlog)
  ****************************************************************************/
 static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
 {
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         return(-ENETDOWN);
     }
@@ -1852,7 +1852,7 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
         //
         uint32_t request_id = pr->request_id;
         free(pr);
-        if (espcp_get_configuration()->esp_not_responding)
+        if (!espcp_is_ready())
         {
             //
             //  Checked only after the item has been removed: the item points at the caller's
@@ -2042,7 +2042,7 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
     //  the list, and a request left there points at a pollfd that is about to be freed.  Teardown
     //  deals with the not-responding case itself, after that clean up.
     //
-    if (setup && espcp_get_configuration()->esp_not_responding)
+    if (setup && !espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
@@ -2193,7 +2193,7 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
 {
     MEADOW_TRACE_INFORMATION("getsockopt(%d, %d, %d, %p, %p)\n", espcp_sockfd(psock), level, option, value, value_len);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockopt - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -2656,7 +2656,7 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
 {
     MEADOW_TRACE_INFORMATION("setsockopt(%d, %d, %d, %p, %u)\n", espcp_sockfd(psock), level, option, value, value_len);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("setsockopt - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -2815,7 +2815,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     MEADOW_TRACE_INFORMATION("socket(%d, %d, %d)\n", domain, type, protocol);
     meadow_watchdog_t watchdog_socket = meadow_watchdog_activate(WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS, SOCKET_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENETDOWN\n");
@@ -2963,7 +2963,7 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
 {
     MEADOW_TRACE_INFORMATION("sendmsg(%d, %p, %d)\n", espcp_sockfd(psock), msg, flags);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("sendmsg - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -3089,7 +3089,7 @@ int espcp_usrsock_shutdown(struct socket *psock, int how)
 {
     MEADOW_TRACE_INFORMATION("shutdown(%d, %d)\n", espcp_sockfd(psock), how);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("shutdown - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -3199,7 +3199,7 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
 {
     MEADOW_TRACE_INFORMATION("recvmsg(%d, %p, %d)\n", espcp_sockfd(psock), msg, flags);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("recvmsg - result ENETDOWN\n");
         return(-ENETDOWN);
