@@ -123,6 +123,13 @@ struct espcp_usrsock_conn_s
      *        that poll_setup can answer without a round trip to the ESP32.
      */
     uint8_t esp_state;
+
+    /**
+     * @brief Number of sockets (descriptors) that share this connection.  A socket
+     *        starts with one and dup()/dup2() add references through si_addref.
+     *        The ESP32 socket is only closed when the last reference is released.
+     */
+    uint8_t crefs;
 };
 
 #define ESPCP_POLL_TIMEOUT_MILLISECONDS  60000  /* limit on how long the ESP32 holds a poll worker */
@@ -497,15 +504,13 @@ static sockcaps_t espcp_usrsock_sockif_sockcaps(struct socket *psock)
  ****************************************************************************/
 static void espcp_usrsock_sockif_addref(struct socket *psock)
 {
-    // struct usrsock_conn_s *conn;
+    DEBUGASSERT((psock != NULL) && (psock->s_conn != NULL));
 
-    espcp_usrsock_not_implemented(__func__);
-
-    // DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
-
-    // conn = psock->s_conn;
-    // DEBUGASSERT(conn->crefs > 0 && conn->crefs < 255);
-    // conn->crefs++;
+    struct espcp_usrsock_conn_s *conn = espcp_conn(psock);
+    if ((conn != NULL) && (conn->crefs < 255))
+    {
+        conn->crefs++;
+    }
 }
 
 /****************************************************************************
@@ -618,6 +623,7 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
                                     else
                                     {
                                         newconn->esp_sockfd = result;
+                                        newconn->crefs = 1;
                                         newsock->s_conn = newconn;
                                     }
                                     newsock->s_domain = psock->s_domain;
@@ -840,6 +846,18 @@ int espcp_usrsock_bind(struct socket *psock, const struct sockaddr *addr, sockle
 int espcp_usrsock_close(struct socket *psock)
 {
     MEADOW_TRACE_INFORMATION("close(%d)\n", espcp_sockfd(psock));
+
+    //
+    //  The connection is shared by every descriptor that was duplicated from this
+    //  socket.  Only the last close releases the ESP32 socket and the connection.
+    //
+    struct espcp_usrsock_conn_s *shared_conn = espcp_conn(psock);
+    if ((shared_conn != NULL) && (shared_conn->crefs > 1))
+    {
+        shared_conn->crefs--;
+        psock->s_conn = NULL;
+        return OK;
+    }
 
     meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
@@ -2950,6 +2968,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
                                 else
                                 {
                                     conn->esp_sockfd = result;
+                                    conn->crefs = 1;
                                     psock->s_conn = conn;
 
                                     //
