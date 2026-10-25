@@ -385,7 +385,11 @@ int espcp_send_packet(espcp_configuration_t *configuration, espcp_message_t *mes
         espcp_dump_message(message);
     #endif
     uint32_t encoded_header_size = 0;
-    espcp_encode_message(message, tx_buffer, &encoded_header_size, false);
+    if (!espcp_encode_message(message, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &encoded_header_size, false))
+    {
+        MEADOW_TRACE_INFORMATION("%s: Message does not fit in the SPI transmit buffer\n", __func__);
+        return (espcp_status_codes_failure);
+    }
     int result = espcp_status_codes_completed_ok;
 
     if (send_data_to_esp32 != NULL)
@@ -447,9 +451,10 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
         acknowledgement->packet_length = 0;
 
         uint32_t length = 0;
-        espcp_encode_message(acknowledgement, tx_buffer, &length, false);
-
-        send_data_to_esp32(tx_buffer, NULL, length);
+        if (espcp_encode_message(acknowledgement, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &length, false))
+        {
+            send_data_to_esp32(tx_buffer, NULL, length);
+        }
 
         free(acknowledgement);
     }
@@ -812,7 +817,10 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                         //
                         uint32_t buffer_length;
                         espcp_clear_spi_buffers(configuration);
-                        espcp_encode_message(response, tx_buffer, &buffer_length, false);
+                        if (!espcp_encode_message(response, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &buffer_length, false))
+                        {
+                            break;
+                        }
                         espcp_spi_interface_lock();
                         send_data_to_esp32(NULL, rx_buffer, buffer_length);
                         espcp_message_t *packet = espcp_extract_message(rx_buffer, buffer_length, false);

@@ -602,10 +602,19 @@ espcp_message_t *espcp_extract_message(uint8_t *buffer, uint32_t bufferLength, b
  *  None
  *
  ****************************************************************************/
-void espcp_encode_message(espcp_message_t *message, uint8_t *buffer, uint32_t *buffer_length, bool header_only)
+bool espcp_encode_message(espcp_message_t *message, uint8_t *buffer, uint32_t buffer_capacity, uint32_t *buffer_length, bool header_only)
 {
     uint32_t message_size = espcp_encoded_packet_size(message, header_only);
     uint32_t buffer_size = espcp_calculate_spi_buffer_size(message_size);
+    if (buffer_size > buffer_capacity)
+    {
+        //
+        //  The frame does not fit in the destination so nothing is written.
+        //
+        *buffer_length = 0;
+        return(false);
+    }
+
     if (buffer != NULL)
     {
         memset(buffer, 0, buffer_size);
@@ -644,6 +653,7 @@ void espcp_encode_message(espcp_message_t *message, uint8_t *buffer, uint32_t *b
     }
 
     *buffer_length = buffer_size;
+    return(true);
 }
 
 /****************************************************************************
