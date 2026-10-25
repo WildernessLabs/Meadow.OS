@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 #include <inttypes.h>
+#include <syslog.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -1404,7 +1405,7 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                     case SIOCSESPNONBLOCK:  /* The ESP socket's O_NONBLOCK has been set */
                                         break;
                                     default:
-                                        MEADOW_TRACE_CRITICAL("%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
+                                        syslog(LOG_ERR, "%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
                                         result = -EINVAL;
                                         break;
                                 }

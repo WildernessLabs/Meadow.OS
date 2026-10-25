@@ -35,6 +35,7 @@
 
 #include "espcp_encoders.h"
 #include "espcp_mapping.h"
+#include <syslog.h>
 #include <sys/socket.h>
 #include <meadow/meadow_debug_helpers.h>
 
@@ -3850,7 +3851,7 @@ espcp_core_dump_information_response_t *espcp_extract_core_dump_information_resp
 {
     if (buffer == NULL)
     {
-        MEADOW_TRACE_ERROR("espcp_extract_core_dump_information_response: NULL buffer\n");
+        syslog(LOG_ERR, "espcp_extract_core_dump_information_response: NULL buffer\n");
         return NULL;
     }
 
@@ -3889,7 +3890,7 @@ espcp_core_dump_fragment_response_t *espcp_extract_core_dump_fragment_response(u
 {
     if (buffer == NULL)
     {
-        MEADOW_TRACE_ERROR("espcp_extract_core_dump_fragment_response: NULL buffer\n");
+        syslog(LOG_ERR, "espcp_extract_core_dump_fragment_response: NULL buffer\n");
         return NULL;
     }
 

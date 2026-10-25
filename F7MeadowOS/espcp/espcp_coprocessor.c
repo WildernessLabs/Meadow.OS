@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -368,7 +369,7 @@ static int espcp_spi_init(void)
         result = stm32_configgpio(_active_pins->chip_select);
         if (result < 0)
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
+            syslog(LOG_ERR, "%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
             return(ERROR);
         }
         stm32_gpiowrite(_active_pins->chip_select, true); // SPI CS is active low so deselect SPI.
@@ -376,7 +377,7 @@ static int espcp_spi_init(void)
         g_esp_spi_dev = stm32_spibus_initialize(ESP32CP_SPI_COMMS_PORT);
         if (g_esp_spi_dev == 0)
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Error:Failed init ESP32 SPI port %d\n", __FILE__, __LINE__, result);
+            syslog(LOG_ERR, "%s@%d Error:Failed init ESP32 SPI port %d\n", __FILE__, __LINE__, result);
             return(ERROR);
         }
         
@@ -409,13 +410,13 @@ static int espcp_gpio_init(void)
     int result = stm32_configgpio(_active_pins->uart_tx);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config UART Tx as output result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config UART Tx as output result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     result = stm32_configgpio(_active_pins->uart_rx);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config UART Rx as input result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config UART Rx as input result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     //
@@ -427,7 +428,7 @@ static int espcp_gpio_init(void)
     result = stm32_configgpio(_active_pins->boot);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config Boot pin failed result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config Boot pin failed result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     stm32_gpiowrite(_active_pins->boot, true);
@@ -435,7 +436,7 @@ static int espcp_gpio_init(void)
     result = stm32_configgpio(_active_pins->reset);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config Reset pin failed result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config Reset pin failed result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     stm32_gpiowrite(_active_pins->reset, false);
@@ -835,7 +836,7 @@ void espcp_early_init(void)
         }
         else
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Error creating ESP32 message queues.\n", __FILE__, __LINE__);
+            syslog(LOG_ERR, "%s@%d Error creating ESP32 message queues.\n", __FILE__, __LINE__);
             g_espcp_configuration->esp_not_responding = true;
         }
     }

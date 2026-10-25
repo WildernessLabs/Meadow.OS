@@ -211,6 +211,11 @@ void espcp_delete_message_and_payload(espcp_message_t *message)
 
 #if defined(USE_MEADOW_DEBUG_HELPERS)
 
+//
+//  NOTE: This code (including espcp_dump_message) is only compiled when USE_MEADOW_DEBUG_HELPERS is defined in
+//  this file. Defining it in another file does not enable the dump and the calls there compile to nothing.
+//
+
 /**
  *  @brief Allow the mapping of enums etc to text for debugging.
  */
