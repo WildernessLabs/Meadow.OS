@@ -112,7 +112,7 @@ void meadow_os_espcp_reset(void)
  *  None
  *
  ****************************************************************************/
-uint32_t meadow_os_espcp_enter_programming_mode(void)
+int meadow_os_espcp_enter_programming_mode(void)
 {
     return(espcp_enter_programming_mode());
 }
