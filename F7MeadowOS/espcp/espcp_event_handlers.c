@@ -601,9 +601,16 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
     }
     espcp_delete_message_and_payload(message);
 
-    memset(&g_core_dump_work_struct, 0, sizeof(g_core_dump_work_struct));
-    int __attribute__((unused)) result = work_queue(LPWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
-    MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
+    //
+    //  Do not touch the work structure while it is still queued: the work queue holds it
+    //  in its list, and clearing it would corrupt that list.  If the previous request has
+    //  not started yet then it will do the job.
+    //
+    if (work_available(&g_core_dump_work_struct))
+    {
+        int __attribute__((unused)) result = work_queue(LPWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
+        MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
+    }
 
     int ret = meadow_client_cert_initialize();
     if (ret < 0)
