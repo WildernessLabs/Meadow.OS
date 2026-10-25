@@ -788,10 +788,18 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                     }
                     else
                     {
-                        gl_add_item_to_tail(_events_with_payloads, (void *) message);
+                        if (!gl_add_item_to_tail(_events_with_payloads, (void *) message))
+                        {
+                            delete_message = true;
+                        }
                     }
                 }
                 free(encodedData);
+            }
+            else
+            {
+                MEADOW_TRACE_INFORMATION("Unable to allocate the event data, message discarded.\n");
+                delete_message = true;
             }
         }
     }
