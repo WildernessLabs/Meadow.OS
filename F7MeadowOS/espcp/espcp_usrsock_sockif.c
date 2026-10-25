@@ -1399,7 +1399,8 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                 switch (cmd)
                                 {
                                     case SIOCGIFCONF:
-                                        if (arglen < (sizeof(struct ifconf)))
+                                        if ((arglen < (sizeof(struct ifconf))) || (ifc->ifc_req == NULL) ||
+                                            (ifc->ifc_len < (int) sizeof(struct ifreq)))
                                         {
                                             ifc->ifc_len = 0;
                                         }
@@ -1545,7 +1546,12 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg)
                 }
                 break;
             default:
-                result = espcp_usrsock_send_ioctl_to_esp(psock, cmd, argp, sizeof(unsigned long));
+                //
+                //  SIOCGIFCONF passes a struct ifconf, the other commands pass a pointer sized
+                //  argument.  The size is used to check that the argument is big enough.
+                //
+                result = espcp_usrsock_send_ioctl_to_esp(psock, cmd, argp,
+                                                         (cmd == SIOCGIFCONF) ? sizeof(struct ifconf) : sizeof(unsigned long));
                 break;
         }
     }
