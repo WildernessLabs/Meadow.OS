@@ -3,6 +3,7 @@
  ****************************************************************************/
 
 #include <string.h>
+#include <nuttx/mutex.h>
 
 #include <nuttx/config.h>
 
@@ -142,6 +143,7 @@ static int upd_hcom_restore_uart_reconfig(unsigned long arg);
 #endif
 
 static int upd_handle_i2c(int cmd, struct upd_i2c_cmd*);
+static int upd_handle_i2c_locked(int cmd, struct upd_i2c_cmd*);
 static struct spi_dev_s * get_spi_bus(int busNumber);
 static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd*);
 static int upd_handle_spi_speed(int cmd, struct upd_spi_speed_cmd*);
@@ -173,6 +175,9 @@ static const struct file_operations g_driver_operations =
 static struct i2c_master_s *g_i2c1 = NULL;
 static struct i2c_master_s *g_i2c3 = NULL;
 
+// Serialises the I2C bus lifecycle (initialise, shutdown) with transfers, so that a shutdown
+// cannot tear a bus down while a transfer is using it.
+static mutex_t g_i2c_lock = NXMUTEX_INITIALIZER;
 
 static struct spi_dev_s *g_spi5 = NULL; // external
 static struct spi_dev_s *g_spi3 = NULL; // external
@@ -576,7 +581,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
   return OK;
 }
 
-static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
+static int upd_handle_i2c_locked(int cmd, struct upd_i2c_cmd* data)
 {
   if(cmd == MUPD_I2C_SHUTDOWN)
   {
@@ -615,6 +620,12 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
     return ENODEV;
   }
 
+  if(pBus == NULL)
+  {
+    // The bus could not be initialised (the port is not enabled in this configuration).
+    return ENODEV;
+  }
+
   memset(&cfg, 0, sizeof(cfg));
   pCfg->address = data->address;
   pCfg->addrlen = 7; // we currently are supporting only 7-bit address devices
@@ -647,6 +658,19 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
     result = EINVAL;
   }
   
+  return result;
+}
+
+static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
+{
+  int result = nxmutex_lock(&g_i2c_lock);
+  if(result < 0)
+  {
+    return -result;
+  }
+
+  result = upd_handle_i2c_locked(cmd, data);
+  nxmutex_unlock(&g_i2c_lock);
   return result;
 }
 
