@@ -96,7 +96,7 @@
  * since 1970
  */
 
-#define NTP2UNIX_TRANLSLATION 2208988800u
+#define NTP2UNIX_TRANSLATION 2208988800u
 #define NTP_VERSION 3
 
 /****************************************************************************
@@ -110,7 +110,7 @@
 static struct work_s ntp_work_queue;
 
 /****************************************************************************
- * Public Functions
+ * External Declarations
  ****************************************************************************/
 
 extern void dns_clear_answer(void);
@@ -196,9 +196,9 @@ static void ntpc_settime(FAR uint8_t *timestamp)
 
     /* Translate seconds to account for the difference in the origin time */
 
-    if (seconds > NTP2UNIX_TRANLSLATION)
+    if (seconds > NTP2UNIX_TRANSLATION)
     {
-        seconds -= NTP2UNIX_TRANLSLATION;
+        seconds -= NTP2UNIX_TRANSLATION;
     }
 
     /* Conversion of the fractional part to nanoseconds:
@@ -312,7 +312,9 @@ static void ntpc_settime(FAR uint8_t *timestamp)
  *  with information about the NTP server.
  * 
  * Input Parameters:
+ *  server_name - Name of the NTP server to connect to.
  *  server - Pointer to a socket address structure.
+ *  timeout - Receive timeout for the socket.
  *
  * Returned Value:
  *  Socket descriptor or ERROR if there is a problem.
@@ -367,7 +369,7 @@ int ntpc_connect_to_server(char *server_name, struct sockaddr_in *server, uint32
         close(sd);
         return ERROR;
     }
-    return(sd);
+    return sd;
 }
 
 /****************************************************************************
@@ -429,18 +431,21 @@ static void ntp_worker(void *arg)
     ssize_t nbytes;
     int sd;
     int result;
-
-    hcom_nx_config_lock();
-    meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    uint32_t number_of_servers = config->ntp_servers_count;
-    uint32_t refresh_period = config->ntp_refresh_period_seconds;
-    hcom_nx_config_unlock();
-
+    meadow_configuration_t *config;
+    uint32_t number_of_servers;
+    uint32_t refresh_period;
     bool getting_time = true;
     uint32_t socket_timeout = MEADOW_NTPCLIENT_SOCKET_TIMEOUT;
     int current_server = 0;
     char server_name[64];
     int retry_count = 0;
+
+    hcom_nx_config_lock();
+    config = hcom_nx_config_get_pointer();
+    number_of_servers = config->ntp_servers_count;
+    refresh_period = config->ntp_refresh_period_seconds;
+    hcom_nx_config_unlock();
+
     while (getting_time && (retry_count < 3))
     {
         hcom_nx_config_lock();
@@ -525,7 +530,7 @@ int ntpc_start(void)
     memset(&ntp_work_queue, 0, sizeof(struct work_s));
 
     // Call immediately
-    return(work_queue(LPWORK, &ntp_work_queue, ntp_worker, NULL, 0));
+    return work_queue(LPWORK, &ntp_work_queue, ntp_worker, NULL, 0);
 }
 
 /****************************************************************************
