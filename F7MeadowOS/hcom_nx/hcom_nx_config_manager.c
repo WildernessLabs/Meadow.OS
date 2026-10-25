@@ -2749,13 +2749,14 @@ void hcom_nx_config_process_esp_configuration(espcp_system_configuration_t *esp_
             hcom_nx_config_set_esp_string_value(espcp_configuration_items_device_name, configuration->device_name);
         }
         //
+        //  The ESP32 sends its configuration every time it starts, so release the
+        //  previous name, as is done for the version strings below.
+        //
+        kmm_free(configuration->default_access_point);
+        configuration->default_access_point = NULL;
         if (esp_config->default_access_point != NULL)
         {
             configuration->default_access_point = kmm_strdup(esp_config->default_access_point);
-        }
-        else
-        {
-            configuration->default_access_point = NULL;
         }
         if (configuration->default_interface->interface_type == MEADOW_IFT_ESP32)
         {
