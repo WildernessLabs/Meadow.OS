@@ -536,10 +536,12 @@ void hcom_mono_stdxxx_publish_message(uint32_t pollOffset,
   int ret;
   int useableBufSize;
 
-  // Make sure message fits in allocated fifo_read_buffer, if not, truncate
-  if(msgLength >= HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE)
+  // The buffer is allocated with room for HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE
+  // bytes (plus a terminator) and a read returns at most that many, so a full
+  // read is sent in its entirety.  Only truncate a (longer) message to fit.
+  if(msgLength > HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE)
   {
-    useableBufSize = HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE - 1;
+    useableBufSize = HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE;
   }
   else
   {
@@ -623,32 +625,33 @@ int hcom_host_send_stdxxx_to_cli(uint32_t pollOffset, int useableBufSize,
 // Forward stdxxx message to syslog
 void hcom_mono_stdxxx_to_syslog(int useableBufSize, uint8_t fifo_read_buffer[])
 {
-  int syslog_buffer_index = 0;
-  // This needs special care to insure the message is properly formatted
+  // The line being built is kept between calls so that output which does not
+  // end with a newline (or a line split across two reads of the fifo) is
+  // completed by the next call instead of being lost.
+  static int syslog_buffer_index = 0;
+
   for (int index = 0; index < useableBufSize; index++)
   {
-    // If character printable copy to previously allocated buffer
-    if(isprint(fifo_read_buffer[index]))
+    uint8_t ch = fifo_read_buffer[index];
+
+    // Only printable characters are kept. Newline ends the line (below) and
+    // other control characters, such as the \r of \r\n, are dropped.
+    if ((ch != '\n') && isprint(ch))
     {
-      _stdxxx_syslog_buffer[syslog_buffer_index] = fifo_read_buffer[index];
+      _stdxxx_syslog_buffer[syslog_buffer_index++] = (char) ch;
     }
 
-    if ((fifo_read_buffer[index] == '\n') ||
+    if ((ch == '\n') ||
         (syslog_buffer_index >= HCOM_MONO_APP_STDXXX_REDIRECT_BUFF_SIZE - 2))
     {
       // If \n or out of buffer space, add \n and null terminate and output
-      // message. If not \n nor Buffer full, increment buffer index.
+      // message.
       _stdxxx_syslog_buffer[syslog_buffer_index] = '\n';
       _stdxxx_syslog_buffer[syslog_buffer_index + 1] = '\0';
       syslog_buffer_index = 0;
 
       syslog(LOG_INFO, "%s", (char *) _stdxxx_syslog_buffer);
     }
-    else
-    {
-      syslog_buffer_index++;
-    }
-    // Continue in loop to check the source buffer for more characters.
   }
 }
 
