@@ -111,6 +111,17 @@ typedef struct gl_linked_list_s gl_linked_list_t;
  */
 typedef bool (*comparison_function_t)(uint32_t, void *);
 
+/*
+ *  Function called by gl_for_each for each data item in the list.
+ *
+ *  void * - data item being visited.
+ *  void * - context pointer passed to gl_for_each.
+ *
+ *  returns - true to unlink the item from the list (the visitor then owns the
+ *            data), false to leave it in the list.
+ */
+typedef bool (*gl_visitor_function_t)(void *, void *);
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -129,5 +140,6 @@ void *gl_remove_item(gl_linked_list_t *, uint32_t, comparison_function_t);
 void *gl_remove_item_at_head(gl_linked_list_t *);
 bool gl_add_item_to_head(gl_linked_list_t *, void *);
 bool gl_add_item_to_tail(gl_linked_list_t *, void *);
+size_t gl_for_each(gl_linked_list_t *, gl_visitor_function_t, void *);
 
 #endif /* __GENERIC_LIST_H */
