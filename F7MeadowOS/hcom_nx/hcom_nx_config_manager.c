@@ -2059,9 +2059,10 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
             }
         }
     }
-    hcom_nx_config_unlock();
-
 #if defined(USE_MEADOW_DEBUG_HELPERS)
+    //
+    //  The diagnostics read the configuration so they run with the lock held.
+    //
     MEADOW_TRACE_INFORMATION("Using %s configuration\n", (meadow_configuration->using_default_configuration == 1) ? "default" : "user");
     MEADOW_TRACE_INFORMATION("Device Information:\n");
     MEADOW_TRACE_INFORMATION("    Device name: %s\n", meadow_configuration->device_name);
@@ -2125,17 +2126,22 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
     }
     MEADOW_TRACE_INFORMATION("    DNS Servers:\n");
     FILE *dns_file = fopen(CONFIG_NETDB_RESOLVCONF_PATH, "rb");
-    char buffer[32];
-    while (fgets(buffer, 32, dns_file) != NULL)
+    if (dns_file != NULL)
     {
-        MEADOW_TRACE_INFORMATION("        - %s", (buffer + 11));
+        char buffer[32];
+        while (fgets(buffer, 32, dns_file) != NULL)
+        {
+            MEADOW_TRACE_INFORMATION("        - %s", (buffer + 11));
+        }
+        fclose(dns_file);
     }
-    fclose(dns_file);
     MEADOW_TRACE_INFORMATION("Internal Debug:\n");
     MEADOW_TRACE_INFORMATION("    Use UART for trace: %d\n", meadow_configuration->use_uart1_for_trace);
     MEADOW_TRACE_INFORMATION("    Trace level: %d\n", meadow_configuration->trace_level);
     MEADOW_TRACE_INFORMATION("    Debugger attached to ESP32: %d\n", (meadow_configuration->reset_esp32_at_startup == 1) ? 0 : 1);
 #endif
+
+    hcom_nx_config_unlock();
 
     return(meadow_configuration);
 }
