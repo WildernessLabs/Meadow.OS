@@ -1378,11 +1378,18 @@ static char *hcom_nx_config_get_file_content(char *path)
             fseek(file, 0L, SEEK_END);
             file_size = ftell(file);
 
-            buffer = (char *) zalloc(file_size + 1);
-            if (buffer != NULL)
+            //
+            //  ftell() returns -1 on an I/O error.  Converted to a size_t that would be
+            //  a huge read into a one byte buffer.
+            //
+            if (file_size >= 0)
             {
-                fseek(file, 0, SEEK_SET);
-                fread(buffer, 1, file_size, file);
+                buffer = (char *) zalloc(file_size + 1);
+                if (buffer != NULL)
+                {
+                    fseek(file, 0, SEEK_SET);
+                    fread(buffer, 1, file_size, file);
+                }
             }
             fclose(file);
         }
