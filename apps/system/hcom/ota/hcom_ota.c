@@ -254,7 +254,9 @@ int os_update(void)
             return -4;
         }
         update_info("OS Update: Applying Part 1...");
-        hcom_via_nx_update_OS1(); // should not return
+        int ret = hcom_via_nx_update_OS1(); // should not return
+        update_info("OS Update: Applying Part 1 failed.");
+        return (ret != 0) ? ret : -3;       // Distinct from -2, no update files
     }
 
     if (!part1_update && part2_update)
