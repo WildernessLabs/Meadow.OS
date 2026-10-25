@@ -527,8 +527,9 @@ static void ntp_worker(void *arg)
 int ntpc_start(void)
 {
     // Initial call
+    // work_cancel() leaves the work structure free to be queued again.  It must not be
+    // cleared by hand, the work queue owns it while it is queued.
     work_cancel(LPWORK, &ntp_work_queue);
-    memset(&ntp_work_queue, 0, sizeof(struct work_s));
 
     // Call immediately
     return work_queue(LPWORK, &ntp_work_queue, ntp_worker, NULL, 0);
