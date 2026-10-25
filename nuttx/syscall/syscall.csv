@@ -95,7 +95,7 @@
 "meadow_os_config_free_resources","meadow/meadow_os.h","defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","void","meadow_configuration_t *"
 "meadow_os_coprocessor_deep_sleep","meadow/meadow_os.h","defined(CONFIG_MEADOW_ESPCP_MANAGER)","void"
 "meadow_os_deep_copy_config","meadow/meadow_os.h","defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","meadow_configuration_t *"
-"meadow_os_espcp_enter_programming_mode","meadow/meadow_os.h","defined(CONFIG_MEADOW_ESPCP_MANAGER)","uint32_t"
+"meadow_os_espcp_enter_programming_mode","meadow/meadow_os.h","defined(CONFIG_MEADOW_ESPCP_MANAGER)","int"
 "meadow_os_get_gateway_address","meadow/meadow_os.h","defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)","int","char *"
 "meadow_os_get_unit_tests_config","meadow/meadow_os.h","defined(CONFIG_KERNEL_TESTS_SYSCALL)","unit_tests_configuration_t *"
 "meadow_os_espcp_monitor_process_line","meadow/meadow_os.h","defined(CONFIG_MEADOW_ESPCP_MANAGER)","void", "char *"
