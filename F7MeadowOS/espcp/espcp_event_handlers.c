@@ -42,6 +42,7 @@
 #include <nuttx/kthread.h>
 #include <nuttx/wqueue.h>
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_os.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 #include "espcp_event_handlers.h"
 #include "../espcp/espcp_system.h"
@@ -182,12 +183,14 @@ static void *espcp_event_handler_thread(void *parameters)
     configuration->incoming_event_handler_thread_running = true;
     espcp_config_unlock();
 
+    uint32_t consecutive_failures = 0;
     while (true)
     {
         espcp_message_t *retrieved_message;
         ssize_t number_of_bytes = file_mq_receive(queue, (char *) &retrieved_message, sizeof(retrieved_message), NULL);
         if ((number_of_bytes == sizeof(espcp_message_t *)) && (retrieved_message != NULL))
         {
+            consecutive_failures = 0;
             espcp_dispatch_event(retrieved_message);
         }
         else
@@ -197,6 +200,20 @@ static void *espcp_event_handler_thread(void *parameters)
             //  the errno of this thread, so report the return value directly.
             //
             syslog(LOG_CRIT, "%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t *));
+            //
+            //  A persistent error, such as a closed handle, would otherwise turn this loop into
+            //  a tight spin that floods the log.  Back off, and give up for good after too
+            //  many consecutive failures.  This thread cannot be restarted so the only
+            //  sensible terminal action is a system exception and a reset.
+            //
+            consecutive_failures++;
+            if (consecutive_failures >= ESPCP_MAXIMUM_CONSECUTIVE_QUEUE_FAILURES)
+            {
+                syslog(LOG_EMERG, "%s@%d %s thread: %u consecutive queue failures, resetting.\n", __FILE__, __LINE__, "ESP event handler", (unsigned int) consecutive_failures);
+                meadow_os_raise_simple_exception(espcp_status_codes_failure);
+                PANIC();
+            }
+            usleep(consecutive_failures * 10 * 1000);
         }
     }
 
@@ -601,9 +618,16 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
     }
     espcp_delete_message_and_payload(message);
 
-    memset(&g_core_dump_work_struct, 0, sizeof(g_core_dump_work_struct));
-    int __attribute__((unused)) result = work_queue(LPWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
-    MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
+    //
+    //  Do not touch the work structure while it is still queued: the work queue holds it
+    //  in its list, and clearing it would corrupt that list.  If the previous request has
+    //  not started yet then it will do the job.
+    //
+    if (work_available(&g_core_dump_work_struct))
+    {
+        int __attribute__((unused)) result = work_queue(LPWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
+        MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
+    }
 
     int ret = meadow_client_cert_initialize();
     if (ret < 0)
@@ -830,10 +854,27 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                                 espcp_delete_message_and_payload(oldest);
                             }
                         }
-                        gl_add_item_to_tail(_events_with_payloads, (void *) message);
+                        if (!gl_add_item_to_tail(_events_with_payloads, (void *) message))
+                        {
+                            //
+                            //  The event was not kept so it is not counted and the message is released.
+                            //
+                            flags = enter_critical_section();
+                            if (_events_with_payloads_count > 0)
+                            {
+                                _events_with_payloads_count--;
+                            }
+                            leave_critical_section(flags);
+                            delete_message = true;
+                        }
                     }
                 }
                 free(encodedData);
+            }
+            else
+            {
+                MEADOW_TRACE_INFORMATION("Unable to allocate the event data, message discarded.\n");
+                delete_message = true;
             }
         }
     }

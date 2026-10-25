@@ -447,6 +447,15 @@ static void ntp_worker(void *arg)
     hcom_nx_config_unlock();
 
     //
+    //  The retries run on the shared low priority work queue so limit how many servers
+    //  one round can try, whatever length the configured list is.
+    //
+    if (number_of_servers > MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND)
+    {
+        number_of_servers = MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND;
+    }
+
+    //
     //  With no servers there is nothing to try, and nothing to index.
     //
     getting_time = (number_of_servers > 0);
@@ -532,8 +541,9 @@ static void ntp_worker(void *arg)
 int ntpc_start(void)
 {
     // Initial call
+    // work_cancel() leaves the work structure free to be queued again.  It must not be
+    // cleared by hand, the work queue owns it while it is queued.
     work_cancel(LPWORK, &ntp_work_queue);
-    memset(&ntp_work_queue, 0, sizeof(struct work_s));
 
     // Call immediately
     return work_queue(LPWORK, &ntp_work_queue, ntp_worker, NULL, 0);

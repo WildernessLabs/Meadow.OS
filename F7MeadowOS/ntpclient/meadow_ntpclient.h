@@ -54,6 +54,7 @@
 #endif
 
 #define MEADOW_NTPCLIENT_SOCKET_TIMEOUT      5
+#define MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND  4
 
 /****************************************************************************
  * Public Types

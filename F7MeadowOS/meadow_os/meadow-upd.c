@@ -173,8 +173,6 @@ static const struct file_operations g_driver_operations =
 static struct i2c_master_s *g_i2c1 = NULL;
 static struct i2c_master_s *g_i2c3 = NULL;
 
-static struct i2c_config_s g_i2c1_cfg;
-static struct i2c_config_s g_i2c3_cfg;
 
 static struct spi_dev_s *g_spi5 = NULL; // external
 static struct spi_dev_s *g_spi3 = NULL; // external
@@ -590,7 +588,10 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
     return OK;
   }
 
-  struct i2c_config_s *pCfg;
+  // The address and frequency are per transfer so the configuration is local, a shared
+  // one would be overwritten by a concurrent transfer.
+  struct i2c_config_s cfg;
+  struct i2c_config_s *pCfg = &cfg;
   struct i2c_master_s *pBus;
 
   if(data->busNumber == 0 || data->busNumber == 1)
@@ -600,7 +601,6 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
       g_i2c1 = stm32_i2cbus_initialize(MEADOW_I2C_PORT1);
     }
     pBus = g_i2c1;
-    pCfg = &g_i2c1_cfg;
   }
   else if(data->busNumber == 3)
   {
@@ -609,13 +609,13 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
       g_i2c3 = stm32_i2cbus_initialize(MEADOW_I2C_PORT3);
     }
     pBus = g_i2c3;
-    pCfg = &g_i2c3_cfg;
   }
   else
   {
     return ENODEV;
   }
 
+  memset(&cfg, 0, sizeof(cfg));
   pCfg->address = data->address;
   pCfg->addrlen = 7; // we currently are supporting only 7-bit address devices
   pCfg->frequency = data->frequency;

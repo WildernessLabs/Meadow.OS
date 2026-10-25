@@ -242,14 +242,26 @@ int os_update(void)
 
     if (part1_update && part2_update)
     {
-        validate_signature(OS_PART1_BINARY_FILENAME);
-        validate_signature(OS_PART2_BINARY_FILENAME);
+        //
+        //  validate_signature() is not implemented yet and fails, so an update is not applied.
+        //  Applying an image whose signature was not verified would be worse.
+        //
+        if ((validate_signature(OS_PART1_BINARY_FILENAME) != 0) || (validate_signature(OS_PART2_BINARY_FILENAME) != 0))
+        {
+            update_info("OS Update: Signature verification failed, update not applied.");
+            return -4;
+        }
         update_info("OS Update: Applying Part 1...");
         hcom_via_nx_update_OS1(); // should not return
     }
 
     if (!part1_update && part2_update)
     {
+        if (validate_signature(OS_PART2_BINARY_FILENAME) != 0)
+        {
+            update_info("OS Update: Signature verification failed, update not applied.");
+            return -4;
+        }
         update_info("OS Update: Applying Part 2...");
         return hcom_via_nx_update_OS2();
     }
