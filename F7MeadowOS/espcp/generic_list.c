@@ -140,6 +140,7 @@ gl_linked_list_t *gl_create_empty_linked_list(void)
     if (new_list != NULL)
     {
         nxsem_init(&new_list->lock, 0, 1);
+        nxsem_set_protocol(&new_list->lock, SEM_PRIO_NONE);
         new_list->head = NULL;
         new_list->tail = NULL;
     }
@@ -313,6 +314,74 @@ void *gl_remove_item(gl_linked_list_t *list, uint32_t key, comparison_function_t
     gl_unlock(list);
 
     return(data);
+}
+
+/****************************************************************************
+ * Name: gl_for_each
+ *
+ * Description:
+ *  Call the visitor function for each item in the list, from the head to the
+ *  tail.  If the visitor returns true then the item is unlinked from the list
+ *  and ownership of the data item passes to the visitor (it must free the
+ *  data if required).  This allows maintenance sweeps such as evicting
+ *  stale entries.
+ *
+ * Input Parameters:
+ *  list - Pointer to the linked list.
+ *  visitor - user supplied function called for each data item.
+ *  context - opaque pointer passed unchanged to the visitor.
+ *
+ * Returned Value:
+ *  The number of items that were removed from the list.
+ *
+ * Assumptions/Limitations:
+ *  The list is locked while the visitor runs so the visitor must not call
+ *  any other gl_ function for the same list and should not block.
+ *
+ ****************************************************************************/
+size_t gl_for_each(gl_linked_list_t *list, gl_visitor_function_t visitor, void *context)
+{
+    size_t removed = 0;
+
+    if ((list == NULL) || (visitor == NULL))
+    {
+        return(0);
+    }
+
+    gl_lock(list);
+    gl_linked_list_item_t *item = list->head;
+    while (item != NULL)
+    {
+        gl_linked_list_item_t *next = item->child;
+
+        if ((*visitor)(item->data, context))
+        {
+            if (item->parent == NULL)
+            {
+                list->head = item->child;
+            }
+            else
+            {
+                item->parent->child = item->child;
+            }
+
+            if (item->child == NULL)
+            {
+                list->tail = item->parent;
+            }
+            else
+            {
+                item->child->parent = item->parent;
+            }
+
+            free(item);
+            removed++;
+        }
+        item = next;
+    }
+    gl_unlock(list);
+
+    return(removed);
 }
 
 /****************************************************************************

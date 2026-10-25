@@ -46,6 +46,7 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <errno.h>
+#include <syslog.h>
 #include <debug.h>
 #include <net/if.h>
 #include <netinet/in.h>
@@ -411,6 +412,10 @@ void espcp_usrsock_init()
     if (_espcp_poll_requests == NULL)
     {
         _espcp_poll_requests = gl_create_empty_linked_list();
+        if (_espcp_poll_requests == NULL)
+        {
+            syslog(LOG_ERR, "Failed to create the poll request list\n");
+        }
         nxsem_init(&_espcp_poll_requests_mutex, 0, 1);
         nxsem_set_protocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
     }

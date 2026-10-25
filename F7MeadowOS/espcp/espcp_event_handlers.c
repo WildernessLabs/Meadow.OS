@@ -33,6 +33,7 @@
  *
  ****************************************************************************/
 #include <nuttx/config.h>
+#include <syslog.h>
 
 #include <sys/types.h>
 #include <inttypes.h>
@@ -336,6 +337,12 @@ int espcp_event_handlers_thread_start(void)
 void espcp_event_handlers_init(void)
 {
     _events_with_payloads = gl_create_empty_linked_list();
+    if (_events_with_payloads == NULL)
+    {
+        syslog(LOG_ERR, "Failed to create the events with payloads list\n");
+        return;
+    }
+
     espcp_event_handlers_thread_start();
 }
 
