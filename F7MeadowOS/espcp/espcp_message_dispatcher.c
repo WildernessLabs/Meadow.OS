@@ -799,26 +799,51 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                 //
                 //  So we now have the ACK.  We can now start to get the full message.
                 //
-                int payload_remaining = acknowledgement->payload_length;
+                //
+                //  The payload length is supplied by the ESP32 so it is limited to the
+                //  largest message there can be, it drives an allocation and the packet loop.
+                //
+                int payload_remaining = -1;
+                if (acknowledgement->payload_length <= ESPCP_MAXIMUM_PAYLOAD_SIZE)
+                {
+                    payload_remaining = (int) acknowledgement->payload_length;
+                }
+
+                espcp_message_t *response = NULL;
                 if (payload_remaining >= 0)
                 {
-                    espcp_message_t *response = espcp_create_copy_of_message_on_heap(acknowledgement, false);
-                    espcp_delete_message_and_payload(acknowledgement);
-                    acknowledgement = NULL;
+                    response = espcp_create_copy_of_message_on_heap(acknowledgement, false);
+                }
+                espcp_delete_message_and_payload(acknowledgement);
+                acknowledgement = NULL;
+
+                if (response != NULL)
+                {
                     response->message_type = espcp_message_types_ack;
                     response->payload_length = payload_remaining;
+                    response->payload = NULL;
                     if (payload_remaining > 0)
                     {
                         response->payload = (uint8_t *) zalloc(response->payload_length);
+                        if (response->payload == NULL)
+                        {
+                            response->payload_length = 0;
+                            espcp_delete_message_and_payload(response);
+                            response = NULL;
+                            result = espcp_status_codes_failure;
+                        }
                     }
-                    else
-                    {
-                        response->payload = NULL;
-                    }
+                }
+                else
+                {
+                    result = espcp_status_codes_failure;
+                }
 
+                if (response != NULL)
+                {
                     uint16_t offset = 0;
                     uint8_t saved_message_type = espcp_message_types_nak;
-                    uint8_t saved_status_code = espcp_status_codes_failure;
+                    uint32_t saved_status_code = espcp_status_codes_failure;
                     uint32_t message_id;
                     do
                     {
@@ -846,6 +871,13 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                             }
                             offset += packet->packet_length;
                             payload_remaining -= packet->packet_length;
+                            if ((packet->packet_length == 0) && (payload_remaining > 0))
+                            {
+                                //
+                                //  No forward progress, the loop would never end.
+                                //
+                                payload_remaining = -1;
+                            }
                             if (payload_remaining == 0)
                             {
                                 saved_message_type = packet->message_type;
@@ -884,6 +916,14 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                         response = NULL;
                     }
                 }
+            }
+            else
+            {
+                //
+                //  The acknowledgement could not be decoded.  espcp_send_packet() reported
+                //  OK so make sure the failure is seen and the retry below happens.
+                //
+                result = espcp_status_codes_failure;
             }
         }
     }
