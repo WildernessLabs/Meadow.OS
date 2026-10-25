@@ -966,7 +966,7 @@ static void espcp_test_file_system_write_file(char *name, uint8_t *contents, int
  ****************************************************************************/
 static void espcp_test_file_system_read_file(char *name, char *expectedContents)
 {
-    int16_t length;
+    int32_t length;
     uint8_t *contents;
     
     contents = espcp_file_system_read_file(NULL, &length);
@@ -1012,7 +1012,7 @@ static void espcp_test_file_system_read_file(char *name, char *expectedContents)
         }
         else
         {
-            syslog(LOGGING_LEVEL, "    FAIL: 2 - Reading a file from the file system, length %d, contents: '%s'.\n", length, (char *) contents);
+            syslog(LOGGING_LEVEL, "    FAIL: 2 - Reading a file from the file system, length %" PRId32 ", contents: '%s'.\n", length, (char *) contents);
         }
         free(contents);
     }
