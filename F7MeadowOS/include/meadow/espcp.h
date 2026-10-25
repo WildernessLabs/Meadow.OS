@@ -94,6 +94,15 @@
  */
 #define ESPCP_EVENT_DATA_SIZE                   13
 
+/*
+ *  /Esp32Events carries events to managed code as data (the encoded event, see
+ *  ESPCP_EVENT_DATA_SIZE), not as a kernel pointer, so managed code does not
+ *  need to follow a kernel pointer.  The kernel creates the queue with that as
+ *  its message size.  A receiver's buffer must be at least that big (NuttX
+ *  rejects a smaller one), so readers should use ESPCP_EVENT_DATA_SIZE.
+ *  /Esp32Requests and /IncomingEvents are kernel internal and carry pointers.
+ */
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/

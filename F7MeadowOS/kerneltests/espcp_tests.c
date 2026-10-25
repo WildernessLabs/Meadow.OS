@@ -434,10 +434,10 @@ static void espcp_test_start_wifi(void)
     //
     for (int index = 0; index < 2; index++)
     {
-        uint8_t encoded_event_header[22];
-        memset(encoded_event_header, 0, sizeof(espcp_event_data_t));
+        uint8_t encoded_event_header[ESPCP_EVENT_DATA_SIZE];
+        memset(encoded_event_header, 0, sizeof(encoded_event_header));
         unsigned int priority;
-        int result = file_mq_receive(&event_queue, (char *) &encoded_event_header, 22, &priority);
+        int result = file_mq_receive(&event_queue, (char *) &encoded_event_header, sizeof(encoded_event_header), &priority);
         DEBUGASSERT(result > 0);
         if (result > 0)
         {

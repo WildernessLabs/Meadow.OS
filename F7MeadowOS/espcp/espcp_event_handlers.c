@@ -799,7 +799,7 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
         }
 
         uint32_t encodedEventDataSize = espcp_event_data_buffer_size(&eventData);
-        if (encodedEventDataSize > 22)
+        if (encodedEventDataSize > ESPCP_EVENT_DATA_SIZE)
         {
             syslog(LOG_INFO, "Event message too large, event data discarded.\n");
             delete_message = true;

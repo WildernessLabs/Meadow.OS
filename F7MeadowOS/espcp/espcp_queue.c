@@ -128,7 +128,7 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
     request_queue_result = file_mq_open(&config->request_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
-    queue_attributes.mq_msgsize = sizeof(espcp_event_data_t);
+    queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE;     // The encoded size is what is sent (see meadow/espcp.h).
     queue_attributes.mq_flags = 0;
     event_queue_result = file_mq_open(&config->managed_event_queue, ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
