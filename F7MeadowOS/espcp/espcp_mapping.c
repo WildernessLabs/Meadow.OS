@@ -36,6 +36,7 @@
  *
  ****************************************************************************/
 
+#include <syslog.h>
 #include <errno.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -182,7 +183,7 @@ int32_t espcp_mapping_errno_from_esp(int32_t value)
             return(espcp_mapping_errno[index].host_value);
         }
     }
-    MEADOW_TRACE_ERROR("Unknown ESP32 errno %d, using EIO\n", (int) value);
+    syslog(LOG_ERR, "Unknown ESP32 errno %d, using EIO\n", (int) value);
     return(EIO);
 }
 
@@ -211,6 +212,6 @@ int espcp_mapping_level_to_esp(int level, int32_t *result)
             return(0);
         }
     }
-    MEADOW_TRACE_ERROR("Unsupported socket option level %d\n", level);
+    syslog(LOG_ERR, "Unsupported socket option level %d\n", level);
     return(-ENOPROTOOPT);
 }

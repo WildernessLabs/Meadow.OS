@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -269,7 +270,7 @@ uint8_t *espcp_file_system_read_file(char *name, int16_t *length)
     }
     else
     {
-        MEADOW_TRACE_ERROR("espcp_file_system_read_file: Invalid parameters.\n");
+        syslog(LOG_ERR, "espcp_file_system_read_file: Invalid parameters.\n");
     }
 
     return(result);
@@ -438,23 +439,47 @@ espcp_file_system_info_t *espcp_file_system_list_files(void)
                 if (result != NULL)
                 {
                     memset(result, 0, sizeof(espcp_file_system_info_t));
-                    result->number_of_files = files->number_of_files;
-                    if (result->number_of_files > 0)
+                    //
+                    //  The number of files is supplied by the ESP32.  Each entry takes at
+                    //  least a string terminator and a 16 bit length, so it cannot be
+                    //  larger than the data that was actually received.
+                    //
+                    uint32_t minimum_entry_size = 1 + sizeof(uint16_t);
+                    uint32_t number_of_files = files->number_of_files;
+                    if (number_of_files > (files->file_details_length / minimum_entry_size))
                     {
-                        result->files = (espcp_file_system_file_info_t *) malloc(result->number_of_files * sizeof(espcp_file_details_t));
+                        number_of_files = files->file_details_length / minimum_entry_size;
+                    }
+
+                    if (number_of_files > 0)
+                    {
+                        result->files = (espcp_file_system_file_info_t *) calloc(number_of_files, sizeof(espcp_file_system_file_info_t));
                         if (result->files != NULL)
                         {
                             uint8_t *buffer = files->file_details;
-                            for (int index = 0; index < result->number_of_files; index++)
+                            uint8_t *end = files->file_details + files->file_details_length;
+                            for (uint32_t index = 0; index < number_of_files; index++)
                             {
-                                espcp_file_details_t *file = espcp_extract_file_details(buffer);
-                                if (file != NULL)
+                                if ((end - buffer) < (ptrdiff_t) minimum_entry_size)
                                 {
-                                    result->files[index].name = file->name;
-                                    result->files[index].length = file->length;
-                                    free(file);
+                                    break;
                                 }
-                                buffer += strlen(result->files[index].name) + 1 + sizeof(uint16_t);
+
+                                espcp_file_details_t *file = espcp_extract_file_details(buffer);
+                                if (file == NULL)
+                                {
+                                    break;
+                                }
+
+                                //
+                                //  An empty name is extracted as NULL.
+                                //
+                                uint32_t name_length = (file->name != NULL) ? strlen(file->name) : 0;
+                                result->files[index].name = file->name;
+                                result->files[index].length = file->length;
+                                result->number_of_files++;
+                                free(file);
+                                buffer += name_length + 1 + sizeof(uint16_t);
                             }
                         }
                     }

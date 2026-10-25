@@ -117,7 +117,10 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
             syslog(LOG_ERR, "espcp: %d consecutive response timeouts, marking the ESP32 as not responding\n",
                    g_espcp_response_timeouts);
             espcp_config_lock();
-            espcp_get_configuration()->esp_not_responding = true;
+            if (espcp_get_configuration() != NULL)
+            {
+                espcp_get_configuration()->esp_not_responding = true;
+            }
             espcp_config_unlock();
         }
         return (espcp_status_codes_timeout);
@@ -131,7 +134,7 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
     //
     for (int i = 0; i < 100; i++)
     {
-        if (sem_trywait(message->semaphore) == 0)
+        if (nxsem_trywait(message->semaphore) == 0)
         {
             g_espcp_response_timeouts = 0;
             return (espcp_status_codes_completed_ok);
@@ -174,8 +177,8 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
     if (block)
     {
         message->semaphore = &sem; // cppcheck-suppress autoVariables
-        sem_init(message->semaphore, 0, 0);
-        sem_setprotocol(&sem, SEM_PRIO_NONE);
+        nxsem_init(message->semaphore, 0, 0);
+        nxsem_set_protocol(&sem, SEM_PRIO_NONE);
     }
     else
     {
@@ -241,6 +244,10 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
     espcp_config_unlock();
 
     espcp_message_t *connection_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
+    if (connection_message == NULL)
+    {
+        return;
+    }
     connection_message->message_type = espcp_message_types_event;
     connection_message->interface = espcp_esp32_interfaces_wired_ethernet;
     connection_message->semaphore = NULL;
@@ -290,6 +297,12 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
         connection_message->function = espcp_wi_fi_function_network_disconnected_event;
     }
 
-    espcp_add_message_to_queue(queue, connection_message);
+    if (espcp_add_message_to_queue(queue, connection_message) != espcp_status_codes_completed_ok)
+    {
+        //
+        //  The queue is full (or closed) so nobody else will release the message.
+        //
+        espcp_delete_message_and_payload(connection_message);
+    }
 }
 

@@ -86,7 +86,7 @@
  ****************************************************************************/
 static void gl_lock(gl_linked_list_t *list)
 {
-    sem_wait(&list->lock);
+    nxsem_wait_uninterruptible(&list->lock);
 }
 
 /****************************************************************************
@@ -107,7 +107,7 @@ static void gl_lock(gl_linked_list_t *list)
  ****************************************************************************/
 static void gl_unlock(gl_linked_list_t *list)
 {
-    sem_post(&list->lock);
+    nxsem_post(&list->lock);
 }
 
 
@@ -139,7 +139,7 @@ gl_linked_list_t *gl_create_empty_linked_list(void)
 
     if (new_list != NULL)
     {
-        sem_init(&new_list->lock, 0, 1);
+        nxsem_init(&new_list->lock, 0, 1);
         new_list->head = NULL;
         new_list->tail = NULL;
     }

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -186,7 +187,7 @@ static void *espcp_thread(void *parameters)
         }
         else
         {
-            MEADOW_TRACE_CRITICAL("%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t));
+            syslog(LOG_ERR, "%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t));
         }
     }
 
