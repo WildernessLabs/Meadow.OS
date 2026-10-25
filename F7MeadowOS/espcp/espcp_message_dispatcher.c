@@ -291,8 +291,14 @@ static void espcp_clear_spi_buffers(espcp_configuration_t *configuration)
     uint8_t *rx_buffer = configuration->spi_rx_buffer;
     espcp_config_unlock();
 
-    memset(tx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
-    memset(rx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    if (tx_buffer != NULL)
+    {
+        memset(tx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    }
+    if (rx_buffer != NULL)
+    {
+        memset(rx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    }
 }
 
 /****************************************************************************
