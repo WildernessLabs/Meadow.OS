@@ -1309,6 +1309,12 @@ static void hcom_nx_config_setup_dns_servers(meadow_configuration_t *config, con
 static void hcom_nx_config_create_dns_resolver_file(const char **servers, uint32_t server_count)
 {
     FILE *dns_file = fopen(CONFIG_NETDB_RESOLVCONF_PATH, "wb");
+    if (dns_file == NULL)
+    {
+        syslog(LOG_ERR, "Unable to create the DNS resolver file %s, errno:%d\n", CONFIG_NETDB_RESOLVCONF_PATH, errno);
+        return;
+    }
+
     for (int index = 0; index < server_count; index++)
     {
         if (hcom_nx_config_is_valid_ip_address(servers[index]))
