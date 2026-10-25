@@ -214,7 +214,7 @@ int espcp_file_system_format(void)
  *
  * Input Parameters:
  *  name - Name of the file to read.
- *  length - Pointer to an unsigned integer to hold the number of bytes
+ *  length - Pointer to a signed integer to hold the number of bytes
  *           retrieved.
  *
  * Returned Value:
@@ -225,7 +225,7 @@ int espcp_file_system_format(void)
  *  None.
  *
  ****************************************************************************/
-uint8_t *espcp_file_system_read_file(char *name, int16_t *length)
+uint8_t *espcp_file_system_read_file(char *name, int32_t *length)
 {
     uint8_t *result = NULL;
     uint32_t amountRead = 0;
@@ -252,9 +252,13 @@ uint8_t *espcp_file_system_read_file(char *name, int16_t *length)
                     if (message->status_code == espcp_status_codes_completed_ok)
                     {
                         espcp_file_name_and_contents_t *data = espcp_extract_file_name_and_contents(message->payload);
-                        amountRead = data->contents_length;
-                        result = data->contents;
-                        free(data);
+                        if (data != NULL)
+                        {
+                            amountRead = data->contents_length;
+                            result = data->contents;
+                            free(data->name);
+                            free(data);
+                        }
                     }
                 }
                 espcp_delete_message_and_payload(message);
@@ -265,7 +269,7 @@ uint8_t *espcp_file_system_read_file(char *name, int16_t *length)
             }
         }
         *length = amountRead;
-        MEADOW_TRACE_INFORMATION("espcp_file_system_read_file: Read %d bytes from file '%s'\n", *length, name);
+        MEADOW_TRACE_INFORMATION("espcp_file_system_read_file: Read %" PRId32 " bytes from file '%s'\n", *length, name);
         espcp_dump_buffer(result, amountRead, DEBUG_BYTES_PER_LINE);
     }
     else

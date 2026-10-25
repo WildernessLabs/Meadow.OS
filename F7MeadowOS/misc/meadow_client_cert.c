@@ -360,7 +360,7 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
 {
     syslog(LOG_INFO, "Retrieving client cert credentials from ESP32...\n");
 
-    int16_t client_cert_length;
+    int32_t client_cert_length;
     const uint8_t *client_cert_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_FILE, &client_cert_length);
     if (client_cert_buf == NULL)
     {
@@ -369,9 +369,9 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
     }
 
 #ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
-    syslog(LOG_INFO, "Retrieved client cert: %s len: %d\n", client_cert_buf, client_cert_length);
+    syslog(LOG_INFO, "Retrieved client cert: %s len: %" PRId32 "\n", client_cert_buf, client_cert_length);
 #else
-    syslog(LOG_INFO, "Retrieved client cert len: %d\n", client_cert_length);
+    syslog(LOG_INFO, "Retrieved client cert len: %" PRId32 "\n", client_cert_length);
 #endif
     *client_cert_buf_ptr = client_cert_buf;
     client_cert_buf_size = client_cert_length;
@@ -379,7 +379,7 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
 
     syslog(LOG_INFO, "Retrieving client cert private key from ESP32...\n");
 
-    int16_t private_key_length;
+    int32_t private_key_length;
     const uint8_t *private_key_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_FILE, &private_key_length);
     if (private_key_buf == NULL)
     {
@@ -388,9 +388,9 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
     }
 
 #ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
-    syslog(LOG_INFO, "Retrieved client cert private key: %s len: %d\n", private_key_buf, private_key_length);
+    syslog(LOG_INFO, "Retrieved client cert private key: %s len: %" PRId32 "\n", private_key_buf, private_key_length);
 #else
-    syslog(LOG_INFO, "Retrieved client cert private key len: %d\n", private_key_length);
+    syslog(LOG_INFO, "Retrieved client cert private key len: %" PRId32 "\n", private_key_length);
 #endif
     *private_key_buf_ptr = private_key_buf;
     private_key_buf_size = private_key_length;
@@ -398,7 +398,7 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
 
     syslog(LOG_INFO,"Retrieving client cert private key pass from ESP32...\n");
 
-    int16_t private_key_pass_length;
+    int32_t private_key_pass_length;
     const uint8_t *private_key_pass_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
     if (private_key_pass_buf == NULL)
     {
@@ -407,9 +407,9 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
     }
 
 #ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
-    syslog(LOG_INFO, "Retrieved client cert private key pass: %s len: %d\n", private_key_pass_buf, private_key_pass_length);
+    syslog(LOG_INFO, "Retrieved client cert private key pass: %s len: %" PRId32 "\n", private_key_pass_buf, private_key_pass_length);
 #else
-    syslog(LOG_INFO, "Retrieved client cert private key pass len: %d\n", private_key_pass_length);
+    syslog(LOG_INFO, "Retrieved client cert private key pass len: %" PRId32 "\n", private_key_pass_length);
 #endif
     *private_key_pass_buf_ptr = private_key_pass_buf;
     private_key_pass_buf_size = private_key_pass_length;

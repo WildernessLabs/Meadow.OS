@@ -34,7 +34,7 @@ int meadow_cloud_provision(FAR const char *private_key_buf, int private_key_len,
 
 int meadow_cloud_retrieve_private_key(FAR const char **private_key_buf_ptr, int *len)
 {
-    int16_t length;
+    int32_t length;
     const char *buf = (const char *) espcp_file_system_read_file(MEADOW_CLOUD_PRIVATE_KEY_FILE, &length);
     *private_key_buf_ptr = buf;
     if (buf == NULL)
