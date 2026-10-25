@@ -1998,16 +1998,15 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
                         }
                     }
                     uint32_t udp_port = hcom_nx_config_parse_unsigned_integer(configuration->coprocessor->log_udp_port, 30000);
-                    if (udp_port > SHRT_MAX)
+                    if (udp_port > 65535)       // Largest valid UDP port.
                     {
-                        meadow_logging_write(mfl_info, "Info: UDP greater than maximum, using 30,000.");
+                        meadow_logging_write(mfl_info, "Info: UDP port greater than 65535, using 30,000.");
                         meadow_configuration->esp_log_udp_port = 30000;
                     }
                     else
                     {
                         meadow_configuration->esp_log_udp_port = udp_port;
                     }
-                    meadow_configuration->esp_log_udp_port = hcom_nx_config_parse_unsigned_integer(configuration->coprocessor->log_udp_port, 30000);
                 }
                 else
                 {
