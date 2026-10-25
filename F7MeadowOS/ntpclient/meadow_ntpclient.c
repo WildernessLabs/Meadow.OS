@@ -405,9 +405,11 @@ void ntpc_raise_time_changed_event(enum espcp_esp32_interfaces interface)
         message->function = espcp_wi_fi_function_ntp_update_event;
         message->status_code = espcp_status_codes_completed_ok;
         
-        // REBASE NOTE: this call isn't implemented yet
-        // espcp_dispatch_event(message);
-        // syslog(LOG_MDIAG, "Like to call 'espcp_dispatch_event(message)' but, not implemented.");
+        //
+        //  The dispatcher takes ownership of the message.  No native handler exists
+        //  for this event so it is passed to managed code, which frees it afterwards.
+        //
+        espcp_dispatch_event(message);
     }
 }
 
@@ -461,6 +463,11 @@ static void ntp_worker(void *arg)
     {
         number_of_servers = MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND;
     }
+
+    //
+    //  With no servers there is nothing to try, and nothing to index.
+    //
+    getting_time = (number_of_servers > 0);
 
     while (getting_time && (retry_count < 3) && !ntp_stop_requested)
     {

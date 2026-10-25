@@ -63,7 +63,7 @@ static void update_info(const char *msg, ...)
     char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
     va_list ap;
     va_start(ap, msg);
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
+    vsnprintf(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
     va_end(ap);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
 }
@@ -422,6 +422,11 @@ void hcom_ota_rqst_register_device(uint32_t userData)
     hcom_host_send_raw_string_msg(HCOM_HOST_REQUEST_DEVICE_PUBLIC_KEY, 0, (char *) public_key_pem, public_key_len, __FILE__, __LINE__);
 
     meadow_cloud_provision((const char *) private_key_pem, private_key_len + 1, (const char *) public_key_pem, public_key_len + 1, NULL);
+
+    //
+    //  The private key must not be left on the stack for the next function to find.
+    //
+    mbedtls_platform_zeroize(private_key_pem, sizeof(private_key_pem));
 }
 
 int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_len, unsigned char *decrypted_buf)
@@ -433,7 +438,14 @@ int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_l
     unsigned char decrypted[MBEDTLS_MPI_MAX_SIZE];
     size_t olen = 0;
 
-    meadow_cloud_retrieve_private_key((const char **) &private_key, &len);
+    if (meadow_cloud_retrieve_private_key((const char **) &private_key, &len) != 0)
+    {
+        //
+        //  There is no key, and len has not been set, so nothing can be decrypted.
+        //
+        printf(" failed\n  ! the private key could not be retrieved\n");
+        return -5;
+    }
 
     mbedtls_pk_init(&key);
     mbedtls_ctr_drbg_init(&ctr_drbg);
@@ -493,9 +505,17 @@ int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypt
 {
     mbedtls_aes_context aes;
     mbedtls_aes_init(&aes);
-    mbedtls_aes_setkey_dec(&aes, aes_key, 256);
-    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, encrypted_len, iv, encrypted_buf, decrypted_buf);
+    int ret = mbedtls_aes_setkey_dec(&aes, aes_key, 256);
+    if (ret == 0)
+    {
+        ret = mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, encrypted_len, iv, encrypted_buf, decrypted_buf);
+    }
     mbedtls_aes_free(&aes);
+    if (ret != 0)
+    {
+        printf(" failed\n  ! AES decrypt returned -0x%04x\n", (unsigned int) -ret);
+        return -1;
+    }
     return encrypted_len;
 }
 
