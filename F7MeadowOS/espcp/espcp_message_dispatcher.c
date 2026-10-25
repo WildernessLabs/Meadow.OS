@@ -237,8 +237,7 @@ void espcp_queue_send_response_message(void)
  *  None.
  *
  * Returned Value:
- *  0 if there is a problem otherwise a valid message ID (which will be larger 
- *  than 0x80000000).
+ *  A valid message ID (which will be larger than 0x80000000).
  *
  * Assumptions/Limitations:
  *  None
@@ -246,23 +245,16 @@ void espcp_queue_send_response_message(void)
  ****************************************************************************/
 uint32_t espcp_get_next_message_id()
 {
-    uint32_t message_id = OK;
-    int result = OK;
-
-    result = nxsem_wait_uninterruptible(&g_message_id_mutex);
-    if (result != OK)
-    {
-        return (0);
-    }
-
+    //
+    //  The increment is protected by a critical section rather than a
+    //  semaphore so that it cannot fail.  A failure would have to return a
+    //  reserved ID, and two messages with the same ID are matched to the
+    //  wrong waiting caller.
+    //
+    irqstate_t flags = enter_critical_section();
     g_last_message_id++;
-    message_id = (g_last_message_id | ESP32_MESSAGE_ID_MASK);
-
-    result = nxsem_post(&g_message_id_mutex);
-    if (result != OK)
-    {
-        return (0);
-    }
+    uint32_t message_id = (g_last_message_id | ESP32_MESSAGE_ID_MASK);
+    leave_critical_section(flags);
 
     return(message_id);
 }
