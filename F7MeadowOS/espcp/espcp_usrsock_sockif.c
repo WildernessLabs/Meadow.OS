@@ -320,19 +320,22 @@ static bool espcp_usrsock_poll_request_compare_message_id(uint32_t key, void *it
  * Name: espcp_usrsock_poll_request_compare_fd_pointer
  *
  * Description:
- *   Compare the specified key with the request ID in the item.
+ *   Compare the specified key with the pollfd pointer in the item.  The
+ *   pointer is compared, not the descriptor, so two polls on the same
+ *   descriptor do not remove each other's requests, and the pollfd is not
+ *   dereferenced because the item may be stale.
  *
  * Input Parameters:
- *  key    - Pointer to the fd structure being looked for.
+ *  key    - Pointer to the pollfd structure being looked for.
  *  item   - Poll request item being looked for.
  *
  * Returned Value:
- *  true if the key matches the request ID, false otherwise.
+ *  true if the key matches the pollfd pointer, false otherwise.
  *
  ****************************************************************************/
 static bool espcp_usrsock_poll_request_compare_fd_pointer(uint32_t key, void *item)
 {
-    return((int) key == ((espcp_poll_request_list_item_t *) item)->fd->fd);
+    return(key == (uint32_t) (uintptr_t) ((espcp_poll_request_list_item_t *) item)->fd);
 }
 
 /****************************************************************************
@@ -1852,7 +1855,7 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
     //
     espcp_lock_poll_requests_queue();
     espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
-                                                (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
+                                                (uint32_t) (uintptr_t) fds, espcp_usrsock_poll_request_compare_fd_pointer);
     espcp_unlock_poll_requests_queue();
 
     if (pr == NULL)
