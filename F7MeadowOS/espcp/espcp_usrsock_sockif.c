@@ -846,18 +846,6 @@ static int espcp_usrsock_close_esp_socket(int esp_sockfd)
 {
     MEADOW_TRACE_INFORMATION("close(%d)\n", esp_sockfd);
 
-    //
-    //  The connection is shared by every descriptor that was duplicated from this
-    //  socket.  Only the last close releases the ESP32 socket and the connection.
-    //
-    struct espcp_usrsock_conn_s *shared_conn = espcp_conn(psock);
-    if ((shared_conn != NULL) && (shared_conn->crefs > 1))
-    {
-        shared_conn->crefs--;
-        psock->s_conn = NULL;
-        return OK;
-    }
-
     meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
     if (!espcp_is_ready())
@@ -965,6 +953,18 @@ static int espcp_usrsock_close_esp_socket(int esp_sockfd)
  ****************************************************************************/
 int espcp_usrsock_close(struct socket *psock)
 {
+    //
+    //  The connection is shared by every descriptor that was duplicated from this
+    //  socket.  Only the last close releases the ESP32 socket and the connection.
+    //
+    struct espcp_usrsock_conn_s *shared_conn = espcp_conn(psock);
+    if ((shared_conn != NULL) && (shared_conn->crefs > 1))
+    {
+        shared_conn->crefs--;
+        psock->s_conn = NULL;
+        return OK;
+    }
+
     //
     //  NuttX destroys the socket whatever this function returns, so the connection
     //  state is always released, including when the ESP32 cannot be told.
