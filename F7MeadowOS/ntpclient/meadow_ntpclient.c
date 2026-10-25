@@ -446,6 +446,15 @@ static void ntp_worker(void *arg)
     refresh_period = config->ntp_refresh_period_seconds;
     hcom_nx_config_unlock();
 
+    //
+    //  The retries run on the shared low priority work queue so limit how many servers
+    //  one round can try, whatever length the configured list is.
+    //
+    if (number_of_servers > MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND)
+    {
+        number_of_servers = MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND;
+    }
+
     while (getting_time && (retry_count < 3))
     {
         hcom_nx_config_lock();
