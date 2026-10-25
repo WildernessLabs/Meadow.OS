@@ -36,6 +36,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <syslog.h>
 #include <debug.h>
 #include <fcntl.h>
 
@@ -191,6 +192,11 @@ int espcp_setup_message_dispatcher(void)
     }
 
     g_messages_waiting_for_a_response = gl_create_empty_linked_list();
+    if (g_messages_waiting_for_a_response == NULL)
+    {
+        syslog(LOG_ERR, "Failed to create the pending response list\n");
+        return (-ENOMEM);
+    }
 
     return (result);
 }
@@ -431,6 +437,10 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
     if (send_data_to_esp32 != NULL)
     {
         espcp_message_t *acknowledgement = (espcp_message_t *) malloc(sizeof(espcp_message_t));
+        if (acknowledgement == NULL)
+        {
+            return;
+        }
 
         memcpy(acknowledgement, message, sizeof(espcp_message_t));
         MEADOW_TRACE_INFORMATION("Sending acknowledgement code %d\n", status_code);

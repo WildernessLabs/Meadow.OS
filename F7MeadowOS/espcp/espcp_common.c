@@ -244,6 +244,10 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
     espcp_config_unlock();
 
     espcp_message_t *connection_message = (espcp_message_t *) zalloc(sizeof(espcp_message_t));
+    if (connection_message == NULL)
+    {
+        return;
+    }
     connection_message->message_type = espcp_message_types_event;
     connection_message->interface = espcp_esp32_interfaces_wired_ethernet;
     connection_message->semaphore = NULL;
@@ -293,6 +297,12 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
         connection_message->function = espcp_wi_fi_function_network_disconnected_event;
     }
 
-    espcp_add_message_to_queue(queue, connection_message);
+    if (espcp_add_message_to_queue(queue, connection_message) != espcp_status_codes_completed_ok)
+    {
+        //
+        //  The queue is full (or closed) so nobody else will release the message.
+        //
+        espcp_delete_message_and_payload(connection_message);
+    }
 }
 
