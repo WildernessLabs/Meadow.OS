@@ -112,7 +112,10 @@ static int deltree(const char *path)
             // Path too long to fit full_path; skip rather than act on a truncated path.
             continue;
         }
-        if (DIRENT_ISDIRECTORY(entry->d_type) && strncmp(entry->d_name, ".", 1) && strncmp(entry->d_name, "..", 1))
+        //
+        //  Skip only the "." and ".." entries, not every name that starts with a dot.
+        //
+        if (DIRENT_ISDIRECTORY(entry->d_type) && strcmp(entry->d_name, ".") && strcmp(entry->d_name, ".."))
         {
             deltree(full_path);
         }
@@ -122,9 +125,8 @@ static int deltree(const char *path)
         }
     }
     closedir(dir);
-    rmdir(path);
 
-    return 0;
+    return rmdir(path);
 }
 
 int app_update(void)
