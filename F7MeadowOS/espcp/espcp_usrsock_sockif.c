@@ -167,6 +167,7 @@ static int espcp_usrsock_sockif_setup(struct socket *psock);
 static sockcaps_t espcp_usrsock_sockif_sockcaps(struct socket *psock);
 
 static void espcp_usrsock_sockif_addref(struct socket *psock);
+static int espcp_usrsock_close_esp_socket(int esp_sockfd);
 
 /****************************************************************************
  * Public Data
@@ -618,6 +619,11 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
                                         zalloc(sizeof(struct espcp_usrsock_conn_s));
                                     if (newconn == NULL)
                                     {
+                                        //
+                                        //  The ESP32 has already accepted the connection.  Close it
+                                        //  or the coprocessor leaks a descriptor.
+                                        //
+                                        (void) espcp_usrsock_close_esp_socket(result);
                                         result = -ENOMEM;
                                     }
                                     else
@@ -823,41 +829,22 @@ int espcp_usrsock_bind(struct socket *psock, const struct sockaddr *addr, sockle
 }
 
 /****************************************************************************
- * Name: espcp_usrsock_close
+ * Name: espcp_usrsock_close_esp_socket
  *
  * Description:
- *  Closes a file descriptor, so that it no longer refers to any socket and 
- *  may be reused.
+ *   Ask the ESP32 to close one of its sockets.  The connection structure of
+ *   the STM32 side socket is not touched.
  *
  * Input Parameters:
- *   conn     usrsock socket connection structure
- * 
- * Returns:
- *  0 if successful, negated errno on error.
- * 
- *  EBADF
- *      fd isn't a valid open file descriptor.
- *  EIO
- *      An I/O error occurred.
- *  ENETDOWN
- *      Network down / not connected.
- * 
+ *   esp_sockfd - ESP32 socket descriptor.
+ *
+ * Returned Value:
+ *   0 on success, negated errno on error.
+ *
  ****************************************************************************/
-int espcp_usrsock_close(struct socket *psock)
+static int espcp_usrsock_close_esp_socket(int esp_sockfd)
 {
-    MEADOW_TRACE_INFORMATION("close(%d)\n", espcp_sockfd(psock));
-
-    //
-    //  The connection is shared by every descriptor that was duplicated from this
-    //  socket.  Only the last close releases the ESP32 socket and the connection.
-    //
-    struct espcp_usrsock_conn_s *shared_conn = espcp_conn(psock);
-    if ((shared_conn != NULL) && (shared_conn->crefs > 1))
-    {
-        shared_conn->crefs--;
-        psock->s_conn = NULL;
-        return OK;
-    }
+    MEADOW_TRACE_INFORMATION("close(%d)\n", esp_sockfd);
 
     meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
@@ -878,7 +865,7 @@ int espcp_usrsock_close(struct socket *psock)
         MEADOW_TRACE_DEBUG("close - result ENOMEM\n");
         return(-ENOMEM);
     }
-    request->socket_handle = espcp_sockfd(psock);
+    request->socket_handle = esp_sockfd;
 
     int payload_length = espcp_close_request_buffer_size(request);
     uint8_t *payload = (uint8_t *) zalloc(payload_length);
@@ -938,7 +925,52 @@ int espcp_usrsock_close(struct socket *psock)
     espcp_delete_message_and_payload(message);
     meadow_watchdog_deactivate(watchdog_close);
 
-    MEADOW_TRACE_INFORMATION("close - socket %d, result %" PRId32 "\n", espcp_sockfd(psock), result);
+    MEADOW_TRACE_INFORMATION("close - socket %d, result %" PRId32 "\n", esp_sockfd, result);
+
+    return (result);
+}
+
+/****************************************************************************
+ * Name: espcp_usrsock_close
+ *
+ * Description:
+ *  Closes a file descriptor, so that it no longer refers to any socket and 
+ *  may be reused.
+ *
+ * Input Parameters:
+ *   conn     usrsock socket connection structure
+ * 
+ * Returns:
+ *  0 if successful, negated errno on error.
+ * 
+ *  EBADF
+ *      fd isn't a valid open file descriptor.
+ *  EIO
+ *      An I/O error occurred.
+ *  ENETDOWN
+ *      Network down / not connected.
+ * 
+ ****************************************************************************/
+int espcp_usrsock_close(struct socket *psock)
+{
+    //
+    //  The connection is shared by every descriptor that was duplicated from this
+    //  socket.  Only the last close releases the ESP32 socket and the connection.
+    //
+    struct espcp_usrsock_conn_s *shared_conn = espcp_conn(psock);
+    if ((shared_conn != NULL) && (shared_conn->crefs > 1))
+    {
+        shared_conn->crefs--;
+        psock->s_conn = NULL;
+        return OK;
+    }
+
+    //
+    //  NuttX destroys the socket whatever this function returns, so the connection
+    //  state is always released, including when the ESP32 cannot be told.
+    //
+    int esp_sockfd = espcp_sockfd(psock);
+    int32_t result = espcp_usrsock_close_esp_socket(esp_sockfd);
 
     /* Free the per-socket connection state. */
     free(psock->s_conn);
