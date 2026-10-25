@@ -3289,9 +3289,17 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
                                 msg->msg_flags = response->msg_flags;
                                 result = response->result;
                             }
+                            else if (response->result == 0)
+                            {
+                                result = 0;                 // Orderly close, end of file.
+                            }
                             else
                             {
-                                result = -response->response_errno;
+                                //
+                                //  An ESP32 error.  If the errno is 0 it must still be seen as an error,
+                                //  or it reads as a clean end of file and the response looks truncated.
+                                //
+                                result = (response->response_errno != 0) ? -response->response_errno : -EIO;
                             }
                             espcp_free_recvmsg_response(response);
                         }
