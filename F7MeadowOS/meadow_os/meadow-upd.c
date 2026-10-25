@@ -620,6 +620,12 @@ static int upd_handle_i2c_locked(int cmd, struct upd_i2c_cmd* data)
     return ENODEV;
   }
 
+  if(pBus == NULL)
+  {
+    // The bus could not be initialised (the port is not enabled in this configuration).
+    return ENODEV;
+  }
+
   memset(&cfg, 0, sizeof(cfg));
   pCfg->address = data->address;
   pCfg->addrlen = 7; // we currently are supporting only 7-bit address devices
