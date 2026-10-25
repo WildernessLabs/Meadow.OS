@@ -117,7 +117,10 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
             syslog(LOG_ERR, "espcp: %d consecutive response timeouts, marking the ESP32 as not responding\n",
                    g_espcp_response_timeouts);
             espcp_config_lock();
-            espcp_get_configuration()->esp_not_responding = true;
+            if (espcp_get_configuration() != NULL)
+            {
+                espcp_get_configuration()->esp_not_responding = true;
+            }
             espcp_config_unlock();
         }
         return (espcp_status_codes_timeout);
