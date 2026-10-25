@@ -830,8 +830,15 @@ void espcp_early_init(void)
     {
         if (espcp_create_message_queues(g_espcp_configuration))
         {
-            espcp_setup_message_dispatcher();
-            espcp_event_handlers_init();
+            if (espcp_setup_message_dispatcher() == OK)
+            {
+                espcp_event_handlers_init();
+            }
+            else
+            {
+                MEADOW_TRACE_CRITICAL("%s@%d Error setting up the message dispatcher.\n", __FILE__, __LINE__);
+                g_espcp_configuration->esp_not_responding = true;
+            }
         }
         else
         {

@@ -211,6 +211,13 @@ int espcp_queue_add_nonblocking_message(uint8_t message_type, uint8_t interface,
         {
             result = OK;
         }
+        else
+        {
+            //
+            //  The message was not queued so the queue manager will never free it.
+            //
+            espcp_delete_message_and_payload(message);
+        }
     }
     //
     //  We are adding a non-blocking message to the queue and the queue manager
