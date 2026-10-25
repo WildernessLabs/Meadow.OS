@@ -801,8 +801,8 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
         if ((version->major != 0) || (version->minor != 0) || (version->revision != 0) || (version->build != 0))
         {
             snprintf(version_string, 45, "%" PRId32 ".%" PRId32 ".%" PRId32 ".%" PRId32, version->major, version->minor, version->revision, version->build);
+            result = kmm_strdup(version_string);
         }
-        result = kmm_strdup(version_string);
     }
 
     return(result);
@@ -1309,6 +1309,12 @@ static void hcom_nx_config_setup_dns_servers(meadow_configuration_t *config, con
 static void hcom_nx_config_create_dns_resolver_file(const char **servers, uint32_t server_count)
 {
     FILE *dns_file = fopen(CONFIG_NETDB_RESOLVCONF_PATH, "wb");
+    if (dns_file == NULL)
+    {
+        syslog(LOG_ERR, "Unable to create the DNS resolver file %s, errno:%d\n", CONFIG_NETDB_RESOLVCONF_PATH, errno);
+        return;
+    }
+
     for (int index = 0; index < server_count; index++)
     {
         if (hcom_nx_config_is_valid_ip_address(servers[index]))
@@ -1372,11 +1378,18 @@ static char *hcom_nx_config_get_file_content(char *path)
             fseek(file, 0L, SEEK_END);
             file_size = ftell(file);
 
-            buffer = (char *) zalloc(file_size + 1);
-            if (buffer != NULL)
+            //
+            //  ftell() returns -1 on an I/O error.  Converted to a size_t that would be
+            //  a huge read into a one byte buffer.
+            //
+            if (file_size >= 0)
             {
-                fseek(file, 0, SEEK_SET);
-                fread(buffer, 1, file_size, file);
+                buffer = (char *) zalloc(file_size + 1);
+                if (buffer != NULL)
+                {
+                    fseek(file, 0, SEEK_SET);
+                    fread(buffer, 1, file_size, file);
+                }
             }
             fclose(file);
         }
