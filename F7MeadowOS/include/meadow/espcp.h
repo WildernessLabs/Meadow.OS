@@ -80,6 +80,12 @@
 #define ESPCP_DEFAULT_MESSAGE_PRIORITY          1
 
 /*
+ *  Number of consecutive message queue read failures after which a worker
+ *  thread gives up.  The threads cannot be restarted, so this ends in a reset.
+ */
+#define ESPCP_MAXIMUM_CONSECUTIVE_QUEUE_FAILURES 20
+
+/*
  *  Size in bytes of an espcp_event_data_t once encoded by
  *  espcp_encode_event_data():  one byte of interface followed by three
  *  4-byte big-endian fields.  This is the encoded (wire) size and is

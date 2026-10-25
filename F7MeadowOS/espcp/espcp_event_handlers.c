@@ -42,6 +42,7 @@
 #include <nuttx/kthread.h>
 #include <nuttx/wqueue.h>
 #include <meadow/hcom_shared_common.h>
+#include <meadow/meadow_os.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
 #include "espcp_event_handlers.h"
 #include "../espcp/espcp_system.h"
@@ -182,12 +183,14 @@ static void *espcp_event_handler_thread(void *parameters)
     configuration->incoming_event_handler_thread_running = true;
     espcp_config_unlock();
 
+    uint32_t consecutive_failures = 0;
     while (true)
     {
         espcp_message_t *retrieved_message;
         ssize_t number_of_bytes = file_mq_receive(queue, (char *) &retrieved_message, sizeof(retrieved_message), NULL);
         if ((number_of_bytes == sizeof(espcp_message_t *)) && (retrieved_message != NULL))
         {
+            consecutive_failures = 0;
             espcp_dispatch_event(retrieved_message);
         }
         else
@@ -197,6 +200,20 @@ static void *espcp_event_handler_thread(void *parameters)
             //  the errno of this thread, so report the return value directly.
             //
             syslog(LOG_CRIT, "%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t *));
+            //
+            //  A persistent error, such as a closed handle, would otherwise turn this loop into
+            //  a tight spin that floods the log.  Back off, and give up for good after too
+            //  many consecutive failures.  This thread cannot be restarted so the only
+            //  sensible terminal action is a system exception and a reset.
+            //
+            consecutive_failures++;
+            if (consecutive_failures >= ESPCP_MAXIMUM_CONSECUTIVE_QUEUE_FAILURES)
+            {
+                syslog(LOG_EMERG, "%s@%d %s thread: %u consecutive queue failures, resetting.\n", __FILE__, __LINE__, "ESP event handler", (unsigned int) consecutive_failures);
+                meadow_os_raise_simple_exception(espcp_status_codes_failure);
+                PANIC();
+            }
+            usleep(consecutive_failures * 10 * 1000);
         }
     }
 

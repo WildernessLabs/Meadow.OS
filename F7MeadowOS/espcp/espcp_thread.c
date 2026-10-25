@@ -66,6 +66,7 @@
 #include "espcp_system.h"
 
 #include <meadow/meadow_thread_config.h>
+#include <meadow/meadow_os.h>
 
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
@@ -163,6 +164,7 @@ static void *espcp_thread(void *parameters)
     configuration->thread_running = true;
     espcp_config_unlock();
 
+    uint32_t consecutive_failures = 0;
     while (true)
     {
         espcp_message_t *retrieved_message;
@@ -170,6 +172,7 @@ static void *espcp_thread(void *parameters)
         ssize_t number_of_bytes = file_mq_receive(&configuration->request_queue, (char *)&retrieved_message, sizeof(retrieved_message), NULL);
         if (number_of_bytes == sizeof(espcp_message_t *))
         {
+            consecutive_failures = 0;
             if (retrieved_message != NULL)
             {
                 MEADOW_TRACE_INFORMATION("Waiting for SPI interface.\n");
@@ -188,6 +191,20 @@ static void *espcp_thread(void *parameters)
         else
         {
             syslog(LOG_ERR, "%s@%d ESP thread received %" PRIdPTR " bytes, %" PRIuPTR " expected.\n", __FILE__, __LINE__, number_of_bytes, sizeof(espcp_message_t));
+            //
+            //  A persistent error, such as a closed handle, would otherwise turn this loop into
+            //  a tight spin that floods the log.  Back off, and give up for good after too
+            //  many consecutive failures.  This thread cannot be restarted so the only
+            //  sensible terminal action is a system exception and a reset.
+            //
+            consecutive_failures++;
+            if (consecutive_failures >= ESPCP_MAXIMUM_CONSECUTIVE_QUEUE_FAILURES)
+            {
+                syslog(LOG_EMERG, "%s@%d %s thread: %u consecutive queue failures, resetting.\n", __FILE__, __LINE__, "ESP", (unsigned int) consecutive_failures);
+                meadow_os_raise_simple_exception(espcp_status_codes_failure);
+                PANIC();
+            }
+            usleep(consecutive_failures * 10 * 1000);
         }
     }
 
