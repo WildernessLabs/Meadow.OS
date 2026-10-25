@@ -263,6 +263,17 @@ void espcp_spi_interface_lock(void)
  ****************************************************************************/
 void espcp_spi_interface_unlock(void)
 {
+    //
+    //  "The ESP32 is ready" is a level, not a count.  Only the UART monitor thread posts, so if the
+    //  count is already above zero the signal is a duplicate and posting again would let a later
+    //  request start before the ESP32 is ready.
+    //
+    int value = 0;
+    if ((nxsem_get_value(&espcp_spi_lock, &value) == OK) && (value > 0))
+    {
+        return;
+    }
+
     nxsem_post(&espcp_spi_lock);
 }
 
