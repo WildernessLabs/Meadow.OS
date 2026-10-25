@@ -195,14 +195,11 @@ void espcp_delete_message_and_payload(espcp_message_t *message)
 {
     if (message != NULL)
     {
-        if (message->semaphore != NULL)
-        {
-            nxsem_destroy(message->semaphore);
-        }
-        if (message->message_sent != NULL)
-        {
-            nxsem_destroy(message->message_sent);
-        }
+        //
+        //  The semaphores that message->semaphore and message->message_sent point to
+        //  are not owned by the message, they live in the frame of the caller that
+        //  created them, so they are not destroyed here.
+        //
         espcp_delete_message_payload(message);
         free(message);
     }
