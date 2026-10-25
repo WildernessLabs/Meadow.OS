@@ -109,6 +109,13 @@
 
 static struct work_s ntp_work_queue;
 
+/*
+ * Set by ntpc_stop() and tested by the worker.  work_cancel() cannot stop a worker that is
+ * already running, and waiting for it (work_cancel_sync) could block the caller for as long
+ * as the worker retries, so the worker is asked to stop instead.
+ */
+static volatile bool ntp_stop_requested = false;
+
 /****************************************************************************
  * External Declarations
  ****************************************************************************/
@@ -462,7 +469,7 @@ static void ntp_worker(void *arg)
     //
     getting_time = (number_of_servers > 0);
 
-    while (getting_time && (retry_count < 3))
+    while (getting_time && (retry_count < 3) && !ntp_stop_requested)
     {
         hcom_nx_config_lock();
         config = hcom_nx_config_get_pointer();
@@ -514,9 +521,12 @@ static void ntp_worker(void *arg)
         }
     }
 
-    // Repeat with delay
-    work_queue(LPWORK, &ntp_work_queue, ntp_worker,
-        NULL, SEC2TICK(refresh_period));
+    // Repeat with delay, unless ntpc_stop() was called while this ran.
+    if (!ntp_stop_requested)
+    {
+        work_queue(LPWORK, &ntp_work_queue, ntp_worker,
+            NULL, SEC2TICK(refresh_period));
+    }
     return;
 }
 
@@ -543,6 +553,8 @@ static void ntp_worker(void *arg)
 int ntpc_start(void)
 {
     // Initial call
+    ntp_stop_requested = false;
+
     // work_cancel() leaves the work structure free to be queued again.  It must not be
     // cleared by hand, the work queue owns it while it is queued.
     work_cancel(LPWORK, &ntp_work_queue);
@@ -569,5 +581,6 @@ int ntpc_start(void)
  ****************************************************************************/
 void ntpc_stop(void)
 {
+    ntp_stop_requested = true;
     work_cancel(LPWORK, &ntp_work_queue);
 }
