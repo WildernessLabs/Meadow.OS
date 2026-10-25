@@ -547,13 +547,39 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                         sending_packets = false;
                     }
                 }
+                else
+                {
+                    sending_packets = false;
+                }
             }
-            
+
+            //
+            //  Nothing waiting is the expected answer to a request for a response, and not a failure.  It is
+            //  converted before the checks below so that it does not take the failure path.
+            //
+            if (result == espcp_status_codes_no_messages_waiting)
+            {
+                result = espcp_status_codes_completed_ok;
+            }
+
             if (result != espcp_status_codes_completed_ok)
             {
-                if (result == espcp_status_codes_no_messages_waiting)
+                //
+                //  The message could not be sent.  A caller blocked on the message would wait for ever, as
+                //  nothing will ever respond, so wake it with the failure.  A message with no caller is
+                //  released here, except for the static send response message which is reused.
+                //
+                if (message->semaphore != NULL)
                 {
-                    result = espcp_status_codes_completed_ok;
+                    message->status_code = result;
+                    sem_post(message->semaphore);       // The caller owns the message from here on.
+                }
+                else
+                {
+                    if ((message->interface != espcp_esp32_interfaces_transport) || (message->function != espcp_transport_function_send_response))
+                    {
+                        espcp_delete_message_and_payload(message);
+                    }
                 }
             }
             else
@@ -574,7 +600,7 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                 }
                 else
                 {
-                    if ((message->interface != espcp_esp32_interfaces_transport) && (message->function != espcp_transport_function_send_response))
+                    if ((message->interface != espcp_esp32_interfaces_transport) || (message->function != espcp_transport_function_send_response))
                     {
                         /*
                         *  This is a non blocking message (as it has no semaphore) and any response will come via the event mechanism 
