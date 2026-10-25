@@ -505,9 +505,17 @@ int meadow_cloud_decrypt_buf_aes(const unsigned char *encrypted_buf, int encrypt
 {
     mbedtls_aes_context aes;
     mbedtls_aes_init(&aes);
-    mbedtls_aes_setkey_dec(&aes, aes_key, 256);
-    mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, encrypted_len, iv, encrypted_buf, decrypted_buf);
+    int ret = mbedtls_aes_setkey_dec(&aes, aes_key, 256);
+    if (ret == 0)
+    {
+        ret = mbedtls_aes_crypt_cbc(&aes, MBEDTLS_AES_DECRYPT, encrypted_len, iv, encrypted_buf, decrypted_buf);
+    }
     mbedtls_aes_free(&aes);
+    if (ret != 0)
+    {
+        printf(" failed\n  ! AES decrypt returned -0x%04x\n", (unsigned int) -ret);
+        return -1;
+    }
     return encrypted_len;
 }
 
