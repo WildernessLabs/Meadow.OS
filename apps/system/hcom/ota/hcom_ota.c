@@ -431,27 +431,35 @@ int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_l
     int ret;
     int result = -1;
     unsigned char decrypted[MBEDTLS_MPI_MAX_SIZE];
+
+    //
+    //  Local contexts, rather than the file scope ones which hcom_ota_rqst_register_device() uses on
+    //  another thread, so concurrent calls do not share (and corrupt) mbedtls state.
+    //
+    mbedtls_pk_context dec_key;
+    mbedtls_entropy_context dec_entropy;
+    mbedtls_ctr_drbg_context dec_ctr_drbg;
     size_t olen = 0;
 
     meadow_cloud_retrieve_private_key((const char **) &private_key, &len);
 
-    mbedtls_pk_init(&key);
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    mbedtls_entropy_init(&entropy);
+    mbedtls_pk_init(&dec_key);
+    mbedtls_ctr_drbg_init(&dec_ctr_drbg);
+    mbedtls_entropy_init(&dec_entropy);
 
-    if ((ret = mbedtls_entropy_add_source(&entropy, mbedtls_platform_entropy_poll, NULL, DEV_URANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
+    if ((ret = mbedtls_entropy_add_source(&dec_entropy, mbedtls_platform_entropy_poll, NULL, DEV_URANDOM_THRESHOLD, MBEDTLS_ENTROPY_SOURCE_STRONG)) != 0)
     {
         printf(" failed\n  ! mbedtls_entropy_add_source returned -0x%04x\n", (unsigned int) -ret);
         result = -3;
         goto cleanup;
     }
-    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy, (const unsigned char *) pers, strlen(pers))) != 0)
+    if ((ret = mbedtls_ctr_drbg_seed(&dec_ctr_drbg, mbedtls_entropy_func, &dec_entropy, (const unsigned char *) pers, strlen(pers))) != 0)
     {
         printf(" failed\n  ! mbedtls_ctr_drbg_seed returned -0x%04x\n", (unsigned int) -ret);
         result = -4;
         goto cleanup;
     }
-    if ((ret = mbedtls_pk_parse_key(&key, private_key, len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
+    if ((ret = mbedtls_pk_parse_key(&dec_key, private_key, len, NULL, 0, mbedtls_ctr_drbg_random, &dec_ctr_drbg)) != 0)
     {
         printf(" failed\n  ! mbedtls_pk_parse_key returned -0x%04x\n", -ret);
         result = -1;
@@ -463,7 +471,7 @@ int meadow_cloud_decrypt_buf(const unsigned char *encrypted_buf, int encrypted_l
 
     fflush(stdout);
 
-    if ((ret = mbedtls_pk_decrypt(&key, encrypted_buf, encrypted_len, decrypted, &olen, sizeof(decrypted), mbedtls_ctr_drbg_random, &ctr_drbg)) != 0)
+    if ((ret = mbedtls_pk_decrypt(&dec_key, encrypted_buf, encrypted_len, decrypted, &olen, sizeof(decrypted), mbedtls_ctr_drbg_random, &dec_ctr_drbg)) != 0)
     {
         printf(" failed\n  ! mbedtls_pk_decrypt returned -0x%04x\n", -ret);
         result = -2;
@@ -483,9 +491,9 @@ cleanup:
         meadow_cloud_release_private_key((char **) &private_key);
     }
     mbedtls_platform_zeroize(decrypted, sizeof(decrypted));
-    mbedtls_pk_free(&key);
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
+    mbedtls_pk_free(&dec_key);
+    mbedtls_ctr_drbg_free(&dec_ctr_drbg);
+    mbedtls_entropy_free(&dec_entropy);
     return result;
 }
 
