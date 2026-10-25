@@ -387,7 +387,7 @@ static int espcp_spi_init(void)
 
     MEADOW_TRACE_INFORMATION("SPI Configuration complete\n");
 
-    return(OK);
+    return(result);
 }
 
 /****************************************************************************
