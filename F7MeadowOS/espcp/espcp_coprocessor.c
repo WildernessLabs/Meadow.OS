@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -199,7 +200,7 @@ sem_t espcp_spi_lock;
  ****************************************************************************/
 void espcp_config_lock()
 {
-    sem_wait(&config_lock);
+    nxsem_wait_uninterruptible(&config_lock);
 }
 
 /****************************************************************************
@@ -220,7 +221,7 @@ void espcp_config_lock()
  ****************************************************************************/
 void espcp_config_unlock()
 {
-    sem_post(&config_lock);
+    nxsem_post(&config_lock);
 }
 
 /****************************************************************************
@@ -241,7 +242,7 @@ void espcp_config_unlock()
  ****************************************************************************/
 void espcp_spi_interface_lock(void)
 {
-    sem_wait(&espcp_spi_lock);
+    nxsem_wait_uninterruptible(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -268,12 +269,12 @@ void espcp_spi_interface_unlock(void)
     //  request start before the ESP32 is ready.
     //
     int value = 0;
-    if ((sem_getvalue(&espcp_spi_lock, &value) == OK) && (value > 0))
+    if ((nxsem_get_value(&espcp_spi_lock, &value) == OK) && (value > 0))
     {
         return;
     }
 
-    sem_post(&espcp_spi_lock);
+    nxsem_post(&espcp_spi_lock);
 }
 
 /****************************************************************************
@@ -296,14 +297,14 @@ void espcp_spi_interface_unlock(void)
  ****************************************************************************/
 static espcp_configuration_t *espcp_get_default_configuration(void)
 {
-    sem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
-    sem_setprotocol(&config_lock, SEM_PRIO_NONE);
+    nxsem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
+    nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
 
     espcp_configuration_t *config = (espcp_configuration_t *) kmm_zalloc(sizeof(espcp_configuration_t));
     if (config != NULL)
     {
-        sem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
-        sem_setprotocol(&espcp_spi_lock, SEM_PRIO_NONE);
+        nxsem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
+        nxsem_set_protocol(&espcp_spi_lock, SEM_PRIO_NONE);
         config->current_mode = espcp_mode_unknown;
         config->thread_running = false;
         config->esp_not_responding = true;
@@ -379,7 +380,7 @@ static int espcp_spi_init(void)
         result = stm32_configgpio(_active_pins->chip_select);
         if (result < 0)
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
+            syslog(LOG_ERR, "%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
             return(ERROR);
         }
         stm32_gpiowrite(_active_pins->chip_select, true); // SPI CS is active low so deselect SPI.
@@ -387,7 +388,7 @@ static int espcp_spi_init(void)
         g_esp_spi_dev = stm32_spibus_initialize(ESP32CP_SPI_COMMS_PORT);
         if (g_esp_spi_dev == 0)
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Error:Failed init ESP32 SPI port %d\n", __FILE__, __LINE__, result);
+            syslog(LOG_ERR, "%s@%d Error:Failed init ESP32 SPI port %d\n", __FILE__, __LINE__, result);
             return(ERROR);
         }
         
@@ -398,7 +399,7 @@ static int espcp_spi_init(void)
 
     MEADOW_TRACE_INFORMATION("SPI Configuration complete\n");
 
-    return(OK);
+    return(result);
 }
 
 /****************************************************************************
@@ -420,13 +421,13 @@ static int espcp_gpio_init(void)
     int result = stm32_configgpio(_active_pins->uart_tx);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config UART Tx as output result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config UART Tx as output result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     result = stm32_configgpio(_active_pins->uart_rx);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config UART Rx as input result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config UART Rx as input result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     //
@@ -438,7 +439,7 @@ static int espcp_gpio_init(void)
     result = stm32_configgpio(_active_pins->boot);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config Boot pin failed result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config Boot pin failed result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     stm32_gpiowrite(_active_pins->boot, true);
@@ -446,7 +447,7 @@ static int espcp_gpio_init(void)
     result = stm32_configgpio(_active_pins->reset);
     if (result < 0)
     {
-        MEADOW_TRACE_CRITICAL("%s@%d Config Reset pin failed result:%d\n", __FILE__, __LINE__, result);
+        syslog(LOG_ERR, "%s@%d Config Reset pin failed result:%d\n", __FILE__, __LINE__, result);
         return(ERROR);
     }
     stm32_gpiowrite(_active_pins->reset, false);
@@ -479,7 +480,7 @@ static int espcp_gpio_init(void)
  ****************************************************************************/
 void espcp_send_data_over_spi(void *tx, void *rx, size_t buffer_length)
 {
-    if ((tx == NULL) && (rx == NULL))
+    if (((tx == NULL) && (rx == NULL)) || (g_esp_spi_dev == NULL))
     {
         return;
     }
@@ -640,8 +641,15 @@ void espcp_process_reset_control_signal(const char *line)
         int len = strlen(line);
         if (len > 7)        // "+++RST,1" valid codes can be 0 through 10.
         {
-            int reset_code = strtoul(line + 7, NULL, 10);
-            code = (espcp_status_codes_t) (((int) espcp_status_codes_esp_reset_unknown) + reset_code);
+            unsigned long reset_code = strtoul(line + 7, NULL, 10);
+            if (reset_code <= (espcp_status_codes_esp_reset_sdio - espcp_status_codes_esp_reset_unknown))
+            {
+                code = (espcp_status_codes_t) (((int) espcp_status_codes_esp_reset_unknown) + (int) reset_code);
+            }
+            else
+            {
+                code = espcp_status_codes_esp_reset_unknown;
+            }
         }
         meadow_os_raise_simple_exception(code);
     }
@@ -749,8 +757,8 @@ void espcp_deep_sleep(void)
     //  message and entering sleep mode before the message is actually sent.
     //
     sem_t sent = { };
-    sem_init(&sent, 0, 0);
-    sem_setprotocol(&sent, SEM_PRIO_NONE);
+    nxsem_init(&sent, 0, 0);
+    nxsem_set_protocol(&sent, SEM_PRIO_NONE);
     message->message_sent = &sent;
     espcp_queue_message(message, false);
     //
@@ -765,7 +773,7 @@ void espcp_deep_sleep(void)
     //
     //  Lastly, wait for the message to have been sent.
     //
-    sem_wait(&sent);
+    nxsem_wait_uninterruptible(&sent);
     espcp_delete_message_and_payload(message);
 }
 
@@ -812,6 +820,24 @@ espcp_configuration_t *espcp_get_configuration(void)
 }
 
 /****************************************************************************
+ *  Name: espcp_is_ready
+ *
+ *  Description:
+ *      Check that the coprocessor configuration exists and that the ESP32
+ *      is responding.  Socket operations use this to return -ENETDOWN early
+ *      instead of dereferencing a missing configuration.
+ *
+ *  Returned Value:
+ *      true if the coprocessor can be used, false otherwise.
+ *
+ ****************************************************************************/
+bool espcp_is_ready(void)
+{
+    espcp_configuration_t *config = g_espcp_configuration;
+    return ((config != NULL) && !config->esp_not_responding);
+}
+
+/****************************************************************************
  *  Name: espcp_early_init
  *
  *  Description:
@@ -841,12 +867,19 @@ void espcp_early_init(void)
     {
         if (espcp_create_message_queues(g_espcp_configuration))
         {
-            espcp_setup_message_dispatcher();
-            espcp_event_handlers_init();
+            if (espcp_setup_message_dispatcher() == OK)
+            {
+                espcp_event_handlers_init();
+            }
+            else
+            {
+                MEADOW_TRACE_CRITICAL("%s@%d Error setting up the message dispatcher.\n", __FILE__, __LINE__);
+                g_espcp_configuration->esp_not_responding = true;
+            }
         }
         else
         {
-            MEADOW_TRACE_CRITICAL("%s@%d Error creating ESP32 message queues.\n", __FILE__, __LINE__);
+            syslog(LOG_ERR, "%s@%d Error creating ESP32 message queues.\n", __FILE__, __LINE__);
             g_espcp_configuration->esp_not_responding = true;
         }
     }
@@ -875,13 +908,28 @@ int espcp_late_init(void)
 
     if (g_espcp_configuration != NULL)
     {
-        espcp_usrsock_init();
-        result = espcp_thread_start(g_espcp_configuration);
+        //
+        //  The hardware is set up before the thread that uses it is started.  If any
+        //  step fails the coprocessor is marked as not responding so that the socket
+        //  layer returns -ENETDOWN instead of using a bus that does not exist.
+        //
+        result = espcp_gpio_init();
+        if (result == OK)
+        {
+            result = espcp_spi_init();
+        }
 
-        espcp_gpio_init();
-        espcp_spi_init();
+        if (result == OK)
+        {
+            espcp_usrsock_init();
+            result = espcp_thread_start(g_espcp_configuration);
+        }
 
-        result = OK;
+        if (result != OK)
+        {
+            MEADOW_TRACE_CRITICAL("%s@%d Late initialisation of the coprocessor failed:%d\n", __FILE__, __LINE__, result);
+            g_espcp_configuration->esp_not_responding = true;
+        }
     }
     
     return result;

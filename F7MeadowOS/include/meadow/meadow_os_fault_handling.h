@@ -52,7 +52,6 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-void meadow_os_fault_handler_save_os_state(void);
 void meadow_os_fault_handler_check_fault_code(void);
 
 #endif /* __MEADOW_OS_FAULT_HANDLING_H */

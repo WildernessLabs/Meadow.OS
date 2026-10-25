@@ -314,6 +314,7 @@ void espcp_early_init(void);
 int espcp_late_init(void);
 void espcp_send_data_over_spi(void *, void *, size_t);
 espcp_configuration_t *espcp_get_configuration(void);
+bool espcp_is_ready(void);
 bool espcp_should_reset_at_startup(void);
 void espcp_hold_in_reset(void);
 void espcp_reset(void);
