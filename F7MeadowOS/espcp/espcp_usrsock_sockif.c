@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 #include <inttypes.h>
+#include <syslog.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -50,6 +51,7 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/ioctl.h>
 #include <poll.h>
@@ -270,25 +272,10 @@ static inline int espcp_sockfd(const struct socket * const psock)
  ****************************************************************************/
 static inline void espcp_lock_poll_requests_queue(void)
 {
-    //
-    //  Ideally we would use the line below (commented out) but for now we will
-    //  use the block of code following this in order to see if we are getting an interrupt
-    //  signal when we are waiting for the semaphore.  This may be causing the poll
-    //  timeout issue.
-    //
-    // while ((sem_wait(&_espcp_poll_requests_mutex) != 0) && (get_errno() == EINTR));
-    while (sem_wait(&_espcp_poll_requests_mutex) != 0)
+    int ret = nxsem_wait_uninterruptible(&_espcp_poll_requests_mutex);
+    if (ret < 0)
     {
-        int error = get_errno();
-        if (error != EINTR)
-        {
-            syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", error);
-            break;
-        }
-        else
-        {
-            syslog(LOG_INFO, "Interrupted waiting for poll requests mutex, retrying mutex\n");
-        }
+        syslog(LOG_INFO, "Error %d waiting for poll requests mutex\n", ret);
     }
 }
 
@@ -307,7 +294,7 @@ static inline void espcp_lock_poll_requests_queue(void)
  ****************************************************************************/
 static inline void espcp_unlock_poll_requests_queue(void)
 {
-    sem_post(&_espcp_poll_requests_mutex);
+    nxsem_post(&_espcp_poll_requests_mutex);
 }
 
 /****************************************************************************
@@ -333,19 +320,22 @@ static bool espcp_usrsock_poll_request_compare_message_id(uint32_t key, void *it
  * Name: espcp_usrsock_poll_request_compare_fd_pointer
  *
  * Description:
- *   Compare the specified key with the request ID in the item.
+ *   Compare the specified key with the pollfd pointer in the item.  The
+ *   pointer is compared, not the descriptor, so two polls on the same
+ *   descriptor do not remove each other's requests, and the pollfd is not
+ *   dereferenced because the item may be stale.
  *
  * Input Parameters:
- *  key    - Pointer to the fd structure being looked for.
+ *  key    - Pointer to the pollfd structure being looked for.
  *  item   - Poll request item being looked for.
  *
  * Returned Value:
- *  true if the key matches the request ID, false otherwise.
+ *  true if the key matches the pollfd pointer, false otherwise.
  *
  ****************************************************************************/
 static bool espcp_usrsock_poll_request_compare_fd_pointer(uint32_t key, void *item)
 {
-    return((int) key == ((espcp_poll_request_list_item_t *) item)->fd->fd);
+    return(key == (uint32_t) (uintptr_t) ((espcp_poll_request_list_item_t *) item)->fd);
 }
 
 /****************************************************************************
@@ -374,11 +364,19 @@ static int espcp_sock_addr_to_sockaddr(void *destination, uint8_t *source)
     else
     {
         espcp_sock_addr_t *sai = espcp_extract_sock_addr(source);
-        struct sockaddr_in *dest = (struct sockaddr_in *) destination;
-        memset(dest, 0, sizeof(struct sockaddr_in));
-        dest->sin_family = AF_INET;
-        dest->sin_port = sai->port;
-        dest->sin_addr.s_addr = sai->ip4_address;
+        if (sai == NULL)
+        {
+            result = -ENOMEM;
+        }
+        else
+        {
+            struct sockaddr_in *dest = (struct sockaddr_in *) destination;
+            memset(dest, 0, sizeof(struct sockaddr_in));
+            dest->sin_family = AF_INET;
+            dest->sin_port = sai->port;
+            dest->sin_addr.s_addr = sai->ip4_address;
+            free(sai);
+        }
     }
     return(result);
 }
@@ -405,8 +403,8 @@ void espcp_usrsock_init()
     if (_espcp_poll_requests == NULL)
     {
         _espcp_poll_requests = gl_create_empty_linked_list();
-        sem_init(&_espcp_poll_requests_mutex, 0, 1);
-        sem_setprotocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
+        nxsem_init(&_espcp_poll_requests_mutex, 0, 1);
+        nxsem_set_protocol(&_espcp_poll_requests_mutex, SEM_PRIO_NONE);
     }
 
     hcom_nx_config_lock();
@@ -556,7 +554,7 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
 {
     MEADOW_TRACE_INFORMATION("accept(%d, %p, %p, %p)\n", espcp_sockfd(psock), addr, addrlen, newsock);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("accept - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -707,10 +705,19 @@ int espcp_usrsock_bind(struct socket *psock, const struct sockaddr *addr, sockle
 {
     MEADOW_TRACE_INFORMATION("bind(%d, %p, %d)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("bind - result ENETDOWN\n");
         return(-ENETDOWN);
+    }
+
+    //
+    //  The address is read as a struct sockaddr_in so it must be at least that big.
+    //
+    if ((addr == NULL) || (addrlen < sizeof(struct sockaddr_in)))
+    {
+        MEADOW_TRACE_DEBUG("bind - result EINVAL\n");
+        return(-EINVAL);
     }
 
     int32_t result = -1;
@@ -836,7 +843,7 @@ int espcp_usrsock_close(struct socket *psock)
 
     meadow_watchdog_t watchdog_close = meadow_watchdog_activate(WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS, CLOSE_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_close);
         MEADOW_TRACE_DEBUG("close - result ENETDOWN\n");
@@ -941,10 +948,19 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
 {
     MEADOW_TRACE_INFORMATION("connect(%d, %p, %d)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("connect - result ENETDOWN\n");
         return(-ENETDOWN);
+    }
+
+    //
+    //  The address is read as a struct sockaddr_in so it must be at least that big.
+    //
+    if ((addr == NULL) || (addrlen < sizeof(struct sockaddr_in)))
+    {
+        MEADOW_TRACE_DEBUG("connect - result EINVAL\n");
+        return(-EINVAL);
     }
 
     int32_t result = -1;
@@ -1086,7 +1102,7 @@ static int espcp_usrsock_getsockpeername(struct socket *psock, struct sockaddr *
 {
     MEADOW_TRACE_INFORMATION("getsockpeername - socket %d\n", espcp_sockfd(psock));
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockpeername - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1216,7 +1232,7 @@ int espcp_usrsock_getpeername(struct socket *psock, struct sockaddr *addr, sockl
 {
     MEADOW_TRACE_INFORMATION("getpeername(%d, %p, %p)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getpeername - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1257,7 +1273,7 @@ int espcp_usrsock_getsockname(struct socket *psock, struct sockaddr *addr, sockl
 {
     MEADOW_TRACE_INFORMATION("getsockname(%d, %p, %p)\n", espcp_sockfd(psock), addr, addrlen);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockname - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1404,7 +1420,7 @@ static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *
                                     case SIOCSESPNONBLOCK:  /* The ESP socket's O_NONBLOCK has been set */
                                         break;
                                     default:
-                                        MEADOW_TRACE_CRITICAL("%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
+                                        syslog(LOG_ERR, "%s@%d Unknown ioctl command %08x.\n", __FILE__, __LINE__, cmd);
                                         result = -EINVAL;
                                         break;
                                 }
@@ -1457,7 +1473,7 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg)
 
     int result = 0;
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("ioctl - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1553,7 +1569,7 @@ int espcp_usrsock_listen(struct socket *psock, int backlog)
 {
     MEADOW_TRACE_INFORMATION("listen(%d, %d)\n", espcp_sockfd(psock), backlog);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("listen - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -1646,7 +1662,7 @@ int espcp_usrsock_listen(struct socket *psock, int backlog)
  ****************************************************************************/
 static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
 {
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         return(-ENETDOWN);
     }
@@ -1847,7 +1863,7 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
     //
     espcp_lock_poll_requests_queue();
     espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
-                                                (uint32_t) fds->fd, espcp_usrsock_poll_request_compare_fd_pointer);
+                                                (uint32_t) (uintptr_t) fds, espcp_usrsock_poll_request_compare_fd_pointer);
     espcp_unlock_poll_requests_queue();
 
     if (pr == NULL)
@@ -1865,7 +1881,7 @@ static int espcp_usrsock_poll_teardown(struct socket *psock, struct pollfd *fds)
         //
         uint32_t request_id = pr->request_id;
         free(pr);
-        if (espcp_get_configuration()->esp_not_responding)
+        if (!espcp_is_ready())
         {
             //
             //  Checked only after the item has been removed: the item points at the caller's
@@ -1972,12 +1988,15 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
         request_id = ipr->setup_message_id;
 
         //
-        //  Remove the request from the list so taking ownership.  This preents teardown or a second interrupt from trying use this item.
+        //  Remove the request from the list so taking ownership.  This prevents teardown or a second interrupt from trying use this item.
+        //
+        //  The list lock is held until the pollfd has been used.  Teardown takes the same lock before it
+        //  looks for the request, so it cannot return (letting the caller's pollfd go out of scope) while
+        //  this handler is still using it.
         //
         espcp_lock_poll_requests_queue();
         espcp_poll_request_list_item_t *pr = (espcp_poll_request_list_item_t *) gl_remove_item(_espcp_poll_requests,
                                                     request_id, espcp_usrsock_poll_request_compare_message_id);
-        espcp_unlock_poll_requests_queue();
         if (pr != NULL)
         {
             MEADOW_TRACE_INFORMATION("poll interrupt handler - found originating request %08" PRIx32 "\n", request_id);
@@ -2010,10 +2029,12 @@ void espcp_usrsock_poll_interrupt_handler(espcp_message_t *message)
             //
             poll_notify(&pr->fd, 1, ipr->returned_events);
             MEADOW_TRACE_INFORMATION("poll interrupt handler - fd=%d events=%" PRIu32 " revents=%" PRIu32 "\n", pr->fd->fd, pr->fd->events, pr->fd->revents);
+            espcp_unlock_poll_requests_queue();
         }
         else
         {
-            MEADOW_TRACE_INFORMATION("poll interrupt handler - Cannot find request %08" PRIx32 "\n", request_id);
+            espcp_unlock_poll_requests_queue();
+            syslog(LOG_INFO, "Poll interrupt for request %08" PRIx32 " did not match a poll request (late or duplicate).\n", request_id);
         }
         free(pr);
         free(ipr);
@@ -2050,7 +2071,7 @@ int espcp_usrsock_poll(struct socket *psock, struct pollfd *fds, bool setup)
     //  the list, and a request left there points at a pollfd that is about to be freed.  Teardown
     //  deals with the not-responding case itself, after that clean up.
     //
-    if (setup && espcp_get_configuration()->esp_not_responding)
+    if (setup && !espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_poll);
         MEADOW_TRACE_DEBUG("poll - result ENETDOWN\n");
@@ -2201,7 +2222,7 @@ int espcp_usrsock_getsockopt(struct socket *psock, int level, int option,
 {
     MEADOW_TRACE_INFORMATION("getsockopt(%d, %d, %d, %p, %p)\n", espcp_sockfd(psock), level, option, value, value_len);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("getsockopt - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -2507,7 +2528,14 @@ static int espcp_usrsock_encode_socket_option_value(espcp_set_sock_opt_request_t
             case SO_SNDTIMEO:
             case SO_RCVTIMEO:
                 {
-                    espcp_time_val_t *tv = (espcp_time_val_t *) zalloc(sizeof(espcp_time_val_t));
+                    espcp_time_val_t *tv = NULL;
+                    if (length < sizeof(struct timeval))
+                    {
+                        result = -EINVAL;
+                        break;
+                    }
+
+                    tv = (espcp_time_val_t *) zalloc(sizeof(espcp_time_val_t));
                     if (tv == NULL)
                     {
                         result = -ENOMEM;
@@ -2548,6 +2576,11 @@ static int espcp_usrsock_encode_socket_option_value(espcp_set_sock_opt_request_t
                 break;
             case SO_RCVBUF:
             case SO_REUSEADDR:
+                if (length < sizeof(int))
+                {
+                    result = -EINVAL;
+                    break;
+                }
                 request->option_value = espcp_usrsock_encode_integer(value);
                 if (request->option_value == NULL)
                 {
@@ -2604,6 +2637,11 @@ static int espcp_usrsock_encode_tcp_option_value(espcp_set_sock_opt_request_t *r
         switch(option)
         {
             case TCP_NODELAY:
+                if (length < sizeof(int))
+                {
+                    result = -EINVAL;
+                    break;
+                }
                 request->option_value = espcp_usrsock_encode_integer(value);
                 if (request->option_value == NULL)
                 {
@@ -2664,7 +2702,7 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
 {
     MEADOW_TRACE_INFORMATION("setsockopt(%d, %d, %d, %p, %u)\n", espcp_sockfd(psock), level, option, value, value_len);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("setsockopt - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -2770,6 +2808,7 @@ int espcp_usrsock_setsockopt(struct socket *psock, int level, int option,
         //
         //  For non-supported options, pretend we have succeeded.
         //
+        free(request);
         result = 0;
     }
 
@@ -2823,7 +2862,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     MEADOW_TRACE_INFORMATION("socket(%d, %d, %d)\n", domain, type, protocol);
     meadow_watchdog_t watchdog_socket = meadow_watchdog_activate(WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS, SOCKET_WATCHDOG);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         meadow_watchdog_deactivate(watchdog_socket);
         MEADOW_TRACE_DEBUG("socket - result ENETDOWN\n");
@@ -2971,7 +3010,7 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
 {
     MEADOW_TRACE_INFORMATION("sendmsg(%d, %p, %d)\n", espcp_sockfd(psock), msg, flags);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("sendmsg - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -3097,7 +3136,7 @@ int espcp_usrsock_shutdown(struct socket *psock, int how)
 {
     MEADOW_TRACE_INFORMATION("shutdown(%d, %d)\n", espcp_sockfd(psock), how);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("shutdown - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -3207,7 +3246,7 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
 {
     MEADOW_TRACE_INFORMATION("recvmsg(%d, %p, %d)\n", espcp_sockfd(psock), msg, flags);
 
-    if (espcp_get_configuration()->esp_not_responding)
+    if (!espcp_is_ready())
     {
         MEADOW_TRACE_DEBUG("recvmsg - result ENETDOWN\n");
         return(-ENETDOWN);
@@ -3297,9 +3336,17 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
                                 msg->msg_flags = response->msg_flags;
                                 result = response->result;
                             }
+                            else if (response->result == 0)
+                            {
+                                result = 0;                 // Orderly close, end of file.
+                            }
                             else
                             {
-                                result = -response->response_errno;
+                                //
+                                //  An ESP32 error.  If the errno is 0 it must still be seen as an error,
+                                //  or it reads as a clean end of file and the response looks truncated.
+                                //
+                                result = (response->response_errno != 0) ? -response->response_errno : -EIO;
                             }
                             espcp_free_recvmsg_response(response);
                         }

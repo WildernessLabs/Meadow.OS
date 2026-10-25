@@ -596,7 +596,7 @@ void hcom_nx_config_map_cell_turn_on_pin(meadow_configuration_t *config)
  ****************************************************************************/
 void hcom_nx_config_lock(void)
 {
-    sem_wait(&config_lock);
+    nxsem_wait_uninterruptible(&config_lock);
 }
 
 /****************************************************************************
@@ -617,7 +617,7 @@ void hcom_nx_config_lock(void)
  ****************************************************************************/
 void hcom_nx_config_unlock(void)
 {
-    sem_post(&config_lock);
+    nxsem_post(&config_lock);
 }
 
 /****************************************************************************
@@ -2582,6 +2582,11 @@ int hcom_nx_config_get_set_config_value(int item, uint8_t direction, uint8_t *bu
 
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    if (config == NULL)
+    {
+        hcom_nx_config_unlock();
+        return -ENOMEM;
+    }
     if (direction == 0)
     {
         switch (item)
@@ -2734,15 +2739,23 @@ void hcom_nx_config_process_esp_configuration(espcp_system_configuration_t *esp_
         {
             configuration->default_access_point = NULL;
         }
-        if ((!configuration->default_interface->use_dhcp) && (configuration->default_interface->interface_type == MEADOW_IFT_ESP32))
+        if (configuration->default_interface->interface_type == MEADOW_IFT_ESP32)
         {
             //
-            //  Using the ESP32 and static IP address so let the ESP32 know about this.
+            //  Always tell the ESP32 whether DHCP is in use.  It defaults to false and only raises
+            //  NetworkGotIpEvent when it is true, so without this the DHCP supplied DNS server
+            //  is never learned.
             //
             hcom_nx_config_set_esp_boolean_value(espcp_configuration_items_use_dhcp, configuration->default_interface->use_dhcp);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_static_ip_address, configuration->default_interface->ip_address);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_subnet_mask, configuration->default_interface->netmask);
-            hcom_nx_config_set_esp_integer_value(espcp_configuration_items_default_gateway, configuration->default_interface->gateway);
+            if (!configuration->default_interface->use_dhcp)
+            {
+                //
+                //  Static IP address so let the ESP32 know the address as well.
+                //
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_static_ip_address, configuration->default_interface->ip_address);
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_subnet_mask, configuration->default_interface->netmask);
+                hcom_nx_config_set_esp_integer_value(espcp_configuration_items_default_gateway, configuration->default_interface->gateway);
+            }
         }
         //
         configuration->esp_version.major = esp_config->version_major;
@@ -3303,12 +3316,18 @@ void hcom_nx_config_init(void)
 {
     if (meadow_configuration == NULL)
     {
-        sem_init(&config_lock, 0, 1);                   // Create the config lock.
-        sem_setprotocol(&config_lock, SEM_PRIO_NONE);
+        nxsem_init(&config_lock, 0, 1);                   // Create the config lock.
+        nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
         hcom_nx_config_process_meadow_config_file();
 
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
+        if (config == NULL)
+        {
+            hcom_nx_config_unlock();
+            syslog(LOG_ERR, "Unable to allocate the configuration object.\n");
+            return;
+        }
         hcom_nx_config_set_host_name(config, config->device_name);
         config->hardware_version = meadow_hw_version_get();
         hcom_nx_config_refresh_mono_version(config);

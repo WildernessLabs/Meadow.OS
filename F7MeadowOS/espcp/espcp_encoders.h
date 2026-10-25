@@ -663,7 +663,7 @@ uint8_t espcp_crc8(const uint8_t *, uint16_t);
 uint32_t espcp_crc32(const uint8_t *, uint16_t);
 uint32_t espcp_progressive_crc32(uint32_t, uint8_t);
 espcp_message_t *espcp_extract_message(uint8_t *, uint32_t, bool);
-void espcp_encode_message(espcp_message_t *, uint8_t *, uint32_t *, bool);
+bool espcp_encode_message(espcp_message_t *, uint8_t *, uint32_t, uint32_t *, bool);
 uint32_t espcp_message_buffer_size(espcp_message_t *, bool);
 espcp_system_configuration_t *espcp_extract_system_configuration(uint8_t *);
 void espcp_encode_configuration_value(espcp_configuration_value_t *, uint8_t *);

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <inttypes.h>
 #include <stdio.h>
 
@@ -229,20 +230,20 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
                                             espcp_get_next_message_id(), NULL, 0);
     if (message == NULL)
     {
-        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: Failed to create message\n");
+        syslog(LOG_ERR, "espcp_get_core_dump_information: Failed to create message\n");
         return(NULL);
     }
 
     if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
     {
-        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: Failed to queue message\n");
+        syslog(LOG_ERR, "espcp_get_core_dump_information: Failed to queue message\n");
         espcp_delete_message_and_payload(message);
         return(NULL);
     }
 
     if (message->status_code != espcp_status_codes_completed_ok)
     {
-        MEADOW_TRACE_ERROR("espcp_get_core_dump_information: ESP32 error response: %d (%s)\n", 
+        syslog(LOG_ERR, "espcp_get_core_dump_information: ESP32 error response: %" PRIu32 " (%s)\n", 
                           message->status_code, espcp_core_dump_status_to_string(message->status_code));
         espcp_delete_message_and_payload(message);
         return(NULL);
@@ -332,7 +333,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
         {
             if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
             {
-                MEADOW_TRACE_ERROR("espcp_get_core_dump_from_esp32: Failed to queue fragment request at offset %" PRIu32 "\n", offset);
+                syslog(LOG_ERR, "espcp_get_core_dump_from_esp32: Failed to queue fragment request at offset %" PRIu32 "\n", offset);
                 espcp_delete_message_payload(message);
                 free(encoded_fragment_request);
                 free(core_dump);
@@ -341,7 +342,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
 
             if (message->status_code != espcp_status_codes_completed_ok)
             {
-                MEADOW_TRACE_ERROR("espcp_get_core_dump_from_esp32: ESP32 refused fragment at offset %" PRIu32 ": %d (%s)\n", 
+                syslog(LOG_ERR, "espcp_get_core_dump_from_esp32: ESP32 refused fragment at offset %" PRIu32 ": %" PRIu32 " (%s)\n", 
                                   offset, message->status_code, espcp_core_dump_status_to_string(message->status_code));
                 espcp_delete_message_and_payload(message);
                 free(encoded_fragment_request);
@@ -367,7 +368,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
             uint32_t remaining = size - offset;
             if ((fragment_response->size == 0) || (fragment_response->size > remaining))
             {
-                MEADOW_TRACE_ERROR("Bad fragment %" PRIu32 " at offset %" PRIu32 " (%" PRIu32 " left)\n", fragment_response->size, offset, remaining);
+                syslog(LOG_ERR, "Bad fragment %" PRIu32 " at offset %" PRIu32 " (%" PRIu32 " left)\n", fragment_response->size, offset, remaining);
                 espcp_delete_core_dump_fragment_response(fragment_response);
                 free(encoded_fragment_request);
                 free(core_dump);
@@ -428,7 +429,7 @@ int espcp_generate_core_dump_file(char *version)
     //
     if ((information->core_dump_size == 0) || (information->core_dump_size > information->partition_size) || (information->core_dump_size > ESPCP_MAXIMUM_CORE_DUMP_SIZE))
     {
-        MEADOW_TRACE_ERROR("Size mismatch core dump: %" PRIu32 ", partition: %" PRIu32 "\n", information->core_dump_size, information->partition_size);
+        syslog(LOG_ERR, "Size mismatch core dump: %" PRIu32 ", partition: %" PRIu32 "\n", information->core_dump_size, information->partition_size);
         free(information);
         return(-1);
     }
@@ -439,10 +440,10 @@ int espcp_generate_core_dump_file(char *version)
         if (unlink(file_name) != 0)
         {
             //
-            //  We need to save errno here because when debugging the next call to MEADOW_TRACE_ERROR could overwrite it.
+            //  We need to save errno here because when debugging the next call to syslog could overwrite it.
             //
             uint32_t saved_errno = errno;
-            MEADOW_TRACE_ERROR("Failed to delete existing core dump file %s (%s)\n", file_name, strerror(saved_errno));
+            syslog(LOG_ERR, "Failed to delete existing core dump file %s (%s)\n", file_name, strerror(saved_errno));
             if (saved_errno != ENOENT)
             {
                 free(core_dump);
@@ -459,7 +460,7 @@ int espcp_generate_core_dump_file(char *version)
             fclose(file);
             if (bytes_written != information->core_dump_size)
             {
-                MEADOW_TRACE_ERROR("Failed to write complete core dump to file %s\n", file_name);
+                syslog(LOG_ERR, "Failed to write complete core dump to file %s\n", file_name);
                 free(core_dump);
                 free(information);
                 return(-1);
@@ -467,7 +468,7 @@ int espcp_generate_core_dump_file(char *version)
         }
         else
         {
-            MEADOW_TRACE_ERROR("Failed to open core dump file %s for writing\n", file_name);
+            syslog(LOG_ERR, "Failed to open core dump file %s for writing\n", file_name);
             free(core_dump);
             free(information);
             return(-1);
@@ -506,7 +507,7 @@ void espcp_erase_core_dump_partition(void)
     {
         if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
         {
-            MEADOW_TRACE_ERROR("%s: Failed to queue erase message\n", __func__);
+            syslog(LOG_ERR, "%s: Failed to queue erase message\n", __func__);
             espcp_delete_message_and_payload(message);
         }
         else
@@ -525,7 +526,7 @@ void espcp_erase_core_dump_partition(void)
     }
     else
     {
-        MEADOW_TRACE_ERROR("%s: Failed to create message\n", __func__);
+        syslog(LOG_ERR, "%s: Failed to create message\n", __func__);
     }
 
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);

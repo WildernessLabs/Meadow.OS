@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <syslog.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -269,7 +270,7 @@ uint8_t *espcp_file_system_read_file(char *name, int16_t *length)
     }
     else
     {
-        MEADOW_TRACE_ERROR("espcp_file_system_read_file: Invalid parameters.\n");
+        syslog(LOG_ERR, "espcp_file_system_read_file: Invalid parameters.\n");
     }
 
     return(result);
