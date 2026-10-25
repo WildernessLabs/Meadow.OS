@@ -247,6 +247,14 @@ int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen)
 {
   int ret;
 
+  // A syslog line can be longer than the traverse payload.  Truncate it: a
+  // line that is rejected is returned as an error, which makes the ramlog
+  // reader reopen the log and replay it from the start.
+  if (syslogLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
+  {
+    syslogLen = HCOM_TRAVERSE_KU_PAYLOAD_MAX;
+  }
+
   // Send the text from syslog messages
   ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
     HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
