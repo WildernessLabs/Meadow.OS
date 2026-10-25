@@ -830,10 +830,27 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                                 espcp_delete_message_and_payload(oldest);
                             }
                         }
-                        gl_add_item_to_tail(_events_with_payloads, (void *) message);
+                        if (!gl_add_item_to_tail(_events_with_payloads, (void *) message))
+                        {
+                            //
+                            //  The event was not kept so it is not counted and the message is released.
+                            //
+                            flags = enter_critical_section();
+                            if (_events_with_payloads_count > 0)
+                            {
+                                _events_with_payloads_count--;
+                            }
+                            leave_critical_section(flags);
+                            delete_message = true;
+                        }
                     }
                 }
                 free(encodedData);
+            }
+            else
+            {
+                MEADOW_TRACE_INFORMATION("Unable to allocate the event data, message discarded.\n");
+                delete_message = true;
             }
         }
     }
