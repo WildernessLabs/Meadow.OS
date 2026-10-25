@@ -364,11 +364,19 @@ static int espcp_sock_addr_to_sockaddr(void *destination, uint8_t *source)
     else
     {
         espcp_sock_addr_t *sai = espcp_extract_sock_addr(source);
-        struct sockaddr_in *dest = (struct sockaddr_in *) destination;
-        memset(dest, 0, sizeof(struct sockaddr_in));
-        dest->sin_family = AF_INET;
-        dest->sin_port = sai->port;
-        dest->sin_addr.s_addr = sai->ip4_address;
+        if (sai == NULL)
+        {
+            result = -ENOMEM;
+        }
+        else
+        {
+            struct sockaddr_in *dest = (struct sockaddr_in *) destination;
+            memset(dest, 0, sizeof(struct sockaddr_in));
+            dest->sin_family = AF_INET;
+            dest->sin_port = sai->port;
+            dest->sin_addr.s_addr = sai->ip4_address;
+            free(sai);
+        }
     }
     return(result);
 }
