@@ -801,8 +801,8 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
         if ((version->major != 0) || (version->minor != 0) || (version->revision != 0) || (version->build != 0))
         {
             snprintf(version_string, 45, "%" PRId32 ".%" PRId32 ".%" PRId32 ".%" PRId32, version->major, version->minor, version->revision, version->build);
+            result = kmm_strdup(version_string);
         }
-        result = kmm_strdup(version_string);
     }
 
     return(result);
