@@ -480,6 +480,13 @@ int hcom_host_send_buffered_msg(uint16_t requestType, uint16_t extraData,
     return OK;   // Throw the message away. What else can be done?
   }
 
+  // The body is copied into a buffer of HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE
+  // bytes after the header, so clamp it before the copy and the length agree.
+  if(msgLength > HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN)
+  {
+    msgLength = HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN;
+  }
+
   size_t fullMsgLen = msgLength + HCOM_PROTOCOL_HEADER_MSG_LENGTH;
   if(fullMsgLen > HCOM_PROTOCOL_CURRENT_PACKET_MAX_SIZE)
   {
