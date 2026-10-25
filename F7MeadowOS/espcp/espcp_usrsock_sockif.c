@@ -3352,13 +3352,27 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
                                     memcpy(msg->msg_name, response->source_address, copy_len);
                                     msg->msg_namelen = (socklen_t) response->source_address_len;
                                 }
-                                if (response->control_length > 0 && msg->msg_control != NULL)
+                                bool control_truncated = false;
+                                if (response->control_length > 0)
                                 {
-                                    uint32_t copy_len = (response->control_length < (uint32_t) msg->msg_controllen) ? response->control_length : (uint32_t) msg->msg_controllen;
-                                    memcpy(msg->msg_control, response->control, copy_len);
-                                    msg->msg_controllen = (socklen_t) response->control_length;
+                                    //
+                                    //  Report the number of bytes actually copied so that a caller walking
+                                    //  the control data stays inside its own buffer.
+                                    //
+                                    uint32_t copy_len = 0;
+                                    if (msg->msg_control != NULL)
+                                    {
+                                        copy_len = (response->control_length < (uint32_t) msg->msg_controllen) ? response->control_length : (uint32_t) msg->msg_controllen;
+                                        memcpy(msg->msg_control, response->control, copy_len);
+                                    }
+                                    msg->msg_controllen = (socklen_t) copy_len;
+                                    control_truncated = (copy_len < response->control_length);
                                 }
                                 msg->msg_flags = response->msg_flags;
+                                if (control_truncated)
+                                {
+                                    msg->msg_flags |= MSG_CTRUNC;
+                                }
                                 result = response->result;
                             }
                             else if (response->result == 0)
