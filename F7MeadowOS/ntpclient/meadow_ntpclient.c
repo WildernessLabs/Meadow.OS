@@ -445,7 +445,8 @@ static void ntp_worker(void *arg)
     {
         hcom_nx_config_lock();
         config = hcom_nx_config_get_pointer();
-        strncpy(server_name, config->ntp_servers[current_server], 64);
+        strncpy(server_name, config->ntp_servers[current_server], sizeof(server_name) - 1);
+        server_name[sizeof(server_name) - 1] = '\0';
         hcom_nx_config_unlock();
         MEADOW_TRACE_INFORMATION("Getting time from %s\n", server_name);
         sd = ntpc_connect_to_server(server_name, &server, socket_timeout);
