@@ -195,13 +195,14 @@ static void meadow_os_fault_handler_process_os_fault_message(uint8_t fault)
         char *line = fault_string;
         while (strlen(line) > 0)
         {
-            while (!isalpha(*line))
+            while ((*line != '\0') && !isalpha(*line))
             {
                 line++;
             }
             if (strlen(line) > 0)
             {
                 char *end = find_line_end(line);
+                bool last_line = (*end == '\0');      // The terminator was reached, there is nothing after it.
                 *end = 0;
                 if ((memcmp(line, "up_", 3) == 0) || (memcmp(line, "arm_", 4) == 0))
                 {
@@ -211,7 +212,7 @@ static void meadow_os_fault_handler_process_os_fault_message(uint8_t fault)
                         fprintf(crash_file, "%s\n", line);
                     }
                 }
-                line = end + 1;
+                line = last_line ? end : (end + 1);
                 if ((*line == '\n') || (*line == '\r'))
                 {
                     line++;
