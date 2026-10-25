@@ -640,7 +640,12 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
             }
             else
             {
+                //
+                //  A late response (after a timeout) or a duplicate.  Nobody
+                //  took ownership of the payload so release it here.
+                //
                 MEADOW_TRACE_DEBUG("%s:%d Message with ID 0x%08x cannot be located in message waiting responses queue.\n", __FILE__, __LINE__, message->message_id);
+                espcp_delete_message_payload(message);
             }
             free(message);
         }
