@@ -81,7 +81,7 @@
 //
 //  Encoded size of an espcp_event_data_t on the queue (bytes).
 //
-#define BT_EVENT_ENCODED_SIZE   22
+#define BT_EVENT_ENCODED_SIZE   ESPCP_EVENT_DATA_SIZE
 
 //
 //  Default receive timeout for automated tests (ms).
