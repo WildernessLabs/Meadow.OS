@@ -455,6 +455,11 @@ static void ntp_worker(void *arg)
         number_of_servers = MEADOW_NTPCLIENT_MAXIMUM_SERVERS_PER_ROUND;
     }
 
+    //
+    //  With no servers there is nothing to try, and nothing to index.
+    //
+    getting_time = (number_of_servers > 0);
+
     while (getting_time && (retry_count < 3))
     {
         hcom_nx_config_lock();
