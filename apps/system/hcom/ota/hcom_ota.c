@@ -63,7 +63,7 @@ static void update_info(const char *msg, ...)
     char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
     va_list ap;
     va_start(ap, msg);
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
+    vsnprintf(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, msg, ap);
     va_end(ap);
     hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
 }
