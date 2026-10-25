@@ -322,7 +322,7 @@ int pwrmgmt_mono_cmd_time_read_clock(struct hcom_nx_cmd_data *cmdData)
   char hostMsg[HCOM_NX_CMD_HOST_MSG_SIZE];
 
   snprintf_chk(hostMsg, HCOM_NX_CMD_HOST_MSG_SIZE,
-            "UTC time:%4d-%02d-%02dT%02d:%02d:%02d%+02d:%02d",
+            "UTC time:%4d-%02d-%02dT%02d:%02d:%02d%+03d:%02d",
             tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday,
             tmNow.tm_hour, tmNow.tm_min, tmNow.tm_sec,
             0, 0);
