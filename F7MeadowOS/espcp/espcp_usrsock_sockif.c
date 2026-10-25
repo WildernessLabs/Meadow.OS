@@ -449,7 +449,7 @@ static int espcp_usrsock_sockif_setup(struct socket *psock)
     int domain = psock->s_domain;
     int type = psock->s_type;
 
-    psock->s_type = PF_UNSPEC;
+    psock->s_type = 0;
     psock->s_conn = NULL;
 
     /* Let the user socket logic handle the setup...
@@ -2945,7 +2945,11 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
     MEADOW_TRACE_INFORMATION("socket - socket %d, result %d\n",
                              psock->s_conn ? espcp_sockfd(psock) : -1, result);
 
-    return (result);
+    //
+    //  si_setup contract: zero on success.  The ESP32 descriptor is held in the
+    //  connection structure (esp_sockfd), not returned.
+    //
+    return ((result >= 0) ? OK : result);
 }
 
 /****************************************************************************
