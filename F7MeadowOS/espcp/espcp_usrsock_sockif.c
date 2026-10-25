@@ -713,6 +713,15 @@ int espcp_usrsock_bind(struct socket *psock, const struct sockaddr *addr, sockle
         return(-ENETDOWN);
     }
 
+    //
+    //  The address is read as a struct sockaddr_in so it must be at least that big.
+    //
+    if ((addr == NULL) || (addrlen < sizeof(struct sockaddr_in)))
+    {
+        MEADOW_TRACE_DEBUG("bind - result EINVAL\n");
+        return(-EINVAL);
+    }
+
     int32_t result = -1;
     espcp_message_t *message = NULL;
     struct sockaddr_in *sin = (struct sockaddr_in *) addr;
@@ -945,6 +954,15 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
     {
         MEADOW_TRACE_DEBUG("connect - result ENETDOWN\n");
         return(-ENETDOWN);
+    }
+
+    //
+    //  The address is read as a struct sockaddr_in so it must be at least that big.
+    //
+    if ((addr == NULL) || (addrlen < sizeof(struct sockaddr_in)))
+    {
+        MEADOW_TRACE_DEBUG("connect - result EINVAL\n");
+        return(-EINVAL);
     }
 
     int32_t result = -1;
@@ -2507,7 +2525,14 @@ static int espcp_usrsock_encode_socket_option_value(espcp_set_sock_opt_request_t
             case SO_SNDTIMEO:
             case SO_RCVTIMEO:
                 {
-                    espcp_time_val_t *tv = (espcp_time_val_t *) zalloc(sizeof(espcp_time_val_t));
+                    espcp_time_val_t *tv = NULL;
+                    if (length < sizeof(struct timeval))
+                    {
+                        result = -EINVAL;
+                        break;
+                    }
+
+                    tv = (espcp_time_val_t *) zalloc(sizeof(espcp_time_val_t));
                     if (tv == NULL)
                     {
                         result = -ENOMEM;
@@ -2548,6 +2573,11 @@ static int espcp_usrsock_encode_socket_option_value(espcp_set_sock_opt_request_t
                 break;
             case SO_RCVBUF:
             case SO_REUSEADDR:
+                if (length < sizeof(int))
+                {
+                    result = -EINVAL;
+                    break;
+                }
                 request->option_value = espcp_usrsock_encode_integer(value);
                 if (request->option_value == NULL)
                 {
@@ -2604,6 +2634,11 @@ static int espcp_usrsock_encode_tcp_option_value(espcp_set_sock_opt_request_t *r
         switch(option)
         {
             case TCP_NODELAY:
+                if (length < sizeof(int))
+                {
+                    result = -EINVAL;
+                    break;
+                }
                 request->option_value = espcp_usrsock_encode_integer(value);
                 if (request->option_value == NULL)
                 {
