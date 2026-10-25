@@ -36,6 +36,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
+#include <syslog.h>
 #include <debug.h>
 #include <fcntl.h>
 
@@ -164,19 +165,19 @@ int espcp_setup_message_dispatcher(void)
         return (result);
     }
 
-    result = sem_init(&g_message_id_mutex, 0, 1);
+    result = nxsem_init(&g_message_id_mutex, 0, 1);
     if (result != OK)
     {
         return (result);
     }
 
-    result = sem_setprotocol(&g_message_id_mutex, SEM_PRIO_NONE);
+    result = nxsem_set_protocol(&g_message_id_mutex, SEM_PRIO_NONE);
     if (result != OK)
     {
         return (result);
     }
 
-    result = sem_wait(&g_message_id_mutex);
+    result = nxsem_wait_uninterruptible(&g_message_id_mutex);
     if (result != OK)
     {
         return (result);
@@ -184,13 +185,18 @@ int espcp_setup_message_dispatcher(void)
 
     g_last_message_id = 0;
 
-    result = sem_post(&g_message_id_mutex);
+    result = nxsem_post(&g_message_id_mutex);
     if (result != OK)
     {
         return (result);
     }
 
     g_messages_waiting_for_a_response = gl_create_empty_linked_list();
+    if (g_messages_waiting_for_a_response == NULL)
+    {
+        syslog(LOG_ERR, "Failed to create the pending response list\n");
+        return (-ENOMEM);
+    }
 
     return (result);
 }
@@ -237,8 +243,7 @@ void espcp_queue_send_response_message(void)
  *  None.
  *
  * Returned Value:
- *  0 if there is a problem otherwise a valid message ID (which will be larger 
- *  than 0x80000000).
+ *  A valid message ID (which will be larger than 0x80000000).
  *
  * Assumptions/Limitations:
  *  None
@@ -246,23 +251,16 @@ void espcp_queue_send_response_message(void)
  ****************************************************************************/
 uint32_t espcp_get_next_message_id()
 {
-    uint32_t message_id = OK;
-    int result = OK;
-
-    result = sem_wait(&g_message_id_mutex);
-    if (result != OK)
-    {
-        return (0);
-    }
-
+    //
+    //  The increment is protected by a critical section rather than a
+    //  semaphore so that it cannot fail.  A failure would have to return a
+    //  reserved ID, and two messages with the same ID are matched to the
+    //  wrong waiting caller.
+    //
+    irqstate_t flags = enter_critical_section();
     g_last_message_id++;
-    message_id = (g_last_message_id | ESP32_MESSAGE_ID_MASK);
-
-    result = sem_post(&g_message_id_mutex);
-    if (result != OK)
-    {
-        return (0);
-    }
+    uint32_t message_id = (g_last_message_id | ESP32_MESSAGE_ID_MASK);
+    leave_critical_section(flags);
 
     return(message_id);
 }
@@ -291,8 +289,14 @@ static void espcp_clear_spi_buffers(espcp_configuration_t *configuration)
     uint8_t *rx_buffer = configuration->spi_rx_buffer;
     espcp_config_unlock();
 
-    memset(tx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
-    memset(rx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    if (tx_buffer != NULL)
+    {
+        memset(tx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    }
+    if (rx_buffer != NULL)
+    {
+        memset(rx_buffer, 0, ESPCP_MAXIMUM_SPI_FRAME_SIZE);
+    }
 }
 
 /****************************************************************************
@@ -385,7 +389,11 @@ int espcp_send_packet(espcp_configuration_t *configuration, espcp_message_t *mes
         espcp_dump_message(message);
     #endif
     uint32_t encoded_header_size = 0;
-    espcp_encode_message(message, tx_buffer, &encoded_header_size, false);
+    if (!espcp_encode_message(message, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &encoded_header_size, false))
+    {
+        MEADOW_TRACE_INFORMATION("%s: Message does not fit in the SPI transmit buffer\n", __func__);
+        return (espcp_status_codes_failure);
+    }
     int result = espcp_status_codes_completed_ok;
 
     if (send_data_to_esp32 != NULL)
@@ -429,6 +437,10 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
     if (send_data_to_esp32 != NULL)
     {
         espcp_message_t *acknowledgement = (espcp_message_t *) malloc(sizeof(espcp_message_t));
+        if (acknowledgement == NULL)
+        {
+            return;
+        }
 
         memcpy(acknowledgement, message, sizeof(espcp_message_t));
         MEADOW_TRACE_INFORMATION("Sending acknowledgement code %d\n", status_code);
@@ -447,9 +459,10 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
         acknowledgement->packet_length = 0;
 
         uint32_t length = 0;
-        espcp_encode_message(acknowledgement, tx_buffer, &length, false);
-
-        send_data_to_esp32(tx_buffer, NULL, length);
+        if (espcp_encode_message(acknowledgement, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &length, false))
+        {
+            send_data_to_esp32(tx_buffer, NULL, length);
+        }
 
         free(acknowledgement);
     }
@@ -548,7 +561,7 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                 if (message->message_sent != NULL)
                 {
                     MEADOW_TRACE_INFORMATION("********************** message_sent is not NULL");
-                    // sem_post(message->message_sent);
+                    // nxsem_post(message->message_sent);
                 }
                 if (message->semaphore != NULL)
                 {
@@ -631,7 +644,7 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
                 waiting_message->status_code = message->status_code;
                 if (waiting_message->semaphore != NULL)
                 {
-                    sem_post(waiting_message->semaphore);
+                    nxsem_post(waiting_message->semaphore);
                 }
                 else
                 {
@@ -640,7 +653,12 @@ static void espcp_process_response(espcp_configuration_t *configuration, espcp_m
             }
             else
             {
+                //
+                //  A late response (after a timeout) or a duplicate.  Nobody
+                //  took ownership of the payload so release it here.
+                //
                 MEADOW_TRACE_DEBUG("%s:%d Message with ID 0x%08x cannot be located in message waiting responses queue.\n", __FILE__, __LINE__, message->message_id);
+                espcp_delete_message_payload(message);
             }
             free(message);
         }
@@ -812,7 +830,10 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                         //
                         uint32_t buffer_length;
                         espcp_clear_spi_buffers(configuration);
-                        espcp_encode_message(response, tx_buffer, &buffer_length, false);
+                        if (!espcp_encode_message(response, tx_buffer, ESPCP_MAXIMUM_SPI_FRAME_SIZE, &buffer_length, false))
+                        {
+                            break;
+                        }
                         espcp_spi_interface_lock();
                         send_data_to_esp32(NULL, rx_buffer, buffer_length);
                         espcp_message_t *packet = espcp_extract_message(rx_buffer, buffer_length, false);

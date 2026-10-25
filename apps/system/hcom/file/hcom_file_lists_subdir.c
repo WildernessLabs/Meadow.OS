@@ -169,6 +169,7 @@ int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
           
           free(completeNameBuf);
           free(fileInformation);
+          closedir(dirp);
           return detectError;
         }
       

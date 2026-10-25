@@ -122,6 +122,18 @@ static espcp_event_handlers_t _bluetooth_handlers[] =
  */
 static gl_linked_list_t *_events_with_payloads = NULL;
 
+/**
+ * @brief Number of events held in _events_with_payloads.
+ */
+static volatile uint32_t _events_with_payloads_count = 0;
+
+/**
+ * @brief Most events with payloads that are held for managed code to collect.  Events
+ *        that are never collected (Mono not running, restarted, ...) would otherwise
+ *        grow the list, and use the heap, without limit.
+ */
+#define ESPCP_MAXIMUM_EVENTS_WITH_PAYLOADS  32
+
 /****************************************************************************
  * Function Implementation
  ****************************************************************************/
@@ -368,7 +380,16 @@ espcp_message_t *espcp_get_event_data(uint32_t message_id)
     do
     {
         event_data = (espcp_message_t *) gl_remove_item(_events_with_payloads, message_id, espcp_compare_event_ids);
-        if (event_data == NULL)
+        if (event_data != NULL)
+        {
+            irqstate_t flags = enter_critical_section();
+            if (_events_with_payloads_count > 0)
+            {
+                _events_with_payloads_count--;
+            }
+            leave_critical_section(flags);
+        }
+        else
         {
             retry_count++;
             usleep(10000);
@@ -788,8 +809,38 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
                     }
                     else
                     {
+                        //
+                        //  Evict the oldest event if nobody has collected the earlier ones.
+                        //
+                        irqstate_t flags = enter_critical_section();
+                        bool full = (_events_with_payloads_count >= ESPCP_MAXIMUM_EVENTS_WITH_PAYLOADS);
+                        if (full)
+                        {
+                            _events_with_payloads_count--;
+                        }
+                        _events_with_payloads_count++;
+                        leave_critical_section(flags);
+
+                        if (full)
+                        {
+                            espcp_message_t *oldest = (espcp_message_t *) gl_remove_item_at_head(_events_with_payloads);
+                            if (oldest != NULL)
+                            {
+                                syslog(LOG_WARNING, "Event 0x%08x was never collected, discarded.\n", (unsigned int) oldest->message_id);
+                                espcp_delete_message_and_payload(oldest);
+                            }
+                        }
                         if (!gl_add_item_to_tail(_events_with_payloads, (void *) message))
                         {
+                            //
+                            //  The event was not kept so it is not counted and the message is released.
+                            //
+                            flags = enter_critical_section();
+                            if (_events_with_payloads_count > 0)
+                            {
+                                _events_with_payloads_count--;
+                            }
+                            leave_critical_section(flags);
                             delete_message = true;
                         }
                     }
