@@ -7,6 +7,7 @@ the output contract described in `tools/testrunner/README.md`.
 | App | What it covers |
 |---|---|
 | `MiniTests` | Mono's mini test suite (issue #726): 733 JIT regression tests in 10 suites, under the JIT and the interpreter |
+| `CellTests` | The managed cell API (GNSS and signal quality) through the pppd pause path, on a BG95-M3; no SIM needed |
 | `EspcpTests` | espcp network robustness (issue #708): WiFi, `SO_SNDTIMEO` on new sockets, repeated HTTP and socket open/close (poll setup and teardown), and a connect that is never answered |
 
 ## MiniTests
@@ -60,3 +61,31 @@ Meadow.Core does not connect to the default access point.
 - **Limit:** the 30 second response timeout in `espcp_queue_message()` is reached only when the
   ESP32 does not answer a request at all. The blackhole case holds an ESP32 worker but the ESP32
   still answers, so it does not prove that path; that needs an ESP32 that stops responding.
+
+## CellTests
+
+Needs an OS built with `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD=y`, a BG95-M3 click board on mikroBUS 1
+(COM1, enable pin A3) and, for `cell.gnss_fix`, a GPS antenna with a view of the sky. A SIM is not
+needed: without one the modem answers `CONNECT` and then hangs up, so pppd reconnects about once a
+minute and runs the posted AT scripts then.
+
+- **Config:** the app ships `meadow.config.yaml` (cell interface, the modem pins reserved, and
+  `InternalDebug` with only `TraceLevel: 2`) and always ships `cell.config.yaml`. COM1 belongs to
+  the modem, so there is no `Uart1Use`; for the syslog, build the OS with `build.sh --dualcdc`
+  (without `--nsh`) and read the second USB CDC port. The deploy replaces the board's
+  `meadow.config.yaml`, so restore the usual one afterwards.
+- **Mono must be running:** pppd starts only after Mono starts. Check that the boot banner says
+  `Mono:Enabled`.
+- **Cases:**
+  - `cell.adapter`: the cell adapter exists.
+  - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
+    It does not need a fix. A run takes about 210 s: a wait for the next pppd reconnect, then the
+    GNSS script, which contains `PAUSE 120`.
+  - `cell.gnss_fix`: GGA fix quality 1 or more and RMC status `A`. Reports only the quality, the
+    satellite count, the HDOP and the GSA fix mode, because the NMEA contains the bench's
+    position.
+  - `cell.signal_quality`: `GetSignalQuality` returns a value other than NoSignal. This is
+    currently a known failure; see the manifest.
+- **Limit:** the cases go through the pause path only. If the connect script itself keeps failing,
+  pppd never runs the posted script and the managed call can block (`OS/CellPlan.md` 2.2). The
+  runner's timeout ends the run in that case.

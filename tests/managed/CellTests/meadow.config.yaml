@@ -1,0 +1,22 @@
+#
+#   Configuration shipped when the app is deployed by hand: the JIT, the cell interface.  The test
+#   runner uses this file as the base for each mode (manifest key `config`) and only replaces its
+#   MonoControl section.
+#
+#   COM1 belongs to the cell modem, so InternalDebug sets only the trace level and no UART use.
+#   With a `build.sh --dualcdc` build (no --nsh) the syslog then appears on the second USB CDC port.
+#
+Device:
+    Name: MeadowTests
+    #
+    #   The modem UART (COM1: B15, B14) and its enable pin (A3).
+    #
+    ReservedPins: B15;B14;A3
+Network:
+    DefaultInterface: Cell
+    GetNetworkTimeAtStartup: 1
+    DnsServers:
+        - 1.1.1.1
+        - 8.8.8.8
+InternalDebug:
+    TraceLevel: 2
