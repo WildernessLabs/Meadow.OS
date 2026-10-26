@@ -41,9 +41,12 @@
 #include <meadow/meadow_os.h>
 
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <mqueue.h>
 #include <string.h>
+#include <termios.h>
+#include <unistd.h>
 
 #include "netutils/chat.h"
 #include "netutils/pppd.h"
@@ -390,6 +393,46 @@ static void hcom_pppd_at_cmd_event(int ret)
   }
 }
 
+//====================================================================
+// Put the modem UART into raw mode. COM1 (/dev/ttyS0) is also the NuttX serial
+// console, which defaults to echo, canonical (line) mode and CR/LF translation.
+// Echo sends everything the modem says straight back to it, including its echo
+// of AT+CFUN=1,1 (which resets it again), and line mode garbles what chat reads.
+// The settings belong to the device, so they stay in force when pppd opens it.
+static int hcom_pppd_set_tty_raw(const char *ttyname)
+{
+  struct termios tio;
+  int ret = OK;
+
+  int fd = open(ttyname, O_RDWR);
+  if (fd < 0)
+  {
+    syslog(LOG_ERR, "%s-%d-Failed to open %s, errno=%d\n", __FILE__, __LINE__, ttyname, errno);
+    return -errno;
+  }
+
+  if (tcgetattr(fd, &tio) < 0)
+  {
+    ret = -errno;
+  }
+  else
+  {
+    cfmakeraw(&tio);
+    if (tcsetattr(fd, TCSANOW, &tio) < 0)
+    {
+      ret = -errno;
+    }
+  }
+
+  if (ret < 0)
+  {
+    syslog(LOG_ERR, "%s-%d-Failed to set %s to raw mode, ret=%d\n", __FILE__, __LINE__, ttyname, ret);
+  }
+
+  close(fd);
+  return ret;
+}
+
 static int hcom_pppd_create_handler(void)
 {
   hcom_cell_handler.state = CELL_RESUMED;
@@ -505,6 +548,9 @@ static void *pppd_thread(void *cell_settings_ptr)
     strlcpy(pppd_settings.pap_username, cell_settings->pap_user, sizeof(pppd_settings.pap_username));
     strlcpy(pppd_settings.pap_password, cell_settings->pap_password, sizeof(pppd_settings.pap_password));
 #endif
+
+    // Not fatal: pppd reports the failure through the connect script events.
+    (void)hcom_pppd_set_tty_raw(pppd_settings.ttyname);
 
     syslog(LOG_INFO, "%s-%d-Starting PPPD\n", __FILE__, __LINE__);
     pppd(&pppd_settings);
