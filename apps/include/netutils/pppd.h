@@ -125,6 +125,8 @@ struct pppd_settings_s
   CODE void (*disconnect_event)(int err_base);
   CODE void (*connecting_event)(void);
   CODE void (*retry_count_exceeded_event)(void);
+  CODE void (*connect_script_failed_event)(FAR const char *script,
+                                           FAR const char *response);
 
   /* AT command handler */
 

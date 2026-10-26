@@ -310,6 +310,13 @@ void ppp_reconnect(FAR struct ppp_context_s *ctx)
           ret = ppp_chat(ctx, pppd_settings->connect_script);
           if (ret < 0)
             {
+              if (pppd_settings->connect_script_failed_event != NULL)
+                {
+                  pppd_settings->connect_script_failed_event(
+                    pppd_settings->connect_script,
+                    pppd_settings->cell_at_cmds_output);
+                }
+
               debug_printf("ppp: connect script failed\n");
               --retry;
               if (retry == 0)

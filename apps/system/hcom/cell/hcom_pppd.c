@@ -87,6 +87,7 @@ static void hcom_pppd_disconnected_event(int err_base);
 static void hcom_pppd_at_cmd_event(int ret);
 static void hcom_pppd_retry_exceeded_event(void);
 static void hcom_pppd_connecting_event(void);
+static void hcom_pppd_connect_script_failed_event(const char *script, const char *response);
 
 //====================================================================
 // This function is used to generate the connection and disconnection script
@@ -330,6 +331,28 @@ static void hcom_pppd_connecting_event(void)
   syslog(LOG_INFO, "%s-%d-Cell event message result: %d\n", __FILE__, __LINE__, result);
 }
 
+//====================================================================
+// Report a failed connect script, and the modem response to it, to the host
+// so that cell configuration problems can be diagnosed.
+static void hcom_pppd_connect_script_failed_event(const char *script, const char *response)
+{
+  syslog(LOG_INFO, "%s-%d-Cell connect script failed, retrying\n", __FILE__, __LINE__);
+
+#ifdef HCOM_CELL_DEBUG_LOGS
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+      "Cell connect script failed, retrying... Script:\n", __FILE__, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+      (char *)script, __FILE__, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+      "Response:\n", __FILE__, __LINE__);
+  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+      (response != NULL) ? (char *)response : "", __FILE__, __LINE__);
+#else
+  (void)script;
+  (void)response;
+#endif
+}
+
 static void hcom_pppd_retry_exceeded_event(void)
 {
   syslog(LOG_INFO, "%s-%d-Cell network retry exceeded\n", __FILE__, __LINE__);
@@ -471,6 +494,7 @@ static void *pppd_thread(void *cell_settings_ptr)
         .disconnect_event = hcom_pppd_disconnected_event,
         .connecting_event = hcom_pppd_connecting_event,
         .retry_count_exceeded_event = hcom_pppd_retry_exceeded_event,
+        .connect_script_failed_event = hcom_pppd_connect_script_failed_event,
         .cell_at_cmds_output = cell_at_cmds_output,
         .cell_at_cmds_output_size = CONNECT_SCRIPT_OUTPUT_MAX_SIZE,
         .cell_handler = &hcom_cell_handler,
@@ -558,6 +582,7 @@ static void hcom_pppd_connected_event(const struct in_addr *local_ip,
     char pri_dns_address[INET_ADDRSTRLEN];
     char sec_dns_address[INET_ADDRSTRLEN];
     char *network_dns_servers[2];
+    const char *network_dns_server_names[2];
     uint32_t network_dns_server_count = 0;
 
     syslog(LOG_INFO, "%s-%d-Cell network has been successfully connected, IP address %s\n", __FILE__, __LINE__,
@@ -567,14 +592,34 @@ static void hcom_pppd_connected_event(const struct in_addr *local_ip,
     // file, followed by the user defined servers from the configuration.
     if ((pri_dns->s_addr != 0) && (inet_ntop(AF_INET, pri_dns, pri_dns_address, sizeof(pri_dns_address)) != NULL))
     {
+        network_dns_server_names[network_dns_server_count] = "Primary";
         network_dns_servers[network_dns_server_count++] = pri_dns_address;
     }
     if ((sec_dns->s_addr != 0) && (inet_ntop(AF_INET, sec_dns, sec_dns_address, sizeof(sec_dns_address)) != NULL))
     {
+        network_dns_server_names[network_dns_server_count] = "Secondary";
         network_dns_servers[network_dns_server_count++] = sec_dns_address;
     }
     hcom_common_utils_erase_dns_resolver_file();
     hcom_common_utils_add_servers_to_dns_resolver_file(network_dns_servers, network_dns_server_count);
+
+#ifdef HCOM_CELL_DEBUG_LOGS
+    char host_message[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
+
+    snprintf_chk(host_message, sizeof(host_message),
+        "Connection established successfully! IP address '%s'.\n", address);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+        host_message, __FILE__, __LINE__);
+
+    for (uint32_t index = 0; index < network_dns_server_count; index++)
+    {
+        snprintf_chk(host_message, sizeof(host_message),
+            "%s DNS server address: '%s'.\n", network_dns_server_names[index],
+            network_dns_servers[index]);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
+            host_message, __FILE__, __LINE__);
+    }
+#endif
 
     espcp_event_data_t message;
 
