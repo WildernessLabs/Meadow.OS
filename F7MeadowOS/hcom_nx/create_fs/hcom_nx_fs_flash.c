@@ -389,9 +389,21 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
   memset(baseReference, 0xff, geo.blocksize * writeable_pages_per_sector); // base line for erased flash
 
   notErasedSectors = 0;
-  for (sectorCounter = 0; sectorCounter < geo.neraseblocks; sectorCounter++)
+
+  // Access to the file system partition through MTD_BREAD_Proxy() is
+  // restricted (-EINVAL), so the proxy only covers the reserved area in front
+  // of it.  The file system partition is verified separately, below, through
+  // its own MTD.
+  int reservedSectors = MEADOW_PART_ADDR_OFFSET_FILE_SYS / geo.erasesize;
+  if (reservedSectors > geo.neraseblocks)
   {
-    size_t pagesRead = MTD_BREAD_Proxy(_mtd, sectorCounter * writeable_pages_per_sector,
+    reservedSectors = geo.neraseblocks;
+  }
+
+  bool readFailed = false;
+  for (sectorCounter = 0; sectorCounter < reservedSectors; sectorCounter++)
+  {
+    ssize_t pagesRead = MTD_BREAD_Proxy(_mtd, sectorCounter * writeable_pages_per_sector,
                                   writeable_pages_per_sector, readBuffer);
     if (pagesRead == writeable_pages_per_sector)
     {
@@ -412,8 +424,58 @@ int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
             "%s@%d-Expected %" PRId32 " pages but read %d\n",
-            __FILE__, __LINE__, writeable_pages_per_sector, pagesRead);
+            __FILE__, __LINE__, writeable_pages_per_sector, (int) pagesRead);
+    readFailed = true;
     break;
+  }
+
+  // Now the file system partition, which is the rest of the flash.
+  if (!readFailed && (sectorCounter == reservedSectors))
+  {
+    meadow_part_info_t partInfo;
+    ret = hcom_nx_fs_get_partition_info(MEADOW_FLASH_PART_OFFSET_FILE_SYS, &partInfo);
+    if (ret < 0)
+    {
+      cmdData->logLevel = LOG_ERR;
+      // Don't use snprintf_chk here
+      cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+              "%s@%d-get partition %d info, err:%d\n",
+              __FILE__, __LINE__, MEADOW_FLASH_PART_OFFSET_FILE_SYS, ret);
+      readFailed = true;
+    }
+    else
+    {
+      int fsSectors = partInfo.partSize / geo.erasesize;
+      for (int fsSector = 0; fsSector < fsSectors; fsSector++)
+      {
+        ssize_t pagesRead = MTD_BREAD(partInfo.mtdPart, fsSector * writeable_pages_per_sector,
+                                      writeable_pages_per_sector, readBuffer);
+        if (pagesRead != writeable_pages_per_sector)
+        {
+          cmdData->logLevel = LOG_ERR;
+          // Don't use snprintf_chk here
+          cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+                  "%s@%d-File system sector %d: expected %" PRId32 " pages but read %d\n",
+                  __FILE__, __LINE__, fsSector, writeable_pages_per_sector, (int) pagesRead);
+          readFailed = true;
+          break;
+        }
+
+        if (memcmp(baseReference, readBuffer, geo.blocksize * writeable_pages_per_sector) != 0)
+        {
+          syslog(LOG_WARNING, "%s@%d-4k file system sector at offset %04d is not erased\n",
+              __FILE__, __LINE__, fsSector);
+          notErasedSectors++;
+        }
+        sectorCounter++;
+      }
+    }
+  }
+
+  if (readFailed && (cmdData->logLevel == LOG_ERR))
+  {
+    // Tell the host, the user side forwarder only writes the log text to syslog.
+    cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, __FILE__, __LINE__);
   }
 
   syslog(LOG_INFO, "Verified %04" PRId32 " bytes (%d of %" PRId32 " sectors)\n",
