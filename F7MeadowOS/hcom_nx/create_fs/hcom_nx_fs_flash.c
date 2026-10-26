@@ -664,6 +664,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
             "%s@%d-Mono runtime was not found in %s.", __FILE__, __LINE__,
             runtimePath);
+    cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, __FILE__, __LINE__);
     return -1;
   }
 
@@ -684,6 +685,7 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
     // Don't use snprintf_chk here
     cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
             "%s@%d-Mono runtime binary has invalid size.", __FILE__, __LINE__);
+    cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, __FILE__, __LINE__);
     close(filefd);
     return -1;
   }
@@ -701,7 +703,13 @@ int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmdData)
             numBlocksToErase);
   if (ret < 0)
   {
-    return -ret;
+    cmdData->logLevel = LOG_ERR;
+    // Don't use snprintf_chk here
+    cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
+            "%s@%d-Erase of the Mono runtime flash failed:%d.", __FILE__, __LINE__, ret);
+    cmdData->send_host_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, cmdData->logMsg, __FILE__, __LINE__);
+    close(filefd);
+    return -1;
   }
 
   const char monoEraseFlashMsg2[] = "Mono memory erase success\n";
