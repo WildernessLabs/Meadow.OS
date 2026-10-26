@@ -210,10 +210,6 @@ ifeq ($(CONFIG_BOARD_MEADOW_F7_CORE_COMPUTE),y)
 CSRCS += board_corecomp.c
 endif
 
-ifeq ($(CONFIG_BOARD_MEADOW_PROJECTLAB),y)
-CSRCS += board_projlab.c
-endif
-
 ifeq ($(CONFIG_USBDEV_COMPOSITE),y)
 CSRCS += stm32_composite.c
 endif

@@ -14,7 +14,7 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 | File | Purpose |
 |------|---------|
 | `stm32_boot.c` | `stm32_boardinitialize()` (very early: SPI chip selects, SDRAM, USB GPIO) and `board_late_initialize()` (backup SRAM, PWM, USB CDC/ACM, MPU regions, QSPI flash MTD/FTL, then `meadow_upd_initialize()` and `hcom_nx_setup_mgr()`) |
-| `stm32_bringup.c` | `stm32_bringup()`: mounts procfs, sets up PWM and CS4344 audio, and calls `init_corecomp()` / `init_projectlab()` for the board variant. Only reached when `CONFIG_BOARD_LATE_INITIALIZE` is not set (see below) |
+| `stm32_bringup.c` | `stm32_bringup()`: mounts procfs, sets up PWM and CS4344 audio, and calls `init_corecomp()` for the F7 Core Compute variant. Only reached when `CONFIG_BOARD_LATE_INITIALIZE` is not set (see below) |
 | `stm32_appinitialize.c` | `board_app_initialize()`: returns OK immediately when `CONFIG_BOARD_LATE_INITIALIZE=y` (the `meadow_os` defconfig), otherwise calls `stm32_bringup()` |
 | `stm32_extmem.c` | FMC/SDRAM initialisation |
 | `stm32_spi.c` | SPI bus configuration |
@@ -27,7 +27,6 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 | `stm32_fat_dma.c` | `fat_dma_alloc()` / `fat_dma_free()`: 32-byte aligned FAT volume buffers so SD card DMA works (Issue #653) |
 | `stm32_pwm.c` | `stm32_pwm_setup()`: registers the PWM devices |
 | `board_corecomp.c` | `init_corecomp()`: fixed devices of the F7 Core Compute variant (SD card) |
-| `board_projlab.c` | `init_projectlab()`: fixed devices of the ProjectLab variant (BH1750 light sensor, BMI270 inertial sensor) |
 
 ## Kernel Startup Flow
 
