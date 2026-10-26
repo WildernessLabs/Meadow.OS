@@ -77,12 +77,12 @@
  *  @brief Default entry in the network_interfaces array to be used if no interface
  *         is selected in the config file.
  */
-#define MEADOW_DEFAULT_NETWORK_INTERFACE    MEADOW_IFT_ESP32
+#define MEADOW_DEFAULT_NETWORK_INTERFACE MEADOW_IFT_ESP32
 
 /**
  * @brief String used for version numbers when the value is not available.
  */
-#define UNKNOWN_VERSION_STRING              "Not available"
+#define UNKNOWN_VERSION_STRING "Not available"
 
 /****************************************************************************
  * Local type definitions.
@@ -100,51 +100,32 @@ static meadow_configuration_t *meadow_configuration = NULL;
 /**
  *  @brief Array of network interfaces available.
  */
-static meadow_network_interface_t network_interfaces[] =
-{
-    {
-        .interface_type = MEADOW_IFT_ESP32,
-        .name = MEADOW_IFT_ESP32_NAME,
-        .use_dhcp = 1,
-        .ip_address = 0,
-        .netmask = 0,
-        .gateway = 0,
-        //
-        //  TODO: Change the methods pointer when we get WiFi working.
-        //
-        // .psock_methods = &g_usrsock_sockif_esp32
-        .psock_methods = NULL
-    },
-    {
-        .interface_type = MEADOW_IFT_ETHERNET,
-        .name = MEADOW_IFT_ETHERNET_NAME,
-        .use_dhcp = 1,
-        .ip_address = 0,
-        .netmask = 0,
-        .gateway = 0,
-        .psock_methods = NULL
-    },
-    {
-        .interface_type = MEADOW_IFT_CELL,
-        .name = MEADOW_IFT_CELL_NAME,
-        .use_dhcp = 1,
-        .ip_address = 0,
-        .netmask = 0,
-        .gateway = 0,
-        .psock_methods = NULL
-    }
-};
+static meadow_network_interface_t network_interfaces[] = {
+    {.interface_type = MEADOW_IFT_ESP32,
+     .name = MEADOW_IFT_ESP32_NAME,
+     .use_dhcp = 1,
+     .ip_address = 0,
+     .netmask = 0,
+     .gateway = 0,
+     //
+     //  TODO: Change the methods pointer when we get WiFi working.
+     //
+     // .psock_methods = &g_usrsock_sockif_esp32
+     .psock_methods = NULL},
+    {.interface_type = MEADOW_IFT_ETHERNET, .name = MEADOW_IFT_ETHERNET_NAME, .use_dhcp = 1, .ip_address = 0, .netmask = 0, .gateway = 0, .psock_methods = NULL},
+    {.interface_type = MEADOW_IFT_CELL, .name = MEADOW_IFT_CELL_NAME, .use_dhcp = 1, .ip_address = 0, .netmask = 0, .gateway = 0, .psock_methods = NULL}};
 
 /**
  *  Mutex to be used by any code that wants access to the configuration.
  */
-static sem_t config_lock = { };
+static sem_t config_lock = {};
 
 /**
  *  Structure to hold the F7MicroV2 pin mappings
  */
-struct f7_micro_v2_pin_mapping_s {
-    const char* pin_name;
+struct f7_micro_v2_pin_mapping_s
+{
+    const char *pin_name;
     int pin_value;
 };
 typedef struct f7_micro_v2_pin_mapping_s f7_micro_v2_pin_mapping_t;
@@ -153,28 +134,10 @@ typedef struct f7_micro_v2_pin_mapping_s f7_micro_v2_pin_mapping_t;
  *  Define the pin mappings as an array of structures.
  */
 const f7_micro_v2_pin_mapping_t f7_micro_v2_pin_mappings[] = {
-    { F7_MICRO_V2_A4_PIN_NAME, F7_MICRO_V2_A4_PIN },
-    { F7_MICRO_V2_A5_PIN_NAME, F7_MICRO_V2_A5_PIN },
-    { F7_MICRO_V2_A3_PIN_NAME, F7_MICRO_V2_A3_PIN },
-    { F7_MICRO_V2_B0_PIN_NAME, F7_MICRO_V2_B0_PIN },
-    { F7_MICRO_V2_B1_PIN_NAME, F7_MICRO_V2_B1_PIN },
-    { F7_MICRO_V2_C0_PIN_NAME, F7_MICRO_V2_C0_PIN },
-    { F7_MICRO_V2_I9_PIN_NAME, F7_MICRO_V2_I9_PIN },
-    { F7_MICRO_V2_H13_PIN_NAME, F7_MICRO_V2_H13_PIN },
-    { F7_MICRO_V2_H10_PIN_NAME, F7_MICRO_V2_H10_PIN },
-    { F7_MICRO_V2_B8_PIN_NAME, F7_MICRO_V2_B8_PIN },
-    { F7_MICRO_V2_B9_PIN_NAME, F7_MICRO_V2_B9_PIN },
-    { F7_MICRO_V2_B4_PIN_NAME, F7_MICRO_V2_B4_PIN },
-    { F7_MICRO_V2_B13_PIN_NAME, F7_MICRO_V2_B13_PIN },
-    { F7_MICRO_V2_B7_PIN_NAME, F7_MICRO_V2_B7_PIN },
-    { F7_MICRO_V2_B6_PIN_NAME, F7_MICRO_V2_B6_PIN },
-    { F7_MICRO_V2_C6_PIN_NAME, F7_MICRO_V2_C6_PIN },
-    { F7_MICRO_V2_C7_PIN_NAME, F7_MICRO_V2_C7_PIN },
-    { F7_MICRO_V2_C9_PIN_NAME, F7_MICRO_V2_C9_PIN },
-    { F7_MICRO_V2_B14_PIN_NAME, F7_MICRO_V2_B14_PIN },
-    { F7_MICRO_V2_B15_PIN_NAME, F7_MICRO_V2_B15_PIN },
-    { F7_MICRO_V2_B12_PIN_NAME, F7_MICRO_V2_B12_PIN },
-    { F7_MICRO_V2_G12_PIN_NAME, F7_MICRO_V2_G12_PIN },
+    {F7_MICRO_V2_A4_PIN_NAME, F7_MICRO_V2_A4_PIN},   {F7_MICRO_V2_A5_PIN_NAME, F7_MICRO_V2_A5_PIN},   {F7_MICRO_V2_A3_PIN_NAME, F7_MICRO_V2_A3_PIN},   {F7_MICRO_V2_B0_PIN_NAME, F7_MICRO_V2_B0_PIN},   {F7_MICRO_V2_B1_PIN_NAME, F7_MICRO_V2_B1_PIN}, {F7_MICRO_V2_C0_PIN_NAME, F7_MICRO_V2_C0_PIN},
+    {F7_MICRO_V2_I9_PIN_NAME, F7_MICRO_V2_I9_PIN},   {F7_MICRO_V2_H13_PIN_NAME, F7_MICRO_V2_H13_PIN}, {F7_MICRO_V2_H10_PIN_NAME, F7_MICRO_V2_H10_PIN}, {F7_MICRO_V2_B8_PIN_NAME, F7_MICRO_V2_B8_PIN},   {F7_MICRO_V2_B9_PIN_NAME, F7_MICRO_V2_B9_PIN}, {F7_MICRO_V2_B4_PIN_NAME, F7_MICRO_V2_B4_PIN},
+    {F7_MICRO_V2_B13_PIN_NAME, F7_MICRO_V2_B13_PIN}, {F7_MICRO_V2_B7_PIN_NAME, F7_MICRO_V2_B7_PIN},   {F7_MICRO_V2_B6_PIN_NAME, F7_MICRO_V2_B6_PIN},   {F7_MICRO_V2_C6_PIN_NAME, F7_MICRO_V2_C6_PIN},   {F7_MICRO_V2_C7_PIN_NAME, F7_MICRO_V2_C7_PIN}, {F7_MICRO_V2_C9_PIN_NAME, F7_MICRO_V2_C9_PIN},
+    {F7_MICRO_V2_B14_PIN_NAME, F7_MICRO_V2_B14_PIN}, {F7_MICRO_V2_B15_PIN_NAME, F7_MICRO_V2_B15_PIN}, {F7_MICRO_V2_B12_PIN_NAME, F7_MICRO_V2_B12_PIN}, {F7_MICRO_V2_G12_PIN_NAME, F7_MICRO_V2_G12_PIN},
 };
 
 struct meadow_uart_mapping_s
@@ -183,35 +146,29 @@ struct meadow_uart_mapping_s
     const char *com_name;
 };
 
-const struct meadow_uart_mapping_s hcom_nx_uart_mapping [] =
-{
-    { MEADOW_UART1_NAME, MEADOW_COM1_NAME},
-    { MEADOW_UART4_NAME, MEADOW_COM4_NAME},
-    { MEADOW_UART6_NAME, MEADOW_COM6_NAME},
+const struct meadow_uart_mapping_s hcom_nx_uart_mapping[] = {
+    {MEADOW_UART1_NAME, MEADOW_COM1_NAME},
+    {MEADOW_UART4_NAME, MEADOW_COM4_NAME},
+    {MEADOW_UART6_NAME, MEADOW_COM6_NAME},
 };
 
 /**
  * @brief Names of the valid ESP log destinations.
  */
-meadow_log_destinations_t valid_esp_log_destinations[] =
-{
-    { "jtag", esp_log_destination_jtag },
-    { "udp", esp_log_destination_udp },
-    { "uart", esp_log_destination_uart },
+meadow_log_destinations_t valid_esp_log_destinations[] = {
+    {"jtag", esp_log_destination_jtag},
+    {"udp", esp_log_destination_udp},
+    {"uart", esp_log_destination_uart},
 };
 
 /**
  * @brief Valid components that can generate generate log information.
  */
 static char *esp_log_component_names[] = {
-    "wifi",
-    "system",
-    "bluetooth",
-    "thread",
-    "spi",
-    "messages",             // Messages between the STM32 and ESP32
-    "buffers",              // Contents of buffers on the ESP32 (e.g. sendto buffer)
-    "coredump",             // Core dump information
+    "wifi",     "system", "bluetooth", "thread", "spi",
+    "messages", // Messages between the STM32 and ESP32
+    "buffers",  // Contents of buffers on the ESP32 (e.g. sendto buffer)
+    "coredump", // Core dump information
 };
 
 /**
@@ -375,92 +332,92 @@ void hcom_nx_config_map_cell_network_mode(meadow_configuration_t *config)
 
     switch (module)
     {
-    case CELL_BG770A_MODULE:
-        switch (mode)
-        {
-        case CELL_CATM1_MODE:
-            strcpy(config->default_cell_settings->mode, "7");
+        case CELL_BG770A_MODULE:
+            switch (mode)
+            {
+                case CELL_CATM1_MODE:
+                    strcpy(config->default_cell_settings->mode, "7");
+                    break;
+                case CELL_NBIOT_MODE:
+                    strcpy(config->default_cell_settings->mode, "9");
+                    break;
+                default:
+                    syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG770A module", mode);
+                    strcpy(config->default_cell_settings->mode, "");
+                    break;
+            }
             break;
-        case CELL_NBIOT_MODE:
-            strcpy(config->default_cell_settings->mode, "9");
+
+        case CELL_BG95M3_MODULE:
+            switch (mode)
+            {
+                case CELL_CATM1_MODE:
+                    strcpy(config->default_cell_settings->mode, "8");
+                    break;
+                case CELL_NBIOT_MODE:
+                    strcpy(config->default_cell_settings->mode, "9");
+                    break;
+                case CELL_GSM_MODE:
+                    strcpy(config->default_cell_settings->mode, "0");
+                    break;
+                default:
+                    syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG95-M3 module", mode);
+                    strcpy(config->default_cell_settings->mode, "");
+                    break;
+            }
             break;
+
+        case CELL_M95_MODULE:
+            switch (mode)
+            {
+                case CELL_GSM_MODE:
+                    strcpy(config->default_cell_settings->mode, "0");
+                    break;
+                default:
+                    syslog(LOG_INFO, "Mode %" PRIu32 " not supported on M95 module", mode);
+                    strcpy(config->default_cell_settings->mode, "");
+                    break;
+            }
+            break;
+
+        case CELL_EG21GL_MODULE:
+            switch (mode)
+            {
+                case CELL_GSM_MODE:
+                    strcpy(config->default_cell_settings->mode, "0");
+                    break;
+                case CELL_UTRAN_MODE:
+                    strcpy(config->default_cell_settings->mode, "2");
+                    break;
+                case CELL_GSM_W_EGPRS_MODE:
+                    strcpy(config->default_cell_settings->mode, "3");
+                    break;
+                case CELL_UTRAN_W_HSDPA_MODE:
+                    strcpy(config->default_cell_settings->mode, "4");
+                    break;
+                case CELL_UTRAN_W_HSUPA_MODE:
+                    strcpy(config->default_cell_settings->mode, "5");
+                    break;
+                case CELL_UTRAN_W_HSDPA_HSUPA_MODE:
+                    strcpy(config->default_cell_settings->mode, "6");
+                    break;
+                case CELL_E_UTRAN_MODE:
+                    strcpy(config->default_cell_settings->mode, "7");
+                    break;
+                case CELL_CDMA_MODE:
+                    strcpy(config->default_cell_settings->mode, "100");
+                    break;
+                default:
+                    syslog(LOG_INFO, "Mode %lu not supported on EG21-GL module", mode);
+                    strcpy(config->default_cell_settings->mode, "");
+                    break;
+            }
+            break;
+
         default:
-            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG770A module", mode);
+            syslog(LOG_INFO, "Failed to map cell network mode name to the equivalent integer");
             strcpy(config->default_cell_settings->mode, "");
             break;
-        }
-        break;
-
-    case CELL_BG95M3_MODULE:
-        switch (mode)
-        {
-        case CELL_CATM1_MODE:
-            strcpy(config->default_cell_settings->mode, "8");
-            break;
-        case CELL_NBIOT_MODE:
-            strcpy(config->default_cell_settings->mode, "9");
-            break;
-        case CELL_GSM_MODE:
-            strcpy(config->default_cell_settings->mode, "0");
-            break;
-        default:
-            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on BG95-M3 module", mode);
-            strcpy(config->default_cell_settings->mode, "");
-            break;
-        }
-        break;
-
-    case CELL_M95_MODULE:
-        switch (mode)
-        {
-        case CELL_GSM_MODE:
-            strcpy(config->default_cell_settings->mode, "0");
-            break;
-        default:
-            syslog(LOG_INFO, "Mode %" PRIu32 " not supported on M95 module", mode);
-            strcpy(config->default_cell_settings->mode, "");
-            break;
-        }
-        break;
-
-    case CELL_EG21GL_MODULE:
-        switch (mode)
-        {
-        case CELL_GSM_MODE:
-            strcpy(config->default_cell_settings->mode, "0");
-            break;
-        case CELL_UTRAN_MODE:
-            strcpy(config->default_cell_settings->mode, "2");
-            break;
-        case CELL_GSM_W_EGPRS_MODE:
-            strcpy(config->default_cell_settings->mode, "3");
-            break;
-        case CELL_UTRAN_W_HSDPA_MODE:
-            strcpy(config->default_cell_settings->mode, "4");
-            break;
-        case CELL_UTRAN_W_HSUPA_MODE:
-            strcpy(config->default_cell_settings->mode, "5");
-            break;
-        case CELL_UTRAN_W_HSDPA_HSUPA_MODE:
-            strcpy(config->default_cell_settings->mode, "6");
-            break;
-        case CELL_E_UTRAN_MODE:
-            strcpy(config->default_cell_settings->mode, "7");
-            break;
-        case CELL_CDMA_MODE:
-            strcpy(config->default_cell_settings->mode, "100");
-            break;
-        default:
-            syslog(LOG_INFO, "Mode %lu not supported on EG21-GL module", mode);
-            strcpy(config->default_cell_settings->mode, "");
-            break;
-        }
-        break;
-
-    default:
-        syslog(LOG_INFO, "Failed to map cell network mode name to the equivalent integer");
-        strcpy(config->default_cell_settings->mode, "");
-        break;
     }
 }
 
@@ -525,7 +482,7 @@ static void hcom_nx_config_map_cell_com_port(meadow_configuration_t *config, yam
  *  None
  *
  ****************************************************************************/
-uint32_t hcom_nx_config_get_turn_on_pin(const char* pin_name)
+uint32_t hcom_nx_config_get_turn_on_pin(const char *pin_name)
 {
     for (size_t i = 0; i < sizeof(f7_micro_v2_pin_mappings) / sizeof(f7_micro_v2_pin_mappings[0]); ++i)
     {
@@ -561,10 +518,11 @@ void hcom_nx_config_map_cell_turn_on_pin(meadow_configuration_t *config)
         return;
     }
 
-    char* turn_on_pin_name = config->default_cell_settings->turn_on_pin_name;
+    char *turn_on_pin_name = config->default_cell_settings->turn_on_pin_name;
 
     uint32_t pin_value = hcom_nx_config_get_turn_on_pin(turn_on_pin_name);
-    if (pin_value != -1) {
+    if (pin_value != -1)
+    {
         config->default_cell_settings->turn_on_pin = pin_value;
     }
     else
@@ -721,7 +679,7 @@ int hcom_nx_config_is_valid_host_name(const char *host_name)
         result = 0;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -749,7 +707,7 @@ static char *hcom_nx_config_get_long_version_string(meadow_version_number_t *ver
         char *storage = (char *) kmm_zalloc(150);
         if (storage != NULL)
         {
-            char *branch_name = (char *) kmm_zalloc(66);  // 64 characters for branch + ':' + terminator.
+            char *branch_name = (char *) kmm_zalloc(66); // 64 characters for branch + ':' + terminator.
             if (branch_name != NULL)
             {
                 if (version->branch_name == NULL)
@@ -760,10 +718,8 @@ static char *hcom_nx_config_get_long_version_string(meadow_version_number_t *ver
                 {
                     snprintf(branch_name, 66, ":%s", version->branch_name);
                 }
-                snprintf_chk(storage, 150, "%d.%d.%d.%d built %02d %s 20%02d %02d:%02d:%02d UTC (%08x%s)",
-                    version->major, version->minor, version->revision, version->build, version->day,
-                    version->month_text, version->year, version->hour, version->minute, version->second,
-                    version->hash, branch_name);
+                snprintf_chk(
+                    storage, 150, "%d.%d.%d.%d built %02d %s 20%02d %02d:%02d:%02d UTC (%08x%s)", version->major, version->minor, version->revision, version->build, version->day, version->month_text, version->year, version->hour, version->minute, version->second, version->hash, branch_name);
                 result = kmm_strdup(storage);
                 kmm_free(branch_name);
             }
@@ -771,7 +727,7 @@ static char *hcom_nx_config_get_long_version_string(meadow_version_number_t *ver
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -796,7 +752,7 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
 
     if (version != NULL)
     {
-        char version_string[45];    // Long enough for 4294967295.4294967295.4294967295.4294967295
+        char version_string[45]; // Long enough for 4294967295.4294967295.4294967295.4294967295
 
         if ((version->major != 0) || (version->minor != 0) || (version->revision != 0) || (version->build != 0))
         {
@@ -805,7 +761,7 @@ static char *hcom_nx_config_get_short_version_string(meadow_version_number_t *ve
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -852,10 +808,8 @@ static void hcom_nx_config_set_month_text(meadow_version_number_t *version)
  ****************************************************************************/
 int hcom_nx_config_clear_default_ap_and_password(void)
 {
-    int result  = ERROR;
-    espcp_message_t * message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi,
-                                                             espcp_wi_fi_function_clear_default_access_point, espcp_status_codes_completed_ok,
-                                                             espcp_get_next_message_id(), NULL, 0);
+    int result = ERROR;
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_wi_fi, espcp_wi_fi_function_clear_default_access_point, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message != NULL)
     {
         if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
@@ -891,7 +845,7 @@ int hcom_nx_config_clear_default_ap_and_password(void)
  ****************************************************************************/
 int hcom_nx_config_set_esp_value(espcp_configuration_items_t item, uint8_t *value, uint32_t value_size)
 {
-    espcp_configuration_value_t item_value = { };
+    espcp_configuration_value_t item_value = {};
 
     item_value.value = malloc(value_size);
     if (item_value.value == NULL)
@@ -906,17 +860,15 @@ int hcom_nx_config_set_esp_value(espcp_configuration_items_t item, uint8_t *valu
     if (payload == NULL)
     {
         free(item_value.value);
-        return(ERROR);
+        return (ERROR);
     }
     espcp_encode_configuration_value(&item_value, payload);
     free(item_value.value);
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                                            espcp_system_function_set_configuration_item, espcp_status_codes_completed_ok,
-                                                            espcp_get_next_message_id(), payload, payload_length);
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_set_configuration_item, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payload_length);
     if (message == NULL)
     {
         free(payload);
-        return(ERROR);
+        return (ERROR);
     }
 
     int result = ERROR;
@@ -928,7 +880,7 @@ int hcom_nx_config_set_esp_value(espcp_configuration_items_t item, uint8_t *valu
         }
     }
     espcp_delete_message_and_payload(message);
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -950,7 +902,7 @@ int hcom_nx_config_set_esp_value(espcp_configuration_items_t item, uint8_t *valu
  ****************************************************************************/
 int hcom_nx_config_set_esp_integer_value(espcp_configuration_items_t item, uint32_t value)
 {
-    return(hcom_nx_config_set_esp_value(item, (uint8_t *) &value, 4));
+    return (hcom_nx_config_set_esp_value(item, (uint8_t *) &value, 4));
 }
 
 /****************************************************************************
@@ -972,7 +924,7 @@ int hcom_nx_config_set_esp_integer_value(espcp_configuration_items_t item, uint3
  ****************************************************************************/
 int hcom_nx_config_set_esp_boolean_value(espcp_configuration_items_t item, uint8_t value)
 {
-    return(hcom_nx_config_set_esp_value(item, (uint8_t *) &value, 1));
+    return (hcom_nx_config_set_esp_value(item, (uint8_t *) &value, 1));
 }
 
 /****************************************************************************
@@ -1004,7 +956,7 @@ int hcom_nx_config_set_esp_string_value(espcp_configuration_items_t item, const 
     {
         result = ERROR;
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -1077,7 +1029,7 @@ static int hcom_nx_config_set_device_name(meadow_configuration_t *config, uint8_
             config->device_name = kmm_strdup((char *) buffer);
         }
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -1126,9 +1078,8 @@ static uint8_t hcom_nx_config_parse_boolean(const char *config_value, uint8_t de
         kmm_free(lowercase);
     }
 
-    return(value);
+    return (value);
 }
-
 
 /****************************************************************************
  * Name: hcom_nx_config_parse_unsigned_integer
@@ -1164,7 +1115,7 @@ static uint32_t hcom_nx_config_parse_unsigned_integer(const char *config_value, 
         }
     }
 
-    return(value);
+    return (value);
 }
 
 /****************************************************************************
@@ -1186,7 +1137,7 @@ static uint32_t hcom_nx_config_parse_unsigned_integer(const char *config_value, 
 static bool hcom_nx_config_is_valid_ip_address(const char *address)
 {
     struct sockaddr_in sa;
-    return(inet_pton(AF_INET, address, &(sa.sin_addr)) == 1);
+    return (inet_pton(AF_INET, address, &(sa.sin_addr)) == 1);
 }
 
 /****************************************************************************
@@ -1215,10 +1166,10 @@ static uint32_t hcom_nx_config_parse_ip_address(const char *address)
         struct sockaddr_in sa;
         if (inet_pton(AF_INET, address, &(sa.sin_addr)) == 1)
         {
-            ip = (uint32_t ) sa.sin_addr.s_addr;
+            ip = (uint32_t) sa.sin_addr.s_addr;
         }
     }
-    return(ip);
+    return (ip);
 }
 
 /****************************************************************************
@@ -1372,7 +1323,7 @@ static char *hcom_nx_config_get_file_content(char *path)
 
     if (path != NULL)
     {
-        FILE * file = fopen(path, "r");
+        FILE *file = fopen(path, "r");
         if (file != NULL)
         {
             fseek(file, 0L, SEEK_END);
@@ -1446,7 +1397,7 @@ static int hcom_nx_config_set_file(char *path, char *buffer)
  *  None.
  *
  ****************************************************************************/
-static int hcom_nx_config_update_dns_file(char *path, char* server)
+static int hcom_nx_config_update_dns_file(char *path, char *server)
 {
     char *buffer = hcom_nx_config_get_file_content(path);
     int result = 0;
@@ -1495,7 +1446,7 @@ void hcom_nx_config_add_default_gateway_dns_file(meadow_configuration_t *config,
         {
             if (gateway != 0)
             {
-                struct sockaddr_in addr = { };
+                struct sockaddr_in addr = {};
                 addr.sin_family = AF_INET;
                 addr.sin_port = 0;
 
@@ -1541,16 +1492,11 @@ void hcom_nx_config_add_dns_address_into_file(uint32_t dns)
             // 13 bytes reserve to "nameserver" + ' ' +'\n'
             // 16 bytes reserve to DNS address
             int new_server_size = 16 + 13;
-            char *new_nameserver = (char *)zalloc(new_server_size);
+            char *new_nameserver = (char *) zalloc(new_server_size);
             if (new_nameserver != NULL)
             {
                 memset(new_nameserver, 0, new_server_size);
-                sprintf(new_nameserver,
-                        "nameserver %lu.%lu.%lu.%lu\n",
-                        (dns & 0xff),
-                        (dns >> 8) & 0xff,
-                        (dns >> 16) & 0xff,
-                        (dns >> 24) & 0xff);
+                sprintf(new_nameserver, "nameserver %lu.%lu.%lu.%lu\n", (dns & 0xff), (dns >> 8) & 0xff, (dns >> 16) & 0xff, (dns >> 24) & 0xff);
 
                 fseek(file, 0L, SEEK_END);
                 fputs(new_nameserver, file);
@@ -1674,7 +1620,7 @@ static meadow_network_interface_t *hcom_nx_config_find_interface_by_name(const c
             }
         }
     }
-    return(interface);
+    return (interface);
 }
 
 /****************************************************************************
@@ -1844,7 +1790,7 @@ static esp_log_destination_t hcom_nx_config_esp_log_destination(char const *dest
                 int length = strlen(valid_esp_log_destinations[index].name);
                 if ((strnlen(destination, length + 1) == length) && (strcasecmp(destination, valid_esp_log_destinations[index].name) == 0))
                 {
-                    return(valid_esp_log_destinations[index].destination);
+                    return (valid_esp_log_destinations[index].destination);
                 }
             }
             //
@@ -1855,7 +1801,7 @@ static esp_log_destination_t hcom_nx_config_esp_log_destination(char const *dest
             meadow_os_raise_simple_exception(espcp_status_codes_invalid_configuration_file);
         }
     }
-    return(esp_log_destination_none);
+    return (esp_log_destination_none);
 }
 
 /****************************************************************************
@@ -1911,14 +1857,14 @@ static char *hcom_nx_validate_esp_log_components(char *components)
                     kmm_free(duplicate);
                     meadow_logging_write(mfl_error, "Info: Unknown ESP log component, logging is turned off.");
                     meadow_os_raise_simple_exception(espcp_status_codes_invalid_configuration_file);
-                    return(NULL);
+                    return (NULL);
                 }
                 component = strtok_r(residual, ";", &residual);
             }
             kmm_free(duplicate);
         }
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -1949,7 +1895,7 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
         meadow_configuration = (meadow_configuration_t *) kmm_zalloc(sizeof(meadow_configuration_t));
         if (meadow_configuration != NULL)
         {
-        	yaml_configuration_t *configuration = NULL;
+            yaml_configuration_t *configuration = NULL;
 
             cyaml_err_t err = cyaml_load_file(MEADOW_CONFIG_DEFAULT_FILE_NAME, &cyaml_config, &configuration_schema, (void **) &configuration, NULL);
             if ((err != CYAML_OK) || (configuration == NULL))
@@ -2011,7 +1957,7 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
                         }
                     }
                     uint32_t udp_port = hcom_nx_config_parse_unsigned_integer(configuration->coprocessor->log_udp_port, 30000);
-                    if (udp_port > 65535)       // Largest valid UDP port.
+                    if (udp_port > 65535) // Largest valid UDP port.
                     {
                         meadow_logging_write(mfl_info, "Info: UDP port greater than 65535, using 30,000.");
                         meadow_configuration->esp_log_udp_port = 30000;
@@ -2063,8 +2009,7 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
                     }
                     meadow_configuration->reboot_on_unhandled_exceptions = hcom_nx_config_parse_boolean(configuration->device->reboot_on_unhandled_exceptions, true);
                     meadow_configuration->initialisation_timeout_seconds = hcom_nx_config_parse_unsigned_integer(configuration->device->initialisation_timeout_seconds, DEFAULT_INITIALISATION_TIMEOUT_SECONDS);
-                    meadow_configuration->sd_storage_supported = hcom_nx_config_parse_boolean(configuration->device->sd_storage_supported, false)
-                                                                 && (meadow_hw_version_get() == MEADOW_F7_HW_VERSION_NUMB_CCMV2);
+                    meadow_configuration->sd_storage_supported = hcom_nx_config_parse_boolean(configuration->device->sd_storage_supported, false) && (meadow_hw_version_get() == MEADOW_F7_HW_VERSION_NUMB_CCMV2);
                 }
 
                 cyaml_free(&cyaml_config, &configuration_schema, configuration, 0);
@@ -2156,7 +2101,7 @@ static meadow_configuration_t *hcom_nx_config_process_meadow_config_file(void)
 
     hcom_nx_config_unlock();
 
-    return(meadow_configuration);
+    return (meadow_configuration);
 }
 
 /****************************************************************************
@@ -2181,10 +2126,10 @@ static int hcom_nx_config_get_uint32_value(int source, uint8_t *destination, int
 {
     if (destination_length < sizeof(uint32_t))
     {
-        return(ERROR);
+        return (ERROR);
     }
     *((uint32_t *) destination) = source;
-    return(sizeof(uint32_t));
+    return (sizeof(uint32_t));
 }
 
 /****************************************************************************
@@ -2215,7 +2160,7 @@ static int hcom_nx_config_get_uint8_value(uint8_t source, uint8_t *destination, 
         result = 1;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2255,7 +2200,7 @@ static int hcom_nx_config_get_string_value(char *source, uint8_t *destination, i
             result = strlen(strcpy((char *) destination, source));
         }
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2281,9 +2226,9 @@ static int hcom_nx_config_get_ip_address(bool use_dhcp, uint32_t ip_address, uin
 {
     if (use_dhcp)
     {
-        return(hcom_nx_config_get_uint32_value(0, destination, destination_length));
+        return (hcom_nx_config_get_uint32_value(0, destination, destination_length));
     }
-    return(hcom_nx_config_get_uint32_value(ip_address, destination, destination_length));
+    return (hcom_nx_config_get_uint32_value(ip_address, destination, destination_length));
 }
 
 /****************************************************************************
@@ -2319,7 +2264,7 @@ static int hcom_nx_config_get_bytes(uint8_t *source, int source_length, uint8_t 
         result = source_length;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2346,18 +2291,16 @@ static int hcom_nx_config_get_unique_id(meadow_configuration_t *config, uint8_t 
 
     if (buffer_length > 35)
     {
-        result = snprintf((char *) buffer, buffer_length, "%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x",
-                    config->serial_number[0], config->serial_number[1], config->serial_number[2],
-                    config->serial_number[3], config->serial_number[4], config->serial_number[5],
-                    config->serial_number[6], config->serial_number[7], config->serial_number[8],
-                    config->serial_number[9], config->serial_number[10], config->serial_number[11]);
+        result = snprintf(
+            (char *) buffer, buffer_length, "%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x-%02x", config->serial_number[0], config->serial_number[1], config->serial_number[2], config->serial_number[3], config->serial_number[4], config->serial_number[5], config->serial_number[6],
+            config->serial_number[7], config->serial_number[8], config->serial_number[9], config->serial_number[10], config->serial_number[11]);
     }
     else
     {
         result = ERROR;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2384,15 +2327,14 @@ int hcom_nx_config_get_serial_number(meadow_configuration_t *config, uint8_t *bu
 
     if (buffer_length > 18)
     {
-        result = snprintf((char *) buffer, buffer_length, "%02X%02X%02X%02X%02X%02X", config->chip_id[0], config->chip_id[1],
-                            config->chip_id[2], config->chip_id[3], config->chip_id[4], config->chip_id[5]);
+        result = snprintf((char *) buffer, buffer_length, "%02X%02X%02X%02X%02X%02X", config->chip_id[0], config->chip_id[1], config->chip_id[2], config->chip_id[3], config->chip_id[4], config->chip_id[5]);
     }
     else
     {
         result = ERROR;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2427,7 +2369,7 @@ static int hcom_nx_config_set_maximum_retry_count(meadow_configuration_t *config
             config->maximum_retry_count = retryCount;
         }
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2460,7 +2402,7 @@ static int hcom_nx_config_set_automatically_reconnect(meadow_configuration_t *co
             config->automatically_reconnect = *buffer;
         }
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2494,7 +2436,7 @@ int hcom_nx_config_get_version_string(meadow_version_number_t *version, uint8_t 
     {
         result = hcom_nx_config_get_string_value(version->short_string, buffer, buffer_length);
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2533,13 +2475,12 @@ int hcom_nx_config_get_build_date(meadow_version_number_t *version, uint8_t *buf
         else
         {
             char date[32];
-            result = snprintf(date, 32, HCOM_DEVICE_INFO_DATE_FORMAT, version->day, version->month_text,
-                              version->year, version->hour, version->minute, version->second);
+            result = snprintf(date, 32, HCOM_DEVICE_INFO_DATE_FORMAT, version->day, version->month_text, version->year, version->hour, version->minute, version->second);
             result = hcom_nx_config_get_string_value(date, buffer, buffer_length);
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2571,7 +2512,7 @@ int hcom_nx_config_get_selected_network(meadow_configuration_t *config, uint8_t 
         result = 1;
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2718,7 +2659,7 @@ int hcom_nx_config_get_set_config_value(int item, uint8_t direction, uint8_t *bu
         }
     }
     hcom_nx_config_unlock();
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -2837,7 +2778,7 @@ void hcom_nx_config_process_wifi_credentials_file(void)
 {
     yaml_wifi_credentials_t *credentials = NULL;
 
-    cyaml_err_t err = cyaml_load_file(MEADOW_WIFI_CREDENTIALS_DEFAULT_FILE_NAME, &cyaml_config, &wifi_credentials_schema, (void **)&credentials, NULL);
+    cyaml_err_t err = cyaml_load_file(MEADOW_WIFI_CREDENTIALS_DEFAULT_FILE_NAME, &cyaml_config, &wifi_credentials_schema, (void **) &credentials, NULL);
     if (err == CYAML_OK)
     {
         if (credentials != NULL)
@@ -2864,8 +2805,8 @@ void hcom_nx_config_process_wifi_credentials_file(void)
                             kmm_free(config->default_access_point);
                             config->default_access_point = kmm_strdup(credentials->credentials->ssid);
                             hcom_nx_config_unlock();
-                            strcpy((char *)buffer, credentials->credentials->ssid);
-                            strcpy((char *)(buffer + strlen(credentials->credentials->ssid) + 1), password);
+                            strcpy((char *) buffer, credentials->credentials->ssid);
+                            strcpy((char *) (buffer + strlen(credentials->credentials->ssid) + 1), password);
                             hcom_nx_config_set_esp_value(espcp_configuration_items_default_ap_and_password, buffer, size);
                             kmm_free(buffer);
                         }
@@ -3026,94 +2967,40 @@ void hcom_nx_config_process_cell_config_file(void)
         hcom_nx_config_lock();
         meadow_configuration_t *config = hcom_nx_config_get_pointer();
 
-        config->default_cell_settings = (cell_settings_t*) malloc(sizeof(cell_settings_t));
+        config->default_cell_settings = (cell_settings_t *) malloc(sizeof(cell_settings_t));
 
-        if ((config->default_cell_settings != NULL) &&
-            (settings->settings->apn != NULL) &&
-            (strlen(settings->settings->apn) <= MAXIMUM_APN_LENGTH) &&
-            (strlen(settings->settings->apn) > 0))
+        if ((config->default_cell_settings != NULL) && (settings->settings->apn != NULL) && (strlen(settings->settings->apn) <= MAXIMUM_APN_LENGTH) && (strlen(settings->settings->apn) > 0))
         {
             config->default_cell_settings->apn = kmm_strdup(settings->settings->apn);
             syslog(LOG_INFO, "Default cell APN loaded: %s\n", config->default_cell_settings->apn);
-
-            config->default_cell_settings->timeout = ((settings->settings->timeout != NULL) &&
-                                                    (strlen(settings->settings->timeout) <= MAXIMUM_TIMEOUT_LENGTH) &&
-                                                    (strlen(settings->settings->timeout) > 0)) ?
-                                                    kmm_strdup(settings->settings->timeout) :
-                                                    kmm_strdup(DEFAULT_CELL_PPPD_TIMEOUT);
-
+            config->default_cell_settings->timeout = ((settings->settings->timeout != NULL) && (strlen(settings->settings->timeout) <= MAXIMUM_TIMEOUT_LENGTH) && (strlen(settings->settings->timeout) > 0)) ? kmm_strdup(settings->settings->timeout) : kmm_strdup(DEFAULT_CELL_PPPD_TIMEOUT);
             syslog(LOG_INFO, "Default cell PPPD timeout loaded: %s\n", config->default_cell_settings->timeout);
-
-            config->default_cell_settings->pap_user = ((settings->settings->user != NULL) &&
-                                                        (strlen(settings->settings->user) <= MAXIMUM_USER_LENGTH) &&
-                                                        (strlen(settings->settings->user) > 0)) ?
-                                                        kmm_strdup(settings->settings->user) :
-                                                        kmm_strdup(DEFAULT_CELL_PAP_USER);
-
+            config->default_cell_settings->pap_user = ((settings->settings->user != NULL) && (strlen(settings->settings->user) <= MAXIMUM_USER_LENGTH) && (strlen(settings->settings->user) > 0)) ? kmm_strdup(settings->settings->user) : kmm_strdup(DEFAULT_CELL_PAP_USER);
             syslog(LOG_INFO, "Default cell PAP username loaded: %s\n", config->default_cell_settings->pap_user);
-
-            config->default_cell_settings->pap_password = ((settings->settings->password != NULL) &&
-                                                            (strlen(settings->settings->password) <= MAXIMUM_PASSWORD_LENGTH) &&
-                                                            (strlen(settings->settings->password) > 0)) ?
-                                                            kmm_strdup(settings->settings->password) :
-                                                            kmm_strdup(DEFAULT_CELL_PAP_PASSWORD);
-
+            config->default_cell_settings->pap_password = ((settings->settings->password != NULL) && (strlen(settings->settings->password) <= MAXIMUM_PASSWORD_LENGTH) && (strlen(settings->settings->password) > 0)) ? kmm_strdup(settings->settings->password) : kmm_strdup(DEFAULT_CELL_PAP_PASSWORD);
             syslog(LOG_INFO, "Default cell PAP password loaded: %s\n", config->default_cell_settings->pap_password);
-
             hcom_nx_config_map_cell_com_port(config, settings);
-
             syslog(LOG_INFO, "Default cell device interface loaded: %s\n", config->default_cell_settings->ttyname);
 
-            config->default_cell_settings->turn_on_pin_name = ((settings->settings->turn_on_pin_name != NULL) &&
-                                                        (strlen(settings->settings->turn_on_pin_name) <= MAXIMUM_TURN_ON_PIN_LENGTH) &&
-                                                        (strlen(settings->settings->turn_on_pin_name) > 0)) ?
-                                                        kmm_strdup(settings->settings->turn_on_pin_name) :
-                                                        kmm_strdup(DEFAULT_CELL_TURN_ON_PIN);
-
+            config->default_cell_settings->turn_on_pin_name =
+                ((settings->settings->turn_on_pin_name != NULL) && (strlen(settings->settings->turn_on_pin_name) <= MAXIMUM_TURN_ON_PIN_LENGTH) && (strlen(settings->settings->turn_on_pin_name) > 0)) ? kmm_strdup(settings->settings->turn_on_pin_name) : kmm_strdup(DEFAULT_CELL_TURN_ON_PIN);
             syslog(LOG_INFO, "Default cell turn-on pin name loaded: %s\n", config->default_cell_settings->turn_on_pin_name);
-
-            config->default_cell_settings->mode = ((settings->settings->mode != NULL) &&
-                                                    (strlen(settings->settings->mode) <= MAXIMUM_MODE_LENGTH) &&
-                                                    (strlen(settings->settings->mode) > 0)) ?
-                                                    kmm_strdup(settings->settings->mode) :
-                                                    kmm_strdup(DEFAULT_CELL_MODE);
-
+            config->default_cell_settings->mode = ((settings->settings->mode != NULL) && (strlen(settings->settings->mode) <= MAXIMUM_MODE_LENGTH) && (strlen(settings->settings->mode) > 0)) ? kmm_strdup(settings->settings->mode) : kmm_strdup(DEFAULT_CELL_MODE);
             syslog(LOG_INFO, "Default cell operation mode loaded: %s\n", config->default_cell_settings->mode);
-
-            config->default_cell_settings->operator = ((settings->settings->operator != NULL) &&
-                                                        (strlen(settings->settings->operator) <= MAXIMUM_OPERATOR_LENGTH) &&
-                                                        (strlen(settings->settings->operator) > 0)) ?
-                                                        kmm_strdup(settings->settings->operator) :
-                                                        kmm_strdup(DEFAULT_CELL_OPERATOR);
-
+            config->default_cell_settings->operator=((settings->settings->operator!= NULL) && (strlen(settings->settings->operator) <= MAXIMUM_OPERATOR_LENGTH) && (strlen(settings->settings->operator) > 0)) ? kmm_strdup(settings->settings->operator) : kmm_strdup(DEFAULT_CELL_OPERATOR);
             syslog(LOG_INFO, "Default cell operator loaded: %s\n", config->default_cell_settings->operator);
-
-            config->default_cell_settings->module = ((settings->settings->module != NULL) &&
-                                                        (strlen(settings->settings->module) <= MAXIMUM_MODULE_LENGTH) &&
-                                                        (strlen(settings->settings->module) > 0)) ?
-                                                        kmm_strdup(settings->settings->module) :
-                                                        kmm_strdup(CELL_UNKNOWN_MODULE_NAME);
-
+            config->default_cell_settings->module = ((settings->settings->module != NULL) && (strlen(settings->settings->module) <= MAXIMUM_MODULE_LENGTH) && (strlen(settings->settings->module) > 0)) ? kmm_strdup(settings->settings->module) : kmm_strdup(CELL_UNKNOWN_MODULE_NAME);
             syslog(LOG_INFO, "Default cell module loaded: %s\n", config->default_cell_settings->module);
-
             config->default_cell_settings->scan_mode = hcom_nx_config_parse_boolean(settings->settings->scan_mode, 0);
-
             syslog(LOG_INFO, "Default cell scan mode: %" PRIu32 "\n", config->default_cell_settings->scan_mode);
 
             hcom_nx_config_populate_cell_module_id(config);
-
             syslog(LOG_INFO, "Default cell module id populated: %" PRIu32 "\n", config->default_cell_settings->module_id);
-
             hcom_nx_config_populate_cell_network_mode_id(config);
-
             syslog(LOG_INFO, "Default cell network mode id populated: %" PRIu32 "\n", config->default_cell_settings->mode_id);
-
             hcom_nx_config_map_cell_network_mode(config);
-
             syslog(LOG_INFO, "Default cell operation mode updated after mapping: %s\n", config->default_cell_settings->mode);
-
             hcom_nx_config_map_cell_turn_on_pin(config);
-
             syslog(LOG_INFO, "Default cell turn-on pin mapped: %" PRIu32 "\n", config->default_cell_settings->turn_on_pin);
         }
         else
@@ -3130,7 +3017,6 @@ void hcom_nx_config_process_cell_config_file(void)
         cyaml_free(&cyaml_config, &cell_settings_schema, settings, 0);
         syslog(LOG_INFO, "Cyaml free\n");
     }
-
 }
 
 /****************************************************************************
@@ -3203,26 +3089,21 @@ void hcom_nx_config_turn_on_the_cell_module()
                 usleep(3000000);
                 stm32_gpiowrite(turn_on_pin, true);
                 stm32_gpiowrite(turn_on_pin, false);
-            break;
-
+                break;
             case CELL_M95_MODULE:
                 syslog(LOG_INFO, "Turning on M95 module\n");
                 stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
                 stm32_gpiowrite(turn_on_pin, true);
-            break;
-
+                break;
             case CELL_BG95M3_MODULE:
                 syslog(LOG_INFO, "Turning on BG95-M3 module\n");
                 stm32_configgpio(GPIO_OUTPUT | turn_on_pin);
                 stm32_gpiowrite(turn_on_pin, true);
                 usleep(3000000);
                 stm32_gpiowrite(turn_on_pin, false);
-            break;
-
+                break;
             case CELL_EG21GL_MODULE:
-                if (reset_reason & (MEADOW_OS_RESET_BROWNOUT
-                    | MEADOW_OS_RESET_POWER_CYCLE
-                    | MEADOW_OS_RESET_LOW_POWER) || reset_reason == 0) // power cycle
+                if (reset_reason & (MEADOW_OS_RESET_BROWNOUT | MEADOW_OS_RESET_POWER_CYCLE | MEADOW_OS_RESET_LOW_POWER) || reset_reason == 0) // power cycle
                 {
                     // High pulse for 500 milliseconds to turn on the Quectel EG21-GL cell module
                     syslog(LOG_INFO, "Turning on EG21-GL module\n");
@@ -3231,11 +3112,10 @@ void hcom_nx_config_turn_on_the_cell_module()
                     usleep(2000000);
                     stm32_gpiowrite(turn_on_pin, false);
                 }
-            break;
-
+                break;
             default:
                 syslog(LOG_INFO, "Failed to identify and turn on the cell module\n");
-            break;
+                break;
         }
     }
     else
@@ -3294,7 +3174,7 @@ void hcom_nx_config_refresh_mono_version(meadow_configuration_t *config)
                 //
                 config->mono_version.revision = (mono_signature->build >> 8) & 0xff;
                 config->mono_version.minor = (mono_signature->build >> 16) & 0xff;
-                config->mono_version.major = (mono_signature->build  >> 24) & 0xff;
+                config->mono_version.major = (mono_signature->build >> 24) & 0xff;
                 config->mono_version.build = mono_signature->build & 0xff;
             }
             else
@@ -3345,7 +3225,7 @@ void hcom_nx_config_init(void)
 {
     if (meadow_configuration == NULL)
     {
-        nxsem_init(&config_lock, 0, 1);                   // Create the config lock.
+        nxsem_init(&config_lock, 0, 1); // Create the config lock.
         nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
         hcom_nx_config_process_meadow_config_file();
 
@@ -3376,13 +3256,13 @@ void hcom_nx_config_init(void)
         config->os_version.short_string = hcom_nx_config_get_short_version_string(&config->os_version);
         config->os_version.long_string = hcom_nx_config_get_long_version_string(&config->os_version);
         config->hardware_version_text = meadow_hw_version_string_return();
-        stm32_get_uniqueid(config->serial_number);                           // Convert chip Id to serial number
-        config->chip_id[0] = config->serial_number[11];                      // 95-88
-        config->chip_id[1] = config->serial_number[10] + config->serial_number[2];        // 87-80 + 23-16
-        config->chip_id[2] = config->serial_number[9];                       // 79-72
-        config->chip_id[3] = config->serial_number[8] + config->serial_number[0] + 10;    // 71-64 + 7-0 + magic 10
-        config->chip_id[4] = config->serial_number[7];                       // 63-56
-        config->chip_id[5] = config->serial_number[6];                       // 55-48
+        stm32_get_uniqueid(config->serial_number);                                     // Convert chip Id to serial number
+        config->chip_id[0] = config->serial_number[11];                                // 95-88
+        config->chip_id[1] = config->serial_number[10] + config->serial_number[2];     // 87-80 + 23-16
+        config->chip_id[2] = config->serial_number[9];                                 // 79-72
+        config->chip_id[3] = config->serial_number[8] + config->serial_number[0] + 10; // 71-64 + 7-0 + magic 10
+        config->chip_id[4] = config->serial_number[7];                                 // 63-56
+        config->chip_id[5] = config->serial_number[6];                                 // 55-48
 
         hcom_nx_config_unlock();
     }
@@ -3398,9 +3278,9 @@ void hcom_nx_config_init(void)
  *
  *******************************************************************************************************************************************************/
 
- #if defined(CONFIG_KERNEL_TESTS_SYSCALL)
+#if defined(CONFIG_KERNEL_TESTS_SYSCALL)
 
- /****************************************************************************
+/****************************************************************************
  * Name: process_unit_tests_configuration_file
  *
  * Description:
@@ -3438,7 +3318,7 @@ unit_tests_configuration_t *process_unit_tests_configuration_file(void)
             {
                 syslog(LOG_ERR, "Failed to allocate memory for unit test configuration.\n");
                 cyaml_free(&cyaml_config, &unit_test_parameters_schema, test_parameters, 0);
-                return(NULL);
+                return (NULL);
             }
 
             if (test_parameters->parameters != NULL)
@@ -3471,7 +3351,7 @@ unit_tests_configuration_t *process_unit_tests_configuration_file(void)
         meadow_logging_write(mfl_error, message);
     }
 
-    return(unit_test_configuration);
+    return (unit_test_configuration);
 }
 
 /****************************************************************************
@@ -3516,7 +3396,7 @@ void free_unit_tests_configuration_file(unit_tests_configuration_t *config)
  *
  * Description:
  *  Get the unit tests configuration.
- * 
+ *
  *  This function is provided to allow the unit tests to access the
  *  configuration parameters defined in the unit test configuration file
  *  from user space.  This is the syscall interface to the unit test
