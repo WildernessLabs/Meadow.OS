@@ -57,6 +57,11 @@
 static bool _shutting_down;
 static sem_t _runProcSem;
 static sem_t _runRecvSem;
+
+// Set by the receive thread while it waits for space in the circular buffer.
+// The processing thread uses it to tell that the buffer is full of data that
+// has no delimiter (see hcom_host_enq_deq_dequeue_packet()).
+static volatile bool _recvWaitingForSpace = false;
 static host_com_cir_buffer_t *_hcom_cbuf;
 static bool _hcom_host_enq_deq_wdog_wakeup;
 
@@ -165,7 +170,10 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
         sem_post(&_runProcSem);         // Notify proc of message
 
         // Read thread waits here for space in buffer
+        _recvWaitingForSpace = true;
+        sem_post(&_runProcSem);         // Notify proc again, now the flag is set
         sem_wait(&_runRecvSem);         // Wait for a message to be removed
+        _recvWaitingForSpace = false;
         continue;                       // Try again to add message
 
       case HCOM_CIR_BUF_ADD_BAD_ARG:
@@ -215,6 +223,22 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
         return OK;                      // Return to process message
 
       case HCOM_CIR_BUF_GET_NONE_FOUND:
+        // If the receive thread is waiting for space then the buffer is full
+        // and holds no delimiter, so no packet will ever complete. A valid
+        // encoded packet is far smaller than the buffer and ends with a
+        // delimiter, so this is malformed input. Discard the buffered bytes
+        // and release the receive thread, otherwise both threads wait for
+        // each other forever.
+        if(_recvWaitingForSpace)
+        {
+          syslog(LOG_ERR, "%s@%d-Receive buffer full with no delimiter, data discarded\n",
+                    __FILE__, __LINE__);
+          hcom_cirbuf_clear_buffer(_hcom_cbuf);
+          _recvWaitingForSpace = false;
+          sem_post(&_runRecvSem);
+          break;                        // Loop again
+        }
+
         // Thread waits to be notified that a message may be available. This
         // is also where the watchdog notification is detected.
         ret = hcom_host_enq_deq_wait_for_work();
