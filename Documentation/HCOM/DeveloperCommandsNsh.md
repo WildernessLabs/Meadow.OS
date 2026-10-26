@@ -86,8 +86,7 @@ Test 0 on a device lists exactly what that build contains. The result codes are 
 
 Before each kernel test, the dispatcher frees and re-reads the unit-test configuration
 (`process_unit_tests_configuration_file()`), `/meadow0/unittest.config.yaml`, so edits take effect without a
-restart. ([RunningDeveloperTests.md](../RunningDeveloperTests.md) describes this file and spells its name
-`unittests.config.yaml`; the name in the code is `unittest.config.yaml`.) Test 907 asks the kernel for the parsed configuration. A malformed file gives
+restart. ([RunningDeveloperTests.md](../RunningDeveloperTests.md) describes this file.) Test 907 asks the kernel for the parsed configuration. A malformed file gives
 `TEST_ERR_INVALID_CONFIG`.
 
 ### The `meadowtest` shell command

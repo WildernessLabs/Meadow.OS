@@ -53,7 +53,7 @@ The following identifiers can be used with the `-u` flag:
 
 ## Test Configuration
 
-Additional parameters can be passed to a unit tests using the `unittests.config.yaml` file.  This file should be written to the root file system of a Meadow device.  The file should look something like:
+Additional parameters can be passed to a unit tests using the `unittest.config.yaml` file (singular).  This file should be written to the root file system of a Meadow device, giving the full path `/meadow0/unittest.config.yaml`.  The file should look something like:
 
 ```yaml
 TestParameters
