@@ -162,15 +162,5 @@ int stm32_bringup(void)
     }
 #endif
 
-#ifdef CONFIG_BOARD_MEADOW_PROJECTLAB
-  /* Initialize all devices in the ProjectLab */
-
-  ret = init_projectlab();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: ProjectLab init failed: %d\n", ret);
-    }
-#endif
-
   return ret;
 }
