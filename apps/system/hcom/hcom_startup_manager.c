@@ -548,20 +548,15 @@ int hcom_main(int argc, char *argv[])
 // /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:461: undefined reference to `os_update'
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:462: undefined reference to `app_update'
 // arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:463: undefined reference to `firmware_update'
-// arm-none-eabi-ld: /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:473: undefined reference to `hcom_pppd_start'
 
 // Last stop, start mono
 #if defined(CONFIG_SYSTEM_MONO)
   int monoStartResult = hcom_mono_ctrl_start_mono_main();
   (void)monoStartResult;    // Only used by the cell (PPPD) start below.
-#endif
-// The above line cause the following build errors:
-// arm-none-eabi-ld: /home/peter/wl/Meadow.OS/nuttx/staging//libapps.a(hcom_startup_manager.c.home.peter.wl.Meadow.OS.apps.system.hcom.o): in function `hcom_main':
-// /home/peter/wl/Meadow.OS/apps/system/hcom/hcom_startup_manager.c:480: undefined reference to `hcom_pppd_start'
 
   // Start PPPD app needed by cell driver, when cell interface is enabled
   // and Mono is running.
-#if(0)
+#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
   if (monoStartResult == OK)
   {
     ret = hcom_pppd_start();
@@ -571,7 +566,7 @@ int hcom_main(int argc, char *argv[])
     }
   }
 #endif
-// MEADOW.OS REBASE the above not useable without previous code
+#endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);

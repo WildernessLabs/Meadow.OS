@@ -38,46 +38,22 @@
 
 #include <meadow/hcom_shared_common.h>
 
+// The CELL_* state bits, the cell error codes and the handler structure are
+// defined by the Meadow extensions to pppd.
+#include "netutils/pppd.h"
+
 /****************************************************************************
  * Shared Definitions
  ****************************************************************************/
 
 #define CONNECT_SCRIPT_OUTPUT_MAX_SIZE 1024
 
-#define CELL_RESUMED                0x00
-#define CELL_PAUSED                 (1 << 0)
-#define CELL_AT_CMD_GPS             (1 << 1)
-#define CELL_AT_CMD_SIGNAL_QUALITY  (1 << 2)
-#define CELL_AT_CMD_SCAN            (1 << 3)
-#define CELL_AT_CMD                 (1 << 4)
-#define CELL_CHAT_DONE              (1 << 5)
-#define CELL_CHAT_FAILED            (1 << 6)
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-struct hcom_pppd_handler_s
-{
-    int state;
-    char *script;
-    void (* callback)(int ret);
-};
-typedef struct hcom_pppd_handler_s hcom_pppd_handler_t;
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-enum hcom_cell_err_e
-{
-  CELL_INVALID_SETTING_ERR,
-  CELL_INVALID_MODEM_ERR,
-  CELL_PPPD_LOST_CONNECTION_ERR,
-  CELL_PPPD_TIMEOUT_ERR,
-  CELL_PPPD_THREAD_ERR,
-};
-typedef enum hcom_cell_err_e hcom_cell_err_t;
+typedef struct pppd_cell_handler_s hcom_pppd_handler_t;
+typedef enum pppd_cell_err_e hcom_cell_err_t;
 
 /****************************************************************************
  * Public Functions

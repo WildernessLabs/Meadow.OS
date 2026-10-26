@@ -88,6 +88,10 @@ ifeq ($(CONFIG_MEADOW_CLOUD),y)
  HCOM_SRCS += ota/hcom_ota.c
 endif
 
+ifeq ($(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD),y)
+ HCOM_SRCS += cell/hcom_pppd.c
+endif
+
 ifeq ($(CONFIG_HCOM_ESP32_COMMS),y)
  HCOM_SRCS += esp32/hcom_esp32_execute.c \
  esp32/hcom_esp32_proc_recv.c \

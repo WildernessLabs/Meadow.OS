@@ -42,6 +42,7 @@
  ****************************************************************************/
 
 #include <stdbool.h>
+#include <stddef.h>
 
 /****************************************************************************
  * Public Types
@@ -71,6 +72,15 @@ extern "C"
 #endif
 
 int chat(FAR struct chat_ctl *ctl, FAR const char *script);
+
+/* Meadow: as chat(), but also copies the characters received while
+ * expecting a response into 'response' (NUL terminated, at most
+ * 'response_size' - 1 characters).  Used by the cell driver to return AT
+ * command output to the application.
+ */
+
+int chat_response(FAR struct chat_ctl *ctl, FAR const char *script,
+                  FAR char *response, size_t response_size);
 
 #undef EXTERN
 #ifdef __cplusplus

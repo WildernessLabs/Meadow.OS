@@ -40,14 +40,16 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/meadow_os.h>
 
+#include <arpa/inet.h>
+#include <inttypes.h>
 #include <mqueue.h>
 #include <string.h>
 
 #include "netutils/chat.h"
 #include "netutils/pppd.h"
-#include "netutils/ntpclient.h"
 
 #include "hcom_pppd.h"
+#include "../hcom_common.h"
 #include "../misc/espcp_utils.h"
 
 /****************************************************************************
@@ -78,7 +80,9 @@ static hcom_cell_err_t cell_err;
  * Private Functions
  ****************************************************************************/
 
-static void hcom_pppd_connected_event(void);
+static void hcom_pppd_connected_event(const struct in_addr *local_ip,
+                                      const struct in_addr *pri_dns,
+                                      const struct in_addr *sec_dns);
 static void hcom_pppd_disconnected_event(int err_base);
 static void hcom_pppd_at_cmd_event(int ret);
 static void hcom_pppd_retry_exceeded_event(void);
@@ -366,7 +370,7 @@ static void hcom_pppd_at_cmd_event(int ret)
 static int hcom_pppd_create_handler(void)
 {
   hcom_cell_handler.state = CELL_RESUMED;
-  hcom_cell_handler.callback = (void *)hcom_pppd_at_cmd_event;
+  hcom_cell_handler.callback = hcom_pppd_at_cmd_event;
   hcom_cell_handler.script = (char *)malloc(CONNECT_SCRIPT_MAX_SIZE);
 
   if (hcom_cell_handler.script == NULL)
@@ -403,7 +407,7 @@ static void *pppd_thread(void *cell_settings_ptr)
 
     if (cell_settings->module_id == CELL_UNKNOWN_MODULE)
     {
-        syslog(LOG_INFO, "%s-%d-Invalid cell module id: %u\n", __FILE__, __LINE__, cell_settings->module_id);
+        syslog(LOG_INFO, "%s-%d-Invalid cell module id: %" PRIu32 "\n", __FILE__, __LINE__, cell_settings->module_id);
         sleep(20);
         syslog(LOG_INFO, "%s-%d-Failed starting PPPD\n", __FILE__, __LINE__);
         cell_err = CELL_INVALID_MODEM_ERR;
@@ -459,22 +463,24 @@ static void *pppd_thread(void *cell_settings_ptr)
     syslog(LOG_INFO, "%s-%d-Chat scripts created: %s\n %s\n",
                         __FILE__, __LINE__, connect_script, disconnect_script);
 
-    const struct pppd_settings_s pppd_settings =
+    struct pppd_settings_s pppd_settings =
     {
         .disconnect_script = disconnect_script,
         .connect_script = connect_script,
-        .ttyname = cell_settings->ttyname,
-        .connect_event = (void*)hcom_pppd_connected_event,
-        .disconnect_event = (void*)hcom_pppd_disconnected_event,
-        .connecting_event = (void *)hcom_pppd_connecting_event,
-        .retry_count_exceeded_event = (void *)hcom_pppd_retry_exceeded_event,
+        .connect_event = hcom_pppd_connected_event,
+        .disconnect_event = hcom_pppd_disconnected_event,
+        .connecting_event = hcom_pppd_connecting_event,
+        .retry_count_exceeded_event = hcom_pppd_retry_exceeded_event,
         .cell_at_cmds_output = cell_at_cmds_output,
+        .cell_at_cmds_output_size = CONNECT_SCRIPT_OUTPUT_MAX_SIZE,
         .cell_handler = &hcom_cell_handler,
-#ifdef CONFIG_NETUTILS_PPPD_PAP
-            .pap_username = cell_settings->pap_user,
-            .pap_password = cell_settings->pap_password,
-#endif
     };
+
+    strlcpy(pppd_settings.ttyname, cell_settings->ttyname, sizeof(pppd_settings.ttyname));
+#ifdef CONFIG_NETUTILS_PPPD_PAP
+    strlcpy(pppd_settings.pap_username, cell_settings->pap_user, sizeof(pppd_settings.pap_username));
+    strlcpy(pppd_settings.pap_password, cell_settings->pap_password, sizeof(pppd_settings.pap_password));
+#endif
 
     syslog(LOG_INFO, "%s-%d-Starting PPPD\n", __FILE__, __LINE__);
     pppd(&pppd_settings);
@@ -495,7 +501,7 @@ void meadow_cell_change_state(int state)
 {
   if (hcom_cell_handler.script != NULL)
     {
-      memset(hcom_cell_handler.script, 0x00, sizeof(hcom_cell_handler.script));
+      memset(hcom_cell_handler.script, 0x00, CONNECT_SCRIPT_MAX_SIZE);
       hcom_pppd_get_script(state, hcom_cell_handler.script);
 
       if (state != 0)
@@ -544,9 +550,31 @@ int meadow_get_cell_error (void)
   return (int)cell_err;
 }
 
-static void hcom_pppd_connected_event(void) 
+static void hcom_pppd_connected_event(const struct in_addr *local_ip,
+                                      const struct in_addr *pri_dns,
+                                      const struct in_addr *sec_dns)
 {
-    syslog(LOG_INFO, "%s-%d-Cell network has been successfully connected\n", __FILE__, __LINE__);
+    char address[INET_ADDRSTRLEN];
+    char pri_dns_address[INET_ADDRSTRLEN];
+    char sec_dns_address[INET_ADDRSTRLEN];
+    char *network_dns_servers[2];
+    uint32_t network_dns_server_count = 0;
+
+    syslog(LOG_INFO, "%s-%d-Cell network has been successfully connected, IP address %s\n", __FILE__, __LINE__,
+           inet_ntop(AF_INET, local_ip, address, sizeof(address)));
+
+    // The DNS servers provided by the network go at the start of the dns.conf
+    // file, followed by the user defined servers from the configuration.
+    if ((pri_dns->s_addr != 0) && (inet_ntop(AF_INET, pri_dns, pri_dns_address, sizeof(pri_dns_address)) != NULL))
+    {
+        network_dns_servers[network_dns_server_count++] = pri_dns_address;
+    }
+    if ((sec_dns->s_addr != 0) && (inet_ntop(AF_INET, sec_dns, sec_dns_address, sizeof(sec_dns_address)) != NULL))
+    {
+        network_dns_servers[network_dns_server_count++] = sec_dns_address;
+    }
+    hcom_common_utils_erase_dns_resolver_file();
+    hcom_common_utils_add_servers_to_dns_resolver_file(network_dns_servers, network_dns_server_count);
 
     espcp_event_data_t message;
 
@@ -563,6 +591,10 @@ static void hcom_pppd_connected_event(void)
     meadow_configuration_t *config = meadow_os_deep_copy_config();
     bool get_time = (config != NULL) && (config->get_network_time_at_startup != 0);
 
+    if (config != NULL)
+    {
+        hcom_common_utils_add_servers_to_dns_resolver_file(config->dns_servers, config->dns_servers_count);
+    }
     meadow_os_config_free_resources(config);
 
     if (get_time)
@@ -654,7 +686,7 @@ int hcom_pppd_start()
 
         memcpy(cell_settings, config->default_cell_settings, sizeof(cell_settings_t));
 
-        syslog(LOG_INFO, "%s-%d-cell module id: %u\n", __FILE__, __LINE__, cell_settings->module_id);
+        syslog(LOG_INFO, "%s-%d-cell module id: %" PRIu32 "\n", __FILE__, __LINE__, cell_settings->module_id);
         syslog(LOG_INFO, "%s-%d-cell module: %s\n", __FILE__, __LINE__, cell_settings->module);
         syslog(LOG_INFO, "%s-%d-cell apn: %s\n", __FILE__, __LINE__, cell_settings->apn);
         syslog(LOG_INFO, "%s-%d-cell operator: %s\n", __FILE__, __LINE__, cell_settings->operator);
@@ -663,7 +695,7 @@ int hcom_pppd_start()
         syslog(LOG_INFO, "%s-%d-cell user: %s\n", __FILE__, __LINE__, cell_settings->pap_user);
         syslog(LOG_INFO, "%s-%d-cell password: %s\n", __FILE__, __LINE__, cell_settings->pap_password);
         syslog(LOG_INFO, "%s-%d-cell operation mode: %s\n", __FILE__, __LINE__, cell_settings->mode);
-        syslog(LOG_INFO, "%s-%d-cell scan mode: %u\n", __FILE__, __LINE__, cell_settings->scan_mode);
+        syslog(LOG_INFO, "%s-%d-cell scan mode: %" PRIu32 "\n", __FILE__, __LINE__, cell_settings->scan_mode);
 
         if (cell_settings->scan_mode)
         {

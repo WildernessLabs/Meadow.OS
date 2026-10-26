@@ -48,6 +48,8 @@
 #include "ppp.h"
 #include "ahdlc.h"
 
+#include "netutils/pppd.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -392,6 +394,14 @@ void ipcp_rx(FAR struct ppp_context_s *ctx, FAR uint8_t * buffer,
       printip(ctx->sec_dns_addr);
 #endif
       DEBUG1(("\n"));
+
+      /* Meadow: tell the application the link is up */
+
+      if (ctx->settings->connect_event != NULL)
+        {
+          ctx->settings->connect_event(&ctx->local_ip, &ctx->pri_dns_addr,
+                                       &ctx->sec_dns_addr);
+        }
       break;
 
     case CONF_REJ:             /* Config Reject */

@@ -17,6 +17,13 @@ extern int mount(const char *source, const char *target, const char *filesystemt
 extern int umount2(const char *target, int flags);
 extern int meadow_cloud_decrypt_buf(const char *encrypted_buf, int encrypted_len, const char *decrypted_buf);
 extern int meadow_cloud_decrypt_buf_aes(const char *encrypted_buf, int encrypted_len, unsigned char key[16], unsigned char iv[16], const char *decrypted_buf);
+#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+/* Implemented by the hcom cell driver (apps/system/hcom/cell/hcom_pppd.c). */
+extern void meadow_cell_change_state(int state);
+extern bool meadow_cell_is_connected(void);
+extern int meadow_get_cell_error(void);
+extern int meadow_get_cell_at_cmds_output(unsigned char *buf);
+#else
 /* Cellular support is not part of this build.  Meadow.Core still binds these
  * entry points, so answer "not connected" / "not supported" instead of
  * failing the P/Invoke. */
@@ -24,6 +31,7 @@ static void meadow_cell_change_state(int state) { (void)state; }
 static bool meadow_cell_is_connected(void) { return false; }
 static int meadow_get_cell_error(void) { return -ENOSYS; }
 static int meadow_get_cell_at_cmds_output(const char *buf) { (void)buf; return -ENOSYS; }
+#endif
 extern int meadow_idle_monitor_get_value(void);
 extern int meadow_adc_configure(uint8_t gpioList[], uint32_t gpioCount, double *userDataBuf);
 extern int meadow_adc_read_values(void);
