@@ -176,20 +176,8 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
   const char *timeout = hcom_pppd_str(cell_settings->timeout);
   const char *apn = hcom_pppd_str(cell_settings->apn);
 
-  char *authentication_cmd = (char *)malloc(AUTHENTICATION_CMD_MAX_SIZE * sizeof(char));
-  if (authentication_cmd == NULL)
-  {
-    syslog(LOG_ERR, "%s-%d-Failed to allocate authentication\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
-
-  char *operator_selection_cmd = (char *)malloc(OPERATOR_SELECTION_CMD_MAX_SIZE * sizeof(char));
-  if (operator_selection_cmd == NULL)
-  {
-    syslog(LOG_ERR, "%s-%d-Failed to allocate operator\n", __FILE__, __LINE__);
-    free(authentication_cmd);
-    return -ENOMEM;
-  }
+  char authentication_cmd[AUTHENTICATION_CMD_MAX_SIZE];
+  char operator_selection_cmd[OPERATOR_SELECTION_CMD_MAX_SIZE];
 
   snprintf_chk(authentication_cmd, AUTHENTICATION_CMD_MAX_SIZE,
       pap_user[0] != '\0' && pap_password[0] != '\0'
@@ -305,8 +293,6 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
     
     default:
       syslog(LOG_ERR, "%s-%d-Failed getting connect script\n", __FILE__, __LINE__);
-      free(authentication_cmd);
-      free(operator_selection_cmd);
       return -EINVAL;
     break;
   }
@@ -317,9 +303,6 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
     "OK " "\"\" ATZ "
     "OK \\c"
   );
-
-  free(authentication_cmd);
-  free(operator_selection_cmd);
 
   return OK;
 }
