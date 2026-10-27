@@ -93,10 +93,89 @@ static void hcom_pppd_connecting_event(void);
 static void hcom_pppd_connect_script_failed_event(const char *script, const char *response);
 
 //====================================================================
+// Settings the configuration leaves out are NULL: treat them as empty.
+static const char *hcom_pppd_str(const char *s)
+{
+  return (s == NULL) ? "" : s;
+}
+
+static char *hcom_pppd_strdup(const char *s)
+{
+  return (s == NULL) ? NULL : strdup(s);
+}
+
+//====================================================================
+// Free a settings copy made by hcom_pppd_copy_settings().
+static void hcom_pppd_free_settings(cell_settings_t *settings)
+{
+  if (settings == NULL)
+  {
+    return;
+  }
+
+  free(settings->module);
+  free(settings->apn);
+  free(settings->operator);
+  free(settings->mode);
+  free(settings->ttyname);
+  free(settings->timeout);
+  free(settings->pap_user);
+  free(settings->pap_password);
+  free(settings);
+}
+
+//====================================================================
+// Deep copy of the cell settings for the PPPD thread, which owns it. A struct
+// copy is not enough: the strings belong to the configuration copy, which is
+// freed as soon as the thread has been started. Only the members the
+// configuration copy sets are taken; the others are zeroed.
+static cell_settings_t *hcom_pppd_copy_settings(const cell_settings_t *source)
+{
+  cell_settings_t *copy = calloc(1, sizeof(cell_settings_t));
+  if (copy == NULL)
+  {
+    return NULL;
+  }
+
+  copy->module_id = source->module_id;
+  copy->scan_mode = source->scan_mode;
+  copy->module = hcom_pppd_strdup(source->module);
+  copy->apn = hcom_pppd_strdup(source->apn);
+  copy->operator = hcom_pppd_strdup(source->operator);
+  copy->mode = hcom_pppd_strdup(source->mode);
+  copy->ttyname = hcom_pppd_strdup(source->ttyname);
+  copy->timeout = hcom_pppd_strdup(source->timeout);
+  copy->pap_user = hcom_pppd_strdup(source->pap_user);
+  copy->pap_password = hcom_pppd_strdup(source->pap_password);
+
+  if (((source->module != NULL) && (copy->module == NULL)) ||
+      ((source->apn != NULL) && (copy->apn == NULL)) ||
+      ((source->operator != NULL) && (copy->operator == NULL)) ||
+      ((source->mode != NULL) && (copy->mode == NULL)) ||
+      ((source->ttyname != NULL) && (copy->ttyname == NULL)) ||
+      ((source->timeout != NULL) && (copy->timeout == NULL)) ||
+      ((source->pap_user != NULL) && (copy->pap_user == NULL)) ||
+      ((source->pap_password != NULL) && (copy->pap_password == NULL)))
+  {
+    hcom_pppd_free_settings(copy);
+    return NULL;
+  }
+
+  return copy;
+}
+
+//====================================================================
 // This function is used to generate the connection and disconnection script
 // based on cell settings and is later passed to the pppd() function
 static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char **connect_script, char **disconnect_script)
 {
+  const char *pap_user = hcom_pppd_str(cell_settings->pap_user);
+  const char *pap_password = hcom_pppd_str(cell_settings->pap_password);
+  const char *operator = hcom_pppd_str(cell_settings->operator);
+  const char *mode = hcom_pppd_str(cell_settings->mode);
+  const char *timeout = hcom_pppd_str(cell_settings->timeout);
+  const char *apn = hcom_pppd_str(cell_settings->apn);
+
   char *authentication_cmd = (char *)malloc(AUTHENTICATION_CMD_MAX_SIZE * sizeof(char));
   if (authentication_cmd == NULL)
   {
@@ -113,21 +192,21 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
   }
 
   snprintf_chk(authentication_cmd, AUTHENTICATION_CMD_MAX_SIZE,
-      cell_settings->pap_user[0] != '\0' && cell_settings->pap_password[0] != '\0'
+      pap_user[0] != '\0' && pap_password[0] != '\0'
           ? "AT+CGAUTH=1,1,\\\"%s\\\",\\\"%s\\\" PAUSE 3 OK "
           : "",
-      cell_settings->pap_user,
-      cell_settings->pap_password
+      pap_user,
+      pap_password
   );
 
   // If the carrier operator code or the network operator mode is missing, the 
   // automatic network selection will be used (AT+COPS=0)
   snprintf_chk(operator_selection_cmd, OPERATOR_SELECTION_CMD_MAX_SIZE,
-      cell_settings->operator[0] != '\0' && cell_settings->mode[0] != '\0'
+      operator[0] != '\0' && mode[0] != '\0'
           ? "AT+COPS=1,2,\\\"%s\\\",%s PAUSE 3 OK "
           : "AT+COPS=0 PAUSE 3 OK ",
-      cell_settings->operator,
-      cell_settings->mode
+      operator,
+      mode
   );
 
   switch (cell_settings->module_id)
@@ -150,8 +229,8 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
           "OK %s"
           "ATD*99# "
           "CONNECT \\c",
-          cell_settings->timeout, 
-          cell_settings->apn,
+          timeout, 
+          apn,
           authentication_cmd,
           operator_selection_cmd
       );
@@ -171,8 +250,8 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
         "PAUSE 3 "
         "OK ATD*99# "
         "CONNECT \\c",
-        cell_settings->timeout, 
-        cell_settings->apn
+        timeout, 
+        apn
       );
     break;
     
@@ -195,8 +274,8 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
         "OK %s"
         "ATD*99# "
         "CONNECT \\c",
-        cell_settings->timeout, 
-        cell_settings->apn,
+        timeout, 
+        apn,
         operator_selection_cmd
       );
     break;
@@ -218,8 +297,8 @@ static int hcom_pppd_create_connect_scripts(cell_settings_t *cell_settings, char
         "OK %s"
         "ATD*99# "
         "CONNECT \\c",
-        cell_settings->timeout, 
-        cell_settings->apn,
+        timeout, 
+        apn,
         operator_selection_cmd
       );
     break;
@@ -375,7 +454,7 @@ static void hcom_pppd_at_cmd_event(int ret)
     return;
   }
 
-  if (strlen(cell_at_cmds_output))
+  if ((cell_at_cmds_output != NULL) && (strlen(cell_at_cmds_output) > 0))
   {
     syslog(LOG_INFO, "%s-%d-Cell: %s \n", __FILE__, __LINE__, cell_at_cmds_output);
     message.interface = ESPCP_CELL_INTERFACE;
@@ -433,15 +512,27 @@ static int hcom_pppd_set_tty_raw(const char *ttyname)
   return ret;
 }
 
+//====================================================================
+// The handler script and the AT command output are published to the managed
+// API (meadow_cell_change_state, meadow_get_cell_at_cmds_output), so they are
+// allocated once and never freed.
 static int hcom_pppd_create_handler(void)
 {
   hcom_cell_handler.state = CELL_RESUMED;
   hcom_cell_handler.callback = hcom_pppd_at_cmd_event;
-  hcom_cell_handler.script = (char *)malloc(CONNECT_SCRIPT_MAX_SIZE);
-
   if (hcom_cell_handler.script == NULL)
   {
-    syslog(LOG_ERR, "%s-%d-Failed to allocate cell handler script\n", __FILE__, __LINE__);
+    hcom_cell_handler.script = (char *)calloc(1, CONNECT_SCRIPT_MAX_SIZE);
+  }
+
+  if (cell_at_cmds_output == NULL)
+  {
+    cell_at_cmds_output = (char *)calloc(1, CONNECT_SCRIPT_OUTPUT_MAX_SIZE);
+  }
+
+  if ((hcom_cell_handler.script == NULL) || (cell_at_cmds_output == NULL))
+  {
+    syslog(LOG_ERR, "%s-%d-Failed to allocate cell handler script or AT command output\n", __FILE__, __LINE__);
     return -ENOMEM;
   }
 
@@ -451,7 +542,8 @@ static int hcom_pppd_create_handler(void)
 //====================================================================
 // This is the PPPD (Point-to-Point Protocol Daemon) thread, which is 
 // responsible to send AT commands to the modem, through the chat app, 
-// and to manage the PPP connection.
+// and to manage the PPP connection. The thread owns the settings copy it is
+// given and frees it on every exit path.
 static void *pppd_thread(void *cell_settings_ptr)
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
@@ -478,30 +570,18 @@ static void *pppd_thread(void *cell_settings_ptr)
         syslog(LOG_INFO, "%s-%d-Failed starting PPPD\n", __FILE__, __LINE__);
         cell_err = CELL_INVALID_MODEM_ERR;
         hcom_pppd_disconnected_event(cell_err);
+        hcom_pppd_free_settings(cell_settings);
         return NULL;
     }
 
     char *connect_script = (char *)malloc(CONNECT_SCRIPT_MAX_SIZE * sizeof(char));
-    if (connect_script == NULL)
-    {
-        syslog(LOG_ERR, "%s-%d-Failed to allocate memory for connect script\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
     char *disconnect_script = (char *)malloc(DISCONNECT_SCRIPT_MAX_SIZE * sizeof(char));
-    if (disconnect_script == NULL)
+    if ((connect_script == NULL) || (disconnect_script == NULL))
     {
-        free(connect_script);
-        syslog(LOG_ERR, "%s-%d-Failed to allocate memory for disconnect script\n", __FILE__, __LINE__);
-        return NULL;
-    }
-
-    cell_at_cmds_output = (char *)malloc(CONNECT_SCRIPT_OUTPUT_MAX_SIZE * sizeof(char));
-    if (cell_at_cmds_output == NULL)
-    {
+        syslog(LOG_ERR, "%s-%d-Failed to allocate memory for the chat scripts\n", __FILE__, __LINE__);
         free(connect_script);
         free(disconnect_script);
-        syslog(LOG_ERR, "%s-%d-Failed to allocate memory for cell AT commands output\n", __FILE__, __LINE__);
+        hcom_pppd_free_settings(cell_settings);
         return NULL;
     }
 
@@ -512,7 +592,7 @@ static void *pppd_thread(void *cell_settings_ptr)
         syslog(LOG_ERR, "%s-%d-Failed to generate connect scripts, ret=%d\n", __FILE__, __LINE__, ret);
         free(connect_script);
         free(disconnect_script);
-        free(cell_at_cmds_output);
+        hcom_pppd_free_settings(cell_settings);
         return NULL;
     }
 
@@ -522,7 +602,7 @@ static void *pppd_thread(void *cell_settings_ptr)
         syslog(LOG_ERR, "%s-%d-Failed to create pppd handler, ret=%d\n", __FILE__, __LINE__, ret);
         free(connect_script);
         free(disconnect_script);
-        free(cell_at_cmds_output);
+        hcom_pppd_free_settings(cell_settings);
         return NULL;
     }
 
@@ -543,10 +623,10 @@ static void *pppd_thread(void *cell_settings_ptr)
         .cell_handler = &hcom_cell_handler,
     };
 
-    strlcpy(pppd_settings.ttyname, cell_settings->ttyname, sizeof(pppd_settings.ttyname));
+    strlcpy(pppd_settings.ttyname, hcom_pppd_str(cell_settings->ttyname), sizeof(pppd_settings.ttyname));
 #ifdef CONFIG_NETUTILS_PPPD_PAP
-    strlcpy(pppd_settings.pap_username, cell_settings->pap_user, sizeof(pppd_settings.pap_username));
-    strlcpy(pppd_settings.pap_password, cell_settings->pap_password, sizeof(pppd_settings.pap_password));
+    strlcpy(pppd_settings.pap_username, hcom_pppd_str(cell_settings->pap_user), sizeof(pppd_settings.pap_username));
+    strlcpy(pppd_settings.pap_password, hcom_pppd_str(cell_settings->pap_password), sizeof(pppd_settings.pap_password));
 #endif
 
     // Not fatal: pppd reports the failure through the connect script events.
@@ -554,6 +634,11 @@ static void *pppd_thread(void *cell_settings_ptr)
 
     syslog(LOG_INFO, "%s-%d-Starting PPPD\n", __FILE__, __LINE__);
     pppd(&pppd_settings);
+
+    // pppd() only returns if it could not start (no tun device or tty).
+    free(connect_script);
+    free(disconnect_script);
+    hcom_pppd_free_settings(cell_settings);
 
     sleep(20);
     syslog(LOG_INFO, "%s-%d-Failed after starting PPPD\n", __FILE__, __LINE__);
@@ -609,6 +694,12 @@ void pppd_clear_state(hcom_pppd_handler_t *handler, int state)
 
 int meadow_get_cell_at_cmds_output(unsigned char *buf)
 {
+    // Nothing captured yet: the PPPD thread has not run.
+    if (cell_at_cmds_output == NULL)
+    {
+        return 0;
+    }
+
     size_t len = strlen(cell_at_cmds_output) + 1;
     memcpy(buf, cell_at_cmds_output, len);
 
@@ -767,25 +858,25 @@ int hcom_pppd_start()
             return -ENOENT;
         }
 
-        cell_settings_t *cell_settings = malloc(sizeof(cell_settings_t));
+        // The thread owns this copy; the configuration copy is freed below.
+        cell_settings_t *cell_settings = hcom_pppd_copy_settings(config->default_cell_settings);
         if (cell_settings == NULL)
         {
-            syslog(LOG_ERR, "%s-%d-Failed to allocate cell settings struct\n", __FILE__, __LINE__);
+            syslog(LOG_ERR, "%s-%d-Failed to copy the cell settings\n", __FILE__, __LINE__);
             meadow_os_config_free_resources(config);
             return -ENOMEM;
         }
 
-        memcpy(cell_settings, config->default_cell_settings, sizeof(cell_settings_t));
-
         syslog(LOG_INFO, "%s-%d-cell module id: %" PRIu32 "\n", __FILE__, __LINE__, cell_settings->module_id);
-        syslog(LOG_INFO, "%s-%d-cell module: %s\n", __FILE__, __LINE__, cell_settings->module);
-        syslog(LOG_INFO, "%s-%d-cell apn: %s\n", __FILE__, __LINE__, cell_settings->apn);
-        syslog(LOG_INFO, "%s-%d-cell operator: %s\n", __FILE__, __LINE__, cell_settings->operator);
-        syslog(LOG_INFO, "%s-%d-cell ttyname: %s\n", __FILE__, __LINE__, cell_settings->ttyname);
-        syslog(LOG_INFO, "%s-%d-cell timeout: %s\n", __FILE__, __LINE__, cell_settings->timeout);
-        syslog(LOG_INFO, "%s-%d-cell user: %s\n", __FILE__, __LINE__, cell_settings->pap_user);
-        syslog(LOG_INFO, "%s-%d-cell password: %s\n", __FILE__, __LINE__, cell_settings->pap_password);
-        syslog(LOG_INFO, "%s-%d-cell operation mode: %s\n", __FILE__, __LINE__, cell_settings->mode);
+        syslog(LOG_INFO, "%s-%d-cell module: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->module));
+        syslog(LOG_INFO, "%s-%d-cell apn: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->apn));
+        syslog(LOG_INFO, "%s-%d-cell operator: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->operator));
+        syslog(LOG_INFO, "%s-%d-cell ttyname: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->ttyname));
+        syslog(LOG_INFO, "%s-%d-cell timeout: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->timeout));
+        syslog(LOG_INFO, "%s-%d-cell user: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->pap_user));
+        syslog(LOG_INFO, "%s-%d-cell password: %s\n", __FILE__, __LINE__,
+               ((cell_settings->pap_password != NULL) && (cell_settings->pap_password[0] != '\0')) ? "set" : "not set");
+        syslog(LOG_INFO, "%s-%d-cell operation mode: %s\n", __FILE__, __LINE__, hcom_pppd_str(cell_settings->mode));
         syslog(LOG_INFO, "%s-%d-cell scan mode: %" PRIu32 "\n", __FILE__, __LINE__, cell_settings->scan_mode);
 
         if (cell_settings->scan_mode)
@@ -825,7 +916,8 @@ int hcom_pppd_start()
 
         syslog(LOG_ERR, "%s@%d-The task to run PPPD failed in create\n",
                             __FILE__, __LINE__);
-        
+        hcom_pppd_free_settings(cell_settings);
+
         cell_err = CELL_PPPD_THREAD_ERR;
         hcom_pppd_disconnected_event(cell_err);
 
