@@ -164,6 +164,28 @@ static void cmux_parse_reset(struct cmux_parse_s *cmux_parse)
     }
 }
 
+/****************************************************************************
+ * Name: cmux_rewind_to_flag
+ *
+ * Description:
+ *  Step the read pointer back onto the flag that opened the current frame,
+ *  so that a frame which has not been received completely is decoded again
+ *  once the rest of it arrives.
+ *
+ ****************************************************************************/
+
+static void cmux_rewind_to_flag(struct cmux_stream_buffer_s *cmux_buffer)
+{
+  if (cmux_buffer->readp == cmux_buffer->data)
+    {
+      cmux_buffer->readp = cmux_buffer->endp - 1;
+    }
+  else
+    {
+      cmux_buffer->readp--;
+    }
+}
+
 static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
                             struct cmux_parse_s *cmux_parse)
 {
@@ -208,6 +230,9 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
 
       if (cmux_buffer_length(cmux_buffer) < length)
         {
+          /* The frame is incomplete: keep its opening flag */
+
+          cmux_rewind_to_flag(cmux_buffer);
           return ERROR;
         }
 
@@ -238,6 +263,9 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
       length += cmux_parse->data_length;
       if (!(cmux_buffer_length(cmux_buffer) >= length))
         {
+          /* The frame is incomplete: keep its opening flag */
+
+          cmux_rewind_to_flag(cmux_buffer);
           return ERROR;
         }
 
@@ -389,6 +417,7 @@ static int cmux_open_pseudo_tty(struct cmux_channel_s *channel,
       return -EACCES;
     }
 
+  memset(&options, 0, sizeof(options));
   options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
   options.c_iflag &= ~(INLCR | ICRNL | IGNCR);
 
@@ -409,6 +438,19 @@ static int cmux_open_pseudo_tty(struct cmux_channel_s *channel,
         }
       else
         {
+          /* openpty() applies the termios to the slave side only.  The
+           * master side defaults to OPOST | OCRNL, which would turn every
+           * CR received from the modem into a LF: make it raw as well.
+           */
+
+          struct termios master;
+
+          if (tcgetattr(channel[i].master_fd, &master) == 0)
+            {
+              cfmakeraw(&master);
+              tcsetattr(channel[i].master_fd, TCSANOW, &master);
+            }
+
           ninfo("Open pseudo tty name: %s\n", channel[i].slave_path);
 
           channel[i].dlci = i + 1;
@@ -494,7 +536,21 @@ static int cmux_extract(struct cmux_ctl_s *ctl, char *input, int len)
             }
           else
             {
-              /* Control channel */
+              /* Control channel: answer each command (C/R bit set in the
+               * type octet) with the same message as a response (C/R bit
+               * clear), as 3GPP 27.010 requires.  A modem whose commands,
+               * such as MSC, go unanswered stops serving the logical
+               * channels.
+               */
+
+              if ((ctl->parse->data_length >= 2) &&
+                  ((ctl->parse->data[0] & CMUX_ADDR_FIELD_BIT_CR) != 0))
+                {
+                  ctl->parse->data[0] &= ~CMUX_ADDR_FIELD_BIT_CR;
+                  cmux_encode_frame(ctl->fd, 0, (char *)ctl->parse->data,
+                                    ctl->parse->data_length,
+                                    CMUX_FRAME_TYPE_UIH);
+                }
             }
         }
       else
@@ -633,22 +689,20 @@ static void *cmux_thread(void *args)
         {
           if (ctl->channels[i].active)
             {
+              /* Only the master side is read here; the slave side belongs
+               * to the user of the channel.
+               */
+
               FD_SET(ctl->channels[i].master_fd, &rfds);
-              FD_SET(ctl->channels[i].slave_fd, &rfds);
 
               if (ctl->channels[i].master_fd > max_fd)
                 {
                   max_fd = ctl->channels[i].master_fd;
                 }
-
-              if (ctl->channels[i].slave_fd > max_fd)
-                {
-                  max_fd = ctl->channels[i].slave_fd;
-                }
             }
         }
 
-      timeout.tv_usec = 100;
+      timeout.tv_usec = 100000;
       timeout.tv_sec = 0;
 
       ret = select(max_fd + 1, &rfds, NULL, NULL, &timeout);
