@@ -75,12 +75,17 @@ minute and runs the posted AT scripts then.
   (without `--nsh`) and read the second USB CDC port. The deploy replaces the board's
   `meadow.config.yaml`, so restore the usual one afterwards.
 - **SIM:** without one the two data link cases are skipped. With one, point `MEADOW_CELL_CONFIG`
-  at a local `cell.config.yaml` that has the carrier's APN and credentials. Keep that file out of
-  the repository. The app then ships it in place of the placeholder and requires the link:
+  at a `cell.config.yaml` that has the carrier's APN and credentials. The app then ships it in place
+  of the placeholder and requires the link. For an EE (UK) SIM, use `cell.ee.config.yaml` in this
+  folder. It holds EE's public, published settings (APN `everywhere`, PAP), and passed 6/6 on
+  2026-10-27:
 
   ```bash
-  MEADOW_CELL_CONFIG=<local>/cell.config.yaml tools/testrunner/testrunner.py --test celltests
+  MEADOW_CELL_CONFIG=tests/managed/CellTests/cell.ee.config.yaml tools/testrunner/testrunner.py --test celltests
   ```
+
+  For a SIM on a private APN, point `MEADOW_CELL_CONFIG` at a local file instead of adding its
+  credentials to the repository.
 - **Mono must be running:** pppd starts only after Mono starts. Check that the boot banner says
   `Mono:Enabled`.
 - **Cases:**

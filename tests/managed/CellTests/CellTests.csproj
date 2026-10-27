@@ -9,8 +9,9 @@
       folder.  cell.config.yaml is always shipped, because a deploy deletes every file in /meadow0
       that is not in the publish output: the placeholder in this folder (no SIM), or the file named
       by MEADOW_CELL_CONFIG.  Setting MEADOW_CELL_CONFIG also defines CELL_SIM, which makes the
-      data link cases (cell.connected, cell.http_get) required instead of skipped.  Keep SIM
-      credentials out of the repository: MEADOW_CELL_CONFIG should name a local file.
+      data link cases (cell.connected, cell.http_get) required instead of skipped.
+      cell.ee.config.yaml in this folder holds EE's public settings; for a SIM on a private APN,
+      point MEADOW_CELL_CONFIG at a local file instead of adding its credentials here.
   -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
