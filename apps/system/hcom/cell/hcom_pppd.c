@@ -371,37 +371,23 @@ static void hcom_pppd_get_script(int state, char *script)
   }
 }
 
-espcp_event_data_t *hcom_ppd_create_message(uint32_t function, uint32_t status_code,
-                            uint32_t message_id)
+//====================================================================
+// Queue a cell event for the managed side. espcp_queue_event_messages()
+// copies the encoded bytes into the message queue (mq_send), so both buffers
+// can live on the stack.
+static int hcom_pppd_raise_event(uint32_t function, uint32_t status_code)
 {
-  espcp_event_data_t *message = (espcp_event_data_t*)malloc(sizeof(espcp_event_data_t));
-  if (message != NULL)
-  {
-    memset(message, 0, sizeof(espcp_event_data_t));
+  espcp_event_data_t message;
+  uint8_t encodedData[ESPCP_EVENT_DATA_SIZE];
 
-    message->interface = ESPCP_CELL_INTERFACE;
-    message->function = function;
-    message->status_code = status_code;
-    message->message_id = message_id;
-  }
-  return message;
-}
+  memset(&message, 0, sizeof(message));
+  message.interface = ESPCP_CELL_INTERFACE;
+  message.function = function;
+  message.status_code = status_code;
+  message.message_id = ESPCP_SIMPLE_EVENT_MESSAGE_ID;
 
-int hcom_pppd_raise_event(uint32_t function, uint32_t status_code,
-                            uint32_t message_id)
-{
-  espcp_event_data_t *message = hcom_ppd_create_message(function, status_code, message_id);
-  int result  = ERROR;
-  if (message != NULL)
-  {
-    uint32_t encondedEventDataSize = ESPCP_EVENT_DATA_SIZE;
-    uint8_t *encondedData = (uint8_t*)malloc(encondedEventDataSize);
-    espcp_encode_event_data(message, encondedData);
-  
-    result = espcp_queue_event_messages(encondedData);
-    free(message);
-  }
-  return result;
+  espcp_encode_event_data(&message, encodedData);
+  return espcp_queue_event_messages(encodedData);
 }
 
 static void hcom_pppd_connecting_event(void)
@@ -409,7 +395,7 @@ static void hcom_pppd_connecting_event(void)
   syslog(LOG_INFO, "%s-%d-Cell network starts to connecting\n", __FILE__, __LINE__);
   int result = ERROR;
 
-  result = hcom_pppd_raise_event(ESPCP_CELL_CONNECTING_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE, ESPCP_SIMPLE_EVENT_MESSAGE_ID);
+  result = hcom_pppd_raise_event(ESPCP_CELL_CONNECTING_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
   syslog(LOG_INFO, "%s-%d-Cell event message result: %d\n", __FILE__, __LINE__, result);
 }
 
@@ -440,14 +426,12 @@ static void hcom_pppd_retry_exceeded_event(void)
   syslog(LOG_INFO, "%s-%d-Cell network retry exceeded\n", __FILE__, __LINE__);
   int result = ERROR;
 
-  result = hcom_pppd_raise_event(ESPCP_CELL_RETRY_EXCEEDED_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE, ESPCP_SIMPLE_EVENT_MESSAGE_ID);
+  result = hcom_pppd_raise_event(ESPCP_CELL_RETRY_EXCEEDED_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
   syslog(LOG_INFO, "%s-%d-Cell event message result: %d\n", __FILE__, __LINE__, result);
 }
 
 static void hcom_pppd_at_cmd_event(int ret)
 {
-  espcp_event_data_t message;
-
   if (ret < 0)
   {
     syslog(LOG_INFO, "%s-%d-Cell chat failed: %d\n", __FILE__, __LINE__, ret);
@@ -457,17 +441,8 @@ static void hcom_pppd_at_cmd_event(int ret)
   if ((cell_at_cmds_output != NULL) && (strlen(cell_at_cmds_output) > 0))
   {
     syslog(LOG_INFO, "%s-%d-Cell: %s \n", __FILE__, __LINE__, cell_at_cmds_output);
-    message.interface = ESPCP_CELL_INTERFACE;
-    message.function = ESPCP_CELL_AT_CMD_EVENT;
-    message.status_code = ESPCP_COMPLETED_OK_STATUS_CODE;
-    message.message_id = ESPCP_SIMPLE_EVENT_MESSAGE_ID;
 
-    uint32_t encodedEventDataSize = ESPCP_EVENT_DATA_SIZE;
-    uint8_t *encodedData = (uint8_t *) malloc(encodedEventDataSize);
-
-    espcp_encode_event_data(&message, encodedData);
-
-    int result = espcp_queue_event_messages(encodedData);
+    int result = hcom_pppd_raise_event(ESPCP_CELL_AT_CMD_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
     syslog(LOG_INFO, "%s-%d-Cell event message result: %d\n", __FILE__, __LINE__, result);
   }
 }
@@ -758,16 +733,6 @@ static void hcom_pppd_connected_event(const struct in_addr *local_ip,
     }
 #endif
 
-    espcp_event_data_t message;
-
-    message.interface = ESPCP_CELL_INTERFACE;
-    message.function = ESPCP_CELL_CONNECTED_EVENT;
-    message.status_code = ESPCP_COMPLETED_OK_STATUS_CODE;
-    message.message_id = ESPCP_SIMPLE_EVENT_MESSAGE_ID;
-
-    uint32_t encodedEventDataSize = ESPCP_EVENT_DATA_SIZE;
-    uint8_t *encodedData = (uint8_t *) malloc(encodedEventDataSize);
-
     cell_connected = true;
 
     meadow_configuration_t *config = meadow_os_deep_copy_config();
@@ -784,9 +749,7 @@ static void hcom_pppd_connected_event(const struct in_addr *local_ip,
         ntpc_start();
     }
 
-    espcp_encode_event_data(&message, encodedData);
-
-    int result = espcp_queue_event_messages(encodedData);
+    int result = hcom_pppd_raise_event(ESPCP_CELL_CONNECTED_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
     syslog(LOG_INFO, "%s-%d-Cell connected event message result: %d\n", __FILE__, __LINE__, result);
 }
 
@@ -794,28 +757,13 @@ static void hcom_pppd_disconnected_event(int err_base)
 {
     syslog(LOG_INFO, "%s-%d-Cell network has been disconnected, error: %d\n", __FILE__, __LINE__, err_base);
 
-    espcp_event_data_t message;
-
-    message.interface = ESPCP_CELL_INTERFACE;
-    
+    uint32_t function = ESPCP_CELL_ERROR_EVENT;
     if (err_base == CELL_PPPD_LOST_CONNECTION_ERR)
     {
-      message.function = ESPCP_CELL_DISCONNECTED_EVENT;
+      function = ESPCP_CELL_DISCONNECTED_EVENT;
     }
-    else
-    {
-      message.function = ESPCP_CELL_ERROR_EVENT;
-    }
- 
-    message.status_code = ESPCP_FAILURE_STATUS_CODE;
-    message.message_id = ESPCP_SIMPLE_EVENT_MESSAGE_ID;
 
-    uint32_t encodedEventDataSize = ESPCP_EVENT_DATA_SIZE;
-    uint8_t *encodedData = (uint8_t *) malloc(encodedEventDataSize);
-
-    espcp_encode_event_data(&message, encodedData);
-
-    int result = espcp_queue_event_messages(encodedData);
+    int result = hcom_pppd_raise_event(function, ESPCP_FAILURE_STATUS_CODE);
     syslog(LOG_INFO, "%s-%d-Cell disconnected event message result: %d\n", __FILE__, __LINE__, result);
 
     cell_connected = false;
