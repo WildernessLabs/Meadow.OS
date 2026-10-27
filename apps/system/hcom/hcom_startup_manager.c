@@ -48,7 +48,7 @@
 #if defined (CONFIG_MEADOW_CLOUD)
 #include "ota/hcom_ota.h"
 #endif
-#include "cell/hcom_pppd.h"
+#include "cell/hcom_cell.h"
 #include "misc/espcp_utils.h"
 
 #if defined (CONFIG_HCOM_ESP32_COMMS)
@@ -554,15 +554,15 @@ int hcom_main(int argc, char *argv[])
   int monoStartResult = hcom_mono_ctrl_start_mono_main();
   (void)monoStartResult;    // Only used by the cell (PPPD) start below.
 
-  // Start PPPD app needed by cell driver, when cell interface is enabled
-  // and Mono is running.
+  // Start the cell network (CMUX and PPPD), when the cell interface is
+  // selected and Mono is running.
 #if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
   if (monoStartResult == OK)
   {
-    ret = hcom_pppd_start();
+    ret = hcom_cell_start();
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-start pppd %d\n", __FILE__, __LINE__, ret);
+      syslog(LOG_ERR, "%s@%d-start cell %d\n", __FILE__, __LINE__, ret);
     }
   }
 #endif

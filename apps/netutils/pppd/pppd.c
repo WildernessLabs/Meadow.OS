@@ -189,69 +189,7 @@ static uint8_t ppp_check_errors(FAR struct ppp_context_s *ctx)
       ret = 3;
     }
 
-  /* Meadow: the application paused the link to run AT commands */
-
-  if ((ctx->settings->cell_handler != NULL) &&
-      (ctx->settings->cell_handler->state & CELL_PAUSED))
-    {
-      ret = 4;
-    }
-
   return ret;
-}
-
-/****************************************************************************
- * Name: ppp_chat
- *
- * Description:
- *   Meadow: run a chat script, capturing the modem output when the
- *   application supplied a buffer for it.
- *
- ****************************************************************************/
-
-static int ppp_chat(FAR struct ppp_context_s *ctx, FAR const char *script)
-{
-  const struct pppd_settings_s *pppd_settings = ctx->settings;
-
-  return chat_response(&ctx->ctl, script,
-                       pppd_settings->cell_at_cmds_output,
-                       pppd_settings->cell_at_cmds_output_size);
-}
-
-/****************************************************************************
- * Name: ppp_run_cell_at_cmds
- *
- * Description:
- *   Meadow: while the application has the link paused, run each AT command
- *   script it posts.
- *
- ****************************************************************************/
-
-static void ppp_run_cell_at_cmds(FAR struct ppp_context_s *ctx)
-{
-  FAR struct pppd_cell_handler_s *handler = ctx->settings->cell_handler;
-  int ret;
-
-  if (handler == NULL)
-    {
-      return;
-    }
-
-  while (handler->state != CELL_RESUMED)
-    {
-      if ((handler->state & CELL_AT_CMD) != 0)
-        {
-          ret = ppp_chat(ctx, handler->script);
-          if (handler->callback != NULL)
-            {
-              handler->callback(ret);
-            }
-
-          handler->state &= ~CELL_AT_CMD;
-        }
-
-      usleep(1000);
-    }
 }
 
 /****************************************************************************
@@ -272,11 +210,6 @@ void ppp_reconnect(FAR struct ppp_context_s *ctx)
   lcp_disconnect(ctx, ++ctx->ppp_id);
   sleep(1);
   lcp_disconnect(ctx, ++ctx->ppp_id);
-  if (pppd_settings->disconnect_event != NULL)
-    {
-      pppd_settings->disconnect_event(CELL_PPPD_LOST_CONNECTION_ERR);
-    }
-
   sleep(1);
   write(ctx->ctl.fd, "+++", 3);
   sleep(2);
@@ -284,57 +217,33 @@ void ppp_reconnect(FAR struct ppp_context_s *ctx)
 
   if (pppd_settings->disconnect_script)
     {
-      ret = ppp_chat(ctx, pppd_settings->disconnect_script);
+      ret = chat(&ctx->ctl, pppd_settings->disconnect_script);
       if (ret < 0)
         {
-          if (pppd_settings->disconnect_event != NULL)
-            {
-              pppd_settings->disconnect_event(CELL_PPPD_TIMEOUT_ERR);
-            }
-
           debug_printf("ppp: disconnect script failed\n");
         }
     }
 
-  ppp_run_cell_at_cmds(ctx);
-
   if (pppd_settings->connect_script)
     {
-      if (pppd_settings->connecting_event != NULL)
-        {
-          pppd_settings->connecting_event();
-        }
-
       do
         {
-          ret = ppp_chat(ctx, pppd_settings->connect_script);
+          ret = chat(&ctx->ctl, pppd_settings->connect_script);
           if (ret < 0)
             {
-              if (pppd_settings->connect_script_failed_event != NULL)
-                {
-                  pppd_settings->connect_script_failed_event(
-                    pppd_settings->connect_script,
-                    pppd_settings->cell_at_cmds_output);
-                }
-
               debug_printf("ppp: connect script failed\n");
               --retry;
               if (retry == 0)
                 {
-                  if (pppd_settings->retry_count_exceeded_event != NULL)
-                    {
-                      pppd_settings->retry_count_exceeded_event();
-                    }
-
                   retry = PPP_MAX_CONNECT;
 #ifdef PPP_ARCH_HAVE_MODEM_RESET
                   ppp_arch_modem_reset(pppd_settings->ttyname);
 #endif
-                  sleep(15);
+                  sleep(45);
                 }
               else
                 {
-                  sleep(5);
+                  sleep(10);
                 }
             }
         }

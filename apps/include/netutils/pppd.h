@@ -28,9 +28,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <stddef.h>
 #include <time.h>
-#include <netinet/in.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -48,49 +46,9 @@
 #define PAP_USERNAME_SIZE       16
 #define PAP_PASSWORD_SIZE       16
 
-/* Meadow cell handler state bits (see struct pppd_cell_handler_s).  The
- * values are shared with the managed cell API, do not renumber them.
- */
-
-#define CELL_RESUMED                0x00
-#define CELL_PAUSED                 (1 << 0)
-#define CELL_AT_CMD_GPS             (1 << 1)
-#define CELL_AT_CMD_SIGNAL_QUALITY  (1 << 2)
-#define CELL_AT_CMD_SCAN            (1 << 3)
-#define CELL_AT_CMD                 (1 << 4)
-#define CELL_CHAT_DONE              (1 << 5)
-#define CELL_CHAT_FAILED            (1 << 6)
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
-/* Meadow: cell error codes passed to disconnect_event.  The values are
- * reported to the managed cell API, do not renumber them.
- */
-
-enum pppd_cell_err_e
-{
-  CELL_INVALID_SETTING_ERR,
-  CELL_INVALID_MODEM_ERR,
-  CELL_PPPD_LOST_CONNECTION_ERR,
-  CELL_PPPD_TIMEOUT_ERR,
-  CELL_PPPD_THREAD_ERR,
-};
-
-/* Meadow: lets the application pause the PPP link to run AT commands.
- * While CELL_PAUSED is set the link is dropped; each time CELL_AT_CMD is
- * set, pppd runs 'script' through chat, calls 'callback' with the result
- * and clears CELL_AT_CMD.  The link is re-established once 'state' returns
- * to CELL_RESUMED.
- */
-
-struct pppd_cell_handler_s
-{
-  volatile int state;
-  FAR char *script;
-  CODE void (*callback)(int ret);
-};
 
 struct pppd_settings_s
 {
@@ -109,28 +67,6 @@ struct pppd_settings_s
 
   FAR const char *connect_script;
   FAR const char *disconnect_script;
-
-  /* Meadow cell extensions, all optional (NULL when unused) */
-
-  /* Receives the modem responses to the chat scripts */
-
-  FAR char *cell_at_cmds_output;
-  size_t cell_at_cmds_output_size;
-
-  /* Link events */
-
-  CODE void (*connect_event)(FAR const struct in_addr *local_ip,
-                             FAR const struct in_addr *pri_dns,
-                             FAR const struct in_addr *sec_dns);
-  CODE void (*disconnect_event)(int err_base);
-  CODE void (*connecting_event)(void);
-  CODE void (*retry_count_exceeded_event)(void);
-  CODE void (*connect_script_failed_event)(FAR const char *script,
-                                           FAR const char *response);
-
-  /* AT command handler */
-
-  FAR struct pppd_cell_handler_s *cell_handler;
 };
 
 /****************************************************************************

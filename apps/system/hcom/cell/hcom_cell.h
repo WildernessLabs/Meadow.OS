@@ -1,7 +1,7 @@
 /****************************************************************************
- * \apps\examples\hcom\cell\hcom_pppd.h
- * 
- *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
+ * apps/system/hcom/cell/hcom_cell.h
+ *
+ *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,34 +33,46 @@
  *
  ****************************************************************************/
 
-#ifndef __CONFIGS_MEADOW_SRC_HCOM_CELL_PPPD__H
-#define __CONFIGS_MEADOW_SRC_HCOM_CELL_PPPD__H
+#ifndef __CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H
+#define __CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H
 
 #include <meadow/hcom_shared_common.h>
-
-// The CELL_* state bits, the cell error codes and the handler structure are
-// defined by the Meadow extensions to pppd.
-#include "netutils/pppd.h"
 
 /****************************************************************************
  * Shared Definitions
  ****************************************************************************/
 
-#define CONNECT_SCRIPT_OUTPUT_MAX_SIZE 1024
+// The size of the modem output returned by meadow_get_cell_at_cmds_output();
+// the managed caller passes a 1024 byte buffer.
+#define CELL_AT_CMDS_OUTPUT_MAX_SIZE 1024
+
+// Request bits passed by the managed API to meadow_cell_change_state(). The
+// values are fixed by Meadow.Core; 0 means resume, which is a no-op here
+// because the link is never paused.
+#define CELL_AT_CMD_GPS             (1 << 1)
+#define CELL_AT_CMD_SIGNAL_QUALITY  (1 << 2)
+#define CELL_AT_CMD_SCAN            (1 << 3)
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
 
-typedef struct pppd_cell_handler_s hcom_pppd_handler_t;
-typedef enum pppd_cell_err_e hcom_cell_err_t;
+// Error codes returned by meadow_get_cell_error(). The values are reported
+// to the managed API, do not renumber them.
+enum hcom_cell_err_e
+{
+  CELL_INVALID_SETTING_ERR,
+  CELL_INVALID_MODEM_ERR,
+  CELL_PPPD_LOST_CONNECTION_ERR,
+  CELL_PPPD_TIMEOUT_ERR,
+  CELL_PPPD_THREAD_ERR,
+};
+typedef enum hcom_cell_err_e hcom_cell_err_t;
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void pppd_set_state(hcom_pppd_handler_t *handler, int state);
-void pppd_clear_state(hcom_pppd_handler_t *handler, int state);
-int hcom_pppd_start(void);
+int hcom_cell_start(void);
 
-#endif //__CONFIGS_MEADOW_SRC_HCOM_CELL_PPPD__H
+#endif //__CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H
