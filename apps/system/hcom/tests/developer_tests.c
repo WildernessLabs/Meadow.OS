@@ -153,8 +153,8 @@ static meadow_test_names_t _testNames[] =
     { MEADOW_TEST_FREQUENCY_MEASUREMENT, "Measure Frequency tests" },
 #endif
 
-#if defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_CELL_TESTS, "Cell tests" },
+#if (defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)) && defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+    { MEADOW_TEST_CELL_TESTS, "Cell tests (value 1: also live checks on the cell link)" },
 #endif
 
 #if defined(CONFIG_USR_WORK_TESTS) //|| defined(CONFIG_ALL_MEADOW_TESTS)
@@ -289,13 +289,6 @@ static meadow_test_names_t _testNames[] =
 #endif
 
     //
-    //  BG77 tests 1400 - 1599
-    //
-#if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_BG77, "All BG77 tests" },
-#endif
-
-    //
     //  QSPI flash tests 1600 - 1799
     //
 #if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
@@ -340,6 +333,10 @@ static meadow_test_methods_t _userspaceTests[] =
 
 #if defined(CONFIG_SOTEST_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_SOTEST, meadow_sotest_tests },
+#endif
+
+#if (defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)) && defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+    { MEADOW_TEST_CELL_TESTS, meadow_cell_tests },
 #endif
 
 #if defined(CONFIG_DIR_MGMT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
