@@ -256,6 +256,10 @@ Source: `F7MeadowOS/ntpclient`
 A Wilderness Labs fork of the stock NuttX `apps/netutils/ntpclient` app (`meadow_ntpclient.c`),
 with its own `Kconfig`. Provides network time synchronisation.
 
+When cell support is built (`CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD`), `ntpc_start()` is also a
+syscall, so that the user-space cell code can start the client when the cell link comes up (see
+[Cell.md](Cell.md)).
+
 ## `meadow_cloud` - Meadow Cloud Provisioning
 
 Source: `F7MeadowOS/meadow_cloud`

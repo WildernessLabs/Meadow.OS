@@ -278,7 +278,6 @@ int hcom_file_misc_delete_existing(hcom_dnld_shared_t *dnldShared,
 int hcom_mono_ctrl_mono_main_setup(void);
 bool hcom_mono_ctrl_is_mono_enabled(void);
 int hcom_mono_ctrl_start_mono_main(void);
-int meadow_cell_scanner(char *response);
 int hcom_mono_ctrl_mono_appears_to_be_running(void);
 void hcom_mono_ctrl_disable_mono(uint32_t userData);
 void hcom_mono_ctrl_enable_mono(uint32_t userData);

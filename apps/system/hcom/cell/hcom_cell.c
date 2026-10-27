@@ -91,6 +91,7 @@
 #define DISCONNECT_SCRIPT_MAX_SIZE 32
 #define AUTHENTICATION_CMD_MAX_SIZE 128
 #define OPERATOR_SELECTION_CMD_MAX_SIZE 128
+#define QICSGP_CMD_MAX_SIZE 256
 
 #define CELL_MODEM_READY_TIMEOUT_S 30
 #define CELL_AT_TIMEOUT_MS 5000
@@ -352,6 +353,7 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
   const char *apn = hcom_cell_str(settings->apn);
   char authentication_cmd[AUTHENTICATION_CMD_MAX_SIZE];
   char operator_selection_cmd[OPERATOR_SELECTION_CMD_MAX_SIZE];
+  char qicsgp_cmd[QICSGP_CMD_MAX_SIZE];
 
   if (timeout[0] == '\0')
   {
@@ -404,9 +406,30 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
       break;
 
     case CELL_BG95M3_MODULE:
+      // The BG95-M3 answers ERROR to AT+CGAUTH. Its own command, AT+QICSGP,
+      // sets the context's APN and credentials (context 1, IPv4, then the
+      // authentication: 3 = PAP or CHAP).
+      snprintf_chk(qicsgp_cmd, QICSGP_CMD_MAX_SIZE,
+          ((pap_user[0] != '\0') && (pap_password[0] != '\0'))
+              ? "AT+QICSGP=1,1,\\\"%s\\\",\\\"%s\\\",\\\"%s\\\",3 PAUSE 3 OK "
+              : "",
+          apn,
+          pap_user,
+          pap_password
+      );
+      snprintf_chk(connect_script, CONNECT_SCRIPT_MAX_SIZE,
+        "TIMEOUT %s "
+        "\"\" AT+CMEE=2 "
+        "PAUSE 3 "
+        "OK AT+CGDCONT=1,\\\"IP\\\",\\\"%s\\\" "
+        "PAUSE 3 "
+        "OK %s%s"
+        "ATD*99# "
+        "CONNECT \\c",
+        timeout, apn, qicsgp_cmd, operator_selection_cmd);
+      break;
+
     case CELL_EG21GL_MODULE:
-      // The BG95-M3 answers ERROR to AT+CGAUTH, so these scripts do not set
-      // the credentials (see CellPlan.md).
       snprintf_chk(connect_script, CONNECT_SCRIPT_MAX_SIZE,
         "TIMEOUT %s "
         "\"\" AT+CMEE=2 "
