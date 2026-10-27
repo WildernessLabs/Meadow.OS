@@ -27,7 +27,8 @@
     <MeadowCoreDir Condition="'$(MeadowCoreDir)' == ''">$(RepositoryRoot)/../../meadow-3.0/Meadow.Core</MeadowCoreDir>
     <MeadowTestConfig Condition="'$(MEADOW_TEST_CONFIG)' != ''">$(MEADOW_TEST_CONFIG)</MeadowTestConfig>
     <MeadowTestConfig Condition="'$(MeadowTestConfig)' == ''">$(MSBuildThisFileDirectory)meadow.config.yaml</MeadowTestConfig>
-    <MeadowCellConfig Condition="'$(MEADOW_CELL_CONFIG)' != ''">$(MEADOW_CELL_CONFIG)</MeadowCellConfig>
+    <!-- A relative MEADOW_CELL_CONFIG is taken from the repository root; Combine keeps an absolute one. -->
+    <MeadowCellConfig Condition="'$(MEADOW_CELL_CONFIG)' != ''">$([System.IO.Path]::Combine('$(RepositoryRoot)', '$(MEADOW_CELL_CONFIG)'))</MeadowCellConfig>
     <MeadowCellConfig Condition="'$(MeadowCellConfig)' == ''">$(MSBuildThisFileDirectory)cell.config.yaml</MeadowCellConfig>
     <DefineConstants Condition="'$(MEADOW_CELL_CONFIG)' != ''">$(DefineConstants);CELL_SIM</DefineConstants>
   </PropertyGroup>
