@@ -852,7 +852,12 @@ int hcom_pppd_start()
         param.sched_priority = HCOM_THREAD_PRIORITY_CELL_PPPD;
         pthread_attr_setschedparam(&attr, &param);
 
+        // Nothing joins the thread, so let it release its resources when it
+        // returns.
+        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
         ret = pthread_create(&pppd_thread_id, &attr, pppd_thread, (void *) cell_settings);
+        pthread_attr_destroy(&attr);
         if (ret == OK)
         {
             (void) pthread_setname_np(pppd_thread_id, HCOM_THREAD_NAME_CELL_PPPD);
