@@ -36,6 +36,11 @@
 #ifndef __CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H
 #define __CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H
 
+#include <nuttx/config.h>
+
+#include <stdbool.h>
+#include <stddef.h>
+
 #include <meadow/hcom_shared_common.h>
 
 /****************************************************************************
@@ -74,5 +79,19 @@ typedef enum hcom_cell_err_e hcom_cell_err_t;
  ****************************************************************************/
 
 int hcom_cell_start(void);
+
+// The native API also used by the managed side (apps/system/mono/mappings-meadow.h).
+bool meadow_cell_is_connected(void);
+void meadow_cell_change_state(int state);
+int meadow_get_cell_at_cmds_output(unsigned char *buf);
+int meadow_get_cell_error(void);
+
+#if defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+// Entry points for the native cell tests (tests/cell_tests.c).
+int hcom_cell_test_create_scripts(const cell_settings_t *settings, char *connect_script, size_t connect_size,
+                                  char *disconnect_script, size_t disconnect_size);
+int hcom_cell_test_at(int fd, const char *command, int timeout_ms, char *out, size_t out_size);
+bool hcom_cell_test_gga_has_fix(const char *reply);
+#endif
 
 #endif //__CONFIGS_MEADOW_SRC_HCOM_CELL_CELL__H

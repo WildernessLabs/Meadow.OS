@@ -108,9 +108,9 @@ Two overlaps worth knowing about when adding new code: `diag/hcom_diag_misc.c` a
 between them, and `misc/espcp_utils.c` is ESP-coprocessor-specific logic that lives outside
 `esp32/`.
 
-`tests/` also contains `tensorflow_tests.c` and `cell_tests.c`, which are present in source but not
-built (`cell_tests.c` targets the old Legacy pppd interface). The cell network is tested by the
-managed test app `tests/managed/CellTests` instead.
+`tests/` also contains `tensorflow_tests.c`, which is present in source but exercises a feature
+that is not part of the current build (TensorFlow Lite for Microcontrollers). `cell_tests.c` holds
+the native cell tests (`build.sh --unittests=cell`); see [Cell.md](Cell.md).
 
 ## Shared Headers
 

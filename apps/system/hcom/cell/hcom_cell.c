@@ -451,6 +451,22 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
 }
 
 //====================================================================
+// Whether a GGA reply holds a fix: the fix quality, field 6 of the sentence,
+// is 1 or more (0 or empty means no fix yet).
+static bool hcom_cell_gga_has_fix(const char *reply)
+{
+  const char *field = strstr(reply, "$GPGGA");
+  for (int commas = 0; (field != NULL) && (*field != '\0') && (commas < 6); field++)
+  {
+    if (*field == ',')
+    {
+      commas++;
+    }
+  }
+  return (field != NULL) && (*field >= '1') && (*field <= '9');
+}
+
+//====================================================================
 // GNSS request: turn the receiver on, wait for a fix (or the timeout), read
 // the NMEA sentences and turn it off again. The GPIO 64 commands switch the
 // GNSS antenna supply, as in the scripts used before CMUX.
@@ -478,17 +494,7 @@ static int hcom_cell_gnss(int fd, char *out, size_t out_size)
     char gga[192];
     gga[0] = '\0';
     hcom_cell_at(fd, "AT+QGPSGNMEA=\"GGA\"", CELL_AT_TIMEOUT_MS, gga, sizeof(gga));
-
-    // The fix quality is field 6 of GGA; 0 (or empty) means no fix yet.
-    const char *field = strstr(gga, "$GPGGA");
-    for (int commas = 0; (field != NULL) && (*field != '\0') && (commas < 6); field++)
-    {
-      if (*field == ',')
-      {
-        commas++;
-      }
-    }
-    if ((field != NULL) && (*field >= '1') && (*field <= '9'))
+    if (hcom_cell_gga_has_fix(gga))
     {
       syslog(LOG_INFO, "%s-%d-Cell GNSS fix after %d s\n", __FILE__, __LINE__, waited);
       break;
@@ -913,6 +919,35 @@ int hcom_cell_start(void)
   syslog(LOG_INFO, "%s@%d-PPPD thread launched\n", __FILE__, __LINE__);
   return OK;
 }
+
+#if defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+//====================================================================
+// Entry points for the native cell tests (tests/cell_tests.c), which test
+// these private functions without a modem.
+int hcom_cell_test_create_scripts(const cell_settings_t *settings, char *connect_script, size_t connect_size,
+                                  char *disconnect_script, size_t disconnect_size)
+{
+  static char connect[CONNECT_SCRIPT_MAX_SIZE];
+  static char disconnect[DISCONNECT_SCRIPT_MAX_SIZE];
+
+  connect[0] = '\0';
+  disconnect[0] = '\0';
+  int ret = hcom_cell_create_scripts(settings, connect, disconnect);
+  strlcpy(connect_script, connect, connect_size);
+  strlcpy(disconnect_script, disconnect, disconnect_size);
+  return ret;
+}
+
+int hcom_cell_test_at(int fd, const char *command, int timeout_ms, char *out, size_t out_size)
+{
+  return hcom_cell_at(fd, command, timeout_ms, out, out_size);
+}
+
+bool hcom_cell_test_gga_has_fix(const char *reply)
+{
+  return hcom_cell_gga_has_fix(reply);
+}
+#endif
 
 bool meadow_cell_is_connected(void)
 {

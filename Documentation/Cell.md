@@ -144,6 +144,29 @@ pppd and chat are unmodified.
 
 ## Testing
 
+There are two test suites: native tests, to check OS changes quickly without Mono, and a managed test
+app, which checks the link between the managed API and the OS.
+
+### Native tests
+
+Build with `build.sh --unittests=cell` and run developer test 20 (`meadow developer -p 20`). The
+code is `apps/system/hcom/tests/cell_tests.c`. Without a modem it checks:
+
+- the connect scripts for each module (credentials, operator selection, no modem reset, defaults);
+- the AT reply parser, with the test playing the modem on a pty pair (`OK` whole or split, `ERROR`,
+  `+CME ERROR`, a bounded timeout, CR/LF kept);
+- GGA fix detection;
+- CMUX, with the test playing a CMUX modem on a pty pair: whole, split and back-to-back frames, a bad
+  FCS, CR delivered unchanged, the control channel answered, and channel-to-modem framing. These pin
+  the `cmux.c` fixes listed above.
+
+`meadow developer -p 20 -v 1` adds live checks, which need the cell link to be running: the link
+is up, a DNS lookup works, and a signal quality request through the native API returns `+CSQ`. CMUX
+has no tear-down, so each run leaves a CMUX thread and three ptys behind; restart the board after a
+few runs.
+
+### Managed tests
+
 `tests/managed/CellTests` runs through the hardware test runner. With an EE SIM (EE's public
 settings are in `cell.ee.config.yaml`):
 

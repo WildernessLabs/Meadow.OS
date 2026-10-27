@@ -30,7 +30,7 @@ The following identifiers can be used with the `-u` flag:
 |------------|-------------|----------------|
 | `adc` | Analog to Digital converter tests | `ADC_TESTS` |
 | `bbr` | Battery Backed Register tests | `BBR_TESTS` |
-| `bg77` | BG77 Cellular modem tests | `BG77_TESTS` |
+| `cell` | Cell network tests (CMUX, AT parser, connect scripts; live checks with value 1). Needs `MEADOW_CELL_INCLUDE_IN_BUILD` | `CELL_TESTS` |
 | `chat` | Ethernet Chat tests | `CHAT_TESTS` |
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
 | `dirmgmt` | Directory management tests | `DIR_MGMT_TESTS` |
