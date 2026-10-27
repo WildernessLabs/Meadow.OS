@@ -89,7 +89,7 @@ ifeq ($(CONFIG_MEADOW_CLOUD),y)
 endif
 
 ifeq ($(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD),y)
- HCOM_SRCS += cell/hcom_pppd.c
+ HCOM_SRCS += cell/hcom_cell.c
 endif
 
 ifeq ($(CONFIG_HCOM_ESP32_COMMS),y)

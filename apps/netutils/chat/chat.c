@@ -84,9 +84,6 @@ void chat_init(FAR struct chat *priv, FAR struct chat_ctl *ctl)
 
   memcpy(&priv->ctl, ctl, sizeof(struct chat_ctl));
   priv->script  = NULL;
-  priv->resp = NULL;
-  priv->resp_size = 0;
-  priv->resp_len = 0;
 }
 
 /* Linear one-pass tokenizer. */
@@ -487,15 +484,6 @@ static int chat_readb(FAR struct chat *priv, FAR char *c, int timeout_ms)
       fputc(*c, stderr);
     }
 
-  /* Meadow: capture the response for the caller of chat_response() */
-
-  if ((timeout_ms != 0) && (priv->resp != NULL) &&
-      (priv->resp_len + 1 < priv->resp_size))
-    {
-      priv->resp[priv->resp_len++] = *c;
-      priv->resp[priv->resp_len] = '\0';
-    }
-
   ninfo("read \'%c\' (0x%02X)\n", *c, *c);
   return 0;
 }
@@ -732,25 +720,12 @@ static int chat_script_free(FAR struct chat *priv)
 
 int chat(FAR struct chat_ctl *ctl, FAR const char *script)
 {
-  return chat_response(ctl, script, NULL, 0);
-}
-
-int chat_response(FAR struct chat_ctl *ctl, FAR const char *script,
-                  FAR char *response, size_t response_size)
-{
   int ret = 0;
   struct chat priv;
 
   DEBUGASSERT(script != NULL);
 
   chat_init(&priv, ctl);
-  if ((response != NULL) && (response_size > 0))
-    {
-      priv.resp = response;
-      priv.resp_size = response_size;
-      response[0] = '\0';
-    }
-
   ret = chat_script_parse(&priv, script);
   if (!ret)
     {
