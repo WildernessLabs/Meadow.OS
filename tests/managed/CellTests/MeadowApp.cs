@@ -4,8 +4,13 @@
 //  Output follows the test runner contract (tools/testrunner/README.md).
 //
 //  Needs a BG95-M3 on mikroBUS 1 (COM1, enable pin A3) and, for cell.gnss_fix, a GPS antenna with
-//  a view of the sky.  A SIM is not needed: without one the modem answers CONNECT and then hangs
-//  up, so pppd reconnects about once a minute and runs the posted AT scripts then.
+//  a view of the sky.  A SIM is not needed for the GNSS and signal cases: without one the modem
+//  answers CONNECT and then hangs up, so pppd reconnects about once a minute and runs the posted
+//  AT scripts then.
+//
+//  The data link cases (cell.connected, cell.http_get) need a SIM and its cell.config.yaml, passed
+//  at build time in MEADOW_CELL_CONFIG, which also defines CELL_SIM.  Without CELL_SIM they are
+//  skipped.  They run first, because the GNSS and signal requests take the link down.
 //
 //  The NMEA output contains the board's position, so this app never prints it; it reports only
 //  the fix quality, the satellite counts and the dilution of precision.
@@ -13,6 +18,7 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Meadow;
 using Meadow.Devices;
@@ -31,12 +37,24 @@ public class MeadowApp : App<F7CoreComputeV2>
     const int SignalQualityTimeoutSeconds = 120;
 
     //
+    //  Time for the PPP link to come up after boot: modem power-on, the connect script (with
+    //  AT+CFUN=1,1 and its 15 s pause), network registration and PPP negotiation.
+    //
+    const int ConnectTimeoutSeconds = 300;
+
+    //
+    //  A small page served over plain HTTP, so that the case tests the link and DNS, not TLS.
+    //
+    const string HttpUrl = "http://example.com/";
+
+    //
     //  F7CellNetworkAdapter.NoSignal.
     //
     const int NoSignal = -9999;
 
     int cases;
     int failures;
+    int skipped;
     ICellNetworkAdapter cell;
     string gnssOutput;
 
@@ -46,6 +64,15 @@ public class MeadowApp : App<F7CoreComputeV2>
 
         if (await Case("cell.adapter", FindAdapter))
         {
+#if CELL_SIM
+            if (await Case("cell.connected", WaitForLink))
+            {
+                await Case("cell.http_get", HttpGet);
+            }
+#else
+            Skip("cell.connected", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+            Skip("cell.http_get", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+#endif
             if (await Case("cell.gnss_output", GnssOutput))
             {
                 await Case("cell.gnss_fix", GnssFix);
@@ -57,6 +84,7 @@ public class MeadowApp : App<F7CoreComputeV2>
             Console.WriteLine("TESTRUN INFO no cell adapter, the cell cases were not run");
         }
 
+        Console.WriteLine($"TESTRUN INFO skipped={skipped}");
         Console.WriteLine($"TESTRUN END failures={failures} cases={cases}");
 
         //
@@ -86,6 +114,49 @@ public class MeadowApp : App<F7CoreComputeV2>
             failures++;
             Console.WriteLine($"TESTRUN CASE {name} FAIL {watch.ElapsedMilliseconds} {ex.GetType().Name}: {ex.Message}");
             return false;
+        }
+    }
+
+    void Skip(string name, string reason)
+    {
+        cases++;
+        skipped++;
+        Console.WriteLine($"TESTRUN CASE {name} SKIP 0 {reason}");
+    }
+
+    //
+    //  The PPP link is up: the native side reports connected (set by the pppd connect event once
+    //  IPCP has finished).
+    //
+    async Task<string> WaitForLink()
+    {
+        var watch = Stopwatch.StartNew();
+        while (watch.Elapsed.TotalSeconds < ConnectTimeoutSeconds)
+        {
+            if (cell.IsConnected)
+            {
+                return $"after={watch.Elapsed.TotalSeconds:F0}s";
+            }
+            await Task.Delay(1000);
+        }
+        throw new TimeoutException($"the cell link did not come up in {ConnectTimeoutSeconds} s");
+    }
+
+    //
+    //  An HTTP GET over the cell link: DNS (the network's servers from IPCP) and TCP through ppp0.
+    //
+    async Task<string> HttpGet()
+    {
+        using (var client = new HttpClient())
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            var response = await client.GetAsync(HttpUrl);
+            var body = await response.Content.ReadAsStringAsync();
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"status={(int)response.StatusCode}");
+            }
+            return $"status={(int)response.StatusCode} bytes={body.Length}";
         }
     }
 

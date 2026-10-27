@@ -6,8 +6,11 @@
       Meadow.Core comes from the meadow-3.0 checkout: MEADOW_CORE_DIR, or ../../meadow-3.0/Meadow.Core.
       The runner (tools/testrunner) chooses the Mono options by setting MEADOW_TEST_CONFIG to a
       generated meadow.config.yaml; without it the app ships the meadow.config.yaml from this
-      folder.  cell.config.yaml is always shipped from this folder, because a deploy deletes every
-      file in /meadow0 that is not in the publish output.
+      folder.  cell.config.yaml is always shipped, because a deploy deletes every file in /meadow0
+      that is not in the publish output: the placeholder in this folder (no SIM), or the file named
+      by MEADOW_CELL_CONFIG.  Setting MEADOW_CELL_CONFIG also defines CELL_SIM, which makes the
+      data link cases (cell.connected, cell.http_get) required instead of skipped.  Keep SIM
+      credentials out of the repository: MEADOW_CELL_CONFIG should name a local file.
   -->
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -23,6 +26,9 @@
     <MeadowCoreDir Condition="'$(MeadowCoreDir)' == ''">$(RepositoryRoot)/../../meadow-3.0/Meadow.Core</MeadowCoreDir>
     <MeadowTestConfig Condition="'$(MEADOW_TEST_CONFIG)' != ''">$(MEADOW_TEST_CONFIG)</MeadowTestConfig>
     <MeadowTestConfig Condition="'$(MeadowTestConfig)' == ''">$(MSBuildThisFileDirectory)meadow.config.yaml</MeadowTestConfig>
+    <MeadowCellConfig Condition="'$(MEADOW_CELL_CONFIG)' != ''">$(MEADOW_CELL_CONFIG)</MeadowCellConfig>
+    <MeadowCellConfig Condition="'$(MeadowCellConfig)' == ''">$(MSBuildThisFileDirectory)cell.config.yaml</MeadowCellConfig>
+    <DefineConstants Condition="'$(MEADOW_CELL_CONFIG)' != ''">$(DefineConstants);CELL_SIM</DefineConstants>
   </PropertyGroup>
 
   <Target Name="CheckMeadowCore" BeforeTargets="BeforeBuild">
@@ -35,6 +41,6 @@
 
   <ItemGroup>
     <None Include="$(MeadowTestConfig)" Link="meadow.config.yaml" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
-    <None Include="cell.config.yaml" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
+    <None Include="$(MeadowCellConfig)" Link="cell.config.yaml" CopyToOutputDirectory="Always" CopyToPublishDirectory="Always" />
   </ItemGroup>
 </Project>

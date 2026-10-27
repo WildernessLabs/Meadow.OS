@@ -74,10 +74,20 @@ minute and runs the posted AT scripts then.
   the modem, so there is no `Uart1Use`; for the syslog, build the OS with `build.sh --dualcdc`
   (without `--nsh`) and read the second USB CDC port. The deploy replaces the board's
   `meadow.config.yaml`, so restore the usual one afterwards.
+- **SIM:** without one the two data link cases are skipped. With one, point `MEADOW_CELL_CONFIG`
+  at a local `cell.config.yaml` that has the carrier's APN and credentials. Keep that file out of
+  the repository. The app then ships it in place of the placeholder and requires the link:
+
+  ```bash
+  MEADOW_CELL_CONFIG=<local>/cell.config.yaml tools/testrunner/testrunner.py --test celltests
+  ```
 - **Mono must be running:** pppd starts only after Mono starts. Check that the boot banner says
   `Mono:Enabled`.
 - **Cases:**
   - `cell.adapter`: the cell adapter exists.
+  - `cell.connected` (SIM only): the PPP link comes up within 300 s (`IsConnected`).
+  - `cell.http_get` (SIM only): an HTTP GET of `http://example.com/` over the link, which tests the
+    network DNS servers and TCP through `ppp0`.
   - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
     It does not need a fix. A run takes about 210 s: a wait for the next pppd reconnect, then the
     GNSS script, which contains `PAUSE 120`.
@@ -85,7 +95,7 @@ minute and runs the posted AT scripts then.
     satellite count, the HDOP and the GSA fix mode, because the NMEA contains the bench's
     position.
   - `cell.signal_quality`: `GetSignalQuality` returns a value other than NoSignal. This is
-    currently a known failure; see the manifest.
+    a known failure without a SIM; see the manifest.
 - **Limit:** the cases go through the pause path only. If the connect script itself keeps failing,
   pppd never runs the posted script and the managed call can block (`OS/CellPlan.md` 2.2). The
   runner's timeout ends the run in that case.
