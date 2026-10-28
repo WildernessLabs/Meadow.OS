@@ -8,7 +8,7 @@
 //  answers CONNECT and then hangs up, so pppd reconnects about once a minute and runs the posted
 //  AT scripts then.
 //
-//  The data link cases (cell.connected, cell.http_get) need a SIM and its cell.config.yaml, passed
+//  The data link cases (cell.connected, cell.http_get, cell.http_large) need a SIM and its cell.config.yaml, passed
 //  at build time in MEADOW_CELL_CONFIG, which also defines CELL_SIM.  Without CELL_SIM they are
 //  skipped.  They run first, because the GNSS and signal requests take the link down.
 //
@@ -48,6 +48,15 @@ public class MeadowApp : App<F7CoreComputeV2>
     const string HttpUrl = "http://example.com/";
 
     //
+    //  Bodies larger than one TCP segment, so that full-size (about 1400-byte) IP packets cross the
+    //  PPP link in both directions: a download, and an upload that the server echoes back.
+    //
+    const int LargeDownloadBytes = 8192;
+    const int LargeUploadBytes = 4096;
+    const string LargeDownloadUrl = "http://httpbin.org/bytes/8192";
+    const string LargeUploadUrl = "http://httpbin.org/post";
+
+    //
     //  F7CellNetworkAdapter.NoSignal.
     //
     const int NoSignal = -9999;
@@ -68,10 +77,12 @@ public class MeadowApp : App<F7CoreComputeV2>
             if (await Case("cell.connected", WaitForLink))
             {
                 await Case("cell.http_get", HttpGet);
+                await Case("cell.http_large", HttpLarge);
             }
 #else
             Skip("cell.connected", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
             Skip("cell.http_get", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+            Skip("cell.http_large", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
 #endif
             if (await Case("cell.gnss_output", GnssOutput))
             {
@@ -157,6 +168,40 @@ public class MeadowApp : App<F7CoreComputeV2>
                 throw new InvalidOperationException($"status={(int)response.StatusCode}");
             }
             return $"status={(int)response.StatusCode} bytes={body.Length}";
+        }
+    }
+
+    //
+    //  Full-size packets over the cell link: an 8 KB download and a 4 KB upload.
+    //
+    async Task<string> HttpLarge()
+    {
+        using (var client = new HttpClient())
+        {
+            client.Timeout = TimeSpan.FromSeconds(60);
+            var watch = Stopwatch.StartNew();
+            var data = await client.GetByteArrayAsync(LargeDownloadUrl);
+            long downloadMs = watch.ElapsedMilliseconds;
+            if (data.Length != LargeDownloadBytes)
+            {
+                throw new InvalidOperationException($"download returned {data.Length} bytes, expected {LargeDownloadBytes}");
+            }
+
+            var body = new byte[LargeUploadBytes];
+            new Random(1).NextBytes(body);
+            watch.Restart();
+            var response = await client.PostAsync(LargeUploadUrl, new ByteArrayContent(body));
+            var echo = await response.Content.ReadAsStringAsync();
+            long uploadMs = watch.ElapsedMilliseconds;
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException($"upload status={(int)response.StatusCode}");
+            }
+            if (echo.Length < LargeUploadBytes)
+            {
+                throw new InvalidOperationException($"upload echo was {echo.Length} characters, expected at least {LargeUploadBytes}");
+            }
+            return $"download={data.Length}B/{downloadMs}ms upload={LargeUploadBytes}B/{uploadMs}ms echo={echo.Length}";
         }
     }
 

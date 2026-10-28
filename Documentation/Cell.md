@@ -202,6 +202,8 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 - With the data link up, a BG95-M3 polled with AT commands while it searched for a slow GNSS fix
   stopped answering on every channel (AT and PPP) for 224 s or more. Left unpolled, it did not.
   Hence the quiet period in the GNSS request. Firmware tested: `BG95M3LAR02A03_01.014.01.014`.
-- Stock pppd's receive buffer is 1024 bytes. 968-byte TCP segments have been tested; full
-  1500-byte IP packets have not.
+- Large transfers are slow. The `cell.http_large` case (an 8 KB download and a 4 KB upload,
+  1400-byte packets both ways) takes about 25 s: NuttX TCP drops out-of-order segments and offers a
+  4.5 KB receive window, so each reordered segment costs a retransmission timeout. 1400-byte IP
+  packets have been tested; 1500-byte ones have not (the servers tested offered an MSS of 1360).
 - Stock pppd gives no connect-script progress, so the retry-exceeded event is not raised.

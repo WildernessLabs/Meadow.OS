@@ -93,6 +93,9 @@ minute and runs the posted AT scripts then.
   - `cell.connected` (SIM only): the PPP link comes up within 300 s (`IsConnected`).
   - `cell.http_get` (SIM only): an HTTP GET of `http://example.com/` over the link, which tests the
     network DNS servers and TCP through `ppp0`.
+  - `cell.http_large` (SIM only): an 8 KB download (`http://httpbin.org/bytes/8192`) and a 4 KB
+    upload (`http://httpbin.org/post`), so that full-size (about 1400-byte) IP packets cross the PPP
+    link in both directions. About 20 KB of data per run.
   - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
     It does not need a fix. A run takes about 210 s: a wait for the next pppd reconnect, then the
     GNSS script, which contains `PAUSE 120`.
