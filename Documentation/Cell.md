@@ -142,7 +142,10 @@ of the modem UART:
   timeout.
 - The termios passed to `openpty()` was uninitialised.
 
-pppd and chat are unmodified.
+chat is unmodified. pppd has one tuning change: `AHDLC_TX_OFFLINE` in
+`apps/netutils/pppd/ppp_conf.h` is raised from 5 to 15. pppd redials once it has sent more than that
+many frames with nothing received. With only its 20 s LCP echoes that took about 105 s, so any GNSS
+request longer than that also cost a redial; at 15 it takes about 5 minutes.
 
 ## Testing
 
