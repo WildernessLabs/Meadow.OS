@@ -119,8 +119,10 @@ board would send everything the modem says straight back to it.
 Each request ends with the AT command event, which carries a failure status if the commands did
 not complete, so the managed caller stops waiting either way.
 
-- **GNSS:** turns the receiver on, waits up to 120 s for a fix (polling `GGA` every 3 s), then reads
-  `GSV`, `GGA`, `RMC`, `GSA` and `VTG` and turns it off. Only the sentences are returned.
+- **GNSS:** turns the receiver on (`AT+QGPS=1`) and waits up to 120 s for a fix, then reads `GSV`,
+  `GGA`, `RMC`, `GSA` and `VTG` and turns it off (`AT+QGPSEND`). Only the sentences are returned.
+  It polls `GGA` every 3 s for the first 15 s, sends nothing from 15 s to 90 s, then polls every 3 s
+  again (see the known limitations).
 - **Signal quality:** `AT+CSQ`, retried up to three times while the modem answers `99` ("not known").
 - **Network scan:** `AT+COPS=?`, up to 180 s.
 
@@ -140,7 +142,10 @@ of the modem UART:
   timeout.
 - The termios passed to `openpty()` was uninitialised.
 
-pppd and chat are unmodified.
+chat is unmodified. pppd has one tuning change: `AHDLC_TX_OFFLINE` in
+`apps/netutils/pppd/ppp_conf.h` is raised from 5 to 15. pppd redials once it has sent more than that
+many frames with nothing received. With only its 20 s LCP echoes that took about 105 s, so any GNSS
+request longer than that also cost a redial; at 15 it takes about 5 minutes.
 
 ## Testing
 
@@ -179,9 +184,14 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 ## Known limitations
 
 - The `cell.http_get` test takes about 40 s; the cause is not yet known.
-- While acquiring a GNSS fix with the data link up, a BG95-M3 once went silent on every channel
-  for about 215 s, then resumed. This is probably GNSS and LTE sharing the RF path (see
-  `AT+QGPSCFG="priority"`); the GNSS fix wait is bounded at 120 s.
+- The BG95-M3 cannot run GNSS and the data link at the same time. In its default GNSS priority
+  mode (`AT+QGPSCFG="priority"`) it hands the radio to GNSS as soon as `AT+QGPS` runs, so no data
+  flows during a GNSS request; it resumes after `AT+QGPSEND`. WWAN priority mode needs eDRX, which
+  the network did not grant in testing, so GNSS never ran. Applications should not send traffic
+  during a GNSS request.
+- With the data link up, a BG95-M3 polled with AT commands while it searched for a slow GNSS fix
+  stopped answering on every channel (AT and PPP) for 224 s or more. Left unpolled, it did not.
+  Hence the quiet period in the GNSS request. Firmware tested: `BG95M3LAR02A03_01.014.01.014`.
 - Stock pppd's receive buffer is 1024 bytes. 968-byte TCP segments have been tested; full
   1500-byte IP packets have not.
 - Stock pppd gives no connect-script progress, so the retry-exceeded event is not raised.

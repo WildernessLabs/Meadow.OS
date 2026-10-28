@@ -58,7 +58,12 @@
 
 #define PPP_RX_BUFFER_SIZE      1024 //1024  //GD 2048 for 1280 IPv6 MTU
 
-#define AHDLC_TX_OFFLINE        5
+/* Frames sent with nothing received before pppd reconnects.  At 5, with only
+ * the LCP echoes (every LCP_ECHO_INTERVAL seconds), a modem that holds the
+ * link for about 105 s (a BG95 acquiring a GNSS fix) caused a reconnect.
+ */
+
+#define AHDLC_TX_OFFLINE        15
 
 #define IPCP_GET_PEER_IP        1
 
