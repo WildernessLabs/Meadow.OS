@@ -141,8 +141,18 @@ of the modem UART:
 - The thread `select()`ed on the slave ptys, which belong to the channel users, with a 100 us
   timeout.
 - The termios passed to `openpty()` was uninitialised.
+- Everything read from a channel went out as one frame, so frames longer than the negotiated
+  maximum (N1 = 127) were sent; the modem may discard them.
+- Frames were written to the non-blocking UART with a single `write()`. USART1's transmit buffer
+  is 252 bytes, so a long frame was cut short and the rest of the channel data was lost. Uploads
+  of more than a couple of hundred bytes per packet never got through.
 
-chat is unmodified. pppd has one tuning change: `AHDLC_TX_OFFLINE` in
+chat is unmodified. pppd's frame buffer (`PPP_RX_BUFFER_SIZE` in `apps/netutils/pppd/ppp_conf.h`)
+was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an MRU, so the modem
+sends packets of up to 1500 bytes, and every packet over about 1020 bytes was dropped, in both
+directions.
+
+pppd also has one tuning change: `AHDLC_TX_OFFLINE` in
 `apps/netutils/pppd/ppp_conf.h` is raised from 5 to 15. pppd redials once it has sent more than that
 many frames with nothing received. With only its 20 s LCP echoes that took about 105 s, so any GNSS
 request longer than that also cost a redial; at 15 it takes about 5 minutes.
@@ -162,8 +172,8 @@ code is `apps/system/hcom/tests/cell_tests.c`. Without a modem it checks:
   `+CME ERROR`, a bounded timeout, CR/LF kept);
 - GGA fix detection;
 - CMUX, with the test playing a CMUX modem on a pty pair: whole, split and back-to-back frames, a bad
-  FCS, CR delivered unchanged, the control channel answered, and channel-to-modem framing. These pin
-  the `cmux.c` fixes listed above.
+  FCS, CR delivered unchanged, the control channel answered, and channel-to-modem framing (including
+  400 bytes split into frames of at most 127 bytes). These pin the `cmux.c` fixes listed above.
 
 `meadow developer -p 20 -v 1` adds live checks, which need the cell link to be running: the link
 is up, a DNS lookup works, and a signal quality request through the native API returns `+CSQ`. CMUX
@@ -192,6 +202,8 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 - With the data link up, a BG95-M3 polled with AT commands while it searched for a slow GNSS fix
   stopped answering on every channel (AT and PPP) for 224 s or more. Left unpolled, it did not.
   Hence the quiet period in the GNSS request. Firmware tested: `BG95M3LAR02A03_01.014.01.014`.
-- Stock pppd's receive buffer is 1024 bytes. 968-byte TCP segments have been tested; full
-  1500-byte IP packets have not.
+- Large transfers are slow. The `cell.http_large` case (an 8 KB download and a 4 KB upload,
+  1400-byte packets both ways) takes about 25 s: NuttX TCP drops out-of-order segments and offers a
+  4.5 KB receive window, so each reordered segment costs a retransmission timeout. 1400-byte IP
+  packets have been tested; 1500-byte ones have not (the servers tested offered an MSS of 1360).
 - Stock pppd gives no connect-script progress, so the retry-exceeded event is not raised.

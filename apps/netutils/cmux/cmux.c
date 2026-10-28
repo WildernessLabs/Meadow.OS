@@ -29,7 +29,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <unistd.h>
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -53,6 +56,7 @@
 #define CMUX_TASK_NAME ("cmux")
 #define CMUX_THREAD_PRIOR (100)
 #define CMUX_THREAD_STACK_SIZE (3072)
+#define CMUX_WRITE_TIMEOUT_MS (1000)
 
 #define cmux_inc_buffer(buf, p) \
   p++;                          \
@@ -329,6 +333,47 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
 }
 
 /****************************************************************************
+ * Name: cmux_write_all
+ *
+ * Description:
+ *  Write the whole buffer to the (non-blocking) serial port.  The UART
+ *  transmit buffer can be smaller than a frame, so a write may be partial
+ *  or fail with EAGAIN; wait for room instead of dropping the rest.
+ *
+ ****************************************************************************/
+
+static int cmux_write_all(int fd, const unsigned char *buffer, int length)
+{
+  struct pollfd fds;
+
+  while (length > 0)
+    {
+      ssize_t ret = write(fd, buffer, length);
+      if (ret > 0)
+        {
+          buffer += ret;
+          length -= ret;
+          continue;
+        }
+
+      if (ret < 0 && errno != EAGAIN)
+        {
+          return ERROR;
+        }
+
+      fds.fd = fd;
+      fds.events = POLLOUT;
+      fds.revents = 0;
+      if (poll(&fds, 1, CMUX_WRITE_TIMEOUT_MS) <= 0)
+        {
+          return ERROR;
+        }
+    }
+
+  return OK;
+}
+
+/****************************************************************************
  * Name: cmux_encode_frame
  *
  * Description:
@@ -372,30 +417,23 @@ static int cmux_encode_frame(int fd, int channel, char *buffer,
   frame_posfix[CMUX_BIT0] = cmux_calulate_fcs(frame_prefix + 1,
                                               prefix_len - 1);
 
-  int ret = write(fd, frame_prefix, prefix_len);
-  if (ret != prefix_len)
+  int ret = cmux_write_all(fd, frame_prefix, prefix_len);
+  if (ret != OK)
     {
       return ERROR;
     }
 
   if (frame_size > 0 && buffer != NULL)
     {
-      ret = write(fd, buffer, frame_size);
-      if (ret != frame_size)
+      ret = cmux_write_all(fd, (unsigned char *)buffer, frame_size);
+      if (ret != OK)
         {
-          ninfo("Failed to write buffer (wrote %d, expected %d)\n",
-                ret, frame_size);
+          ninfo("Failed to write a %d byte frame\n", frame_size);
           return ERROR;
         }
     }
 
-  ret = write(fd, frame_posfix, CMUX_FRAME_POSFIX);
-  if (ret != CMUX_FRAME_POSFIX)
-    {
-      return ERROR;
-    }
-
-  return OK;
+  return cmux_write_all(fd, frame_posfix, CMUX_FRAME_POSFIX);
 }
 
 /****************************************************************************
@@ -656,11 +694,28 @@ static int cmux_send(struct cmux_ctl_s *ctl, char *buffer,
       return ERROR;
     }
 
-  ret = cmux_encode_frame(ctl->fd,
-                          address,
-                          buffer,
-                          length, CMUX_FRAME_TYPE_UIH);
-  return ret;
+  /* Split the data into frames no larger than the negotiated maximum
+   * (N1); the peer may discard longer frames.
+   */
+
+  while (length > 0)
+    {
+      int frame_size = MIN(length, CMUX_FRAME_MAX_SIZE);
+
+      ret = cmux_encode_frame(ctl->fd,
+                              address,
+                              buffer,
+                              frame_size, CMUX_FRAME_TYPE_UIH);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
+      buffer += frame_size;
+      length -= frame_size;
+    }
+
+  return OK;
 }
 
 /****************************************************************************
