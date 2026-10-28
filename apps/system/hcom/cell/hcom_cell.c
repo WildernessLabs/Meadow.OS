@@ -98,6 +98,8 @@
 #define CELL_SCAN_TIMEOUT_MS 180000
 #define CELL_GNSS_FIX_TIMEOUT_S 120
 #define CELL_GNSS_POLL_S 3
+#define CELL_GNSS_EARLY_POLL_S 15
+#define CELL_GNSS_QUIET_UNTIL_S 90
 #define CELL_CSQ_ATTEMPTS 3
 #define CELL_LINK_DOWN_REPORT_S 60
 
@@ -477,20 +479,30 @@ static int hcom_cell_gnss(int fd, char *out, size_t out_size)
 
   // Only the NMEA reads go into the output: the managed buffer is 1024 bytes.
   setup[0] = '\0';
-  hcom_cell_at(fd, "AT+QGPS=1,2,180,1", CELL_AT_TIMEOUT_MS, setup, sizeof(setup));
+  // Continuous positioning, ended by AT+QGPSEND below. On the BG95 the third
+  // parameter of AT+QGPS is a fix count, not the BG96's maximum fix time.
+  hcom_cell_at(fd, "AT+QGPS=1", CELL_AT_TIMEOUT_MS, setup, sizeof(setup));
   hcom_cell_at(fd, "AT+QCFG=\"gpio\",1,64,1,0,0,1", CELL_AT_TIMEOUT_MS, setup, sizeof(setup));
   hcom_cell_at(fd, "AT+QCFG=\"gpio\",3,64,1,1", CELL_AT_TIMEOUT_MS, setup, sizeof(setup));
   hcom_cell_at(fd, "AT+QGPSCFG=\"nmeasrc\",1", CELL_AT_TIMEOUT_MS, setup, sizeof(setup));
 
-  // Wait for the fix by the clock: while the BG95 acquires a fix with the data
-  // link up it can stop answering for minutes, and each unanswered poll takes
-  // the full AT timeout.
+  // Wait for the fix by the clock. A hot start fixes within seconds, so poll
+  // for the first few seconds, then stay quiet: with the data link up, a BG95
+  // polled while it searched for a slow fix stopped answering on every channel
+  // for minutes, and one left alone did not.
   struct timespec begin;
   struct timespec now;
   clock_gettime(CLOCK_MONOTONIC, &begin);
   now = begin;
   for (int waited = 0; waited < CELL_GNSS_FIX_TIMEOUT_S; waited = (int)(now.tv_sec - begin.tv_sec))
   {
+    if ((waited >= CELL_GNSS_EARLY_POLL_S) && (waited < CELL_GNSS_QUIET_UNTIL_S))
+    {
+      sleep(CELL_GNSS_QUIET_UNTIL_S - waited);
+      clock_gettime(CLOCK_MONOTONIC, &now);
+      continue;
+    }
+
     char gga[192];
     gga[0] = '\0';
     hcom_cell_at(fd, "AT+QGPSGNMEA=\"GGA\"", CELL_AT_TIMEOUT_MS, gga, sizeof(gga));
