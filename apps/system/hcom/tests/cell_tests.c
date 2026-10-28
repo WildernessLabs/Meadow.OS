@@ -45,7 +45,8 @@
 //    - GGA fix detection;
 //    - CMUX (apps/netutils/cmux), with the test playing a CMUX modem on a pty
 //      pair: whole, split and back-to-back frames, a bad FCS, CR delivered
-//      unchanged, the control channel answered, and channel to modem framing.
+//      unchanged, the control channel answered, and channel to modem framing,
+//      including data longer than one frame (split at N1, partial writes).
 //
 //  With the cell link running (developer test value 1, a few bytes of data):
 //    - the link is up, a DNS lookup works and a signal quality request through
@@ -599,9 +600,58 @@ static void cell_test_cmux(void)
   found = cell_test_find_uih(cell_test_frame, got, 2, payload, sizeof(payload));
   cell_test_check("Channel data framed for the modem", (found == 3) && (memcmp(payload, "AT\r", 3) == 0));
 
-  close(channel[1]);
-  close(channel[2]);
-  close(master);
+  // 400 bytes in two writes, with the modem side not read until both are in:
+  // each read from the channel must be split into frames of at most N1 (127)
+  // bytes, and the second batch overfills the modem pty, so the frame writer
+  // must finish partial writes instead of dropping the rest.
+  static unsigned char sent[400];
+  static unsigned char wire[1024];
+  for (size_t index = 0; index < sizeof(sent); index++)
+  {
+    sent[index] = (unsigned char)('A' + (index % 26));
+  }
+  write(channel[1], sent, 200);
+  usleep(200 * 1000);
+  write(channel[1], sent + 200, 200);
+  usleep(200 * 1000);
+  got = cell_test_read_for(master, wire, sizeof(wire), 1500);
+  size_t received = 0;
+  size_t longest = 0;
+  bool framed = true;
+  for (size_t index = 0; (index + 5) < got;)
+  {
+    if ((wire[index] != 0xf9) || (wire[index + 1] == 0xf9))
+    {
+      index++;
+      continue;
+    }
+    if (((wire[index + 3] & 0x01) == 0) || ((wire[index + 1] >> 2) != 1))
+    {
+      // A two-byte length field (a frame over 127 bytes) or another DLCI.
+      framed = framed && ((wire[index + 1] >> 2) != 1);
+      index++;
+      continue;
+    }
+    size_t frame_length = wire[index + 3] >> 1;
+    if ((index + 4 + frame_length) > got)
+    {
+      break;
+    }
+    if ((received + frame_length) <= sizeof(sent))
+    {
+      framed = framed && (memcmp(wire + index + 4, sent + received, frame_length) == 0);
+    }
+    received += frame_length;
+    longest = (frame_length > longest) ? frame_length : longest;
+    index += 4 + frame_length + 2;
+  }
+  syslog(LOG_MTEST, "    %zu of %zu bytes framed, longest frame %zu\n", received, sizeof(sent), longest);
+  cell_test_check("Long channel data split into frames of at most 127 bytes",
+                  framed && (received == sizeof(sent)) && (longest <= 127));
+
+  // Leave the modem pty and the channels open. CMUX has no tear-down, so its
+  // thread stays; once these are closed, its select() keeps reporting end of
+  // file and the thread spins at CMUX priority, starving the real cell link.
 }
 
 /****************************************************************************

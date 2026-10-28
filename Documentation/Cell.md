@@ -141,6 +141,11 @@ of the modem UART:
 - The thread `select()`ed on the slave ptys, which belong to the channel users, with a 100 us
   timeout.
 - The termios passed to `openpty()` was uninitialised.
+- Everything read from a channel went out as one frame, so frames longer than the negotiated
+  maximum (N1 = 127) were sent; the modem may discard them.
+- Frames were written to the non-blocking UART with a single `write()`. USART1's transmit buffer
+  is 252 bytes, so a long frame was cut short and the rest of the channel data was lost. Uploads
+  of more than a couple of hundred bytes per packet never got through.
 
 chat is unmodified. pppd's frame buffer (`PPP_RX_BUFFER_SIZE` in `apps/netutils/pppd/ppp_conf.h`)
 was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an MRU, so the modem
@@ -167,8 +172,8 @@ code is `apps/system/hcom/tests/cell_tests.c`. Without a modem it checks:
   `+CME ERROR`, a bounded timeout, CR/LF kept);
 - GGA fix detection;
 - CMUX, with the test playing a CMUX modem on a pty pair: whole, split and back-to-back frames, a bad
-  FCS, CR delivered unchanged, the control channel answered, and channel-to-modem framing. These pin
-  the `cmux.c` fixes listed above.
+  FCS, CR delivered unchanged, the control channel answered, and channel-to-modem framing (including
+  400 bytes split into frames of at most 127 bytes). These pin the `cmux.c` fixes listed above.
 
 `meadow developer -p 20 -v 1` adds live checks, which need the cell link to be running: the link
 is up, a DNS lookup works, and a signal quality request through the native API returns `+CSQ`. CMUX
