@@ -82,7 +82,10 @@ board would send everything the modem says straight back to it.
 ## Start-up
 
 1. **Kernel** (`hcom_nx_startup_mgr.c`): if the cell interface is selected, the cell
-   configuration is read and the modem is powered on by pulsing its enable pin.
+   configuration is read and the modem is powered on by pulsing its enable pin (PWRKEY; for the
+   BG95-M3, high for 3 s). The pulse does not check the reset reason: a modem that is already on
+   restarts (`RDY`, `APP RDY` within a few seconds), which also clears a CMUX session left over
+   from before a Meadow reset.
 2. **hcom** (`hcom_startup_manager.c`): once Mono has started, `hcom_cell_start()` takes a copy of
    the cell settings and starts the **CellPPPD** thread.
 3. **CellPPPD**:
@@ -95,7 +98,8 @@ board would send everything the modem says straight back to it.
       The connect script does not reset the modem (`AT+CFUN=1,1` would end CMUX), and the
       disconnect script hangs up (`ATH`).
 4. **CellAT** turns echo on for its channel (`ATE1`), then once a second:
-   - checks `ppp0` for an address;
+   - checks that `ppp0` is up and has an address (pppd takes `ppp0` down while it redials but
+     leaves the address set);
    - when the link comes up: writes the configured `DnsServers` to the resolver file (stock pppd
      does not ask the network for its DNS servers); starts the NTP client if
      `GetNetworkTimeAtStartup` is set; reads `AT+GSN`, `AT+QCSQ` and `AT+CSQ` for the managed side;
@@ -103,6 +107,9 @@ board would send everything the modem says straight back to it.
    - when the link goes down: raises the disconnected and connecting events;
    - while the link is down, once a minute, reports `AT+CSQ`, `AT+CEREG?` and `AT+COPS?` to the host
      (with `HCOM_CELL_DEBUG_LOGS`) and the syslog;
+   - after every 10 minutes without a link, raises the retry-exceeded event (managed
+     `ConnectFailed`). Stock pppd retries without reporting progress; Legacy's pppd raised the
+     event after 15 failed connect attempts, about 10 minutes;
    - runs any request posted by the managed API.
 
 ## Managed API
@@ -146,11 +153,15 @@ of the modem UART:
 - Frames were written to the non-blocking UART with a single `write()`. USART1's transmit buffer
   is 252 bytes, so a long frame was cut short and the rest of the channel data was lost. Uploads
   of more than a couple of hundred bytes per packet never got through.
+- A channel or serial port whose other end was closed is reported readable on every `select()` and
+  reads end of file, so the thread spun at CMUX priority and starved other threads (the cell link's
+  AT requests took minutes). It now sleeps 10 ms when a `select()` round delivers no data.
 
 chat is unmodified. pppd's frame buffer (`PPP_RX_BUFFER_SIZE` in `apps/netutils/pppd/ppp_conf.h`)
 was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an MRU, so the modem
 sends packets of up to 1500 bytes, and every packet over about 1020 bytes was dropped, in both
-directions.
+directions. pppd's `ppp_arch_putchar()` dropped a byte when the tty was still full after one 1 s
+wait, corrupting the frame; it now keeps waiting (up to 10 s).
 
 pppd decides the link is lost after `AHDLC_TX_OFFLINE` (`apps/netutils/pppd/ppp_conf.h`) with nothing
 received. Two changes:
@@ -217,8 +228,10 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 - With the data link up, a BG95-M3 polled with AT commands while it searched for a slow GNSS fix
   stopped answering on every channel (AT and PPP) for 224 s or more. Left unpolled, it did not.
   Hence the quiet period in the GNSS request. Firmware tested: `BG95M3LAR02A03_01.014.01.014`.
-- Large transfers are slow. The `cell.http_large` case (an 8 KB download and a 4 KB upload,
-  1400-byte packets both ways) takes about 25 s: NuttX TCP drops out-of-order segments and offers a
-  4.5 KB receive window, so each reordered segment costs a retransmission timeout. 1400-byte IP
-  packets have been tested; 1500-byte ones have not (the servers tested offered an MSS of 1360).
-- Stock pppd gives no connect-script progress, so the retry-exceeded event is not raised.
+- TCP throughput is bounded by the IOB pool, 48 buffers of 196 bytes (about 9 KB) shared by every
+  native socket, which also limits the receive window. Out-of-order segments are queued
+  (`CONFIG_NET_TCP_OUT_OF_ORDER`); before that each reordered segment cost a retransmission timeout
+  of about 3 s. The `cell.http_large` case takes about 10 s.
+- 1400-byte IP packets have been tested in both directions; 1500-byte ones have not. Every server
+  tested over EE offered an MSS of 1360 (Cloudflare and AWS alike), which suggests EE clamps the MSS,
+  so 1400 bytes may be the largest TCP packet on this network.

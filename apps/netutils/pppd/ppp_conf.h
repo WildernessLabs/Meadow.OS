@@ -64,6 +64,13 @@
 
 #define PPP_RX_BUFFER_SIZE      (CONFIG_NET_TUN_PKTSIZE + 8)
 
+/* One-second waits for room in the tty before a byte being sent is dropped.
+ * The tty buffer is small (a pty behind CMUX), so it fills on every large
+ * frame; dropping a byte after one wait corrupted the frame.
+ */
+
+#define PPP_PUTCHAR_MAX_WAITS   10
+
 /* LCP echo requests (one every LCP_ECHO_INTERVAL seconds) sent with nothing
  * received before pppd reconnects.  At 5, a modem that holds the link for
  * about 105 s (a BG95 acquiring a GNSS fix) caused a reconnect.

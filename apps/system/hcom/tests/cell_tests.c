@@ -649,9 +649,12 @@ static void cell_test_cmux(void)
   cell_test_check("Long channel data split into frames of at most 127 bytes",
                   framed && (received == sizeof(sent)) && (longest <= 127));
 
-  // Leave the modem pty and the channels open. CMUX has no tear-down, so its
-  // thread stays; once these are closed, its select() keeps reporting end of
-  // file and the thread spins at CMUX priority, starving the real cell link.
+  // CMUX has no tear-down, so its thread stays after these are closed. Its
+  // select() then reports end of file on every call; cmux.c must not spin on
+  // that at CMUX priority, which starved the real cell link.
+  close(channel[1]);
+  close(channel[2]);
+  close(master);
 }
 
 /****************************************************************************

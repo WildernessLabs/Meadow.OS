@@ -187,7 +187,7 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
 
         if (config->default_cell_settings != NULL)
         {
-            result->default_cell_settings = kumm_malloc(sizeof(cell_settings_t));
+            result->default_cell_settings = kumm_zalloc(sizeof(cell_settings_t));
             if (result->default_cell_settings != NULL)
             {
                 result->default_cell_settings->apn = meadow_os_copy_string(config->default_cell_settings->apn);
@@ -200,6 +200,9 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
                 result->default_cell_settings->module = meadow_os_copy_string(config->default_cell_settings->module); 
                 result->default_cell_settings->module_id = config->default_cell_settings->module_id;
                 result->default_cell_settings->scan_mode = config->default_cell_settings->scan_mode;
+                result->default_cell_settings->turn_on_pin_name = meadow_os_copy_string(config->default_cell_settings->turn_on_pin_name);
+                result->default_cell_settings->turn_on_pin = config->default_cell_settings->turn_on_pin;
+                result->default_cell_settings->mode_id = config->default_cell_settings->mode_id;
             }
         }
         else
@@ -311,6 +314,7 @@ void meadow_os_config_free_resources(meadow_configuration_t *config)
             kumm_free(config->default_cell_settings->ttyname);
             kumm_free(config->default_cell_settings->mode);
             kumm_free(config->default_cell_settings->module);
+            kumm_free(config->default_cell_settings->turn_on_pin_name);
             kumm_free(config->default_cell_settings);
         }
         if (config->ntp_servers_count > 0)
