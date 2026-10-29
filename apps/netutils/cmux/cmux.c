@@ -57,6 +57,7 @@
 #define CMUX_THREAD_PRIOR (100)
 #define CMUX_THREAD_STACK_SIZE (3072)
 #define CMUX_WRITE_TIMEOUT_MS (1000)
+#define CMUX_IDLE_SLEEP_US (10000)
 
 #define cmux_inc_buffer(buf, p) \
   p++;                          \
@@ -763,11 +764,14 @@ static void *cmux_thread(void *args)
       ret = select(max_fd + 1, &rfds, NULL, NULL, &timeout);
       if (ret > 0)
         {
+          bool got_data = false;
+
           if (FD_ISSET(ctl->fd, &rfds))
             {
               int bytes_read = read(ctl->fd, buffer, sizeof(buffer) - 1);
               if (bytes_read > 0)
                 {
+                  got_data = true;
                   buffer[bytes_read] = '\0';
                   ret = cmux_extract(ctl, buffer, bytes_read);
                   if (ret < 0)
@@ -787,6 +791,7 @@ static void *cmux_thread(void *args)
                                     buffer, sizeof(buffer) - 1);
                   if (bytes_read > 0)
                     {
+                      got_data = true;
                       ret = cmux_send(ctl, buffer, bytes_read, i);
                       if (ret < 0)
                         {
@@ -794,6 +799,16 @@ static void *cmux_thread(void *args)
                         }
                     }
                 }
+            }
+
+          /* A descriptor whose other end is closed (for example a channel
+           * between pppd sessions) is reported readable on every select()
+           * and reads end of file.  Do not spin at CMUX priority on it.
+           */
+
+          if (!got_data)
+            {
+              usleep(CMUX_IDLE_SLEEP_US);
             }
         }
     }

@@ -146,6 +146,9 @@ of the modem UART:
 - Frames were written to the non-blocking UART with a single `write()`. USART1's transmit buffer
   is 252 bytes, so a long frame was cut short and the rest of the channel data was lost. Uploads
   of more than a couple of hundred bytes per packet never got through.
+- A channel or serial port whose other end was closed is reported readable on every `select()` and
+  reads end of file, so the thread spun at CMUX priority and starved other threads (the cell link's
+  AT requests took minutes). It now sleeps 10 ms when a `select()` round delivers no data.
 
 chat is unmodified. pppd's frame buffer (`PPP_RX_BUFFER_SIZE` in `apps/netutils/pppd/ppp_conf.h`)
 was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an MRU, so the modem
