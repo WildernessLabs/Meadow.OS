@@ -82,7 +82,10 @@ board would send everything the modem says straight back to it.
 ## Start-up
 
 1. **Kernel** (`hcom_nx_startup_mgr.c`): if the cell interface is selected, the cell
-   configuration is read and the modem is powered on by pulsing its enable pin.
+   configuration is read and the modem is powered on by pulsing its enable pin (PWRKEY; for the
+   BG95-M3, high for 3 s). The pulse does not check the reset reason: a modem that is already on
+   restarts (`RDY`, `APP RDY` within a few seconds), which also clears a CMUX session left over
+   from before a Meadow reset.
 2. **hcom** (`hcom_startup_manager.c`): once Mono has started, `hcom_cell_start()` takes a copy of
    the cell settings and starts the **CellPPPD** thread.
 3. **CellPPPD**:
@@ -229,3 +232,6 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
   native socket, which also limits the receive window. Out-of-order segments are queued
   (`CONFIG_NET_TCP_OUT_OF_ORDER`); before that each reordered segment cost a retransmission timeout
   of about 3 s. The `cell.http_large` case takes about 10 s.
+- 1400-byte IP packets have been tested in both directions; 1500-byte ones have not. Every server
+  tested over EE offered an MSS of 1360 (Cloudflare and AWS alike), which suggests EE clamps the MSS,
+  so 1400 bytes may be the largest TCP packet on this network.
