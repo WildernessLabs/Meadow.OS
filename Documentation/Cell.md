@@ -152,10 +152,13 @@ was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an
 sends packets of up to 1500 bytes, and every packet over about 1020 bytes was dropped, in both
 directions.
 
-pppd also has one tuning change: `AHDLC_TX_OFFLINE` in
-`apps/netutils/pppd/ppp_conf.h` is raised from 5 to 15. pppd redials once it has sent more than that
-many frames with nothing received. With only its 20 s LCP echoes that took about 105 s, so any GNSS
-request longer than that also cost a redial; at 15 it takes about 5 minutes.
+pppd decides the link is lost after `AHDLC_TX_OFFLINE` (`apps/netutils/pppd/ppp_conf.h`) with nothing
+received. Two changes:
+- It counted every frame sent, so a burst of packets nobody answered (SYNs to a host that drops
+  them) took the link down for about 17 s while the modem was fine. It now counts only its LCP echo
+  requests (one every 20 s); any received frame still resets the count.
+- The limit is 15, not 5: at 5 a GNSS request longer than about 105 s also cost a redial. At 15 a
+  silent modem is detected after about 5 minutes.
 
 ## Testing
 
