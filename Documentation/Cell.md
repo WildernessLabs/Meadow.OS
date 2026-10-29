@@ -196,6 +196,15 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 
 ## Known limitations
 
+- Socket options that .NET and MQTTnet set before connecting (issue #718):
+  - `SO_LINGER` is accepted but has no effect (`CONFIG_NET_SOLINGER` is off): `getsockopt` reports
+    it off and `close()` never lingers. Enabling `CONFIG_NET_SOLINGER` would make MQTTnet's
+    `LingerOption(true, 0)` an abortive close and disables `tcp_alloc()`'s reuse of closing
+    connections.
+  - `SO_RCVBUF` works: `CONFIG_NET_RECV_BUFSIZE=16384` gives each socket a receive limit, above the
+    4704-byte IOB pool, so it does not shrink the receive window.
+  - `SO_SNDBUF` is accepted but has no effect: `CONFIG_NET_SEND_BUFSIZE` needs TCP write buffers,
+    which are off.
 - The `cell.http_get` test takes about 40 s; the cause is not yet known.
 - The BG95-M3 cannot run GNSS and the data link at the same time. In its default GNSS priority
   mode (`AT+QGPSCFG="priority"`) it hands the radio to GNSS as soon as `AT+QGPS` runs, so no data
