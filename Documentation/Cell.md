@@ -150,7 +150,8 @@ of the modem UART:
 chat is unmodified. pppd's frame buffer (`PPP_RX_BUFFER_SIZE` in `apps/netutils/pppd/ppp_conf.h`)
 was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an MRU, so the modem
 sends packets of up to 1500 bytes, and every packet over about 1020 bytes was dropped, in both
-directions.
+directions. pppd's `ppp_arch_putchar()` dropped a byte when the tty was still full after one 1 s
+wait, corrupting the frame; it now keeps waiting (up to 10 s).
 
 pppd decides the link is lost after `AHDLC_TX_OFFLINE` (`apps/netutils/pppd/ppp_conf.h`) with nothing
 received. Two changes:

@@ -291,20 +291,27 @@ int ppp_arch_getchar(FAR struct ppp_context_s *ctx, FAR uint8_t * c)
 int ppp_arch_putchar(FAR struct ppp_context_s *ctx, uint8_t c)
 {
   int ret;
+  int waits = 0;
   struct pollfd fds;
 
-  ret = write(ctx->ctl.fd, &c, 1);
-  if (ret < 0 && errno == EAGAIN)
+  /* The tty is non-blocking.  While it is full, wait for room rather than
+   * dropping the byte, which would corrupt the frame being sent.  Give up
+   * only after PPP_PUTCHAR_MAX_WAITS one-second waits without room.
+   */
+
+  for (; ; )
     {
+      ret = write(ctx->ctl.fd, &c, 1);
+      if (ret == 1 || (ret < 0 && errno != EAGAIN) ||
+          waits++ >= PPP_PUTCHAR_MAX_WAITS)
+        {
+          break;
+        }
+
       fds.fd = ctx->ctl.fd;
       fds.events = POLLOUT;
       fds.revents = 0;
-
-      ret = poll(&fds, 1, 1000);
-      if (ret > 0)
-        {
-          ret = write(ctx->ctl.fd, &c, 1);
-        }
+      poll(&fds, 1, 1000);
     }
 
   return ret == 1 ? ret : 0;
