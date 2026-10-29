@@ -735,6 +735,38 @@ static int inet_get_socketlevel_option(FAR struct socket *psock, int option,
         break;
 #endif
 
+      case SO_LINGER:     /* Reports the linger setting */
+        {
+#ifdef CONFIG_NET_SOLINGER
+          FAR struct socket_conn_s *conn = psock->s_conn;
+#endif
+          FAR struct linger *setting;
+
+          if (*value_len < sizeof(struct linger))
+            {
+              return -EINVAL;
+            }
+
+          setting = (FAR struct linger *)value;
+
+#ifdef CONFIG_NET_SOLINGER
+          setting->l_onoff  = _SO_GETOPT(conn->s_options, SO_LINGER) ? 1 : 0;
+          setting->l_linger = conn->s_linger / 10;
+#else
+          /* Without CONFIG_NET_SOLINGER, close() never lingers.  Report the
+           * option as present but off rather than failing: .NET (and so
+           * MQTTnet) reads it before connecting and treats ENOPROTOOPT as
+           * fatal.
+           */
+
+          setting->l_onoff  = 0;
+          setting->l_linger = 0;
+#endif
+
+          *value_len = sizeof(struct linger);
+        }
+        break;
+
 #ifdef CONFIG_NET_TCPPROTO_OPTIONS
       case SO_KEEPALIVE:
         {
@@ -937,6 +969,21 @@ static int inet_set_socketlevel_option(FAR struct socket *psock, int option,
           net_unlock();
         }
         break;
+#else
+      case SO_LINGER:
+        {
+          /* Without CONFIG_NET_SOLINGER, accept and ignore the option:
+           * close() keeps its default (non-lingering) behaviour.  .NET (and
+           * so MQTTnet) sets it before connecting and treats ENOPROTOOPT as
+           * fatal.  getsockopt() reports it as off.
+           */
+
+          if (value_len < sizeof(struct linger))
+            {
+              return -EINVAL;
+            }
+        }
+        break;
 #endif
 
 #if CONFIG_NET_RECV_BUFSIZE > 0
@@ -1056,6 +1103,21 @@ static int inet_set_socketlevel_option(FAR struct socket *psock, int option,
             }
 
           net_unlock();
+        }
+        break;
+#else
+      case SO_SNDBUF:
+        {
+          /* Without CONFIG_NET_SEND_BUFSIZE (which needs TCP write
+           * buffers) there is no per-socket send buffer limit to set.
+           * Accept and ignore the option: .NET (and so MQTTnet) sets it
+           * before connecting and treats ENOPROTOOPT as fatal.
+           */
+
+          if (value_len != sizeof(int) || *(FAR const int *)value < 0)
+            {
+              return -EINVAL;
+            }
         }
         break;
 #endif

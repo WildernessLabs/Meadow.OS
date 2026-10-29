@@ -64,9 +64,9 @@
 
 #define PPP_RX_BUFFER_SIZE      (CONFIG_NET_TUN_PKTSIZE + 8)
 
-/* Frames sent with nothing received before pppd reconnects.  At 5, with only
- * the LCP echoes (every LCP_ECHO_INTERVAL seconds), a modem that holds the
- * link for about 105 s (a BG95 acquiring a GNSS fix) caused a reconnect.
+/* LCP echo requests (one every LCP_ECHO_INTERVAL seconds) sent with nothing
+ * received before pppd reconnects.  At 5, a modem that holds the link for
+ * about 105 s (a BG95 acquiring a GNSS fix) caused a reconnect.
  */
 
 #define AHDLC_TX_OFFLINE        15

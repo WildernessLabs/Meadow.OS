@@ -152,10 +152,13 @@ was a fixed 1024 bytes; it is now the TUN MTU plus 8. pppd does not negotiate an
 sends packets of up to 1500 bytes, and every packet over about 1020 bytes was dropped, in both
 directions.
 
-pppd also has one tuning change: `AHDLC_TX_OFFLINE` in
-`apps/netutils/pppd/ppp_conf.h` is raised from 5 to 15. pppd redials once it has sent more than that
-many frames with nothing received. With only its 20 s LCP echoes that took about 105 s, so any GNSS
-request longer than that also cost a redial; at 15 it takes about 5 minutes.
+pppd decides the link is lost after `AHDLC_TX_OFFLINE` (`apps/netutils/pppd/ppp_conf.h`) with nothing
+received. Two changes:
+- It counted every frame sent, so a burst of packets nobody answered (SYNs to a host that drops
+  them) took the link down for about 17 s while the modem was fine. It now counts only its LCP echo
+  requests (one every 20 s); any received frame still resets the count.
+- The limit is 15, not 5: at 5 a GNSS request longer than about 105 s also cost a redial. At 15 a
+  silent modem is detected after about 5 minutes.
 
 ## Testing
 
@@ -193,6 +196,18 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 
 ## Known limitations
 
+- Disposing a socket while a blocking (synchronous) `Socket.Connect()` is pending takes until the
+  connect times out (about 46 s): .NET waits for the call to return and NuttX cannot abort a pending
+  connect. `ConnectAsync` (HttpClient, MQTTnet) is not affected (issue #716).
+- Socket options that .NET and MQTTnet set before connecting (issue #718):
+  - `SO_LINGER` is accepted but has no effect (`CONFIG_NET_SOLINGER` is off): `getsockopt` reports
+    it off and `close()` never lingers. Enabling `CONFIG_NET_SOLINGER` would make MQTTnet's
+    `LingerOption(true, 0)` an abortive close and disables `tcp_alloc()`'s reuse of closing
+    connections.
+  - `SO_RCVBUF` works: `CONFIG_NET_RECV_BUFSIZE=16384` gives each socket a receive limit, above the
+    4704-byte IOB pool, so it does not shrink the receive window.
+  - `SO_SNDBUF` is accepted but has no effect: `CONFIG_NET_SEND_BUFSIZE` needs TCP write buffers,
+    which are off.
 - The `cell.http_get` test takes about 40 s; the cause is not yet known.
 - The BG95-M3 cannot run GNSS and the data link at the same time. In its default GNSS priority
   mode (`AT+QGPSCFG="priority"`) it hands the radio to GNSS as soon as `AT+QGPS` runs, so no data
