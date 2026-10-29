@@ -95,7 +95,8 @@ board would send everything the modem says straight back to it.
       The connect script does not reset the modem (`AT+CFUN=1,1` would end CMUX), and the
       disconnect script hangs up (`ATH`).
 4. **CellAT** turns echo on for its channel (`ATE1`), then once a second:
-   - checks `ppp0` for an address;
+   - checks that `ppp0` is up and has an address (pppd takes `ppp0` down while it redials but
+     leaves the address set);
    - when the link comes up: writes the configured `DnsServers` to the resolver file (stock pppd
      does not ask the network for its DNS servers); starts the NTP client if
      `GetNetworkTimeAtStartup` is set; reads `AT+GSN`, `AT+QCSQ` and `AT+CSQ` for the managed side;
@@ -103,6 +104,9 @@ board would send everything the modem says straight back to it.
    - when the link goes down: raises the disconnected and connecting events;
    - while the link is down, once a minute, reports `AT+CSQ`, `AT+CEREG?` and `AT+COPS?` to the host
      (with `HCOM_CELL_DEBUG_LOGS`) and the syslog;
+   - after every 10 minutes without a link, raises the retry-exceeded event (managed
+     `ConnectFailed`). Stock pppd retries without reporting progress; Legacy's pppd raised the
+     event after 15 failed connect attempts, about 10 minutes;
    - runs any request posted by the managed API.
 
 ## Managed API
@@ -225,4 +229,3 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
   1400-byte packets both ways) takes about 25 s: NuttX TCP drops out-of-order segments and offers a
   4.5 KB receive window, so each reordered segment costs a retransmission timeout. 1400-byte IP
   packets have been tested; 1500-byte ones have not (the servers tested offered an MSS of 1360).
-- Stock pppd gives no connect-script progress, so the retry-exceeded event is not raised.

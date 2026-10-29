@@ -70,6 +70,7 @@
 
 #include "netutils/cmux.h"
 #include "netutils/netlib.h"
+#include <net/if.h>
 #include "netutils/pppd.h"
 
 #include "hcom_cell.h"
@@ -102,6 +103,12 @@
 #define CELL_GNSS_QUIET_UNTIL_S 90
 #define CELL_CSQ_ATTEMPTS 3
 #define CELL_LINK_DOWN_REPORT_S 60
+
+// Stock pppd retries the connect script without telling anyone (Legacy's pppd
+// raised retry-exceeded after PPP_MAX_CONNECT, 15, failed attempts). One
+// attempt takes about 40 s (30 s chat timeout, 10 s pause), so report
+// retry-exceeded after every 10 minutes without a link.
+#define CELL_RETRY_EXCEEDED_S 600
 
 // Before CMUX starts: no echo, verbose errors, no hardware flow control (the
 // RTS/CTS lines are not wired on the mikroBUS socket), then CMUX basic mode,
@@ -666,17 +673,28 @@ static void *hcom_cell_at_thread(void *arg)
   int ret = hcom_cell_at(fd, "ATE1", CELL_AT_TIMEOUT_MS, reply, sizeof(reply));
   syslog(LOG_INFO, "%s-%d-Cell AT channel %s ready: %d\n", __FILE__, __LINE__, cell_at_pty, ret);
 
-  int seconds_down = 0;
+  // Time the link-down reports by the clock: the reports and requests can
+  // block for minutes (AT commands time out while the modem searches), so a
+  // count of one-second loops falls far behind.
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  time_t down_since = now.tv_sec;
+  time_t next_report = down_since + CELL_LINK_DOWN_REPORT_S;
+  time_t next_retry_exceeded = down_since + CELL_RETRY_EXCEEDED_S;
   while (true)
   {
+    // pppd takes ppp0 down while it redials (ppp_reconnect) but leaves the
+    // address set, so the address alone does not show a lost link.
     struct in_addr address;
+    uint8_t flags = 0;
     address.s_addr = 0;
-    bool up = (netlib_get_ipv4addr("ppp0", &address) == OK) && (address.s_addr != 0);
+    bool up = (netlib_get_ipv4addr("ppp0", &address) == OK) && (address.s_addr != 0) &&
+              (netlib_getifstatus("ppp0", &flags) == OK) && IFF_IS_UP(flags);
+    clock_gettime(CLOCK_MONOTONIC, &now);
 
     if (up && !cell_connected)
     {
       hcom_cell_link_up(fd, &address);
-      seconds_down = 0;
     }
     if (!up && cell_connected)
     {
@@ -685,13 +703,23 @@ static void *hcom_cell_at_thread(void *arg)
       syslog(LOG_INFO, "%s-%d-Cell network has been disconnected\n", __FILE__, __LINE__);
       hcom_cell_raise_event(ESPCP_CELL_DISCONNECTED_EVENT, ESPCP_FAILURE_STATUS_CODE);
       hcom_cell_raise_event(ESPCP_CELL_CONNECTING_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
+      down_since = now.tv_sec;
+      next_report = down_since + CELL_LINK_DOWN_REPORT_S;
+      next_retry_exceeded = down_since + CELL_RETRY_EXCEEDED_S;
     }
     if (!up)
     {
-      seconds_down++;
-      if ((seconds_down % CELL_LINK_DOWN_REPORT_S) == 0)
+      if (now.tv_sec >= next_report)
       {
         hcom_cell_report_link_down(fd);
+        next_report = now.tv_sec + CELL_LINK_DOWN_REPORT_S;
+      }
+      if (now.tv_sec >= next_retry_exceeded)
+      {
+        syslog(LOG_INFO, "%s-%d-Cell link down for %ld s, raising retry exceeded\n", __FILE__, __LINE__,
+               (long)(now.tv_sec - down_since));
+        hcom_cell_raise_event(ESPCP_CELL_RETRY_EXCEEDED_EVENT, ESPCP_COMPLETED_OK_STATUS_CODE);
+        next_retry_exceeded += CELL_RETRY_EXCEEDED_S;
       }
     }
 
