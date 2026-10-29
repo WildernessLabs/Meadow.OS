@@ -8,7 +8,8 @@
 //  answers CONNECT and then hangs up, so pppd reconnects about once a minute and runs the posted
 //  AT scripts then.
 //
-//  The data link cases (cell.connected, cell.http_get, cell.http_large) need a SIM and its cell.config.yaml, passed
+//  The data link cases (cell.connected, cell.http_get, cell.http_large, cell.socket_linger,
+//  cell.mqtt_connect, cell.connect_cancel) need a SIM and its cell.config.yaml, passed
 //  at build time in MEADOW_CELL_CONFIG, which also defines CELL_SIM.  Without CELL_SIM they are
 //  skipped.  They run first, because the GNSS and signal requests take the link down.
 //
@@ -18,12 +19,16 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Net;
 using System.Net.Http;
+using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Meadow;
 using Meadow.Devices;
 using Meadow.Hardware;
 using Meadow.Peripherals.Sensors.Location.Gnss;
+using MQTTnet;
 
 public class MeadowApp : App<F7CoreComputeV2>
 {
@@ -57,6 +62,26 @@ public class MeadowApp : App<F7CoreComputeV2>
     const string LargeUploadUrl = "http://httpbin.org/post";
 
     //
+    //  SO_LINGER (issue #718): MQTTnet reads Socket.LingerState and sets LingerOption(true, 0)
+    //  before it connects.  A public broker over plain MQTT, so that the case tests the socket
+    //  options and TCP, not TLS.  A few hundred bytes per run.
+    //
+    const string LingerHost = "example.com";
+    const string MqttBroker = "broker.hivemq.com";
+    const int MqttPort = 1883;
+
+    //
+    //  Closing a socket during connect (issue #716).  TEST-NET-1 is never routed, so a connect to
+    //  it stays pending until the socket is closed.  The async loop runs more times than there are
+    //  devif callbacks (16) and TCP connections (8), so a leak would show in the checks after it.
+    //
+    static readonly IPEndPoint BlackHole = new IPEndPoint(IPAddress.Parse("192.0.2.1"), 80);
+    const int AsyncCancels = 24;
+    const int SyncCancels = 6;
+    const int CancelAfterMs = 200;
+    const int HealthyConnects = 10;
+
+    //
     //  F7CellNetworkAdapter.NoSignal.
     //
     const int NoSignal = -9999;
@@ -78,11 +103,17 @@ public class MeadowApp : App<F7CoreComputeV2>
             {
                 await Case("cell.http_get", HttpGet);
                 await Case("cell.http_large", HttpLarge);
+                await Case("cell.socket_linger", SocketLinger);
+                await Case("cell.mqtt_connect", MqttConnect);
+                await Case("cell.connect_cancel", ConnectCancel);
             }
 #else
             Skip("cell.connected", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
             Skip("cell.http_get", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
             Skip("cell.http_large", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+            Skip("cell.socket_linger", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+            Skip("cell.mqtt_connect", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
+            Skip("cell.connect_cancel", "no SIM configuration (MEADOW_CELL_CONFIG not set at build time)");
 #endif
             if (await Case("cell.gnss_output", GnssOutput))
             {
@@ -203,6 +234,152 @@ public class MeadowApp : App<F7CoreComputeV2>
             }
             return $"download={data.Length}B/{downloadMs}ms upload={LargeUploadBytes}B/{uploadMs}ms echo={echo.Length}";
         }
+    }
+
+    //
+    //  What MQTTnet does with a TCP socket before it connects: read LingerState, then set
+    //  LingerOption(true, 0).  Then connect and close, to check the socket still works.
+    //
+    async Task<string> SocketLinger()
+    {
+        var addresses = await Dns.GetHostAddressesAsync(LingerHost);
+        using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+        {
+            var before = socket.LingerState;
+            socket.LingerState = new LingerOption(true, 0);
+            var after = socket.LingerState;
+            await socket.ConnectAsync(new IPEndPoint(Array.Find(addresses, a => a.AddressFamily == AddressFamily.InterNetwork), 80));
+            return $"before={before.Enabled}/{before.LingerTime} after={after.Enabled}/{after.LingerTime} connected={socket.Connected}";
+        }
+    }
+
+    //
+    //  An MQTTnet connect and disconnect, as Meadow Cloud would do over the cell link.
+    //
+    async Task<string> MqttConnect()
+    {
+        var factory = new MqttClientFactory();
+        using (var client = factory.CreateMqttClient())
+        {
+            var options = new MqttClientOptionsBuilder()
+                .WithTcpServer(MqttBroker, MqttPort)
+                .WithClientId($"meadow-celltests-{Guid.NewGuid():N}")
+                .WithTimeout(TimeSpan.FromSeconds(30))
+                .Build();
+            var watch = Stopwatch.StartNew();
+            using (var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(60)))
+            {
+                var result = await client.ConnectAsync(options, cancel.Token);
+                if (result.ResultCode != MqttClientConnectResultCode.Success)
+                {
+                    throw new InvalidOperationException($"connect result {result.ResultCode}");
+                }
+                await client.DisconnectAsync();
+            }
+            return $"connected in {watch.ElapsedMilliseconds}ms";
+        }
+    }
+
+    //
+    //  Close sockets while their connects are pending, asynchronously (as HttpClient and MQTTnet
+    //  connect) and synchronously (a blocking connect() on another thread), then check that the
+    //  stack still makes connections.
+    //
+    async Task<string> ConnectCancel()
+    {
+        var addresses = await Dns.GetHostAddressesAsync(LingerHost);
+        var host = new IPEndPoint(Array.Find(addresses, a => a.AddressFamily == AddressFamily.InterNetwork), 80);
+        var before = await HealthyConnectsTo(host, 3);
+        var phase = Stopwatch.StartNew();
+
+        int asyncOk = 0;
+        for (int i = 0; i < AsyncCancels; i++)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var connect = socket.ConnectAsync(BlackHole);
+            await Task.Delay(CancelAfterMs);
+            socket.Dispose();
+            try
+            {
+                await connect;
+            }
+            catch (Exception)
+            {
+                asyncOk++;
+            }
+        }
+
+        long asyncMs = phase.ElapsedMilliseconds;
+        phase.Restart();
+        int syncReturned = 0;
+        long syncDisposeMaxMs = 0;
+        long syncJoinMaxMs = 0;
+        for (int i = 0; i < SyncCancels; i++)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var thread = new Thread(() =>
+            {
+                try
+                {
+                    socket.Connect(BlackHole);
+                }
+                catch (Exception)
+                {
+                }
+            });
+            thread.Start();
+            Thread.Sleep(CancelAfterMs);
+            var step = Stopwatch.StartNew();
+            socket.Dispose();
+            syncDisposeMaxMs = Math.Max(syncDisposeMaxMs, step.ElapsedMilliseconds);
+            step.Restart();
+            if (thread.Join(5000))
+            {
+                syncReturned++;
+            }
+            syncJoinMaxMs = Math.Max(syncJoinMaxMs, step.ElapsedMilliseconds);
+        }
+        long syncMs = phase.ElapsedMilliseconds;
+
+        var after = await HealthyConnectsTo(host, HealthyConnects);
+        await Task.Delay(10000);
+        var after10 = await HealthyConnectsTo(host, 3);
+        await Task.Delay(20000);
+        var after30 = await HealthyConnectsTo(host, 3);
+
+        string detail = $"before={before.Item1}/3 async_cancelled={asyncOk}/{AsyncCancels} ({asyncMs}ms) " +
+                        $"sync_returned={syncReturned}/{SyncCancels} ({syncMs}ms, dispose max {syncDisposeMaxMs}ms, join max {syncJoinMaxMs}ms) " +
+                        $"after={after.Item1}/{HealthyConnects} after10s={after10.Item1}/3 after30s={after30.Item1}/3";
+        if ((before.Item1 != 3) || (syncReturned != SyncCancels) || (after.Item1 != HealthyConnects))
+        {
+            throw new InvalidOperationException($"{detail} errors: before={before.Item2 ?? "-"} after={after.Item2 ?? "-"} after30s={after30.Item2 ?? "-"}");
+        }
+        return detail;
+    }
+
+    //
+    //  Plain TCP connects to the host; returns how many worked and the first error.
+    //
+    static async Task<(int, string)> HealthyConnectsTo(IPEndPoint host, int count)
+    {
+        int connected = 0;
+        string firstError = null;
+        for (int i = 0; i < count; i++)
+        {
+            try
+            {
+                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
+                {
+                    await socket.ConnectAsync(host);
+                    connected++;
+                }
+            }
+            catch (Exception ex)
+            {
+                firstError ??= $"{ex.GetType().Name}: {ex.Message}";
+            }
+        }
+        return (connected, firstError);
     }
 
     Task<string> FindAdapter()

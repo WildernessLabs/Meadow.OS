@@ -96,6 +96,14 @@ minute and runs the posted AT scripts then.
   - `cell.http_large` (SIM only): an 8 KB download (`http://httpbin.org/bytes/8192`) and a 4 KB
     upload (`http://httpbin.org/post`), so that full-size (about 1400-byte) IP packets cross the PPP
     link in both directions. About 20 KB of data per run.
+  - `cell.socket_linger` (SIM only): reads `Socket.LingerState`, sets `LingerOption(true, 0)` and
+    connects, as MQTTnet does (issue #718).
+  - `cell.mqtt_connect` (SIM only): an MQTTnet connect and disconnect to `broker.hivemq.com:1883`
+    (plain MQTT, a few hundred bytes).
+  - `cell.connect_cancel` (SIM only): closes 24 pending `ConnectAsync` and 6 pending blocking
+    `Connect` calls to an unrouted address (192.0.2.1), then checks that connects still work, at once
+    and after 10 s and 30 s (issue #716). Each blocking cancel takes about 46 s (see
+    `Documentation/Cell.md`), so the case takes about 5 minutes.
   - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
     It does not need a fix. A run takes about 210 s: a wait for the next pppd reconnect, then the
     GNSS script, which contains `PAUSE 120`.

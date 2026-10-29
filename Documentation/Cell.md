@@ -196,6 +196,9 @@ Without `MEADOW_CELL_CONFIG` the data link cases are skipped. See `tests/managed
 
 ## Known limitations
 
+- Disposing a socket while a blocking (synchronous) `Socket.Connect()` is pending takes until the
+  connect times out (about 46 s): .NET waits for the call to return and NuttX cannot abort a pending
+  connect. `ConnectAsync` (HttpClient, MQTTnet) is not affected (issue #716).
 - Socket options that .NET and MQTTnet set before connecting (issue #718):
   - `SO_LINGER` is accepted but has no effect (`CONFIG_NET_SOLINGER` is off): `getsockopt` reports
     it off and `close()` never lingers. Enabling `CONFIG_NET_SOLINGER` would make MQTTnet's
