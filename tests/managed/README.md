@@ -7,7 +7,7 @@ the output contract described in `tools/testrunner/README.md`.
 | App | What it covers |
 |---|---|
 | `MiniTests` | Mono's mini test suite (issue #726): 733 JIT regression tests in 10 suites, under the JIT and the interpreter |
-| `CellTests` | The managed cell API (GNSS and signal quality) through the pppd pause path, on a BG95-M3; no SIM needed |
+| `CellTests` | The cell network on a BG95-M3: the managed API (GNSS and signal quality) without a SIM, and the data link with one |
 | `EspcpTests` | espcp network robustness (issue #708): WiFi, `SO_SNDTIMEO` on new sockets, repeated HTTP and socket open/close (poll setup and teardown), and a connect that is never answered |
 
 ## MiniTests
@@ -65,9 +65,9 @@ Meadow.Core does not connect to the default access point.
 ## CellTests
 
 Needs an OS built with `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD=y`, a BG95-M3 click board on mikroBUS 1
-(COM1, enable pin A3) and, for `cell.gnss_fix`, a GPS antenna with a view of the sky. A SIM is not
-needed: without one the modem answers `CONNECT` and then hangs up, so pppd reconnects about once a
-minute and runs the posted AT scripts then.
+(COM1, enable pin A3) and, for `cell.gnss_fix`, a GPS antenna with a view of the sky. The GNSS and
+signal quality cases do not need a SIM: they run on the CMUX AT channel, independently of the data link
+(see `Documentation/Cell.md`).
 
 - **Config:** the app ships `meadow.config.yaml` (cell interface, the modem pins reserved, and
   `InternalDebug` with only `TraceLevel: 2`) and always ships `cell.config.yaml`. COM1 belongs to
@@ -86,8 +86,8 @@ minute and runs the posted AT scripts then.
 
   For a SIM on a private APN, point `MEADOW_CELL_CONFIG` at a local file instead of adding its
   credentials to the repository.
-- **Mono must be running:** pppd starts only after Mono starts. Check that the boot banner says
-  `Mono:Enabled`.
+- **Mono must be running:** the cell code (CMUX, pppd and the AT channel) starts only after Mono
+  starts. Check that the boot banner says `Mono:Enabled`.
 - **Cases:**
   - `cell.adapter`: the cell adapter exists.
   - `cell.connected` (SIM only): the PPP link comes up within 300 s (`IsConnected`).
@@ -105,13 +105,14 @@ minute and runs the posted AT scripts then.
     and after 10 s and 30 s (issue #716). Each blocking cancel takes about 46 s (see
     `Documentation/Cell.md`), so the case takes about 5 minutes.
   - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
-    It does not need a fix. A run takes about 210 s: a wait for the next pppd reconnect, then the
-    GNSS script, which contains `PAUSE 120`.
+    It does not need a fix. The request waits up to 120 s for a fix, so without one a run takes about
+    two minutes. The data link carries no traffic during the request, so the data link cases run
+    first.
   - `cell.gnss_fix`: GGA fix quality 1 or more and RMC status `A`. Reports only the quality, the
     satellite count, the HDOP and the GSA fix mode, because the NMEA contains the bench's
     position.
   - `cell.signal_quality`: `GetSignalQuality` returns a value other than NoSignal. This is
     a known failure without a SIM; see the manifest.
-- **Limit:** the cases go through the pause path only. If the connect script itself keeps failing,
-  pppd never runs the posted script and the managed call can block (`OS/CellPlan.md` 2.2). The
-  runner's timeout ends the run in that case.
+- **Limit:** the managed requests need CMUX to be running. If the modem never answers `AT` at
+  start-up, or CMUX fails to start, the AT channel is not started and the managed calls wait until their own
+  timeouts.

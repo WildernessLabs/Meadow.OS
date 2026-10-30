@@ -108,7 +108,7 @@ which shows how far a failing start got. The steps, in the order the code runs:
 | 20 | `meadow_power_mgmt_initialize()` | `CONFIG_MEADOW_PWR_MGMT_SUPPORT` | logged only |
 | 21 | SD card driver | `CONFIG_STM32F7_SDMMC2`, hardware has an SD socket, and the configuration enables it | logged; SD marked unsupported |
 | 22 | Ethernet driver | Ethernet build, hardware supports it, and the default interface is Ethernet | `-ENODEV` is logged and written to `meadow.log`; other errors return |
-| 23 | Cell module | `CONFIG_NETUTILS_PPPD` and the default interface is Cell | none |
+| 23 | Cell module: read `cell.config.yaml` and power the modem on ([Cell.md](../Cell.md)) | `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD` and the default interface is Cell | none |
 | 24 | Idle monitor | `CONFIG_ARCH_IDLE_CUSTOM` | returns |
 | 25 | ESP32 late initialisation and entry to run mode | ESPCP, and the configuration asks for an ESP32 reset | `LOG_EMERG`, returns |
 

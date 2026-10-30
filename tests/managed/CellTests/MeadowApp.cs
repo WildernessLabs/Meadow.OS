@@ -1,17 +1,16 @@
 //
-//  Cell (PPP) tests: the managed cell API, which reaches the modem through the pppd pause path
-//  (meadow_cell_change_state -> hcom_pppd.c -> pppd runs the AT script in its next reconnect).
+//  Cell (PPP) tests: the managed cell API, which reaches the modem on the CMUX AT channel
+//  (meadow_cell_change_state -> hcom_cell.c -> the CellAT thread runs the request).
 //  Output follows the test runner contract (tools/testrunner/README.md).
 //
 //  Needs a BG95-M3 on mikroBUS 1 (COM1, enable pin A3) and, for cell.gnss_fix, a GPS antenna with
-//  a view of the sky.  A SIM is not needed for the GNSS and signal cases: without one the modem
-//  answers CONNECT and then hangs up, so pppd reconnects about once a minute and runs the posted
-//  AT scripts then.
+//  a view of the sky.  A SIM is not needed for the GNSS and signal cases: the AT channel runs
+//  independently of the data link.
 //
 //  The data link cases (cell.connected, cell.http_get, cell.http_large, cell.socket_linger,
 //  cell.mqtt_connect, cell.connect_cancel) need a SIM and its cell.config.yaml, passed
 //  at build time in MEADOW_CELL_CONFIG, which also defines CELL_SIM.  Without CELL_SIM they are
-//  skipped.  They run first, because the GNSS and signal requests take the link down.
+//  skipped.  They run first, because the BG95-M3 carries no data during a GNSS request.
 //
 //  The NMEA output contains the board's position, so this app never prints it; it reports only
 //  the fix quality, the satellite counts and the dilution of precision.
@@ -35,15 +34,14 @@ public class MeadowApp : App<F7CoreComputeV2>
     const string Version = "1";
 
     //
-    //  The managed API counts these in seconds.  A request waits for the next pppd reconnect (up to
-    //  about 70 s today) and then for the script: the GNSS script alone takes about 150 s.
+    //  The managed API counts these in seconds.  The GNSS request waits up to 120 s for a fix.
     //
     const int GnssTimeoutSeconds = 300;
     const int SignalQualityTimeoutSeconds = 120;
 
     //
-    //  Time for the PPP link to come up after boot: modem power-on, the connect script (with
-    //  AT+CFUN=1,1 and its 15 s pause), network registration and PPP negotiation.
+    //  Time for the PPP link to come up after boot: modem power-on, CMUX start-up, the connect
+    //  script, network registration and PPP negotiation.
     //
     const int ConnectTimeoutSeconds = 300;
 

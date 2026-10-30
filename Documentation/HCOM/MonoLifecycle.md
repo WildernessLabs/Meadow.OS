@@ -248,8 +248,8 @@ The version that the next start compares is read from the new image only after a
 - **The version is a boot-time snapshot.** A freshly flashed Runtime is not seen until the device has
   restarted.
 - **Start failures are quiet.** `hcom_mono_ctrl_start_mono_main()` returns an error for every "will not
-  start" case, but the start-up manager discards the result, so HCOM carries on and the host only sees
-  the `TEXT_INFORMATION` reason.
+  start" case, but the start-up manager uses the result only to decide whether to start the cell
+  network, so HCOM carries on and the host only sees the `TEXT_INFORMATION` reason.
 - **Mono output can be lost in two ways in the forwarding code:** the last byte of every full 384-byte
   read is dropped (Issue #824), and the optional syslog copy discards unterminated lines and prints stale
   characters for non-printable ones (Issue #825).

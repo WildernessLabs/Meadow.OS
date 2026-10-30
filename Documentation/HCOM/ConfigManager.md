@@ -26,7 +26,7 @@ the rest of the system.
 |------|------|---------|
 | `/meadow0/meadow.config.yaml` | Once, at kernel start-up | The device configuration; the subject of this document |
 | `/meadow0/wifi.config.yaml` | At ESP32 start-up, then **deleted** | Default WiFi access point and password, handed to the ESP32 (out of scope) |
-| `/meadow0/cell.config.yaml` | At start-up, Cell interface only | Cellular modem settings (out of scope) |
+| `/meadow0/cell.config.yaml` | At start-up, Cell interface only | Cellular modem settings ([Cell.md](../Cell.md#configuration)) |
 | `/meadow0/unittest.config.yaml` | Before each kernel test | Test parameters ([DeveloperCommandsNsh.md](DeveloperCommandsNsh.md#the-test-configuration-file)) |
 
 All file names are in `F7MeadowOS/include/meadow/hcom_shared_common.h` and `hcom_nx_config_manager.h`. The
