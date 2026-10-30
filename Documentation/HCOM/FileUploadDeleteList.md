@@ -203,7 +203,6 @@ it can send a large number of messages.
   from `INIT_UPLOAD_OKAY` would reveal it. (A send to a host that is not listening returns success, so
   the device also reads an entire file for nobody.)
 - **The file is read twice.** Once for the CRC at the start, and again to send it.
-- **The listing leaks a directory handle if a CRC fails** (Issue #767).
 - **The header is sent before the directory is checked**, so a failed listing shows the host a header
   and then an error.
 - **Delete reports success text even if parent clean-up failed.** The "File '...' deleted" message is

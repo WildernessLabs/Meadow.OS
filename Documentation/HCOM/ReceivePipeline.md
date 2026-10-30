@@ -94,7 +94,7 @@ packet, 32,928 bytes. One byte is always kept free so that "head equals tail" ca
 | `hcom_cirbuf_add_bytes()` | Adds the whole block or nothing: `WONT_FIT` if the free space is less than the block, `BAD_ARG` for a zero-length block. Wraps around the end of the memory. |
 | `hcom_cirbuf_get_next_packet()` | Searches from the tail for the delimiter, in the upper part and then, if the data wraps, in the lower part. Copies out the packet including its delimiter and moves the tail past it (`FOUND_MSG`), or reports `NONE_FOUND`. |
 | (too large) | If the packet is longer than the destination (8232 bytes), it is skipped without copying and `DELETED_TOO_BIG` is returned with the size. |
-| `hcom_cirbuf_clear_buffer()` | Resets head and tail to the start, discarding everything. Used by the watchdog. |
+| `hcom_cirbuf_clear_buffer()` | Resets head and tail to the start, discarding everything. Used by the watchdog and by the full-buffer recovery (below). |
 
 The buffer has **no locking**. It is safe only because exactly one thread adds (moving the head) and
 exactly one removes (moving the tail), with the semaphores below as signals. The header file says
@@ -112,7 +112,10 @@ turned off (`SEM_PRIO_NONE`), because they are used for signalling rather than a
 | Semaphore | Posted by | Waited on by | Meaning |
 |-----------|-----------|--------------|---------|
 | `_runProcSem` | the receive thread after each chunk is added (and when the buffer is full); the watchdog | the processing thread | "there may be a packet to process" |
-| `_runRecvSem` | the processing thread each time it removes a packet | the receive thread, only when the buffer is full | "there may be room now" |
+| `_runRecvSem` | the processing thread each time it removes a packet, or when it discards a full buffer | the receive thread, only when the buffer is full | "there may be room now" |
+
+A flag, `_recvWaitingForSpace`, is set by the receive thread while it waits on `_runRecvSem`, so that
+the processing thread can tell a full buffer from an empty one.
 
 **Receive side** (`hcom_host_enq_deq_enqueue_rcvd_data()`), per chunk:
 
@@ -120,8 +123,9 @@ turned off (`SEM_PRIO_NONE`), because they are used for signalling rather than a
    add_bytes(chunk)
      SUCCESS   -> post _runProcSem; return (go and read more)
      WONT_FIT  -> post _runProcSem          (make sure the processor is awake and draining)
+                  set _recvWaitingForSpace; post _runProcSem again
                   wait  _runRecvSem         (sleep until a packet has been removed)
-                  try again
+                  clear _recvWaitingForSpace; try again
 ```
 
 The reader therefore stops calling `read()` while the buffer is full. The host-side USB driver's own
@@ -134,7 +138,10 @@ buffering then fills and the host's writes should stall: backpressure is end to 
      get_next_packet
        FOUND_MSG      -> post _runRecvSem; use up one pending wake-up on _runProcSem (trywait);
                          clear any stale watchdog flag; return the packet
-       NONE_FOUND     -> wait _runProcSem  (a chunk arrived, or the watchdog fired)
+       NONE_FOUND     -> if _recvWaitingForSpace: the buffer is full and holds no delimiter;
+                         log "Receive buffer full with no delimiter, data discarded",
+                         clear the buffer, clear the flag, post _runRecvSem; loop
+                         wait _runProcSem  (a chunk arrived, or the watchdog fired)
                          if the watchdog fired: run the download clean-up, return -ETIME
                          otherwise loop
        DELETED_TOO_BIG-> log "Message too big, deleted"; loop
@@ -223,23 +230,15 @@ called in the current code. In practice the pipeline runs until the device is re
 | A complete packet that is too large (over 8232 encoded bytes) | Discarded, "Message too big, deleted" in syslog; no reply |
 | A decoded packet that is too large (over 8192 bytes) | `TEXT_ERROR`, dropped |
 | Host sends faster than the device processes | The buffer fills, the reader blocks, and the USB link stalls the host |
-| **More than the buffer's capacity arrives with no `0x00` delimiter** | **Both threads block permanently** (see below) |
+| More than the buffer's capacity arrives with no `0x00` delimiter | The buffered bytes are discarded, "Receive buffer full with no delimiter, data discarded" in syslog, and receiving carries on; no reply |
 
 ## Things to Know
 
-- **A flood without a delimiter wedges the pipeline (Issue #820).** If the buffer fills with bytes that contain no
-  `0x00`, the receive thread waits for space, and the processing thread, finding no complete packet,
-  waits for data. Neither can wake the other, and the watchdog only runs during a download, so nothing
-  recovers until the device is reset. I confirmed this by compiling the real `meadow_cirbuf.c` with a
-  copy of the enqueue and dequeue logic and feeding it 8192-byte chunks with no delimiter: it accepted
-  4 chunks (about 32 KB) and stalled; the same input with a delimiter at the end of each chunk ran
-  normally. A conforming host never does this (every encoded packet is under 8232 bytes and ends in
-  a delimiter), so it needs malformed or non-COBS input, but nothing on the device guards against it.
-- **The retry in `hcom_host_receive_takesem()` can never trigger (Issue #819).** It loops `while (ret == -EINTR)`,
-  but `sem_wait()` in user space returns `-1` and sets `errno` (`libs/libc/semaphore/sem_wait.c`),
-  so an interrupted wait returns as if the semaphore had been taken. The same loop appears in the
-  send code. The wait in `hcom_host_enq_deq_wait_for_work()` handles this correctly by testing `errno`.
-  Only a signal arriving at exactly that moment would expose it.
+- **A flood without a delimiter is discarded.** A conforming host never fills the buffer without a
+  delimiter (every encoded packet is under 8232 bytes and ends in one), so a full buffer with no
+  complete packet means malformed or non-COBS input. Before the fix for Issue #820 both threads then
+  waited for each other until the device was reset; now the processing thread discards the whole
+  buffer. Any valid packet that was arriving at the time is lost with it.
 - **The semaphores are counting and unbounded.** Every packet found posts `_runRecvSem` even when the
   receive thread is not waiting, so unused wake-ups accumulate and later cause a few extra loop passes
   before the thread really sleeps. Harmless, but not a strict "space available" signal.

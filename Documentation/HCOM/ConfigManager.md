@@ -178,7 +178,9 @@ The Mono runtime reads and writes individual items through the `/dev/upd` comman
 
 Direction 0 reads and anything else writes. A write of items 12 and 13 is passed on to the ESP32 first and
 stored locally only if the ESP32 accepted it; a write of item 0 likewise. Any other item gives `ERROR`.
-The length conventions are strict: strings must fit with their terminator, integers need 4 bytes, booleans 1.
+A negative length is refused with `-EINVAL` for every item, read or write, before the lock is taken.
+Writes need exactly 4 bytes for an integer and 1 for a boolean; reads need at least that much. Strings must
+fit with their terminator; the unique ID needs at least 36 bytes and the serial number at least 19.
 
 ## Things to Know
 
@@ -189,7 +191,7 @@ The length conventions are strict: strings must fit with their terminator, integ
 - **Items 19 and 20 cannot be read** through the item interface, although the enumeration has them.
 - **The header comment for the item interface has the direction backwards.** `meadow-upd.h` says "1 = read, 0 =
   write"; the code treats 0 as read.
-- **`LogUdpPort`'s range check is overwritten** by a second assignment, so any value is used (Issue #828).
+- **An out-of-range `LogUdpPort` is replaced, not refused.** A port above 65535 is logged and replaced with 30000.
 - **The device name can be written without the host-name check.** The set path used by managed code
   stores the name as given (after the ESP32 accepts it); only the file path validates it and calls
   `sethostname()`. The write also tests `buffer[buffer_length]` for a terminator, so the caller's buffer must

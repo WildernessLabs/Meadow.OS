@@ -176,11 +176,9 @@ quickly, and the slower write to a file is done at the next start.
 ### What writes the status
 
 - **Runtime faults** are written by the Mono runtime, which is outside this repository.
-- **OS faults.** `meadow_os_fault_handler_save_os_state()` is meant to do this: set the OS bits, take the last
-  messages from the RAMLOG (`ramlog_get_sysbuffer_pointer()`), strip the stack dump unless
-  `CONFIG_MEADOW_LOGGING_ENABLE_STACK_DUMP` is set, and copy the text to backup SRAM. **Nothing calls it**, and
-  `ramlog_get_sysbuffer_pointer()` is not defined anywhere in this tree, so the OS side of this mechanism is
-  inactive in the current build. An OS assertion resets the board (`CONFIG_BOARD_RESET_ON_ASSERT`, see
+- **OS faults.** Nothing in this tree writes them. The writer that Legacy had
+  (`meadow_os_fault_handler_save_os_state()`) was never called after the rebase and was removed (Issue #801);
+  recording OS faults is tracked in Issue #800. The reader above still handles the OS bits. An OS assertion resets the board (`CONFIG_BOARD_RESET_ON_ASSERT`, see
   [KernelStartup.md](KernelStartup.md#restarts)); no OS crash report is recorded.
 
 ## Things to Know

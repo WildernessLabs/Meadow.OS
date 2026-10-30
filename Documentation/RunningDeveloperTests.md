@@ -31,25 +31,34 @@ The following identifiers can be used with the `-u` flag:
 | `adc` | Analog to Digital converter tests | `ADC_TESTS` |
 | `bbr` | Battery Backed Register tests | `BBR_TESTS` |
 | `bg77` | BG77 Cellular modem tests | `BG77_TESTS` |
+| `bt` | Bluetooth tests | `BLUETOOTH_TESTS` |
 | `chat` | Ethernet Chat tests | `CHAT_TESTS` |
 | `dac` | Digital to Analog converter tests | `DAC_TESTS` |
 | `dirmgmt` | Directory management tests | `DIR_MGMT_TESTS` |
 | `esp` | ESP32 Coprocessor tests | `ESP_TESTS` |
 | `ethernet` | Ethernet peripheral tests | `ETHERNET_TESTS` |
 | `gpio` | GPIO peripheral tests | `GPIO_TESTS` |
+| `gpiocount` | GPIO counter tests | `GPIO_COUNTER_TESTS` |
 | `i2c` | I2C bus scan tests (I2C1 and I2C3) | `I2C_TESTS` |
 | `iso8601` | ISO8601 time parsing tests | `ISO8601_TESTS` |
+| `measfreq` | Frequency measurement tests | `MEASURE_FREQUENCY_TESTS` |
+| `mint` | Meadow interrupt tests | `MEADOW_INTERRUPT_TESTS` |
 | `misc` | Miscellaneous system tests | `QUICK_MISC_TESTS` |
+| `os` | Meadow OS tests | `MEADOW_OS_TESTS` |
 | `overload` | MCU stress/overload tests | `MCU_OVERLOAD_TESTS` |
 | `power` | Power management tests | `POWER_MANAGEMENT_TESTS` |
 | `pwm` | Per-pin PWM output tests | `PWM_TESTS` |
 | `qspiflash` | QSPI flash raw read/write/erase tests | `QSPI_FLASH_TESTS` |
+| `rotenc` | Rotary encoder tests | `ROTARY_ENCODER_TESTS` |
 | `sdcard` | SD Card peripheral tests | `SD_CARD_TESTS` |
 | `snprintf` | `snprintf` functionality tests | `SNPRINTF_TESTS` |
 | `sotest` | Dynamic loading (dlopen/dlsym/dlclose) tests | `SOTEST_TESTS` |
 | `spidma` | SPI DMA tests | `SPI_DMA_TESTS` |
 | `sqlite` | SQLite database tests | `EXAMPLES_SQLITE_TESTS` |
 | `tensorflow` | TensorFlow Lite for Microcontrollers tests | `TENSORFLOW_TESTS` |
+| `traverse_ku` | Kernel-to-user traverse channel tests | `TRAVERSE_KU_TESTS` |
+| `usrwork` | User-space work queue tests | `USR_WORK_TESTS` |
+| `all` | All tests in `ALL_MEADOW_TESTS`; `snprintf`, `overload`, `usrwork` and `dac` are left out and need their own identifier (see the comment in `build.sh`) | `ALL_MEADOW_TESTS` |
 
 ## Test Configuration
 

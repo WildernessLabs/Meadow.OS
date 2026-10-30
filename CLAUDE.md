@@ -64,11 +64,20 @@ All commands run from the **workspace root**, not from `nuttx/`:
 
 # Build with debug symbols
 ./build.sh --debug
+
+# Enable NSH on USART6 (COM6)
+./build.sh --nsh
+
+# Developer only: add a second USB CDC/ACM port for syslog (or for NSH with --nsh)
+./build.sh --dualcdc
 ```
 
-**Available `--unittests=` values:** `esp`, `sqlite`, `snprintf`, `gpio`, `overload`, `bbr`,
-`chat`, `ethernet`, `bg77`, `iso8601`, `power`, `sdcard`, `misc`, `dirmgmt`, `adc`, `dac`,
-`spidma`, `pwm`, `rotenc`, `i2c`, `os`, `usrwork`, `sotest`, `all`
+`./build.sh --help` lists every option.
+
+**Available `--unittests=` values:** `esp`, `bt`, `sqlite`, `snprintf`, `gpio`, `overload`, `bbr`,
+`chat`, `ethernet`, `bg77`, `iso8601`, `power`, `sdcard`, `tensorflow`, `misc`, `dirmgmt`, `adc`,
+`dac`, `spidma`, `pwm`, `i2c`, `rotenc`, `gpiocount`, `sotest`, `os`, `usrwork`, `traverse_ku`,
+`measfreq`, `qspiflash`, `mint`, `all`
 
 ### What `build.sh` produces
 
@@ -84,7 +93,8 @@ All commands run from the **workspace root**, not from `nuttx/`:
 > built from is `F7MeadowOS/`, not `Meadow.OS/`.
 
 See `Documentation/Debugging.md` for flashing and hardware-debug workflows (`flash.sh`,
-`debug.sh`, GDB helper scripts); see `esp32/CLAUDE.md` for ESP32 coprocessor build commands.
+`debug.sh`, GDB helper scripts). The ESP32 coprocessor firmware is built in the separate
+Meadow-ESP32 repository.
 
 ## Flashing and Debugging
 

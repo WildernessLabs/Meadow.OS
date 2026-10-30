@@ -167,7 +167,7 @@ Consequences:
 - Chunks are **not line-aligned**: a message may start or end in the middle of a line, and control
   characters such as `\r` and `\n` are included. The host must reassemble lines.
 - The text is **not NUL-terminated**.
-- A chunk is at most 383 or 384 bytes (see Things to Know).
+- A chunk is at most 384 bytes.
 - When the host is not listening, the send reports success or `-EAGAIN` and the text is **discarded**;
   `-EAGAIN` is deliberately ignored. There is no buffering for later.
 
@@ -250,11 +250,6 @@ The version that the next start compares is read from the new image only after a
 - **Start failures are quiet.** `hcom_mono_ctrl_start_mono_main()` returns an error for every "will not
   start" case, but the start-up manager discards the result, so HCOM carries on and the host only sees
   the `TEXT_INFORMATION` reason.
-- **Mono output can be lost in two ways in the forwarding code:** the last byte of every full 384-byte
-  read is dropped (Issue #824), and the optional syslog copy discards unterminated lines and prints stale
-  characters for non-printable ones (Issue #825).
-- **Runtime-flash failures are only partly visible to the host** (Issue #826): a missing or wrong-size
-  Runtime file is reported only to syslog, and a failed erase reports success.
 - **Output is blocking on Mono's side.** The write end is opened without `O_NONBLOCK`, so Mono's console
   writes wait when the FIFO is full; a send stalled on the host can therefore slow the application.
 - **The run-state reply reports the setting, not the process.** "Mono is enabled" says nothing about

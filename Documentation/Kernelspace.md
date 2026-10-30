@@ -13,7 +13,7 @@ The NuttX kernel runs in ARM privileged mode and is MPU-protected from user-spac
 
 | File | Purpose |
 |------|---------|
-| `stm32_boot.c` | `stm32_boardinitialize()` (very early: SPI chip selects, SDRAM, USB GPIO) and `board_late_initialize()` (backup SRAM, PWM, USB CDC/ACM, MPU regions, QSPI flash MTD/FTL, then `meadow_upd_initialize()` and `hcom_nx_setup_mgr()`) |
+| `stm32_boot.c` | `stm32_boardinitialize()` (very early: SPI chip selects, SDRAM, USB GPIO) and `board_late_initialize()` (backup SRAM, PWM, USB CDC/ACM, MPU regions, `meadow_upd_initialize()`, QSPI flash MTD/FTL, then `hcom_nx_setup_mgr()`) |
 | `stm32_bringup.c` | `stm32_bringup()`: mounts procfs, sets up PWM and CS4344 audio, and calls `init_corecomp()` for the F7 Core Compute variant. Only reached when `CONFIG_BOARD_LATE_INITIALIZE` is not set (see below) |
 | `stm32_appinitialize.c` | `board_app_initialize()`: returns OK immediately when `CONFIG_BOARD_LATE_INITIALIZE=y` (the `meadow_os` defconfig), otherwise calls `stm32_bringup()` |
 | `stm32_extmem.c` | FMC/SDRAM initialisation |
@@ -36,8 +36,8 @@ Reset
   +-> (NuttX nx_start)
         +-> board_late_initialize()   - Meadow does most of its board setup here
               +-> backup SRAM, PWM, USB CDC/ACM, MPU regions
-              +-> QSPI flash MTD + FTL
               +-> meadow_upd_initialize()   - registers /dev/upd
+              +-> QSPI flash MTD + FTL
               +-> hcom_nx_setup_mgr()       - Meadow kernel init
         +-> user-space init entry point: hcom_main (CONFIG_INIT_ENTRYPOINT)
 ```
@@ -50,10 +50,15 @@ init entry point.
 
 `hcom_nx_setup_mgr()` is the main Wilderness Labs kernel entry point. It:
 
-1. Initialises GPIOs and board interrupt routing
-2. Reads the YAML configuration from QSPI flash via `hcom_nx_config_manager`
-3. Selects and starts the network interface (ESP32 WiFi or Ethernet)
-4. Starts the ESP32 coprocessor threads (`espcp`)
+1. Sets up the QSPI flash partitions and file systems, the kernel-to-user traverse channel and trace
+2. Starts the ESP32 coprocessor early (`espcp_early_init()`)
+3. Reads the YAML configuration from QSPI flash via `hcom_nx_config_manager`
+4. Sets up the interrupt routing (`meadow_interrupt_setup()`) and power management
+5. Starts the SD card and the network interface selected by the configuration (Ethernet here; ESP32
+   WiFi through `espcp`)
+6. Starts the idle monitor, then finishes the ESP32 start-up (`espcp_late_init()`, run mode)
+
+[HCOM/KernelStartup.md](HCOM/KernelStartup.md) lists every step and its failure handling.
 
 The Universal Platform Driver is not registered here - `board_late_initialize()`
 registers it earlier via `meadow_upd_initialize()` (see below).

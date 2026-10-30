@@ -89,13 +89,13 @@ apps/system/hcom/
 Several of these one-line descriptions understate real scope - the subdirectories are large
 enough to be their own subsystems:
 
-- **`comms/`** (~3,200 lines across 7 files) implements a complete protocol state machine:
-  encode, enqueue/dequeue, preprocess, receive, route, send, and a watchdog timer thread.
-- **`file/`** (~3,700 lines across 9 files) is really two parallel file-transfer subsystems split
+- **`comms/`** (~3,500 lines across 7 source files) implements a complete protocol state machine:
+  encode, enqueue/dequeue, preprocess, receive, route, send, and a download watchdog timer (no thread of its own).
+- **`file/`** (~4,100 lines across 9 source files) is really two parallel file-transfer subsystems split
   by target (STM32 vs. ESP32) and direction (download/upload/delete/list/write), not one.
-- **`esp32/`** (~2,500 lines across 8 files) is a full coprocessor protocol stack: execute,
+- **`esp32/`** (~2,600 lines across 6 source files) is a full coprocessor protocol stack: execute,
   network monitor, recv/xmit processing, UART comms - not simple "management."
-- **`diag/`** (7 files) covers protocol decoding, GPIO diagnostics, NSH support, and trace-level
+- **`diag/`** (6 source files) covers protocol decoding, GPIO diagnostics, NSH support, and trace-level
   control, plus `hcom_traverse_ku_user.c`, which is really a kernel/user IPC channel, not a
   diagnostics feature.
 - **`cell/`** includes a `cmux/` sub-directory implementing a full 3GPP 27.010 CMUX multiplexer.
