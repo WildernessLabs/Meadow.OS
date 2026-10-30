@@ -74,7 +74,9 @@ what surfaced the need for them:
   "turn on some debug features" commit -- watch for it if NSH commands, or
   Mono's console output, ever stop appearing again.
 
-The settings `enable_nsh()` applies, with the notes that explain them, are:
+The main settings `enable_nsh()` applies, with the notes that explain them, are below. The full list,
+including the `meadowtest`, USART6 serial driver, readline and RAM disk (`MKRD`) settings, is in
+`enable_nsh()` in `scripts/configuration_tweaks.sh`.
 
 ```
 # ---- NSH support (see Documentation/SettingupMeadowNSH.md) ----
@@ -320,7 +322,8 @@ similar) device, and on Linux typically `/dev/ttyUSB0` or `/dev/ttyACM0`.
 ## Step 3: Enable and use NSH
 
 NSH is started automatically on USART6 when the `--nsh` flag is used in the build.
-## Running the developer tests: `meadowtest`
+
+### Running the developer tests: `meadowtest`
 
 `--nsh` also builds the `meadowtest` command (`apps/system/meadowtest`), which runs the
 same developer tests Meadow.CLI can trigger, from the `nsh>` prompt:

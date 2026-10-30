@@ -8,8 +8,8 @@ Two separate ELF files are produced:
 
 | Binary | Region | Load Address |
 |--------|--------|-------------|
-| `nuttx.bin` (kernel) | kflash | `0x08040000` |
-| `nuttx_user.bin` (user) | uflash | `0x08100000` |
+| `nuttx.bin` (kernel) | kernel vectors at the start of uflash, code in kflash | `0x08040000` (vectors), `0x08140000` (code) |
+| `nuttx_user.bin` (user) | uflash | `0x08040200` (`CONFIG_NUTTX_USERSPACE`) |
 
 The combined `Meadow.OS.bin` image is assembled by the build script using `srec_cat` and `dd`.
 
@@ -21,10 +21,11 @@ The combined `Meadow.OS.bin` image is assembled by the build script using `srec_
  |                                                                     |
  |  0x08000000  +----------------------+  Bootloader (Meadow.BL)       |
  |              |     Meadow.BL        |  256 KB                       |
- |  0x08040000  +----------------------+  NuttX kernel image           |
- |              |   nuttx (kernel)     |  kflash - up to 1 MB          |
- |  0x08100000  +----------------------+  NuttX user image             |
- |              |  nuttx_user (hcom)   |  uflash - up to 1 MB          |
+ |  0x08040000  +----------------------+  Kernel vector table (512 B)  |
+ |  0x08040200  +----------------------+  NuttX user image             |
+ |              |  nuttx_user (hcom)   |  uflash - 1 MB in all         |
+ |  0x08140000  +----------------------+  NuttX kernel image           |
+ |              |   nuttx (kernel)     |  kflash - 768 KB              |
  |  0x08200000  +----------------------+                               |
  +---------------------------------------------------------------------+
 
@@ -107,7 +108,8 @@ The NuttX kernel is configured with the `meadow_os` defconfig for the `stm32f777
 ### File Systems
 - FAT (`CONFIG_FS_FAT=y`) with long filename support
 - LittleFS (`CONFIG_FS_LITTLEFS=y`) for wear-levelled QSPI partitions
-- procfs mounted at `/proc`
+- procfs is off in the `meadow_os` defconfig; it is mounted at `/proc` only in NSH builds that enable
+  `CONFIG_FS_PROCFS`
 
 ### Networking
 - Full TCP/IP stack enabled (`CONFIG_NET=y`)

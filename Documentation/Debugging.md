@@ -15,12 +15,12 @@ Meadow.OS is debugged using **OpenOCD** as the GDB server and **gdb** (with Pyth
 
 Open two terminals:
 
-**Terminal 1 — Start the OpenOCD server:**
+**Terminal 1 -- Start the OpenOCD server:**
 ```bash
 ./debug.sh --server
 ```
 
-**Terminal 2 — Launch GDB:**
+**Terminal 2 -- Launch GDB:**
 ```bash
 ./debug.sh
 ```
@@ -51,15 +51,20 @@ tcl port 6666
 
 # NuttX RTOS awareness
 stm32f7x.cpu configure -rtos nuttx
+
+init
+reset init
 ```
 
 NuttX RTOS awareness is enabled in OpenOCD. This allows OpenOCD to display NuttX tasks as threads in GDB.
+The excerpt leaves out comments and a disabled (`if {0}`) image-loading block. Because of `reset init`,
+starting a debug session halts and resets the board.
 
 ### Flash session (`flash.cfg`)
 
 `flash.cfg` writes whichever image is present, and the first branch is the one
-that normally runs. If `nuttx/Meadow.OS.bin` exists — the combined bootloader and
-OS image that `build.sh` produces — it is written to `0x08000000` and the script
+that normally runs. If `nuttx/Meadow.OS.bin` exists -- the combined bootloader and
+OS image that `build.sh` produces -- it is written to `0x08000000` and the script
 stops there:
 
 ```tcl
@@ -110,7 +115,7 @@ The `.gdbinit` file in the `gdb` directory is loaded automatically when GDB is s
    ```
    Literal `monitor nuttx.*_offset` lines are present in the file but commented
    out. Because the offsets come from the symbols, a wrong or missing symbol
-   file produces a wrong task list rather than an error — load the symbols that
+   file produces a wrong task list rather than an error -- load the symbols that
    match the firmware on the board.
 
 ### Useful GDB Macros
