@@ -601,8 +601,8 @@ a `Network` section, as `EspcpTests` does). The runner uses that file as the bas
 replaces only its `MonoControl` section.
 
 `EspcpTests` needs the board on WiFi (`wifi.config.yaml` deployed once beforehand), the bench web
-server, and `tests/managed/EspcpTests/idle_server.py` running on the bench network. Known failures,
-such as `socket.send_timeout_default`, are listed with their reasons in the manifest.
+server, and `tests/managed/EspcpTests/idle_server.py` running on the bench network. Known failures
+are listed with their reasons in the manifest.
 
 ## Adding New Tests
 
