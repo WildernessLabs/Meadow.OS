@@ -690,11 +690,6 @@ typedef struct unit_tests_configuration_s unit_tests_configuration_t;
 #define MEADOW_TEST_ETHERNET_WEB_PAGE_LOAD_TEST     1201
 
 /**
- * @brief BG77 (all tests) test ID.
- */
-#define MEADOW_TEST_BG77                            1400
-
-/**
  * @brief QSPI flash init/erase test ID.
  */
 #define MEADOW_TEST_QSPI_FLASH_INIT                  1600

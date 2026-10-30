@@ -1,0 +1,9 @@
+#
+#   BG95-M3 click board on mikroBUS 1 (COM1), enable (PWRKEY) pin A3.  The APN is a placeholder:
+#   the tests do not need a data session, so no SIM is needed either.
+#
+Settings:
+    APN: internet
+    Module: BG95M3
+    Interface: COM1
+    EnablePin: A3

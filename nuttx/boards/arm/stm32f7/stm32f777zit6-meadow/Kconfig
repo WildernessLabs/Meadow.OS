@@ -36,6 +36,15 @@ config MEADOW_ETHNET_INCLUDE_IN_BUILD
     ---help---
     This must be used with a 'defconfig' file that includes the correct Ethernet configuration.
 
+config MEADOW_CELL_INCLUDE_IN_BUILD
+    bool "Build Meadow and include cell (PPP) network support"
+    default n
+    depends on NET
+    select NETUTILS_PPPD
+    ---help---
+    Powers on the cell module at boot when the cell interface is selected
+    in the configuration, and builds the hcom PPPD client that connects it.
+
 config HCOM_ESP32_COMMS
     bool "Enables HCOM file download to the ESP32"
     default y

@@ -7,6 +7,7 @@ the output contract described in `tools/testrunner/README.md`.
 | App | What it covers |
 |---|---|
 | `MiniTests` | Mono's mini test suite (issue #726): 733 JIT regression tests in 10 suites, under the JIT and the interpreter |
+| `CellTests` | The cell network on a BG95-M3: the managed API (GNSS and signal quality) without a SIM, and the data link with one |
 | `EspcpTests` | espcp network robustness (issue #708): WiFi, `SO_SNDTIMEO` on new sockets, repeated HTTP and socket open/close (poll setup and teardown), and a connect that is never answered |
 
 ## MiniTests
@@ -60,3 +61,58 @@ Meadow.Core does not connect to the default access point.
 - **Limit:** the 30 second response timeout in `espcp_queue_message()` is reached only when the
   ESP32 does not answer a request at all. The blackhole case holds an ESP32 worker but the ESP32
   still answers, so it does not prove that path; that needs an ESP32 that stops responding.
+
+## CellTests
+
+Needs an OS built with `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD=y`, a BG95-M3 click board on mikroBUS 1
+(COM1, enable pin A3) and, for `cell.gnss_fix`, a GPS antenna with a view of the sky. The GNSS and
+signal quality cases do not need a SIM: they run on the CMUX AT channel, independently of the data link
+(see `Documentation/Cell.md`).
+
+- **Config:** the app ships `meadow.config.yaml` (cell interface, the modem pins reserved, and
+  `InternalDebug` with only `TraceLevel: 2`) and always ships `cell.config.yaml`. COM1 belongs to
+  the modem, so there is no `Uart1Use`; for the syslog, build the OS with `build.sh --dualcdc`
+  (without `--nsh`) and read the second USB CDC port. The deploy replaces the board's
+  `meadow.config.yaml`, so restore the usual one afterwards.
+- **SIM:** without one the two data link cases are skipped. With one, point `MEADOW_CELL_CONFIG`
+  at a `cell.config.yaml` that has the carrier's APN and credentials. The app then ships it in place
+  of the placeholder and requires the link. For an EE (UK) SIM, use `cell.ee.config.yaml` in this
+  folder. It holds EE's public, published settings (APN `everywhere`, PAP), and passed 6/6 on
+  2026-10-27:
+
+  ```bash
+  MEADOW_CELL_CONFIG=tests/managed/CellTests/cell.ee.config.yaml tools/testrunner/testrunner.py --test celltests
+  ```
+
+  For a SIM on a private APN, point `MEADOW_CELL_CONFIG` at a local file instead of adding its
+  credentials to the repository.
+- **Mono must be running:** the cell code (CMUX, pppd and the AT channel) starts only after Mono
+  starts. Check that the boot banner says `Mono:Enabled`.
+- **Cases:**
+  - `cell.adapter`: the cell adapter exists.
+  - `cell.connected` (SIM only): the PPP link comes up within 300 s (`IsConnected`).
+  - `cell.http_get` (SIM only): an HTTP GET of `http://example.com/` over the link, which tests the
+    network DNS servers and TCP through `ppp0`.
+  - `cell.http_large` (SIM only): an 8 KB download (`http://httpbin.org/bytes/8192`) and a 4 KB
+    upload (`http://httpbin.org/post`), so that full-size (about 1400-byte) IP packets cross the PPP
+    link in both directions. About 20 KB of data per run.
+  - `cell.socket_linger` (SIM only): reads `Socket.LingerState`, sets `LingerOption(true, 0)` and
+    connects, as MQTTnet does (issue #718).
+  - `cell.mqtt_connect` (SIM only): an MQTTnet connect and disconnect to `broker.hivemq.com:1883`
+    (plain MQTT, a few hundred bytes).
+  - `cell.connect_cancel` (SIM only): closes 24 pending `ConnectAsync` and 6 pending blocking
+    `Connect` calls to an unrouted address (192.0.2.1), then checks that connects still work, at once
+    and after 10 s and 30 s (issue #716). Each blocking cancel takes about 46 s (see
+    `Documentation/Cell.md`), so the case takes about 5 minutes.
+  - `cell.gnss_output`: `FetchGnssAtCmdsOutput` returns NMEA (`$GPGGA` and `$GPRMC`) within 300 s.
+    It does not need a fix. The request waits up to 120 s for a fix, so without one a run takes about
+    two minutes. The data link carries no traffic during the request, so the data link cases run
+    first.
+  - `cell.gnss_fix`: GGA fix quality 1 or more and RMC status `A`. Reports only the quality, the
+    satellite count, the HDOP and the GSA fix mode, because the NMEA contains the bench's
+    position.
+  - `cell.signal_quality`: `GetSignalQuality` returns a value other than NoSignal. This is
+    a known failure without a SIM; see the manifest.
+- **Limit:** the managed requests need CMUX to be running. If the modem never answers `AT` at
+  start-up, or CMUX fails to start, the AT channel is not started and the managed calls wait until their own
+  timeouts.

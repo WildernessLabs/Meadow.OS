@@ -96,6 +96,14 @@ meadow_configuration_t *meadow_os_deep_copy_config(void);
 unit_tests_configuration_t *meadow_os_get_unit_tests_config(void);
 #endif
 
+#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+//
+//  Start the kernel NTP client (meadow_ntpclient.c), used by the cell driver
+//  once the PPP link is up.
+//
+int ntpc_start(void);
+#endif
+
 //
 //  Power cycle, and reset methods.
 //

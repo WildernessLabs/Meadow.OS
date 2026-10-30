@@ -32,6 +32,8 @@ hcom_main()          hcom_startup_manager.c
         +-> Start kernel-to-user traverse thread
         +-> Mono main setup
         +-> Start Mono                      (if CONFIG_SYSTEM_MONO)
+        +-> Start the cell network          (if CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD, Mono
+        |   started and the cell interface selected: see Cell.md)
         +-> Launch NSH                      (if CONFIG_SYSTEM_NSH)
         +-> hcom_host_process_setup(): hcom_main itself becomes the
             request-processing thread and never returns
@@ -42,31 +44,30 @@ There is no host send thread. The only thread created in `comms/` is the receive
 functions, serialised by a semaphore (`hcom_host_send.c`).
 
 The diagram is a summary; `hcom_startup_manager.c` is the authority on the exact order. The OTA
-and cellular/PPP start-up calls are `#if(0)` blocks in that file, so they are not shown (see
-below).
+start-up calls are an `#if(0)` block in that file, so they are not shown (see below).
 
 Module dependencies: `comms/hcom_host_route.c` depends on both `ota/` and `esp32/`, and `mono/`
 depends on `diag/hcom_diag_gpio.h`.
 
 ### Currently Disabled Subsystems
 
-The OTA and cellular/PPP startup calls shown above are wrapped in `#if(0)` blocks in
-`hcom_startup_manager.c`, with comments noting they are not usable without further work (e.g.
-"undefined reference to `hcom_pppd_start`"). In the current build:
+The OTA startup calls (`os_update()`, `app_update()`, `firmware_update()`) are wrapped in an
+`#if(0)` block in `hcom_startup_manager.c`, with a comment noting they are not usable without
+further work. In the current build:
 
-- **`cell/` and `ota/` are not started at boot.** Their source is present and compiled, but the
-  calls that would launch them are compiled out.
+- **`ota/` is not started at boot.** `ota/hcom_ota.c` is compiled (when `CONFIG_MEADOW_CLOUD=y`),
+  but the calls that would launch it are compiled out.
+- **`cell/` is started at boot** when `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD=y`, Mono has started and
+  `meadow.config.yaml` selects the cell interface. See [Cell.md](Cell.md).
 - **`mono/` starts the Mono .NET runtime when `CONFIG_SYSTEM_MONO` is enabled.**
   `hcom_mono_ctrl_start_mono_main()` creates the "Mono" task, running `meadow_mono_main()` from
   `apps/system/mono/`, but only when the runtime is enabled, its version matches the OS, and the
   required assemblies (`System.Private.CoreLib.dll`, `Meadow.dll`) are present in `/meadow0`.
-- `cell/hcom_pppd.c` and `ota/hcom_ota.c` have no corresponding object files in a normal build -
-  they are effectively dead code paths until re-enabled.
 - OTA update requests are still reachable *reactively*: `comms/hcom_host_route.c` can call into
   `ota/` in response to a host command, independent of the boot-time startup sequence.
 
-Treat any reasoning about "what runs on this board" as excluding cell and OTA unless
-`hcom_startup_manager.c` has been changed to re-enable them.
+Treat any reasoning about "what runs on this board" as excluding OTA unless
+`hcom_startup_manager.c` has been changed to re-enable it.
 
 ## Module Structure
 
@@ -81,7 +82,7 @@ apps/system/hcom/
 +-- esp32/                   ESP32 coprocessor protocol stack (execute, network monitor, UART)
 +-- mono/                    .NET Mono runtime management (starts apps/system/mono, see below)
 +-- ota/                     OTA update initiation (currently not started, see below)
-+-- cell/                    Cellular/PPP support incl. cmux/ (currently not started, see below)
++-- cell/                    Cell network: CMUX, PPP and the AT command channel (see Cell.md)
 +-- misc/                    Shared utilities (circular buffer, utils)
 +-- tests/                   User-space test suite
 ```
@@ -98,16 +99,18 @@ enough to be their own subsystems:
 - **`diag/`** (7 files) covers protocol decoding, GPIO diagnostics, NSH support, and trace-level
   control, plus `hcom_traverse_ku_user.c`, which is really a kernel/user IPC channel, not a
   diagnostics feature.
-- **`cell/`** includes a `cmux/` sub-directory implementing a full 3GPP 27.010 CMUX multiplexer.
+- **`cell/`** (`hcom_cell.c`) runs the cell link over CMUX: the stock NuttX pppd on one channel
+  and AT commands on another, in two threads (CellPPPD and CellAT). The CMUX multiplexer itself
+  is NuttX's `apps/netutils/cmux`.
 
 Two overlaps worth knowing about when adding new code: `diag/hcom_diag_misc.c` and
 `misc/hcom_common_utils.c` are both generic grab-bag utility files with no stated distinction
 between them, and `misc/espcp_utils.c` is ESP-coprocessor-specific logic that lives outside
 `esp32/`.
 
-`tests/` also contains `tensorflow_tests.c` and `cell_tests.c`, which exercise features that are
-not part of the current build (TensorFlow Lite for Microcontrollers, and the disabled `cell/`
-subsystem) - present in source but not exercised by a default build.
+`tests/` also contains `tensorflow_tests.c`, which is present in source but exercises a feature
+that is not part of the current build (TensorFlow Lite for Microcontrollers). `cell_tests.c` holds
+the native cell tests (`build.sh --unittests=cell`); see [Cell.md](Cell.md).
 
 ## Shared Headers
 
