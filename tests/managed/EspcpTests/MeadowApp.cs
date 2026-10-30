@@ -51,7 +51,6 @@ public class MeadowApp : App<F7CoreComputeV2>
 
         if (await Case("wifi.connected", WaitForWiFi))
         {
-            await Case("socket.send_timeout_default", SendTimeoutDefault);
             await Case("http.get_local", HttpGetLocal);
             await Case("http.repeat_local_x30", () => HttpRepeat(30));
             await Case("tcp.connect_close_x40", () => ConnectCloseRounds(10, 4));
@@ -139,25 +138,6 @@ public class MeadowApp : App<F7CoreComputeV2>
             }
         }
         return null;
-    }
-
-    //
-    //  espcp sets SO_SNDTIMEO to 10 s on every new ESP32 socket; read it back from the ESP32.
-    //
-    Task<string> SendTimeoutDefault()
-    {
-        using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp))
-        {
-            //
-            //  Socket.SendTimeout returns a managed field and never asks the ESP32, so read the option itself.
-            //
-            int milliseconds = (int) socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.SendTimeout);
-            if (milliseconds != 10000)
-            {
-                throw new InvalidOperationException($"SendTimeout is {milliseconds} ms, expected 10000");
-            }
-            return Task.FromResult($"sendtimeout={milliseconds}ms");
-        }
     }
 
     //

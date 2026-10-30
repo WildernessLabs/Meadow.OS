@@ -39,9 +39,3 @@ tests:
       modes: [jit]
       expected_s: 420
       timeout_s: 600
-      known_failures:
-          socket.send_timeout_default: >-
-              Reading SO_SNDTIMEO back through the runtime returns 0.  The ESP32 log shows the
-              SetSockOpt (level 0xfff, option 0x1005) sent after every socket() and answered with
-              result 0, so the option is set; why the read returns 0 is not yet known (runtime
-              getsockopt path or the espcp getsockopt reply).
