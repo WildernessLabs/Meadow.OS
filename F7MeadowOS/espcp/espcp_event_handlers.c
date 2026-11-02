@@ -41,7 +41,6 @@
 #include <nuttx/kstring.h>
 
 #include <nuttx/kthread.h>
-#include <nuttx/wqueue.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_os.h>
 #include "../hcom_nx/hcom_nx_config_manager.h"
@@ -601,7 +600,7 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
         if ((message->payload_length > 0) && (message->payload != NULL))
         {
             meadow_configuration_t *config;
-            espcp_system_configuration_t *esp_config = espcp_extract_system_configuration(message->payload);
+            espcp_system_configuration_t *esp_config = espcp_extract_system_configuration(message->payload, message->payload_length);
             if (esp_config != NULL)
             {
                 hcom_nx_config_process_esp_configuration(esp_config);
@@ -626,15 +625,11 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
     espcp_delete_message_and_payload(message);
 
     //
-    //  Do not touch the work structure while it is still queued: the work queue holds it
-    //  in its list, and clearing it would corrupt that list.  If the previous request has
-    //  not started yet then it will do the job.
+    //  The retrieval runs on its own thread and is not started again while one is still
+    //  running, so a repeat of this event (ESP32 reset, wake from Stop) is harmless.
     //
-    if (work_available(&g_core_dump_work_struct))
-    {
-        int __attribute__((unused)) result = work_queue(LPWORK, &g_core_dump_work_struct, espcp_get_core_dump, NULL, 0);
-        MEADOW_TRACE_INFORMATION("work_queue result: %d\n", result);
-    }
+    int __attribute__((unused)) core_dump_result = espcp_get_core_dump();
+    MEADOW_TRACE_INFORMATION("espcp_get_core_dump result: %d\n", core_dump_result);
 
     int ret = meadow_client_cert_initialize();
     if (ret < 0)

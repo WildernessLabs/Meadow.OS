@@ -7,7 +7,7 @@ Meadow.OS mounts or unmounts the card, and managed code should not either (Issue
 
 ## When It Is Used
 
-The SD card is set up only on a CCM, and only when `meadow.config.yaml` turns it on
+The SD card is set up only on a CCM (`meadow_hw_version_sdcard_supported()` is true only for the CCMv2), and only when `meadow.config.yaml` turns it on
 (`Device:` `SdStorageSupported: true`, off by default). `hcom_nx_setup_mgr()` then calls
 `stm32_sdio_initialize_meadow()` (`F7MeadowOS/meadow_os/meadow_sdmmc.c`). Other boards have no
 `/dev/mmcsd0` and no `/sdcard`.
@@ -29,8 +29,8 @@ interrupt, `stm32_ncd_interrupt()`, does two things on each edge:
 | Field | Value |
 |-------|-------|
 | `fstype`, `blockdev`, `mountpoint` | `vfat`, `/dev/mmcsd0`, `/sdcard` (`MEADOW_SDCARD_*` in `hcom_shared_common.h`) |
-| `ddelay` | 1 s (`MEADOW_SDCARD_AUTOMOUNT_DDELAY`): the pin must be stable this long before a mount or unmount |
-| `udelay` | 2 s (`MEADOW_SDCARD_AUTOMOUNT_UDELAY`): the time between unmount retries while files are open |
+| `ddelay` | 1 s (`MEADOW_SDCARD_AUTOMOUNT_DDELAY` in `meadow_sdmmc.c`): the pin must be stable this long before a mount or unmount |
+| `udelay` | 2 s (`MEADOW_SDCARD_AUTOMOUNT_UDELAY` in `meadow_sdmmc.c`): the time between unmount retries while files are open |
 | `attach`, `enable`, `inserted` | Hooks: save the automounter's handler, gate the call to it from `stm32_ncd_interrupt()`, and read PG6 |
 
 The automounter does its work on the low-priority work queue (`CONFIG_SCHED_LPWORK`), not in the

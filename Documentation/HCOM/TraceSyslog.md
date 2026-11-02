@@ -146,7 +146,8 @@ Rules between the switches:
 Points about it:
 
 - **Lines, not bytes.** The thread reads whole lines, with one buffer of 512 bytes. A longer line is reported as
-  truncated on the UART.
+  truncated on the UART. A line sent to the host is cut to the channel's 256-byte payload limit by
+  `hcom_traverse_ku_syslog_to_host()`.
 - **UART choice.** The syslog UART is chosen at build time (`HCOM_DIAG_SYSLOG_UART_NUMBER`, default 1, which is
   `/dev/ttyS0` on pins PB14 and PB15; 4 and 6 are the alternatives). The "COM1" on the board is this port.
 - **An early marker.** When the UART is a destination, one line "Meadow.OS initialization began at <time> Meadow
@@ -163,7 +164,7 @@ Points about it:
   lost".
 - **Reading restarts from the oldest data.** NuttX's RAMLOG starts each new reader at the oldest data still in the
   buffer (the newest 32 KB), not at the end, so every time the thread reopens the log, everything still in the
-  buffer is sent again (Issue #830).
+  buffer is sent again.
 
 ## The Kernel-to-User Channel
 
@@ -256,7 +257,7 @@ wrappers over `syslog()` that compile to nothing unless a file turns on `USE_MEA
 - **The settings are remembered across restarts.** The mask and the three routing bits live in the battery-backed
   register, so tracing that was left on keeps going after a restart, and it clears only on a power loss with no
   coin cell. (The register is cleared only at power-on.)
-- **A long line can stall host tracing** (Issue #830).
+- **Long lines are cut short for the host.** Only the first 256 bytes of a line reach the host.
 - **Reopening replays the log.** Any error that makes the thread reopen the RAMLOG re-sends the buffer.
 - **Lost lines are normal.** A full RAMLOG overwrites its oldest data; a line that cannot be delivered is
   dropped; the 3-second wait for a reader drops a message. Treat the trace as best effort.

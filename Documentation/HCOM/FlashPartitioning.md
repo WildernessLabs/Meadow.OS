@@ -175,7 +175,7 @@ The device is **not restarted** by this code. The running copy of the Runtime is
 boot, so a new Runtime takes effect at the next start. A Runtime that fails halfway leaves partition 0
 partly written; there is no second copy.
 
-The errors from steps 1 and 2 are only logged; the host is not told (Issue #826).
+A failure at any step, including the erase, is sent to the host as `TEXT_ERROR` and the function returns -1.
 
 ### Copying the Runtime to RAM
 
@@ -197,9 +197,10 @@ again. The OS update and OTA areas are erased as well.
 ### Verifying an erase
 
 `VERIFY_ERASED_FLASH` reads each 4 KB sector and counts those that are not all 0xFF, then sends "Verified N bytes
-(M of T sectors), found K not erased." and replies `TEXT_CONCLUDED`. As written it **reads through the access
-proxy, so it stops at the file system partition**: it can only examine the first 5 MB of a 64 MB chip, reports
-success, and puts the failure only in the log (Issue #829). The Runtime, if present, counts as not erased.
+(M of T sectors), found K not erased." and replies `TEXT_CONCLUDED`. It covers the whole chip: the reserved area
+(the first 5 MB) through the access proxy, and the file system partition through its own MTD
+(`hcom_nx_fs_get_partition_info()`), because the proxy rejects the file system partition. A read failure is sent
+to the host as `TEXT_ERROR`. The Runtime, if present, counts as not erased.
 
 ### Renewing the file system
 
@@ -220,12 +221,11 @@ repaired automatically at the next boot by the mount code above, which is the ot
 - **A reformat is silent.** Any mount failure of the `-EFAULT`/`-EINVAL` kind erases all files at boot with no
   message to the host.
 - **Bulk erase and renew restart the device even when they fail.**
-- **Verify is partial** (Issue #829).
 - **Writes of the Runtime are not atomic.** An interrupted flash leaves a half-written, unusable Runtime and the
   device can no longer start Mono until it is flashed again; the bootloader and OS themselves are in separate
   areas and unaffected.
 - **`IS_PART_MOUNTED` ignores its argument.** `hcom_nx_fs_is_mounted()` always answers for the file system
-  partition, and its user-side wrapper turns an error into "mounted" (Issue #766).
+  partition. If the ioctl fails, the user-side wrapper reports "not mounted".
 - **Layout changes touch the bootloader.** Partition sizes are repeated in the bootloader's headers.
 - **Keep the 3 MB Runtime size in step.** The Runtime file size check, the SDRAM region size and the flash
   partition all use `HCOM_NX_FS_MONO_RAW_PARTITION_SIZE`.

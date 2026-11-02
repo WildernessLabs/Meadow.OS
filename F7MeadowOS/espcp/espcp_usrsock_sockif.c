@@ -1796,12 +1796,10 @@ static int espcp_usrsock_poll_setup(struct socket *psock, struct pollfd *fds)
     request->setup = 1;
     request->setup_message_id = espcp_get_next_message_id();
 
-    // The following comment looks to have been added by Alexis. I added
-    // MEADOW.OS REBASE to the comment so it could be looked at by someone who
-    // knew what the comment means and not forgotten.
     //
-    //MEADOW.OS REBASE: Install poll callback!
-
+    //  The waiter is woken by poll_notify() in espcp_usrsock_poll_interrupt_handler() when the
+    //  ESP32 reports events for this request, so no NuttX poll callback is installed.
+    //
     int payload_length = espcp_poll_request_buffer_size(request);
     uint8_t *payload = (uint8_t *) zalloc(payload_length);
     if (payload == NULL)

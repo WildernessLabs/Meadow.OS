@@ -251,7 +251,7 @@ uint8_t *espcp_file_system_read_file(char *name, int32_t *length)
                 {
                     if (message->status_code == espcp_status_codes_completed_ok)
                     {
-                        espcp_file_name_and_contents_t *data = espcp_extract_file_name_and_contents(message->payload);
+                        espcp_file_name_and_contents_t *data = espcp_extract_file_name_and_contents(message->payload, message->payload_length);
                         if (data != NULL)
                         {
                             amountRead = data->contents_length;
@@ -469,7 +469,7 @@ espcp_file_system_info_t *espcp_file_system_list_files(void)
                                     break;
                                 }
 
-                                espcp_file_details_t *file = espcp_extract_file_details(buffer);
+                                espcp_file_details_t *file = espcp_extract_file_details(buffer, (uint32_t) (end - buffer));
                                 if (file == NULL)
                                 {
                                     break;

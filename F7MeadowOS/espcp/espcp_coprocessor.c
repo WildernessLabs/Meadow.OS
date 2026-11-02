@@ -50,6 +50,7 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
+#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
@@ -91,6 +92,13 @@
 /****************************************************************************
  * Definitions
  ****************************************************************************/
+
+/**
+ *  How long to wait for the ESP32 to say that its SPI interface is ready ("+++SIR").  The
+ *  signal normally follows a transfer within milliseconds; the longest wait is the first
+ *  transfer after a reset, which waits for the ESP32 to boot (about 0.7 s).
+ */
+#define ESPCP_SPI_READY_TIMEOUT_MILLISECONDS    5000
 
 /****************************************************************************
  * Private Types
@@ -166,9 +174,19 @@ static espcp_pins_t _f7v2_pins =
 static espcp_pins_t *_active_pins = &_f7v1_pins;
 
 /**
- *  Used to indicate if the SPI interface is free.
+ *  Count of "+++SIR" (SPI interface ready) signals from the ESP32 that have not been
+ *  consumed yet.  This is a readiness flag and not a lock: it is posted only by the UART
+ *  monitor thread and is clamped to 1 (see espcp_signal_spi_ready).  Between conversations
+ *  the value is normally 1, as each conversation ends with a "+++SIR" that is only
+ *  consumed by the next transfer.
  */
-sem_t espcp_spi_lock;
+static sem_t espcp_spi_lock;
+
+/**
+ *  true when the last wait for the SPI ready signal timed out and marked the ESP32 as not
+ *  responding.  Only the espcp thread waits for the signal, so only it uses this.
+ */
+static bool g_spi_ready_timed_out = false;
 
 /****************************************************************************
  * Public Data
@@ -225,31 +243,67 @@ void espcp_config_unlock()
 }
 
 /****************************************************************************
- *  Name: espcp_spi_interface_lock
+ *  Name: espcp_wait_for_spi_ready
  *
  *  Description:
- *      Lock the S{PI interface.
+ *      Wait for the ESP32 to signal ("+++SIR") that its SPI interface is ready for
+ *      the next transfer.
+ *
+ *      The wait is bounded.  A lost signal (UART overrun, ESP32 reset) would
+ *      otherwise stop the espcp thread for ever, and with it every caller waiting
+ *      for a response.  On a timeout the ESP32 is marked as not responding so that
+ *      later socket calls fail fast; the next signal from the ESP32 clears it.
  *
  *  Input Parameters:
  *      None.
  *
  *  Returned Value:
- *      None.
+ *      OK if the ESP32 is ready, -ETIMEDOUT if it did not signal in time.
  *
  *  Assumptions/Limitations:
- *      None.
+ *      Called only from the espcp thread.
  *
  ****************************************************************************/
-void espcp_spi_interface_lock(void)
+int espcp_wait_for_spi_ready(void)
 {
-    nxsem_wait_uninterruptible(&espcp_spi_lock);
+    int result = nxsem_tickwait_uninterruptible(&espcp_spi_lock, MSEC2TICK(ESPCP_SPI_READY_TIMEOUT_MILLISECONDS));
+    if (result == OK)
+    {
+        if (g_spi_ready_timed_out)
+        {
+            g_spi_ready_timed_out = false;
+            syslog(LOG_INFO, "espcp: ESP32 SPI ready signal received after an earlier timeout\n");
+            espcp_config_lock();
+            if (g_espcp_configuration != NULL)
+            {
+                g_espcp_configuration->esp_not_responding = false;
+            }
+            espcp_config_unlock();
+        }
+    }
+    else
+    {
+        result = -ETIMEDOUT;
+        syslog(LOG_ERR, "espcp: no SPI ready signal from the ESP32 in %d ms, marking the ESP32 as not responding\n",
+               ESPCP_SPI_READY_TIMEOUT_MILLISECONDS);
+        g_spi_ready_timed_out = true;
+        espcp_config_lock();
+        if (g_espcp_configuration != NULL)
+        {
+            g_espcp_configuration->esp_not_responding = true;
+        }
+        espcp_config_unlock();
+    }
+
+    return (result);
 }
 
 /****************************************************************************
- *  Name: espcp_spi_interface_unlock
+ *  Name: espcp_signal_spi_ready
  *
  *  Description:
- *      Unlock the SPI interface.
+ *      Record that the ESP32 has signalled ("+++SIR") that its SPI interface is
+ *      ready for the next transfer.
  *
  *  Input Parameters:
  *      None.
@@ -258,10 +312,10 @@ void espcp_spi_interface_lock(void)
  *      None.
  *
  *  Assumptions/Limitations:
- *      None.
+ *      Called only from the UART monitor thread.
  *
  ****************************************************************************/
-void espcp_spi_interface_unlock(void)
+void espcp_signal_spi_ready(void)
 {
     //
     //  "The ESP32 is ready" is a level, not a count.  Only the UART monitor thread posts, so if the
@@ -601,6 +655,11 @@ void espcp_reset(void)
         espcp_config_unlock();
 
         espcp_hold_in_reset();
+        //
+        //  The ESP32 loses its "SPI ready" state on reset.  A signal left over from the last
+        //  conversation would let the first transfer start before the ESP32 has booted.
+        //
+        nxsem_reset(&espcp_spi_lock, 0);
         usleep(500);
         stm32_gpiowrite(_active_pins->reset, true);
     }
@@ -876,6 +935,11 @@ void espcp_early_init(void)
                 MEADOW_TRACE_CRITICAL("%s@%d Error setting up the message dispatcher.\n", __FILE__, __LINE__);
                 g_espcp_configuration->esp_not_responding = true;
             }
+            //
+            //  The dispatcher has opened its own handle on the request queue by name, so the
+            //  names of the two queues that carry kernel pointers are no longer needed.
+            //
+            espcp_unlink_private_message_queues();
         }
         else
         {

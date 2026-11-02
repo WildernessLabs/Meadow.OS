@@ -202,8 +202,6 @@ means regenerating the syscall files. After editing `syscall.csv`, force a regen
   thread. It is also limited to 6 subscribers (`PWR_MGMT_MAX_CALLBACKS_AVAILABLE`). A full table returns
   `-EBADSLT`.
 - **User-side errors from kernel handlers are only logged.** See the forwarding section above.
-- **`hcom_via_nx_is_mounted()` returns `bool`** but passes through a negative errno on failure, so a
-  failure reads as "mounted" (Issue #766).
 - **Three commands are placeholders**, as listed above.
 - **A new command needs both sides.** Add the number to `hcom_upd_shared.h` (never reuse 0x31), a `case`
   in `meadow-upd.c`, and a wrapper; a missing case fails silently apart from a syslog line.

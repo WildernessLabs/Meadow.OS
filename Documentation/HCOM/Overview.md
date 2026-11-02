@@ -53,9 +53,7 @@ Other documents already cover related ground and are linked rather than repeated
 [Memory.md](../Memory.md) (memory map, partitions, MPU, battery-backed register map),
 [Kernelspace.md](../Kernelspace.md) and [Userspace.md](../Userspace.md) (module inventories),
 [DualCdcAcm.md](../DualCdcAcm.md) (the developer-only second USB serial port) and
-[SdCard.md](../SdCard.md). Several statements in `Kernelspace.md` and `Userspace.md` are out of
-date; they are tracked in Issue #764 and Issue #765, and the documents here describe the current
-code.
+[SdCard.md](../SdCard.md).
 
 ## The System at a Glance
 

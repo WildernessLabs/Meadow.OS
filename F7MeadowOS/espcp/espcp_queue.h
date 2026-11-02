@@ -91,6 +91,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 bool espcp_create_message_queues(espcp_configuration_t *);
+void espcp_unlink_private_message_queues(void);
 int espcp_add_message_to_queue(struct file *, espcp_message_t *);
 int espcp_queue_add_nonblocking_message(uint8_t, uint8_t, uint32_t, uint8_t *, uint32_t);
 void *espcp_get_message_from_queue(struct file *);

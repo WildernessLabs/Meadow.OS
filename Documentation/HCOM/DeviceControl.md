@@ -122,11 +122,10 @@ reads the RTC hardware with `up_rtc_getdatetime()` and sends one `TEXT_INFORMATI
 send function the user side supplied:
 
 ```
-   UTC time:2022-03-31T17:34:25+0:00
+   UTC time:2022-03-31T17:34:25+00:00
 ```
 
-The offset in the reply is always zero and is printed as `+0:00`, not the ISO 8601 `+00:00` that the
-function's own comment shows (Issue #827).
+The offset in the reply is always zero (`+00:00`).
 
 ### Wake-up time
 
@@ -145,7 +144,6 @@ duration ([HostLinkUsb.md](HostLinkUsb.md#low-power-stop-mode)).
 - **Clock requests give little feedback.** Setting the clock and the wake-up time reply with nothing but
   the framing messages, whatever happens. Only reading the clock returns data.
 - **Setting the clock ignores the time zone and fractional seconds.**
-- **The clock-read format is not strict ISO 8601** (Issue #827).
 - **The wake-up request is dead.** It looks supported (it is acknowledged) but changes nothing.
 - **DFU entry has no effect** (Issue #818).
 - **A restart is not confirmed until the host reconnects.** The `TEXT_CONCLUDED` for a restart comes from

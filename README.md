@@ -91,10 +91,9 @@ The full system is built by running `build.sh`. The script:
 1. Generates build info and sets up the ARM cross-toolchain
 2. Builds the bootloader via `build-bootloader.sh`
 3. Builds NuttX kernel pass (pass2)
-4. Builds mbedTLS via `build-mbedtls.sh`
-5. Builds NuttX user pass (pass1)
-6. Links the final `nuttx` ELF
-7. Packages the combined binary:
+4. Builds NuttX user pass (pass1)
+5. Links the final `nuttx` ELF
+6. Packages the combined binary:
    - `nuttx/Meadow.OS.Update.bin` - 1792 KB OS image (kernel + user, with CRC appended)
    - `nuttx/Meadow.OS.bin` - Bootloader prepended at offset 0 + OS at offset 0x40000
    - `nuttx/Meadow.OS.Runtime.bin` - Mono runtime slice extracted from the user binary

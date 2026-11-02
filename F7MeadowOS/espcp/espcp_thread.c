@@ -176,17 +176,29 @@ static void *espcp_thread(void *parameters)
             if (retrieved_message != NULL)
             {
                 MEADOW_TRACE_INFORMATION("Waiting for SPI interface.\n");
-                espcp_spi_interface_lock();
-                MEADOW_TRACE_INFORMATION("Sending message.\n");
-                if ((retrieved_message->interface == espcp_esp32_interfaces_transport) && (retrieved_message->function == espcp_transport_function_send_response))
+                if (espcp_wait_for_spi_ready() == OK)
                 {
-                    espcp_get_message(configuration, retrieved_message);
+                    MEADOW_TRACE_INFORMATION("Sending message.\n");
+                    if ((retrieved_message->interface == espcp_esp32_interfaces_transport) && (retrieved_message->function == espcp_transport_function_send_response))
+                    {
+                        espcp_get_message(configuration, retrieved_message);
+                    }
+                    else
+                    {
+                        espcp_send_message(configuration, retrieved_message);
+                    }
                 }
                 else
                 {
-                    espcp_send_message(configuration, retrieved_message);
+                    //
+                    //  The ESP32 is not signalling that it is ready, so the message cannot be sent.
+                    //  Fail it rather than stop here, so the caller is woken and the queue keeps
+                    //  draining.
+                    //
+                    espcp_fail_message(retrieved_message, espcp_status_codes_timeout);
                 }
             }
+            espcp_queue_pending_send_response();
         }
         else
         {

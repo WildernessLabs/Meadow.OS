@@ -229,7 +229,7 @@ static void espcp_process_message_waiting_control_signal(const char *line __attr
 static void espcp_process_spi_ready_control_signal(const char *line __attribute__((unused)))
 {
     MEADOW_TRACE_INFORMATION("+++SIR\n");
-    espcp_spi_interface_unlock();
+    espcp_signal_spi_ready();
 }
 
 /****************************************************************************

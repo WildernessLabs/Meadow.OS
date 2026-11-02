@@ -239,8 +239,6 @@ and are off.
   size comparison ([WireProtocol.md](WireProtocol.md#things-to-know)).
 - **A short write is not an error.** If `write()` accepts fewer bytes than asked, the shortfall is
   logged and the function still returns success; the size comparison at the end would catch it.
-- **The file-system mounted check can mis-report.** `hcom_via_nx_is_mounted()` returns an error code
-  from a `bool` function, so a failure of the check reads as "mounted" (Issue #766).
 - **Disabling Mono costs a restart.** The check uses the persistent "Mono disabled" setting, which
   `MONO_DISABLE` changes and applies by restarting the device. A host that wants to replace a file while
   Mono is enabled has to disable Mono first, and enable it again afterwards.

@@ -97,8 +97,9 @@ otherwise swallow them.
 4. **Build the message** (first-generation functions; the second generation sends the caller's
    structure as it is). A header-only message is built on the stack. A message with a body is built
    in a buffer of 8192 bytes allocated on first use and then kept; per the source comment, most
-   deployed devices never send such a message and so never pay for it. A message that would exceed
-   8192 bytes has its transmitted length cut to 8192.
+   deployed devices never send such a message and so never pay for it. A body longer than the
+   maximum payload (`HCOM_PROTOCOL_COMMAND_MAX_PAYLOAD_LEN`) is cut to that length before it is
+   copied, so a message never exceeds 8192 bytes; the rest of the body is silently dropped.
 5. **In the transmit routine, `hcom_host_send_transmit_to_host()`:**
    - A caller outside the HCOM task group gets `-EMEADOW_TASK_GRP_MISMATCH` (the check compares
      `getpid()` with the group recorded at setup, because the descriptor only works in the task
@@ -224,13 +225,9 @@ syslog.
   nobody, rather than stopping.
 - **One slow send stalls every sender.** The lock is held for the whole write, including the stall
   budget, so a stuck upload also delays Mono's output and kernel trace.
-- **The take-lock helper cannot retry after a signal.** `hcom_host_send_transmit_takesem()` tests
-  `-EINTR` instead of `errno`, the same defect as in the receive code (Issue #819).
 - **A partly sent message is not retried from the start after low power.** The resend after an
   `ENOTCONN` carries on from the bytes already written, so if the link dropped in the middle of a
   frame the host receives a truncated one, which it will normally reject.
-- **The transmitted length is clamped but the body copy is not** (Issue #821), so a body of more than
-  8180 bytes would overflow the buffer. No present caller sends one.
 - **Opening the port can take a second.** With the node unavailable (for example just after waking),
   four attempts 250 ms apart keep the lock held for about a second.
 - **The PM callback and the send paths use slightly different tests for a valid descriptor**
