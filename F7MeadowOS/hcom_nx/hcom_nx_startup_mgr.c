@@ -446,7 +446,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(2,  "Kernel startup manager 22\n"); usleep(5 * 1000);
 #endif
 
-#if defined(CONFIG_NETUTILS_PPPD)
+#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
   hcom_nx_config_lock();
   config = hcom_nx_config_get_pointer();
   if (config->default_interface->interface_type == MEADOW_IFT_CELL)

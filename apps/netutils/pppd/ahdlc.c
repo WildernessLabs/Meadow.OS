@@ -352,15 +352,6 @@ uint8_t ahdlc_tx(struct ppp_context_s *ctx, uint16_t protocol,
           "offline %d\n",
          protocol, datalen + headerlen, ctx->ahdlc_tx_offline));
 
-  if (AHDLC_TX_OFFLINE && (ctx->ahdlc_tx_offline++ > AHDLC_TX_OFFLINE))
-    {
-      ctx->ahdlc_tx_offline = 0;
-      DEBUG1(("\nAHDLC_TX to many outstanding TX packets => "
-              "ppp_reconnect()\n"));
-      ppp_reconnect(ctx);
-      return 0;
-    }
-
 #if PACKET_TX_DEBUG
   DEBUG1(("\n"));
   for (i = 0; i < headerlen; ++i)

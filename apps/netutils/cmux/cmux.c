@@ -29,7 +29,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <poll.h>
+#include <unistd.h>
 
 #include <sys/param.h>
 #include <sys/types.h>
@@ -53,6 +56,8 @@
 #define CMUX_TASK_NAME ("cmux")
 #define CMUX_THREAD_PRIOR (100)
 #define CMUX_THREAD_STACK_SIZE (3072)
+#define CMUX_WRITE_TIMEOUT_MS (1000)
+#define CMUX_IDLE_SLEEP_US (10000)
 
 #define cmux_inc_buffer(buf, p) \
   p++;                          \
@@ -164,6 +169,28 @@ static void cmux_parse_reset(struct cmux_parse_s *cmux_parse)
     }
 }
 
+/****************************************************************************
+ * Name: cmux_rewind_to_flag
+ *
+ * Description:
+ *  Step the read pointer back onto the flag that opened the current frame,
+ *  so that a frame which has not been received completely is decoded again
+ *  once the rest of it arrives.
+ *
+ ****************************************************************************/
+
+static void cmux_rewind_to_flag(struct cmux_stream_buffer_s *cmux_buffer)
+{
+  if (cmux_buffer->readp == cmux_buffer->data)
+    {
+      cmux_buffer->readp = cmux_buffer->endp - 1;
+    }
+  else
+    {
+      cmux_buffer->readp--;
+    }
+}
+
 static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
                             struct cmux_parse_s *cmux_parse)
 {
@@ -208,6 +235,9 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
 
       if (cmux_buffer_length(cmux_buffer) < length)
         {
+          /* The frame is incomplete: keep its opening flag */
+
+          cmux_rewind_to_flag(cmux_buffer);
           return ERROR;
         }
 
@@ -238,6 +268,9 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
       length += cmux_parse->data_length;
       if (!(cmux_buffer_length(cmux_buffer) >= length))
         {
+          /* The frame is incomplete: keep its opening flag */
+
+          cmux_rewind_to_flag(cmux_buffer);
           return ERROR;
         }
 
@@ -301,6 +334,47 @@ static int cmux_decode_frame(struct cmux_stream_buffer_s *cmux_buffer,
 }
 
 /****************************************************************************
+ * Name: cmux_write_all
+ *
+ * Description:
+ *  Write the whole buffer to the (non-blocking) serial port.  The UART
+ *  transmit buffer can be smaller than a frame, so a write may be partial
+ *  or fail with EAGAIN; wait for room instead of dropping the rest.
+ *
+ ****************************************************************************/
+
+static int cmux_write_all(int fd, const unsigned char *buffer, int length)
+{
+  struct pollfd fds;
+
+  while (length > 0)
+    {
+      ssize_t ret = write(fd, buffer, length);
+      if (ret > 0)
+        {
+          buffer += ret;
+          length -= ret;
+          continue;
+        }
+
+      if (ret < 0 && errno != EAGAIN)
+        {
+          return ERROR;
+        }
+
+      fds.fd = fd;
+      fds.events = POLLOUT;
+      fds.revents = 0;
+      if (poll(&fds, 1, CMUX_WRITE_TIMEOUT_MS) <= 0)
+        {
+          return ERROR;
+        }
+    }
+
+  return OK;
+}
+
+/****************************************************************************
  * Name: cmux_encode_frame
  *
  * Description:
@@ -344,30 +418,23 @@ static int cmux_encode_frame(int fd, int channel, char *buffer,
   frame_posfix[CMUX_BIT0] = cmux_calulate_fcs(frame_prefix + 1,
                                               prefix_len - 1);
 
-  int ret = write(fd, frame_prefix, prefix_len);
-  if (ret != prefix_len)
+  int ret = cmux_write_all(fd, frame_prefix, prefix_len);
+  if (ret != OK)
     {
       return ERROR;
     }
 
   if (frame_size > 0 && buffer != NULL)
     {
-      ret = write(fd, buffer, frame_size);
-      if (ret != frame_size)
+      ret = cmux_write_all(fd, (unsigned char *)buffer, frame_size);
+      if (ret != OK)
         {
-          ninfo("Failed to write buffer (wrote %d, expected %d)\n",
-                ret, frame_size);
+          ninfo("Failed to write a %d byte frame\n", frame_size);
           return ERROR;
         }
     }
 
-  ret = write(fd, frame_posfix, CMUX_FRAME_POSFIX);
-  if (ret != CMUX_FRAME_POSFIX)
-    {
-      return ERROR;
-    }
-
-  return OK;
+  return cmux_write_all(fd, frame_posfix, CMUX_FRAME_POSFIX);
 }
 
 /****************************************************************************
@@ -389,6 +456,7 @@ static int cmux_open_pseudo_tty(struct cmux_channel_s *channel,
       return -EACCES;
     }
 
+  memset(&options, 0, sizeof(options));
   options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
   options.c_iflag &= ~(INLCR | ICRNL | IGNCR);
 
@@ -409,6 +477,19 @@ static int cmux_open_pseudo_tty(struct cmux_channel_s *channel,
         }
       else
         {
+          /* openpty() applies the termios to the slave side only.  The
+           * master side defaults to OPOST | OCRNL, which would turn every
+           * CR received from the modem into a LF: make it raw as well.
+           */
+
+          struct termios master;
+
+          if (tcgetattr(channel[i].master_fd, &master) == 0)
+            {
+              cfmakeraw(&master);
+              tcsetattr(channel[i].master_fd, TCSANOW, &master);
+            }
+
           ninfo("Open pseudo tty name: %s\n", channel[i].slave_path);
 
           channel[i].dlci = i + 1;
@@ -494,7 +575,21 @@ static int cmux_extract(struct cmux_ctl_s *ctl, char *input, int len)
             }
           else
             {
-              /* Control channel */
+              /* Control channel: answer each command (C/R bit set in the
+               * type octet) with the same message as a response (C/R bit
+               * clear), as 3GPP 27.010 requires.  A modem whose commands,
+               * such as MSC, go unanswered stops serving the logical
+               * channels.
+               */
+
+              if ((ctl->parse->data_length >= 2) &&
+                  ((ctl->parse->data[0] & CMUX_ADDR_FIELD_BIT_CR) != 0))
+                {
+                  ctl->parse->data[0] &= ~CMUX_ADDR_FIELD_BIT_CR;
+                  cmux_encode_frame(ctl->fd, 0, (char *)ctl->parse->data,
+                                    ctl->parse->data_length,
+                                    CMUX_FRAME_TYPE_UIH);
+                }
             }
         }
       else
@@ -600,11 +695,28 @@ static int cmux_send(struct cmux_ctl_s *ctl, char *buffer,
       return ERROR;
     }
 
-  ret = cmux_encode_frame(ctl->fd,
-                          address,
-                          buffer,
-                          length, CMUX_FRAME_TYPE_UIH);
-  return ret;
+  /* Split the data into frames no larger than the negotiated maximum
+   * (N1); the peer may discard longer frames.
+   */
+
+  while (length > 0)
+    {
+      int frame_size = MIN(length, CMUX_FRAME_MAX_SIZE);
+
+      ret = cmux_encode_frame(ctl->fd,
+                              address,
+                              buffer,
+                              frame_size, CMUX_FRAME_TYPE_UIH);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
+      buffer += frame_size;
+      length -= frame_size;
+    }
+
+  return OK;
 }
 
 /****************************************************************************
@@ -633,32 +745,33 @@ static void *cmux_thread(void *args)
         {
           if (ctl->channels[i].active)
             {
+              /* Only the master side is read here; the slave side belongs
+               * to the user of the channel.
+               */
+
               FD_SET(ctl->channels[i].master_fd, &rfds);
-              FD_SET(ctl->channels[i].slave_fd, &rfds);
 
               if (ctl->channels[i].master_fd > max_fd)
                 {
                   max_fd = ctl->channels[i].master_fd;
                 }
-
-              if (ctl->channels[i].slave_fd > max_fd)
-                {
-                  max_fd = ctl->channels[i].slave_fd;
-                }
             }
         }
 
-      timeout.tv_usec = 100;
+      timeout.tv_usec = 100000;
       timeout.tv_sec = 0;
 
       ret = select(max_fd + 1, &rfds, NULL, NULL, &timeout);
       if (ret > 0)
         {
+          bool got_data = false;
+
           if (FD_ISSET(ctl->fd, &rfds))
             {
               int bytes_read = read(ctl->fd, buffer, sizeof(buffer) - 1);
               if (bytes_read > 0)
                 {
+                  got_data = true;
                   buffer[bytes_read] = '\0';
                   ret = cmux_extract(ctl, buffer, bytes_read);
                   if (ret < 0)
@@ -678,6 +791,7 @@ static void *cmux_thread(void *args)
                                     buffer, sizeof(buffer) - 1);
                   if (bytes_read > 0)
                     {
+                      got_data = true;
                       ret = cmux_send(ctl, buffer, bytes_read, i);
                       if (ret < 0)
                         {
@@ -685,6 +799,16 @@ static void *cmux_thread(void *args)
                         }
                     }
                 }
+            }
+
+          /* A descriptor whose other end is closed (for example a channel
+           * between pppd sessions) is reported readable on every select()
+           * and reads end of file.  Do not spin at CMUX priority on it.
+           */
+
+          if (!got_data)
+            {
+              usleep(CMUX_IDLE_SLEEP_US);
             }
         }
     }

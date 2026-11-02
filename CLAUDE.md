@@ -75,7 +75,7 @@ All commands run from the **workspace root**, not from `nuttx/`:
 `./build.sh --help` lists every option.
 
 **Available `--unittests=` values:** `esp`, `bt`, `sqlite`, `snprintf`, `gpio`, `overload`, `bbr`,
-`chat`, `ethernet`, `bg77`, `iso8601`, `power`, `sdcard`, `tensorflow`, `misc`, `dirmgmt`, `adc`,
+`chat`, `ethernet`, `cell`, `iso8601`, `power`, `sdcard`, `tensorflow`, `misc`, `dirmgmt`, `adc`,
 `dac`, `spidma`, `pwm`, `i2c`, `rotenc`, `gpiocount`, `sotest`, `os`, `usrwork`, `traverse_ku`,
 `measfreq`, `qspiflash`, `mint`, `all`
 

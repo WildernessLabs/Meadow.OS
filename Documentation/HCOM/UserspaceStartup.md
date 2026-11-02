@@ -80,13 +80,13 @@ their position records an intended order, and several are placeholders.
 | 19 | `hcom_traverse_ku_init_user_setup()` | Opens the kernel-to-user FIFO and starts `Traverse`. Placed after the send setup because `Traverse` sends |
 | 20 | `hcom_mono_ctrl_mono_main_setup()` | Does nothing (its comment says it configures the blue LED, but the function is empty) |
 | 21 | Open the ESP32 events queue | ESP32; not covered |
-| 22 | Start Mono (only with `CONFIG_SYSTEM_MONO`) | `hcom_mono_ctrl_start_mono_main()`, the "last stop": it needs everything above to be ready. Its result is not used |
+| 22 | Start Mono (only with `CONFIG_SYSTEM_MONO`) | `hcom_mono_ctrl_start_mono_main()`, the "last stop": it needs everything above to be ready. Its result is used only to decide whether to start the cell network |
+| 22a | Start the cell network (only with `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD`, when Mono started) | `hcom_cell_start()`: starts CMUX, pppd and the AT channel if the cell interface is selected ([Cell.md](../Cell.md#start-up)). A failure is logged |
 | 23 | Start NSH (only with `CONFIG_SYSTEM_NSH`) | `hcom_diag_misc_launch_nsh(1)` |
 | 24 | `hcom_host_process_setup()` | Raises the priority and runs the request loop. Does not return |
 
-Two blocks are compiled out with `#if(0)`: the system updaters (`os_update()`, `app_update()`,
-`firmware_update()`), and starting the cellular PPP daemon. The comments record that they caused
-link errors after the NuttX rebase.
+One block is compiled out with `#if(0)`: the system updaters (`os_update()`, `app_update()`,
+`firmware_update()`). Its comment records that it caused link errors after the NuttX rebase.
 
 ### The wait handshake
 

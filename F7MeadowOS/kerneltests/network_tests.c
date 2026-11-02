@@ -38,7 +38,7 @@
  ****************************************************************************/
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
 #pragma message "(--) network_tests.c included"
 
@@ -574,4 +574,4 @@ int network_test_misc_network_functions(void)
     return(0);
 }
 
-#endif /* defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */
+#endif /* defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */

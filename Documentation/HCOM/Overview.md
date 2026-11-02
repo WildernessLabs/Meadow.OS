@@ -41,8 +41,8 @@ use the terms as follows:
 **Not covered:**
 
 - The ESP32 coprocessor (`esp32/`, `espcp/`, ESP UART comms), OTA updates, and the cellular stack
-  (`cell/`, BG77, PPP, CMUX). Where an HCOM request is routed to one of these, the documents say so
-  in a sentence and move on.
+  (`cell/`, CMUX and PPP; see [Cell.md](../Cell.md)). Where an HCOM request is routed to one of
+  these, the documents say so in a sentence and move on.
 - Meadow Cloud, Ethernet and NTP.
 - NuttX itself, except where Meadow changes or extends it.
 - The test suites (`apps/system/hcom/tests/`, `F7MeadowOS/kerneltests/`), except for how the

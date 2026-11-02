@@ -153,7 +153,6 @@ $(MEADOW_OS_DIR)/kerneltests/meadow_kt_log.c \
 $(MEADOW_OS_DIR)/kerneltests/espcp_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/ethernet_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/network_tests.c \
-$(MEADOW_OS_DIR)/kerneltests/bg77_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/sdcard_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/power_management_tests.c \
 $(MEADOW_OS_DIR)/kerneltests/iso8601_time_tests.c \

@@ -248,8 +248,8 @@ The version that the next start compares is read from the new image only after a
 - **The version is a boot-time snapshot.** A freshly flashed Runtime is not seen until the device has
   restarted.
 - **Start failures are quiet.** `hcom_mono_ctrl_start_mono_main()` returns an error for every "will not
-  start" case, but the start-up manager discards the result, so HCOM carries on and the host only sees
-  the `TEXT_INFORMATION` reason.
+  start" case, but the start-up manager uses the result only to decide whether to start the cell
+  network, so HCOM carries on and the host only sees the `TEXT_INFORMATION` reason.
 - **Output is blocking on Mono's side.** The write end is opened without `O_NONBLOCK`, so Mono's console
   writes wait when the FIFO is full; a send stalled on the host can therefore slow the application.
 - **The run-state reply reports the setting, not the process.** "Mono is enabled" says nothing about

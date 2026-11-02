@@ -69,13 +69,12 @@ syslog UART.
 
 | Range | Area | Examples |
 |-------|------|----------|
-| 1 to 26 | Miscellaneous | 1 snprintf, 2 GPIO, 3 SQLite, 6 battery-backed registers, 7 SD card, 8 power management, 9 ISO 8601, 10 quick/misc, 13 directory management, 14 ADC, 15 DAC, 16 interrupts, 17 SPI DMA, 18 rotary encoder, 19 frequency measurement, 22 kernel/user traverse channel, 23 GPIO counter, 25 and 26 I2C bus scans |
+| 1 to 26 | Miscellaneous | 1 snprintf, 2 GPIO, 3 SQLite, 6 battery-backed registers, 7 SD card, 8 power management, 9 ISO 8601, 10 quick/misc, 13 directory management, 14 ADC, 15 DAC, 16 interrupts, 17 SPI DMA, 18 rotary encoder, 19 frequency measurement, 20 cell network ([Cell.md](../Cell.md#native-tests)), 22 kernel/user traverse channel, 23 GPIO counter, 25 and 26 I2C bus scans |
 | 800 to 870 | PWM | one test per pin and duty cycle (D02 to D15, A01 to A04, at 20/40/60/80 %), 868 all on, 869 all off, 870 cycle all; `-v` is the frequency in kHz |
 | 900 to 907 | Meadow OS | 900 user-space assert, 901 user-space board reset, 902 kernel assert, 903 to 905 battery-backed domain tests, 906 CLI timeout, 907 get the test configuration |
 | 1000 to 1002 | ESP32 | all ESP32 tests, start WiFi, web page load (`-v` is the count) |
 | 1100 to 1105 | Bluetooth | start service A, B, C, D, F7, and stop |
 | 1200, 1201 | Ethernet | all tests, web page load |
-| 1400 | BG77 cellular | all tests |
 | 1600 to 1602 | QSPI flash | init/erase, write, read |
 
 Test numbers are defined as `MEADOW_TEST_*` in `F7MeadowOS/include/meadow/meadow_unit_test_framework.h`.

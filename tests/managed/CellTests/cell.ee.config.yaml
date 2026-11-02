@@ -1,0 +1,12 @@
+#
+#   EE (UK) SIM: BG95-M3 on mikroBUS 1 (COM1), enable pin A3.  MCC 234, MNC 33, PAP authentication.
+#   These are EE's public, published APN settings, not confidential.  Use it with
+#   MEADOW_CELL_CONFIG=tests/managed/CellTests/cell.ee.config.yaml (see tests/managed/README.md).
+#
+Settings:
+    APN: everywhere
+    User: eesecure
+    Password: secure
+    Module: BG95M3
+    Interface: COM1
+    EnablePin: A3

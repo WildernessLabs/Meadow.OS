@@ -145,9 +145,6 @@ static meadow_test_methods_t _kernelTests[] =
     { MEADOW_TEST_QSPI_FLASH_READ, meadow_kt_qspi_flash_read_tests },
 #endif
 
-#if defined(CONFIG_BG77_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_BG77, meadow_kt_bg77_tests },
-#endif
 
 #if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
     { MEADOW_TEST_TRAVERSE_KU, hcom_kt_traverse_ku_tests },

@@ -56,9 +56,27 @@
 #define xxdebug_printf          ninfo
 #define debug_printf            ninfo
 
-#define PPP_RX_BUFFER_SIZE      1024 //1024  //GD 2048 for 1280 IPv6 MTU
+/* Holds one un-escaped frame (protocol, IP packet and FCS) and one IP packet
+ * read from the TUN device, so it must fit a full MTU-sized packet.  pppd
+ * does not negotiate an MRU, so the peer may send up to the PPP default of
+ * 1500 bytes; at 1024, every larger packet was dropped.
+ */
 
-#define AHDLC_TX_OFFLINE        5
+#define PPP_RX_BUFFER_SIZE      (CONFIG_NET_TUN_PKTSIZE + 8)
+
+/* One-second waits for room in the tty before a byte being sent is dropped.
+ * The tty buffer is small (a pty behind CMUX), so it fills on every large
+ * frame; dropping a byte after one wait corrupted the frame.
+ */
+
+#define PPP_PUTCHAR_MAX_WAITS   10
+
+/* LCP echo requests (one every LCP_ECHO_INTERVAL seconds) sent with nothing
+ * received before pppd reconnects.  At 5, a modem that holds the link for
+ * about 105 s (a BG95 acquiring a GNSS fix) caused a reconnect.
+ */
+
+#define AHDLC_TX_OFFLINE        15
 
 #define IPCP_GET_PEER_IP        1
 

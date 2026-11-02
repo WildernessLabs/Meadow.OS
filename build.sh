@@ -311,9 +311,9 @@ if [ ! -z "$UNIT_TESTS" ]; then
             ktweak --enable ETHERNET_TESTS
             BUILD_TESTS=true
             ;;
-            bg77)
-            echo "BG77 modem tests requested."
-            ktweak --enable BG77_TESTS
+            cell)
+            echo "Cell network tests requested."
+            ktweak --enable CELL_TESTS
             BUILD_TESTS=true
             ;;
             iso8601)

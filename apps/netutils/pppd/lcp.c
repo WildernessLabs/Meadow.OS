@@ -449,6 +449,23 @@ void lcp_echo_request(struct ppp_context_s *ctx)
         {
           ctx->lcp_prev_seconds = ppp_arch_clock_seconds();
 
+          /* The link is lost after AHDLC_TX_OFFLINE echo requests with
+           * nothing received; any frame received resets the count.  It
+           * used to count every frame sent, so packets to a remote host
+           * that does not answer (SYNs to a dead server) took the link
+           * down although the peer was answering the echoes.
+           */
+
+          if (AHDLC_TX_OFFLINE &&
+              (ctx->ahdlc_tx_offline++ > AHDLC_TX_OFFLINE))
+            {
+              ctx->ahdlc_tx_offline = 0;
+              DEBUG1(("\nLCP echo requests unanswered => "
+                      "ppp_reconnect()\n"));
+              ppp_reconnect(ctx);
+              return;
+            }
+
           pkt = (LCPPKT *)buffer;
 
           /* Configure-Request only here, write id */

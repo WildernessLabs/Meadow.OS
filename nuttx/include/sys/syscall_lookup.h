@@ -391,6 +391,10 @@ SYSCALL_LOOKUP(munmap,                     2)
 
 SYSCALL_LOOKUP(nanosleep,                  2)
 
+#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+SYSCALL_LOOKUP(ntpc_start, 0)
+#endif
+
 #if defined(CONFIG_ARCH_BOARD_MEADOW_F7MICRO)
 SYSCALL_LOOKUP(meadow_os_bbd_clear_sram, 0)
 SYSCALL_LOOKUP(meadow_os_bbd_register_clear_bits, 2)

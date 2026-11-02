@@ -82,6 +82,16 @@
 #define HCOM_THREAD_STACKSIZE_CELL_PPPD 4096
 
 /**
+ * The cell AT command thread talks to the modem on a CMUX channel of its own
+ * (GNSS, signal quality and network scan requests from the managed API) and
+ * watches the PPP link, while pppd keeps the data channel.
+*/
+
+#define HCOM_THREAD_PRIORITY_CELL_AT 100
+#define HCOM_THREAD_NAME_CELL_AT "CellAT"
+#define HCOM_THREAD_STACKSIZE_CELL_AT 4096
+
+/**
  * The ESPCP thread is responsible for managing the communication between the STM32
  * main processor and the ESP32 coprocessor.  As such it should be considered to be
  * a hardware driver as the ESP32 is providing network communication for the STM32.
