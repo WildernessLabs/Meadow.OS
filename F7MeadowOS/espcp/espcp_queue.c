@@ -148,6 +148,46 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
 }
 
 /****************************************************************************
+ * Name: espcp_unlink_private_message_queues
+ *
+ * Description:
+ *  Remove the names of the request and incoming event queues so that they
+ *  cannot be opened again.
+ *
+ *  Both queues carry raw espcp_message_t pointers that the kernel threads
+ *  dereference and free.  While the names exist any task can mq_open() them
+ *  and hand the kernel an arbitrary pointer (NuttX does not enforce the queue
+ *  permissions).  The queues stay alive for the handles already open; only
+ *  /Esp32Events, which carries encoded data rather than pointers, is opened
+ *  by name from user space and it keeps its name.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  Called once every kernel handle on these queues has been opened by name,
+ *  i.e. after espcp_create_message_queues() and
+ *  espcp_setup_message_dispatcher().
+ *
+ ****************************************************************************/
+void espcp_unlink_private_message_queues(void)
+{
+    int result = file_mq_unlink(ESPCP_REQUEST_MESSAGE_QUEUE_NAME);
+    if (result < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-file_mq_unlink(%s) failed:%d\n", __FILE__, __LINE__, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, result);
+    }
+    result = file_mq_unlink(ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME);
+    if (result < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-file_mq_unlink(%s) failed:%d\n", __FILE__, __LINE__, ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME, result);
+    }
+}
+
+/****************************************************************************
  * Name: espcp_add_message_to_queue
  *
  * Description:
