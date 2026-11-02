@@ -246,6 +246,19 @@
 */
 
 /**
+ * Retrieves a core dump from the ESP32 and writes it to the crash directory.
+ * Started on demand by the ESP32 get-configuration event and exits when the
+ * transfer is complete.  This work used to run on the LPWORK queue, so it keeps
+ * the LPWORK priority and stack size; it has its own thread because the
+ * transfer is a long series of blocking ESP32 round trips that would otherwise
+ * stall everything else on LPWORK.  Above MONO_TASK_PRIORITY so a busy managed
+ * app does not starve it.
+ */
+#define ESPCP_CORE_DUMP_THREAD_PRIORITY             100
+#define ESPCP_CORE_DUMP_THREAD_NAME                 "EspcpCoreDump"
+#define ESPCP_CORE_DUMP_THREAD_STACKSIZE            4096
+
+/**
  * This thread waits for the Mono task to exit and then resets the board.  It
  * sleeps in waitpid() for the life of Mono, so the priority only decides how
  * quickly the reset follows an exit.  100 matches the hcom bring-up thread that
