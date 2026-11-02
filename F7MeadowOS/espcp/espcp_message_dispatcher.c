@@ -42,6 +42,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include <nuttx/irq.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/config.h>
 #include <syslog.h>
@@ -96,10 +97,11 @@ static espcp_message_t *g_request_response_message = NULL;
 static struct file g_message_queue;
 
 /**
- *  Non-blocking handle on the request queue, used only by the retry in
- *  espcp_get_message().  The retry runs on the espcp thread, which is the only
- *  thread that drains the request queue, so a blocking send into a full queue
- *  would wait for itself forever.
+ *  Non-blocking handle on the request queue.  It is used for every send response
+ *  request: by the UART monitor thread ("+++MW"), which is the only thread that
+ *  posts the SPI ready signal, and by the retry in espcp_get_message() on the
+ *  espcp thread, which is the only thread that drains the request queue.  Either
+ *  one blocking on a full queue would stop the queue from ever draining.
  */
 static struct file g_request_queue_nonblocking;
 
@@ -109,6 +111,15 @@ static struct file g_request_queue_nonblocking;
  *  needs no lock.
  */
 static uint32_t g_get_message_failures = 0;
+
+/**
+ *  Number of send response requests that could not be queued because the request
+ *  queue was full.  The ESP32 sends one "+++MW" per waiting message, so this is a
+ *  count rather than a flag.  The espcp thread queues them again as it makes room,
+ *  see espcp_queue_pending_send_response().  Changed by two threads, so only
+ *  inside a critical section.
+ */
+static uint32_t g_send_responses_pending = 0;
 
 /****************************************************************************
  * Private (static) Function Prototypes
@@ -226,6 +237,38 @@ int espcp_setup_message_dispatcher(void)
 }
 
 /****************************************************************************
+ * Name: espcp_add_send_response_to_queue
+ *
+ * Description:
+ *  Add the "Send Response" message to the request queue without blocking.
+ *
+ *  If the queue is full the request is counted as pending and queued again
+ *  by the espcp thread once there is room.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  Called by the UART monitor thread and by the espcp thread.  Neither may
+ *  block on the request queue, see g_request_queue_nonblocking.
+ *
+ ****************************************************************************/
+static void espcp_add_send_response_to_queue(void)
+{
+    int result = espcp_add_message_to_queue(&g_request_queue_nonblocking, g_request_response_message);
+    if (result < 0)
+    {
+        irqstate_t flags = enter_critical_section();
+        g_send_responses_pending++;
+        leave_critical_section(flags);
+        MEADOW_TRACE_INFORMATION("%s: request queue full (%d), send response request left pending\n", __func__, result);
+    }
+}
+
+/****************************************************************************
  * Name: espcp_queue_send_response_message
  *
  * Description:
@@ -254,7 +297,44 @@ void espcp_queue_send_response_message(void)
     }
     espcp_config_unlock();
 
-    espcp_add_message_to_queue(&g_message_queue, g_request_response_message);
+    espcp_add_send_response_to_queue();
+}
+
+/****************************************************************************
+ * Name: espcp_queue_pending_send_response
+ *
+ * Description:
+ *  Queue a "send response" request that could not be queued earlier because
+ *  the request queue was full.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  Called by the espcp thread after it has taken a message off the queue.
+ *
+ ****************************************************************************/
+void espcp_queue_pending_send_response(void)
+{
+    //
+    //  Taking one message off the queue makes room for one request, so queue at most one.
+    //
+    bool pending = false;
+    irqstate_t flags = enter_critical_section();
+    if (g_send_responses_pending > 0)
+    {
+        g_send_responses_pending--;
+        pending = true;
+    }
+    leave_critical_section(flags);
+
+    if (pending)
+    {
+        espcp_add_send_response_to_queue();
+    }
 }
 
 /****************************************************************************
@@ -495,6 +575,42 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
 }
 
 /****************************************************************************
+ * Name: espcp_fail_message
+ *
+ * Description:
+ *  Deal with a message that could not be sent to the ESP32.  A caller blocked
+ *  on the message would wait for ever, as nothing will ever respond, so wake
+ *  it with the failure.  A message with no caller is released here, except
+ *  for the static send response message which is reused.
+ *
+ * Input Parameters:
+ *  message - message that could not be sent.
+ *  status_code - reason for the failure, passed to the caller.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  Called by the espcp thread, which owns the message until this returns.
+ *
+ ****************************************************************************/
+void espcp_fail_message(espcp_message_t *message, int status_code)
+{
+    if (message->semaphore != NULL)
+    {
+        message->status_code = status_code;
+        nxsem_post(message->semaphore);         // The caller owns the message from here on.
+    }
+    else
+    {
+        if ((message->interface != espcp_esp32_interfaces_transport) || (message->function != espcp_transport_function_send_response))
+        {
+            espcp_delete_message_and_payload(message);
+        }
+    }
+}
+
+/****************************************************************************
  * Name: espcp_send_message
  *
  * Description:
@@ -513,7 +629,8 @@ void espcp_send_acknowledgement(espcp_configuration_t *configuration, espcp_mess
  *  It is the responsibility of the caller to put the message back in the
  *  message queue if this method fails.
  * 
- *  SPI interface is locked before this method is called.
+ *  The caller has waited for the SPI ready signal (espcp_wait_for_spi_ready)
+ *  before this method is called.
  * 
  *  Message queue (for retries) is already setup.
  *
@@ -548,9 +665,12 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                 message->packet_offset = offset;
                 message->packet_length = length;
                 result = espcp_send_packet(configuration, message);
+                if ((result == espcp_status_codes_completed_ok) && (espcp_wait_for_spi_ready() != OK))
+                {
+                    result = espcp_status_codes_timeout;
+                }
                 if (result == espcp_status_codes_completed_ok)
                 {
-                    espcp_spi_interface_lock();
                     result = espcp_get_message_header_acknowledgement(configuration, message);
                     if (result == espcp_status_codes_completed_ok)
                     {
@@ -563,7 +683,11 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                             offset += length;
                             uint16_t remaining = message->payload_length - offset;
                             length = (remaining <= ESPCP_MAXIMUM_PACKET_SIZE) ? remaining : ESPCP_MAXIMUM_PACKET_SIZE;
-                            espcp_spi_interface_lock();
+                            if (espcp_wait_for_spi_ready() != OK)
+                            {
+                                result = espcp_status_codes_timeout;
+                                sending_packets = false;
+                            }
                         }
                     }
                     else
@@ -593,18 +717,7 @@ void espcp_send_message(espcp_configuration_t *configuration, espcp_message_t *m
                 //  nothing will ever respond, so wake it with the failure.  A message with no caller is
                 //  released here, except for the static send response message which is reused.
                 //
-                if (message->semaphore != NULL)
-                {
-                    message->status_code = result;
-                    sem_post(message->semaphore);       // The caller owns the message from here on.
-                }
-                else
-                {
-                    if ((message->interface != espcp_esp32_interfaces_transport) || (message->function != espcp_transport_function_send_response))
-                    {
-                        espcp_delete_message_and_payload(message);
-                    }
-                }
+                espcp_fail_message(message, result);
             }
             else
             {
@@ -806,11 +919,13 @@ static uint16_t espcp_calculate_packet_length(uint16_t amount_remaining)
  * Assumptions/Limitations:
  *  On failure this method queues the request again itself, after a short
  *  pause that grows with each consecutive failure, and drops it after
- *  ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS consecutive failures.
+ *  ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS consecutive failures.  A timeout
+ *  waiting for the SPI ready signal is not retried.
  *
  *  Only called from the espcp thread.
  *
- *  SPI interface is locked before this method is called.
+ *  The caller has waited for the SPI ready signal (espcp_wait_for_spi_ready)
+ *  before this method is called.
  *
  ****************************************************************************/
 void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *message)
@@ -838,9 +953,16 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
             //  with some information about the message (payload length).
             //
             espcp_clear_spi_buffers(configuration);
-            espcp_spi_interface_lock();
-            send_data_to_esp32(NULL, rx_buffer, header_only_buffer_size);
-            espcp_message_t *acknowledgement = espcp_extract_message(rx_buffer, header_only_buffer_size, true);
+            espcp_message_t *acknowledgement = NULL;
+            if (espcp_wait_for_spi_ready() == OK)
+            {
+                send_data_to_esp32(NULL, rx_buffer, header_only_buffer_size);
+                acknowledgement = espcp_extract_message(rx_buffer, header_only_buffer_size, true);
+            }
+            else
+            {
+                result = espcp_status_codes_timeout;
+            }
 
             if (acknowledgement != NULL)
             {
@@ -907,7 +1029,12 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                         {
                             break;
                         }
-                        espcp_spi_interface_lock();
+                        if (espcp_wait_for_spi_ready() != OK)
+                        {
+                            payload_remaining = -1;
+                            result = espcp_status_codes_timeout;
+                            break;
+                        }
                         send_data_to_esp32(NULL, rx_buffer, buffer_length);
                         espcp_message_t *packet = espcp_extract_message(rx_buffer, buffer_length, false);
 
@@ -947,7 +1074,12 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
                         response->message_type = (result == espcp_status_codes_completed_ok) ? espcp_message_types_ack : espcp_message_types_nak;
                         response->status_code = result;
                         response->message_id = message_id;
-                        espcp_spi_interface_lock();
+                        if (espcp_wait_for_spi_ready() != OK)
+                        {
+                            payload_remaining = -1;
+                            result = espcp_status_codes_timeout;
+                            break;
+                        }
                         espcp_send_acknowledgement(configuration, response, result);
                     }
                     while (payload_remaining > 0);
@@ -967,11 +1099,14 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
             }
             else
             {
-                //
-                //  The acknowledgement could not be decoded.  espcp_send_packet() reported
-                //  OK so make sure the failure is seen and the retry below happens.
-                //
-                result = espcp_status_codes_failure;
+                if (result != espcp_status_codes_timeout)
+                {
+                    //
+                    //  The acknowledgement could not be decoded.  espcp_send_packet() reported
+                    //  OK so make sure the failure is seen and the retry below happens.
+                    //
+                    result = espcp_status_codes_failure;
+                }
             }
         }
     }
@@ -981,38 +1116,43 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
     }
     else
     {
-        //
-        //  Something went wrong so requeue a send response request, but not for ever: an ESP32
-        //  that keeps failing would otherwise hold this thread in a tight SPI retry loop.
-        //
-        g_get_message_failures++;
-        if (g_get_message_failures >= ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS)
+        if (result == espcp_status_codes_timeout)
         {
-            syslog(LOG_ERR, "%s: %" PRIu32 " consecutive attempts to get a message from the ESP32 failed, dropping the request.\n", __func__, g_get_message_failures);
+            //
+            //  No SPI ready signal from the ESP32, which is now marked as not responding.  A
+            //  retry would only wait for the signal and time out again, so do not queue one.
+            //
             g_get_message_failures = 0;
         }
         else
         {
             //
-            //  Back off before retrying.  The pause is a plain timed sleep with no lock held (the
-            //  SPI ready signal has already been consumed by the last transfer), so the UART
-            //  monitor thread carries on posting "+++SIR" and queuing "+++MW" requests meanwhile;
-            //  nothing it does waits on this thread except a send into a full queue, and that
-            //  is released as soon as this thread wakes and drains the queue.
+            //  Something went wrong so requeue a send response request, but not for ever: an
+            //  ESP32 that keeps failing would otherwise hold this thread in a tight SPI retry loop.
             //
-            usleep(g_get_message_failures * ESPCP_GET_MESSAGE_RETRY_DELAY_MS * 1000);
-            //
-            //  The ESP32 sends one "+++MW" per message and each is answered by one request, so
-            //  the shared request can legitimately be in the queue more than once and a copy
-            //  already there does not stand in for this retry.  The retry is queued without
-            //  blocking: this is the only thread that drains the queue, so a blocking send into a
-            //  full queue would never return.  A full queue already holds requests that will
-            //  poll the ESP32, so the retry is dropped in that case.
-            //
-            int queue_result = espcp_add_message_to_queue(&g_request_queue_nonblocking, g_request_response_message);
-            if (queue_result < 0)
+            g_get_message_failures++;
+            if (g_get_message_failures >= ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS)
             {
-                syslog(LOG_ERR, "%s: could not queue the retry request (%d), dropping it.\n", __func__, queue_result);
+                syslog(LOG_ERR, "%s: %" PRIu32 " consecutive attempts to get a message from the ESP32 failed, dropping the request.\n", __func__, g_get_message_failures);
+                g_get_message_failures = 0;
+            }
+            else
+            {
+                //
+                //  Back off before retrying.  The pause is a plain timed sleep with no lock held (the
+                //  SPI ready signal has already been consumed by the last transfer), so the UART
+                //  monitor thread carries on posting "+++SIR" and queuing "+++MW" requests meanwhile;
+                //  nothing it does waits on this thread, as its queue inserts do not block.
+                //
+                usleep(g_get_message_failures * ESPCP_GET_MESSAGE_RETRY_DELAY_MS * 1000);
+                //
+                //  The ESP32 sends one "+++MW" per message and each is answered by one request, so
+                //  the shared request can legitimately be in the queue more than once and a copy
+                //  already there does not stand in for this retry.  The retry is queued without
+                //  blocking, as this is the only thread that drains the queue; if the queue is
+                //  full it is counted as pending and queued once there is room.
+                //
+                espcp_add_send_response_to_queue();
             }
         }
     }
