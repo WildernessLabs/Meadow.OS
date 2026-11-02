@@ -293,33 +293,45 @@ void espcp_encode_int32(int32_t value, uint8_t *buffer)
  *
  * Input Parameters:
  *  buffer - Pointer to the block of memory containing the string.
+ *  maximum_length - Number of bytes that can be read from buffer, normally
+ *                   the bytes left in the payload from buffer to its end.
  *
  * Returned Value:
  *  Pointer to the extracted string, or NULL if the buffer is NULL, the
- *  string is empty, no terminator was found within
- *  ESPCP_MAXIMUM_STRING_LENGTH bytes, or memory could not be allocated.
+ *  string is empty, no terminator was found within the scan limit, or memory
+ *  could not be allocated.
  *
  * Assumptions/Limitations:
- *  The buffer holds at least ESPCP_MAXIMUM_STRING_LENGTH bytes, or a
- *  terminator inside that many bytes.  The caller does not say how large the
- *  buffer is, so this function cannot do better than a protocol level bound
- *  (see C5 in the code review).
+ *  The scan limit is the smaller of maximum_length and the protocol ceiling
+ *  (ESPCP_MAXIMUM_STRING_LENGTH plus the terminator).  The protocol ceiling
+ *  must not be reduced to a packet or SPI frame size as strings are
+ *  extracted from the reassembled payload and can span packets.
  *
  ****************************************************************************/
-char *espcp_extract_string(uint8_t *buffer)
+char *espcp_extract_string(uint8_t *buffer, uint32_t maximum_length)
 {
     if (buffer == NULL)
     {
         return(NULL);
     }
 
+    //
+    //  maximum_length is the caller's buffer, the ceiling is the protocol, the
+    //  terminator has to be found inside both.
+    //
+    uint32_t scan_limit = maximum_length;
+    if (scan_limit > (ESPCP_MAXIMUM_STRING_LENGTH + 1))
+    {
+        scan_limit = ESPCP_MAXIMUM_STRING_LENGTH + 1;
+    }
+
     uint32_t length = 0;
-    while ((length < ESPCP_MAXIMUM_STRING_LENGTH) && (buffer[length] != 0))
+    while ((length < scan_limit) && (buffer[length] != 0))
     {
         length++;
     }
 
-    if ((length == 0) || (buffer[length] != 0))
+    if ((length == 0) || (length >= scan_limit))
     {
         return(NULL);
     }
@@ -331,6 +343,39 @@ char *espcp_extract_string(uint8_t *buffer)
         result[length] = '\0';
     }
     return(result);
+}
+
+/****************************************************************************
+ * Name: espcp_bytes_remaining
+ *
+ * Description:
+ *  Work out how many bytes of a buffer are left after the cursor.
+ *
+ * Input Parameters:
+ *  base - Start of the buffer.
+ *  base_length - Length of the buffer in bytes.
+ *  cursor - Current read position in the buffer.
+ *
+ * Returned Value:
+ *  Number of bytes from cursor to the end of the buffer, 0 if the cursor
+ *  is at or beyond the end of the buffer.
+ *
+ * Assumptions/Limitations:
+ *  The extractors advance their cursor by lengths read from the wire
+ *  without checking them, so the cursor can be past the end of the buffer.
+ *  Integer arithmetic is used so that this case returns 0 rather than
+ *  wrapping.
+ *
+ ****************************************************************************/
+static uint32_t espcp_bytes_remaining(uint8_t *base, uint32_t base_length, uint8_t *cursor)
+{
+    uintptr_t offset = ((uintptr_t) cursor) - ((uintptr_t) base);
+
+    if ((((uintptr_t) cursor) < ((uintptr_t) base)) || (offset >= base_length))
+    {
+        return(0);
+    }
+    return(base_length - (uint32_t) offset);
 }
 
 /****************************************************************************
@@ -670,6 +715,7 @@ bool espcp_encode_message(espcp_message_t *message, uint8_t *buffer, uint32_t bu
 * Input Parameters:
 *  system_configuration - pointer to the buffer containing the encoded
 *  espcp_system_configuration_t object.
+*  buffer_length - number of bytes in the buffer.
 *
 * Returned Value:
 *  Pointer to the extracted espcp_system_configuration_t object.
@@ -678,8 +724,9 @@ bool espcp_encode_message(espcp_message_t *message, uint8_t *buffer, uint32_t bu
 *  None
 *
 ****************************************************************************/
-espcp_system_configuration_t *espcp_extract_system_configuration(uint8_t *buffer)
+espcp_system_configuration_t *espcp_extract_system_configuration(uint8_t *buffer, uint32_t buffer_length)
 {
+    uint8_t *payload_start = buffer;
     espcp_system_configuration_t *system_configuration = (espcp_system_configuration_t *) malloc(sizeof(espcp_system_configuration_t));
     if (system_configuration == NULL)
     {
@@ -698,9 +745,9 @@ espcp_system_configuration_t *espcp_extract_system_configuration(uint8_t *buffer
     buffer += 6;
     memcpy((void *) system_configuration->bluetooth_mac_address, (void *) buffer, 6);
     buffer += 6;
-    system_configuration->device_name = espcp_extract_string(buffer);
+    system_configuration->device_name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(system_configuration->device_name) + 1;
-    system_configuration->default_access_point = espcp_extract_string(buffer);
+    system_configuration->default_access_point = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(system_configuration->default_access_point) + 1;
     system_configuration->reset_reason = *buffer;
     buffer += 1;
@@ -726,7 +773,7 @@ espcp_system_configuration_t *espcp_extract_system_configuration(uint8_t *buffer
     buffer += 1;
     system_configuration->build_hash = espcp_extract_uint32(buffer);
     buffer += 4;
-    system_configuration->build_branch_name = espcp_extract_string(buffer);
+    system_configuration->build_branch_name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     return(system_configuration);
 }
 
@@ -900,6 +947,7 @@ espcp_error_event_t *espcp_extract_error_event(uint8_t *buffer)
 * Input Parameters:
 *  access_point_information - pointer to the buffer containing the encoded
 *  espcp_access_point_information_t object.
+*  buffer_length - number of bytes in the buffer.
 *
 * Returned Value:
 *  Pointer to the extracted espcp_access_point_information_t object.
@@ -908,17 +956,18 @@ espcp_error_event_t *espcp_extract_error_event(uint8_t *buffer)
 *  None
 *
 ****************************************************************************/
-espcp_access_point_information_t *espcp_extract_access_point_information(uint8_t *buffer)
+espcp_access_point_information_t *espcp_extract_access_point_information(uint8_t *buffer, uint32_t buffer_length)
 {
+    uint8_t *payload_start = buffer;
     espcp_access_point_information_t *access_point_information = (espcp_access_point_information_t *) malloc(sizeof(espcp_access_point_information_t));
     if (access_point_information == NULL)
     {
         return(NULL);
     }
 
-    access_point_information->network_name = espcp_extract_string(buffer);
+    access_point_information->network_name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(access_point_information->network_name) + 1;
-    access_point_information->password = espcp_extract_string(buffer);
+    access_point_information->password = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(access_point_information->password) + 1;
     access_point_information->ip_address = espcp_extract_uint32(buffer);
     buffer += 4;
@@ -1343,6 +1392,7 @@ espcp_sock_addr_t *espcp_extract_sock_addr(uint8_t *buffer)
 * Input Parameters:
 *  addr_info - pointer to the buffer containing the encoded
 *  espcp_addr_info_t object.
+*  buffer_length - number of bytes in the buffer.
 *
 * Returned Value:
 *  Pointer to the extracted espcp_addr_info_t object.
@@ -1351,8 +1401,9 @@ espcp_sock_addr_t *espcp_extract_sock_addr(uint8_t *buffer)
 *  None
 *
 ****************************************************************************/
-espcp_addr_info_t *espcp_extract_addr_info(uint8_t *buffer)
+espcp_addr_info_t *espcp_extract_addr_info(uint8_t *buffer, uint32_t buffer_length)
 {
+    uint8_t *payload_start = buffer;
     espcp_addr_info_t *addr_info = (espcp_addr_info_t *) malloc(sizeof(espcp_addr_info_t));
     if (addr_info == NULL)
     {
@@ -1388,7 +1439,7 @@ espcp_addr_info_t *espcp_extract_addr_info(uint8_t *buffer)
     {
         addr_info->addr = NULL;
     }
-    addr_info->canon_name = espcp_extract_string(buffer);
+    addr_info->canon_name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(addr_info->canon_name) + 1;
     addr_info->next = (void *) espcp_extract_uint32(buffer);
     return(addr_info);
@@ -3663,6 +3714,7 @@ int espcp_file_details_buffer_size(espcp_file_details_t *file_details)
 * Input Parameters:
 *  file_details - pointer to the buffer containing the encoded
 *  espcp_file_details_t object.
+*  buffer_length - number of bytes in the buffer.
 *
 * Returned Value:
 *  Pointer to the extracted espcp_file_details_t object.
@@ -3671,15 +3723,16 @@ int espcp_file_details_buffer_size(espcp_file_details_t *file_details)
 *  None
 *
 ****************************************************************************/
-espcp_file_details_t *espcp_extract_file_details(uint8_t *buffer)
+espcp_file_details_t *espcp_extract_file_details(uint8_t *buffer, uint32_t buffer_length)
 {
+    uint8_t *payload_start = buffer;
     espcp_file_details_t *file_details = (espcp_file_details_t *) malloc(sizeof(espcp_file_details_t));
     if (file_details == NULL)
     {
         return(NULL);
     }
 
-    file_details->name = espcp_extract_string(buffer);
+    file_details->name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(file_details->name) + 1;
     file_details->length = espcp_extract_uint16(buffer);
     return(file_details);
@@ -3752,6 +3805,7 @@ int espcp_file_name_and_contents_buffer_size(espcp_file_name_and_contents_t *fil
 * Input Parameters:
 *  file_name_and_contents - pointer to the buffer containing the encoded
 *  espcp_file_name_and_contents_t object.
+*  buffer_length - number of bytes in the buffer.
 *
 * Returned Value:
 *  Pointer to the extracted espcp_file_name_and_contents_t object.
@@ -3760,15 +3814,16 @@ int espcp_file_name_and_contents_buffer_size(espcp_file_name_and_contents_t *fil
 *  None
 *
 ****************************************************************************/
-espcp_file_name_and_contents_t *espcp_extract_file_name_and_contents(uint8_t *buffer)
+espcp_file_name_and_contents_t *espcp_extract_file_name_and_contents(uint8_t *buffer, uint32_t buffer_length)
 {
+    uint8_t *payload_start = buffer;
     espcp_file_name_and_contents_t *file_name_and_contents = (espcp_file_name_and_contents_t *) malloc(sizeof(espcp_file_name_and_contents_t));
     if (file_name_and_contents == NULL)
     {
         return(NULL);
     }
 
-    file_name_and_contents->name = espcp_extract_string(buffer);
+    file_name_and_contents->name = espcp_extract_string(buffer, espcp_bytes_remaining(payload_start, buffer_length, buffer));
     buffer += espcp_string_length(file_name_and_contents->name) + 1;
     file_name_and_contents->contents_length = espcp_extract_uint32(buffer);
     buffer += 4;
