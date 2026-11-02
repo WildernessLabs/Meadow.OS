@@ -166,12 +166,20 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
  *  Status code (completed OK for success failure if there is a problem).
  *
  * Assumptions/Limitations:
- *  None
+ *  When block is true the semaphore lives on this stack frame.  It is only
+ *  destroyed once the message can no longer reach it: the response has
+ *  arrived, or the message has been detached from the dispatcher by
+ *  espcp_queue_message_timed_out().
  *
  ****************************************************************************/
 uint32_t espcp_queue_message(espcp_message_t *message, bool block)
 {
     uint32_t result = espcp_status_codes_failure;
+
+    if (message == NULL)
+    {
+        return (result);
+    }
 
     sem_t sem;
     if (block)
@@ -205,16 +213,22 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
             }
             else
             {
-                if (wait_result == -ETIMEDOUT)
-                {
-                    result = espcp_queue_message_timed_out(message);
-                }
-                else
+                //
+                //  Any failure, not only a timeout, leaves the message queued or on the waiting
+                //  list holding a pointer to this stack semaphore, so detach it before returning.
+                //
+                result = espcp_queue_message_timed_out(message);
+                if ((wait_result != -ETIMEDOUT) && (result == espcp_status_codes_timeout))
                 {
                     result = espcp_status_codes_failure;
                 }
             }
         }
+    }
+    if (block)
+    {
+        message->semaphore = NULL;
+        nxsem_destroy(&sem);
     }
     return (result);
 }
