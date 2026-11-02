@@ -601,7 +601,7 @@ void espcp_system_get_configuration_event_handler(espcp_message_t *message)
         if ((message->payload_length > 0) && (message->payload != NULL))
         {
             meadow_configuration_t *config;
-            espcp_system_configuration_t *esp_config = espcp_extract_system_configuration(message->payload);
+            espcp_system_configuration_t *esp_config = espcp_extract_system_configuration(message->payload, message->payload_length);
             if (esp_config != NULL)
             {
                 hcom_nx_config_process_esp_configuration(esp_config);
