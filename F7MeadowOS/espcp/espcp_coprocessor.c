@@ -876,6 +876,11 @@ void espcp_early_init(void)
                 MEADOW_TRACE_CRITICAL("%s@%d Error setting up the message dispatcher.\n", __FILE__, __LINE__);
                 g_espcp_configuration->esp_not_responding = true;
             }
+            //
+            //  The dispatcher has opened its own handle on the request queue by name, so the
+            //  names of the two queues that carry kernel pointers are no longer needed.
+            //
+            espcp_unlink_private_message_queues();
         }
         else
         {
