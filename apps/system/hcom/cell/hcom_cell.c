@@ -401,7 +401,6 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
         "CONNECT \\c",
         timeout, apn, authentication_cmd, operator_selection_cmd);
       break;
-
     case CELL_M95_MODULE:
       snprintf_chk(connect_script, CONNECT_SCRIPT_MAX_SIZE,
         "TIMEOUT %s "
@@ -413,7 +412,6 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
         "CONNECT \\c",
         timeout, apn);
       break;
-
     case CELL_BG95M3_MODULE:
       // The BG95-M3 answers ERROR to AT+CGAUTH. Its own command, AT+QICSGP,
       // sets the context's APN and credentials (context 1, IPv4, then the
@@ -437,7 +435,6 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
         "CONNECT \\c",
         timeout, apn, qicsgp_cmd, operator_selection_cmd);
       break;
-
     case CELL_EG21GL_MODULE:
       snprintf_chk(connect_script, CONNECT_SCRIPT_MAX_SIZE,
         "TIMEOUT %s "
@@ -450,7 +447,6 @@ static int hcom_cell_create_scripts(const cell_settings_t *settings, char *conne
         "CONNECT \\c",
         timeout, apn, operator_selection_cmd);
       break;
-
     default:
       return -EINVAL;
   }
