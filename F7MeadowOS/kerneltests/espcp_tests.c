@@ -54,6 +54,11 @@
 #include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
 #include <meadow/meadow-upd.h>
@@ -738,6 +743,161 @@ static void espcp_test_misc_network_functions(void)
 }
 
 /****************************************************************************
+ * Name: espcp_test_elapsed_ms
+ *
+ * Description:
+ *  Milliseconds since the given start time (CLOCK_MONOTONIC).
+ *
+ ****************************************************************************/
+static long espcp_test_elapsed_ms(const struct timespec *start)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (((long) (now.tv_sec - start->tv_sec) * 1000L) + ((now.tv_nsec - start->tv_nsec) / 1000000L));
+}
+
+/****************************************************************************
+ * Name: espcp_test_nonblocking_socket
+ *
+ * Description:
+ *  Check that a socket the STM32 thinks is non-blocking is also non-blocking
+ *  on the ESP32: connect() returns EINPROGRESS straight away, and recv() on
+ *  the connected socket with nothing to read returns EAGAIN straight away.
+ *  If the ESP32 socket is blocking, connect() returns 0 once connected and
+ *  recv() waits until the server closes the idle connection (about 60 s for
+ *  the bench web server).
+ *
+ * Input Parameters:
+ *  sd - Socket to test, already non-blocking; closed before returning.
+ *  server - Address of the web server.
+ *  label - Name of the case for the log.
+ *
+ ****************************************************************************/
+static void espcp_test_nonblocking_socket(int sd, struct sockaddr_in *server, const char *label)
+{
+    struct timespec start;
+
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    int result = connect(sd, (struct sockaddr *) server, sizeof(*server));
+    int error = errno;
+    long elapsed = espcp_test_elapsed_ms(&start);
+    if ((result < 0) && (error == EINPROGRESS))
+    {
+        syslog(LOGGING_LEVEL, "    PASS: %s - connect returned EINPROGRESS in %ld ms\n", label, elapsed);
+        TEST_PASSED;
+    }
+    else
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: %s - connect returned %d (errno %d) after %ld ms, expected EINPROGRESS\n", label, result, (result < 0) ? error : 0, elapsed);
+        TEST_FAILED;
+        if (result < 0)
+        {
+            close(sd);
+            return;
+        }
+    }
+
+    struct pollfd fds = { .fd = sd, .events = POLLOUT, .revents = 0 };
+    result = poll(&fds, 1, 5000);
+    int socket_error = -1;
+    socklen_t length = sizeof(socket_error);
+    if ((result == 1) && ((fds.revents & POLLOUT) != 0) &&
+        (getsockopt(sd, SOL_SOCKET, SO_ERROR, &socket_error, &length) == 0) && (socket_error == 0))
+    {
+        syslog(LOGGING_LEVEL, "    PASS: %s - connected\n", label);
+        TEST_PASSED;
+    }
+    else
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: %s - not connected (poll %d, revents 0x%lx, SO_ERROR %d)\n", label, result, (unsigned long) fds.revents, socket_error);
+        TEST_FAILED;
+        close(sd);
+        return;
+    }
+
+    char buffer[32];
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    result = recv(sd, buffer, sizeof(buffer), 0);
+    error = errno;
+    elapsed = espcp_test_elapsed_ms(&start);
+    if ((result < 0) && ((error == EAGAIN) || (error == EWOULDBLOCK)) && (elapsed < 1000))
+    {
+        syslog(LOGGING_LEVEL, "    PASS: %s - recv returned EAGAIN in %ld ms\n", label, elapsed);
+        TEST_PASSED;
+    }
+    else
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: %s - recv returned %d (errno %d) after %ld ms, expected EAGAIN at once\n", label, result, (result < 0) ? error : 0, elapsed);
+        TEST_FAILED;
+    }
+
+    close(sd);
+}
+
+/****************************************************************************
+ * Name: espcp_test_nonblocking_sockets
+ *
+ * Description:
+ *  Non-blocking sockets (issue #492), made non-blocking both ways NuttX
+ *  offers: socket() with SOCK_NONBLOCK, and fcntl(O_NONBLOCK) on a blocking
+ *  socket (the route .NET takes).
+ *
+ * Input Parameters:
+ *  server_ip - Address of the web server.
+ *  server_port - Port of the web server.
+ *
+ ****************************************************************************/
+static void espcp_test_nonblocking_sockets(char *server_ip, uint16_t server_port)
+{
+    syslog(LOGGING_LEVEL, "********** Testing non-blocking sockets.\n");
+
+    struct sockaddr_in server;
+    memset(&server, 0, sizeof(server));
+    server.sin_family = AF_INET;
+    server.sin_port = htons(server_port);
+    if (inet_pton(AF_INET, server_ip, &server.sin_addr) <= 0)
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: non-blocking sockets - invalid server address\n");
+        TEST_FAILED;
+        return;
+    }
+
+    int sd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, IPPROTO_TCP);
+    if (sd < 0)
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: SOCK_NONBLOCK - socket failed, errno %d\n", errno);
+        TEST_FAILED;
+    }
+    else
+    {
+        espcp_test_nonblocking_socket(sd, &server, "SOCK_NONBLOCK");
+    }
+
+    sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sd < 0)
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: fcntl(O_NONBLOCK) - socket failed, errno %d\n", errno);
+        TEST_FAILED;
+    }
+    else
+    {
+        int flags = fcntl(sd, F_GETFL, 0);
+        if ((flags < 0) || (fcntl(sd, F_SETFL, flags | O_NONBLOCK) < 0))
+        {
+            syslog(LOGGING_LEVEL, "    FAIL: fcntl(O_NONBLOCK) - fcntl failed, errno %d\n", errno);
+            TEST_FAILED;
+            close(sd);
+        }
+        else
+        {
+            espcp_test_nonblocking_socket(sd, &server, "fcntl(O_NONBLOCK)");
+        }
+    }
+
+    usleep(DELAY);          // Wait for the close messages to be processed.
+}
+
+/****************************************************************************
  * Name: espcp_test_heap_trace_messages
  *
  * Description:
@@ -1377,6 +1537,8 @@ void meadow_kt_espcp_tests(uint32_t arg)
     espcp_test_misc_network_functions();
 
     uint16_t port = string_to_server_port(UNIT_TESTS_CONFIG_SERVER_PORT);
+    espcp_test_nonblocking_sockets(UNIT_TESTS_CONFIG_SERVER_IP, port);
+
     network_test_get_web_resource(arg, UNIT_TESTS_CONFIG_SERVER_IP, port, UNIT_TESTS_CONFIG_RESOURCE);
 
     syslog(LOGGING_LEVEL, "ESP32 tests completed.\n");

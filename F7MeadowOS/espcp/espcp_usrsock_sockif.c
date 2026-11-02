@@ -126,6 +126,14 @@ struct espcp_usrsock_conn_s
     uint8_t esp_state;
 
     /**
+     * @brief true once the socket's O_NONBLOCK state has been sent to the ESP32 (or the ESP32
+     *        has rejected it); see espcp_usrsock_sync_nonblock().  Kept out of esp_state
+     *        because the ESP32 event thread updates esp_state without a lock, and this is only
+     *        written by the socket calls.
+     */
+    bool nonblock_sent;
+
+    /**
      * @brief Number of sockets (descriptors) that share this connection.  A socket
      *        starts with one and dup()/dup2() add references through si_addref.
      *        The ESP32 socket is only closed when the last reference is released.
@@ -169,6 +177,8 @@ static sockcaps_t espcp_usrsock_sockif_sockcaps(struct socket *psock);
 
 static void espcp_usrsock_sockif_addref(struct socket *psock);
 static int espcp_usrsock_close_esp_socket(int esp_sockfd);
+static int espcp_usrsock_send_ioctl_to_esp(struct socket *psock, int cmd, void *arg, size_t arglen);
+static void espcp_usrsock_sync_nonblock(struct socket *psock);
 
 /****************************************************************************
  * Public Data
@@ -491,6 +501,13 @@ static int espcp_usrsock_sockif_setup(struct socket *psock)
  ****************************************************************************/
 static sockcaps_t espcp_usrsock_sockif_sockcaps(struct socket *psock)
 {
+    //
+    //  Non-blocking behaviour is implemented by the lwip socket on the ESP32, which returns
+    //  EAGAIN / EINPROGRESS itself; this layer only forwards the socket's O_NONBLOCK state
+    //  (FIONBIO in espcp_usrsock_ioctl(), and espcp_usrsock_sync_nonblock() for sockets made
+    //  non-blocking by socket() or accept4() with SOCK_NONBLOCK).  The capability must stay:
+    //  without it netdev_ioctl() fails FIONBIO with ENOSYS and fcntl(O_NONBLOCK) fails.
+    //
     return SOCKCAP_NONBLOCKING;
 }
 
@@ -516,6 +533,44 @@ static void espcp_usrsock_sockif_addref(struct socket *psock)
     if ((conn != NULL) && (conn->crefs < 255))
     {
         conn->crefs++;
+    }
+}
+
+/****************************************************************************
+ * Name: espcp_usrsock_sync_nonblock
+ *
+ * Description:
+ *   Make sure the ESP32 socket has been told that the socket is non-blocking.
+ *
+ *   fcntl(O_NONBLOCK) reaches espcp_usrsock_ioctl() as FIONBIO and is sent to
+ *   the ESP32 there.  socket() and accept4() with SOCK_NONBLOCK do not: NuttX
+ *   strips the flag before si_setup and sets _SF_NONBLOCK after si_setup /
+ *   si_accept return, so the ESP32 socket would stay blocking and calls on it
+ *   would block when the caller expects EAGAIN.  The state is sent once, before
+ *   the first operation that can block on the ESP32.
+ *
+ * Input Parameters:
+ *   psock - Socket about to be used.
+ *
+ * Returned Value:
+ *   None.  An ESP32 that rejects the request (firmware without
+ *   SIOCSESPNONBLOCK) leaves the socket blocking, as fcntl() does.
+ *
+ ****************************************************************************/
+static void espcp_usrsock_sync_nonblock(struct socket *psock)
+{
+    struct espcp_usrsock_conn_s *conn = espcp_conn(psock);
+    if ((conn != NULL) &&
+        ((conn->common.s_flags & _SF_NONBLOCK) != 0) &&
+        (!conn->nonblock_sent))
+    {
+        int nonblock = 1;
+        conn->nonblock_sent = true;
+        int result = espcp_usrsock_send_ioctl_to_esp(psock, SIOCSESPNONBLOCK, &nonblock, sizeof(nonblock));
+        if (result < 0)
+        {
+            MEADOW_TRACE_INFORMATION("sync nonblock - ESP32 did not accept SIOCSESPNONBLOCK (%d), socket stays blocking on the ESP32\n", result);
+        }
     }
 }
 
@@ -570,6 +625,8 @@ int espcp_usrsock_accept(struct socket *psock, struct sockaddr *addr, socklen_t 
         MEADOW_TRACE_DEBUG("accept - result ENETDOWN\n");
         return(-ENETDOWN);
     }
+
+    espcp_usrsock_sync_nonblock(psock);
 
     int32_t result = -1;
     espcp_message_t *message = NULL;
@@ -1009,6 +1066,8 @@ int espcp_usrsock_connect(struct socket *psock, const struct sockaddr *addr, soc
         MEADOW_TRACE_DEBUG("connect - result ENETDOWN\n");
         return(-ENETDOWN);
     }
+
+    espcp_usrsock_sync_nonblock(psock);
 
     //
     //  The address is read as a struct sockaddr_in so it must be at least that big.
@@ -1578,6 +1637,7 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg)
                 //  and fcntl() succeeds, with the ESP32 socket left blocking as before.
                 //
                 result = espcp_usrsock_send_ioctl_to_esp(psock, SIOCSESPNONBLOCK, argp, sizeof(int));
+                espcp_conn(psock)->nonblock_sent = true;
                 if (result < 0)
                 {
                     MEADOW_TRACE_INFORMATION("ioctl - ESP32 did not accept SIOCSESPNONBLOCK (%d), socket stays blocking on the ESP32\n", result);
@@ -3082,6 +3142,8 @@ ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flag
         return(-ENETDOWN);
     }
 
+    espcp_usrsock_sync_nonblock(psock);
+
     espcp_encoded_msghdr_t *encoded_hdr = espcp_encode_msghdr(msg);
     if (encoded_hdr == NULL)
     {
@@ -3317,6 +3379,8 @@ ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flag
         MEADOW_TRACE_DEBUG("recvmsg - result ENETDOWN\n");
         return(-ENETDOWN);
     }
+
+    espcp_usrsock_sync_nonblock(psock);
 
     size_t total_length = 0;
     for (int i = 0; i < (int) msg->msg_iovlen; i++)
