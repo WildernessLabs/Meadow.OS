@@ -33,12 +33,14 @@
  *
  ****************************************************************************/
 #include <stdint.h>
+#include <inttypes.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
 #include <syslog.h>
 #include <debug.h>
 #include <fcntl.h>
+#include <unistd.h>
 
 #include <nuttx/semaphore.h>
 #include <nuttx/config.h>
@@ -92,6 +94,21 @@ static espcp_message_t *g_request_response_message = NULL;
  *  handle is valid in every context; see espcp_coprocessor.h.
  */
 static struct file g_message_queue;
+
+/**
+ *  Non-blocking handle on the request queue, used only by the retry in
+ *  espcp_get_message().  The retry runs on the espcp thread, which is the only
+ *  thread that drains the request queue, so a blocking send into a full queue
+ *  would wait for itself forever.
+ */
+static struct file g_request_queue_nonblocking;
+
+/**
+ *  Number of consecutive failed attempts to collect a message from the ESP32.
+ *  Only the espcp thread (through espcp_get_message()) touches this, so it
+ *  needs no lock.
+ */
+static uint32_t g_get_message_failures = 0;
 
 /****************************************************************************
  * Private (static) Function Prototypes
@@ -161,6 +178,12 @@ int espcp_setup_message_dispatcher(void)
     g_request_response_message->semaphore = NULL;
 
     result = file_mq_open(&g_message_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_WRONLY);
+    if (result < 0)
+    {
+        return (result);
+    }
+
+    result = file_mq_open(&g_request_queue_nonblocking, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_WRONLY | O_NONBLOCK);
     if (result < 0)
     {
         return (result);
@@ -781,11 +804,14 @@ static uint16_t espcp_calculate_packet_length(uint16_t amount_remaining)
  *  None.
  *
  * Assumptions/Limitations:
- *  It is the responsibility of the caller to put the message back in the
- *  message queue if this method fails.
- * 
+ *  On failure this method queues the request again itself, after a short
+ *  pause that grows with each consecutive failure, and drops it after
+ *  ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS consecutive failures.
+ *
+ *  Only called from the espcp thread.
+ *
  *  SPI interface is locked before this method is called.
- * 
+ *
  ****************************************************************************/
 void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *message)
 {
@@ -949,12 +975,46 @@ void espcp_get_message(espcp_configuration_t *configuration, espcp_message_t *me
             }
         }
     }
-    if ((result != espcp_status_codes_completed_ok) && (result != espcp_status_codes_no_messages_waiting))
+    if ((result == espcp_status_codes_completed_ok) || (result == espcp_status_codes_no_messages_waiting))
+    {
+        g_get_message_failures = 0;
+    }
+    else
     {
         //
-        //  Something went wrong so requeue a send response request.
+        //  Something went wrong so requeue a send response request, but not for ever: an ESP32
+        //  that keeps failing would otherwise hold this thread in a tight SPI retry loop.
         //
-        espcp_add_message_to_queue(&g_message_queue, g_request_response_message);
+        g_get_message_failures++;
+        if (g_get_message_failures >= ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS)
+        {
+            syslog(LOG_ERR, "%s: %" PRIu32 " consecutive attempts to get a message from the ESP32 failed, dropping the request.\n", __func__, g_get_message_failures);
+            g_get_message_failures = 0;
+        }
+        else
+        {
+            //
+            //  Back off before retrying.  The pause is a plain timed sleep with no lock held (the
+            //  SPI ready signal has already been consumed by the last transfer), so the UART
+            //  monitor thread carries on posting "+++SIR" and queuing "+++MW" requests meanwhile;
+            //  nothing it does waits on this thread except a send into a full queue, and that
+            //  is released as soon as this thread wakes and drains the queue.
+            //
+            usleep(g_get_message_failures * ESPCP_GET_MESSAGE_RETRY_DELAY_MS * 1000);
+            //
+            //  The ESP32 sends one "+++MW" per message and each is answered by one request, so
+            //  the shared request can legitimately be in the queue more than once and a copy
+            //  already there does not stand in for this retry.  The retry is queued without
+            //  blocking: this is the only thread that drains the queue, so a blocking send into a
+            //  full queue would never return.  A full queue already holds requests that will
+            //  poll the ESP32, so the retry is dropped in that case.
+            //
+            int queue_result = espcp_add_message_to_queue(&g_request_queue_nonblocking, g_request_response_message);
+            if (queue_result < 0)
+            {
+                syslog(LOG_ERR, "%s: could not queue the retry request (%d), dropping it.\n", __func__, queue_result);
+            }
+        }
     }
 
     #if defined(USE_MEADOW_DEBUG_HELPERS)

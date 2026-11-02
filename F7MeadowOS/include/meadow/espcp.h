@@ -86,6 +86,15 @@
 #define ESPCP_MAXIMUM_CONSECUTIVE_QUEUE_FAILURES 20
 
 /*
+ *  Number of consecutive failed attempts to collect a message from the ESP32
+ *  after which the request is dropped rather than retried, and the pause, in
+ *  milliseconds, per failed attempt before a retry is queued (the pause grows
+ *  with each attempt).
+ */
+#define ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS      5
+#define ESPCP_GET_MESSAGE_RETRY_DELAY_MS        10
+
+/*
  *  Size in bytes of an espcp_event_data_t once encoded by
  *  espcp_encode_event_data():  one byte of interface followed by three
  *  4-byte big-endian fields.  This is the encoded (wire) size and is
