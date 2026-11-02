@@ -47,13 +47,16 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/mm/mm.h>
 #include <nuttx/kstring.h>
-#include <nuttx/wqueue.h>
+#include <nuttx/irq.h>
+#include <nuttx/kthread.h>
 
 #include "espcp_shared_enums.h"
 #include "espcp_encoders.h"
 #include "espcp_common.h"
 #include "../hcom_nx/hcom_nx_config_manager.h"
 #include "meadow/hcom_shared_common.h"
+#include "espcp_core_dump.h"
+#include <meadow/meadow_thread_config.h>
 
 /****************************************************************************
  * Uncomment the #define below to turn on debug help macros.
@@ -87,13 +90,18 @@
 
 
 /****************************************************************************
- * Global variables.
+ * Private Data
  ****************************************************************************/
- 
- /**
- * @brief Core dump work structure needed for NuttX work queues.
+
+/**
+ * @brief True from the moment a core dump thread is started until it exits.
+ *
+ *  The get-configuration event that starts a retrieval recurs (every ESP32
+ *  reset and every wake from Stop), so this stops a second thread from being
+ *  started while one is still talking to the ESP32.  Only accessed inside a
+ *  critical section.
  */
-struct work_s g_core_dump_work_struct = {};
+static bool g_core_dump_in_progress = false;
 
 /****************************************************************************
  * Private Functions
@@ -533,6 +541,62 @@ void espcp_erase_core_dump_partition(void)
 }
 
 /****************************************************************************
+ * Name: espcp_core_dump_thread
+ *
+ * Description:
+ *  Kernel thread that retrieves the core dump from the ESP32, writes it to
+ *  the crash report directory and then erases the ESP32 copy.
+ *
+ *  This runs on its own thread rather than on the shared LPWORK queue: the
+ *  retrieval is one blocking ESP32 round trip per fragment followed by a
+ *  file write, and holding the LPWORK worker for that long stalls everything
+ *  else queued there (Ethernet and cell drivers).
+ *
+ * Input Parameters:
+ *  argc - Argument count.
+ *  argv - argv[1], when present, is the ESP32 firmware version.  This is the
+ *         thread's own copy (kthread_create() copies the strings onto the
+ *         new stack) so it can be modified.
+ *
+ * Returned Value:
+ *  OK.
+ *
+ * Assumptions/Limitations:
+ *  The in progress flag is released on every path out of this thread.
+ *
+ ****************************************************************************/
+static int espcp_core_dump_thread(int argc, char *argv[])
+{
+    MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
+
+    char *version = NULL;
+    if ((argc > 1) && (argv[1] != NULL))
+    {
+        version = argv[1];
+    }
+
+    if (espcp_generate_core_dump_file(version) != 0)
+    {
+        MEADOW_TRACE_INFORMATION("%s: Failed to generate core dump file\n", __func__);
+    }
+    //
+    //  TODO: Decide if we are going to erase the coredump on the ESP.
+    //
+    else
+    {
+        espcp_erase_core_dump_partition();
+    }
+
+    irqstate_t flags = enter_critical_section();
+    g_core_dump_in_progress = false;
+    leave_critical_section(flags);
+
+    MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
+
+    return(OK);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -540,54 +604,80 @@ void espcp_erase_core_dump_partition(void)
  * Name: espcp_get_core_dump
  *
  * Description:
- *  Get the core dump file from the ESP32 and write this to the crash report
- *  directory.
+ *  Start the retrieval of the core dump from the ESP32 if the configuration
+ *  asks for one.  The retrieval runs on a short lived, low priority kernel
+ *  thread so the caller does not wait for it.
  *
  * Input Parameters:
- *  argument - Work queue argument pointer (this should be NULL as it is not
- *             used).
- *
- * Returned Value:
  *  None.
  *
+ * Returned Value:
+ *  OK if a retrieval was started or is not wanted, -EALREADY if one is
+ *  already running, otherwise the negated errno from kthread_create().
+ *
  * Assumptions/Limitations:
- *  This method will be called from a NuttX work queue
+ *  Called from the ESP32 event handler thread each time the ESP32 sends its
+ *  configuration.  At most one retrieval runs at a time.
  *
  ****************************************************************************/
-void espcp_get_core_dump(void *argument)
+int espcp_get_core_dump(void)
 {
     MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
 
-    char *version = NULL;
+    char *argv[2] = { NULL, NULL };
+    bool retrieve_core_dump = false;
 
     hcom_nx_config_lock();
     meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    bool retrieve_core_dump = false;
     if (config != NULL)
     {
         retrieve_core_dump = config->esp_retrieve_core_dump;
         if (retrieve_core_dump)
         {
-            version = kmm_strdup(config->esp_version.short_string);
+            argv[0] = kmm_strdup((config->esp_version.short_string != NULL) ? config->esp_version.short_string : "unknown-version");
         }
     }
     hcom_nx_config_unlock();
 
-    if (retrieve_core_dump)
+    if (!retrieve_core_dump)
     {
-        if (espcp_generate_core_dump_file(version) != 0)
+        MEADOW_TRACE_INFORMATION("%s: Exit, core dump retrieval not enabled\n", __func__);
+        return(OK);
+    }
+
+    irqstate_t flags = enter_critical_section();
+    bool already_running = g_core_dump_in_progress;
+    g_core_dump_in_progress = true;
+    leave_critical_section(flags);
+
+    int result = -EALREADY;
+    if (!already_running)
+    {
+        //
+        //  kthread_create() copies the argument strings onto the new thread's stack, so the
+        //  version string can be released as soon as it returns.
+        //
+        result = kthread_create(ESPCP_CORE_DUMP_THREAD_NAME, ESPCP_CORE_DUMP_THREAD_PRIORITY,
+                                ESPCP_CORE_DUMP_THREAD_STACKSIZE, espcp_core_dump_thread, argv);
+        if (result < 0)
         {
-            MEADOW_TRACE_INFORMATION("%s: Failed to generate core dump file\n", __func__);
+            syslog(LOG_ERR, "%s: Failed to start the core dump thread (%d)\n", __func__, result);
+            flags = enter_critical_section();
+            g_core_dump_in_progress = false;
+            leave_critical_section(flags);
         }
-        //
-        //  TODO: Decide if we are going to erase the coredump on the ESP.
-        //
         else
         {
-            espcp_erase_core_dump_partition();
+            result = OK;
         }
     }
-    kmm_free(version);
+    else
+    {
+        MEADOW_TRACE_INFORMATION("%s: Core dump retrieval already in progress\n", __func__);
+    }
+    kmm_free(argv[0]);
 
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
+
+    return(result);
 }
