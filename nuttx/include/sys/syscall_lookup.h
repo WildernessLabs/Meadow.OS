@@ -455,7 +455,7 @@ SYSCALL_LOOKUP(meadow_os_get_unit_tests_config, 0)
 SYSCALL_LOOKUP(meadow_os_coprocessor_deep_sleep, 0)
 SYSCALL_LOOKUP(meadow_os_espcp_enter_programming_mode, 0)
 SYSCALL_LOOKUP(meadow_os_espcp_monitor_process_line, 1)
-SYSCALL_LOOKUP(meadow_os_espcp_reset, 0)
+SYSCALL_LOOKUP(meadow_os_espcp_reset, 1)
 #endif
 
 /* I/O event notification facility */

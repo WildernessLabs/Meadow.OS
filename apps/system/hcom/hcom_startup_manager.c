@@ -313,7 +313,11 @@ int hcom_main(int argc, char *argv[])
 #endif
 
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  meadow_os_espcp_reset();
+  // The startup reset: skipped when a debugger is attached to the ESP32.
+  if(meadow_os_espcp_reset(true) == 0)
+  {
+    syslog(LOG_INFO, "ESP32 startup reset skipped (debugger attached to ESP32)\n");
+  }
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0

@@ -577,7 +577,7 @@ void espcp_send_data_over_spi(void *tx, void *rx, size_t buffer_length)
  *      None.
  *
  *  Returned Value:
- *      None.
+ *      true if the ESP32 should be reset at startup, false otherwise.
  *
  *  Assumptions/Limitations:
  *      None.
@@ -599,7 +599,7 @@ bool espcp_should_reset_at_startup(void)
 }
 
 /****************************************************************************
- *  Name: escpcp_hold_in_reset
+ *  Name: espcp_hold_in_reset
  *
  *  Description:
  *      Configure the ESP reset pin and take the reset line low.
@@ -607,6 +607,11 @@ bool espcp_should_reset_at_startup(void)
  *      This method can be used in two ways:
  *          - Hold the chip in reset
  *          - Start the reset process.
+ * 
+ *      This is unconditional.  The "reset at startup" setting is only
+ *      consulted by the startup reset path (see meadow_os_espcp_reset), so
+ *      on-demand resets (recovery, mode changes, operator requests) always
+ *      work, even with a debugger attached to the ESP32.
  * 
  *  Input Parameters:
  *      None.
@@ -620,10 +625,7 @@ bool espcp_should_reset_at_startup(void)
  ****************************************************************************/
 void espcp_hold_in_reset(void)
 {
-    if (espcp_should_reset_at_startup())
-    {
-        stm32_gpiowrite(_active_pins->reset, false);
-    }
+    stm32_gpiowrite(_active_pins->reset, false);
 }
 
 /****************************************************************************
@@ -632,8 +634,9 @@ void espcp_hold_in_reset(void)
  *  Description:
  *      Reset the ESP32.
  * 
- *      Note that this method checks the configuration to determine if the ESP
- *      should be reset at startup.
+ *      This is unconditional.  Callers performing the startup reset must
+ *      check espcp_should_reset_at_startup() first; on-demand callers must
+ *      not, as that would remove the only recovery path for a hung ESP32.
  * 
  *  Input Parameters:
  *      None.
@@ -647,22 +650,23 @@ void espcp_hold_in_reset(void)
  ****************************************************************************/
 void espcp_reset(void)
 {
-    if (espcp_should_reset_at_startup())
-    {
-        espcp_config_lock();
-        espcp_configuration_t *config = espcp_get_configuration();
-        config->expecting_reset = true;
-        espcp_config_unlock();
+    espcp_config_lock();
+    espcp_configuration_t *config = espcp_get_configuration();
+    config->expecting_reset = true;
+    espcp_config_unlock();
 
-        espcp_hold_in_reset();
-        //
-        //  The ESP32 loses its "SPI ready" state on reset.  A signal left over from the last
-        //  conversation would let the first transfer start before the ESP32 has booted.
-        //
-        nxsem_reset(&espcp_spi_lock, 0);
-        usleep(500);
-        stm32_gpiowrite(_active_pins->reset, true);
-    }
+    espcp_hold_in_reset();
+    //
+    //  The ESP32 loses its "SPI ready" state on reset.  A signal left over from the last
+    //  conversation would let the first transfer start before the ESP32 has booted.
+    //
+    nxsem_reset(&espcp_spi_lock, 0);
+    //
+    //  The ESP32 datasheet wants EN held low for at least 1 ms once the
+    //  supply is stable; 2 ms gives some margin.
+    //
+    usleep(2000);
+    stm32_gpiowrite(_active_pins->reset, true);
 }
 
 /****************************************************************************
