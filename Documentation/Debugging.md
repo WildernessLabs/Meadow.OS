@@ -95,28 +95,28 @@ The `.gdbinit` file in the `gdb` directory is loaded automatically when GDB is s
    - 4 hardware watchpoints
 2. Defines `load-nuttx-symbols` to load symbol files:
    ```
-   file ../nuttx/nuttx.elf
-   add-symbol-file -readnow ../nuttx/nuttx.elf
+   file -readnow ../nuttx/nuttx.elf
+   add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf  (if present)
    add-symbol-file -readnow ../nuttx/nuttx_user.elf  (if present)
    ```
-3. Loads Python helper scripts
-4. Connects to the GDB server: `target extended-remote :4242`
-5. Configures NuttX RTOS awareness for OpenOCD. The task control block offsets
-   are **derived from the loaded symbols**, not hardcoded, so they cannot go
-   stale when a NuttX change moves a field in `struct tcb_s`:
-   ```
-   monitor nuttx.g_tasklisttable_size 72
+3. Loads the Python helper scripts in `gdb/` and the upstream NuttX scripts
+   (`nuttx/tools/pynuttx/gdbinit.py`)
+4. Connects to the GDB server: `target extended-remote :4242`, forces hardware
+   breakpoints and turns on `cortex_m vector_catch all`, so the core halts on
+   every fault and on reset.  The setting is held in the core's DEMCR register
+   and is not cleared when GDB detaches; turn it off with
+   `monitor cortex_m vector_catch none` before leaving the board to run on its own.
 
-   eval "monitor nuttx.pid_offset %d", &((struct tcb_s *)(0))->pid
-   eval "monitor nuttx.xcpreg_offset %d", &((struct tcb_s *)(0))->xcp.regs
-   eval "monitor nuttx.state_offset %d", &((struct tcb_s *)(0))->task_state
-   eval "monitor nuttx.name_offset %d", &((struct tcb_s *)(0))->name
-   eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
-   ```
-   Literal `monitor nuttx.*_offset` lines are present in the file but commented
-   out. Because the offsets come from the symbols, a wrong or missing symbol
-   file produces a wrong task list rather than an error -- load the symbols that
-   match the firmware on the board.
+NuttX RTOS awareness needs no set-up from GDB: OpenOCD reads the task control
+block offsets from `g_tcbinfo` in the firmware.  NuttX 12 changed the layout of
+`g_tcbinfo` (it added `stack_off`/`stack_size_off`); OpenOCD needs the
+`FixGDBPythonScripts` change to `src/rtos/nuttx.c` in `$MEADOW_OPENOCD_DIR` to read
+it.  Without that change (upstream OpenOCD included, as of November 2026) the
+registers OpenOCD reports for tasks that are not running are wrong, and `bt`,
+`thread N` and IDE call stacks show garbage for those tasks.  `nx_bt <pid>` works
+with either build, as it unwinds from the context saved in the TCB.  Any
+error in `.gdbinit` stops the rest of the file from running, so keep commands that
+can fail (for example `add-symbol-file` of a file that may be missing) guarded.
 
 ### Useful GDB Macros
 
@@ -132,10 +132,12 @@ Custom Python scripts extend GDB with Meadow-specific commands:
 
 | Script | Purpose |
 |--------|---------|
-| `Nuttx.py` | NuttX RTOS helper: task list, stack inspection |
-| `Nuttx_Tasks.py` | Pretty-printer for NuttX task control blocks |
-| `NuttxHeap.py` | Heap analysis: free/allocated block inspection |
-| `Tracing.py` | Trace buffer display and analysis |
+| `Nuttx.py` | `nx_bt` backtraces (any task, syscall and exception annotations, Mono interpreter frames), a `dispatch_syscall` frame unwinder so `bt` crosses from the kernel into user space, register decoding, `nx_dmesg`; helpers used by the other scripts, so it is loaded first |
+| `Nuttx_Tasks.py` | Task list and task details (`nx_tasks`, `nx_task`, `show regs`, `show check_stack`, ...) |
+| `NuttxHeap.py` | Heap analysis: `show heap`, `show freeheap`, `nx_check_heap` |
+| `Tracing.py` | Backtrace recording and heap allocation tracing |
+
+See `gdb/readme.md` for the full command list.
 
 ## Flashing the Board
 
@@ -199,7 +201,8 @@ QEMU ARM machine configuration:
 
 ## Debugging the Bootloader
 
-Bootloader symbols can be loaded in GDB by uncommenting this line in `.gdbinit`:
+`.gdbinit` loads the bootloader symbols when `bootloader/Debug/Meadow.BL.elf` has been
+built.  They can also be loaded by hand with the `read-bootloader-symbols` macro:
 
 ```gdb
 add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
