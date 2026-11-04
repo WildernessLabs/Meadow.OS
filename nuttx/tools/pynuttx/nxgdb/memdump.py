@@ -499,7 +499,8 @@ class MMMap(gdb.Command):
             size = node.nodesize
             start_index = addr - start
             end_index = start_index + size
-            img.flat[start_index:end_index] = 1 + self.math.log2(node.seqno + 1)
+            # seqno is -1 when CONFIG_MM_BACKTRACE < 0 (no sequence numbers recorded)
+            img.flat[start_index:end_index] = 1 + self.math.log2(max(node.seqno, 0) + 1)
 
         self.plt.imsave(output_file, img, cmap=self.plt.get_cmap("Greens"))
 

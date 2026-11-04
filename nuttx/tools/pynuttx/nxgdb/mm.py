@@ -373,6 +373,10 @@ class MMNode(gdb.Value, p.MMFreeNode):
     MM_SIZEOF_ALLOCNODE = utils.sizeof("struct mm_allocnode_s")
     MM_ALLOCNODE_OVERHEAD = MM_SIZEOF_ALLOCNODE - utils.sizeof("mmsize_t")
     MM_MIN_CHUNK = utils.get_symbol_value("MM_MIN_CHUNK", locspec="mm_initialize")
+    if MM_MIN_CHUNK is None:
+        # No macro information in the ELF (built with -g rather than -g3): derive it
+        # as mm/mm_heap/mm.h does, MM_MIN_CHUNK = 1 << LOG2_CEIL(sizeof(struct mm_freenode_s)).
+        MM_MIN_CHUNK = 1 << (utils.sizeof("struct mm_freenode_s") - 1).bit_length()
 
     def __init__(self, node: gdb.Value):
         if node.type.code == gdb.TYPE_CODE_PTR:
