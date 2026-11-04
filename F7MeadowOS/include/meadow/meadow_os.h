@@ -35,6 +35,7 @@
 #ifndef __MEADOW_OS_H
 #define __MEADOW_OS_H
 
+#include <stdbool.h>
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_unit_test_framework.h>
 
@@ -122,7 +123,7 @@ char *meadow_os_copy_string(char *source);
 //
 //  ESP coprocessor specific methods.
 //
-void meadow_os_espcp_reset(void);
+int meadow_os_espcp_reset(bool at_startup);
 int meadow_os_espcp_enter_programming_mode(void);
 void meadow_os_espcp_monitor_process_line(char *);
 int meadow_os_get_gateway_address(char *);

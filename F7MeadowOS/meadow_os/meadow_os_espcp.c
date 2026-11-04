@@ -80,19 +80,31 @@ void espcp_uart_monitor_process_line(char *);
  * Description:
  *  Reset the ESP32.
  *
+ *  The "reset at startup" setting exists so that a debugger attached to the
+ *  ESP32 is not detached when Meadow boots.  It must only suppress the
+ *  startup reset: operator-requested restarts share this syscall and have to
+ *  happen regardless, so the caller states its intent.
+ *
  * Input Parameters:
- *  None.
+ *  at_startup - true for the startup reset, false for an on-demand reset.
  *
  * Returned Value:
- *  
+ *  true (1) if the ESP32 was reset, false (0) if the startup reset was
+ *  skipped because the configuration disables it.
  *
  * Assumptions/Limitations:
  *  None
  *
  ****************************************************************************/
-void meadow_os_espcp_reset(void)
+int meadow_os_espcp_reset(bool at_startup)
 {
+    if ((at_startup) && (!espcp_should_reset_at_startup()))
+    {
+        return (false);
+    }
     espcp_reset();
+
+    return (true);
 }
 
 /****************************************************************************

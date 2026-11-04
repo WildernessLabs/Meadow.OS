@@ -405,10 +405,12 @@ int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
   // Hold the ESP32 in reset (EN low) while in Stop mode. Left running it
   // draws about 18 mA, more than half of Meadow's Stop current (Issue #680).
   // The F7 keeps driving the pin low in Stop mode. Skipped when a debugger is
-  // attached to the ESP32 (reset_esp32_at_startup is 0).
+  // attached to the ESP32 (reset_esp32_at_startup is 0): holding it in reset
+  // would detach the debugger. espcp_hold_in_reset()/espcp_reset() no longer
+  // check that setting themselves (Issue #508), so it is checked here.
   // Note: anything using the network when Meadow sleeps is not torn down
   // first. That needs an espcp teardown API (Issue #683).
-  bool esp32HeldInReset = _holdEsp32InResetInStop;
+  bool esp32HeldInReset = ((_holdEsp32InResetInStop) && (espcp_should_reset_at_startup()));
   if(esp32HeldInReset)
   {
     espcp_hold_in_reset();

@@ -236,10 +236,23 @@ void hcom_esp32_util_restart_esp32(uint32_t userData)
     return;
   }
 
-  // Restart the ESP32 via GPIO lines
+  // Restart the ESP32 via GPIO lines. This is an operator request, not the
+  // startup reset, so the "reset at startup" setting does not apply. Only
+  // tell the host it happened if it did.
+  bool restarted = false;
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  meadow_os_espcp_reset();
+  restarted = (meadow_os_espcp_reset(false) != 0);
 #endif
+
+  if(!restarted)
+  {
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
+            "ESP32 was not restarted");
+    syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
+              __FILE__, __LINE__);
+    return;
+  }
 
   snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "ESP32 has been restarted");
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg,
@@ -322,9 +335,9 @@ void hcom_esp32_util_read_esp32_mac(uint32_t userData)
   hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
           macAddr, __FILE__, __LINE__);
 
-  // Restart the ESP32 via GPIO lines
+  // Restart the ESP32 via GPIO lines (on demand, not the startup reset)
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  meadow_os_espcp_reset();
+  meadow_os_espcp_reset(false);
 #endif
   hcom_esp32_stop_and_prep_for_restart();
 }
