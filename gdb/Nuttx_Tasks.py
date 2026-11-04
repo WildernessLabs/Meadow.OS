@@ -170,7 +170,7 @@ class NX_task(object):
         '''Current registers for the running task, otherwise the saved ones.'''
         if self.is_running:
             frame = gdb.newest_frame()
-            return dict((name, int(frame.read_register(name))) for name in NX_CORE_REGS)
+            return dict((name, nx_reg(frame, name)) for name in NX_CORE_REGS)
         return self.saved_registers
 
     @property
@@ -198,12 +198,22 @@ class NX_task(object):
         size = self.stack_size
         if (base == 0) or (size == 0) or (nx_read_u32(base) != NX_STACK_COLOR):
             return None
-        memory = bytes(gdb.selected_inferior().read_memory(base, size))
+        #
+        #   The stack grows down, so the untouched (still coloured) part is at the
+        #   bottom.  Read upwards in chunks and stop at the first used word, so only
+        #   the unused part of the stack is read over the debug link.
+        #
         color = NX_STACK_COLOR.to_bytes(4, "little")
         offset = 0
-        while (offset < size) and (memory[offset:offset + 4] == color):
-            offset += 4
-        return size - offset
+        chunk_size = 4096
+        while offset < size:
+            length = min(chunk_size, size - offset)
+            memory = bytes(gdb.selected_inferior().read_memory(base + offset, length))
+            for index in range(0, length - 3, 4):
+                if memory[index:index + 4] != color:
+                    return size - (offset + index)
+            offset += length
+        return 0
 
     @property
     def file_descriptors(self):
@@ -300,14 +310,20 @@ class NX_show_tasks(gdb.Command):
     def invoke(self, args, from_tty):
         tasks = NX_task.tasks()
         print("Number of tasks: %d" % len(tasks))
-        print("%5s %-24s %-18s %4s %10s %7s %7s  %s" % ("PID", "Name", "State", "Pri", "TCB",
-                                                       "Stack", "Used", "Waiting for"))
+        print("%5s %-24s %-18s %4s %10s %7s %7s %7s  %s" % ("PID", "Name", "State", "Pri", "TCB",
+                                                           "Stack", "Used", "Max", "Waiting for"))
         for task in tasks:
             used = task.stack_used
             used_text = "-" if used is None else str(used)
-            print("%5d %-24s %-18s %4d 0x%08x %7d %7s  %s" % (task.pid, task.name[:24], task.state,
-                                                            task.priority, task.address, task.stack_size,
-                                                            used_text, task.waiting_for))
+            #
+            #   Max is the high-water mark, only known with CONFIG_STACK_COLORATION
+            #   (build.sh --gdbdiag).
+            #
+            high_water = task.stack_high_water
+            max_text = "-" if high_water is None else str(high_water)
+            print("%5d %-24s %-18s %4d 0x%08x %7d %7s %7s  %s" % (task.pid, task.name[:24], task.state,
+                                                                task.priority, task.address, task.stack_size,
+                                                                used_text, max_text, task.waiting_for))
 
 NX_show_tasks()
 
@@ -318,7 +334,8 @@ class NX_show_interrupted_thread(gdb.Command):
     Only meaningful when the CPU halted in handler mode, for example in a fault
     handler.  arm_doirq stores the interrupted context in the xcp.regs of the
     running task (g_running_tasks[0]); before it has done so the pointer is taken
-    from the exception_common frame.
+    from the exception_common frame, and when the core stopped on the exception
+    entry itself (vector catch) the hardware exception frame is used.
     '''
 
     def __init__(self):
@@ -328,25 +345,14 @@ class NX_show_interrupted_thread(gdb.Command):
         ipsr = nx_in_exception()
         if ipsr == 0:
             raise gdb.GdbError("Not in interrupt context.")
-        running = nx_symbol_value("g_running_tasks")[0]
-        regs = int(running.dereference()["xcp"]["regs"])
-        if regs == 0:
-            #
-            #   arm_doirq has not stored the pointer in the TCB yet; exception_common
-            #   keeps it in r11 across the call to arm_doirq.
-            #
-            frame = gdb.newest_frame()
-            while frame is not None:
-                if frame.name() == "exception_common":
-                    regs = int(frame.read_register("r11"))
-                    break
-                frame = frame.older()
-        if regs == 0:
-            raise gdb.GdbError("No interrupted context saved (exception %s)." % nx_exception_name(ipsr))
-        print("Exception: %s, interrupted task: %s (pid %d), context at 0x%08x" % (
-            nx_exception_name(ipsr), running.dereference()["name"].string(),
-            int(running.dereference()["pid"]), regs))
-        print(format_registers(nx_read_saved_regs(regs)), end="")
+        context = nx_interrupted_context()
+        if context is None:
+            raise gdb.GdbError("No interrupted context found (exception %s)." % nx_exception_name(ipsr))
+        running = nx_running_tcb().dereference()
+        print("Exception: %s, interrupted task: %s (pid %d), context from %s at 0x%08x" % (
+            nx_exception_name(ipsr), running["name"].string(), int(running["pid"]),
+            context["source"], context["address"]))
+        print(format_registers(context["regs"]), end="")
 
 NX_show_interrupted_thread()
 

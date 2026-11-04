@@ -380,6 +380,26 @@ enable_debug_features() {
 }
 
 #
+# Diagnostics that the GDB scripts in gdb/ and the upstream pynuttx scripts can use.
+#
+#   STACK_COLORATION   fills every new stack with 0xdeadbeef, so the deepest stack
+#                      use can be measured (nx_task "most used", pynuttx
+#                      stack-usage).  Costs a fill of each stack when a thread is
+#                      created.  It has no dependants, so kconfig-tweak alone is
+#                      enough.
+#
+# MM_BACKTRACE (heap owner pid per allocation) is deliberately not set: with it,
+# the user-space copy of the heap code (mm_mallinfo.c, mm_memdump.c) calls the
+# kernel-only nxsched_get_tcb(), and the user-space link fails in this
+# protected build.
+#
+enable_gdb_diagnostics() {
+    printf "\n\n********** Enabling stack coloration. **********\n\n"
+
+    ktweak --enable STACK_COLORATION
+}
+
+#
 # Send stack dumps to USART1 (COM1) instead of the RAMLOG.
 #
 # Meadow normally has no serial console - the syslog goes to the RAMLOG so it can

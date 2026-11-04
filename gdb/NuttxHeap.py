@@ -13,7 +13,9 @@
 #   Node layout (mm/mm_heap/mm.h): every node starts with a struct mm_allocnode_s
 #   { preceding, size }.  Bit 0 of size is set when the node is allocated and bit 1
 #   when the previous node is free; preceding is only valid when the previous node
-#   is free.  The node size includes the header, and the next node starts at
+#   is free.  With CONFIG_MM_BACKTRACE >= 0 (not possible in the protected build today) the header also
+#   holds the owner's pid and a sequence number, shown by show heap.  The node
+#   size includes the header, and the next node starts at
 #   node + size.  The first node of a region is at mm_heapstart[region] and the
 #   chain ends with the guard node at mm_heapend[region].
 #
@@ -49,6 +51,17 @@ class NuttXHeap(object):
         self._size_offset = allocnode["size"].bitpos // 8
         self._preceding_offset = allocnode["preceding"].bitpos // 8
         self._allocnodesize = allocnode.sizeof
+        #
+        #   With CONFIG_MM_BACKTRACE >= 0 every node also records the owner's pid and
+        #   an allocation sequence number.
+        #
+        field_names = [field.name for field in allocnode.fields()]
+        self._owner = ("pid" in field_names) and ("seqno" in field_names)
+        if self._owner:
+            self._pid_offset = allocnode["pid"].bitpos // 8
+            self._pid_bytes = allocnode["pid"].type.sizeof
+            self._seqno_offset = allocnode["seqno"].bitpos // 8
+            self._seqno_bytes = allocnode["seqno"].type.sizeof
         symbol = gdb.lookup_global_symbol(self._heap_variable_name)
         if symbol is None:
             raise gdb.GdbError("Cannot find %s; are the symbols for both ELF files loaded?" %
@@ -60,6 +73,20 @@ class NuttXHeap(object):
     @property
     def name(self):
         return self._heap_name
+
+    @property
+    def has_owner(self):
+        '''True when the nodes record the owner pid (CONFIG_MM_BACKTRACE >= 0).'''
+        return self._owner
+
+    def owner(self, node):
+        '''(pid, seqno) recorded in an allocated node, or None.'''
+        if not self._owner:
+            return None
+        pid = _read_word(node + self._pid_offset, self._pid_bytes)
+        if pid & (1 << (8 * self._pid_bytes - 1)):
+            pid -= 1 << (8 * self._pid_bytes)
+        return (pid, _read_word(node + self._seqno_offset, self._seqno_bytes))
 
     @property
     def variable_name(self):
@@ -144,7 +171,11 @@ class NuttXHeap(object):
                     largest_free = max(largest_free, size)
                 if free_only and allocated:
                     continue
-                lines.append("  0x%08x %8d %s" % (node + self._allocnodesize, size, "" if allocated else "(free)"))
+                line = "  0x%08x %8d %s" % (node + self._allocnodesize, size, "" if allocated else "(free)")
+                if allocated and self._owner:
+                    pid, seqno = self.owner(node)
+                    line += "pid %d seq %d" % (pid, seqno)
+                lines.append(line)
             lines.append("  allocated %d bytes in %d nodes, free %d bytes in %d nodes, largest free %d" %
                          (allocated_bytes, allocated_count, free_bytes, free_count, largest_free))
         return lines

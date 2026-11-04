@@ -136,8 +136,15 @@ Custom Python scripts extend GDB with Meadow-specific commands:
 | `Nuttx_Tasks.py` | Task list and task details (`nx_tasks`, `nx_task`, `show regs`, `show check_stack`, ...) |
 | `NuttxHeap.py` | Heap analysis: `show heap`, `show freeheap`, `nx_check_heap` |
 | `Tracing.py` | Backtrace recording and heap allocation tracing |
+| `Svd.py` | `svd`: peripheral registers decoded from `STM32F777.svd` |
+| `Meadow.py` | Board and fault diagnostics: `nx_alive`, `nx_reset`, `nx_fault`, `nx_mpu`, `nx_irqs`, `espcp_status` |
+| `Mono.py` | `nx_jit`, `nx_jit_compile`; names JIT code frames in `nx_bt` |
 
-See `gdb/readme.md` for the full command list.
+See `gdb/readme.md` for the full command list, and for which of the upstream pynuttx commands
+work in this build.
+
+`./build.sh --clean --force --gdbdiag` builds with `STACK_COLORATION`, which gives stack high-water
+marks in GDB (`nx_tasks`, `nx_task`).  Use it for debugging builds only.
 
 ## Flashing the Board
 
