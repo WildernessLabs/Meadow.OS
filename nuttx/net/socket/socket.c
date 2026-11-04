@@ -112,6 +112,18 @@ int psock_socket(int domain, int type, int protocol,
 
   if (ret == 0 || (ret != -ENOSYS && ret != -ENOTSUP && ret != -ENETDOWN))
     {
+      /* The usrsock interface cannot see SOCK_NONBLOCK (s_type has been
+       * masked), so set the flag here as the kernel socket path does
+       * below.  Without it a socket created with SOCK_NONBLOCK blocks.
+       */
+
+      if (ret == 0 && (type & SOCK_NONBLOCK) != 0)
+        {
+          FAR struct socket_conn_s *conn = psock->s_conn;
+
+          conn->s_flags |= _SF_NONBLOCK;
+        }
+
       return ret;
     }
 
