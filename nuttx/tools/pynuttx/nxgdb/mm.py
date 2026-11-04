@@ -415,7 +415,13 @@ class MMNode(gdb.Value, p.MMFreeNode):
         )
 
     def read_memory(self):
-        addr = int(self.address) + MMNode.MM_ALLOCNODE_OVERHEAD
+        # The payload starts after the whole node header and is
+        # MM_ALLOCNODE_OVERHEAD smaller than the node: its last word overlaps
+        # the next node's "preceding" field (mm_malloc.c).  Starting at
+        # MM_ALLOCNODE_OVERHEAD instead read the header's size word and missed
+        # the last word of the payload, so a pointer stored there was not seen
+        # and its target was reported as leaked.
+        addr = int(self.address) + MMNode.MM_SIZEOF_ALLOCNODE
         size = self.nodesize - MMNode.MM_ALLOCNODE_OVERHEAD
         return gdb.selected_inferior().read_memory(addr, size)
 

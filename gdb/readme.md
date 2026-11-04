@@ -100,15 +100,21 @@ it.  Everything else only reads the target.
 
 | Status | Commands |
 |--------|----------|
-| Work | `info nxthreads`, `deadlock`, `wdog`, `fdinfo`, `mount`, `foreach inode`, `hexdump`, `addr2line`, `mm heap`, `mm frag`, `mm free`, `mm dump` (allocation counts by size), `mm check` / `memcheck`, `mm map` / `memmap` (needs numpy and matplotlib from the `.venv` that `debug.sh` builds) |
+| Work | `info nxthreads`, `deadlock`, `wdog`, `fdinfo`, `mount`, `foreach inode`, `hexdump`, `addr2line`, `mm heap`, `mm frag`, `mm free`, `mm dump` (allocation counts by size), `mm check` / `memcheck`, `mm map` / `memmap` (needs numpy and matplotlib from the `.venv` that `debug.sh` builds), `mm leak` / `memleak` (needs pyelftools from the `.venv`; about 3 minutes) |
 | Partial | `irqinfo` (handlers only: counts need `SCHED_IRQMONITOR`, which needs PROCFS), `stack-usage` (current use only; use `nx_tasks` for the maximum), `mm dump` (no owner PIDs: they need `MM_BACKTRACE >= 0`) |
 | Fail | `ps` (reads several macros, such as `_SIGSET_NELEM` and the TCB flag masks, that the build does not include; `nx_tasks` covers the same ground) |
-| Not registered | `worker`, `netstats`, `netcheck`, `mm leak`, `info shm` (pynuttx registers them from configuration macros that are not in the build) |
+| Not registered | `worker`, `netstats`, `netcheck`, `info shm` (pynuttx registers them from configuration macros that are not in the build) |
 
 The build is compiled with `-g`, which leaves C macros out of the debug information; pynuttx reads
 many values from macros.  `mm check` and `mm map` failed for that reason (`MM_MIN_CHUNK` missing, and
 sequence numbers of -1 without `MM_BACKTRACE`); both are fixed in `nuttx/tools/pynuttx/nxgdb/mm.py` and
 `memdump.py`.
+
+`mm leak` reported thousands of false leaks, for three reasons, all fixed in `memleak.py` and `mm.py`:
+it scanned only the user heap, but the task control blocks and task groups that point to task stacks,
+task information and environments are in the kernel heap; it reported the marker nodes at the start
+and end of every heap region; and it read each node from 4 bytes too early, so it missed a pointer in
+the last word of an allocation.  Without `MM_BACKTRACE` it cannot say who allocated a reported node.
 
 `./build.sh --clean --force --gdbdiag` turns on `STACK_COLORATION`: stack high-water marks ("Max" in
 `nx_tasks`, "most used" in `nx_task`).  It costs a fill of each stack when a thread starts.  pynuttx
