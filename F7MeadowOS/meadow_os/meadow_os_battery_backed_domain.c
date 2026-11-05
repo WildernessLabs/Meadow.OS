@@ -38,6 +38,7 @@
 #include <stdint.h>
 #include <string.h>
 
+#include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 
 #include <arch/board/board.h>
@@ -195,11 +196,14 @@ static uint32_t inline *meadow_os_bbd_bbr_number_to_address(uint32_t number)
  *  None.
  *
  * Assumptions/Limitations:
- *  None
+ *  This function is a syscall, so the clear and the copy are made in one
+ *  critical section to stop a concurrent reader seeing a partial string.
  *
  ****************************************************************************/
 void meadow_os_bbd_strdup_to_sram(const char *message)
 {
+    irqstate_t flags = enter_critical_section();
+
     meadow_os_bbd_clear_sram();
     if (message != NULL)
     {
@@ -208,6 +212,8 @@ void meadow_os_bbd_strdup_to_sram(const char *message)
         strncpy((char *) BATTERY_BACKED_DOMAIN_SRAM_ADDRESS, message, MEADOW_OS_BBD_SRAM_SIZE - 1);
 #pragma GCC diagnostic pop
     }
+
+    leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -225,12 +231,17 @@ void meadow_os_bbd_strdup_to_sram(const char *message)
  *  None.
  *
  * Assumptions/Limitations:
- *  None
+ *  The copy is made in a critical section so that it cannot interleave with
+ *  a concurrent meadow_os_bbd_strdup_to_sram() or meadow_os_bbd_clear_sram().
  *
  ****************************************************************************/
 void meadow_os_bbd_strdup_from_sram(char *destination, int length)
 {
+    irqstate_t flags = enter_critical_section();
+
     strncpy(destination, (char *) BATTERY_BACKED_DOMAIN_SRAM_ADDRESS, length);
+
+    leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -246,15 +257,20 @@ void meadow_os_bbd_strdup_from_sram(char *destination, int length)
  *  None
  *
  * Assumptions/Limitations:
- *  None
+ *  Critical sections nest, so this can be called from inside
+ *  meadow_os_bbd_strdup_to_sram().
  *
  ****************************************************************************/
 void meadow_os_bbd_clear_sram(void)
 {
+    irqstate_t flags = enter_critical_section();
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Warray-bounds"
     memset((void *) BATTERY_BACKED_DOMAIN_SRAM_ADDRESS, 0, MEADOW_OS_BBD_SRAM_SIZE);
 #pragma GCC diagnostic pop
+
+    leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -337,7 +353,8 @@ int meadow_os_bbd_register_set_value(uint32_t register_number, uint32_t value)
  *  OK if the register number is valid, ERROR otherwise.
  *
  * Assumptions/Limitations:
- *  None
+ *  The read-modify-write is made in a critical section so that concurrent
+ *  callers (this is a syscall) cannot lose each other's updates.
  *
  ****************************************************************************/
 int meadow_os_bbd_register_set_bits(uint32_t register_number, uint32_t value)
@@ -351,9 +368,11 @@ int meadow_os_bbd_register_set_bits(uint32_t register_number, uint32_t value)
     else
     {
         uint32_t *address = meadow_os_bbd_bbr_number_to_address(register_number);
+        irqstate_t flags = enter_critical_section();
         uint32_t current_value = getreg32(address);
         current_value |= value;
         putreg32(current_value, address);
+        leave_critical_section(flags);
     }
 
     return(result);
@@ -373,7 +392,8 @@ int meadow_os_bbd_register_set_bits(uint32_t register_number, uint32_t value)
  *  OK if the register number is valid, ERROR otherwise.
  *
  * Assumptions/Limitations:
- *  None
+ *  The read-modify-write is made in a critical section so that concurrent
+ *  callers (this is a syscall) cannot lose each other's updates.
  *
  ****************************************************************************/
 int meadow_os_bbd_register_clear_bits(uint32_t register_number, uint32_t value)
@@ -387,9 +407,11 @@ int meadow_os_bbd_register_clear_bits(uint32_t register_number, uint32_t value)
     else
     {
         uint32_t *address = meadow_os_bbd_bbr_number_to_address(register_number);
+        irqstate_t flags = enter_critical_section();
         uint32_t current_value = getreg32(address);
         current_value &= ~value;
         putreg32(current_value, address);
+        leave_critical_section(flags);
     }
 
     return(result);
