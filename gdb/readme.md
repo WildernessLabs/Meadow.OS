@@ -2,39 +2,37 @@
 
 ## Getting started
 
-Launch GDB using the command `arm-none-eabi-gdb-py -q`.
+Start the OpenOCD server and GDB from the workspace root with the debug script (see
+`Documentation/Debugging.md`):
 
-If you do it from the `WildernessLabs/Meadow/nuttx` directory, then
-GDB will automatically load the `.gdbinit` and you will not need the
-manual configuration steps below.
+```
+./debug.sh --server     # terminal 1: OpenOCD GDB server on port 4242
+./debug.sh              # terminal 2: arm-none-eabi-gdb in the gdb directory
+```
+
+`debug.sh` starts GDB in this directory, so GDB runs the `.gdbinit` here. That file loads the symbols,
+the Python scripts in this directory and the upstream NuttX scripts (`nuttx/tools/pynuttx`), then
+connects to OpenOCD.
 
 ## Manual configuration
 
-These steps are only needed if not launching from the NuttX working
-directory as previously mentioned.
+These steps are only needed when GDB is not started by `debug.sh` from this directory.
 
-It can be helpful to know what's going on under the hood, so here's the
-basic steps to get it working for Meadow.
-
-* Load the necessary ELF symbols for kernel and user binaries
-
-This is done using the `add-symbol-file` command:
+* Load the ELF symbols for the kernel and user images (run GDB from this directory, or adjust the paths):
 
 ```
-add-symbol-file -readnow nuttx
-add-symbol-file -readnow configs/stm32f777zit6-meadow/kernel/nuttx_user.elf
+file -readnow ../nuttx/nuttx.elf
+add-symbol-file -readnow ../nuttx/nuttx_user.elf
 ```
 
-Added by default when using the `.gdbinit`init script.
-
-* Load the Python scripts for extra commands
+* Load the Python scripts.  `Nuttx.py` must come first as the other scripts use its helpers:
 
 ```
-source gdb/Nuttx.py
-source gdb/Nuttx_Tasks.py
+source Nuttx.py
+source Nuttx_Tasks.py
+source NuttxHeap.py
+source Tracing.py
 ```
-
-Loaded by default when using the `.gdbinit` init script.
 
 ### Other helpful configuration scripts
 
@@ -57,32 +55,73 @@ This is not set by default, use if working a lot with assembly.
 
 ## Commands
 
+### Meadow commands
+
+| Command | Script | Description |
+|---------|--------|-------------|
+| `nx_bt [pid] [nomanaged]` | `Nuttx.py` | Backtrace of the selected thread or of task `pid`, with annotations for exceptions, SVC calls and syscalls, and interpreted .NET frames expanded |
+| `nx_dumpregs <addr>` | `Nuttx.py` | Decode a NuttX register save area (`tcb->xcp.regs`, or the `regs`/`context` argument of `arm_doirq` and `arm_svcall`) |
+| `nx_dumpregs_hw <addr>` | `Nuttx.py` | Decode a hardware exception frame (r0-r3, r12, lr, pc, xpsr) stacked at `addr` |
+| `nx_saveregs` / `nx_restoreregs` | `Nuttx.py` | Save and restore the CPU registers |
+| `nx_dmesg` (also `dmesg`) | `Nuttx.py` | Print the RAM log (syslog) |
+| `nx_tasks` | `Nuttx_Tasks.py` | List all tasks: state, priority, TCB, stack size and use, and what each task waits for |
+| `nx_task <pid>` | `Nuttx_Tasks.py` | Details of one task, including open files and saved registers |
+| `show alltcb` | `Nuttx_Tasks.py` | PID and name of every task |
+| `show tcb <pid>` | `Nuttx_Tasks.py` | Print the `struct tcb_s` of a task |
+| `show regs [pid]` | `Nuttx_Tasks.py` | Saved registers of one or all tasks and the source at the saved PC |
+| `show interrupted-thread` | `Nuttx_Tasks.py` | Registers of the context interrupted by the current exception |
+| `show check_stack` | `Nuttx_Tasks.py` | Stack regions and stack pointers of all tasks in address order |
+| `show mybt <pid or name or tcb>` | `Nuttx_Tasks.py` | Heuristic backtrace: words on a task's stack that point into code |
+| `show heap [user or kernel]` | `NuttxHeap.py` | List the nodes of a heap, with totals |
+| `show freeheap [user or kernel]` | `NuttxHeap.py` | List the free nodes of a heap |
+| `nx_check_heap` | `NuttxHeap.py` | Check the node chains of the kernel and user heaps |
+| `trace_start`, `trace_stop`, `trace_add_backtrace`, `show trace_data` | `Tracing.py` | Record backtraces from breakpoint command lists |
+| `trace_heap_start`, `trace_heap_stop`, `show heap_trace` | `Tracing.py` | Heap tracing, see below |
+
+The upstream NuttX scripts loaded by `.gdbinit` add more commands, for example `info nxthreads`, `ps`,
+`mm dump` and `mm check`.
+
+### Threads and the OpenOCD in use
+
+OpenOCD's NuttX awareness shows each task as a GDB thread, so `thread N` followed by `bt` gives the
+backtrace of any task.  This needs an OpenOCD built with the `FixGDBPythonScripts` change to
+`src/rtos/nuttx.c` in `$MEADOW_OPENOCD_DIR`.  Without it (upstream OpenOCD included, as of November 2026)
+OpenOCD reads `g_tcbinfo` with the layout used before NuttX 12, so the registers it reports for tasks that
+are **not running** are wrong and `bt`, `thread N` and IDE call stacks show garbage for those tasks.
+
+`nx_bt <pid>` works with either build: for a task that is not running it loads the context saved in the
+task's TCB into the CPU registers, unwinds, and restores the registers afterwards.
+
 ### Stack traces
 
-Stack traces can be obtained using the `bt` command.
+Stack traces can be obtained using the `bt` command.  Loading `Nuttx.py` registers a frame unwinder for
+`dispatch_syscall`, the assembly trampoline that runs system calls.  Without it a backtrace of a task that
+is inside a system call stops at `dispatch_syscall`; with it the backtrace continues into the user-space
+code that made the call.
+
+`nx_bt` adds the task name, annotations and (for the Mono interpreter) the managed methods being run:
 
 ```
-(gdb) bt
-#0  pthread_cond_timedwait (cond=0x20032e10 <sleep_cond>, mutex=0x20032e04 <sleep_mutex>, abstime=0xc0191380) at pthread/pthread_condtimedwait.c:290
-#1  0x08008a82 in STUB_pthread_cond_timedwait (nbr=0x6c, parm1=0x20032e10, parm2=0x20032e04, parm3=0xc0191380) at stubs/STUB_pthread_cond_timedwait.c:11
-#2  0x08002142 in dispatch_syscall () at armv7-m/up_svcall.c:97
-Backtrace stopped: previous frame identical to this frame (corrupt stack?)
+(gdb) nx_bt 9
+Task hcom_main (pid 9, tcb 0x20054188)
+Not running; unwinding from the context saved in tcb->xcp.regs
+#0   0x08157108 in nxsem_wait_slow () at semaphore/sem_wait.c:259
+#1   0x08167342 in dispatch_syscall () at armv7-m/arm_svcall.c:84 [syscall dispatch]
+#2   0x080e7fe4 in nxsem_wait_slow () at proxies/PROXY_nxsem_wait_slow.c:9
+#3   0x0808b24e in sem_wait () at semaphore/sem_wait.c:92
+#4   0x080dfb54 in hcom_host_enq_deq_wait_for_work () at comms/hcom_host_enq_deq.c:293
+#5   0x080dfb54 in hcom_host_enq_deq_dequeue_packet () at comms/hcom_host_enq_deq.c:244
+#6   0x080dfcec in hcom_host_process_run_loop () at comms/hcom_host_preprocess.c:476
+#7   0x080e03e4 in hcom_host_process_setup () at comms/hcom_host_preprocess.c:199
+#8   0x0808bd56 in hcom_main () at hcom_startup_manager.c:585
+#9   0x08088484 in nxtask_startup () at sched/task_startup.c:72
+#10  0x0815809a in nxtask_start () at task/task_start.c:106
+#11  0x00000000 in ?? ()
 ```
 
-If the stack traces crosses the kernel/user layer or shows sign of
-being incomplete, then it can be useful to use the `nx_bt` command.
-
-```
-(gdb) nx_bt
-#0 0x08017f1c pthread_cond_timedwait () at pthread/pthread_condtimedwait.c:290 
-#1 0x08008a76 STUB_pthread_cond_timedwait () at stubs/STUB_pthread_cond_timedwait.c:11 
-#2 0x0800212c dispatch_syscall () at armv7-m/up_svcall.c:97 
-#3 0x080fb0ac sys_call3 () at /Users/joao/dev/WildernessLabs/Meadow/nuttx/include/arch/armv7-m/syscall.h:156 [syscall]
-#4 0x080fb0c6 pthread_cond_timedwait () at proxies/PROXY_pthread_cond_timedwait.c:12 
-```
-
-It usually can show a little bit more information regarding the calls from
-user space.
+Frames of `mono_interp_exec_method` are followed by the managed methods it is running, read from the
+interpreter's `InterpFrame` chain, for example `[managed] System.Object::GetType`.  This needs the
+interpreter (`--interp`); JIT-compiled code has no symbols and shows as `?? ()`.
 
 ### Mapping from addresses to symbols
 
@@ -211,109 +250,56 @@ If you prefer to disassembly code from an address then use `x/<size>i`:
 
 ## Heap Tracing
 
-The heap tracing facility is implemented in the `Tracing.py` source file.  A number of commands have been added
-to allow for tracing of `malloc` and `free` operations.  Note that due to the nature of the process this will
-increase the run-time of the application significantly.
+Heap tracing is implemented in `Tracing.py`.  It records every `mm_malloc` and `mm_free` call, keeping the
+allocations that have not been freed together with the backtrace of the code that made them.  The target
+stops on every allocation and free, so it runs very slowly while tracing is on.
 
-The general principle of operation is to attach a recording command to two breakpoints, one in `malloc` and one in `free`.
-The commands will record the amount information about the operation and this can be recalled later.
+For each allocation the address returned, the size requested and the heap are recorded.  A free of a
+recorded address removes the allocation; a free of an address that was not recorded is listed separately.
 
-In `malloc` we record:
-* Address returned to the caller
-* Amount of space requested
-* Actual amount of space granted
-* Heap address
+### Starting and stopping a trace
 
-For `free` we do the following:
-* For addresses we have entries for we delete the allocation
-* For unknown addresses we record the address and the heap
-
-### Compile `mm_malloc.c` Without Optimisation
-
-The first step in the process is to recompile `mm_malloc.c` with optimisation level `O0`.  This is achieved by uncommenting
-`#pragama` above the method:
-
-```C
-#pragma GCC optimize("O0")
-FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
+```
+trace_heap_start [user|kernel|all] [max_events]
+continue
 ```
 
-Next up perform a full rebuild of the system as there are currently issues with the libraries, not all of them will be
-built with the new code.
+`trace_heap_start` clears the recorded data and sets two internal breakpoints, on `mm_malloc` and
+`mm_free` (in both the kernel and the user image, so four hardware breakpoints out of eight).  The
+breakpoints record the data and continue automatically.  With `max_events` the target stops once that many
+allocations and frees have been recorded; otherwise interrupt it with Ctrl-C.  `trace_heap_stop` removes
+the breakpoints and keeps the data.  The breakpoints are on function entry, so there is no need to rebuild
+`mm_malloc.c` without optimisation or to edit line numbers when the heap code changes.
 
-Similarly, when turning this off by undoing the change then a full rebuild should be performed.
+`source SetupHeapTracing.src` runs `trace_heap_start` for all heaps.
 
-### Setup Tracing
+To record the heap operations of one piece of code, stop at the start of it, run `trace_heap_start`, set
+a breakpoint at the end of it and continue.  At the end, run `trace_heap_stop` and `show heap_trace`.
 
-The Python classes required to set up tracing are included in the `.gdbinit` file and so the commands should be available
-in the `gdb` session.  The system is enabled by running the commands in the `SetupHeapTracing.src` file by executing the
-`gdb` command:
-
-* `source gdb/SetupHeapTracing.src`
-
-This will setup the two breakpoints and associate the Python commands to the relevant source lines in `malloc` and `free`.
-If this is the first operation performed in the debug session then breakpoints 1 & 2 will be associated with the relevant
-lines of code.
-
-Note that this assumes the current source files and the `SetupHeapTracing.src` file may need editing following any changes
-to these files as the setting of breakpoints is tied to specific lines of code the `mm_malloc.c` and `mm_free.c`
-
-### Starting a Trace
-
-A trace session is started by issuing the command `trace_start`.
-
-This command will clear any variables and set the variable in the Python code that indicates that tracing is active.
-
-### Enabling / Disabling Trace
-
-Tracing can be turned on and off selectively by enabling or disabling the two breakpoints associated with the `malloc` and `free`
-methods.  This can be useful to say enable tracing for a specific portion of a file / operation.  By default, just after executing 
-the command `source SetupHeapTracing.src`, both breakpoints are enabled and so the system will record every allocation once
-the application starts running.
-
-To record heap allocations for a specific operation this process should be followed:
-* Disable the `malloc` breakpoint with the command `disable 1`
-* disable the `free` breakpoint with the command `disable 2`
-* Set a breakpoint at the start of the code you wish to start recording heap operations
-* Set a breakpoint at the code at the end of the section of code of interest
-* Reset the debugger session if necessary with `mon reset halt`
-* Continue execution to the first breakpoint set above
-* Execute the command `trace_start`
-* Turn the two breakpoints on with the command `enable 1` and `enable 2`
-* continue execution to the second breakpoint
-
-You will now have a recording of the heap operations between the two points of interest.
+Allocations made by `mm_memalign` and in-place `mm_realloc` are not seen, so their later frees are listed
+as frees of unknown addresses.
 
 ### Displaying the Heap Tracing Recording
 
-The information recorded can be shown using the command `show heap_trace`.  This will show two types of information:
+The information recorded is shown with the command `show heap_trace`.  This shows two types of information:
 * Memory allocated but not released
 * Memory released but no allocation has been recorded
 
-Unreleased heap allocations will be shown with a partial backtrace, the calls to `malloc` etc will not be shown.
-Doing this shows the backtrace from the main point of interest i.e. the user or OS code.  The output from this section will
-look something like the following:
+Unreleased heap allocations are shown with a partial backtrace; the calls to `malloc` and similar are not
+shown.  This shows the backtrace from the main point of interest i.e. the user or OS code:
 
 ```
-Memory allocation 0x2007c360, requested 136, allocated 144 from user heap
-    #2 0x08142de8 hcom_nx_config_read_file () at hcom_nx/hcom_nx_config_manager.c:1259
-    #3 0x00000000 hcom_nx_config_init () at hcom_nx/hcom_nx_config_manager.c:2147
-    #4 0x0814213e hcom_nx_setup_mgr () at hcom_nx/hcom_nx_startup_mgr.c:103
-    #5 0x081411fe board_late_initialize () at stm32_boot.c:390
-    #6 0x08155fde nx_start_task () at init/nx_bringup.c:253
-    #7 0x08156ffa nxtask_start () at task/task_start.c:145
-Memory allocation 0x2007c3f0, requested 16, allocated 32 from user heap
-    #2 0x08142f6a hcom_nx_process_network_section () at hcom_nx/hcom_nx_config_manager.c:1157
-    #3 0x00000000 hcom_nx_config_read_file () at hcom_nx/hcom_nx_config_manager.c:1304
-    #4 0x00000000 hcom_nx_config_init () at hcom_nx/hcom_nx_config_manager.c:2147
-    #5 0x0814213e hcom_nx_setup_mgr () at hcom_nx/hcom_nx_startup_mgr.c:103
-    #6 0x081411fe board_late_initialize () at stm32_boot.c:390
-    #7 0x08155fde nx_start_task () at init/nx_bringup.c:253
-    #8 0x08156ffa nxtask_start () at task/task_start.c:145
+Memory allocation 0xc0b0dee0, requested 36 from user heap
+    #2   0x08186802 in meadow_os_deep_copy_config () at F7MeadowOSLink/meadow_os/meadow_os_config.c:175
+    #3   0x08167342 in dispatch_syscall () at armv7-m/arm_svcall.c:84 [syscall dispatch]
+    #4   0x080e7e82 in meadow_os_deep_copy_config () at proxies/PROXY_meadow_os_deep_copy_config.c:11
+    #5   0x0808d61a in hcom_misc_rqst_get_device_info () at nx_rqsts/hcom_misc_requests.c:100
+    #6   0x080e0b2e in hcom_host_route_request_by_cmd_type () at comms/hcom_host_route.c:208
 ```
 
 The release of unknown addresses can occur as a result of:
-* Memory operations in other threads
+* Memory allocated before the trace started
+* Allocations that are not seen (see above)
 * Application errors
 
 Free operations from unknown (unrecorded) addresses are shown as follows:
@@ -324,7 +310,15 @@ Free from unknown addresses:
     Address: 0x2007fcd0 on user heap
 ```
 
-It is possible that the output from the heap tracing operation can be extensive.  It may be desirable to send the data to a log file (see below).
+It is possible that the output from the heap tracing operation can be extensive.  It may be desirable to
+send the data to a log file (see below).
+
+### Backtrace tracing
+
+`trace_start` clears the recorded data and enables tracing, `trace_add_backtrace` (for use in a
+breakpoint's command list) records the backtrace of the current thread, and `show trace_data` prints the
+recorded backtraces.
+
 ## Recording Session to a Log File
 
 `GDB` sessions can be recorded to a log file and this presents a useful way of capturing sessions or large amounts of output

@@ -12,14 +12,15 @@ set remote hardware-watchpoint-limit 4
 set confirm off
 
 define load-nuttx-symbols
-  file ../nuttx/nuttx.elf
-  add-symbol-file -readnow ../nuttx/nuttx.elf
+  file -readnow ../nuttx/nuttx.elf
   #
-  # The following loads the bootloader symbols for debugging but is commented out for general use
-  # as it adds over 45 seconds to the debugger startup.
+  # The bootloader and user symbols are loaded only when the files exist.  The bootloader ELF
+  # is built locally (it is not in the repository) and can add over 45 seconds to the debugger
+  # startup; delete or rename it to skip it.  An add-symbol-file for a missing file would stop
+  # the rest of this file from running.
   #
-  add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf
-  shell if test -f ../nuttx/nuttx_user.elf; then echo add-symbol-file -readnow ../nuttx/nuttx_user.elf; fi > /tmp/meadow_gdb
+  shell if test -f ../bootloader/Debug/Meadow.BL.elf; then echo add-symbol-file -readnow ../bootloader/Debug/Meadow.BL.elf; fi > /tmp/meadow_gdb
+  shell if test -f ../nuttx/nuttx_user.elf; then echo add-symbol-file -readnow ../nuttx/nuttx_user.elf; fi >> /tmp/meadow_gdb
   source /tmp/meadow_gdb
 end
 
@@ -43,10 +44,11 @@ define load-tf-symbols
 end
 
 #
-# Print the contents of the variable holding the RAMLOG (syslog).
+# Print the contents of the RAMLOG (syslog) buffer.  The buffer starts with a header and wraps,
+# so it is decoded by nx_dmesg in Nuttx.py.
 #
 define dmesg
-  printf "%s", g_sysbuffer
+  nx_dmesg
 end
 
 #
@@ -91,18 +93,17 @@ target extended-remote :4242
 mon gdb breakpoint_override hard
 #reset-qemu
 
-# monitor nuttx.pid_offset 12
-# monitor nuttx.xcpreg_offset 332
-# monitor nuttx.state_offset 26
-# monitor nuttx.name_offset 540
-# monitor nuttx.name_size 64
-monitor nuttx.g_tasklisttable_size 72
-
-eval "monitor nuttx.pid_offset %d", &((struct tcb_s *)(0))->pid
-eval "monitor nuttx.xcpreg_offset %d", &((struct tcb_s *)(0))->xcp.regs
-eval "monitor nuttx.state_offset %d", &((struct tcb_s *)(0))->task_state
-eval "monitor nuttx.name_offset %d", &((struct tcb_s *)(0))->name
-eval "monitor nuttx.name_size %d", sizeof(((struct tcb_s *)(0))->name)
+#
+# OpenOCD's NuttX awareness reads the TCB offsets from g_tcbinfo in the firmware, so there are no
+# monitor nuttx.* offset commands to send (the OpenOCD in use rejects them, and the error stopped
+# the rest of this file from running).
+#
+# Note: OpenOCD builds without the FixGDBPythonScripts change to src/rtos/nuttx.c (upstream
+# OpenOCD included, as of November 2026) read g_tcbinfo with the layout used before NuttX 12, so the
+# registers they report for threads that are not running are wrong (bt, "thread N" and IDE call
+# stacks for those threads show garbage).  nx_bt <pid> works with any build; it unwinds from the
+# context saved in the TCB.
+#
 
 #
 # Useful breakpoints for catching common reset scenarios.

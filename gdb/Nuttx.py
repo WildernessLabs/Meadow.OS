@@ -1,384 +1,932 @@
+#
+#   GDB helpers for Meadow.OS (NuttX 12, armv7-m, protected build).
+#
+#   Commands:
+#
+#       nx_bt [full]            Backtrace of the selected thread, annotated with
+#                               exception, SVC and syscall information and with
+#                               interpreted (Mono) frames expanded.
+#       nx_dumpregs <addr>      Decode a NuttX register save area (for example
+#                               tcb->xcp.regs or the context argument of
+#                               arm_svcall / arm_doirq).
+#       nx_dumpregs_hw <addr>   Decode a hardware exception frame (r0-r3, r12,
+#                               lr, pc, xpsr) stacked at <addr>.
+#       nx_saveregs             Save the CPU registers.
+#       nx_restoreregs          Restore the registers saved by nx_saveregs.
+#
+#   Loading this file also registers a frame unwinder for dispatch_syscall.
+#   dispatch_syscall is a naked assembly trampoline without unwind
+#   information, so without the unwinder GDB stops the backtrace there and
+#   never reaches the user-space caller of a system call.  With it the plain
+#   GDB "bt" (and IDE call stacks) cross from the kernel back into user space.
+#
+#   The helpers in this file (nx_*) are also used by Nuttx_Tasks.py and
+#   Tracing.py, so source this file first.
+#
 import gdb
-import binascii
-import struct
+
+try:
+    from gdb.unwinder import Unwinder, register_unwinder
+    try:
+        from gdb.unwinder import FrameId
+    except ImportError:
+        class FrameId(object):
+            def __init__(self, sp, pc):
+                self.sp = sp
+                self.pc = pc
+except ImportError:
+    Unwinder = None
 
 verbose = False
 is_qemu = False
-is_protected_build = True
 
-# This receives a base stack pointer and reads the register
-# values saved in memory by the ARM processor and NuttX.
-# See arch/arm/src/armv7-m/gnu/up_lazyexception.S for details.
+#
+#   Registers in the order used by g_reg_offs (arch/arm/src/armv7-m/arm_tcbinfo.c),
+#   which is also the order of the GDB org.gnu.gdb.arm.m-profile feature.
+#
+NX_CORE_REGS = ["r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9",
+                "r10", "r11", "r12", "sp", "lr", "pc", "xpsr"]
 
-class NuttxRegContext():
-    def __init__(self, stack_top, skip_fpu = False):
-        self.stack_top = stack_top
+#
+#   Number of syscall values reserved for the architecture before the first
+#   NuttX syscall (arch/arm/include/syscall.h, non-flat builds).
+#
+NX_SYS_RESERVED = 8
 
-        self.all_regs = [ "r0","r1","r2","r3","r4","r5","r6", "r7","r8","r9",
-            "r10","r11","r12", "sp","lr","pc","xpsr" ]
-            # ,"msp","psp","control","faultmask","basepri","primask","fpscr"
+#
+#   Register save area details not covered by g_reg_offs
+#   (arch/arm/include/armv7-m/irq.h and exc_return.h).
+#
+NX_REG_EXC_RETURN = 11
+EXC_RETURN_STD_CONTEXT = 0x10
+NX_HW_FRAME_STANDARD = 8 * 4
+NX_HW_FRAME_EXTENDED = (8 + 18) * 4
 
-        self.sw_regs = ["r2","r3","r4","r5","r6","r7","r8","r9","r10","r11","r14"]        
-        self.sw_regs_base = self.stack_top + len(self.sw_regs) * 4
+NX_SVCALL_NAMES = {
+    0: "SYS_syscall",
+    1: "SYS_restore_context",
+    2: "SYS_switch_context",
+    3: "SYS_syscall_return",
+    4: "SYS_task_start",
+    5: "SYS_pthread_start",
+    6: "SYS_signal_handler",
+    7: "SYS_signal_handler_return",
+}
 
-        self.fpu_regs = [None] * 33
-        if skip_fpu == True:
-            self.fpu_regs_base = self.sw_regs_base
+NX_EXCEPTION_NAMES = {
+    0: "thread mode",
+    1: "reset",
+    2: "NMI",
+    3: "HardFault",
+    4: "MemManage",
+    5: "BusFault",
+    6: "UsageFault",
+    11: "SVCall",
+    12: "DebugMonitor",
+    14: "PendSV",
+    15: "SysTick",
+}
+
+###########################################################################
+#
+#   Memory and symbol helpers.
+#
+###########################################################################
+
+def nx_read_u32(address):
+    '''Read a little endian 32-bit word from target memory.'''
+    memory = gdb.selected_inferior().read_memory(int(address), 4)
+    return int.from_bytes(bytes(memory), "little")
+
+def nx_symbol_value(name):
+    '''
+    Value of a global or file-static variable, or None.
+
+    Unlike parse_and_eval this does not need the selected frame, so it can be used
+    inside a frame unwinder.
+    '''
+    symbol = gdb.lookup_global_symbol(name)
+    if symbol is None:
+        symbol = gdb.lookup_static_symbol(name)
+    if symbol is None:
+        return None
+    return symbol.value()
+
+def nx_eval(expression):
+    '''Evaluate an expression, returning None if it cannot be evaluated.'''
+    try:
+        return gdb.parse_and_eval(expression)
+    except gdb.error:
+        return None
+
+def nx_symbol_name(address):
+    '''Name of the symbol containing address, or None.'''
+    try:
+        block = gdb.block_for_pc(int(address))
+    except RuntimeError:
+        block = None
+    while (block is not None) and (block.function is None):
+        block = block.superblock
+    if block is not None:
+        return block.function.print_name
+    text = gdb.execute("info symbol 0x%x" % int(address), to_string=True)
+    if text.startswith("No symbol"):
+        return None
+    return text.split(" in section")[0].split(" + ")[0].strip()
+
+def nx_exception_name(ipsr):
+    '''Printable name for an exception number (xPSR bits 0-8).'''
+    if ipsr in NX_EXCEPTION_NAMES:
+        return NX_EXCEPTION_NAMES[ipsr]
+    if ipsr >= 16:
+        return "IRQ %d" % (ipsr - 16)
+    return "reserved exception %d" % ipsr
+
+###########################################################################
+#
+#   Task control blocks.
+#
+###########################################################################
+
+def nx_tcb_pointer_type():
+    return gdb.lookup_type("struct tcb_s").pointer()
+
+def nx_tcbs():
+    '''List of all TCB pointers (gdb.Value) in g_pidhash.'''
+    pidhash = nx_symbol_value("g_pidhash")
+    count = int(nx_symbol_value("g_npidhash"))
+    result = []
+    if int(pidhash) == 0:
+        return result
+    for index in range(count):
+        tcb = pidhash[index]
+        if int(tcb) != 0:
+            result.append(tcb)
+    return result
+
+def nx_readytorun_tcb():
+    '''Head of g_readytorun: the task the scheduler has selected to run.'''
+    head = nx_symbol_value("g_readytorun")["head"]
+    return head.cast(nx_tcb_pointer_type())
+
+def nx_running_tcb():
+    '''
+    TCB of the task whose context is in the CPU registers.
+
+    This is g_running_tasks[0].  It differs from the head of g_readytorun while an
+    exception that switches tasks is being handled: the scheduler has already
+    selected the next task, but the CPU still holds the interrupted one.
+    '''
+    running = nx_symbol_value("g_running_tasks")
+    if running is not None:
+        tcb = running[0]
+        if int(tcb) != 0:
+            return tcb
+    return nx_readytorun_tcb()
+
+def nx_tcb_for_thread(thread=None):
+    '''
+    TCB for a GDB thread.
+
+    OpenOCD's NuttX awareness uses the TCB address as the thread id, and gives the
+    CPU registers to the thread at the head of g_readytorun; for that thread the
+    task actually on the CPU is returned.  When there is no thread list (no RTOS
+    awareness, QEMU) the task on the CPU is used.
+    '''
+    if (thread is None) and (_nx_context_tcb is not None):
+        return _nx_context_tcb
+    if thread is None:
+        thread = gdb.selected_thread()
+    if thread is not None:
+        candidates = [value for value in thread.ptid[1:] if value]
+        for tcb in nx_tcbs():
+            if int(tcb) in candidates:
+                if int(tcb) == int(nx_readytorun_tcb()):
+                    return nx_running_tcb()
+                return tcb
+    return nx_running_tcb()
+
+def nx_tcb_for_pid(pid):
+    '''TCB for a PID, or None.'''
+    for tcb in nx_tcbs():
+        if int(tcb.dereference()["pid"]) == pid:
+            return tcb
+    return None
+
+def nx_gdb_thread_for_tcb(tcb):
+    '''The GDB thread whose id is the TCB address, or None.'''
+    for thread in gdb.selected_inferior().threads():
+        if int(tcb) in thread.ptid[1:]:
+            return thread
+    return None
+
+#
+#   TCB whose saved context is currently loaded into the CPU registers by
+#   nx_with_task_context, or None.
+#
+_nx_context_tcb = None
+
+def nx_with_task_context(tcb, function):
+    '''
+    Call function() with the CPU registers holding the saved context of a task.
+
+    OpenOCD's NuttX awareness cannot always be relied on for the registers of tasks
+    that are not running (builds without the FixGDBPythonScripts fix read g_tcbinfo
+    with the pre-NuttX 12 layout), so the context is taken from tcb->xcp.regs.  The registers
+    of the running thread are overwritten while function runs and are always
+    restored afterwards.  For the running task function is called directly.
+    '''
+    global _nx_context_tcb
+    running = nx_running_tcb()
+    original_thread = gdb.selected_thread()
+    #
+    #   OpenOCD gives the CPU registers to the thread of the g_readytorun head.
+    #
+    running_thread = nx_gdb_thread_for_tcb(nx_readytorun_tcb())
+    if int(tcb) == int(running):
+        if running_thread is not None:
+            running_thread.switch()
+        try:
+            return function()
+        finally:
+            if original_thread is not None:
+                original_thread.switch()
+    regs = int(tcb.dereference()["xcp"]["regs"])
+    if regs == 0:
+        raise gdb.GdbError("Task %d has no saved register context." % int(tcb.dereference()["pid"]))
+    saved = nx_read_saved_regs(regs)
+    if running_thread is not None:
+        running_thread.switch()
+    gdb.newest_frame().select()
+    names = [name for name in NX_CORE_REGS if name != "xpsr"]
+    original = {}
+    for name in names:
+        original[name] = int(gdb.newest_frame().read_register(name))
+    #
+    #   Set the TCB before writing the registers: GDB unwinds while the registers
+    #   are being written and the dispatch_syscall unwinder must already see the
+    #   syscall records of this task.
+    #
+    _nx_context_tcb = tcb
+    try:
+        for name in names:
+            gdb.execute("set $%s = %d" % (name, saved[name]), to_string=True)
+        return function()
+    finally:
+        _nx_context_tcb = None
+        gdb.newest_frame().select()
+        for name in names:
+            gdb.execute("set $%s = %d" % (name, original[name]), to_string=True)
+        if original_thread is not None:
+            original_thread.switch()
+
+def nx_in_exception():
+    '''Exception number from IPSR when the CPU halted in handler mode, otherwise 0.'''
+    try:
+        return int(gdb.newest_frame().read_register("xpsr")) & 0x1ff
+    except (gdb.error, ValueError):
+        return 0
+
+###########################################################################
+#
+#   Register save areas.
+#
+###########################################################################
+
+def nx_reg_offsets():
+    '''
+    Byte offsets of r0-r12, sp, lr, pc and xpsr in a NuttX register save area.
+
+    The offsets are read from g_reg_offs so that they follow the NuttX build.  If
+    the symbol is not available the armv7-m layout with the FPU enabled is used
+    (see arch/arm/include/armv7-m/irq.h).
+    '''
+    offsets = nx_symbol_value("g_reg_offs")
+    if offsets is not None:
+        return dict((name, int(offsets[index])) for index, name in enumerate(NX_CORE_REGS))
+    sw_xcpt_regs = 12 + 16
+    index = {"sp": 0, "r4": 2, "r5": 3, "r6": 4, "r7": 5, "r8": 6, "r9": 7,
+             "r10": 8, "r11": 9, "r0": sw_xcpt_regs + 0, "r1": sw_xcpt_regs + 1,
+             "r2": sw_xcpt_regs + 2, "r3": sw_xcpt_regs + 3, "r12": sw_xcpt_regs + 4,
+             "lr": sw_xcpt_regs + 5, "pc": sw_xcpt_regs + 6, "xpsr": sw_xcpt_regs + 7}
+    return dict((name, value * 4) for name, value in index.items())
+
+def nx_read_saved_regs(regs_address):
+    '''
+    Read the core registers from a NuttX register save area.
+
+    The saved SP is the value before the hardware stacked the exception frame,
+    ignoring the alignment word the hardware adds when xPSR bit 9 is set; this is
+    corrected here in the same way as OpenOCD does.
+    '''
+    regs_address = int(regs_address)
+    offsets = nx_reg_offsets()
+    values = {}
+    for name, offset in offsets.items():
+        values[name] = nx_read_u32(regs_address + offset)
+    #
+    #   exception_common stores the SP assuming an extended (FPU) hardware frame.
+    #   When EXC_RETURN shows a standard frame, compute the SP from the frame size.
+    #
+    exc_return = nx_read_u32(regs_address + NX_REG_EXC_RETURN * 4)
+    if (exc_return & 0xffffff00) == 0xffffff00:
+        hardware_frame = regs_address + offsets["r0"]
+        if exc_return & EXC_RETURN_STD_CONTEXT:
+            values["sp"] = hardware_frame + NX_HW_FRAME_STANDARD
         else:
-            self.fpu_regs_base = self.sw_regs_base + len(self.fpu_regs) * 4
+            values["sp"] = hardware_frame + NX_HW_FRAME_EXTENDED
+    if values["xpsr"] & (1 << 9):
+        values["sp"] += 4
+    return values
 
-        self.hw_regs = ["r0","r1","r2","r3","r12","lr","pc","xpsr"]
-        self.hw_regs_base = self.fpu_regs_base + len(self.hw_regs) * 4
+def nx_print_regs(values, names):
+    for name in names:
+        if name in values:
+            print("%-6s 0x%08x" % (name, values[name]))
 
-    def debug_registers(self):
-        print("stack_top %s sw_regs_base %s fpu_regs_base %s hw_regs_base %s" 
-            % (self.stack_top, self.sw_regs_base, self.fpu_regs_base,
-                self.hw_regs_base))
+###########################################################################
+#
+#   dispatch_syscall unwinder.
+#
+###########################################################################
 
-    def read_registers(self):
-        sw_regs_values = [self.read_sw_register(reg)[0] for reg in self.sw_regs]
-        sw_regs = dict(list(zip(self.sw_regs, sw_regs_values)))
+class NuttxSyscallLayout(object):
+    '''
+    Instruction addresses inside dispatch_syscall that change how its frame is read.
 
-        hw_regs_values = [self.read_hw_register(reg)[0] for reg in self.hw_regs]
-        hw_regs = dict(list(zip(self.hw_regs, hw_regs_values)))
+    dispatch_syscall (arch/arm/src/armv7-m/arm_svcall.c) builds a frame holding r4-r6,
+    the LR of the code that issued the SVC and (orig_SP - new_SP), calls the stub and
+    then removes the frame again.
+    '''
 
-        regs = dict(list(sw_regs.items()) + list(hw_regs.items()))
-        return regs
+    def __init__(self, architecture):
+        self.start = None
+        self.end = None
+        self.after_sub_sp = None
+        self.after_str_ip = None
+        self.add_sp = None
+        symbol = gdb.lookup_static_symbol("dispatch_syscall")
+        if symbol is None:
+            symbol = gdb.lookup_global_symbol("dispatch_syscall")
+        if symbol is None:
+            return
+        block = gdb.block_for_pc(int(symbol.value().address))
+        self.start = block.start
+        self.end = block.end
+        previous = None
+        for instruction in architecture.disassemble(self.start, self.end - 1):
+            text = self.normalise(instruction["asm"])
+            address = instruction["addr"]
+            if previous is not None:
+                if previous == "sub sp, sp, r12":
+                    self.after_sub_sp = address
+                if previous == "str r12, [sp, #16]":
+                    self.after_str_ip = address
+            if text in ("add sp, r2", "add sp, sp, r2"):
+                self.add_sp = address
+            previous = text
 
-    def dump_hw_registers(self):
-        values = [self.read_hw_register(reg)[0] for reg in self.hw_regs]
-        regs = dict(list(zip(self.hw_regs, values)))
-        for reg in self.hw_regs:
-            key = "r14" if reg == "sp" else reg
-            print("%s\t\t0x%s" % (reg, regs[key]))
+    @staticmethod
+    def normalise(text):
+        '''
+        Disassembly text with comments, width suffixes and the ip alias removed, so
+        that "sub.w sp, sp, ip" and "sub sp, sp, r12" compare equal.
+        '''
+        text = text.split("@")[0].split(";")[0]
+        words = text.split()
+        if not words:
+            return ""
+        mnemonic = words[0].split(".")[0]
+        operands = " ".join(words[1:]).replace("ip", "r12")
+        return ("%s %s" % (mnemonic, operands)).strip()
 
-    def dump_sw_registers(self):
-        values = [self.read_sw_register(reg)[0] for reg in self.sw_regs]
-        regs = dict(list(zip(self.sw_regs, values)))
-        for reg in self.sw_regs:
-            key = "r14" if reg == "sp" else reg
-            print("%s\t\t0x%s" % (reg, regs[key]))
+    def valid(self):
+        return None not in (self.start, self.after_sub_sp, self.after_str_ip, self.add_sp)
 
-    def dump_registers(self):
-        regs = self.read_registers()
-        for reg in self.all_regs:
-            key = "r14" if reg == "sp" else reg
-            print("%s\t\t0x%s" % (reg, regs[key]))
+    def contains(self, pc):
+        return (self.start is not None) and (self.start <= pc < self.end)
 
-    def read_hw_register(self, reg, base = 0):
-        if base == 0:
-            base = self.hw_regs_base
-        i = self.hw_regs.index(reg)
-        return read_memory_word_offset(base, len(self.hw_regs) - i)
+_nx_syscall_layout = None
 
-    def read_sw_register(self, reg):
-        i = self.sw_regs.index(reg)
-        return read_memory_word_offset(self.sw_regs_base, len(self.sw_regs) - i)
+def nx_syscall_layout(architecture=None):
+    '''
+    Layout of dispatch_syscall.  The first call must pass an architecture; inside an
+    unwinder use the pending frame's, as newest_frame() cannot be used there.
+    '''
+    global _nx_syscall_layout
+    if _nx_syscall_layout is None:
+        if architecture is None:
+            architecture = gdb.newest_frame().architecture()
+        _nx_syscall_layout = NuttxSyscallLayout(architecture)
+    return _nx_syscall_layout
 
-# This keeps a saved copy of the ARM processor registers state.
-class ARMRegContext():
-    def __init__(self, frame):
-        self.frame = frame
-        self.openocd_regs = [ "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8",
-                      "r9", "r10", "r11", "r12", "sp", "lr", "pc", "xPSR",
-                      "msp", "psp", "control", "faultmask", "basepri",
-                      "primask", "fpscr" ]
-        self.qemu_regs = [ "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8",
-                      "r9", "r10", "r11", "r12", "sp", "lr", "pc", "cpsr",
-                      "fpscr", "fpsid", "fpexc" ]
-        self.regs = self.qemu_regs if is_qemu else self.openocd_regs
-        self.values = [None] * len(self.regs)
+def nx_syscall_caller(pc, sp, lr, ip, tcb, depth):
+    '''
+    Registers of the code that issued a system call, given the registers of a frame
+    executing dispatch_syscall.
 
-    # Saves the current values of the registers.
-    def save_registers(self):
-        for i,reg in enumerate(self.regs):
-            value = int(self.frame.read_register(reg))
-            self.values[i] = value
+    depth is the number of dispatch_syscall frames newer than this one (nested
+    system calls).  Returns (pc, sp, lr) or None.
+    '''
+    layout = nx_syscall_layout()
+    if not layout.valid():
+        return None
+    if (pc < layout.after_sub_sp) or (pc > layout.add_sp):
+        caller_sp = sp
+        caller_lr = lr
+    elif pc < layout.after_str_ip:
+        caller_sp = sp + ip
+        caller_lr = lr
+    else:
+        caller_sp = sp + nx_read_u32(sp + 16)
+        caller_lr = nx_read_u32(sp + 12)
+    xcp = tcb.dereference()["xcp"]
+    index = int(xcp["nsyscalls"]) - 1 - depth
+    if index < 0:
+        return None
+    caller_pc = int(xcp["syscall"][index]["sysreturn"])
+    return (caller_pc, caller_sp, caller_lr)
 
-    # Restores the previously saved values of the registers.
-    def restore_registers(self):
-        for i,reg in enumerate(self.regs):
-            cmd = "$%s = %s" % (reg, self.values[i])
-            gdb.parse_and_eval("$%s = %s" % (reg, self.values[i]))
+class NuttxExceptionLayout(object):
+    '''
+    Return address of the call to arm_doirq in exception_common
+    (arch/arm/src/armv7-m/arm_exception.S).
 
-    def dump_registers(self):
-        for i,reg in enumerate(self.regs):
-            print("%s: %s" % (reg, self.values[i]))
+    exception_common saves the interrupted context and passes a pointer to it to
+    arm_doirq, keeping a copy in r11 (fp) across the call.  Its CFI names r4 as the
+    frame base instead, so GDB's own unwinder cannot get past it.
+    '''
 
-class NuttxAndMonoBacktrace():
+    def __init__(self, architecture):
+        self.start = None
+        self.end = None
+        self.after_call = None
+        symbol = gdb.lookup_global_symbol("exception_common")
+        if symbol is None:
+            symbol = gdb.lookup_static_symbol("exception_common")
+        if symbol is None:
+            return
+        address = int(symbol.value().address)
+        block = gdb.block_for_pc(address)
+        if (block is not None) and (block.start == address):
+            self.start = block.start
+            self.end = block.end
+        else:
+            self.start = address
+            self.end = address + 0x100
+        previous = None
+        for instruction in architecture.disassemble(self.start, self.end - 1):
+            if (previous is not None) and previous.startswith("bl ") and ("arm_doirq" in previous):
+                self.after_call = instruction["addr"]
+                break
+            previous = NuttxSyscallLayout.normalise(instruction["asm"])
+
+    def valid(self):
+        return self.after_call is not None
+
+_nx_exception_layout = None
+
+def nx_exception_layout(architecture):
+    global _nx_exception_layout
+    if _nx_exception_layout is None:
+        _nx_exception_layout = NuttxExceptionLayout(architecture)
+    return _nx_exception_layout
+
+if Unwinder is not None:
+    class NuttxUnwinder(Unwinder):
+        '''
+        Unwind the NuttX assembly frames that GDB cannot unwind by itself:
+
+        - dispatch_syscall, back to the code that issued the system call;
+        - exception_common, back to the code the exception interrupted.
+        '''
+
+        def __init__(self):
+            super(NuttxUnwinder, self).__init__("nuttx")
+            self._depths = {}
+
+        def invalidate(self, *args):
+            self._depths = {}
+
+        def __call__(self, pending_frame):
+            #
+            #   GDB always unwinds from frame 0 after the frame cache is flushed
+            #   (stop, register write, thread switch), so a frame 0 starts a new
+            #   chain.  Breakpoints that continue automatically do not raise a
+            #   stop event, so the events alone are not enough.
+            #
+            if pending_frame.level() == 0:
+                self._depths = {}
+            try:
+                pc = int(pending_frame.read_register("pc"))
+                architecture = pending_frame.architecture()
+                if nx_syscall_layout(architecture).contains(pc):
+                    return self.unwind_syscall(pending_frame, pc)
+                exception = nx_exception_layout(architecture)
+                if exception.valid() and (pc == exception.after_call):
+                    return self.unwind_exception(pending_frame, exception)
+            except (gdb.error, gdb.MemoryError, RuntimeError, ValueError) as e:
+                if verbose:
+                    print("nuttx unwinder: %s" % e)
+            return None
+
+        def unwind_syscall(self, pending_frame, pc):
+            layout = nx_syscall_layout()
+            sp = int(pending_frame.read_register("sp"))
+            lr = int(pending_frame.read_register("lr"))
+            ip = int(pending_frame.read_register("r12"))
+            tcb = nx_tcb_for_thread()
+            level = pending_frame.level()
+            key = int(tcb)
+            newer = [l for l in self._depths.get(key, {}) if l < level]
+            depth = len(newer)
+            caller = nx_syscall_caller(pc, sp, lr, ip, tcb, depth)
+            if caller is None:
+                return None
+            self._depths.setdefault(key, {})[level] = depth
+            caller_pc, caller_sp, caller_lr = caller
+            #
+            #   dispatch_syscall does not change the other registers that matter
+            #   to the caller (r4-r11 are only copied to the stack), so they are
+            #   passed through.
+            #
+            return self.unwind_info(pending_frame, layout.start,
+                                    {"pc": caller_pc, "sp": caller_sp, "lr": caller_lr})
+
+        def unwind_exception(self, pending_frame, layout):
+            regs = int(pending_frame.read_register("r11"))
+            if regs == 0:
+                return None
+            saved = nx_read_saved_regs(regs)
+            return self.unwind_info(pending_frame, layout.start, saved)
+
+        def unwind_info(self, pending_frame, function_start, values):
+            '''
+            Unwind information giving the caller the registers in values; the other
+            general registers keep their value.  GDB needs xpsr (Thumb state) and
+            consistent stack pointer aliases (msp/psp) to carry on unwinding.
+            '''
+            sp = int(pending_frame.read_register("sp"))
+            values = dict(values)
+            for alias in ("msp", "psp"):
+                try:
+                    if int(pending_frame.read_register(alias)) == sp:
+                        values[alias] = values["sp"]
+                except (gdb.error, ValueError):
+                    pass
+            info = pending_frame.create_unwind_info(FrameId(values["sp"], function_start))
+            for register in pending_frame.architecture().registers("general"):
+                try:
+                    current = pending_frame.read_register(register)
+                    if register.name in values:
+                        current = gdb.Value(values[register.name] & 0xffffffff).cast(current.type)
+                    info.add_saved_register(register, current)
+                except (gdb.error, ValueError):
+                    pass
+            return info
+
+    _nx_unwinder = NuttxUnwinder()
+    register_unwinder(None, _nx_unwinder, replace=True)
+    for _event in ("stop", "cont", "memory_changed", "register_changed", "new_objfile"):
+        if hasattr(gdb.events, _event):
+            getattr(gdb.events, _event).connect(_nx_unwinder.invalidate)
+
+###########################################################################
+#
+#   Mono interpreter frames.
+#
+###########################################################################
+
+MONO_INTERP_FUNCTIONS = ("mono_interp_exec_method", "interp_exec_method_full")
+
+def nx_mono_method_name(method):
+    '''Namespace.Class::Method for a MonoMethod pointer, read without calling into the target.'''
+    method = method.dereference()
+    name = method["name"].string()
+    klass = method["klass"]
+    if int(klass) == 0:
+        return name
+    klass = klass.dereference()
+    class_name = klass["name"].string()
+    name_space = klass["name_space"].string()
+    if name_space:
+        class_name = name_space + "." + class_name
+    return "%s::%s" % (class_name, name)
+
+def nx_mono_current_interp_frame(frame):
+    '''Value of the "frame" variable (InterpFrame *) in an interpreter frame, or None.'''
+    try:
+        value = frame.read_var("frame")
+    except (ValueError, gdb.error):
+        return None
+    if value.is_optimized_out:
+        return None
+    return value
+
+###########################################################################
+#
+#   Backtrace.
+#
+###########################################################################
+
+class NuttxAndMonoBacktrace(object):
+    '''Backtrace of the selected thread as a list of strings.'''
+
     def __init__(self):
         self._backtrace = []
 
-    def backtrace(self, include_managed_code):
-        try:
-            self._backtrace = []
-            # Save a copy of the current CPU context.
-            self.ctx = ARMRegContext(gdb.newest_frame())
-            self.ctx.save_registers()
-
-            frame = gdb.selected_frame()
-
-            i = 0
-            while frame != None:
-                if frame.pc() == 0:
-                    break
-
-                annotations = self.annotate_frame(frame)
-
-                if frame.name() == "interp_exec_method_full":
-                    if include_managed_code:
-                        s = self.managed_frame(frame, i, annotations)
-                        self._backtrace.append(s)
-                else:
-                    s = self.frame(frame, i, annotations)
-                    self._backtrace.append(s)
-
-                self.handle_frame(frame)
-                i = i + 1
-
-                # This can happen when we switch CPU context.
-                if not frame.is_valid():
-                    frame = gdb.selected_frame()
-                else:
-                    frame = frame.older()
-        finally:
-            self.ctx.restore_registers()
+    def backtrace(self, include_managed_code, limit=200):
+        self._backtrace = []
+        frames = []
+        frame = gdb.newest_frame()
+        while (frame is not None) and (len(frames) < limit):
+            frames.append(frame)
+            try:
+                frame = frame.older()
+            except gdb.error as e:
+                self._backtrace.append("Backtrace stopped: %s" % e)
+                frame = None
+        interp_frames = [nx_mono_current_interp_frame(f) if f.name() in MONO_INTERP_FUNCTIONS else None
+                         for f in frames]
+        number = 0
+        for index, frame in enumerate(frames):
+            self._backtrace.append(self.format_frame(frame, number, self.annotate_frame(frame)))
+            number += 1
+            if include_managed_code and (frame.name() in MONO_INTERP_FUNCTIONS):
+                stop_at = None
+                for outer in interp_frames[index + 1:]:
+                    if outer is not None:
+                        stop_at = int(outer)
+                        break
+                for line in self.managed_frames(interp_frames[index], stop_at):
+                    self._backtrace.append("    %s" % line)
+        if (frame is not None) and (len(frames) >= limit):
+            self._backtrace.append("(more stack frames follow...)")
         return self._backtrace
 
-    def get_managed_frame_name(self, frame):
-        frame_var_addr = int(frame.read_var("frame"))
-        method_expr = "((struct _InterpFrame*) 0x%s).imethod->method" % format_hex(frame_var_addr)
-        managed = gdb.parse_and_eval("mono_method_full_name(%s, 1)" % method_expr)
-        managed = str(managed).translate(None, '"')
-        return managed
+    def managed_frames(self, interp_frame, stop_at):
+        if interp_frame is None:
+            return ["[managed frames unavailable: 'frame' is optimized out]"]
+        lines = []
+        count = 0
+        try:
+            while (int(interp_frame) != 0) and (int(interp_frame) != stop_at) and (count < 100):
+                imethod = interp_frame.dereference()["imethod"]
+                if int(imethod) != 0:
+                    name = nx_mono_method_name(imethod.dereference()["method"])
+                else:
+                    name = "<unknown method>"
+                lines.append("[managed] %s (InterpFrame 0x%08x)" % (name, int(interp_frame)))
+                interp_frame = interp_frame.dereference()["parent"]
+                count += 1
+        except (gdb.error, gdb.MemoryError) as e:
+            lines.append("[managed frames stopped: %s]" % e)
+        return lines
 
-    def managed_frame(self, frame, i, annotations):
+    def format_frame(self, frame, number, annotation):
+        pc = frame.pc()
+        name = frame.name()
+        if name is None:
+            name = "??"
         sal = frame.find_sal()
-        result = "#%s %s [%s]" % (i, self.get_managed_frame_name(frame), annotations)
-        return(result)
-
-    def frame(self, frame, i, annotations):
-        annotations_text = ""
-        if annotations != None:
-            annotations_text = "[%s]" % (annotations)
-
-        sal = frame.find_sal()
-        symtab = sal.symtab
-        filename = symtab.filename if symtab else ""
-        result = "#%s 0x%s %s () at %s:%s %s" % (i, format_hex(sal.pc), frame.name(), filename, sal.line, annotations_text)
-        return(result)
+        location = ""
+        if sal.symtab is not None:
+            location = " at %s:%d" % (sal.symtab.filename, sal.line)
+        else:
+            objfile = gdb.current_progspace().solib_name(pc)
+            if objfile:
+                location = " from %s" % objfile
+        text = "#%-3d 0x%08x in %s ()%s" % (number, pc, name, location)
+        if annotation:
+            text += " [%s]" % annotation
+        return text
 
     def annotate_frame(self, frame):
-        if frame.name() == None:
-            return
-        elif frame.name() == "up_svcall":
-            return self.annotate_frame_svcall(frame)
-        elif frame.name() == "exception_common":
-            return self.annotate_frame_exception_common(frame)
-        elif frame.name() == "interp_exec_method_full":
-            return self.annotate_frame_interp(frame)
-        elif "sys_call" in frame.name():
-            return self.annotate_frame_sys_call(frame)
+        name = frame.name()
+        if name is None:
+            return None
+        try:
+            if name == "exception_common":
+                return self.annotate_exception_common(frame)
+            if name == "arm_svcall":
+                return self.annotate_svcall(frame)
+            if name == "dispatch_syscall":
+                return "syscall dispatch"
+            if name in MONO_INTERP_FUNCTIONS:
+                return "managed"
+            if name.startswith("sys_call"):
+                return "syscall"
+        except (gdb.error, gdb.MemoryError, ValueError):
+            return None
+        return None
 
-    def annotate_frame_interp(self, frame):
-        return "managed"
-
-    def annotate_frame_sys_call(self, frame):
-        return "syscall"
-
-    def annotate_frame_exception_common(self, frame):
-            reg = "cpsr" if is_qemu else "xPSR"
-            xpsr = frame.read_register(reg)
-            ipsr = int(xpsr & 0x0000001f)
-            stm_vectors = [ "IDLE_STACK", "__start", "stm32_nmi",
-                "stm32_hardfault", "stm32_mpu", "stm32_busfault",
-                "stm32_usagefaulf", "stm32_reserved", "stm32_reserved",
-                "stm32_reserved", "stm32_reserved", "stm32_svcall",
-                "stm32_dbgmonitor", "stm32_reserved", "stm32_pendsv",
-                "stm32_systick"]
-            #assert ipsr < len(stm_vectors)
-            if ipsr < len(stm_vectors):
-                return stm_vectors[ipsr]
-            else:
-                print("Cannot lookup exception vector with ipsr value %s" % (ipsr))
-            return
-
-    def annotate_frame_svcall(self, frame):
-            regs = frame.read_var("context")
-            ctx = NuttxRegContext(regs)
-            cmd = int(ctx.read_hw_register("r0")[0], 16)
-            svcalls = ["SYS_save_context", "SYS_restore_context",
-                       "SYS_switch_context", "SYS_syscall_return",
-                       "SYS_task_start", "SYS_pthread_start",
-                       "SYS_signal_handler", "SYS_signal_handler_return" ]
-            if  cmd < len(svcalls):
-                return svcalls[cmd]
-            return
-            # TODO: Add annotating support for non-core syscalls.
-
-    def handle_frame(self, frame):
-        if frame.name() == "exception_common":
-            self.handle_frame_exception_common(frame)
-        elif frame.name() == "dispatch_syscall":
-            self.handle_frame_dispatch_syscall(frame)
-
-    def handle_frame_dispatch_syscall(self, frame):
-        # See default case of up_svcall.
-        # It sets up the original frame return in the TCB xcp regs structure.
-        # TODO: Handle CONFIG_SMP build if we support it in the future.
-        nsyscalls = int(gdb.parse_and_eval(
-            "((struct tcb_s *)g_readytorun.head)->xcp.nsyscalls"))
-
-        CONFIG_SYS_NNEST = 2
-        assert nsyscalls <= CONFIG_SYS_NNEST
-
-        index = nsyscalls - 1
-        sysreturn = int(gdb.parse_and_eval(
-            "((struct tcb_s *)g_readytorun.head)->xcp.syscall[%d].sysreturn"
-                % index))
-
-        pc = sysreturn
-
-        # How we get the LR value depends on where exactly we are stopped
-        # inside dispatch_syscall. It can be saved on the stack or in the
-        # LR register if we have not branched to the syscall stub yet.
-        if frame.newer() != None:
-            sp = frame.read_register("sp")
-            lr =  read_memory_word(int(sp) + 12)
-            sp = sp + 16
-        else:
-            # Need to take into account PC relative to dispatch_syscall
-            print("Not yet implemented")
-
-        #print("set $sp = 0x%s" % format_hex(sp))
-        #print("set $lr = 0x%s" % lr)
-        #print("set $pc = 0x%s" % format_hex(pc))
-
-        gdb.parse_and_eval("$sp = 0x%s" % format_hex(sp))
-        gdb.parse_and_eval("$lr = 0x%s" % lr)
-        gdb.parse_and_eval("$pc = 0x%s" % format_hex(pc))
-
-    def handle_frame_exception_common(self, frame):
-        r4 = frame.read_register("r4")
-        #  Get the stack pointer before exception handler.
-        #  (8 HW regs) + (33 FPU regs) + (10/11 SW regs) * 4 bytes
-        num_sw_regs = 11 if is_protected_build else 10
-        ctx_size = (8 + 33 + num_sw_regs) * 4
-        ### IRQ Stack Frame Format
-        # SW_REGS (8)
-        # REG_R0              (SW_XCPT_REGS+0) /* R0 */
-        # REG_R1              (SW_XCPT_REGS+1) /* R1 */
-        # REG_R2              (SW_XCPT_REGS+2) /* R2 */
-        # REG_R3              (SW_XCPT_REGS+3) /* R3 */
-        # REG_R12             (SW_XCPT_REGS+4) /* R12 */
-        # REG_R14             (SW_XCPT_REGS+5) /* R14 = LR *
-        # REG_R15             (SW_XCPT_REGS+6) /* R15 = PC *
-        # REG_XPSR            (SW_XCPT_REGS+7) /* xPSR */
+    def annotate_exception_common(self, frame):
         #
-        # FPU_REGS (33)
+        #   exception_common keeps the register save area pointer in r11 (fp).
         #
-        # HW_REGS (10 or 11)
-        # REG_R13             (0)  /* R13 = SP at time of interrupt */
-        # REG_PRIMASK         (1)  /* PRIMASK */
-        # REG_R4              (2)  /* R4 */
-        # REG_R5              (3)  /* R5 */
-        # REG_R6              (4)  /* R6 */
-        # REG_R7              (5)  /* R7 */
-        # REG_R8              (6)  /* R8 */
-        # REG_R9              (7)  /* R9 */
-        # REG_R10             (8)  /* R10 */
-        # REG_R11             (9)  /* R11 */
-        # REG_EXC_RETURN      (10) /* EXC_RETURN / if protected build mode */ 
-        ###
-        ctx = NuttxRegContext(r4)
-        ctx.sw_regs = ["r13","primask","r4","r5","r6","r7","r8","r9","r10","r11"] \
-            + ["r14"] * is_protected_build
-        user_sp = ctx.read_sw_register("r13")[0]
-        user_pc = ctx.read_hw_register("pc")[0]
-        user_lr = ctx.read_hw_register("lr")[0]
-        #print("set $sp = 0x%s" % user_sp)
-        #print("set $lr = 0x%s" % user_lr)
-        #print("set $pc = 0x%s" % user_pc)
-        gdb.parse_and_eval("$sp = 0x%s" % (user_sp))
-        gdb.parse_and_eval("$lr = 0x%s" % (user_lr))
-        gdb.parse_and_eval("$pc = 0x%s" % (user_pc))
+        regs = int(frame.read_register("r11"))
+        if regs == 0:
+            return "exception"
+        saved = nx_read_saved_regs(regs)
+        ipsr = int(frame.read_register("xpsr")) & 0x1ff
+        return "%s, interrupted pc 0x%08x" % (nx_exception_name(ipsr), saved["pc"])
 
-global_saved_regs_ctx = None
+    def annotate_svcall(self, frame):
+        try:
+            context = frame.read_var("context")
+        except ValueError:
+            return "svcall"
+        if context.is_optimized_out:
+            return "svcall"
+        cmd = nx_read_u32(int(context) + nx_reg_offsets()["r0"])
+        if cmd in NX_SVCALL_NAMES:
+            return NX_SVCALL_NAMES[cmd]
+        stubs = nx_symbol_value("g_stublookup")
+        if stubs is not None:
+            try:
+                stub = nx_symbol_name(int(stubs[cmd - NX_SYS_RESERVED]))
+                if stub:
+                    return "syscall %s" % stub.replace("STUB_", "")
+            except (gdb.error, gdb.MemoryError):
+                pass
+        return "syscall %d" % (cmd - NX_SYS_RESERVED)
 
 class NuttxBacktrace(gdb.Command):
+    '''
+    (NuttX) Backtrace of the selected thread with exception, syscall and managed frame
+    annotations.
+
+    Usage: nx_bt [pid] [nomanaged]
+
+    Without a pid the task of the selected GDB thread is used.  For a task that is
+    not running the backtrace starts from the context saved in its TCB.
+    '''
+
     def __init__(self):
         super(NuttxBacktrace, self).__init__("nx_bt", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        nuttx_and_mono_backtrace = NuttxAndMonoBacktrace()
-        for line in nuttx_and_mono_backtrace.backtrace(include_managed_code=True):
+        include_managed = True
+        pid = None
+        for word in arg.split():
+            if word == "nomanaged":
+                include_managed = False
+            else:
+                pid = int(gdb.parse_and_eval(word))
+        if pid is None:
+            tcb = nx_tcb_for_thread()
+        else:
+            tcb = nx_tcb_for_pid(pid)
+            if tcb is None:
+                raise gdb.GdbError("No task with pid %d." % pid)
+        tcb_value = tcb.dereference()
+        print("Task %s (pid %d, tcb 0x%08x)" % (tcb_value["name"].string(), int(tcb_value["pid"]),
+                                               int(tcb)))
+        if int(tcb) == int(nx_running_tcb()):
+            ipsr = nx_in_exception()
+            if ipsr != 0:
+                print("CPU halted in handler mode: %s" % nx_exception_name(ipsr))
+        else:
+            print("Not running; unwinding from the context saved in tcb->xcp.regs")
+        backtrace = NuttxAndMonoBacktrace()
+        lines = nx_with_task_context(tcb, lambda: backtrace.backtrace(include_managed_code=include_managed))
+        for line in lines:
             print(line)
 
+NuttxBacktrace()
+
+###########################################################################
+#
+#   Register commands.
+#
+###########################################################################
+
 class NuttxDumpRegisters(gdb.Command):
+    '''
+    (NuttX) Decode a NuttX register save area.
+
+    Usage: nx_dumpregs <address>
+    The address is the value of tcb->xcp.regs or of the regs / context argument of
+    arm_doirq, arm_svcall or the fault handlers.
+    '''
+
     def __init__(self):
-        super(NuttxDumpRegisters, self).__init__("nx_dumpregs",
-            gdb.COMMAND_STACK)
+        super(NuttxDumpRegisters, self).__init__("nx_dumpregs", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        addr = gdb.Value(int(arg, 0))
-        ctx = NuttxRegContext(addr)
-        ctx.dump_registers()
+        if not arg.strip():
+            raise gdb.GdbError("Usage: nx_dumpregs <address>")
+        address = int(gdb.parse_and_eval(arg))
+        nx_print_regs(nx_read_saved_regs(address), NX_CORE_REGS)
 
 NuttxDumpRegisters()
 
 class NuttxDumpHWRegisters(gdb.Command):
+    '''
+    (NuttX) Decode a hardware exception frame.
+
+    Usage: nx_dumpregs_hw <address>
+    The address is the stack pointer (MSP or PSP) at which the processor stacked r0-r3,
+    r12, lr, pc and xpsr on exception entry.
+    '''
+
     def __init__(self):
-        super(NuttxDumpHWRegisters, self).__init__("nx_dumpregs_hw",
-            gdb.COMMAND_STACK)
+        super(NuttxDumpHWRegisters, self).__init__("nx_dumpregs_hw", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        addr = gdb.Value(int(arg, 0))
-        ctx = NuttxRegContext(addr, True)
-        ctx.dump_hw_registers()
+        if not arg.strip():
+            raise gdb.GdbError("Usage: nx_dumpregs_hw <address>")
+        address = int(gdb.parse_and_eval(arg))
+        names = ["r0", "r1", "r2", "r3", "r12", "lr", "pc", "xpsr"]
+        values = dict((name, nx_read_u32(address + 4 * index)) for index, name in enumerate(names))
+        nx_print_regs(values, names)
 
 NuttxDumpHWRegisters()
 
+class ARMRegContext(object):
+    '''Saved copy of the general purpose registers of the newest frame.'''
+
+    def __init__(self, frame=None):
+        if frame is None:
+            frame = gdb.newest_frame()
+        self.names = [register.name for register in frame.architecture().registers("general")]
+        self.values = {}
+        for name in self.names:
+            try:
+                self.values[name] = int(frame.read_register(name))
+            except (gdb.error, ValueError):
+                pass
+
+    def restore_registers(self):
+        gdb.newest_frame().select()
+        for name in self.names:
+            if name in self.values:
+                gdb.execute("set $%s = %d" % (name, self.values[name]), to_string=True)
+
+    def dump_registers(self):
+        nx_print_regs(self.values, self.names)
+
+global_saved_regs_ctx = None
+
 class NuttxSaveRegisters(gdb.Command):
+    '''(NuttX) Save the CPU registers so that they can be restored with nx_restoreregs.'''
+
     def __init__(self):
-        super(NuttxSaveRegisters, self).__init__("nx_saveregs",
-            gdb.COMMAND_STACK)
+        super(NuttxSaveRegisters, self).__init__("nx_saveregs", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
         global global_saved_regs_ctx
-        print("Saving CPU registers context...")
-        global_saved_regs_ctx = ARMRegContext(gdb.selected_frame())
-        global_saved_regs_ctx.save_registers()
+        global_saved_regs_ctx = ARMRegContext()
+        print("Saved %d registers." % len(global_saved_regs_ctx.values))
+
+NuttxSaveRegisters()
 
 class NuttxRestoreRegisters(gdb.Command):
+    '''(NuttX) Restore the CPU registers saved by nx_saveregs.'''
+
     def __init__(self):
-        super(NuttxRestoreRegisters, self).__init__("nx_restoreregs",
-            gdb.COMMAND_STACK)
+        super(NuttxRestoreRegisters, self).__init__("nx_restoreregs", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        global global_saved_regs_ctx
-        if global_saved_regs_ctx == None:
-            print("No saved CPU registers context was found.")
-            return
-        print("Restoring CPU registers context...")
+        if global_saved_regs_ctx is None:
+            raise gdb.GdbError("No saved CPU registers context was found.")
         global_saved_regs_ctx.restore_registers()
+        print("Registers restored.")
 
-def read_memory_word(addr):
-    inferior = gdb.selected_inferior()
-    mem = inferior.read_memory(addr, 4)
-    return format_hex_swap32(mem)
-
-def read_memory_word_offset(base, offset):
-    addr = base - offset * 4
-    inferior = gdb.selected_inferior()
-    mem = inferior.read_memory(addr, 4)
-    return format_hex_swap32(mem), addr
-
-def format_hex(i):
-    return binascii.hexlify(struct.pack(">I", i))
-
-def format_hex_swap32(i):
-    return binascii.hexlify(struct.pack("<I", struct.unpack(">I", i)[0]))
-
-NuttxBacktrace()
-NuttxSaveRegisters()
 NuttxRestoreRegisters()
+
+###########################################################################
+#
+#   RAM log.
+#
+###########################################################################
+
+class NuttxDmesg(gdb.Command):
+    '''
+    (NuttX) Print the RAM log (syslog) buffer.
+
+    The buffer (g_sysbuffer in drivers/syslog/ramlog.c) starts with a struct
+    ramlog_header_s { rl_magic, rl_head }; rl_head counts every byte ever written,
+    so once the buffer has wrapped the oldest data starts at rl_head % size.
+    '''
+
+    def __init__(self):
+        super(NuttxDmesg, self).__init__("nx_dmesg", gdb.COMMAND_STATUS)
+
+    def invoke(self, arg, from_tty):
+        symbol = nx_symbol_value("g_sysbuffer")
+        if symbol is None:
+            raise gdb.GdbError("g_sysbuffer not found (is CONFIG_RAMLOG enabled?)")
+        address = int(symbol.address)
+        size = symbol.type.sizeof
+        data = bytes(gdb.selected_inferior().read_memory(address, size))
+        head = int.from_bytes(data[4:8], "little")
+        buffer = data[8:]
+        if head <= len(buffer):
+            text = buffer[:head]
+        else:
+            start = head % len(buffer)
+            text = buffer[start:] + buffer[:start]
+        print(text.decode("utf-8", errors="replace"), end="")
+
+NuttxDmesg()

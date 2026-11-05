@@ -1,267 +1,228 @@
+#
+#   GDB/Python commands for the NuttX 12 default heap manager (mm/mm_heap).
+#
+#   Commands:
+#
+#       show heap [user|kernel]         List every node in the heap.
+#       show freeheap [user|kernel]     List the free nodes in the heap.
+#       nx_check_heap                   Check the node chain of both heaps.
+#
+#   The user heap is g_mmheap (from nuttx_user.elf) and the kernel heap is
+#   g_kmmheap (from nuttx.elf); both are pointers to a struct mm_heap_s.
+#
+#   Node layout (mm/mm_heap/mm.h): every node starts with a struct mm_allocnode_s
+#   { preceding, size }.  Bit 0 of size is set when the node is allocated and bit 1
+#   when the previous node is free; preceding is only valid when the previous node
+#   is free.  The node size includes the header, and the next node starts at
+#   node + size.  The first node of a region is at mm_heapstart[region] and the
+#   chain ends with the guard node at mm_heapend[region].
+#
 import gdb
-import binascii
-import struct
 
-class NuttXHeap ():
-    """(NuttX) Collect the heap information for a specified heap."""
+MM_ALLOC_BIT = 0x1
+MM_PREVFREE_BIT = 0x2
+MM_MASK_BIT = MM_ALLOC_BIT | MM_PREVFREE_BIT
+
+def _read_word(address, size):
+    memory = gdb.selected_inferior().read_memory(address, size)
+    return int.from_bytes(bytes(memory), "little")
+
+class NuttXHeap(object):
+    '''(NuttX) Walk the nodes of one heap.'''
+
+    HEAPS = {"user": "g_mmheap", "kernel": "g_kmmheap"}
 
     def __init__(self, heap_name):
         '''
-        Initialise a NuttXHeap class.
-
-        :param heap_name: Name of the heap to examine (user or kernel), default user.
-        :raises gdb.GdbError: Raised if the allocated node size is invalid.
+        :param heap_name: "user" or "kernel" (or the variable name g_mmheap / g_kmmheap).
+        :raises gdb.GdbError: if the heap cannot be found.
         '''
-        struct_mm_allocnode_s = gdb.lookup_type('struct mm_allocnode_s')
-        preceding_size = struct_mm_allocnode_s['preceding'].type.sizeof
-        if preceding_size == 2:
-            self._allocflag = 0x8000
-        elif preceding_size == 4:
-            self._allocflag = 0x80000000
-        else:
-            raise gdb.GdbError('invalid mm_allocnode_s.preceding size %u' % preceding_size)
-        self._allocnodesize = struct_mm_allocnode_s.sizeof
+        for name, variable in self.HEAPS.items():
+            if heap_name == variable:
+                heap_name = name
+        if heap_name not in self.HEAPS:
+            raise gdb.GdbError("Invalid heap %s, expected user or kernel" % heap_name)
         self._heap_name = heap_name
-        self._heap_information = []
-        if (heap_name == 'g_kmmheap') or (heap_name == 'g_mmheap'):
-            self._heap_variable_name = heap_name
-            if heap_name == 'g_kmmheap':
-                self._heap_name = 'user'
-            else:
-                self._heap_name = 'kernel'
-        else:
-            raise gdb.GdbError('Invalid heap variable %s, expected g_kmmheap or g_mmheap' % heap_name)
+        self._heap_variable_name = self.HEAPS[heap_name]
+        allocnode = gdb.lookup_type("struct mm_allocnode_s")
+        self._size_bytes = allocnode["size"].type.sizeof
+        self._size_offset = allocnode["size"].bitpos // 8
+        self._preceding_offset = allocnode["preceding"].bitpos // 8
+        self._allocnodesize = allocnode.sizeof
+        symbol = gdb.lookup_global_symbol(self._heap_variable_name)
+        if symbol is None:
+            raise gdb.GdbError("Cannot find %s; are the symbols for both ELF files loaded?" %
+                               self._heap_variable_name)
+        self._heap = symbol.value()
+        if int(self._heap) == 0:
+            raise gdb.GdbError("%s is NULL; the heap has not been initialised." % self._heap_variable_name)
 
+    @property
+    def name(self):
+        return self._heap_name
 
-    def _node_allocated(self, allocnode):
+    @property
+    def variable_name(self):
+        return self._heap_variable_name
+
+    def regions(self):
+        '''List of (start, end) node addresses for each region.'''
+        heap = self._heap.dereference()
+        result = []
+        for region in range(int(heap["mm_nregions"])):
+            start = int(heap["mm_heapstart"][region])
+            end = int(heap["mm_heapend"][region])
+            if start != 0:
+                result.append((start, end))
+        return result
+
+    def nodes(self, start, end, problems=None):
         '''
-        Is the node allocated?
+        Yield (node address, node size, allocated, previous free, preceding) for each
+        node from start up to and including the end guard node.
 
-        :param allocnode: Node to check.
-        :return: True if the node is allocated, False otherwise.
+        If problems is a list, inconsistencies are appended to it and the walk stops
+        at the first node whose size makes it impossible to continue.
         '''
-        if allocnode['preceding'] & self._allocflag:
-            return True
-        return False
+        node = start
+        previous_size = None
+        previous_allocated = None
+        while node <= end:
+            raw_size = _read_word(node + self._size_offset, self._size_bytes)
+            size = raw_size & ~MM_MASK_BIT
+            allocated = (raw_size & MM_ALLOC_BIT) != 0
+            previous_free = (raw_size & MM_PREVFREE_BIT) != 0
+            preceding = None
+            if previous_free:
+                preceding = _read_word(node + self._preceding_offset, self._size_bytes)
+            if problems is not None and previous_allocated is not None:
+                if previous_free == previous_allocated:
+                    problems.append("0x%08x: previous-free bit is %d but the previous node is %s" %
+                                    (node, int(previous_free), "allocated" if previous_allocated else "free"))
+                if previous_free and (preceding != previous_size):
+                    problems.append("0x%08x: preceding %d does not match previous node size %d" %
+                                    (node, preceding, previous_size))
+            yield (node, size, allocated, previous_free, preceding)
+            if node == end:
+                return
+            if (size < self._allocnodesize) or (node + size > end):
+                if problems is not None:
+                    problems.append("0x%08x: size %d is invalid (region ends at 0x%08x)" % (node, size, end))
+                return
+            previous_size = size
+            previous_allocated = allocated
+            node += size
+        if problems is not None:
+            problems.append("node chain overran the end of the region at 0x%08x" % end)
 
-    def _node_size(self, allocnode):
+    def get_heap_allocations(self, free_only=False):
         '''
-        Extract the size of the node.
+        List of strings describing every node (or only the free nodes).
 
-        Nodes use the top bit of the size to indicate if the node is a free node or if it has been allocated.
-
-        :param allocnode: Node to get the sizeof.
-        :return: Size of the node.
+        Each line gives the payload address (node + header), the node size including
+        the header and whether the node is free.
         '''
-        return allocnode['size'] & ~self._allocflag
-
-    def _parse_allocations(self, region_start, region_end):
-        '''
-        Parse all of the nodes in a specific region
-        
-        This method walks through the memory specified by the region_start and region_end
-        parameters.
-
-        The heap information is put into the _heap_information class variable.
-
-        :param region_start: Address of the start of the region.
-        :param region_end: Last address in the region.
-        :raises gdb.GdbError: Raised if the start of the region is greater than the end of the region. 
-        '''
-        if region_start >= region_end:
-            raise gdb.GdbError('heap region {} corrupt'.format(hex(region_start)))
-        nodecount = region_end - region_start
-        self._heap_information.append('heap region {} - {}'.format(region_start, region_end))
-        cursor = 1
-        while cursor < nodecount:
-            allocnode = region_start[cursor]
-            if self._node_allocated(allocnode):
-                state = ''
-            else:
-                state = '(free)'
-            s = '  {} {} {}'.format(allocnode.address + self._allocnodesize,
-                                                  self._node_size(allocnode), state)
-            self._heap_information.append(s)
-            cursor += self._node_size(allocnode) / self._allocnodesize
-
-    def get_heap_allocations(self):
-        '''
-        Get the heap allocations from all of the heap regions in the selected heap.
-
-        The heap is specified in the construction of this class.  The self._heap_name variable
-        contains the name of the NuttX variable containing the heap structures.  This will
-        normally be one of g_mmheap or g_kmmheap.
-
-        :return: List of strings containing the heap allocation information.
-        '''
-        self._heap_information = []
-        heap = gdb.lookup_global_symbol(self._heap_variable_name).value()
-        nregions = heap['mm_nregions']
-        region_starts = heap['mm_heapstart']
-        region_ends = heap['mm_heapend']
-        self._heap_information.append('%d heap(s)' % nregions)
-        # walk the heaps
-        if nregions > 0:
-            for i in range(0, nregions):
-                if region_starts[i] != 0:
-                    self._parse_allocations(region_starts[i], region_ends[i])
-        return self._heap_information
+        lines = []
+        regions = self.regions()
+        lines.append("%d heap region(s)" % len(regions))
+        for start, end in regions:
+            lines.append("heap region 0x%08x - 0x%08x" % (start, end))
+            allocated_bytes = 0
+            free_bytes = 0
+            allocated_count = 0
+            free_count = 0
+            largest_free = 0
+            for node, size, allocated, previous_free, preceding in self.nodes(start, end):
+                if node == end:
+                    break
+                if allocated:
+                    allocated_bytes += size
+                    allocated_count += 1
+                else:
+                    free_bytes += size
+                    free_count += 1
+                    largest_free = max(largest_free, size)
+                if free_only and allocated:
+                    continue
+                lines.append("  0x%08x %8d %s" % (node + self._allocnodesize, size, "" if allocated else "(free)"))
+            lines.append("  allocated %d bytes in %d nodes, free %d bytes in %d nodes, largest free %d" %
+                         (allocated_bytes, allocated_count, free_bytes, free_count, largest_free))
+        return lines
 
     def get_free_heap_nodes(self):
-        '''
-        Get the free heap nodes.
-
-        The heap is specified in the construction of this class.  The self._heap_name variable
-        contains the name of the NuttX variable containing the heap structures.  This will
-        normally be one of g_mmheap or g_kmmheap.
-
-        :return: List of strings containing the free node information.
-        '''
-        nodes = self.get_heap_allocations()
-        return [s for s in nodes if "free" in s]
-
-    def _get_bad_heap_nodes(self, region_start, region_end):
-        '''
-        Check the heap nodes to make sure that they are all in the specified region.
-
-        :param region_start: Start address for the region.
-        :param region_ends: End address for the region.
-        :return: List of strings containing the bad node information.
-        '''
-        if region_start >= region_end:
-            raise gdb.GdbError('heap region {} corrupt'.format(hex(region_start)))
-        nodecount = region_end - region_start
-        self._heap_information.append('heap region {} - {}'.format(region_start, region_end))
-        cursor = 1
-        bad_nodes = []
-        start = int(region_start)
-        end = int(region_end)
-        while cursor < nodecount:
-            allocnode = region_start[cursor]
-            address = int(gdb.Value(allocnode.address))
-            if (address < start) or (address > end):
-                bad_nodes.append('{} {}'.format(allocnode.address + self._allocnodesize, self._node_size(allocnode)))
-            cursor += self._node_size(allocnode) / self._allocnodesize
-        return bad_nodes
+        return self.get_heap_allocations(free_only=True)
 
     def check_heap_nodes(self):
-        '''
-        Check the heap for invalid nodes.
-        
-        :return: List of strings containing the bad node information.
-        '''
-        heap = gdb.lookup_global_symbol(self._heap_variable_name).value()
-        nregions = heap['mm_nregions']
-        bad_nodes = []
-        if nregions > 0:
-            region_starts = heap['mm_heapstart']
-            region_ends = heap['mm_heapend']
-            for i in range(0, nregions):
-                if region_starts[i] != 0:
-                    bad_nodes += self._get_bad_heap_nodes(region_starts[i], region_ends[i])
-        return bad_nodes
+        '''List of strings describing inconsistent nodes; empty when the heap is consistent.'''
+        problems = []
+        for start, end in self.regions():
+            last = None
+            for node in self.nodes(start, end, problems):
+                last = node[0]
+            if last != end:
+                problems.append("region 0x%08x - 0x%08x: walk ended at 0x%08x, not at the end node" %
+                                (start, end, last if last is not None else 0))
+        return problems
+
+def _heap_from_argument(arg):
+    arg = arg.strip()
+    if arg == "":
+        arg = "user"
+    return NuttXHeap(arg)
 
 class NX_show_heap(gdb.Command):
-    '''(NuttX) GDB command to display the list of allocated nodes from the requested heap.'''
+    '''
+    (NuttX) List the nodes of a heap.
+
+    Usage: show heap [user|kernel]      (default user)
+    '''
 
     def __init__(self):
-        '''
-        Initialise an instance of the NX_show_heap class.
-        '''
         super(NX_show_heap, self).__init__("show heap", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        '''
-        Execute the 'show heap' command.
-
-        If no argument is specified then the user heap will be assumed.
-
-        :param arg: Arguments from the show heap command.  Normally user or kernel.
-        '''
-        if arg is None:
-            arg = 'user'
-        if arg == 'kernel':
-            heap_variable_name = 'g_kmmheap'
-            heap_name = 'kernel'
-        else:
-            heap_variable_name = 'g_mmheap'
-            heap_name = 'user'
-        heap_information = NuttXHeap(heap_variable_name)
-        print('Showing heap allocations for %s (%s)' % (heap_name, heap_variable_name))
-        if heap_information is not None:
-            for line in heap_information.get_heap_allocations():
-                print(line)
-        else:
-            print('No heap information found.')
+        heap = _heap_from_argument(arg)
+        print("Showing heap allocations for %s (%s)" % (heap.name, heap.variable_name))
+        print("  %-10s %8s" % ("Address", "Size"))
+        for line in heap.get_heap_allocations():
+            print(line)
 
 NX_show_heap()
 
 class NX_show_free_heap(gdb.Command):
-    '''(NuttX) GDB command to display the list of free nodes from the requested heap.'''
+    '''
+    (NuttX) List the free nodes of a heap.
+
+    Usage: show freeheap [user|kernel]      (default user)
+    '''
 
     def __init__(self):
-        '''
-        Initialise an instance of the NX_show_heap class.
-        '''
         super(NX_show_free_heap, self).__init__("show freeheap", gdb.COMMAND_STACK)
 
     def invoke(self, arg, from_tty):
-        '''
-        Execute the 'show freeheap' command.
-
-        If no argument is specified then the user heap will be assumed.
-
-        :param arg: Arguments from the show heap command.  Normally user or kernel.
-        '''
-        if arg is None:
-            arg = 'user'
-        if arg == 'kernel':
-            heap_variable_name = 'g_kmmheap'
-            heap_name = 'kernel'
-        else:
-            heap_variable_name = 'g_mmheap'
-            heap_name = 'user'
-        heap_information = NuttXHeap(heap_variable_name)
-        print('Showing free nodes for %s (%s)' % (heap_name, heap_variable_name))
-        if heap_information is not None:
-            for line in heap_information.get_free_heap_nodes():
-                print(line)
-        else:
-            print('No heap information found.')
+        heap = _heap_from_argument(arg)
+        print("Showing free nodes for %s (%s)" % (heap.name, heap.variable_name))
+        print("  %-10s %8s" % ("Address", "Size"))
+        for line in heap.get_free_heap_nodes():
+            print(line)
 
 NX_show_free_heap()
+
 class NX_check_heap(gdb.Command):
-    '''(NuttX) GDB command check the heaps for invalid nodes.'''
+    '''(NuttX) Check the node chains of the kernel and user heaps.'''
 
     def __init__(self):
-        '''
-        Initialise an instance of the NX_check_heap class.
-        '''
         super(NX_check_heap, self).__init__("nx_check_heap", gdb.COMMAND_STACK)
 
-    def _print_heap_check_results(self, heap, heap_name):
-        '''
-        Check the nodes for the specified heap and print the results.
-
-        :param heap: Class instance of the heap to be checked.
-        :param heap_name: Printable name for the heap.
-        '''
-        bad_nodes = heap.check_heap_nodes()
-        if len(bad_nodes) == 0:
-            print('%s heap OK' % heap_name)
-        else:
-            print('%s heap errors found %d' % (heap_name, len(bad_nodes)))
-            for node in bad_nodes:
-                print('    %s' % node)
-
-
     def invoke(self, arg, from_tty):
-        '''
-        Execute the 'nx_check_heap' command.
-        '''
-        kernel_heap = NuttXHeap('g_kmmheap')
-        self._print_heap_check_results(kernel_heap, 'Kernel')
-        user_heap = NuttXHeap('g_mmheap')
-        self._print_heap_check_results(user_heap, 'User')
+        for name in ("kernel", "user"):
+            heap = NuttXHeap(name)
+            problems = heap.check_heap_nodes()
+            if len(problems) == 0:
+                print("%s heap OK" % name.capitalize())
+            else:
+                print("%s heap: %d problem(s) found" % (name.capitalize(), len(problems)))
+                for problem in problems:
+                    print("    %s" % problem)
 
 NX_check_heap()

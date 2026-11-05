@@ -1,663 +1,498 @@
-# GDB/Python functions for dealing with NuttX
+#
+#   GDB/Python commands for NuttX 12 tasks.  Needs the helpers in Nuttx.py, so
+#   source Nuttx.py first.
+#
+#   Commands:
+#
+#       nx_tasks                    List all tasks.
+#       nx_task <pid>               Details of one task: state, wait object, stack,
+#                                   open files and saved registers.
+#       show alltcb                 PID and name of every task.
+#       show tcb <pid>              Print the struct tcb_s of a task.
+#       show regs [pid]             Saved registers of one or all tasks and the
+#                                   source line at the saved PC.
+#       show interrupted-thread     Registers of the context interrupted by the
+#                                   current exception.
+#       show check_stack            Stack regions and stack pointers of all tasks
+#                                   in address order.
+#       show mybt <pid|name|tcb>    Heuristic backtrace: scan a task's stack for
+#                                   words that point into code.
+#
+import gdb
+import gdb.types
 
-from __future__ import print_function
-import gdb, gdb.types
+#
+#   Fill pattern used by CONFIG_STACK_COLORATION (arch/arm/src/common/arm_internal.h).
+#
+NX_STACK_COLOR = 0xdeadbeef
 
-parse_int = lambda x: int(str(x), 0)
+#
+#   Bit in sem_t.flags marking a semaphore that is a mutex (include/semaphore.h)
+#   and the mask that removes the blocking bit from the mutex holder.
+#
+NX_SEM_TYPE_MUTEX = 4
+NX_SEM_MHOLDER_MASK = 0x7fffffff
 
-class NX_register_set(object):
-    """Copy of the registers for a given context"""
-
-    v7_regmap = {
-        'R13':          0,
-        'SP':           0,
-        'PRIORITY':     1,
-        'R4':           2,
-        'R5':           3,
-        'R6':           4,
-        'R7':           5,
-        'R8':           6,
-        'R9':           7,
-        'R10':          8,
-        'R11':          9,
-        'EXC_RETURN':   10,
-        'S0':           11,
-        'S1':           12,
-        'S2':           13,
-        'S3':           14,
-        'S4':           15,
-        'S5':           16,
-        'S6':           17,
-        'S7':           18,
-        'S8':           19,
-        'S9':           20,
-        'S10':          21,
-        'S11':          22,
-        'S12':          23,
-        'S13':          24,
-        'S14':          25,
-        'S15':          26,
-        'S16':          27,
-        'S17':          28,
-        'S18':          29,
-        'S19':          30,
-        'S20':          31,
-        'S21':          32,
-        'S22':          33,
-        'S23':          34,
-        'S24':          35,
-        'S25':          36,
-        'S26':          37,
-        'S27':          38,
-        'S28':          39,
-        'S29':          40,
-        'S30':          41,
-        'S31':          42,
-        'FPSCR':        43,
-        'R0':           44,
-        'R1':           45,
-        'R2':           46,
-        'R3':           47,
-        'R12':          48,
-        'R14':          49,
-        'LR':           49,
-        'R15':          50,
-        'PC':           50,
-        'XPSR':         51,
-    }
-
-    regs = dict()
-
-    def __init__(self, xcpt_regs):
-        if xcpt_regs is None:
-            self.regs['R0']         = self.mon_reg_call('r0')
-            self.regs['R1']         = self.mon_reg_call('r1')
-            self.regs['R2']         = self.mon_reg_call('r2')
-            self.regs['R3']         = self.mon_reg_call('r3')
-            self.regs['R4']         = self.mon_reg_call('r4')
-            self.regs['R5']         = self.mon_reg_call('r5')
-            self.regs['R6']         = self.mon_reg_call('r6')
-            self.regs['R7']         = self.mon_reg_call('r7')
-            self.regs['R8']         = self.mon_reg_call('r8')
-            self.regs['R9']         = self.mon_reg_call('r9')
-            self.regs['R10']        = self.mon_reg_call('r10')
-            self.regs['R11']        = self.mon_reg_call('r11')
-            self.regs['R12']        = self.mon_reg_call('r12')
-            self.regs['R13']        = self.mon_reg_call('r13')
-            self.regs['SP']         = self.mon_reg_call('sp')
-            self.regs['R14']        = self.mon_reg_call('r14')
-            self.regs['LR']         = self.mon_reg_call('lr')
-            self.regs['R15']        = self.mon_reg_call('r15')
-            self.regs['PC']         = self.mon_reg_call('pc')
-            #self.regs['XPSR']       = self.mon_reg_call('xPSR')
-        else:
-            for key in list(self.v7_regmap.keys()):
-                self.regs[key] = int(xcpt_regs[self.v7_regmap[key]])
-
-    def mon_reg_call(self,register):
-        """
-        register is the register as a string e.g. 'pc'
-        return integer containing the value of the register
-        """
-        str_to_eval = "info registers "+register
-        resp = gdb.execute(str_to_eval,to_string = True)
-        content = resp.split()[-1]
-        try:
-            return int(content)
-        except:
-            return 0
-
-    @classmethod
-    def with_xcpt_regs(cls, xcpt_regs):
-        return cls(xcpt_regs)
-
-    @classmethod
-    def for_current(cls):
-        return cls(None)
-
-    def __format__(self, format_spec):
-        return format_spec.format(
-            registers = self.registers
-            )
-
-    @property
-    def registers(self):
-        return self.regs
+def nx_parse_int(text):
+    return int(gdb.parse_and_eval(text))
 
 class NX_task(object):
-    """Reference to a NuttX task and methods for introspecting it"""
+    '''Reference to a NuttX task and methods for introspecting it.'''
 
     def __init__(self, tcb_ptr):
+        self._tcb_ptr = tcb_ptr
         self._tcb = tcb_ptr.dereference()
-        self._group = self._tcb['group'].dereference()
-        self.pid = tcb_ptr['pid']
-
-    @classmethod
-    def for_tcb(cls, tcb):
-        """return a task with the given TCB pointer"""
-        pidhash_sym = gdb.lookup_global_symbol('g_pidhash')
-        pidhash_value = pidhash_sym.value()
-        pidhash_type = pidhash_sym.type
-        for i in range(pidhash_type.range()[0],pidhash_type.range()[1]):
-            pidhash_entry = pidhash_value[i]
-            if pidhash_entry['tcb'] == tcb:
-                return cls(pidhash_entry['tcb'])
-        return None
-
-    @classmethod
-    def for_pid(cls, pid):
-        """return a task for the given PID"""
-        pidhash_sym = gdb.lookup_global_symbol('g_pidhash')
-        pidhash_value = pidhash_sym.value()
-        pidhash_type = pidhash_sym.type
-        for i in range(pidhash_type.range()[0],pidhash_type.range()[1]):
-            pidhash_entry = pidhash_value[i]
-            if pidhash_entry['pid'] == pid:
-                return cls(pidhash_entry['tcb'])
-        return None
-
-    @staticmethod
-    def pids():
-        """return a list of all PIDs"""
-        pidhash_sym = gdb.lookup_global_symbol('g_pidhash')
-        pidhash_value = pidhash_sym.value()
-        pidhash_type = pidhash_sym.type
-        result = []
-        for i in range(pidhash_type.range()[0],pidhash_type.range()[1]):
-            entry = pidhash_value[i]
-            pid = parse_int(entry['pid'])
-            if pid != -1 and pid != 0xffff:
-                result.append(pid)
-        return result
+        self.pid = int(self._tcb["pid"])
 
     @staticmethod
     def tasks():
-        """return a list of all tasks"""
-        tasks = []
-        for pid in NX_task.pids():
-            tasks.append(NX_task.for_pid(pid))
-        return tasks
+        '''All tasks, sorted by PID.'''
+        tasks = [NX_task(tcb) for tcb in nx_tcbs()]
+        return sorted(tasks, key=lambda task: task.pid)
 
-    def _state_is(self, state):
-        """tests the current state of the task against the passed-in state name"""
-        statenames = gdb.types.make_enum_dict(gdb.lookup_type('enum tstate_e'))
-        if self._tcb['task_state'] == statenames[state]:
-            return True
-        return False
+    @staticmethod
+    def pids():
+        return [task.pid for task in NX_task.tasks()]
+
+    @classmethod
+    def for_pid(cls, pid):
+        tcb = nx_tcb_for_pid(pid)
+        if tcb is None:
+            return None
+        return cls(tcb)
+
+    @classmethod
+    def for_tcb(cls, tcb):
+        for candidate in nx_tcbs():
+            if int(candidate) == int(tcb):
+                return cls(candidate)
+        return None
+
+    @classmethod
+    def find(cls, text):
+        '''Task from a PID, a task name or a TCB address.'''
+        text = text.strip()
+        try:
+            number = nx_parse_int(text)
+        except gdb.error:
+            number = None
+        if number is not None:
+            task = cls.for_pid(number)
+            if task is None:
+                task = cls.for_tcb(number)
+            if task is not None:
+                return task
+        for task in cls.tasks():
+            if task.name == text:
+                return task
+        raise gdb.GdbError("No task matches '%s'." % text)
 
     @property
-    def stack_used(self):
-        """calculate the stack used by the thread"""
-        stack_base = self._tcb['stack_alloc_ptr'].cast(gdb.lookup_type('unsigned char').pointer())
-        if stack_base == 0:
-            self.__dict__['stack_used'] = 0
-        else:
-            stack_limit = self._tcb['adj_stack_size']
-            for offset in range(0, parse_int(stack_limit)):
-                if stack_base[offset] != 0xff:
-                    break
-            self.__dict__['stack_used'] = stack_limit - offset
-        return self.__dict__['stack_used']
+    def address(self):
+        return int(self._tcb_ptr)
 
     @property
     def name(self):
-        """return the task's name"""
-        return self._tcb['name'].string()
+        return self._tcb["name"].string()
+
+    @property
+    def priority(self):
+        return int(self._tcb["sched_priority"])
+
+    def _state_value(self):
+        return int(self._tcb["task_state"])
 
     @property
     def state(self):
-        """return the name of the task's current state"""
-        statenames = gdb.types.make_enum_dict(gdb.lookup_type('enum tstate_e'))
-        for name,value in list(statenames.items()):
-            if value == self._tcb['task_state']:
-                return name
-        return 'UNKNOWN'
+        '''Name of the task's current state (enum tstate_e).'''
+        state = self._state_value()
+        names = gdb.types.make_enum_dict(gdb.lookup_type("enum tstate_e"))
+        for name, value in names.items():
+            if int(value) == state:
+                return name.replace("TSTATE_", "")
+        return "UNKNOWN(%d)" % state
+
+    def _state_is(self, state):
+        names = gdb.types.make_enum_dict(gdb.lookup_type("enum tstate_e"))
+        return (state in names) and (int(names[state]) == self._state_value())
 
     @property
-    def waiting_for(self):
-        """return a description of what the task is waiting for, if it is waiting"""
-        if self._state_is('TSTATE_WAIT_SEM'):
-            try: 
-                waitsem = self._tcb['waitsem'].dereference()
-
-                # if 'holder' not in waitsem:
-                #     return 'no <holder>'
-
-                waitsem_holder = waitsem['holder']
-                holder = NX_task.for_tcb(waitsem_holder['htcb'])
-                if holder is not None:
-                    return '{}({})'.format(waitsem.address, holder.name)
-                else:
-                    return '{}(<bad holder>)'.format(waitsem.address)
-            except:
-                return 'EXCEPTION'
-        if self._state_is('TSTATE_WAIT_SIG'):
-            return 'signal'
-        return ""
+    def is_running(self):
+        return self.address == int(nx_running_tcb())
 
     @property
     def is_waiting(self):
-        """tests whether the task is waiting for something"""
-        if self._state_is('TSTATE_WAIT_SEM') or self._state_is('TSTATE_WAIT_SIG'):
-            return True
+        return int(self._tcb["waitobj"]) != 0
 
     @property
-    def is_runnable(self):
-        """tests whether the task is runnable"""
-        if (self._state_is('TSTATE_TASK_PENDING') or 
-            self._state_is('TSTATE_TASK_READYTORUN') or 
-            self._state_is('TSTATE_TASK_RUNNING')):
-            return True
-        return False
+    def waiting_for(self):
+        '''Description of the object the task is waiting on.'''
+        waitobj = int(self._tcb["waitobj"])
+        if waitobj == 0:
+            if self._state_is("TSTATE_WAIT_SIG"):
+                return "signal"
+            return ""
+        description = "0x%08x" % waitobj
+        symbol = nx_symbol_name(waitobj)
+        if symbol:
+            description += " <%s>" % symbol
+        if self._state_is("TSTATE_WAIT_SEM"):
+            sem = gdb.Value(waitobj).cast(gdb.lookup_type("sem_t").pointer()).dereference()
+            if int(sem["flags"]) & NX_SEM_TYPE_MUTEX:
+                holder = int(sem["val"]["mholder"]) & NX_SEM_MHOLDER_MASK
+                task = NX_task.for_pid(holder)
+                holder_name = task.name if task is not None else "?"
+                description = "mutex %s held by pid %d (%s)" % (description, holder, holder_name)
+            else:
+                description = "semaphore %s count %d" % (description, int(sem["val"]["semcount"]))
+        elif self._state_is("TSTATE_WAIT_MQNOTEMPTY") or self._state_is("TSTATE_WAIT_MQNOTFULL"):
+            description = "message queue %s" % description
+        return description
 
     @property
-    def file_descriptors(self):
-        """return a dictionary of file descriptors and inode pointers"""
-        filelist = self._group['tg_filelist']
-        filearray = filelist['fl_files']
-        result = dict()
-        for i in range(filearray.type.range()[0],filearray.type.range()[1]):
-            inode = parse_int(filearray[i]['f_inode'])
-            if inode != 0:
-                result[i] = inode
-        return result
+    def stack_top(self):
+        return int(self._tcb["stack_base_ptr"]) + int(self._tcb["adj_stack_size"])
+
+    @property
+    def stack_size(self):
+        return int(self._tcb["adj_stack_size"])
+
+    @property
+    def saved_registers(self):
+        '''Registers saved in the TCB, or None (running task or no saved context).'''
+        regs = int(self._tcb["xcp"]["regs"])
+        if regs == 0:
+            return None
+        return nx_read_saved_regs(regs)
 
     @property
     def registers(self):
-        if 'registers' not in self.__dict__:
-            registers = dict()
-            if self._state_is('TSTATE_TASK_RUNNING'):
-                registers = NX_register_set.for_current().registers
-            else:
-                context = self._tcb['xcp']
-                regs = context['regs']
-                registers = NX_register_set.with_xcpt_regs(regs).registers
+        '''Current registers for the running task, otherwise the saved ones.'''
+        if self.is_running:
+            frame = gdb.newest_frame()
+            return dict((name, int(frame.read_register(name))) for name in NX_CORE_REGS)
+        return self.saved_registers
 
-            self.__dict__['registers'] = registers
-        return self.__dict__['registers']
+    @property
+    def stack_pointer(self):
+        registers = self.registers
+        if registers is None:
+            return None
+        return registers["sp"]
+
+    @property
+    def stack_used(self):
+        '''Bytes of stack in use at the current or saved stack pointer.'''
+        sp = self.stack_pointer
+        if sp is None or self.stack_size == 0:
+            return None
+        return self.stack_top - sp
+
+    @property
+    def stack_high_water(self):
+        '''
+        Most stack ever used, when the stack was filled by CONFIG_STACK_COLORATION;
+        None otherwise.
+        '''
+        base = int(self._tcb["stack_base_ptr"])
+        size = self.stack_size
+        if (base == 0) or (size == 0) or (nx_read_u32(base) != NX_STACK_COLOR):
+            return None
+        memory = bytes(gdb.selected_inferior().read_memory(base, size))
+        color = NX_STACK_COLOR.to_bytes(4, "little")
+        offset = 0
+        while (offset < size) and (memory[offset:offset + 4] == color):
+            offset += 4
+        return size - offset
+
+    @property
+    def file_descriptors(self):
+        '''Dictionary of file descriptor -> inode name for open files.'''
+        result = dict()
+        group = self._tcb["group"]
+        if int(group) == 0:
+            return result
+        fdlist = group.dereference()["tg_fdlist"]
+        rows = int(fdlist["fl_rows"])
+        fds = fdlist["fl_fds"]
+        if int(fds) == 0:
+            return result
+        per_row = fdlist["fl_prefds"].type.range()[1] + 1
+        for row in range(rows):
+            row_pointer = fds[row]
+            if int(row_pointer) == 0:
+                continue
+            for column in range(per_row):
+                file = row_pointer[column]["f_file"]
+                if int(file) == 0:
+                    continue
+                inode = file.dereference()["f_inode"]
+                name = "?"
+                if int(inode) != 0:
+                    try:
+                        name = inode.dereference()["i_name"].address.cast(
+                            gdb.lookup_type("char").pointer()).string()
+                    except gdb.error:
+                        name = "0x%08x" % int(inode)
+                result[row * per_row + column] = name
+        return result
 
     def __repr__(self):
         return "<NX_task {}>".format(self.pid)
 
     def __str__(self):
         return "{}:{}".format(self.pid, self.name)
-    
-    def showoff(self):
-        print("-------")
-        print("PID:\t",self.pid)
-        print("Name:\t",self.name)
-        print("State:\t",self.state)
-        print("Waiting for:\t",self.waiting_for)
-        print("Stack:\t",self.stack_used)
-        print("Stack size:",self._tcb['adj_stack_size'])
-        # print(self.file_descriptors)
-        # print(self.registers)
 
-    def __format__(self, format_spec):
-        return format_spec.format(
-                        address         =  self._tcb.address,
-            pid              = self.pid,
-            name             = self.name,
-            state            = self.state,
-            waiting_for      = self.waiting_for,
-            stack_used       = self.stack_used,
-            stack_limit      = self._tcb['adj_stack_size'],
-            file_descriptors = self.file_descriptors,
-            registers        = self.registers
-            )
-    
-class NX_show_task (gdb.Command):
-    """(NuttX) prints information about a task"""
+def format_registers(registers):
+    if registers is None:
+        return "  registers: not saved (task is running or has no saved context)\n"
+    text = ""
+    text += "  R0  %08x %08x %08x %08x\n" % (registers["r0"], registers["r1"], registers["r2"], registers["r3"])
+    text += "  R4  %08x %08x %08x %08x\n" % (registers["r4"], registers["r5"], registers["r6"], registers["r7"])
+    text += "  R8  %08x %08x %08x %08x\n" % (registers["r8"], registers["r9"], registers["r10"], registers["r11"])
+    text += "  R12 %08x\n" % registers["r12"]
+    text += "  SP  %08x LR %08x PC %08x XPSR %08x\n" % (registers["sp"], registers["lr"], registers["pc"],
+                                                       registers["xpsr"])
+    return text
+
+class NX_show_task(gdb.Command):
+    '''
+    (NuttX) Print information about a task.
+
+    Usage: nx_task <pid>
+    '''
 
     def __init__(self):
         super(NX_show_task, self).__init__("nx_task", gdb.COMMAND_USER)
 
     def invoke(self, arg, from_tty):
-        t = NX_task.for_pid(parse_int(arg))
-        if t is not None:
-            my_fmt = 'PID:{pid}  name:{name}  state:{state}\n'
-            my_fmt += '  stack used {stack_used} of {stack_limit}\n'
-            if t.is_waiting:
-                my_fmt += '  waiting for {waiting_for}\n'
-            my_fmt += '  open files: {file_descriptors}\n'
-            my_fmt += '  R0  {registers[R0]:#010x} {registers[R1]:#010x} {registers[R2]:#010x} {registers[R3]:#010x}\n'
-            my_fmt += '  R4  {registers[R4]:#010x} {registers[R5]:#010x} {registers[R6]:#010x} {registers[R7]:#010x}\n'
-            my_fmt += '  R8  {registers[R8]:#010x} {registers[R9]:#010x} {registers[R10]:#010x} {registers[R11]:#010x}\n'
-            my_fmt += '  R12 {registers[PC]:#010x}\n'
-            my_fmt += '  SP  {registers[SP]:#010x} LR {registers[LR]:#010x} PC {registers[PC]:#010x} XPSR {registers[XPSR]:#010x}\n'
-            print(format(t, my_fmt))
+        if not arg.strip():
+            raise gdb.GdbError("Usage: nx_task <pid>")
+        task = NX_task.for_pid(nx_parse_int(arg))
+        if task is None:
+            raise gdb.GdbError("No task with pid %s." % arg.strip())
+        text = "PID: %d  name: %s  state: %s  priority: %d  tcb: 0x%08x\n" % (
+            task.pid, task.name, task.state, task.priority, task.address)
+        used = task.stack_used
+        text += "  stack: size %d" % task.stack_size
+        if used is not None:
+            text += ", in use %d" % used
+        high_water = task.stack_high_water
+        if high_water is not None:
+            text += ", most used %d" % high_water
+        text += "\n"
+        if task.waiting_for:
+            text += "  waiting for: %s\n" % task.waiting_for
+        text += "  open files: %s\n" % task.file_descriptors
+        if task.is_running:
+            text += "  (running: current CPU registers)\n"
+        text += format_registers(task.registers)
+        print(text, end="")
 
-class NX_show_tasks (gdb.Command):
-    """(NuttX) prints a list of tasks"""
+NX_show_task()
+
+class NX_show_tasks(gdb.Command):
+    '''(NuttX) List all tasks.'''
 
     def __init__(self):
-        super(NX_show_tasks, self).__init__('nx_tasks', gdb.COMMAND_USER)
+        super(NX_show_tasks, self).__init__("nx_tasks", gdb.COMMAND_USER)
 
     def invoke(self, args, from_tty):
         tasks = NX_task.tasks()
-        print ('Number of tasks: ' + str(len(tasks)))
-        print('{:>5} {:>20} {:>22} {:>10}'.format("Id", "Name", "State", "Address"))
-        for t in tasks:
-            print('{:>5} {:>20} {:>22} {:>10}'.format(t.pid, t.name, t.state, t._tcb.address))
+        print("Number of tasks: %d" % len(tasks))
+        print("%5s %-24s %-18s %4s %10s %7s %7s  %s" % ("PID", "Name", "State", "Pri", "TCB",
+                                                       "Stack", "Used", "Waiting for"))
+        for task in tasks:
+            used = task.stack_used
+            used_text = "-" if used is None else str(used)
+            print("%5d %-24s %-18s %4d 0x%08x %7d %7s  %s" % (task.pid, task.name[:24], task.state,
+                                                            task.priority, task.address, task.stack_size,
+                                                            used_text, task.waiting_for))
 
-NX_show_task()
 NX_show_tasks()
 
-class NX_show_interrupted_thread (gdb.Command):
-    """(NuttX) prints the register state of an interrupted thread when in interrupt/exception context"""
+class NX_show_interrupted_thread(gdb.Command):
+    '''
+    (NuttX) Print the registers of the context interrupted by the current exception.
+
+    Only meaningful when the CPU halted in handler mode, for example in a fault
+    handler.  arm_doirq stores the interrupted context in the xcp.regs of the
+    running task (g_running_tasks[0]); before it has done so the pointer is taken
+    from the exception_common frame.
+    '''
 
     def __init__(self):
-        super(NX_show_interrupted_thread, self).__init__('show interrupted-thread', gdb.COMMAND_USER)
+        super(NX_show_interrupted_thread, self).__init__("show interrupted-thread", gdb.COMMAND_USER)
 
     def invoke(self, args, from_tty):
-        regs = gdb.lookup_global_symbol('current_regs').value()
+        ipsr = nx_in_exception()
+        if ipsr == 0:
+            raise gdb.GdbError("Not in interrupt context.")
+        running = nx_symbol_value("g_running_tasks")[0]
+        regs = int(running.dereference()["xcp"]["regs"])
         if regs == 0:
-            raise gdb.GdbError('not in interrupt context')
-        else:
-            registers = NX_register_set.with_xcpt_regs(regs)
-            my_fmt = ''
-            my_fmt += '  R0  {registers[R0]:#010x} {registers[R1]:#010x} {registers[R2]:#010x} {registers[R3]:#010x}\n'
-            my_fmt += '  R4  {registers[R4]:#010x} {registers[R5]:#010x} {registers[R6]:#010x} {registers[R7]:#010x}\n'
-            my_fmt += '  R8  {registers[R8]:#010x} {registers[R9]:#010x} {registers[R10]:#010x} {registers[R11]:#010x}\n'
-            my_fmt += '  R12 {registers[PC]:#010x}\n'
-            my_fmt += '  SP  {registers[SP]:#010x} LR {registers[LR]:#010x} PC {registers[PC]:#010x} XPSR {registers[XPSR]:#010x}\n'
-            print (format(registers, my_fmt))
+            #
+            #   arm_doirq has not stored the pointer in the TCB yet; exception_common
+            #   keeps it in r11 across the call to arm_doirq.
+            #
+            frame = gdb.newest_frame()
+            while frame is not None:
+                if frame.name() == "exception_common":
+                    regs = int(frame.read_register("r11"))
+                    break
+                frame = frame.older()
+        if regs == 0:
+            raise gdb.GdbError("No interrupted context saved (exception %s)." % nx_exception_name(ipsr))
+        print("Exception: %s, interrupted task: %s (pid %d), context at 0x%08x" % (
+            nx_exception_name(ipsr), running.dereference()["name"].string(),
+            int(running.dereference()["pid"]), regs))
+        print(format_registers(nx_read_saved_regs(regs)), end="")
 
 NX_show_interrupted_thread()
 
 class NX_check_tcb(gdb.Command):
-    """ check the tcb of a task from a address """
+    '''
+    (NuttX) Print the TCB of a task.
+
+    Usage: show tcb <pid>
+    '''
+
     def __init__(self):
-        super(NX_check_tcb,self).__init__('show tcb', gdb.COMMAND_USER)
-        
-    def invoke(self,args,sth):
-        tasks = NX_task.tasks()
-        print("tcb int: ",int(args))
-        print(tasks[int(args)]._tcb)
-        a =tasks[int(args)]._tcb['xcp']['regs']
-        # print("relevant registers:")
-        # for reg in regmap:
-        #     hex_addr= hex(int(a[regmap[reg]]))
-        #     eval_string = 'info line *'+str(hex_addr)
-        #     print(reg,": ",hex_addr,)
+        super(NX_check_tcb, self).__init__("show tcb", gdb.COMMAND_USER)
+
+    def invoke(self, args, from_tty):
+        if not args.strip():
+            raise gdb.GdbError("Usage: show tcb <pid>")
+        task = NX_task.for_pid(nx_parse_int(args))
+        if task is None:
+            raise gdb.GdbError("No task with pid %s." % args.strip())
+        print(task._tcb)
 
 NX_check_tcb()
 
-class NX_tcb(object):
-    def __init__(self):
-        pass
-    
-    def is_in(self,arg,list):
-        for i in list:
-            if arg == i:
-                return True;
-        return False
-    
-    def find_tcb_list(self,dq_entry_t):
-        tcb_list = []
-        tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
-        first_tcb = tcb_ptr.dereference()
-        tcb_list.append(first_tcb);
-        next_tcb = first_tcb['flink'].dereference()
-        while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-            tcb_list.append(next_tcb); 
-            old_tcb = next_tcb;
-            next_tcb = old_tcb['flink'].dereference()
-        
-        return [t for t in tcb_list if parse_int(t['pid'])<2000]
-    
-    def getTCB(self):
-        list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-        tcb_list = [];
-        for l in list_of_listsnames:
-            li = gdb.lookup_global_symbol(l)
-            print(li)
-            cursor = li.value()['head']
-            tcb_list = tcb_list + self.find_tcb_list(cursor)
-
 class NX_check_stack_order(gdb.Command):
-    """ Check the Stack order corresponding to the tasks """
-    
+    '''
+    (NuttX) List the stack regions and stack pointers of all tasks in address order.
+
+    Each task contributes three addresses: the start of its stack allocation, the top
+    of the stack and its current or saved stack pointer (marked _SP).  Useful for
+    spotting overlapping stacks or a stack pointer outside its stack.
+    '''
+
     def __init__(self):
-        super(NX_check_stack_order,self).__init__('show check_stack', gdb.COMMAND_USER)
-        
-    def is_in(self,arg,list):
-        for i in list:
-            if arg == i:
-                return True;
-        return False
-    
-    def find_tcb_list(self,dq_entry_t):
-        tcb_list = []
-        tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
-        first_tcb = tcb_ptr.dereference()
-        tcb_list.append(first_tcb);
-        next_tcb = first_tcb['flink'].dereference()
-        while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-            tcb_list.append(next_tcb); 
-            old_tcb = next_tcb;
-            next_tcb = old_tcb['flink'].dereference()
-        
-        return [t for t in tcb_list if parse_int(t['pid'])<2000]
-    
-    def getTCB(self):
-        list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-        tcb_list = [];
-        for l in list_of_listsnames:
-            li = gdb.lookup_global_symbol(l)
-            cursor = li.value()['head']
-            tcb_list = tcb_list + self.find_tcb_list(cursor)
-        return tcb_list
-        
-    def getSPfromTask(self,tcb):
-        regmap = NX_register_set.v7_regmap
-        a =tcb['xcp']['regs']
-        return     parse_int(a[regmap['SP']])
-    
-    def find_closest(self,list,val):
-        tmp_list = [abs(i-val) for i in list]
-        tmp_min = min(tmp_list)
-        idx = tmp_list.index(tmp_min)
-        return idx,list[idx]
-    
-    def find_next_stack(self,address,_dict_in):
-        add_list = []
-        name_list = []
-        for key in list(_dict_in.keys()):
-            for i in range(3):
-                if _dict_in[key][i] < address:
-                    add_list.append(_dict_in[key][i])
-                    if i == 2: # the last one is the processes stack pointer
-                        name_list.append(self.check_name(key)+"_SP")
-                    else:
-                        name_list.append(self.check_name(key))
-                    
-        idx,new_address = self.find_closest(add_list,address)
-        return new_address,name_list[idx]
-    
-    def check_name(self,name):
-        if isinstance(name,(list)):
-            name = name[0];
-        idx = name.find("\\")
-        newname = name[:idx]
-        
-        return newname
-     
-    def invoke(self,args,sth):
-        tcb = self.getTCB();
-        stackadresses={};
-        for t in tcb:
-            p = [];
-            #print(t.name,t._tcb['stack_alloc_ptr'])
-            p.append(parse_int(t['stack_alloc_ptr']))
-            p.append(parse_int(t['adj_stack_ptr']))
-            p.append(self.getSPfromTask(t))
-            stackadresses[str(t['name'])] = p;
-        address = int("0x30000000",0)
+        super(NX_check_stack_order, self).__init__("show check_stack", gdb.COMMAND_USER)
+
+    def invoke(self, args, from_tty):
+        entries = []
+        for task in NX_task.tasks():
+            entries.append((int(task._tcb["stack_alloc_ptr"]), task.name + " (stack start)"))
+            entries.append((task.stack_top, task.name + " (stack top)"))
+            sp = task.stack_pointer
+            if sp is not None:
+                warning = ""
+                if not (int(task._tcb["stack_base_ptr"]) <= sp <= task.stack_top):
+                    warning = "  <-- outside its stack"
+                entries.append((sp, task.name + "_SP" + warning))
         print("stack address  :  process")
-        for i in range(len(stackadresses)*3):
-            address,name = self.find_next_stack(address,stackadresses)
-            print(hex(address),": ",name)
+        for address, name in sorted(entries, reverse=True):
+            print("0x%08x     :  %s" % (address, name))
 
 NX_check_stack_order()
 
 class NX_run_debug_util(gdb.Command):
-    """ show the registers of a task corresponding to a tcb address"""
+    '''
+    (NuttX) Show the saved registers of a task (or all tasks) and the source line at
+    the saved PC.
+
+    Usage: show regs [pid]
+    '''
+
     def __init__(self):
-        super(NX_run_debug_util,self).__init__('show regs', gdb.COMMAND_USER)
-    
-    def printRegisters(self,task):
-        regmap = NX_register_set.v7_regmap
-        a =task._tcb['xcp']['regs']
-        print("relevant registers in ",task.name,":")
-        for reg in regmap:
-            hex_addr= hex(int(a[regmap[reg]]))
-            eval_string = 'info line *'+str(hex_addr)
-            print(reg,": ",hex_addr,)
-            
-    def getPCfromTask(self,task):
-        regmap = NX_register_set.v7_regmap
-        a =task._tcb['xcp']['regs']
-        return     hex(int(a[regmap['PC']]))
-    
-    def invoke(self,args,sth):
-        tasks = NX_task.tasks() 
-        if args == '':
-            for t in tasks:
-                self.printRegisters(t)
-                eval_str = "list *"+str(self.getPCfromTask(t))
-                print("this is the location in code where the current threads $pc is:")
-                gdb.execute(eval_str)
+        super(NX_run_debug_util, self).__init__("show regs", gdb.COMMAND_USER)
+
+    def show(self, task):
+        print("Registers of %s (pid %d):" % (task.name, task.pid))
+        registers = task.registers
+        print(format_registers(registers), end="")
+        if registers is not None:
+            print("Location of the PC:")
+            try:
+                gdb.execute("list *0x%x" % registers["pc"])
+            except gdb.error as e:
+                print("  %s" % e)
+        print("")
+
+    def invoke(self, args, from_tty):
+        if args.strip():
+            task = NX_task.for_pid(nx_parse_int(args))
+            if task is None:
+                raise gdb.GdbError("No task with pid %s." % args.strip())
+            self.show(task)
         else:
-            tcb_nr = int(args);
-            print("tcb_nr = ",tcb_nr)
-            t = tasks[tcb_nr]
-            self.printRegisters(t)
-            eval_str = "list *"+str(self.getPCfromTask(t))
-            print("this is the location in code where the current threads $pc is:")
-            gdb.execute(eval_str)
+            for task in NX_task.tasks():
+                self.show(task)
 
 NX_run_debug_util()
 
 class NX_search_tcb(gdb.Command):
-    """ shot PID's of all running tasks """
-    
+    '''(NuttX) Show the PID and name of every task.'''
+
     def __init__(self):
-        super(NX_search_tcb,self).__init__('show alltcb', gdb.COMMAND_USER)
-    
-    def is_in(self,arg,list):
-        for i in list:
-            if arg == i:
-                return True;
-        return False
-    
-    def find_tcb_list(self,dq_entry_t):
-        tcb_list = []
-        tcb_ptr = dq_entry_t.cast(gdb.lookup_type('struct tcb_s').pointer())
-        first_tcb = tcb_ptr.dereference()
-        tcb_list.append(first_tcb);
-        next_tcb = first_tcb['flink'].dereference()
-        while not self.is_in(parse_int(next_tcb['pid']),[parse_int(t['pid']) for t in tcb_list]):
-            tcb_list.append(next_tcb); 
-            old_tcb = next_tcb;
-            next_tcb = old_tcb['flink'].dereference()
-        
-        return [t for t in tcb_list if parse_int(t['pid'])<2000]
-    
-    def invoke(self,args,sth):
-        list_of_listsnames = ['g_pendingtasks','g_readytorun','g_waitingforsemaphore','g_waitingforsignal','g_inactivetasks']
-        tasks = [];
-        for l in list_of_listsnames:
-            li = gdb.lookup_global_symbol(l)
-            cursor = li.value()['head']
-            tasks = tasks + self.find_tcb_list(cursor)
-        
-        # filter for tasks that are listed twice
-        tasks_filt = {}
-        for t in tasks:
-            pid = parse_int(t['pid']);
-            if not pid in list(tasks_filt.keys()):
-                tasks_filt[pid] = t['name']; 
-        print('{num_t} Tasks found:'.format(num_t = len(tasks_filt)))
-        for pid in list(tasks_filt.keys()):
-            print("PID: ",pid," ",tasks_filt[pid])
+        super(NX_search_tcb, self).__init__("show alltcb", gdb.COMMAND_USER)
+
+    def invoke(self, args, from_tty):
+        tasks = NX_task.tasks()
+        print("%d Tasks found:" % len(tasks))
+        for task in tasks:
+            print("PID: %4d  %s" % (task.pid, task.name))
 
 NX_search_tcb()
 
 class NX_my_bt(gdb.Command):
-    """ 'fake' backtrace: backtrace the stack of a process and check every suspicious address for the list 
-    arg: tcb_address$
-    (can easily be found by typing 'showtask').
-    """
-    
-    def __init__(self):
-        super(NX_my_bt,self).__init__('show mybt', gdb.COMMAND_USER)
-        
-    def readmem(self,addr):
-        '''
-        read memory at addr and return nr
-        '''    
-        str_to_eval = "x/x "+hex(addr)
-        resp = gdb.execute(str_to_eval,to_string = True)
-        idx = resp.find('\t')
-        return int(resp[idx:],16)
-    
-    def is_in_bounds(self,val):
-        lower_bound = int("08004000",16)
-        upper_bound = int("080ae0c0",16);
-        #print(lower_bound," ",val," ",upper_bound)
-        if val>lower_bound and val<upper_bound:
-            return True;
-        else:
-            return False;
-    def get_tcb_from_address(self,addr):
-        addr_value = gdb.Value(addr)
-        tcb_ptr = addr_value.cast(gdb.lookup_type('struct tcb_s').pointer())
-        return tcb_ptr.dereference()
-    
-    def resolve_file_line_func(self,addr,stack_percentage):
-        gdb.write(str(round(stack_percentage,2))+":")
-        str_to_eval = "info line *"+hex(addr)
-        #gdb.execute(str_to_eval)
-        res = gdb.execute(str_to_eval,to_string = True)
-        # get information from results string:
-        words = res.split()
-        if words[0] != 'No':
-            line = int(words[1])
-            block = gdb.block_for_pc(addr)
-            func = block.function
-            if str(func) == "None":
-                func = block.superblock.function
-            return words[3].strip('"'), line, func
-        
-    def invoke(self,args,sth):
-        try:
-            addr_dec = parse_int(args)   # Trying to interpret the input as TCB address
-        except ValueError:
-            for task in NX_task.tasks(): # Interpreting as a task name
-                if task.name == args:
-                    _tcb = task._tcb
-                    break
-        else:
-            _tcb = self.get_tcb_from_address(addr_dec)
+    '''
+    (NuttX) 'Fake' backtrace: scan the stack of a task for words that point into code.
 
-        print("found task with PID: ",_tcb["pid"])
-        up_stack = parse_int(_tcb['adj_stack_ptr'])
-        curr_sp = parse_int(_tcb['xcp']['regs'][0]) #curr stack pointer
-        other_sp = parse_int(_tcb['xcp']['regs'][8]) # other stack pointer
-        stacksize = parse_int(_tcb['adj_stack_size']) # other stack pointer
-        
-        print("tasks current SP = ",hex(curr_sp),"stack max ptr is at ",hex(up_stack))
-        
+    Usage: show mybt <pid | task name | tcb address>
+
+    Every word between the task's stack pointer and the top of its stack that is the
+    address of a known function is printed with the percentage of the stack above
+    it.  This also works when the real unwinder gives up, but return addresses left
+    in dead stack and function pointers stored on the stack are listed too.
+    '''
+
+    def __init__(self):
+        super(NX_my_bt, self).__init__("show mybt", gdb.COMMAND_USER)
+
+    def invoke(self, args, from_tty):
+        if not args.strip():
+            raise gdb.GdbError("Usage: show mybt <pid | task name | tcb address>")
+        task = NX_task.find(args)
+        print("Task %s (pid %d), tcb 0x%08x" % (task.name, task.pid, task.address))
+        sp = task.stack_pointer
+        top = task.stack_top
+        size = task.stack_size
+        if sp is None:
+            raise gdb.GdbError("The task has no saved stack pointer.")
+        print("Stack pointer 0x%08x, stack top 0x%08x" % (sp, top))
+        if not (top - size <= sp <= top):
+            raise gdb.GdbError("The stack pointer is outside the task's stack.")
+        memory = bytes(gdb.selected_inferior().read_memory(sp, top - sp))
         item = 0
-        for sp in range(other_sp if curr_sp == up_stack else curr_sp, up_stack, 4):
-            mem = self.readmem(sp)
-            #print(hex(sp)," : ",hex(mem))
-            if self.is_in_bounds(mem):
-                # this is a potential instruction ptr
-                stack_percentage = (up_stack-sp)/stacksize
-                filename,line,func = self.resolve_file_line_func(mem, stack_percentage)
-                print('#%-2d ' % item, '0x%08x in ' % mem, func, ' at ', filename, ':', line, sep='')
-                item += 1
+        for offset in range(0, len(memory) - 3, 4):
+            value = int.from_bytes(memory[offset:offset + 4], "little")
+            #
+            #   Return addresses have the Thumb bit set.
+            #
+            if (value & 1) == 0:
+                continue
+            address = value & ~1
+            sal = gdb.find_pc_line(address)
+            name = nx_symbol_name(address)
+            if (name is None) or (sal.symtab is None):
+                continue
+            used = 100.0 * (top - (sp + offset)) / size
+            print("#%-3d %5.1f%% 0x%08x in %s at %s:%d" % (item, used, value, name, sal.symtab.filename,
+                                                          sal.line))
+            item += 1
 
 NX_my_bt()

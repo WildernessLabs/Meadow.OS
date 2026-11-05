@@ -1,13 +1,6 @@
+#
+#   Start tracing heap allocations on all heaps.  The breakpoints on mm_malloc and
+#   mm_free are set by trace_heap_start (Tracing.py); see readme.md.
+#
 set pagination off
-b mm_malloc.c:211
-command
-trace_add_heaptrace
-c
-end
-b mm_free.c:79
-command
-trace_remove_heaptrace
-c
-end
-trace_start
-info b
+trace_heap_start all
