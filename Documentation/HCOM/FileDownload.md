@@ -237,8 +237,10 @@ and are off.
   the processing loop reports every refusal.
 - **Sequence numbers are not checked.** A lost or repeated packet is detected only by the final CRC and
   size comparison ([WireProtocol.md](WireProtocol.md#things-to-know)).
-- **A short write is not an error.** If `write()` accepts fewer bytes than asked, the shortfall is
-  logged and the function still returns success; the size comparison at the end would catch it.
+- **A short write is an error.** If `write()` accepts fewer bytes than asked, the shortfall is logged,
+  the file is closed and the write returns `-ENOSPC` (nothing written) or `-EIO`, so the download fails
+  as for any other write error. A failed `write()` returns `-errno` (for example `-ENOSPC` when the
+  volume is full). On `/meadow0` a full volume shows up as that error, not as a short write.
 - **Disabling Mono costs a restart.** The check uses the persistent "Mono disabled" setting, which
   `MONO_DISABLE` changes and applies by restarting the device. A host that wants to replace a file while
   Mono is enabled has to disable Mono first, and enable it again afterwards.
