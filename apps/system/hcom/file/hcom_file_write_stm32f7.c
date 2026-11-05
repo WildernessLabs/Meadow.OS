@@ -178,9 +178,12 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
   nbytes = write(dnldShared->dnldFileFD, writeDataBuff, fileWriteSize);
   if (nbytes < 0)
   {
+    // Save errno now; syslog, close and free can all overwrite it.
+    int writeErrno = errno;
+
     syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n",
              __FILE__, __LINE__, dnldShared->dnldFullPathName,
-             dnldShared->dnldFileFD, errno);
+             dnldShared->dnldFileFD, writeErrno);
 
     if(dnldShared->dnldFileFD >= 0)
     {
@@ -190,8 +193,8 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
 
     if(dnldShared->dnldRqstCat == pathnameSdcard)
       free(writeDataBuff);
-      
-    return nbytes;
+
+    return -writeErrno;
   }
 
   // Only free if allocated for sdcard
@@ -203,6 +206,18 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
     syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n",
              __FILE__, __LINE__, dnldShared->dnldFullPathName,
              nbytes, fileWriteSize);
+
+    // A short write means the media could not take all of the data (for
+    // example the volume is full).  Fail now, as the nbytes < 0 path does,
+    // rather than let the download carry on writing later packets at the
+    // wrong offsets.
+    close(dnldShared->dnldFileFD);
+    dnldShared->dnldFileFD = -1;
+
+    if (nbytes == 0)
+      return -ENOSPC;
+
+    return -EIO;
   }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
