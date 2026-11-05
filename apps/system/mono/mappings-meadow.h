@@ -48,6 +48,7 @@ extern int meadow_os_get_gateway_address(char *buffer);
 extern int meadow_measure_freq_configure(void* mdwCfgTimerChan);
 extern int meadow_measure_freq_return_freq_info(void* mdwFreqReturnData);
 extern int meadow_rotary_encoder_config(void* rotencCfg);
+extern int meadow_rotary_encoder_read_data(void* rotEncReadData);
 extern int meadow_rotary_encoder_set_count(uint32_t encoderNumb, int32_t encoderCount);
 extern int stm32_configgpio(uint32_t cfgset);
 extern void stm32_gpiowrite(uint32_t pinset, bool value);
@@ -119,6 +120,7 @@ const MonoDlMapping meadow_mappings[] = {
        { "meadow_measure_freq_configure", meadow_measure_freq_configure},
        { "meadow_measure_freq_return_freq_info", meadow_measure_freq_return_freq_info},
        { "meadow_rotary_encoder_config", meadow_rotary_encoder_config},
+       { "meadow_rotary_encoder_read_data", meadow_rotary_encoder_read_data},
        { "meadow_rotary_encoder_set_count", meadow_rotary_encoder_set_count},
        { "stm32_configgpio", stm32_configgpio },
        { "stm32_gpiowrite", stm32_gpiowrite },
