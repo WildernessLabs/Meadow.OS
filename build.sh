@@ -41,6 +41,7 @@ BOOTLOADER_OPTIONS=
 NUTTX_VERBOSE=
 ENABLE_NSH=false
 ENABLE_DUALCDC=false
+ENABLE_GDB_DIAGNOSTICS=false
 
 for i in "$@"
 do
@@ -91,6 +92,9 @@ case $i in
     --dualcdc)
     ENABLE_DUALCDC=true
     ;;
+    --gdbdiag)
+    ENABLE_GDB_DIAGNOSTICS=true
+    ;;
     --dbc|--debug-bl-cdc)
     DEBUG_BL_CDC=true
     ;;
@@ -124,6 +128,7 @@ if [ "$HELP" = true ]; then
   echo "  --configure                  Configure the build"
   echo "  --debug                      Enable the NuttX debug features (debug output to SYSLOG)"
   echo "  --esd                        Enable stack dumps to be sent to USART1 (COM1)"
+  echo "  --gdbdiag                    Enable stack coloration for GDB stack high-water marks"
   echo "  --config=mono|netcore        Select Mono or .NET Core builds (default Mono)"
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
@@ -469,6 +474,10 @@ fi
 
 if $DEBUG; then
   enable_debug_features
+fi
+
+if $ENABLE_GDB_DIAGNOSTICS; then
+  enable_gdb_diagnostics
 fi
 
 if $CONFIGURE_ONLY; then

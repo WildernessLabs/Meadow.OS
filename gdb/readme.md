@@ -32,6 +32,9 @@ source Nuttx.py
 source Nuttx_Tasks.py
 source NuttxHeap.py
 source Tracing.py
+source Svd.py
+source Meadow.py
+source Mono.py
 ```
 
 ### Other helpful configuration scripts
@@ -77,9 +80,50 @@ This is not set by default, use if working a lot with assembly.
 | `nx_check_heap` | `NuttxHeap.py` | Check the node chains of the kernel and user heaps |
 | `trace_start`, `trace_stop`, `trace_add_backtrace`, `show trace_data` | `Tracing.py` | Record backtraces from breakpoint command lists |
 | `trace_heap_start`, `trace_heap_stop`, `show heap_trace` | `Tracing.py` | Heap tracing, see below |
+| `nx_alive [seconds]` | `Meadow.py` | Is the core running?  DHCSR state (halted, sleeping, lockup) and the system tick count across a short run (about 1000 per second is healthy) |
+| `nx_reset` | `Meadow.py` | Reset reason (BK30R, the RCC_CSR flags the bootloader saved: 0x14 = reset pin + software), reset and power-cycle counts, the Meadow flags in BK31R and the fault logging status in BK29R |
+| `nx_fault` | `Meadow.py` | Fault report: CFSR/HFSR/DFSR decoded, MMFAR/BFAR, vector catch state, the interrupted context and its backtrace |
+| `nx_mpu` | `Meadow.py` | The MPU regions with size, access and attributes, named by the kernel/user sections and heaps they cover |
+| `nx_irqs [all]` | `Meadow.py` | NVIC enabled/pending/active interrupts with priority, NuttX handler and name |
+| `espcp_status` | `Meadow.py` | ESP32 link: mode, threads, queues and who waits on them, requests waiting for a response, error counters |
+| `svd [PERIPHERAL [REGISTER]]` | `Svd.py` | Peripheral registers from `STM32F777.svd`, decoded field by field.  Data registers whose read has side effects (DR, RDR, RXDR, FIFO) are only read when named |
+| `nx_jit <address>` | `Mono.py` | The managed method whose JIT code contains an address |
+| `nx_jit_compile` | `Mono.py` | Which task is JIT-compiling which method, and the interpreter settings |
 
-The upstream NuttX scripts loaded by `.gdbinit` add more commands, for example `info nxthreads`, `ps`,
-`mm dump` and `mm check`.
+`nx_alive` resumes and halts the core.  `nx_mpu` writes MPU_RNR to select each region and restores
+it.  Everything else only reads the target.
+
+### Upstream pynuttx commands
+
+`.gdbinit` also loads the upstream NuttX scripts (`nuttx/tools/pynuttx`).  Checked on Meadow.OS
+2.999.53.6:
+
+| Status | Commands |
+|--------|----------|
+| Work | `info nxthreads`, `deadlock`, `wdog`, `fdinfo`, `mount`, `foreach inode`, `hexdump`, `addr2line`, `mm heap`, `mm frag`, `mm free`, `mm dump` (allocation counts by size), `mm check` / `memcheck`, `mm map` / `memmap` (needs numpy and matplotlib from the `.venv` that `debug.sh` builds), `mm leak` / `memleak` (needs pyelftools from the `.venv`; about 3 minutes) |
+| Partial | `irqinfo` (handlers only: counts need `SCHED_IRQMONITOR`, which needs PROCFS), `stack-usage` (current use only; use `nx_tasks` for the maximum), `mm dump` (no owner PIDs: they need `MM_BACKTRACE >= 0`) |
+| Fail | `ps` (reads several macros, such as `_SIGSET_NELEM` and the TCB flag masks, that the build does not include; `nx_tasks` covers the same ground) |
+| Not registered | `worker`, `netstats`, `netcheck`, `info shm` (pynuttx registers them from configuration macros that are not in the build) |
+
+The build is compiled with `-g`, which leaves C macros out of the debug information; pynuttx reads
+many values from macros.  `mm check` and `mm map` failed for that reason (`MM_MIN_CHUNK` missing, and
+sequence numbers of -1 without `MM_BACKTRACE`); both are fixed in `nuttx/tools/pynuttx/nxgdb/mm.py` and
+`memdump.py`.
+
+`mm leak` reported thousands of false leaks, for three reasons, all fixed in `memleak.py` and `mm.py`:
+it scanned only the user heap, but the task control blocks and task groups that point to task stacks,
+task information and environments are in the kernel heap; it reported the marker nodes at the start
+and end of every heap region; and it read each node from 4 bytes too early, so it missed a pointer in
+the last word of an allocation.  Without `MM_BACKTRACE` it cannot say who allocated a reported node.
+
+`./build.sh --clean --force --gdbdiag` turns on `STACK_COLORATION`: stack high-water marks ("Max" in
+`nx_tasks`, "most used" in `nx_task`).  It costs a fill of each stack when a thread starts.  pynuttx
+`stack-usage` still shows 0 for the maximum, because it detects the option from macro information that
+the build does not include.
+
+`MM_BACKTRACE` (the owner of every heap allocation) cannot be turned on in this protected build: the
+user-space copy of the heap code then calls the kernel-only `nxsched_get_tcb()` and the user image
+fails to link.  `show heap` prints the owner PID and sequence number if a build ever has them.
 
 ### Threads and the OpenOCD in use
 
@@ -121,7 +165,35 @@ Not running; unwinding from the context saved in tcb->xcp.regs
 
 Frames of `mono_interp_exec_method` are followed by the managed methods it is running, read from the
 interpreter's `InterpFrame` chain, for example `[managed] System.Object::GetType`.  This needs the
-interpreter (`--interp`); JIT-compiled code has no symbols and shows as `?? ()`.
+interpreter (`--interp`).
+
+JIT-compiled code has no symbols.  With `Mono.py` loaded, such frames are named from Mono's JIT info
+table instead of `?? ()`, for example `0xc12c0b2a in [JIT] System.Threading.Monitor::Monitor_wait+0x59`.
+GDB cannot unwind through JIT code, so the backtrace ends at the first JIT frame.
+
+### Debugging a fault
+
+A fault (for example a NULL pointer write in user code, which the MPU turns into a MemManage fault)
+goes through `exception_common` like any interrupt.  Two ways to stop on it before NuttX panics and
+resets the board:
+
+* Vector catch (`.gdbinit` turns it on): the core halts on the fault entry.  `bt` shows
+  `<signal handler called>` and then the faulting function and its callers.
+* `hbreak arm_memfault` (or `arm_hardfault`; BusFault and UsageFault escalate to HardFault): `bt`
+  shows the handler, `arm_doirq`, `exception_common`, `<signal handler called>`, then the faulting
+  code.
+
+In either case `nx_fault` prints the decoded cause (e.g. `MemManage DACCVIOL`, `MMFAR 0x00000000`),
+the faulting PC and LR and the backtrace.  Checked on the board with a deliberate NULL write in
+`hcom_main`: both methods name the faulting line and every caller up to `hcom_main`.
+
+Kernel (privileged) code faults on NULL too, but differently: the MPU lets privileged code use the
+default memory map, and address 0 is the ITCM RAM, which is disabled in this build
+(`CONFIG_ARMV7M_ITCM` is off; ITCMCR at 0xE000EF90 reads 0x72, enable bit clear).  An access there is
+a BusFault (CFSR PRECISERR, BFAR = the address), which escalates to HardFault because BusFault is
+not enabled; measured with a read of address 4 from the idle task.  If ITCM is ever enabled, kernel
+NULL accesses will silently read and write ITCM RAM instead; an access watchpoint over the low
+addresses (`awatch *(char (*)[1024]) 0`) or an MPU no-access region at 0 would then be needed.
 
 ### Mapping from addresses to symbols
 

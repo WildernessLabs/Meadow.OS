@@ -70,6 +70,9 @@ All commands run from the **workspace root**, not from `nuttx/`:
 
 # Developer only: add a second USB CDC/ACM port for syslog (or for NSH with --nsh)
 ./build.sh --dualcdc
+
+# Stack coloration for stack high-water marks in the GDB scripts (debugging builds only)
+./build.sh --clean --force --gdbdiag
 ```
 
 `./build.sh --help` lists every option.

@@ -129,6 +129,13 @@ class MMLeak(gdb.Command):
             for start, end in heap.regions
         ]
 
+        # The first and last node of every region are markers that nothing points
+        # to; they are not leaks.
+        boundaries = {region["start"] for region in regions} | {
+            region["end"] for region in regions
+        }
+        sorted_addr = [addr for addr in sorted_addr if addr not in boundaries]
+
         longsize = utils.get_long_type().sizeof
 
         checked_ptr = {}
@@ -172,6 +179,22 @@ class MMLeak(gdb.Command):
 
         return memdump.group_nodes((nodes_dict[addr] for addr in sorted_addr))
 
+    @staticmethod
+    def _heaps() -> List[mm.MMHeap]:
+        """The user heap, and the kernel heap when there is a separate one.
+
+        In a protected build the task control blocks and task groups are in the
+        kernel heap (g_kmmheap), and they hold the only pointers to the task
+        stacks, task info and environment arrays in the user heap.  Without the
+        kernel heap those user heap nodes are reported as leaked.
+        """
+        heaps = memdump.get_heaps("g_mmheap")
+        kheap = utils.gdb_eval_or_none("g_kmmheap")
+        if kheap is not None and int(kheap) != 0:
+            if int(kheap) != int(utils.gdb_eval_or_none("g_mmheap") or 0):
+                heaps.append(mm.MMHeap(kheap, name="g_kmmheap"))
+        return heaps
+
     def _iterate_leaks(
         self, nodes: Dict[memdump.MMNodeDump, List[memdump.MMNodeDump]]
     ) -> Generator[Tuple[memdump.MMNodeDump, bool, int], None, None]:
@@ -185,7 +208,7 @@ class MMLeak(gdb.Command):
             yield node, is_pid_alive(node.pid), count
 
     def invoke(self, arg: str, from_tty: bool) -> None:
-        heaps = memdump.get_heaps("g_mmheap")
+        heaps = self._heaps()
 
         leak_nodes = self.collect_leaks(heaps)
         memdump.print_header()
@@ -198,7 +221,7 @@ class MMLeak(gdb.Command):
         print(f"Leaked {total_blk} blks, {total_size} bytes")
 
     def diagnose(self, *args, **kwargs):
-        heaps = memdump.get_heaps("g_mmheap")
+        heaps = self._heaps()
         leak_nodes = self.collect_leaks(heaps)
         total_blk = total_size = 0
         data = []

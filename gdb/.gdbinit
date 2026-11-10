@@ -87,10 +87,13 @@ source Nuttx.py
 source Nuttx_Tasks.py
 source NuttxHeap.py
 source Tracing.py
+source Svd.py
+source Meadow.py
+source Mono.py
 source ../nuttx/tools/pynuttx/gdbinit.py
 
 target extended-remote :4242
-mon gdb breakpoint_override hard
+monitor gdb breakpoint_override hard
 #reset-qemu
 
 #

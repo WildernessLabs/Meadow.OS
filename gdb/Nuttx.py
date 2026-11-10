@@ -93,9 +93,17 @@ NX_EXCEPTION_NAMES = {
 #
 ###########################################################################
 
+def nx_reg(frame, name):
+    '''
+    A register of a frame as an unsigned 32-bit integer.  GDB gives r0-r12 a
+    signed type, so an address such as 0xc0318010 (SDRAM) would otherwise come
+    back negative.
+    '''
+    return int(frame.read_register(name)) & 0xffffffff
+
 def nx_read_u32(address):
     '''Read a little endian 32-bit word from target memory.'''
-    memory = gdb.selected_inferior().read_memory(int(address), 4)
+    memory = gdb.selected_inferior().read_memory(int(address) & 0xffffffff, 4)
     return int.from_bytes(bytes(memory), "little")
 
 def nx_symbol_value(name):
@@ -125,10 +133,17 @@ def nx_symbol_name(address):
         block = gdb.block_for_pc(int(address))
     except RuntimeError:
         block = None
-    while (block is not None) and (block.function is None):
+    #
+    #   Take the outermost function: an inlined function has a block of its own
+    #   inside the block of the function it was inlined into.
+    #
+    function = None
+    while block is not None:
+        if block.function is not None:
+            function = block.function
         block = block.superblock
-    if block is not None:
-        return block.function.print_name
+    if function is not None:
+        return function.print_name
     text = gdb.execute("info symbol 0x%x" % int(address), to_string=True)
     if text.startswith("No symbol"):
         return None
@@ -261,7 +276,7 @@ def nx_with_task_context(tcb, function):
     names = [name for name in NX_CORE_REGS if name != "xpsr"]
     original = {}
     for name in names:
-        original[name] = int(gdb.newest_frame().read_register(name))
+        original[name] = nx_reg(gdb.newest_frame(), name)
     #
     #   Set the TCB before writing the registers: GDB unwinds while the registers
     #   are being written and the dispatch_syscall unwinder must already see the
@@ -339,10 +354,85 @@ def nx_read_saved_regs(regs_address):
         values["sp"] += 4
     return values
 
+def nx_read_hardware_frame(frame_address, exc_return, current):
+    '''
+    Registers from a hardware exception frame (r0-r3, r12, lr, pc, xpsr) stacked at
+    frame_address.  r4-r11 are not stacked by the hardware, so they come from
+    current (the registers at the halt).
+    '''
+    names = ["r0", "r1", "r2", "r3", "r12", "lr", "pc", "xpsr"]
+    values = dict(current)
+    for index, name in enumerate(names):
+        values[name] = nx_read_u32(frame_address + 4 * index)
+    if exc_return & EXC_RETURN_STD_CONTEXT:
+        values["sp"] = frame_address + NX_HW_FRAME_STANDARD
+    else:
+        values["sp"] = frame_address + NX_HW_FRAME_EXTENDED
+    if values["xpsr"] & (1 << 9):
+        values["sp"] += 4
+    return values
+
+def nx_interrupted_context():
+    '''
+    The context interrupted by the current exception, or None when the CPU is not
+    in handler mode.  Returns a dictionary with "source" (text), "address" and
+    "regs" (register values).
+
+    In order of preference:
+    - tcb->xcp.regs of g_running_tasks[0], which arm_doirq sets;
+    - the pointer exception_common keeps in r11, before arm_doirq has set it;
+    - the hardware exception frame, when the core stopped on the first instruction
+      of exception_common (the exception entry, e.g. a vector catch) before NuttX
+      saved anything.
+    Inside the rest of exception_common's prologue the context cannot be found.
+    '''
+    ipsr = nx_in_exception()
+    if ipsr == 0:
+        return None
+    running = nx_running_tcb()
+    regs = int(running.dereference()["xcp"]["regs"])
+    if regs != 0:
+        return {"source": "tcb->xcp.regs of %s" % running.dereference()["name"].string(),
+                "address": regs, "regs": nx_read_saved_regs(regs)}
+    newest = gdb.newest_frame()
+    layout = nx_exception_layout(newest.architecture())
+    pc = nx_reg(newest, "pc")
+    if layout.valid() and (pc == layout.start):
+        #
+        #   Stopped on the exception entry (the vectors point at exception_common):
+        #   only the hardware has saved anything so far.
+        #
+        current = dict((name, nx_reg(newest, name)) for name in NX_CORE_REGS)
+        exc_return = current["lr"]
+        if (exc_return & 0xffffff00) != 0xffffff00:
+            return None
+        stack = "psp" if (exc_return & 0x4) else "msp"
+        frame_address = nx_reg(newest, stack)
+        return {"source": "hardware frame on %s (exception entry)" % stack.upper(),
+                "address": frame_address,
+                "regs": nx_read_hardware_frame(frame_address, exc_return, current)}
+    #
+    #   r11 holds the pointer only while exception_common is waiting for arm_doirq to
+    #   return, i.e. when it is an outer frame stopped at the return address.
+    #
+    frame = newest
+    while frame is not None:
+        if layout.valid() and (frame.pc() == layout.after_call) and (frame.name() == "exception_common"):
+            regs = nx_reg(frame, "r11")
+            if regs != 0:
+                return {"source": "exception_common (r11)", "address": regs,
+                        "regs": nx_read_saved_regs(regs)}
+            break
+        try:
+            frame = frame.older()
+        except gdb.error:
+            frame = None
+    return None
+
 def nx_print_regs(values, names):
     for name in names:
         if name in values:
-            print("%-6s 0x%08x" % (name, values[name]))
+            print("%-6s 0x%08x" % (name, values[name] & 0xffffffff))
 
 ###########################################################################
 #
@@ -404,7 +494,11 @@ class NuttxSyscallLayout(object):
         return None not in (self.start, self.after_sub_sp, self.after_str_ip, self.add_sp)
 
     def contains(self, pc):
-        return (self.start is not None) and (self.start <= pc < self.end)
+        #
+        #   pc == end is the return address of the svc that ends dispatch_syscall,
+        #   seen in the hardware frame when the SYS_syscall_return SVC is taken.
+        #
+        return (self.start is not None) and (self.start <= pc <= self.end)
 
 _nx_syscall_layout = None
 
@@ -518,7 +612,7 @@ if Unwinder is not None:
             if pending_frame.level() == 0:
                 self._depths = {}
             try:
-                pc = int(pending_frame.read_register("pc"))
+                pc = nx_reg(pending_frame, "pc")
                 architecture = pending_frame.architecture()
                 if nx_syscall_layout(architecture).contains(pc):
                     return self.unwind_syscall(pending_frame, pc)
@@ -532,9 +626,9 @@ if Unwinder is not None:
 
         def unwind_syscall(self, pending_frame, pc):
             layout = nx_syscall_layout()
-            sp = int(pending_frame.read_register("sp"))
-            lr = int(pending_frame.read_register("lr"))
-            ip = int(pending_frame.read_register("r12"))
+            sp = nx_reg(pending_frame, "sp")
+            lr = nx_reg(pending_frame, "lr")
+            ip = nx_reg(pending_frame, "r12")
             tcb = nx_tcb_for_thread()
             level = pending_frame.level()
             key = int(tcb)
@@ -554,11 +648,31 @@ if Unwinder is not None:
                                     {"pc": caller_pc, "sp": caller_sp, "lr": caller_lr})
 
         def unwind_exception(self, pending_frame, layout):
-            regs = int(pending_frame.read_register("r11"))
+            '''
+            Unwind exception_common to the state at exception entry: PC = EXC_RETURN
+            and the stack pointer at the hardware exception frame, with r4-r11 from
+            the NuttX register save area.  GDB's own Cortex-M exception unwinder then
+            takes the interrupted registers from the hardware frame.
+
+            Handing GDB the interrupted PC directly would be wrong for faults: GDB
+            treats the PC of every outer frame as a return address and looks up the
+            instruction before it, which for a fault is in the code before the
+            faulting instruction (often a different function).  GDB only skips that
+            adjustment below its own exception frames.
+            '''
+            regs = nx_reg(pending_frame, "r11")
             if regs == 0:
                 return None
+            exc_return = nx_read_u32(regs + NX_REG_EXC_RETURN * 4)
+            if (exc_return & 0xffffff00) != 0xffffff00:
+                return None
             saved = nx_read_saved_regs(regs)
-            return self.unwind_info(pending_frame, layout.start, saved)
+            hardware_frame = regs + nx_reg_offsets()["r0"]
+            values = {"pc": exc_return, "lr": exc_return, "sp": hardware_frame}
+            for name in ("r4", "r5", "r6", "r7", "r8", "r9", "r10", "r11"):
+                values[name] = saved[name]
+            values["psp" if (exc_return & 0x4) else "msp"] = hardware_frame
+            return self.unwind_info(pending_frame, layout.start, values)
 
         def unwind_info(self, pending_frame, function_start, values):
             '''
@@ -566,11 +680,13 @@ if Unwinder is not None:
             general registers keep their value.  GDB needs xpsr (Thumb state) and
             consistent stack pointer aliases (msp/psp) to carry on unwinding.
             '''
-            sp = int(pending_frame.read_register("sp"))
+            sp = nx_reg(pending_frame, "sp")
             values = dict(values)
             for alias in ("msp", "psp"):
+                if alias in values:
+                    continue
                 try:
-                    if int(pending_frame.read_register(alias)) == sp:
+                    if nx_reg(pending_frame, alias) == sp:
                         values[alias] = values["sp"]
                 except (gdb.error, ValueError):
                     pass
@@ -600,15 +716,24 @@ if Unwinder is not None:
 MONO_INTERP_FUNCTIONS = ("mono_interp_exec_method", "interp_exec_method_full")
 
 def nx_mono_method_name(method):
-    '''Namespace.Class::Method for a MonoMethod pointer, read without calling into the target.'''
+    '''Namespace.Class+Nested::Method for a MonoMethod pointer, read without calling into the target.'''
     method = method.dereference()
     name = method["name"].string()
     klass = method["klass"]
     if int(klass) == 0:
         return name
-    klass = klass.dereference()
-    class_name = klass["name"].string()
-    name_space = klass["name_space"].string()
+    #
+    #   Nested classes have no namespace of their own: prefix the enclosing classes
+    #   (Interop+Sys), then the outermost class's namespace.
+    #
+    class_name = klass.dereference()["name"].string()
+    outer = klass
+    depth = 0
+    while (int(outer.dereference()["nested_in"]) != 0) and (depth < 8):
+        outer = outer.dereference()["nested_in"]
+        class_name = outer.dereference()["name"].string() + "+" + class_name
+        depth += 1
+    name_space = outer.dereference()["name_space"].string()
     if name_space:
         class_name = name_space + "." + class_name
     return "%s::%s" % (class_name, name)
@@ -685,8 +810,27 @@ class NuttxAndMonoBacktrace(object):
 
     def format_frame(self, frame, number, annotation):
         pc = frame.pc()
+        if frame.type() == gdb.SIGTRAMP_FRAME:
+            #
+            #   GDB's own frame for a hardware exception entry; its PC is the
+            #   EXC_RETURN value.
+            #
+            return "#%-3d <exception frame, EXC_RETURN 0x%08x>" % (number, pc)
         name = frame.name()
         if name is None:
+            #
+            #   Code without symbols is usually Mono JIT code; Mono.py (when loaded)
+            #   names it from the runtime's JIT info table.  For outer frames the PC
+            #   is a return address, so look up the instruction before it.
+            #
+            jit_name = globals().get("mono_jit_frame_name")
+            if jit_name is not None:
+                jit = jit_name(pc - 1 if frame.level() > 0 else pc)
+                if jit is not None:
+                    text = "#%-3d 0x%08x in %s" % (number, pc, jit)
+                    if annotation:
+                        text += " [%s]" % annotation
+                    return text
             name = "??"
         sal = frame.find_sal()
         location = ""
@@ -724,11 +868,16 @@ class NuttxAndMonoBacktrace(object):
         #
         #   exception_common keeps the register save area pointer in r11 (fp).
         #
-        regs = int(frame.read_register("r11"))
-        if regs == 0:
-            return "exception"
-        saved = nx_read_saved_regs(regs)
         ipsr = int(frame.read_register("xpsr")) & 0x1ff
+        layout = nx_exception_layout(frame.architecture())
+        if layout.valid() and (frame.pc() == layout.start):
+            return "%s, exception entry" % nx_exception_name(ipsr)
+        if not (layout.valid() and (frame.pc() == layout.after_call)):
+            return "%s" % nx_exception_name(ipsr)
+        regs = nx_reg(frame, "r11")
+        if regs == 0:
+            return "%s" % nx_exception_name(ipsr)
+        saved = nx_read_saved_regs(regs)
         return "%s, interrupted pc 0x%08x" % (nx_exception_name(ipsr), saved["pc"])
 
     def annotate_svcall(self, frame):
@@ -853,7 +1002,7 @@ class ARMRegContext(object):
         self.values = {}
         for name in self.names:
             try:
-                self.values[name] = int(frame.read_register(name))
+                self.values[name] = nx_reg(frame, name)
             except (gdb.error, ValueError):
                 pass
 
