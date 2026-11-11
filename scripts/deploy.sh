@@ -26,6 +26,11 @@ if [ ! -f "$rootdir/nuttx/Meadow.OS.bin" ] || [ ! -f "$runtime" ]; then
   exit 1
 fi
 
+#
+#   Stop a debug OpenOCD started by scripts/openocd_server.sh; any other server holding the
+#   probe has to be stopped by hand.
+#
+"$scriptdir/openocd_server.sh" stop
 if lsof -nP -iTCP:4242 -sTCP:LISTEN > /dev/null 2>&1; then
   echo "An OpenOCD server is running on port 4242; stop it so the probe is free."
   exit 1

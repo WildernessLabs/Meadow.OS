@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CLionExternalBuildManager">
+    <target id="5a1f6c2e-8b3d-4f7a-9c21-7e4d2b8a6f10" name="Meadow" defaultType="TOOL">
+      <configuration id="9d3e2a71-4c5b-4e8f-a6d2-1b7c8e9f0a32" name="Meadow" toolchainName="Meadow ARM">
+        <build type="TOOL">
+          <tool actionId="Tool_External Tools_Meadow build" />
+        </build>
+        <clean type="TOOL">
+          <tool actionId="Tool_External Tools_Meadow clean" />
+        </clean>
+      </configuration>
+    </target>
+  </component>
+</project>

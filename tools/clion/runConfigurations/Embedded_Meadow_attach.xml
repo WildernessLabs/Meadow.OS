@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Embedded Meadow (attach)" type="com.jetbrains.cidr.embedded.customgdbserver.type" factoryName="com.jetbrains.cidr.embedded.customgdbserver.factory" folderName="Embedded" PROGRAM_PARAMS="-s /Users/markstevens/Github/ThirdParty/openocd/tcl -f /Users/markstevens/GitHub/WildernessLabs/OS/Rebase/debug-attach.cfg" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Rebase" TARGET_NAME="Meadow" CONFIG_NAME="Meadow" version="1" RUN_PATH="$PROJECT_DIR$/nuttx/nuttx.elf">
+    <custom-gdb-server version="1" gdb-connect="tcp::4242" executable="/Users/markstevens/Github/ThirdParty/openocd/src/openocd" warmup-ms="1000" download-type="NONE" reset-cmd="monitor reset" reset-type="NEVER">
+      <debugger kind="GDB">/opt/homebrew/bin/arm-none-eabi-gdb</debugger>
+    </custom-gdb-server>
+    <method v="2" />
+  </configuration>
+</component>
