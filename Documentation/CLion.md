@@ -166,16 +166,20 @@ Stop any debug session first, then run **Deploy (OS + runtime)**.  `scripts/depl
 ## Debugging
 
 1. Debug **Debug Meadow (attach)** or **Embedded Meadow (attach)** to attach to a running board,
-   or the **(reset)** variant to debug from reset.  The reset variants leave the board halted at
-   the first instruction; press **Resume** to boot it.
+   or the **(reset)** variant to debug from reset.  OpenOCD halts the board at the first
+   instruction after the reset: **Debug Meadow (reset)** stays there until **Resume** is pressed,
+   while **Embedded Meadow (reset)** resumes by itself and boots straight to the first
+   breakpoint.
 2. When `gdb/clion.gdbinit` has run, the remote sessions show `Build version: "..."` and
    `Registering NuttX GDB commands ...` in the GDB console.  The Embedded sessions do not show
    this output, but load the same symbols and commands (`dmesg` works).
 3. Pause if the program shows as running.  The threads pane lists the NuttX tasks with their call
    stacks, and the Meadow and NuttX GDB commands (`dmesg`, `nx_bt <pid>`, `ps`, ...) can be typed
    in the GDB console.
-4. Resume before stopping the session, so that the board is not left halted (the Meadow CLI then
-   times out).
+4. Stop the session.  `debug.cfg` and `debug-attach.cfg` resume the core when GDB disconnects
+   (`-event gdb-detach { resume }`), so the board keeps running even when the session is stopped
+   while paused.  Without this CLion's Stop leaves the core halted and the Meadow CLI then times
+   out.  The same applies when GDB started by `./debug.sh` quits.
 
 Code that runs once at start-up (for example the start of `hcom_main()`) has already run on a
 board that has been attached to; use a **(reset)** configuration to stop there.
