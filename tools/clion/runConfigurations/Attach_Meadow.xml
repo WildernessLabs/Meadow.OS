@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Attach Meadow (OpenOCD :4242)" type="CLion_Remote" folderName="Debug" version="1" toolchain="Meadow ARM" remoteCommand="localhost:4242" symbolFile="$PROJECT_DIR$/nuttx/nuttx.elf" sysroot="">
+    <debugger kind="GDB">/opt/homebrew/bin/arm-none-eabi-gdb</debugger>
+    <method v="2" />
+  </configuration>
+</component>

@@ -136,3 +136,4 @@ Detailed design documents live in `Documentation/`:
 | `Debugging.md` | OpenOCD/GDB setup, flashing, QEMU, Python GDB extensions |
 | `Rebasing.md` | How to rebase Meadow.OS onto a new upstream NuttX version |
 | `RunningDeveloperTests.md` | How to enable and run on-target unit tests |
+| `CLion.md` | CLion set-up: compilation database, run configurations, deploy, debug profile |
