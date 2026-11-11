@@ -22,7 +22,6 @@ scripts in `gdb/`).
 |------|---------|
 | `scripts/clion_compile_commands.sh` | Full clean build under `bear`; writes `compile_commands.json` |
 | `scripts/deploy.sh` | Deploys the current build: OS and Mono runtime together |
-| `scripts/openocd_server.sh` | Starts (`reset` or `attach`) or stops a background OpenOCD on port 4242 |
 | `debug-attach.cfg` | OpenOCD configuration that attaches without resetting the board |
 | `gdb/clion.gdbinit` | GDB start-up commands for CLion (symbols, Meadow and NuttX scripts) |
 | `gdb/STM32F777.svd` | Register descriptions for the CLion Peripherals view |
@@ -97,82 +96,64 @@ Open the workspace root in CLion, right-click `compile_commands.json` and choose
 Compilation Database Project**.  Use **File -> Reload All from Disk** if the run configurations do
 not appear.
 
-### 5. Create a toolchain and a debug profile
+### 5. Create the toolchain
 
-CLion 2026.3 takes the debugger for a remote debug configuration from a **debug profile**, not from
-the run configuration.  Without one it starts its bundled LLDB, which fails with
-`unsupported connection URL: ''`.
+**Settings -> Build, Execution, Deployment -> Toolchains**: add a toolchain named **Meadow ARM**
+with C compiler `arm-none-eabi-gcc`, C++ compiler `arm-none-eabi-g++` and **Debugger** set to
+**Custom GDB executable**: the path of `arm-none-eabi-gdb` (`/opt/homebrew/bin/arm-none-eabi-gdb`
+with Homebrew).
 
-1. **Settings -> Build, Execution, Deployment -> Toolchains**: add a toolchain named
-   **Meadow ARM** with C compiler `arm-none-eabi-gcc`, C++ compiler `arm-none-eabi-g++` and
-   **Debugger** set to **Custom GDB executable**: the path of `arm-none-eabi-gdb`
-   (`/opt/homebrew/bin/arm-none-eabi-gdb` with Homebrew).
-2. **Settings -> Build, Execution, Deployment -> Debugger -> Debug Profiles**: **Create Profile**,
-   choose a general-purpose GDB debugger that uses the **Meadow ARM** toolchain, and name it
-   **Meadow ARM GDB**.
-3. Select **Meadow ARM GDB** in the debug profile selector in the main toolbar.
-
-The **Debug Meadow** configurations name the **Meadow ARM** toolchain; if CLion shows a different
-toolchain in one, select **Meadow ARM** in **Edit Configurations...**.
-
-The **Embedded Meadow** configurations do not use the debug profile selector: they take the
-debugger from the toolchain of the **Meadow** build target, which is **Meadow ARM**.  CLion does
-not let a general-purpose debug profile be selected for them; leave the selector as it is.
+The **Meadow** build target (`.idea/customTargets.xml`) uses this toolchain, and the **Embedded
+Meadow** configurations take their debugger from it.  They do not use CLion's debug profile
+selector in the main toolbar; leave it as it is.  (Without a GDB toolchain CLion falls back to
+its bundled LLDB, which fails with `unsupported connection URL: ''`.)
 
 ## Run configurations
 
 | Name | Folder | What it does |
 |------|--------|--------------|
-| Build | Build | `./build.sh` |
+| Build | Build | `./build.sh` (incremental) |
 | Build (full clean) | Build | `./build.sh --clean --force` |
-| Build (wlclean) | Build | `./build.sh --wlclean` |
-| Build (debug symbols, full clean) | Build | `./build.sh --debug --clean --force` |
+| Build (wlclean) | Build | `./build.sh --wlclean` (cleans only the Wilderness Labs and apps objects) |
+| Build (dual CDC, full clean) | Build | `./build.sh --dualcdc --clean --force` (second USB CDC/ACM port for the syslog) |
 | Regenerate compile_commands.json | Build | `scripts/clion_compile_commands.sh` |
 | Deploy (OS + runtime) | Debug | `scripts/deploy.sh` |
-| Debug Meadow (reset) | Debug | Starts OpenOCD with `debug.cfg` (resets and halts the board), then attaches GDB |
-| Debug Meadow (attach) | Debug | Starts OpenOCD with `debug-attach.cfg` (no reset), then attaches GDB |
-| Start OpenOCD (reset) / Start OpenOCD (attach, no reset) | Debug | The Before launch steps of the two above: `scripts/openocd_server.sh` |
-| Stop OpenOCD | Debug | `scripts/openocd_server.sh stop` |
-| Embedded Meadow (reset) | Embedded | Embedded GDB Server: CLion runs OpenOCD with `debug.cfg` itself; has the Peripherals view |
-| Embedded Meadow (attach) | Embedded | The same with `debug-attach.cfg` (no reset) |
+| Embedded Meadow (reset) | Embedded | Starts OpenOCD with `debug.cfg` (resets the board) and debugs from boot |
+| Embedded Meadow (attach) | Embedded | Starts OpenOCD with `debug-attach.cfg` and attaches to the running board |
 
-Run the shell-script configurations with **Run**, and the **Debug Meadow** and **Embedded
-Meadow** configurations with **Debug**.
+Run the build and deploy configurations with **Run**, and the **Embedded Meadow** configurations
+with **Debug**.
 
-The two kinds of debug configuration:
+`--dualcdc` changes the NuttX configuration, so it is a full build; build with **Build (full
+clean)** to return to the standard configuration.
 
-- **Debug Meadow** (GDB Remote Debug) uses the debug profile, and leaves OpenOCD running in the
-  background after the session (the next start replaces it; **Stop OpenOCD** or a deploy stops
-  it).  CLion has no Peripherals view for this kind of session.
-- **Embedded Meadow** (Embedded GDB Server) starts and stops OpenOCD with the session and has the
-  Peripherals view.  It is set never to upload the executable or reset the device (the reset and
-  the flashing are left to `debug.cfg` and the deploy).  Run **Stop OpenOCD** first if a **Debug
-  Meadow** session left OpenOCD running, as only one OpenOCD can use the probe.
+The **Embedded Meadow** configurations are of CLion's Embedded GDB Server type: CLion starts
+OpenOCD with the session, connects GDB to port 4242 and stops OpenOCD when the session ends.
+They are set never to upload the executable or reset the device (`download-type="NONE"`,
+`reset-type="NEVER"`); the reset is done by `debug.cfg`, and flashing by the deploy.  They need
+the **Meadow** build target, but do not build before launching: build and deploy first.
 
 ## Deploying
 
-Stop any debug session first, then run **Deploy (OS + runtime)**.  `scripts/deploy.sh`:
+Stop any debug session first (the deploy refuses to start while port 4242 is in use), then run
+**Deploy (OS + runtime)**.  `scripts/deploy.sh`:
 
-1. stops a background OpenOCD started by `scripts/openocd_server.sh`, and refuses to continue if
-   another program holds port 4242;
-2. disables the runtime while the old OS is still running;
-3. flashes the OS with `flash.sh`;
-4. resets the board over SWD and waits for the Meadow USB port;
-5. writes `nuttx/Meadow.OS.Runtime.bin` with `meadow firmware write runtime -f` (without `-f` the
+1. disables the runtime while the old OS is still running;
+2. flashes the OS with `flash.sh`;
+3. resets the board over SWD and waits for the Meadow USB port;
+4. writes `nuttx/Meadow.OS.Runtime.bin` with `meadow firmware write runtime -f` (without `-f` the
    CLI writes the released runtime instead), retrying once after an erase time-out;
-6. deletes the staged runtime file, enables the runtime and prints the device information.  The
+5. deletes the staged runtime file, enables the runtime and prints the device information.  The
    OS and Runtime versions it shows should be the same.
 
 ## Debugging
 
-1. Debug **Debug Meadow (attach)** or **Embedded Meadow (attach)** to attach to a running board,
-   or the **(reset)** variant to debug from reset.  OpenOCD halts the board at the first
-   instruction after the reset: **Debug Meadow (reset)** stays there until **Resume** is pressed,
-   while **Embedded Meadow (reset)** resumes by itself and boots straight to the first
-   breakpoint.
-2. When `gdb/clion.gdbinit` has run, the remote sessions show `Build version: "..."` and
-   `Registering NuttX GDB commands ...` in the GDB console.  The Embedded sessions do not show
-   this output, but load the same symbols and commands (`dmesg` works).
+1. Debug **Embedded Meadow (attach)** to attach to a running board, or **Embedded Meadow
+   (reset)** to debug from reset.  The reset variant halts the board at the first instruction,
+   then CLion resumes it and it boots to the first breakpoint.
+2. The Embedded sessions do not show the output of `gdb/clion.gdbinit` in the GDB console, but it
+   runs (GDB starts in the workspace root, so the root `.gdbinit` loads it): the user-space
+   symbols and the Meadow and NuttX GDB commands are available.
 3. Pause if the program shows as running.  The threads pane lists the NuttX tasks with their call
    stacks, and the Meadow and NuttX GDB commands (`dmesg`, `nx_bt <pid>`, `ps`, ...) can be typed
    in the GDB console.
@@ -182,15 +163,15 @@ Stop any debug session first, then run **Deploy (OS + runtime)**.  `scripts/depl
    out.  The same applies when GDB started by `./debug.sh` quits.
 
 Code that runs once at start-up (for example the start of `hcom_main()`) has already run on a
-board that has been attached to; use a **(reset)** configuration to stop there.
+board that has been attached to; use **Embedded Meadow (reset)** to stop there.
 
 ### Peripheral registers
 
-In an **Embedded Meadow** session, open the **Peripherals** tab of the Debug tool window (turn it
-on in the tool window's layout settings if it is hidden), choose **Load .svd File** and select
-`gdb/STM32F777.svd`.  Select only the peripherals needed: each one shown is read over the ST-Link
-at every stop.  Values can be edited only while the board is paused, and reading some registers
-has side effects (a USART data register, for example).
+Open the **Peripherals** tab of the Debug tool window (turn it on in the tool window's layout
+settings if it is hidden), choose **Load .svd File** and select `gdb/STM32F777.svd`.  Select only
+the peripherals needed: each one shown is read over the ST-Link at every stop.  Values can be
+edited only while the board is paused, and reading some registers has side effects (a USART data
+register, for example).
 
 ### Notes
 
@@ -203,12 +184,11 @@ has side effects (a USART data register, for example).
   console if needed.
 - gdb-dashboard is turned off for GDB started in the workspace root.  `./debug.sh` starts GDB in
   `gdb/` and is unaffected.
-- `scripts/openocd_server.sh` detaches OpenOCD from the script (its own session, re-parented to
-  launchd).  CLion stops every process a Before launch script started when the script ends; a
-  plain background OpenOCD was shut down before GDB could connect ("could not connect: Operation
-  timed out").  Its log is `$TMPDIR/meadow-openocd.log`.
-- In the Embedded configurations the reset setting must be **Never** (`reset-type="NEVER"`).  An
+- The reset setting of the Embedded configurations must be **Never** (`reset-type="NEVER"`).  An
   unrecognised value made CLion send `monitor reset` at every start, so an attach rebooted the
   board.
+- OpenOCD's `Error: No symbols for nuttx` and `Failed to read memory at 0x00000000` at the start
+  of a reset session come from its NuttX task awareness while the core is held at reset; they are
+  harmless.
 - An attach shortly after the board rebooted once failed with `timed out while waiting for target
   halted`; a later attempt worked.

@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Start OpenOCD (reset)" type="ShConfigurationType" folderName="Debug">
+  <configuration default="false" name="Build (dual CDC, full clean)" type="ShConfigurationType" folderName="Build">
     <option name="SCRIPT_TEXT" value="" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
-    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/openocd_server.sh" />
-    <option name="SCRIPT_OPTIONS" value="reset" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/build.sh" />
+    <option name="SCRIPT_OPTIONS" value="--dualcdc --clean --force" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
     <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
