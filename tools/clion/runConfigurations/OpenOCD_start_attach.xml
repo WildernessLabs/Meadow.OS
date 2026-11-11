@@ -1,9 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="OpenOCD server (reset)" type="ShConfigurationType" folderName="Debug">
+  <configuration default="false" name="Start OpenOCD (attach, no reset)" type="ShConfigurationType" folderName="Debug">
     <option name="SCRIPT_TEXT" value="" />
     <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
-    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/debug.sh" />
-    <option name="SCRIPT_OPTIONS" value="--server" />
+    <option name="SCRIPT_PATH" value="$PROJECT_DIR$/scripts/openocd_server.sh" />
+    <option name="SCRIPT_OPTIONS" value="attach" />
     <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
     <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
     <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
