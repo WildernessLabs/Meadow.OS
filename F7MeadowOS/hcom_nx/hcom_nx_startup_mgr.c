@@ -462,6 +462,11 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
     else {
       hcom_nx_config_unlock();
       syslog(LOG_INFO, "Cell interface is not enabled\n");
+
+      // A fitted module (cell.config.yaml present) still needs its power key
+      // held idle, or a floating key pin restarts it every few seconds.
+      hcom_nx_config_process_cell_config_file();
+      hcom_nx_config_hold_the_cell_module_key_idle();
     }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
