@@ -1,0 +1,8 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Embedded Meadow (attach)" type="com.jetbrains.cidr.embedded.customgdbserver.type" factoryName="com.jetbrains.cidr.embedded.customgdbserver.factory" folderName="Embedded" PROGRAM_PARAMS="-f $PROJECT_DIR$/debug-attach.cfg" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="Rebase" TARGET_NAME="Meadow" CONFIG_NAME="Meadow" version="1" RUN_PATH="$PROJECT_DIR$/nuttx/nuttx.elf">
+    <custom-gdb-server version="1" gdb-connect="tcp::4242" executable="$PROJECT_DIR$/scripts/clion/openocd" warmup-ms="1000" download-type="NONE" reset-cmd="monitor reset" reset-type="NEVER">
+      <debugger kind="GDB">$PROJECT_DIR$/scripts/clion/gdb</debugger>
+    </custom-gdb-server>
+    <method v="2" />
+  </configuration>
+</component>

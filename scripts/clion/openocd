@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#
+#   scripts/clion/openocd -- machine-independent OpenOCD for CLion's
+#   "Embedded Meadow (reset)" and "Embedded Meadow (attach)" run configurations.
+#
+#   CLion run configurations are committed, so they must not name a path on any one
+#   machine.  They run this script instead, which finds the Meadow OpenOCD build the same
+#   way flash.sh and debug.sh do (set_openocd_variables, from MEADOW_OPENOCD_DIR) and adds
+#   its tcl scripts directory with -s.  Arguments are passed through.
+#
+#   MEADOW_OPENOCD_DIR comes from the login shell (CLion on macOS reads it at startup) or
+#   from scripts/clion/tools.local.env, which is not committed.
+#
+scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
+rootdir="$( cd "$scriptdir/../.." ; pwd -P )"
+
+# shellcheck disable=SC1091
+[ -f "$scriptdir/tools.local.env" ] && . "$scriptdir/tools.local.env"
+# shellcheck source=../common_methods.sh
+. "$rootdir/scripts/common_methods.sh"
+# shellcheck source=../debug_methods.sh
+. "$rootdir/scripts/debug_methods.sh"
+
+set_os_name
+set_openocd_variables
+
+exec "$MEADOW_OPENOCD_COMMAND" -s "$MEADOW_OPENOCD_SCRIPT_DIR" "$@"

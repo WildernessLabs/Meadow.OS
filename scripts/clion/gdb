@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+#
+#   scripts/clion/gdb -- machine-independent ARM GDB for CLion's "Embedded Meadow"
+#   run configurations.
+#
+#   Picks the same GDB as debug.sh (arm-none-eabi-gdb on macOS, gdb-multiarch on Linux),
+#   found on PATH, so the committed configurations carry no machine-specific path.  Set
+#   MEADOW_GDB (login shell or scripts/clion/tools.local.env) to use another one.
+#   Arguments are passed through.  Nothing may be written to stdout before exec: CLion
+#   talks to GDB over MI on stdout.
+#
+scriptdir="$( cd "$(dirname "$0")" ; pwd -P )"
+
+# shellcheck disable=SC1091
+[ -f "$scriptdir/tools.local.env" ] && . "$scriptdir/tools.local.env" >&2
+
+if [ -z "$MEADOW_GDB" ]; then
+  case "$(uname -s)" in
+    Darwin) MEADOW_GDB=arm-none-eabi-gdb ;;
+    *)      MEADOW_GDB=gdb-multiarch ;;
+  esac
+fi
+
+exec "$MEADOW_GDB" "$@"
