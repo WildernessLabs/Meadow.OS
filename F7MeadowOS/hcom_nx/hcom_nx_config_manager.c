@@ -3128,6 +3128,86 @@ void hcom_nx_config_turn_on_the_cell_module()
 }
 
 /****************************************************************************
+ * Name: hcom_nx_config_hold_the_cell_module_key_idle
+ *
+ * Description:
+ *  Drive the cell module's power-key pin to its idle level when a cell
+ *  module is fitted (cell.config.yaml is present) but cell is not the
+ *  default interface.
+ *
+ *  Nothing drives the pin in that case, it floats high, and the BG95-M3
+ *  sees its power key held and restarts every few seconds.  Holding the pin
+ *  low leaves the module in whatever state it is in.
+ *
+ *  The pin is only driven when it is also listed in the meadow.config.yaml
+ *  Device ReservedPins (port names such as A3 for PA3, separated by ';'),
+ *  so an application that uses the pin is never overridden.
+ *
+ * Input Parameters:
+ *  None.
+ *
+ * Returned Value:
+ *  None.
+ *
+ * Assumptions/Limitations:
+ *  hcom_nx_config_process_cell_config_file() has run.  Only the BG95-M3 is
+ *  handled; the other modules keep their current behaviour.
+ *
+ ****************************************************************************/
+// True when the STM32 pin (e.g. PA3 -> "A3") is listed in the Device ReservedPins.
+static bool hcom_nx_config_is_pin_reserved(uint32_t pin)
+{
+    char name[4];
+    const char *list;
+    const char *token;
+    size_t length;
+    bool reserved = false;
+    meadow_configuration_t *config;
+
+    snprintf(name, sizeof(name), "%c%u",
+             (char) ('A' + ((pin & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT)),
+             (unsigned int) ((pin & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT));
+    length = strlen(name);
+
+    hcom_nx_config_lock();
+    config = hcom_nx_config_get_pointer();
+    list = ((config != NULL) ? config->reserved_pins : NULL);
+    token = list;
+    while ((token != NULL) && (*token != '\0') && (!reserved))
+    {
+        while ((*token == ' ') || (*token == ';'))
+        {
+            token++;
+        }
+        size_t token_length = strcspn(token, "; ");
+        if ((token_length == length) && (strncasecmp(token, name, length) == 0))
+        {
+            reserved = true;
+        }
+        token += token_length;
+    }
+    hcom_nx_config_unlock();
+
+    syslog(LOG_INFO, "Pin %s is %sreserved\n", name, (reserved ? "" : "not "));
+    return reserved;
+}
+
+void hcom_nx_config_hold_the_cell_module_key_idle(void)
+{
+    uint32_t module_id;
+    uint32_t turn_on_pin;
+
+    module_id = hcom_nx_config_get_cell_module_id();
+    turn_on_pin = hcom_nx_config_get_cell_turn_on_pin();
+    if ((module_id == CELL_BG95M3_MODULE) && (turn_on_pin > 0) && (hcom_nx_config_is_pin_reserved(turn_on_pin)))
+    {
+        syslog(LOG_INFO, "Holding the BG95-M3 power key idle (low)\n");
+        stm32_configgpio(GPIO_OUTPUT | GPIO_OUTPUT_CLEAR | turn_on_pin);
+        stm32_gpiowrite(turn_on_pin, false);
+    }
+}
+
+/****************************************************************************
  * Name: hcom_nx_config_refresh_mono_version
  *
  * Description:
