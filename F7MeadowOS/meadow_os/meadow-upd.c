@@ -674,10 +674,150 @@ static int upd_handle_i2c(int cmd, struct upd_i2c_cmd* data)
   return result;
 }
 
+// pwm_setup() and pwm_shutdown() (nuttx/arch/arm/src/stm32f7/stm32_pwm.c) configure the
+// pin of every channel enabled on the timer, not only the channel the application uses.
+// That takes pins away from whatever else is using them: on Project Lab, setting up any
+// TIM3 PWM turned PB4 (TIM3 CH1, the MCP23008 0x20 reset line) into a timer output, so the
+// expander was held in reset and every I2C transfer to it failed (issue 759). The pins of
+// the channels not started through this driver are therefore preserved across setup and
+// shutdown, and a channel's pin is configured when that channel is started.
+
+#define UPD_PWM_MAX_TIMER    14
+#define UPD_PWM_MAX_CHANNEL  4
+
+static const uint32_t g_upd_pwm_pincfg[UPD_PWM_MAX_TIMER + 1][UPD_PWM_MAX_CHANNEL] =
+{
+  [1]  = { PWM_TIM1_CH1CFG, PWM_TIM1_CH2CFG, PWM_TIM1_CH3CFG, PWM_TIM1_CH4CFG },
+  [2]  = { PWM_TIM2_CH1CFG, PWM_TIM2_CH2CFG, PWM_TIM2_CH3CFG, PWM_TIM2_CH4CFG },
+  [3]  = { PWM_TIM3_CH1CFG, PWM_TIM3_CH2CFG, PWM_TIM3_CH3CFG, PWM_TIM3_CH4CFG },
+  [4]  = { PWM_TIM4_CH1CFG, PWM_TIM4_CH2CFG, PWM_TIM4_CH3CFG, PWM_TIM4_CH4CFG },
+  [5]  = { PWM_TIM5_CH1CFG, PWM_TIM5_CH2CFG, PWM_TIM5_CH3CFG, PWM_TIM5_CH4CFG },
+  [8]  = { PWM_TIM8_CH1CFG, PWM_TIM8_CH2CFG, PWM_TIM8_CH3CFG, PWM_TIM8_CH4CFG },
+  [9]  = { PWM_TIM9_CH1CFG, PWM_TIM9_CH2CFG, 0, 0 },
+  [10] = { PWM_TIM10_CH1CFG, 0, 0, 0 },
+  [11] = { PWM_TIM11_CH1CFG, 0, 0, 0 },
+  [12] = { PWM_TIM12_CH1CFG, PWM_TIM12_CH2CFG, 0, 0 },
+  [13] = { PWM_TIM13_CH1CFG, 0, 0, 0 },
+  [14] = { PWM_TIM14_CH1CFG, 0, 0, 0 },
+};
+
+// Bit (channel - 1) is set once that channel of the timer has been started through this driver.
+static uint8_t g_upd_pwm_started[UPD_PWM_MAX_TIMER + 1];
+
+static mutex_t g_pwm_lock = NXMUTEX_INITIALIZER;
+
+struct upd_pwm_pin_state
+{
+  uint32_t base;
+  uint32_t pin;
+  uint32_t moder;
+  uint32_t otyper;
+  uint32_t ospeedr;
+  uint32_t pupdr;
+  uint32_t odr;
+  uint32_t afr;
+};
+
+static uint32_t upd_pwm_get_pincfg(uint32_t timer, uint32_t channel)
+{
+  if ((timer > UPD_PWM_MAX_TIMER) || (channel < 1) || (channel > UPD_PWM_MAX_CHANNEL))
+  {
+    return 0;
+  }
+  return g_upd_pwm_pincfg[timer][channel - 1];
+}
+
+static void upd_pwm_save_pin(uint32_t pincfg, struct upd_pwm_pin_state *state)
+{
+  uint32_t port = (pincfg & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT;
+  uint32_t pin = (pincfg & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
+  uint32_t base = g_gpiobase[port];
+  uint32_t afrOffset = (pin < 8) ? STM32_GPIO_AFRL_OFFSET : STM32_GPIO_AFRH_OFFSET;
+
+  state->base = base;
+  state->pin = pin;
+  state->moder = getreg32(base + STM32_GPIO_MODER_OFFSET);
+  state->otyper = getreg32(base + STM32_GPIO_OTYPER_OFFSET);
+  state->ospeedr = getreg32(base + STM32_GPIO_OSPEED_OFFSET);
+  state->pupdr = getreg32(base + STM32_GPIO_PUPDR_OFFSET);
+  state->odr = getreg32(base + STM32_GPIO_ODR_OFFSET);
+  state->afr = getreg32(base + afrOffset);
+}
+
+// Puts back only this pin's bits, so other pins on the same port are not touched.
+static void upd_pwm_restore_pin(const struct upd_pwm_pin_state *state)
+{
+  uint32_t base = state->base;
+  uint32_t pin = state->pin;
+  uint32_t mask2 = 3u << (pin * 2);
+  uint32_t mask1 = 1u << pin;
+  uint32_t afrShift = (pin & 7) * 4;
+  uint32_t afrMask = 15u << afrShift;
+  uint32_t afrOffset = (pin < 8) ? STM32_GPIO_AFRL_OFFSET : STM32_GPIO_AFRH_OFFSET;
+
+  // Output level and type first, so the pin does not glitch when it becomes an output again.
+  putreg32((state->odr & mask1) ? mask1 : (mask1 << 16), base + STM32_GPIO_BSRR_OFFSET);
+  modifyreg32(base + STM32_GPIO_OTYPER_OFFSET, mask1, state->otyper & mask1);
+  modifyreg32(base + STM32_GPIO_OSPEED_OFFSET, mask2, state->ospeedr & mask2);
+  modifyreg32(base + STM32_GPIO_PUPDR_OFFSET, mask2, state->pupdr & mask2);
+  modifyreg32(base + afrOffset, afrMask, state->afr & afrMask);
+  modifyreg32(base + STM32_GPIO_MODER_OFFSET, mask2, state->moder & mask2);
+}
+
+// Runs a setup or shutdown, keeping the pins of the timer's channels that have not been started.
+static void upd_pwm_preserving_pins(struct pwm_lowerhalf_s *pwm, uint32_t timer, bool setup)
+{
+  struct upd_pwm_pin_state saved[UPD_PWM_MAX_CHANNEL];
+  int count = 0;
+
+  for (uint32_t channel = 1; channel <= UPD_PWM_MAX_CHANNEL; channel++)
+  {
+    uint32_t pincfg = upd_pwm_get_pincfg(timer, channel);
+    if ((pincfg != 0) && ((g_upd_pwm_started[timer] & (1u << (channel - 1))) == 0))
+    {
+      upd_pwm_save_pin(pincfg, &saved[count]);
+      count++;
+    }
+  }
+
+  if (setup)
+  {
+    pwm->ops->setup(pwm);
+  }
+  else
+  {
+    pwm->ops->shutdown(pwm);
+  }
+
+  for (int index = 0; index < count; index++)
+  {
+    upd_pwm_restore_pin(&saved[index]);
+  }
+}
+
+static int upd_handle_pwm_locked(int cmd, struct upd_pwm_cmd *_upd_pwm_cmd);
+
 int upd_handle_pwm(int cmd, unsigned long arg)
 {
-  struct upd_pwm_cmd *_upd_pwm_cmd = (struct upd_pwm_cmd *)arg;
+  int result = nxmutex_lock(&g_pwm_lock);
+  if (result < 0)
+  {
+    return result;
+  }
+
+  result = upd_handle_pwm_locked(cmd, (struct upd_pwm_cmd *)arg);
+  nxmutex_unlock(&g_pwm_lock);
+  return result;
+}
+
+static int upd_handle_pwm_locked(int cmd, struct upd_pwm_cmd *_upd_pwm_cmd)
+{
   struct pwm_lowerhalf_s *pwm;
+
+  if (_upd_pwm_cmd->timer > UPD_PWM_MAX_TIMER)
+  {
+    return -ENODEV;
+  }
 
   /* Call stm32_pwminitialize() to get an instance of the PWM interface */
   pwm = stm32_pwminitialize(_upd_pwm_cmd->timer);
@@ -691,16 +831,25 @@ int upd_handle_pwm(int cmd, unsigned long arg)
   {
   case MUPD_PWM_SETUP:
   {
-      pwm->ops->setup(pwm);
+      upd_pwm_preserving_pins(pwm, _upd_pwm_cmd->timer, true);
       return OK;
   }
   case MUPD_PWM_SHUTDOWN:
   {
-      pwm->ops->shutdown(pwm);
+      // Shutting down returns the started channels' pins to their default (input) state.
+      upd_pwm_preserving_pins(pwm, _upd_pwm_cmd->timer, false);
+      g_upd_pwm_started[_upd_pwm_cmd->timer] = 0;
       return OK;
   }
   case MUPD_PWM_START:
   {
+      uint32_t pincfg = upd_pwm_get_pincfg(_upd_pwm_cmd->timer, _upd_pwm_cmd->channel);
+      if (pincfg != 0)
+      {
+          stm32_configgpio(pincfg);
+          g_upd_pwm_started[_upd_pwm_cmd->timer] |= (uint8_t)(1u << (_upd_pwm_cmd->channel - 1));
+      }
+
       struct pwm_info_s info = {};
       info.frequency = _upd_pwm_cmd->frequency;
 #ifdef CONFIG_PWM_MULTICHAN
