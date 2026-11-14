@@ -119,15 +119,17 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 3\n"); usleep(5 * 1000);
 #endif
 
-#if defined (CONFIG_RAMLOG_SYSLOG)
-  // Calls mkfifo to create a named pipe
+  // Calls mkfifo to create a named pipe.  Created whatever the syslog
+  // configuration: only the RAMLOG trace path sends on it, but hcom's user
+  // side (hcom_traverse_ku_init_user_setup()) always opens it and stops the
+  // hcom startup if it is missing, which left builds without
+  // CONFIG_RAMLOG_SYSLOG (build.sh --esd, --emulator) with no host comms.
   ret = hcom_traverse_ku_kernel_setup();
   if (ret < 0)
   {
     syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
     return ret;
   }
-#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
   syslog(LOG_MDIAG, "Kernel startup manager 1c\n"); usleep(5 * 1000);
