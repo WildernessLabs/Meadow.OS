@@ -72,7 +72,9 @@ struct qspi_dev_s *g_qspi;
  * Private Functions
  ****************************************************************************/
 
-// Called from above to initialize USB communications
+// Called from above to initialize USB communications.  Only built when its
+// caller is (CONFIG_CDCACM), which build.sh --emulator turns off.
+#if defined(CONFIG_CDCACM)
 static int board_init_usbdev(void)
 {
 #if defined(CONFIG_BOARDCTL_USBDEVCTRL)
@@ -125,6 +127,7 @@ static int board_init_usbdev(void)
 
   return OK;
 }
+#endif
 
 #if defined(CONFIG_MTD_W25QXXXJV)
 static struct mtd_dev_s * board_init_mtd_w25qxxxjv(FAR struct qspi_dev_s *qspi)

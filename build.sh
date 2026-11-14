@@ -42,6 +42,7 @@ NUTTX_VERBOSE=
 ENABLE_NSH=false
 ENABLE_DUALCDC=false
 ENABLE_GDB_DIAGNOSTICS=false
+EMULATOR=false
 
 for i in "$@"
 do
@@ -95,6 +96,9 @@ case $i in
     --gdbdiag)
     ENABLE_GDB_DIAGNOSTICS=true
     ;;
+    --emulator)
+    EMULATOR=true
+    ;;
     --dbc|--debug-bl-cdc)
     DEBUG_BL_CDC=true
     ;;
@@ -135,6 +139,8 @@ if [ "$HELP" = true ]; then
   echo "  --nsh                        Enable NSH (NuttX Shell) on USART6 (COM6)"
   echo "  --dualcdc                    Developer only: add a second USB CDC/ACM port (/dev/ttyACM1)"
   echo "                               for syslog, or for NSH instead when --nsh is also given"
+  echo "  --emulator                   Build for the Renode emulator (Meadow.OS.Emulator): HCOM on"
+  echo "                               UART4, no USB, no bootloader or Meadow.OS*.bin packaging"
   exit 0
 fi
 
@@ -480,6 +486,10 @@ if $ENABLE_GDB_DIAGNOSTICS; then
   enable_gdb_diagnostics
 fi
 
+if $EMULATOR; then
+  enable_emulator
+fi
+
 if $CONFIGURE_ONLY; then
   exit 0
 fi
@@ -490,11 +500,14 @@ fi
 #
 
 #
-#   Build the bootloader
+#   Build the bootloader.  Not needed for the emulator, which loads the
+#   NuttX images directly.
 #
-$scriptdir/build-bootloader.sh $BOOTLOADER_OPTIONS
-if [ $? -ne 0 ]; then
-    exit 1
+if ! $EMULATOR; then
+    $scriptdir/build-bootloader.sh $BOOTLOADER_OPTIONS
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 fi
 
 #
@@ -601,7 +614,11 @@ check_mono_sdram_layout()
 #
 #   Package Meadow.OS
 #
-if ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
+#   Skipped under --emulator: these images merge in the bootloader, which is not
+#   built in that mode, and the emulator reads nuttx.elf / nuttx_user.elf /
+#   nuttx.bin / nuttx_user.bin directly.
+#
+if ! $EMULATOR && ! grep -q "CONFIG_BUILD_FLAT=y" $scriptdir/nuttx/.config; then
   check_mono_sdram_layout
 
   MEADOW_OS_BIN=$scriptdir/nuttx/Meadow.OS.Update.bin
