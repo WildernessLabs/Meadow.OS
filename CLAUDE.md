@@ -71,6 +71,10 @@ All commands run from the **workspace root**, not from `nuttx/`:
 # Developer only: add a second USB CDC/ACM port for syslog (or for NSH with --nsh)
 ./build.sh --dualcdc
 
+# Build for the Renode emulator (Meadow.OS.Emulator): HCOM on UART4, no USB, no bootloader.
+# See Documentation/Emulator.md.  Rebuild with --clean --force before flashing a board.
+./build.sh --emulator --clean
+
 # Stack coloration for stack high-water marks in the GDB scripts (debugging builds only)
 ./build.sh --clean --force --gdbdiag
 ```
@@ -137,3 +141,4 @@ Detailed design documents live in `Documentation/`:
 | `Rebasing.md` | How to rebase Meadow.OS onto a new upstream NuttX version |
 | `RunningDeveloperTests.md` | How to enable and run on-target unit tests |
 | `CLion.md` | CLion set-up: compilation database, run configurations, deploy, debug profile |
+| `Emulator.md` | `build.sh --emulator` and running Meadow.OS in the Renode emulator (Meadow.OS.Emulator) |
