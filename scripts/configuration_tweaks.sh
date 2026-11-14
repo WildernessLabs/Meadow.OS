@@ -467,6 +467,17 @@ enable_emulator() {
     ktweak --set-val UART4_TXBUFSIZE 512
 
     #
+    # Receive flow control on UART4.  The emulator delivers a file download
+    # from Meadow.CLI as one large burst; without flow control the serial
+    # driver drops everything past its 512 byte receive buffer, and the
+    # download stalls.  There is no RTS pin (board.h defines GPIO_UART4_RTS as
+    # 0), so the driver holds the RX interrupt off while the buffer is full
+    # and the bytes wait in the emulated UART.
+    #
+    ktweak --enable SERIAL_IFLOWCONTROL
+    ktweak --enable UART4_IFLOWCONTROL
+
+    #
     # Syslog to the serial console (USART1) instead of the RAMLOG.  In NuttX 12
     # SYSLOG_CONSOLE is what selects the console as the syslog channel;
     # SYSLOG_SERIAL_CONSOLE alone does not.  SYSLOG_CONSOLE selects
