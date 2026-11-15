@@ -36,8 +36,7 @@ MEADOW_RUNTIME_DIR=<OS>/runtime MEADOW_RUNTIME_ALLOW_UNPINNED=1 ./build.sh --emu
 
 ## Running it
 
-From the Meadow.OS.Emulator checkout (the Renode fork and Meadow.CLI as siblings, see its
-README). `MEADOW_EMULATOR_OS_DIR` points at this repository when it is not a sibling named
+From the Meadow.OS.Emulator checkout (the Renode fork as a sibling, see its README). `MEADOW_EMULATOR_OS_DIR` points at this repository when it is not a sibling named
 `Meadow.OS` or `Rebase`:
 
 ```bash
@@ -58,8 +57,10 @@ on port 1234 (`sysbus.cpu PC` and so on).
 
 ## Talking to it
 
-Use the 3.0 Meadow CLI (`meadow-3.0` branch) and give the route with `-s`, so the saved route
-for a real board is not changed:
+Use Meadow.CLI 3.0.3 or later, the released dotnet global tool; socket routes are in the
+release from 3.0.3, so no source build is needed (`dotnet tool update -g
+WildernessLabs.Meadow.CLI`). Give the route with `-s`, so the saved route for a real board is
+not changed:
 
 ```bash
 meadow device info -s socket://localhost:4242
