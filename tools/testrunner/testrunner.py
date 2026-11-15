@@ -33,6 +33,7 @@ TESTRUN = re.compile(r"^TESTRUN (BEGIN|CASE|INFO|END)\b ?(.*)$")
 CASE = re.compile(r"^(\S+) (PASS|FAIL|SKIP) (\d+) ?(.*)$")
 END = re.compile(r"^failures=(\d+) cases=(\d+)")
 SOURCE_PREFIX = re.compile(r"^(stdout|stderr|info|warn|error)> ?")
+MONO_STARTED = re.compile(r"Meadow successfully started MONO")
 
 #
 #   CLI output that ends a test early.  Matched against every line, with the source prefix removed.
@@ -217,11 +218,15 @@ def run_test(test, mode, mode_options, settings, run_dir, events):
                 break
             line = redact(line)
             log.write(line + "\n")
+            log.flush()
             text = SOURCE_PREFIX.sub("", line.strip())
             match = TESTRUN.match(text)
             if match:
                 kind, rest = match.group(1), match.group(2)
                 if kind == "BEGIN":
+                    if result["begin"] is not None:
+                        failure = ("restart", f"second TESTRUN BEGIN '{rest}' after '{result['begin']}'")
+                        break
                     result["begin"] = rest
                     events.emit("app_started", f"{name}: {rest}", test=name)
                 elif kind == "INFO":
@@ -242,6 +247,9 @@ def run_test(test, mode, mode_options, settings, run_dir, events):
                     result["end"] = rest
                     break
                 continue
+            if result["begin"] and MONO_STARTED.search(text):
+                failure = ("restart", "Mono started again after BEGIN")
+                break
             for pattern, kind in CLI_FAILURES:
                 if pattern.search(text):
                     failure = (kind, text[:200])

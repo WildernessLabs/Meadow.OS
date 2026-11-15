@@ -88,6 +88,7 @@ its own. A test app that takes part must do the same (see `tests/managed/MiniTes
 | A `CASE` failed that is in `known_failures` | reported as KNOWN; does not fail the test |
 | The CLI exited before `BEGIN` | fail (deploy) |
 | The CLI exited after `BEGIN`, before `END` | fail (crash) |
+| A second `BEGIN`, or `Meadow successfully started MONO`, after `BEGIN` (the runtime restarted) | fail (restart) |
 | The CLI reported a build error, port error, CLI timeout or app failure | fail (build, port, cli-timeout or crash) |
 | No `END` within `timeout_s` | fail (timeout) |
 | The `END` counts do not match the `CASE` lines | fail (contract) |
