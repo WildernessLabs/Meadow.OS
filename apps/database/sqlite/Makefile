@@ -52,6 +52,7 @@ ifneq ($(CONFIG_UTILS_SQLITE),)
 PROGNAME  = sqlite3
 PRIORITY  = 100
 STACKSIZE = ${CONFIG_UTILS_SQLITE_STACKSIZE}
+MODULE = $(CONFIG_UTILS_SQLITE)
 MAINSRC = ${BUILDDIR}/shell.c
 endif
 
@@ -84,4 +85,3 @@ ifeq ($(wildcard sqlite/.git),)
 endif
 
 include $(APPDIR)/Application.mk
-

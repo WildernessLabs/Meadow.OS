@@ -405,6 +405,7 @@ int cmd_switchboot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 int cmd_boot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
 {
   struct boardioc_boot_info_s info;
+  FAR char *fullpath = NULL;
 
   memset(&info, 0, sizeof(info));
 
@@ -421,7 +422,8 @@ int cmd_boot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
         /* Go through */
 
       case 1:
-        info.path = argv[1];
+        fullpath = argv[1] ? nsh_getfullpath(vtbl, argv[1]) : NULL;
+        info.path = fullpath;
 
         /* Go through */
 
@@ -439,6 +441,7 @@ int cmd_boot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv)
    */
 
   nsh_error(vtbl, g_fmtcmdfailed, argv[0], "boardctl", NSH_ERRNO);
+  nsh_freefullpath(fullpath);
   return ERROR;
 }
 #endif
@@ -592,6 +595,12 @@ static int cmd_rpmsg_once(FAR struct nsh_vtbl_s *vtbl,
       val = (unsigned long)&ping;
     }
 #endif
+#ifdef CONFIG_RPMSG_TEST
+  else if (strcmp(argv[1], "test") == 0)
+    {
+      cmd = RPMSGIOC_TEST;
+    }
+#endif
   else if (rpmsg_cb && rpmsg_cb(&cmd, &val, argv) == OK)
     {
       /* Nothing */
@@ -642,7 +651,7 @@ static int cmd_rpmsg_recursive(FAR struct nsh_vtbl_s *vtbl,
 static int cmd_rpmsg_help(FAR struct nsh_vtbl_s *vtbl, int argc,
                           FAR char **argv)
 {
-  nsh_output(vtbl, "%s <panic|dump> <path>\n", argv[0]);
+  nsh_output(vtbl, "%s <panic|dump|test> <path>\n", argv[0]);
 #ifdef CONFIG_RPMSG_PING
   nsh_output(vtbl, "%s ping <path> <times> <length> <cmd> "
              "<period(ms)>\n\n", argv[0]);

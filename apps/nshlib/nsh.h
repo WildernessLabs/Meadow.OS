@@ -266,8 +266,7 @@
  * If CONFIG_NSH_TELNET_LOGIN is defined, then these additional
  * options may be specified:
  *
- * CONFIG_NSH_LOGIN_USERNAME - Login user name.  Default: "admin"
- * CONFIG_NSH_LOGIN_PASSWORD - Login password:  Default: "Administrator"
+ * CONFIG_NSH_LOGIN_USERNAME - Login user name.  Default: "root"
  * CONFIG_NSH_LOGIN_FAILCOUNT - Number of login retry attempts.
  *   Default 3.
  */
@@ -275,11 +274,7 @@
 #ifdef CONFIG_NSH_TELNET_LOGIN
 
 #  ifndef CONFIG_NSH_LOGIN_USERNAME
-#    define CONFIG_NSH_LOGIN_USERNAME  "admin"
-#  endif
-
-#  ifndef CONFIG_NSH_LOGIN_PASSWORD
-#    define CONFIG_NSH_LOGIN_PASSWORD  "nuttx"
+#    define CONFIG_NSH_LOGIN_USERNAME  "root"
 #  endif
 
 #  ifndef CONFIG_NSH_LOGIN_FAILCOUNT
@@ -416,12 +411,13 @@
 
 #define NSH_HAVE_IOBUFFER 1
 
-/* The I/O buffer is needed for the ls, cp, and ps commands.  It is also
- * needed if the platform supplied MOTD is configured.
+/* The I/O buffer is needed for the ls, cp, du, and ps commands.  It is
+ * also needed if the platform supplied MOTD is configured.
  */
 
 #if defined(CONFIG_NSH_DISABLE_LS) && defined(CONFIG_NSH_DISABLE_CP) && \
-    defined(CONFIG_NSH_DISABLE_PS) && !defined(CONFIG_NSH_PLATFORM_MOTD) && \
+    defined(CONFIG_NSH_DISABLE_DU) && defined(CONFIG_NSH_DISABLE_PS) && \
+    !defined(CONFIG_NSH_PLATFORM_MOTD) && \
     defined(CONFIG_DISABLE_ENVIRON)
 #  undef NSH_HAVE_IOBUFFER
 #endif
@@ -655,6 +651,7 @@ struct nsh_parser_s
 #endif
   bool     np_redir_out; /* true: Output from the last command was re-directed */
   bool     np_redir_in;  /* true: Input from the last command was re-directed */
+  bool     np_redir_err; /* true: Error from the last command was re-directed */
   bool     np_fail;      /* true: The last command failed */
   pid_t    np_lastpid;   /* Pid of the last command executed */
 #ifdef NSH_HAVE_VARS
@@ -749,6 +746,7 @@ extern const char g_userprompt[];
 extern const char g_passwordprompt[];
 extern const char g_loginsuccess[];
 extern const char g_badcredentials[];
+extern const char g_badidentity[];
 extern const char g_loginfailure[];
 #endif
 extern const char g_fmtsyntax[];
@@ -806,13 +804,6 @@ int nsh_loginscript(FAR struct nsh_vtbl_s *vtbl);
  * available:
  */
 
-/* Architecture-specific initialization depends on boardctl(BOARDIOC_INIT) */
-
-#if defined(CONFIG_NSH_ARCHINIT) && !defined(CONFIG_BOARDCTL)
-#  warning CONFIG_NSH_ARCHINIT is set, but CONFIG_BOARDCTL is not
-#  undef CONFIG_NSH_ARCHINIT
-#endif
-
 /* The mkrd command depends on boardctl(BOARDIOC_MKRD) */
 
 #if !defined(CONFIG_BOARDCTL) || !defined(CONFIG_BOARDCTL_MKRD)
@@ -831,6 +822,7 @@ int nsh_parse(FAR struct nsh_vtbl_s *vtbl, FAR char *cmdline);
 
 FAR const char *nsh_prompt(void);
 void nsh_update_prompt(void);
+void nsh_update_prompt_after_login(void);
 
 /****************************************************************************
  * Name: nsh_login
@@ -847,6 +839,10 @@ int nsh_login(FAR struct console_stdio_s *pstate);
 
 #ifdef CONFIG_NSH_TELNET_LOGIN
 int nsh_telnetlogin(FAR struct console_stdio_s *pstate);
+#endif
+
+#if defined(CONFIG_NSH_DROPBEAR) && !defined(CONFIG_NSH_DISABLE_DROPBEARSTART)
+int nsh_dropbearstart(void);
 #endif
 
 /* Application interface */
@@ -969,6 +965,24 @@ int cmd_irqinfo(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #ifndef CONFIG_NSH_DISABLE_CAT
   int cmd_cat(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
+#if defined(CONFIG_FS_PERMISSION) && !defined(CONFIG_NSH_DISABLE_CHMOD)
+  int cmd_chmod(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#endif
+#if defined(CONFIG_FS_PERMISSION) && !defined(CONFIG_NSH_DISABLE_CHOWN)
+  int cmd_chown(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#endif
+#ifdef CONFIG_SCHED_USER_IDENTITY
+  int nsh_setuser_identity(FAR const char *username);
+#  ifndef CONFIG_NSH_DISABLE_SU
+  int cmd_su(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_ID
+  int cmd_id(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_WHOAMI
+  int cmd_whoami(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#  endif
+#endif
 #ifndef CONFIG_NSH_DISABLE_CP
   int cmd_cp(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
@@ -978,16 +992,19 @@ int cmd_irqinfo(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #ifndef CONFIG_NSH_DISABLE_HEXDUMP
   int cmd_hexdump(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
-#if !defined(CONFIG_NSH_DISABLE_LN) && defined(CONFIG_PSEUDOFS_SOFTLINKS)
+#if !defined(CONFIG_NSH_DISABLE_LN) && defined(CONFIG_FS_LINKS)
   int cmd_ln(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
 #ifndef CONFIG_NSH_DISABLE_LS
   int cmd_ls(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
+#ifndef CONFIG_NSH_DISABLE_DU
+  int cmd_du(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#endif
 #if defined(CONFIG_SYSLOG_DEVPATH) && !defined(CONFIG_NSH_DISABLE_DMESG)
   int cmd_dmesg(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
-#if !defined(CONFIG_NSH_DISABLE_READLINK) && defined(CONFIG_PSEUDOFS_SOFTLINKS)
+#if !defined(CONFIG_NSH_DISABLE_READLINK) && defined(CONFIG_FS_LINKS)
   int cmd_readlink(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
 #if !defined(CONFIG_NSH_DISABLESCRIPT) && !defined(CONFIG_NSH_DISABLE_SOURCE)
@@ -1067,6 +1084,9 @@ int cmd_irqinfo(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #ifndef CONFIG_NSH_DISABLE_CD
   int cmd_cd(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
+#if defined(CONFIG_FS_CHROOT) && !defined(CONFIG_NSH_DISABLE_CHROOT)
+  int cmd_chroot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#endif
 #ifndef CONFIG_NSH_DISABLE_PWD
   int cmd_pwd(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
@@ -1092,6 +1112,9 @@ int cmd_irqinfo(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #  endif
 #  ifndef CONFIG_NSH_DISABLE_IFCONFIG
   int cmd_ifconfig(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
+#  endif
+#  ifndef CONFIG_NSH_DISABLE_VCONFIG
+  int cmd_vconfig(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #  endif
 #  ifndef CONFIG_NSH_DISABLE_IFUPDOWN
   int cmd_ifup(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
@@ -1176,6 +1199,7 @@ int cmd_switchboot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
   int cmd_unset(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
 #ifndef CONFIG_NSH_DISABLE_KILL
   int cmd_kill(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
@@ -1188,6 +1212,7 @@ int cmd_switchboot(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #ifndef CONFIG_NSH_DISABLE_USLEEP
   int cmd_usleep(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);
 #endif
+#endif /* !CONFIG_DISABLE_ALL_SIGNALS */
 
 #ifndef CONFIG_NSH_DISABLE_UPTIME
   int cmd_uptime(FAR struct nsh_vtbl_s *vtbl, int argc, FAR char **argv);

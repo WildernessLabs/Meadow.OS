@@ -42,6 +42,11 @@
 #  undef CONFIG_READLINE_TABCOMPLETION
 #endif
 
+/* readline_fd_ex() options */
+
+#define READLINE_CTRL_D_EOF      (1 << 0)
+#define READLINE_RETURN_ON_EINTR (1 << 1)
+
 /* Make sure that the are valid values for all tab-completion settings */
 
 #ifdef CONFIG_READLINE_TABCOMPLETION
@@ -88,8 +93,9 @@ extern "C"
  *
  *   If a prompt string is used by the application, then the application
  *   must provide the prompt string to readline() by calling this function.
- *   This is needed only for tab completion in cases where is it necessary
- *   to reprint the prompt string.
+ *   This is needed for tab completion, and for line editing's full-line
+ *   redraws (Home, End, history recall, ...), in cases where it is
+ *   necessary to reprint the prompt string.
  *
  * Input Parameters:
  *   prompt    - The prompt string. This function may then be
@@ -108,7 +114,7 @@ extern "C"
  *
  ****************************************************************************/
 
-#ifdef CONFIG_READLINE_TABCOMPLETION
+#if defined(CONFIG_READLINE_TABCOMPLETION) || defined(CONFIG_READLINE_EDIT)
 FAR const char *readline_prompt(FAR const char *prompt);
 #else
 #  define readline_prompt(p)
@@ -174,6 +180,19 @@ FAR const struct extmatch_vtable_s *
  ****************************************************************************/
 
 ssize_t readline_fd(FAR char *buf, int buflen, int infd, int outfd);
+
+/****************************************************************************
+ * Name: readline_fd_ex
+ *
+ *   readline_fd_ex() extends readline_fd() with caller-selected options.
+ *   READLINE_CTRL_D_EOF makes Ctrl-D return EOF when the line is empty.
+ *   READLINE_RETURN_ON_EINTR makes an interrupted input read return -EINTR
+ *   instead of being retried.
+ *
+ ****************************************************************************/
+
+ssize_t readline_fd_ex(FAR char *buf, int buflen, int infd, int outfd,
+                       unsigned int options);
 
 /****************************************************************************
  * Name: readline_stream

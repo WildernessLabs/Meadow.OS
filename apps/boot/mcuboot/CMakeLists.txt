@@ -32,7 +32,7 @@ if(CONFIG_BOOT_MCUBOOT)
           SOURCE_DIR
           ${CMAKE_CURRENT_LIST_DIR}/mcuboot
           BINARY_DIR
-          ${CMAKE_BINARY_DIR}/apps/boot/mcuboot/mcuboot
+          ${NUTTX_BINARY_DIR}/apps/boot/mcuboot/mcuboot
       DOWNLOAD_NO_PROGRESS true
       TIMEOUT 30)
 
@@ -45,6 +45,9 @@ if(CONFIG_BOOT_MCUBOOT)
 
   set(SRCS
       mcuboot/boot/bootutil/src/boot_record.c
+      mcuboot/boot/bootutil/src/bootutil_area.c
+      mcuboot/boot/bootutil/src/bootutil_img_hash.c
+      mcuboot/boot/bootutil/src/bootutil_loader.c
       mcuboot/boot/bootutil/src/bootutil_misc.c
       mcuboot/boot/bootutil/src/bootutil_public.c
       mcuboot/boot/bootutil/src/caps.c

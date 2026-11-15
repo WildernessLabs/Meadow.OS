@@ -22,14 +22,15 @@
 
 if(CONFIG_TESTING_OSTEST)
 
-  set(SRCS
-      getopt.c
-      libc_memmem.c
-      restart.c
-      sigprocmask.c
-      sighand.c
-      signest.c
-      sighelper.c)
+  set(SRCS getopt.c libc_memmem.c restart.c sighelper.c)
+
+  if(CONFIG_ENABLE_ALL_SIGNALS)
+    list(APPEND SRCS sighand.c signest.c)
+  endif()
+
+  if(NOT CONFIG_DISABLE_ALL_SIGNALS)
+    list(APPEND SRCS sigprocmask.c)
+  endif()
 
   if(CONFIG_DEV_NULL)
     list(APPEND SRCS dev_null.c)
@@ -59,8 +60,20 @@ if(CONFIG_TESTING_OSTEST)
     list(APPEND SRCS aio.c)
   endif()
 
+  if(CONFIG_TESTING_OSTEST_MULTIUSER)
+    list(APPEND SRCS multiuser.c)
+  endif()
+
   if(CONFIG_SCHED_WAITPID)
     list(APPEND SRCS waitpid.c)
+  endif()
+
+  if(CONFIG_FS_CHROOT)
+    if(CONFIG_SCHED_WAITPID)
+      if(NOT CONFIG_BUILD_KERNEL)
+        list(APPEND SRCS chroot.c)
+      endif()
+    endif()
   endif()
 
   if(NOT CONFIG_DISABLE_PTHREAD)
@@ -124,7 +137,10 @@ if(CONFIG_TESTING_OSTEST)
 
   if(NOT CONFIG_DISABLE_MQUEUE)
     if(NOT CONFIG_DISABLE_PTHREAD)
-      list(APPEND SRCS mqueue.c timedmqueue.c)
+      list(APPEND SRCS timedmqueue.c)
+      if(NOT CONFIG_DISABLE_ALL_SIGNALS)
+        list(APPEND SRCS mqueue.c)
+      endif()
     endif() # CONFIG_DISABLE_PTHREAD
   endif() # CONFIG_DISABLE_MQUEUE
 
@@ -135,10 +151,12 @@ if(CONFIG_TESTING_OSTEST)
     endif()
   endif()
 
+  if(CONFIG_ARCH_HAVE_VFORK)
+    list(APPEND SRCS vfork.c)
+  endif()
+
   if(CONFIG_ARCH_HAVE_FORK)
-    if(CONFIG_SCHED_WAITPID)
-      list(APPEND SRCS vfork.c)
-    endif()
+    list(APPEND SRCS fork.c)
   endif()
 
   if(CONFIG_ARCH_SETJMP_H)
@@ -153,11 +171,22 @@ if(CONFIG_TESTING_OSTEST)
     list(APPEND SRCS nxevent.c)
   endif()
 
+  # perf_gettime() and perf_getfreq() live in the kernel and are not system
+  # calls, so only a flat build can reach them from here.
+
+  if(CONFIG_ARCH_HAVE_PERF_EVENTS AND CONFIG_BUILD_FLAT)
+    list(APPEND SRCS perf_gettime.c)
+  endif()
+
   if(CONFIG_BUILD_FLAT)
-    list(APPEND SRCS wdog.c)
+    list(APPEND SRCS wdog.c spinlock.c)
+    if(CONFIG_HRTIMER)
+      list(APPEND SRCS hrtimer.c)
+    endif()
   endif()
 
   set(OSTEST_SRCS ostest_main.c ${SRCS})
-  nuttx_add_application(NAME ostest SRCS ${OSTEST_SRCS})
+  nuttx_add_application(NAME ostest SRCS ${OSTEST_SRCS} STACKSIZE
+                        ${CONFIG_DEFAULT_TASK_STACKSIZE})
 
 endif()

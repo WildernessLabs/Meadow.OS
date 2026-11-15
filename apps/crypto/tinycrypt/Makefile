@@ -48,6 +48,7 @@ distclean::
 	$(Q) rm -rf $(TINYCRYPT_UNPACKNAME)
 endif
 
+CFLAGS += ${DEFINE_PREFIX}unix
 CSRCS += tinycrypt/lib/source/utils.c
 
 ifeq ($(CONFIG_TINYCRYPT_ECC),y)
@@ -103,11 +104,11 @@ ifeq ($(CONFIG_TINYCRYPT_CTR_PRNG),y)
 	CSRCS += tinycrypt/lib/source/ctr_prng.c
 endif
 
-ifeq ($(CONFIG_TINYCRYPT_TEST),y)
+ifneq ($(CONFIG_TINYCRYPT_TEST),)
 	CFLAGS    += ${INCDIR_PREFIX}$(APPDIR)/crypto/tinycrypt/tinycrypt/tests/include
-	CFLAGS    +=-Dhex2bin=ltp_hex2bin
-	CFLAGS    +=-DENABLE_TESTS
+	CFLAGS    += -DENABLE_TESTS
 	CSRCS     += tinycrypt/tests/test_ecc_utils.c
+	MODULE    += $(CONFIG_TINYCRYPT_TEST)
 	PRIORITY   = $(CONFIG_TINYCRYPT_TEST_PRIORITY)
 	STACKSIZE  = $(CONFIG_TINYCRYPT_TEST_STACKSIZE)
 

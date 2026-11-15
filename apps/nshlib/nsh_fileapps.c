@@ -177,6 +177,39 @@ int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
             }
         }
 #endif
+
+      /* Handle redirection of error output */
+
+      if (param->file_err)
+        {
+          /* 2> file: Redirect stderr to a file */
+
+          ret = posix_spawn_file_actions_addopen(&file_actions, 2,
+                                                  param->file_err,
+                                                  param->oflags_err,
+                                                  0644);
+          if (ret != 0)
+            {
+              nsh_error(vtbl, g_fmtcmdfailed, cmd,
+                        "posix_spawn_file_actions_addopen",
+                        NSH_ERRNO);
+              goto errout_with_attrs;
+            }
+        }
+      else if (param->fd_err != -1)
+        {
+          /* 2>&1: Redirect stderr to stdout */
+
+          ret = posix_spawn_file_actions_adddup2(&file_actions,
+                                                 param->fd_err, 2);
+          if (ret != 0)
+            {
+              nsh_error(vtbl, g_fmtcmdfailed, cmd,
+                        "posix_spawn_file_actions_adddup2",
+                        NSH_ERRNO);
+              goto errout_with_attrs;
+            }
+        }
     }
 
 #ifdef CONFIG_BUILTIN
@@ -220,6 +253,14 @@ int nsh_fileapp(FAR struct nsh_vtbl_s *vtbl, FAR const char *cmd,
    */
 
   ret = posix_spawnp(&pid, cmd, &file_actions, &attr, argv, environ);
+  if (ret == EACCES)
+    {
+      nsh_error(vtbl, "nsh: %s: Permission denied\n", cmd);
+      rc = 1;
+      ret = OK;
+      goto errout_with_actions;
+    }
+
   if (ret == OK)
     {
       /* The application was successfully started with pre-emption disabled.

@@ -109,6 +109,12 @@ int setvbuf_test(void);
 int dev_null_test(void);
 #endif
 
+/* multiuser.c **************************************************************/
+
+#if defined(CONFIG_TESTING_OSTEST_MULTIUSER) && defined(CONFIG_SCHED_USER_IDENTITY)
+int multiuser_test(void);
+#endif
+
 /* fpu.c ********************************************************************/
 
 void fpu_test(void);
@@ -129,6 +135,13 @@ void restart_test(void);
 
 #ifdef CONFIG_SCHED_WAITPID
 int waitpid_test(void);
+#endif
+
+/* chroot.c *****************************************************************/
+
+#if defined(CONFIG_FS_CHROOT) && defined(CONFIG_SCHED_WAITPID) && \
+    !defined(CONFIG_BUILD_KERNEL)
+int chroot_test(void);
 #endif
 
 /* wqueue.c *****************************************************************/
@@ -215,6 +228,12 @@ void suspend_test(void);
 
 void wdog_test(void);
 
+/* hrtimer.c ****************************************************************/
+
+#ifdef CONFIG_HRTIMER
+void hrtimer_test(void);
+#endif
+
 /* posixtimers.c ************************************************************/
 
 void timer_test(void);
@@ -272,8 +291,14 @@ void sched_lock_test(void);
 
 /* vfork.c ******************************************************************/
 
-#if defined(CONFIG_ARCH_HAVE_FORK) && defined(CONFIG_SCHED_WAITPID)
+#ifdef CONFIG_ARCH_HAVE_VFORK
 int vfork_test(void);
+#endif
+
+/* fork.c *******************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_FORK
+int fork_test(void);
 #endif
 
 /* setjmp.c *****************************************************************/
@@ -284,6 +309,16 @@ void setjmp_test(void);
 
 #ifdef CONFIG_SMP
 void smp_call_test(void);
+#endif
+
+/* spinlock.c ***************************************************************/
+
+void spinlock_test(void);
+
+/* perf_gettime.c ***********************************************************/
+
+#if defined(CONFIG_ARCH_HAVE_PERF_EVENTS) && defined(CONFIG_BUILD_FLAT)
+void perf_gettime_test(void);
 #endif
 
 /* APIs exported (conditionally) by the OS specifically for testing of

@@ -32,7 +32,7 @@ if(CONFIG_NIMBLE)
           SOURCE_DIR
           ${CMAKE_CURRENT_LIST_DIR}/mynewt-nimble
           BINARY_DIR
-          ${CMAKE_BINARY_DIR}/apps/wireless/bluetooth/nimble/mynewt-nimble
+          ${NUTTX_BINARY_DIR}/apps/wireless/bluetooth/nimble/mynewt-nimble
       DOWNLOAD_NO_PROGRESS true
       TIMEOUT 30)
 
@@ -193,7 +193,8 @@ if(CONFIG_NIMBLE)
 
   target_include_directories(nimble PUBLIC include ${INCLUDES})
 
-  target_compile_options(nimble PUBLIC -Wno-pointer-to-int-cast -Wno-undef
-                                       -Wno-format -Wno-unused-but-set-variable)
+  target_compile_options(nimble PUBLIC -Wno-undef -Wno-format
+                                       -Wno-unused-but-set-variable)
+
   target_sources(nimble PRIVATE ${SRCS})
 endif()

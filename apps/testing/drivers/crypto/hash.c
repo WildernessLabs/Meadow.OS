@@ -29,12 +29,20 @@
 #include <sys/ioctl.h>
 #include <sys/param.h>
 #include <crypto/cryptodev.h>
-#include <crypto/md5.h>
-#include <crypto/sha1.h>
-#include <crypto/sha2.h>
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
+#  include <crypto/md5.h>
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
+#  include <crypto/sha1.h>
+#endif
+#if !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224) || \
+    !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256) ||   \
+    !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512)
+#  include <crypto/sha2.h>
+#endif
 
 #ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
-#  define HASH_HUGE_BLOCK_SIZE (600 * 1024) /* 600k */
+#  define HASH_HUGE_BLOCK_SIZE (600 * 1024) /* size hash was done over */
 #endif
 
 typedef struct crypto_context
@@ -53,6 +61,7 @@ typedef struct tb
 }
 tb;
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
 tb md5_testcase[] =
 {
     {
@@ -85,7 +94,11 @@ tb md5_testcase[] =
       80,
     }
 };
+#endif
 
+#if !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1)    \
+  || !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224) \
+  || !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256)
 tb sha_testcase[] =
 {
     {
@@ -101,7 +114,9 @@ tb sha_testcase[] =
       1000,
     }
 };
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
 tb sha512_testcase[] =
 {
     {
@@ -118,7 +133,9 @@ tb sha512_testcase[] =
       1000,
     }
 };
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
 /* RFC 1321 test vectors */
 
 static const unsigned char md5_result[7][16] =
@@ -138,7 +155,9 @@ static const unsigned char md5_result[7][16] =
   { 0x57, 0xed, 0xf4, 0xa2, 0x2b, 0xe3, 0xc9, 0x55,
     0xac, 0x49, 0xda, 0x2e, 0x21, 0x07, 0xb6, 0x7a }
 };
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
 /* FIPS-180-1 test vectors */
 
 static const unsigned char sha1_result[3][20] =
@@ -150,7 +169,29 @@ static const unsigned char sha1_result[3][20] =
   { 0x34, 0xaa, 0x97, 0x3c, 0xd4, 0xc4, 0xda, 0xa4, 0xf6, 0x1e,
     0xeb, 0x2b, 0xdb, 0xad, 0x27, 0x31, 0x65, 0x34, 0x01, 0x6f }
 };
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+/* Calculated using sha224sum */
+
+static const unsigned char sha224_result[3][28] =
+{
+  { 0x23, 0x09, 0x7d, 0x22, 0x34, 0x05, 0xd8, 0x22,
+    0x86, 0x42, 0xa4, 0x77, 0xbd, 0xa2, 0x55, 0xb3,
+    0x2a, 0xad, 0xbc, 0xe4, 0xbd, 0xa0, 0xb3, 0xf7,
+    0xe3, 0x6c, 0x9d, 0xa7 },
+  { 0x75, 0x38, 0x8b, 0x16, 0x51, 0x27, 0x76, 0xcc,
+    0x5d, 0xba, 0x5d, 0xa1, 0xfd, 0x89, 0x01, 0x50,
+    0xb0, 0xc6, 0x45, 0x5c, 0xb4, 0xf5, 0x8b, 0x19,
+    0x52, 0x52, 0x25, 0x25 },
+  { 0x20, 0x79, 0x46, 0x55, 0x98, 0x0c, 0x91, 0xd8,
+    0xbb, 0xb4, 0xc1, 0xea, 0x97, 0x61, 0x8a, 0x4b,
+    0xf0, 0x3f, 0x42, 0x58, 0x19, 0x48, 0xb2, 0xee,
+    0x4e, 0xe7, 0xad, 0x67 }
+};
+#endif
+
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
 /* FIPS-180-2 test vectors */
 
 static const unsigned char sha256_result[3][32] =
@@ -168,7 +209,9 @@ static const unsigned char sha256_result[3][32] =
     0xf1, 0x80, 0x9a, 0x48, 0xa4, 0x97, 0x20, 0x0e,
     0x04, 0x6d, 0x39, 0xcc, 0xc7, 0x11, 0x2c, 0xd0 }
 };
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
 /* FIPS-180-2 test vectors */
 
 static const unsigned char sha512_result[3][64] =
@@ -198,20 +241,36 @@ static const unsigned char sha512_result[3][64] =
     0xeb, 0x00, 0x9c, 0x5c, 0x2c, 0x49, 0xaa, 0x2e,
     0x4e, 0xad, 0xb2, 0x17, 0xad, 0x8c, 0xc0, 0x9b }
 };
+#endif
 
 #ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
 static const unsigned char md5_huge_block_result[16] =
 {
   0xef, 0x6d, 0xcc, 0xc8, 0xe1, 0xcc, 0x7f, 0x08,
   0xc2, 0x71, 0xd4, 0xc4, 0xe0, 0x13, 0xa3, 0x9b
 };
+#  endif
 
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
 static const unsigned char sha1_huge_block_result[20] =
 {
   0xf2, 0x35, 0x65, 0x81, 0x79, 0x4d, 0xac, 0x20, 0x79, 0x7b,
   0xff, 0x38, 0xee, 0x2b, 0xdc, 0x44, 0x24, 0xd3, 0xf0, 0x4a
 };
+#  endif
 
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+static const unsigned char sha224_huge_block_result[28] =
+{
+  0xff, 0x42, 0x9e, 0x92, 0x94, 0xce, 0x0a, 0x31,
+  0xd2, 0x80, 0xc6, 0xad, 0x27, 0x3f, 0x8f, 0xd5,
+  0xa9, 0x8a, 0xe7, 0x6b, 0xd1, 0xd4, 0x67, 0xc7,
+  0xc1, 0x91, 0xc4, 0x78
+};
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
 static const unsigned char sha256_huge_block_result[32] =
 {
   0x79, 0xb1, 0xf2, 0x65, 0x7e, 0x33, 0x25, 0xff,
@@ -219,7 +278,9 @@ static const unsigned char sha256_huge_block_result[32] =
   0x0d, 0xd5, 0xa1, 0x45, 0xb5, 0x30, 0xe0, 0x91,
   0x54, 0x01, 0x40, 0x0c, 0xff, 0x35, 0x1d, 0xd3
 };
+#  endif
 
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
 static const unsigned char sha512_huge_block_result[64] =
 {
   0xa4, 0x3a, 0x66, 0xe8, 0xf7, 0x59, 0x95, 0x6d,
@@ -231,6 +292,70 @@ static const unsigned char sha512_huge_block_result[64] =
   0xce, 0x3a, 0xcf, 0xb6, 0x9c, 0x8b, 0x6e, 0x07,
   0x13, 0xca, 0xe1, 0x94, 0x3c, 0x41, 0x50, 0xcc
 };
+#  endif
+#endif
+
+#ifdef CONFIG_TESTING_CRYPTO_HASH_UNALIGNED_BUFFER_SIZE
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
+static const unsigned char md5_unaligned_block_result[16] =
+{
+  /* md5sum of 32640 monotonically increasing bytes from 0x00 */
+
+  0x18, 0x8a, 0x1f, 0x86, 0x80, 0x37, 0x39, 0x2a,
+  0x36, 0xf7, 0x25, 0xb1, 0x98, 0x5b, 0xda, 0xcc
+};
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
+static const unsigned char sha1_unaligned_block_result[20] =
+{
+  /* sha1sum 32640 monotonically increasing bytes from 0x00 */
+
+  0x5b, 0xec, 0x9f, 0x44, 0xe4, 0x21, 0xe4, 0xf2,
+  0x41, 0x86, 0xd0, 0x89, 0x45, 0xf1, 0xa8, 0x11,
+  0x1d, 0xaa, 0x93, 0x51,
+};
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+static const unsigned char sha224_unaligned_block_result[28] =
+{
+  /* sha224sum of 32640 monotonically increasing bytes from 0x00 */
+
+  0x90, 0xad, 0x7d, 0x0e, 0x75, 0x60, 0xec, 0xcd,
+  0xcc, 0x90, 0x02, 0xfb, 0x74, 0xa3, 0xfb, 0x54,
+  0xbf, 0xcc, 0xca, 0x48, 0x23, 0x1c, 0x9f, 0xcc,
+  0x25, 0x29, 0xff, 0xd6
+};
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
+static const unsigned char sha256_unaligned_block_result[32] =
+{
+  /* sha256sum of 32640 monotonically increasing bytes from 0x00 */
+
+  0x6b, 0x5e, 0x17, 0xc4, 0x05, 0x5d, 0xac, 0xdf,
+  0xc2, 0xff, 0x9e, 0x54, 0xdc, 0x21, 0xee, 0x75,
+  0x16, 0x97, 0xb2, 0x78, 0xc7, 0xdd, 0x64, 0x26,
+  0x70, 0xf6, 0xa2, 0xf2, 0xcb, 0x3b, 0x8e, 0x12
+};
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
+static const unsigned char sha512_unaligned_block_result[64] =
+{
+  /* sha512sum of 32640 monotonically increasing bytes from 0x00 */
+
+  0xfb, 0x03, 0xde, 0x53, 0x92, 0xc6, 0xc5, 0x17,
+  0x09, 0x10, 0x6c, 0x12, 0x9c, 0xc4, 0x6e, 0x79,
+  0x37, 0xdd, 0x53, 0x4e, 0x49, 0xa1, 0x8e, 0x27,
+  0x6d, 0xfd, 0xfb, 0x9c, 0xfa, 0xf7, 0xf4, 0x22,
+  0x98, 0xfe, 0xd5, 0x9e, 0x5c, 0x89, 0x4e, 0xf9,
+  0x1a, 0xf7, 0x40, 0x04, 0x0a, 0x49, 0x9e, 0x2a,
+  0x4e, 0x4d, 0xe6, 0xac, 0x1a, 0xa4, 0x5b, 0xb9,
+  0x15, 0x10, 0x0d, 0x37, 0x40, 0x8e, 0x8c, 0x29
+};
+#  endif
 #endif
 
 static void syshash_free(FAR crypto_context *ctx)
@@ -320,7 +445,7 @@ static int syshash_finish(FAR crypto_context *ctx, FAR unsigned char *out)
 
 static int match(const unsigned char *a, const unsigned char *b, size_t len)
 {
-  int i;
+  unsigned int i;
 
   if (memcmp(a, b, len) == 0)
     {
@@ -347,11 +472,13 @@ static int match(const unsigned char *a, const unsigned char *b, size_t len)
 
 #ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
 static int testing_hash_huge_block(crypto_context *ctx, int op,
-                    FAR const unsigned char *block, size_t len,
+                    FAR const unsigned char *block, size_t block_size,
                     FAR const unsigned char *result, size_t reslen)
 {
-  int ret = 0;
   unsigned char output[64];
+  size_t offset;
+  size_t buf_size;
+  int ret = 0;
 
   ret = syshash_start(ctx, op);
   if (ret != 0)
@@ -359,11 +486,28 @@ static int testing_hash_huge_block(crypto_context *ctx, int op,
       return ret;
     }
 
-  ret = syshash_update(ctx, (char *)block, len);
-  if (ret != 0)
+  /* Huge block tests results were calculated over
+   * HASH_HUGE_BLOCK_SIZE bytes containing all 'a's.
+   * If buffer block size isn't that size, repeatedly
+   * pass buffer into syshash_update() to hash total of
+   * HASH_HUGE_BLOCK_SIZE bytes of data.
+   */
+
+  offset = 0;
+  while (offset < HASH_HUGE_BLOCK_SIZE)
+  {
+    buf_size = HASH_HUGE_BLOCK_SIZE - offset;
+    if (buf_size > block_size)
+    {
+      buf_size = block_size;
+    }
+    ret = syshash_update(ctx, (char *)block, buf_size);
+    if (ret != 0)
     {
       return ret;
     }
+    offset += block_size;
+  }
 
   ret = syshash_finish(ctx, output);
   if (ret != 0)
@@ -373,6 +517,82 @@ static int testing_hash_huge_block(crypto_context *ctx, int op,
 
   return match(result, output, reslen);
 }
+
+static void report_huge_block_success(const char *hash_type,
+             uint32_t block_size, uint32_t total_bytes)
+{
+  int npasses;
+
+  npasses = (total_bytes + (block_size - 1))
+    / block_size;
+
+  printf("%s huge block test success(%u passes over"
+         " %" PRIu32 " bytes to hash %" PRIu32 " bytes)\n",
+         hash_type, npasses, block_size, total_bytes);
+}
+#endif
+
+#ifdef CONFIG_TESTING_CRYPTO_HASH_UNALIGNED_BUFFER_SIZE
+/* Test unaligned buffer sizes.
+ * Starting with hashing a zero-length buffer, increase buffer
+ * size by one byte and hash increasingly larger buffers until
+ * size reaches 255 bytes (for a total of 32640 bytes).
+ * At same time buffer data starts from 0x00 and monotonically
+ * increases (across buffer boundaries) so that the hash is
+ * performed over 32640 monotonically increasing bytes
+ * starting with 0x00.
+ */
+
+static int testing_hash_unaligned_buffer_size(const char *test,
+                    crypto_context *ctx, int op,
+                    FAR const unsigned char *result, size_t reslen)
+{
+  unsigned char block[256];
+  unsigned char output[64];
+  unsigned char byte = 0;
+  unsigned int block_size;
+  unsigned int idx;
+  int ret;
+
+  ret = syshash_start(ctx, op);
+  if (ret != 0)
+  {
+    return ret;
+  }
+
+  for (block_size = 0; block_size < 256 ; ++block_size)
+  {
+    for (idx = 0; idx < block_size; ++idx)
+    {
+      block[idx] = byte++;
+    }
+
+    ret = syshash_update(ctx, (char *)block, block_size);
+    if (ret < 0)
+      {
+        return ret;
+      }
+  }
+
+  ret = syshash_finish(ctx, output);
+  if (ret != 0)
+    {
+      return ret;
+    }
+
+  ret = match(result, output, reslen);
+  if (ret)
+  {
+    printf("%s unaligned buffer size match failed\n", test);
+  }
+  else
+  {
+    printf("%s unaligned buffer size match success\n", test);
+  }
+
+  return ret;
+}
+
 #endif
 
 /****************************************************************************
@@ -381,25 +601,57 @@ static int testing_hash_huge_block(crypto_context *ctx, int op,
 
 int main(void)
 {
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
   crypto_context md5_ctx;
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
   crypto_context sha1_ctx;
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  crypto_context sha2_224_ctx;
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
   crypto_context sha2_256_ctx;
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
   crypto_context sha2_512_ctx;
+#endif
+#ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
+  unsigned char *huge_block = NULL;
+  uint32_t huge_block_size = HASH_HUGE_BLOCK_SIZE;
+#endif
   unsigned char output[64];
-  unsigned char buf[1024];
   int ret = 0;
-  int i;
+  unsigned int i;
+#if !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1) \
+  || !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224) \
+  || !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256) \
+  || !defined(CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512)
+  unsigned char buf[1024];
   int j;
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
   ret += syshash_init(&md5_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
   ret += syshash_init(&sha1_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  ret += syshash_init(&sha2_224_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
   ret += syshash_init(&sha2_256_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
   ret += syshash_init(&sha2_512_ctx);
+#endif
   if (ret != 0)
     {
       printf("syshash init failed\n");
     }
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
   for (i = 0; i < nitems(md5_testcase); i++)
     {
       ret = syshash_start(&md5_ctx, CRYPTO_MD5);
@@ -435,7 +687,9 @@ int main(void)
           printf("hash md5 success\n");
         }
     }
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
   for (i = 0; i < nitems(sha_testcase); i++)
     {
       ret = syshash_start(&sha1_ctx, CRYPTO_SHA1);
@@ -490,7 +744,64 @@ int main(void)
           printf("hash sha1 success\n");
         }
     }
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  for (i = 0; i < nitems(sha_testcase); i++)
+    {
+      ret = syshash_start(&sha2_224_ctx, CRYPTO_SHA2_224);
+      if (ret != 0)
+        {
+          printf("sha224 start failed\n");
+          goto err;
+        }
+
+      if (i == 2)
+        {
+          memset(buf, 'a', sha_testcase[i].datalen);
+          for (j = 0; j < 1000; j++)
+            {
+              ret = syshash_update(&sha2_224_ctx, (char *)buf,
+                                   sha_testcase[i].datalen);
+              if (ret)
+                {
+                  break;
+                }
+            }
+        }
+      else
+        {
+          ret = syshash_update(&sha2_224_ctx, sha_testcase[i].data,
+                               sha_testcase[i].datalen);
+        }
+
+      if (ret)
+        {
+          printf("sha224 update failed\n");
+          goto err;
+        }
+
+      ret = syshash_finish(&sha2_224_ctx, output);
+      if (ret)
+        {
+          printf("sha224 finish failed\n");
+        }
+
+      ret = match((unsigned char *)sha224_result[i],
+                  (unsigned char *)output,
+                  SHA224_DIGEST_LENGTH);
+      if (ret)
+        {
+          printf("match sha224 failed\n");
+        }
+      else
+        {
+          printf("hash sha224 success\n");
+        }
+    }
+#endif
+
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
   for (i = 0; i < nitems(sha_testcase); i++)
     {
       ret = syshash_start(&sha2_256_ctx, CRYPTO_SHA2_256);
@@ -543,7 +854,9 @@ int main(void)
           printf("hash sha256 success\n");
         }
     }
+#endif
 
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
   for (i = 0; i < nitems(sha512_testcase); i++)
     {
       ret = syshash_start(&sha2_512_ctx, CRYPTO_SHA2_512);
@@ -598,76 +911,191 @@ int main(void)
           printf("hash sha512 success\n");
         }
     }
+#endif
 
 #ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
-  unsigned char *huge_block;
-  huge_block = (unsigned char *)malloc(HASH_HUGE_BLOCK_SIZE);
+  /* Loop trying to allocate a huge block, cutting requested
+   * size in half until success.
+   */
+
+  do
+    {
+      huge_block = (unsigned char *)malloc(huge_block_size);
+      huge_block_size /= 2;
+    }
+  while (!huge_block && (huge_block_size > 1));
+
   if (huge_block == NULL)
     {
       printf("huge block test no memory\n");
       goto err;
     }
 
-  memset(huge_block, 'a', HASH_HUGE_BLOCK_SIZE);
+  memset(huge_block, 'a', huge_block_size);
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
   ret = testing_hash_huge_block(&md5_ctx, CRYPTO_MD5,
-                                huge_block, HASH_HUGE_BLOCK_SIZE,
+                                huge_block, huge_block_size,
                                 md5_huge_block_result,
                                 MD5_DIGEST_LENGTH);
   if (ret != 0)
     {
       printf("md5 huge block test failed\n");
+      goto err;
     }
   else
     {
-      printf("md5 huge block test success\n");
+      report_huge_block_success("md5", huge_block_size,
+                                HASH_HUGE_BLOCK_SIZE);
     }
 
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
   ret = testing_hash_huge_block(&sha1_ctx, CRYPTO_SHA1,
-                                huge_block, HASH_HUGE_BLOCK_SIZE,
+                                huge_block, huge_block_size,
                                 sha1_huge_block_result,
                                 SHA1_DIGEST_LENGTH);
   if (ret != 0)
     {
       printf("sha1 huge block test failed\n");
+      goto err;
     }
   else
     {
-      printf("sha1 huge block test success\n");
+      report_huge_block_success("sha1", huge_block_size,
+                                HASH_HUGE_BLOCK_SIZE);
     }
 
+#endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  ret = testing_hash_huge_block(&sha2_224_ctx, CRYPTO_SHA2_224,
+                                huge_block, huge_block_size,
+                                sha224_huge_block_result,
+                                SHA224_DIGEST_LENGTH);
+  if (ret != 0)
+    {
+      printf("sha224 huge block test failed\n");
+      goto err;
+    }
+  else
+    {
+      report_huge_block_success("sha224", huge_block_size,
+                                HASH_HUGE_BLOCK_SIZE);
+    }
+
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
   ret = testing_hash_huge_block(&sha2_256_ctx, CRYPTO_SHA2_256,
-                                huge_block, HASH_HUGE_BLOCK_SIZE,
+                                huge_block, huge_block_size,
                                 sha256_huge_block_result,
                                 SHA256_DIGEST_LENGTH);
   if (ret != 0)
     {
       printf("sha256 huge block test failed\n");
+      goto err;
     }
   else
     {
-      printf("sha256 huge block test success\n");
+      report_huge_block_success("sha256", huge_block_size,
+                                HASH_HUGE_BLOCK_SIZE);
     }
 
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
   ret = testing_hash_huge_block(&sha2_512_ctx, CRYPTO_SHA2_512,
-                                huge_block, HASH_HUGE_BLOCK_SIZE,
+                                huge_block, huge_block_size,
                                 sha512_huge_block_result,
                                 SHA512_DIGEST_LENGTH);
   if (ret != 0)
     {
       printf("sha512 huge block test failed\n");
+      goto err;
     }
   else
     {
-      printf("sha512 huge block test success\n");
+      report_huge_block_success("sha512", huge_block_size,
+                                HASH_HUGE_BLOCK_SIZE);
     }
+#  endif
 
-  free(huge_block);
+#endif
+
+#ifdef CONFIG_TESTING_CRYPTO_HASH_UNALIGNED_BUFFER_SIZE
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
+  ret = testing_hash_unaligned_buffer_size("md5", &md5_ctx, CRYPTO_MD5,
+                                           md5_unaligned_block_result,
+                                           MD5_DIGEST_LENGTH);
+  if (ret < 0)
+    {
+      goto err;
+    }
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
+  ret = testing_hash_unaligned_buffer_size("sha1", &sha1_ctx, CRYPTO_SHA1,
+                                           sha1_unaligned_block_result,
+                                           SHA1_DIGEST_LENGTH);
+  if (ret < 0)
+    {
+      goto err;
+    }
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  ret = testing_hash_unaligned_buffer_size("sha244", &sha2_224_ctx,
+                                           CRYPTO_SHA2_224,
+                                           sha224_unaligned_block_result,
+                                           SHA224_DIGEST_LENGTH);
+  if (ret < 0)
+    {
+      goto err;
+    }
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
+  ret = testing_hash_unaligned_buffer_size("sha256", &sha2_256_ctx,
+                                           CRYPTO_SHA2_256,
+                                           sha256_unaligned_block_result,
+                                           SHA256_DIGEST_LENGTH);
+  if (ret < 0)
+    {
+      goto err;
+    }
+#  endif
+
+#  ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
+  ret = testing_hash_unaligned_buffer_size("sha512", &sha2_512_ctx,
+                                           CRYPTO_SHA2_512,
+                                           sha512_unaligned_block_result,
+                                           SHA512_DIGEST_LENGTH);
+  if (ret < 0)
+    {
+      goto err;
+    }
+#  endif
 #endif
 
 err:
+#ifdef CONFIG_TESTING_CRYPTO_HASH_HUGE_BLOCK
+  free(huge_block);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_MD5
   syshash_free(&md5_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA1
   syshash_free(&sha1_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA224
+  syshash_free(&sha2_224_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA256
   syshash_free(&sha2_256_ctx);
+#endif
+#ifndef CONFIG_TESTING_CRYPTO_HASH_DISABLE_SHA512
   syshash_free(&sha2_512_ctx);
+#endif
   return 0;
 }

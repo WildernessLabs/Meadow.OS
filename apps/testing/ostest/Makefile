@@ -31,8 +31,15 @@ MODULE = $(CONFIG_TESTING_OSTEST)
 
 # NuttX OS Test
 
-CSRCS   = getopt.c libc_memmem.c restart.c sigprocmask.c sighand.c \
-          signest.c sighelper.c
+CSRCS  = getopt.c libc_memmem.c restart.c sighelper.c
+
+ifeq ($(CONFIG_ENABLE_ALL_SIGNALS),y)
+CSRCS += sighand.c signest.c
+endif
+
+ifneq ($(CONFIG_DISABLE_ALL_SIGNALS),y)
+CSRCS += sigprocmask.c
+endif
 
 MAINSRC = ostest_main.c
 
@@ -68,8 +75,20 @@ ifeq ($(CONFIG_TESTING_OSTEST_AIO),y)
 CSRCS += aio.c
 endif
 
+ifeq ($(CONFIG_TESTING_OSTEST_MULTIUSER),y)
+CSRCS += multiuser.c
+endif
+
 ifeq ($(CONFIG_SCHED_WAITPID),y)
 CSRCS += waitpid.c
+endif
+
+ifeq ($(CONFIG_FS_CHROOT),y)
+ifeq ($(CONFIG_SCHED_WAITPID),y)
+ifneq ($(CONFIG_BUILD_KERNEL),y)
+CSRCS += chroot.c
+endif
+endif
 endif
 
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
@@ -119,7 +138,10 @@ endif # CONFIG_DISABLE_PTHREAD
 
 ifneq ($(CONFIG_DISABLE_MQUEUE),y)
 ifneq ($(CONFIG_DISABLE_PTHREAD),y)
-CSRCS += mqueue.c timedmqueue.c
+CSRCS += timedmqueue.c
+ifneq ($(CONFIG_DISABLE_ALL_SIGNALS),y)
+CSRCS += mqueue.c
+endif
 endif # CONFIG_DISABLE_PTHREAD
 endif # CONFIG_DISABLE_MQUEUE
 
@@ -130,10 +152,14 @@ CSRCS += sigev_thread.c
 endif
 endif
 
-ifeq ($(CONFIG_ARCH_HAVE_FORK),y)
-ifeq ($(CONFIG_SCHED_WAITPID),y)
+# Each test is built where the primitive it tests exists.
+
+ifeq ($(CONFIG_ARCH_HAVE_VFORK),y)
 CSRCS += vfork.c
 endif
+
+ifeq ($(CONFIG_ARCH_HAVE_FORK),y)
+CSRCS += fork.c
 endif
 
 ifeq ($(CONFIG_ARCH_SETJMP_H),y)
@@ -150,8 +176,21 @@ CSRCS += nxevent.c
 endif
 endif
 
+# perf_gettime() and perf_getfreq() live in the kernel and are not system
+# calls, so only a flat build can reach them from here.
+
+ifeq ($(CONFIG_ARCH_HAVE_PERF_EVENTS),y)
 ifeq ($(CONFIG_BUILD_FLAT),y)
-CSRCS += wdog.c
+CSRCS += perf_gettime.c
+endif
+endif
+
+ifeq ($(CONFIG_BUILD_FLAT),y)
+CSRCS += wdog.c spinlock.c
+
+ifeq ($(CONFIG_HRTIMER),y)
+CSRCS += hrtimer.c
+endif
 endif
 
 include $(APPDIR)/Application.mk
