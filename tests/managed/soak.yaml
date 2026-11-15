@@ -1,0 +1,16 @@
+defaults:
+    timeout_s: 5400
+
+modes:
+    jit:
+        options: ""
+    interp:
+        options: "--interp"
+
+tests:
+    - name: soak
+      project: tests/managed/SoakTests/SoakTests.csproj
+      config: tests/managed/SoakTests/meadow.config.yaml
+      modes: [jit]
+      expected_s: 4000
+      timeout_s: 5400

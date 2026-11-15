@@ -9,6 +9,7 @@ the output contract described in `tools/testrunner/README.md`.
 | `MiniTests` | Mono's mini test suite (issue #726): 733 JIT regression tests in 10 suites, under the JIT and the interpreter |
 | `CellTests` | The cell network on a BG95-M3: the managed API (GNSS and signal quality) without a SIM, and the data link with one |
 | `EspcpTests` | espcp network robustness (issue #708): WiFi, `SO_SNDTIMEO` on new sockets, repeated HTTP and socket open/close (poll setup and teardown), and a connect that is never answered |
+| `SoakTests` | Soak and torture tests (issue #727), run from their own manifest `soak.yaml`: the faults that short tests miss, over many windows |
 
 ## MiniTests
 
@@ -115,3 +116,77 @@ signal quality cases do not need a SIM: they run on the CMUX AT channel, indepen
 - **Limit:** the managed requests need CMUX to be running. If the modem never answers `AT` at
   start-up, or CMUX fails to start, the AT channel is not started and the managed calls wait until their own
   timeouts.
+
+## SoakTests
+
+Finds the faults that short tests miss: runtime restarts (Meadow_Issues#901), leaks, socket
+exhaustion, flash damage and bus hangs. It has its own manifest, so the nightly run and
+`manifest.yaml` do not run it.
+
+```bash
+tools/testrunner/testrunner.py --manifest tests/managed/soak.yaml                 # 2 windows of 300 s for each scenario, about 70 minutes
+MEADOW_SOAK_WINDOWS=1 MEADOW_SOAK_WINDOW_S=120 MEADOW_SOAK_SERVER=<bench server> \
+    tools/testrunner/testrunner.py --manifest tests/managed/soak.yaml             # a short check, about 15 minutes
+MEADOW_SOAK_SCENARIOS=http MEADOW_SOAK_WINDOWS=12 \
+    tools/testrunner/testrunner.py --manifest tests/managed/soak.yaml             # an hour of HTTP alone (Meadow_Issues#901)
+```
+
+The scenarios run one at a time, in the order of `Registry`, so that a failure belongs to one of
+them. Between two scenarios the app forces a GC and waits 10 s, so that the ESP32 frees its
+sockets. The only combined load is inside `block`.
+
+- **Fixtures:** the board on WiFi (as for EspcpTests), a web server on port 80 and
+  `EspcpTests/idle_server.py` on port 8081, both at `MEADOW_SOAK_SERVER`. The web server queues 5
+  connections, so the test holds at most 4 open to it.
+- **Settings:** environment variables of the runner, which reach the build as MSBuild properties
+  and are read by the app from its assembly metadata. An unset one gives the default.
+
+  | Variable | Default | Meaning |
+  |---|---|---|
+  | `MEADOW_SOAK_WINDOWS` | 2 | windows for each scenario |
+  | `MEADOW_SOAK_WINDOW_S` | 300 | window length in seconds |
+  | `MEADOW_SOAK_SCENARIOS` | all | comma list of scenario ids |
+  | `MEADOW_SOAK_SERVER` | 192.168.1.65 | address of the web server and `idle_server.py` |
+  | `MEADOW_SOAK_HTTPS_URL` | `https://example.com/` | HTTPS endpoint, requested every 30 s: use one that you own for long runs |
+
+- **Output:** the app waits 40 s before `BEGIN` (Meadow_Issues#902), prints its settings and one
+  `TESTRUN CASE soak.<id>.wNN` line for each window of each scenario, and one
+  `TESTRUN INFO metric s=<id> w=NN ...` line after each window: `gc_bytes` (after a forced
+  collect), `cpu_pct` and the reset reason, with the reset and power-cycle counters as the change since a `s=start w=00` line printed after `BEGIN` (each `meadow app run` raises the counters by 2). A disabled scenario has no CASE lines.
+  A second `BEGIN`, or the Mono start line after `BEGIN`, gives verdict `restart`. This needs a
+  restart that the CLI stays attached through: after a board reset `meadow` 3.0.4 prints nothing
+  more, and the test ends with a timeout.
+- **`mallinfo` is not a metric.** `PlatformOS.GetMemoryAllocationInfo()` is in the code behind
+  `MetricsMallinfo` (false). On OS 2.999.53.37 the runtime hung in the window after a call while
+  HTTP traffic ran: the HTTP scenario alone, 3 windows of 60 s, hung in window 2 with it and
+  passed without it. Set it to true to reproduce.
+- **Scenarios:** `Registry` in `MeadowApp.cs` lists them. Each limit is a named constant at the top
+  of `Scenarios.cs`.
+
+  | Id | What it does | Fails when |
+  |---|---|---|
+  | `http` (S1) | HTTP GET to the server every 2 s, HTTPS GET every 30 s | over 1% of requests fail, or an HTTPS request fails twice running |
+  | `gc` (S2) | allocation churn: small objects, strings, a rebuilt tree, large arrays, finalizers, weak references (see "What gc allocates") | memory after a forced collect is over 1 MB above the baseline at the end of window 1 (window 1 is warm-up), or `OutOfMemoryException` |
+  | `block` (S3) | a thread blocked in `Socket.Receive` on `idle_server.py`, a thread in a tight loop (6 s on, 4 s off), the S1 traffic and the S2 churn beside them, `GC.Collect` timed every 15 s | a collect takes over 2 s, the traffic fails as in S1, or the blocked thread is not released at the end |
+  | `sockets` (S4) | a burst of 24 connects to `idle_server.py` (more than the ESP32's 15, so some fail and are counted, `unknown` counts "Unknown socket error"), all closed, then 4 connects to the web server and one GET; once in the first burst, a connect to 10.255.255.1:81 that is cancelled at 30 s | a connect gives "Unknown socket error", the recovery check fails, or the blackhole connect takes over 60 s |
+  | `flash` (S5) | write, append, rename, read back with a CRC and delete files in `<data directory>/soak`, in 4 KB chunks: at most 256 KB written in a window, files at most 32 KB, the directory emptied at start and end | a read-back differs, or the directory is not gone |
+  | `i2c` (S6) | raw chip-ID reads on I2C bus 1: BME688 (0x76, register 0xD0, 0x61) and BMI270 (0x68, register 0x00, 0x24), every 100 ms | an exception or a wrong ID |
+  | `gpio` (S7) | 500 toggles of an output with an interrupt input that counts the edges | the counts differ. `SKIP` without the jumper |
+  | `ap` (S8), `power` (S9) | not written: they need a switchable access point and a USB power switch, with a host-side driver. One `TESTRUN INFO disabled <id>` line, no CASE lines | |
+
+- **What gc allocates:** a loop allocates 500 small arrays and strings (32 to 127 bytes), rebuilds a
+  tree of 255 nodes of 64 bytes, replaces one 16 KB array in a ring of four, makes 50 finalizable
+  objects and keeps a weak reference to a 1 KB array. About 140 KB is live and about 90 KB is garbage
+  in each loop, one loop every 50 ms. The GC heap on this OS is capped at 8 MB (`max-heap-size=8m`,
+  `soft-heap-limit=4m` in `apps/system/mono/mono_main.c`). The sizes stay below 48 KB because on this
+  OS a contiguous array of more than about 40 to 64 KB fails with `OutOfMemoryException` after a short
+  while, with 15 to 20 MB free (the largest free block is that small).
+- **S7 jumper:** wire MikroBus 1 socket pin PWM (STM32 PB8) to pin INT (PC2) on the Project Lab
+  (from `ConnectorProviderV3` in the `Meadow.ProjectLab` package; no Project Lab part uses them).
+  The scenario drives the output high and low and reads the input twice, and skips if the input
+  does not follow. Without a mikroBUS board on socket 1, nothing else is on those pins.
+- **S6 limits:** only the two parts that answer chip-ID reads without a driver. SPI is not covered:
+  the display is write-only.
+- **Not covered:** `fd_max` (the spec's idea of a file descriptor high-water mark) has no managed
+  API on this OS, so it is not a metric. S4 does not run a server that resets connections.
+- **Flash wear:** at most 256 KB written per window, so at most 512 KB in a default run.
