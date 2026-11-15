@@ -427,6 +427,75 @@ enable_stack_dump() {
 }
 
 #
+# Configure the build to run in the Renode emulator (Meadow.OS.Emulator).
+#
+# Renode does not model the STM32F7 USB OTG peripheral, so the USB CDC/ACM
+# device that normally carries HCOM is removed and HCOM is moved to UART4
+# (/dev/ttyS1), which the emulator exposes to Meadow.CLI as a TCP socket.  The
+# syslog goes to the serial console (USART1) rather than the RAMLOG so that it
+# appears in the emulator's console log, and an assert halts instead of
+# resetting the board so the failure stays visible.
+#
+# build.sh also skips the bootloader build and the Meadow.OS*.bin packaging
+# under --emulator: the emulator loads nuttx.elf / nuttx_user.elf directly.
+#
+# Like the other functions here this does not run olddefconfig, so every value
+# is written out explicitly.
+#
+enable_emulator() {
+    printf "\n\n********** Configuring for the Renode emulator (HCOM on UART4, no USB). **********\n\n"
+
+    #
+    # No USB device.  board_init_usbdev() in stm32_boot.c is only built when
+    # CDCACM is set.
+    #
+    ktweak --disable CDCACM
+    ktweak --disable BOARDCTL_USBDEVCTRL
+    ktweak --disable STM32F7_OTGFS
+    ktweak --disable USBDEV
+
+    #
+    # HCOM on UART4 (/dev/ttyS1), 115200 8N1.
+    #
+    ktweak --enable STM32F7_UART4
+    ktweak --set-str HCOM_COMMS_DEVICE_NAME "/dev/ttyS1"
+    ktweak --set-val UART4_BAUD 115200
+    ktweak --set-val UART4_BITS 8
+    ktweak --set-val UART4_PARITY 0
+    ktweak --set-val UART4_2STOP 0
+    ktweak --set-val UART4_RXBUFSIZE 512
+    ktweak --set-val UART4_TXBUFSIZE 512
+
+    #
+    # Receive flow control on UART4.  The emulator delivers a file download
+    # from Meadow.CLI as one large burst; without flow control the serial
+    # driver drops everything past its 512 byte receive buffer, and the
+    # download stalls.  There is no RTS pin (board.h defines GPIO_UART4_RTS as
+    # 0), so the driver holds the RX interrupt off while the buffer is full
+    # and the bytes wait in the emulated UART.
+    #
+    ktweak --enable SERIAL_IFLOWCONTROL
+    ktweak --enable UART4_IFLOWCONTROL
+
+    #
+    # Syslog to the serial console (USART1) instead of the RAMLOG.  In NuttX 12
+    # SYSLOG_CONSOLE is what selects the console as the syslog channel;
+    # SYSLOG_SERIAL_CONSOLE alone does not.  SYSLOG_CONSOLE selects
+    # SYSLOG_REGISTER, which kconfig-tweak does not apply, so set it too.
+    #
+    ktweak --enable DEV_CONSOLE
+    ktweak --enable SYSLOG_SERIAL_CONSOLE
+    ktweak --enable SYSLOG_CONSOLE
+    ktweak --enable SYSLOG_REGISTER
+    ktweak --disable RAMLOG_SYSLOG
+
+    #
+    # Halt on an assert rather than resetting.
+    #
+    ktweak --set-val BOARD_RESET_ON_ASSERT 0
+}
+
+#
 #   Enable the sotest shared object, and optionally the test that loads it.
 #
 #     enable_sotests            - build the .so into the image only

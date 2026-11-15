@@ -229,7 +229,9 @@ int hcom_host_send_low_power_notification(bool lpStart)
 }
 
 //=====================================================================
-// Is CLI to be receiving text messages?
+// Is CLI to be receiving text messages?  Only used when the syslog goes to
+// the RAMLOG.
+#if defined CONFIG_RAMLOG_SYSLOG
 static bool hcom_trace_is_sending_to_cli(void)
 {
   if(hcom_bbreg_is_bbr_bit_set(HCOM_BBREG_ROUTE_TRACE_MSG_TO_HOST_BIT))
@@ -237,6 +239,7 @@ static bool hcom_trace_is_sending_to_cli(void)
   else
     return false;
 }
+#endif
 
 //=====================================================================
 // FUNCTION TO USE WHEN SENDING ALL STANDARD MESSAGE WITH ONLY HEADER

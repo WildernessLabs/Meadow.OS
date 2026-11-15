@@ -376,6 +376,15 @@
 #define GPIO_UART4_RX GPIO_UART4_RX_6 // PI9
 #define GPIO_UART4_TX GPIO_UART4_TX_5 // PH13
 
+// UART4 has no RTS pin on the Meadow boards.  build.sh --emulator sets
+// CONFIG_UART4_IFLOWCONTROL only for the serial driver's software receive
+// flow control: with no pin it holds the RX interrupt off while the receive
+// buffer is full, so a burst from the host waits in the emulated UART instead
+// of being dropped.  An rts_gpio of 0 means "no pin" to the STM32F7 driver.
+#if defined(CONFIG_UART4_IFLOWCONTROL)
+#  define GPIO_UART4_RTS 0
+#endif
+
 /* UART5 (Meadow STM32F7 to ESP32) */
 
 #define GPIO_UART5_RX     (GPIO_UART5_RX_1|GPIO_SPEED_100MHz) /* PD2 */

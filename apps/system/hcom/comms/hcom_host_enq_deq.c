@@ -58,10 +58,12 @@ static bool _shutting_down;
 static sem_t _runProcSem;
 static sem_t _runRecvSem;
 
-// Set by the receive thread while it waits for space in the circular buffer.
-// The processing thread uses it to tell that the buffer is full of data that
-// has no delimiter (see hcom_host_enq_deq_dequeue_packet()).
+// Set by the receive thread while it waits for space in the circular buffer,
+// with the number of bytes it is waiting to add.  The processing thread uses
+// them to tell that the buffer is full of data that has no delimiter (see
+// hcom_host_enq_deq_dequeue_packet()).
 static volatile bool _recvWaitingForSpace = false;
+static volatile size_t _recvWaitingBytes = 0;
 static host_com_cir_buffer_t *_hcom_cbuf;
 static bool _hcom_host_enq_deq_wdog_wakeup;
 
@@ -170,6 +172,7 @@ int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvBy
         sem_post(&_runProcSem);         // Notify proc of message
 
         // Read thread waits here for space in buffer
+        _recvWaitingBytes = recvByteCnt;
         _recvWaitingForSpace = true;
         sem_post(&_runProcSem);         // Notify proc again, now the flag is set
         sem_wait(&_runRecvSem);         // Wait for a message to be removed
@@ -199,6 +202,7 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
 {
   int ret;
   int result;
+  bool rescanned = false;   // See HCOM_CIR_BUF_GET_NONE_FOUND below
 
   do
   {
@@ -223,21 +227,46 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
         return OK;                      // Return to process message
 
       case HCOM_CIR_BUF_GET_NONE_FOUND:
-        // If the receive thread is waiting for space then the buffer is full
-        // and holds no delimiter, so no packet will ever complete. A valid
-        // encoded packet is far smaller than the buffer and ends with a
-        // delimiter, so this is malformed input. Discard the buffered bytes
-        // and release the receive thread, otherwise both threads wait for
-        // each other forever.
-        if(_recvWaitingForSpace)
+        // If the receive thread is waiting for space it still cannot get,
+        // then the buffer is full and holds no delimiter, so no packet will
+        // ever complete. A valid encoded packet is far smaller than the buffer
+        // and ends with a delimiter, so this is malformed input. Discard the
+        // buffered bytes and release the receive thread, otherwise both
+        // threads wait for each other forever.
+        //
+        // The flag alone is not enough: it stays set from the moment a
+        // packet is removed (freeing space) until the receive thread runs
+        // again, and the buffer then legitimately holds only the start of the
+        // next packet. Treating that as malformed discarded good data when a
+        // large file arrived faster than it was written (seen in the Renode
+        // emulator with 8 KB packets). So also check that the space the
+        // receive thread needs is really not there.
+        //
+        // The scan above can also be out of date by now: the receive thread
+        // runs at a higher priority and can fill the buffer with complete
+        // packets between that scan and this test. So when the test holds,
+        // scan once more before discarding anything. The receive thread is
+        // then waiting for space, so the buffer cannot change under the
+        // second scan.
+        if((_recvWaitingForSpace) &&
+           (hcom_cirbuf_avail_space(_hcom_cbuf) < _recvWaitingBytes))
         {
+          if(!rescanned)
+          {
+            rescanned = true;
+            break;                      // Loop again to scan the buffer again
+          }
+
           syslog(LOG_ERR, "%s@%d-Receive buffer full with no delimiter, data discarded\n",
                     __FILE__, __LINE__);
           hcom_cirbuf_clear_buffer(_hcom_cbuf);
           _recvWaitingForSpace = false;
           sem_post(&_runRecvSem);
+          rescanned = false;
           break;                        // Loop again
         }
+
+        rescanned = false;
 
         // Thread waits to be notified that a message may be available. This
         // is also where the watchdog notification is detected.
@@ -253,6 +282,7 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
         // circular buffer. So, report error and return.
         syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n",
                   __FILE__, __LINE__, *packetLength);
+        sem_post(&_runRecvSem);         // Space freed: let recv retry to add
         break;                          // Try again to get the next message
 
       default:

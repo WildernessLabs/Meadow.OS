@@ -723,7 +723,9 @@ static void hcom_nx_trace_msg_wait_sem(sem_t *semaphore)
 int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData)
 {
   char *sendMsgToHost;
+#if defined (CONFIG_RAMLOG_SYSLOG)
   int ret;
+#endif
 
   // Set the appropriate battery backed register bit
   modifyreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER,
@@ -808,7 +810,9 @@ int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData)
 int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData)
 {
   char *sendMsgToHost;
+#if defined (CONFIG_RAMLOG_SYSLOG)
   int ret;
+#endif
 
   // Set the appropriate battery backed register bit
   modifyreg32(HCOM_NX_MEADOW_BATTERY_BACKED_REGISTER,
