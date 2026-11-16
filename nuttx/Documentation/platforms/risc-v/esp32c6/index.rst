@@ -98,8 +98,8 @@ require any specific configuration (it is selectable by default if no other
 of 2nd stage bootloaders, the commands ``make bootloader`` and the ``ESPTOOL_BINDIR``
 option (for the ``make flash``) are kept (and ignored if Simple Boot is used).
 
-If other features are required, an externally-built 2nd stage bootloader is needed.
-The bootloader is built using the ``make bootloader`` command. This command generates
+If features like `Flash Encryption`_ are required, an externally-built 2nd stage bootloader is needed.
+The MCUBoot bootloader is built using the ``make bootloader`` command. This command generates
 the firmware in the ``nuttx`` folder. The ``ESPTOOL_BINDIR`` is used in the
 ``make flash`` command to specify the path to the bootloader. For compatibility
 among other SoCs and future options of 2nd stage bootloaders, the commands
@@ -130,6 +130,12 @@ where:
 * ``ESPTOOL_PORT`` is typically ``/dev/ttyUSB0`` or similar.
 * ``ESPTOOL_BINDIR=./`` is the path of the externally-built 2nd stage bootloader and the partition table (if applicable): when built using the ``make bootloader``, these files are placed into ``nuttx`` folder.
 * ``ESPTOOL_BAUD`` is able to change the flash baud rate if desired.
+
+To create and flash with UF2 (USB Flashing Format) binary, ``UF2=1`` option needs to be set during build phase
+(e.g ``make UF2=1 -j8``). This flag will create UF2 format file addition to binary. This output can be used to
+flash the device with `ESP USB Bridge <https://github.com/espressif/esp-usb-bridge>`__.
+To flash using ESP USB Bridge, either drag and drop the generated UF2 file onto the flasher's
+mass storage device, or use the ``UF2=1`` flag during flashing (e.g. ``make flash ESPTOOL_PORT=<port> ESPTOOL_BINDIR=./ UF2=1``)
 
 Flashing NSH Example
 --------------------
@@ -177,6 +183,76 @@ Now opening the serial port with a terminal emulator should show the NuttX conso
   NuttShell (NSH) NuttX-12.8.0
   nsh> uname -a
   NuttX 12.8.0 759d37b97c-dirty Mar  5 2025 19:42:41 risc-v esp32c6-devkitc
+
+Building with CMake
+-------------------
+
+General CMake usage (out-of-tree build, ``menuconfig`` target, and so on) is described in
+:doc:`/quickstart/compiling_cmake`. The ESP32-C6 common arch enables post-build steps that
+produce ``nuttx.bin`` (and related images) under the **CMake binary directory**; the build
+log also prints suggested ``esptool.py`` command lines for your layout.
+
+Example (NuttX shell defconfig, Ninja generator)::
+
+  $ cd nuttx
+  $ cmake -B build -DBOARD_CONFIG=esp32c6-devkitc:nsh -GNinja
+  $ cmake --build build
+
+To reconfigure the tree after changing options (same as other NuttX CMake boards)::
+
+  $ cmake --build build -t menuconfig
+  $ cmake --build build
+
+Persistent HAL cache (``NXTMPDIR``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pass ``-DNXTMPDIR=ON`` at **configure** time to reuse a persistent clone of the
+``esp-hal-3rdparty`` repository under ``nuttx/../nxtmpdir/esp-hal-3rdparty``. CMake checks
+the expected revision; if it does not match, the cache directory is refreshed. This cuts
+repeat configure/build time when the HAL checkout would otherwise be re-fetched into the
+binary directory.
+
+Example::
+
+  $ cmake -B build -DBOARD_CONFIG=esp32c6-devkitc:nsh -DNXTMPDIR=ON -GNinja
+  $ cmake --build build
+
+MCUBoot: building the 2nd-stage bootloader (``-t bootloader``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For configurations that use MCUboot, build the bootloader the same way as
+with Make, but via the CMake target::
+
+  $ cmake --build build -t bootloader
+
+The image is installed as ``mcuboot-esp32c6.bin`` in the NuttX **source** directory (not
+inside ``build/``).
+
+.. note::
+
+   Flashing paths differ from the pure-Make flow: the application image is under your CMake
+   build directory (for example ``build/nuttx.bin``), while MCUboot binaries live next to
+   ``nuttx`` sources. Use the ``esptool.py`` hints printed at the end of the build, or the
+   same offsets as documented for ``make flash`` with ``ESPTOOL_BINDIR``.
+
+Target flashing (``-t flash``)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+After a successful CMake build, you can flash the chip with the ``flash`` custom target.
+This is the CMake-side equivalent of the Make ``FLASH`` logic in
+``tools/espressif/Config.mk``.
+
+**Serial port:** you must set ``ESPTOOL_PORT`` to a non-empty value (for example
+``/dev/ttyUSB0``). If it is unset or empty, the flash step fails.
+
+Example::
+
+  $ export ESPTOOL_PORT=/dev/ttyUSB0
+  $ cmake --build build -t flash
+
+Or for a single invocation::
+
+  $ ESPTOOL_PORT=/dev/ttyUSB0 cmake --build build -t flash
 
 .. _esp32c6_debug:
 
@@ -340,8 +416,8 @@ The following list indicates the state of peripherals' support in NuttX:
 Peripheral      Support NOTES
 ==============  ======= ====================
 ADC              Yes     Oneshot and internal temperature sensor
-AES              No
-Bluetooth        No
+AES              Yes
+Bluetooth        Yes
 CAN/TWAI         Yes
 DMA              Yes
 ECC              No
@@ -488,6 +564,113 @@ Finally, the image is loaded but not confirmed.
 To make sure it won't rollback to the previous image, you must confirm with ``mcuboot_confirm`` and reboot the board.
 The OTA is now complete.
 
+Flash Encryption
+----------------
+
+Flash encryption is intended for encrypting the contents of the ESP32-C6's off-chip flash memory. Once this feature is enabled,
+firmware is flashed as plaintext, and then the data is encrypted in place on the first boot. As a result, physical readout
+of flash will not be sufficient to recover most flash contents.
+
+The current state of flash encryption for ESP32-C6 allows the use of Virtual E-Fuses and development mode, which permit users to evaluate and test the firmware before making definitive changes such as burning E-Fuses.
+
+Flash encryption supports the following features:
+
+  .. list-table::
+    :header-rows: 1
+
+    * - Feature
+      - Description
+    * - **Flash Encryption with Virtual E-Fuses**
+      - Use flash encryption without burning E-Fuses. Default selection when flash encryption is enabled.
+    * - **Flash Encryption in Development mode**
+      - Allows reflashing an encrypted device by appending the ``--encrypt`` argument to the ``esptool.py write_flash`` command. This is done automatically if ``ESPRESSIF_SECURE_FLASH_ENC_FLASH_DEVICE_ENCRYPTED`` is set.
+    * - **Flash Encryption in Release mode**
+      - Does not allow reflashing the device. This is a permanent setting.
+    * - **Flash Encryption key**
+      - A user-generated key is required by default. Alternatively, a device-generated key is possible, but it will not be recoverable by the user (not recommended). See ``ESPRESSIF_SECURE_FLASH_ENC_USE_HOST_KEY``.
+    * - **Encrypted MTD Partition**
+      - If SPI Flash is enabled, an empty user MTD partition will be automatically encrypted on first flash.
+
+.. note::
+
+   It is **strongly suggested** to read the following before working on flash encryption:
+
+   - `MCUBoot Flash Encryption <https://docs.mcuboot.com/readme-espressif.html#flash-encryption>`_
+   - `General E-Fuse documentation <https://docs.espressif.com/projects/esp-idf/en/latest/esp32c6/api-reference/system/efuse.html>`_
+   - `Flash Encryption Relevant E-Fuses <https://docs.espressif.com/projects/esp-idf/en/latest/esp32c6/security/flash-encryption.html#relevant-efuses>`_
+
+Flash Encryption Requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Flash encryption requires burning E-Fuses to enable it on chip. This is not a reversible operation and should be done with caution.
+There is, however, a way to test the flash encryption by simulating them on flash. Both paths are described below.
+
+Build System Features
+'''''''''''''''''''''
+
+The build system contains some safeguards to avoid accidentally burning E-Fuses and automations for convenience. Those are summarized below:
+
+  1. A yellow warning will show up during build alerting that flash encryption is enabled (same for Virtual E-Fuses).
+  2. If ``ESPRESSIF_SECURE_FLASH_ENC_USE_HOST_KEY`` is set, build will fail if the flash encryption key is not found.
+  3. If SPI Flash is enabled, the user MTD partition is automatically encrypted with the provided encryption key.
+  4. ``make flash`` command will prompt the user for confirmation before burning the E-Fuse, if Virtual E-Fuses are disabled.
+
+
+Simulating Flash Encryption with Virtual E-Fuses
+'''''''''''''''''''''''''''''''''''''''''''''''''
+
+It is highly recommended to use this method for testing the flash encryption before actually burning the E-Fuses.
+The E-Fuses are stored in flash and persist between reboots. No real E-Fuses are changed.
+
+To enable virtual E-Fuses for flash encryption testing, open ``menuconfig`` and:
+  1. Enable flash encryption on boot on: :menuselection:`System Type --> Bootloader and Image Configuration`
+  2. Verify Virtual E-Fuses are enabled (this is done by default): :menuselection:`System Type --> Peripheral Support --> E-Fuse support`
+
+Now build the bootloader and the firmware. Flashing the device will trigger the following:
+  1. On the first boot, the bootloader will encrypt the flash::
+
+      ...
+      [esp32c6] [WRN] eFuse virtual mode is enabled. If Secure boot or Flash encryption is enabled then it does not provide any security. FOR TESTING ONLY!
+      [esp32c6] [WRN] [efuse] [Virtual] try loading efuses from flash: 0x10000 (offset)
+      ...
+      [esp32c6] [INF] [flash_encrypt] Encrypting bootloader...
+      [esp32c6] [INF] [flash_encrypt] Bootloader encrypted successfully
+      [esp32c6] [INF] [flash_encrypt] Encrypting primary slot...
+      [esp32c6] [INF] [flash_encrypt] Encrypting remaining flash...
+      [esp32c6] [INF] [flash_encrypt] Flash encryption completed
+      ...
+      [esp32c6] [INF] Resetting with flash encryption enabled...
+
+  2. Device will reset and it should be now operating similar to an actual encrypted device::
+
+      ...
+      [esp32c6] [INF] Checking flash encryption...
+      [esp32c6] [INF] [flash_encrypt] flash encryption is enabled (1 plaintext flashes left)
+      [esp32c6] [INF] Disabling RNG early entropy source...
+      [esp32c6] [INF] br_image_off = 0x20000
+      [esp32c6] [INF] ih_hdr_size = 0x20
+      [esp32c6] [INF] Loading image 0 - slot 0 from flash, area id: 1
+      ...
+      NuttShell (NSH) NuttX-12.8.0
+      nsh>
+
+Actual encryption and burning E-Fuses
+'''''''''''''''''''''''''''''''''''''
+
+E-Fuses are burned by esptool and the bootloader on the first boot after flashing with encryption enabled.
+This process is automated on NuttX build system.
+
+.. warning::  Burning E-Fuses is NOT a reversible operation and should be done with caution.
+
+To build a firmware with E-Fuse support and flash encryption enabled, open ``menuconfig`` and:
+  1. Enable flash encryption on boot on: :menuselection:`System Type --> Bootloader and Image Configuration`
+  2. Disable Virtual E-Fuses :menuselection:`System Type --> Peripheral Support --> E-Fuse support`
+  3. Check usage mode is Development (this allows reflashing, while Release mode does not).
+
+.. note::  If using development mode of flash encryption (see menuconfig and documentation above), it is still possible to re-flash the device with esptool by
+  setting ``ESPRESSIF_SECURE_FLASH_ENC_FLASH_DEVICE_ENCRYPTED`` which adds ``--encrypt`` argument to the ``esptool.py write_flash`` command.
+  This will apply the burned encryption key to the image while flashing.
+
 Flash Allocation for MCUBoot
 ----------------------------
 
@@ -512,18 +695,18 @@ based on the default KConfig values:
      - 64KB
    * - Primary Application Slot (/dev/ota0)
      - 0x020000
-     - 1MB
+     - 1.4MB
    * - Secondary Application Slot (/dev/ota1)
-     - 0x120000
-     - 1MB
+     - 0x170000
+     - 1.4MB
    * - Scratch Partition (/dev/otascratch)
-     - 0x220000
+     - 0x2C0000
      - 256KB
    * - Storage MTD (optional)
-     - 0x260000
+     - 0x300000
      - 1MB
    * - Available Flash
-     - 0x360000+
+     - 0x400000+
      - Remaining
 
 .. raw:: html
@@ -552,27 +735,27 @@ virtual E-Fuses are later enabled.
     0x020000  ├─────────────────────────────┤
               │                             │
               │      Primary App Slot       │
-              │            (1MB)            │
+              │            (1.4MB)          │
               │          /dev/ota0          │
               │                             │
-    0x120000  ├─────────────────────────────┤
+    0x170000  ├─────────────────────────────┤
               │                             │
               │     Secondary App Slot      │
-              │            (1MB)            │
+              │            (1.4MB)          │
               │          /dev/ota1          │
               │                             │
-    0x220000  ├─────────────────────────────┤
+    0x2C0000  ├─────────────────────────────┤
               │                             │
               │      Scratch Partition      │
               │           (256KB)           │
               │       /dev/otascratch       │
               │                             │
-    0x260000  ├─────────────────────────────┤
+    0x300000  ├─────────────────────────────┤
               │                             │
-              │    Storage MTD (optional)   │
+              │   Storage MTD (optional)    │
               │            (1MB)            │
               │                             │
-    0x360000  ├─────────────────────────────┤
+    0x400000  ├─────────────────────────────┤
               │                             │
               │       Available Flash       │
               │         (Remaining)         │
@@ -582,11 +765,11 @@ virtual E-Fuses are later enabled.
 The key KConfig options that control this layout:
 
 - ``ESPRESSIF_OTA_PRIMARY_SLOT_OFFSET`` (default: 0x20000)
-- ``ESPRESSIF_OTA_SECONDARY_SLOT_OFFSET`` (default: 0x120000)
-- ``ESPRESSIF_OTA_SLOT_SIZE`` (default: 0x100000)
-- ``ESPRESSIF_OTA_SCRATCH_OFFSET`` (default: 0x220000)
+- ``ESPRESSIF_OTA_SECONDARY_SLOT_OFFSET`` (default: 0x170000)
+- ``ESPRESSIF_OTA_SLOT_SIZE`` (default: 0x150000)
+- ``ESPRESSIF_OTA_SCRATCH_OFFSET`` (default: 0x2C0000)
 - ``ESPRESSIF_OTA_SCRATCH_SIZE`` (default: 0x40000)
-- ``ESPRESSIF_STORAGE_MTD_OFFSET`` (default: 0x260000 when MCUBoot enabled)
+- ``ESPRESSIF_STORAGE_MTD_OFFSET`` (default: 0x300000 when MCUBoot enabled)
 - ``ESPRESSIF_STORAGE_MTD_SIZE`` (default: 0x100000)
 
 For MCUBoot operation:
@@ -644,13 +827,14 @@ using build system has some dependencies on example side.
 Both methods requires ``CONFIG_ESPRESSIF_USE_LP_CORE`` variable to enable ULP core
 and it can be set using ``make menuconfig`` or ``kconfig-tweak`` commands.
 
-Additionally, a Makefile needs to be provided to specify the ULP application name,
+Additionally, a Makefile or CMake file must be provided to specify the ULP application name,
 source path of the ULP application, and either the binary (for prebuilt) or the source files (for internal build).
-This Makefile must include the ULP makefile after the variable set process on ``arch/risc-v/src/common/espressif/esp_ulp.mk`` integration script.
-For more information please refer to :ref:`ulp example Makefile. <ulp_makefile>`
+This file must include either ULP makefile after the variable set process on ``arch/risc-v/src/common/espressif/esp_ulp.mk``
+or ``arch/risc-v/src/common/espressif/esp_ulp.cmake`` integration script depending on build system preference.
+For more information please refer to :ref:`ulp example Makefile. <ulp_makefile>` or :ref:`ulp example CMake. <ulp_cmake>`
 
-Makefile Variables for ULP Core Build:
---------------------------------------
+Makefile/CMake Variables for ULP Core Build:
+--------------------------------------------
 
 - ``ULP_APP_NAME``: Sets name for the ULP application. This variable also be used as prefix (e.g. ULP application bin variable name)
 - ``ULP_APP_FOLDER``: Specifies the directory containing the ULP application's source codes.
@@ -658,6 +842,9 @@ Makefile Variables for ULP Core Build:
 - ``ULP_APP_C_SRCS``: Lists all C source files (.c) that need to be compiled for the ULP application.
 - ``ULP_APP_ASM_SRCS``: Lists all assembly source files (.S or .s) to be assembled.
 - ``ULP_APP_INCLUDES``: Specifies additional include directories for the compiler and assembler.
+- ``ULP_CUSTOM_SECTIONS_LD``: Optional. Replaces the default ``${CHIP_SERIES}_lpcore_sections.ld`` linker template.
+- ``ULP_EXTRA_DEFINES``: Optional. Extra compile definitions for the ULP firmware
+- ``ULP_POST_LINK``: Optional (Make only). Commands run after linking.
 
 Here is an Makefile example when using prebuilt binary for ULP core:
 
@@ -665,12 +852,12 @@ Here is an Makefile example when using prebuilt binary for ULP core:
 
    ULP_APP_NAME = esp_ulp
    ULP_APP_FOLDER = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)$(CHIP_SERIES)
-   ULP_APP_BIN = $(TOPDIR)$(DELIM)Documentation$(DELIM)platforms$(DELIM)$(CONFIG_ARCH)$(DELIM)$(CONFIG_ARCH_CHIP)$(DELIM)boards$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)ulp_riscv_blink.bin
+   ULP_APP_BIN = $(TOPDIR)$(DELIM)Documentation$(DELIM)platforms$(DELIM)$(CONFIG_ARCH)$(DELIM)$(CONFIG_ARCH_CHIP)$(DELIM)boards$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)ulp_blink.bin
 
    include $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)common$(DELIM)espressif$(DELIM)esp_ulp.mk
 
 
-Here is an example for enabling ULP and using the prebuilt test binary for ULP core::
+Here is an example for enabling ULP and using the prebuilt test binary for ULP core using make build system::
 
     make distclean
     ./tools/configure.sh esp32c6-devkitc:nsh
@@ -678,6 +865,26 @@ Here is an example for enabling ULP and using the prebuilt test binary for ULP c
     kconfig-tweak -e CONFIG_ESPRESSIF_ULP_USE_TEST_BIN
     make olddefconfig
     make -j
+
+Here is an CMake file example when using prebuilt binary for ULP core:
+
+.. code-block:: cmake
+
+   set(ULP_APP_USE_TEST_BIN TRUE)
+   set(ULP_APP_NAME esp_ulp)
+   set(ULP_APP_FOLDER ${NUTTX_CHIP_ABS_DIR})
+   set(ULP_APP_BIN ${NUTTX_DIR}/Documentation/platforms/risc-v/${CONFIG_ARCH_CHIP}/boards/${CONFIG_ARCH_BOARD}/ulp_blink.bin)
+
+   include(${NUTTX_DIR}/arch/risc-v/src/common/espressif/esp_ulp.cmake)
+
+
+Here is an example for enabling ULP and using the prebuilt test binary for ULP core using CMake build system::
+
+    cmake -B build -DBOARD_CONFIG=esp32c6-devkitc:nsh -GNinja
+    kconfig-tweak --file build/.config -e CONFIG_ESPRESSIF_USE_LP_CORE
+    kconfig-tweak --file build/.config -e CONFIG_ESPRESSIF_ULP_USE_TEST_BIN
+    cmake --build build -t olddefconfig
+    cmake --build build
 
 Creating an ULP LP-Core Application
 -----------------------------------
@@ -687,7 +894,7 @@ To use NuttX's internal build system to compile the bare-metal LP binary, check 
 First, create a folder for the ULP source and header files into your NuttX example.
 This folder is just for ULP project and it is an independent project. Therefore, the NuttX example guide should not be followed
 for ULP example (folder location is irrelevant. It can be the same of the `nuttx-apps` repository, for instance).
-To include the ULP folder in the build system, don't forget to include the ULP Makefile in the NuttX example Makefile. Lastly, configuration variables
+To include the ULP folder in the build system, don't forget to include the ULP Makefile or Cmake integration in the NuttX example build file. Lastly, configuration variables
 needed to enable ULP core instructions can be found above.
 
 NuttX's internal functions or POSIX calls are not supported.
@@ -738,12 +945,36 @@ this example will demonstrate how to add ULP code into a custom application:
    ├── nuttx/
    └── apps/
    └── ulp_example/
+       └── CMakeLists.txt
        └── Makefile
        └── Kconfig
        └── ulp_example.c
        └── ulp/
+           └── CMakeLists.txt
            └── Makefile
            └── ulp_main.c
+
+
+- Contents in CMakeLists.txt:
+
+.. code-block:: cmake
+
+   include(ulp/CMakeLists.txt)
+   nuttx_add_application(
+      NAME
+      ${CONFIG_EXAMPLES_ULP_EXAMPLE_PROGNAME}
+      PRIORITY
+      ${SCHED_PRIORITY_DEFAULT}
+      STACKSIZE
+      ${CONFIG_DEFAULT_TASK_STACKSIZE}
+      MODULE
+      ${CONFIG_EXAMPLES_ULP_EXAMPLE}
+      INCLUDE_DIRECTORIES
+      ${CMAKE_CURRENT_BINARY_DIR}
+      SRCS
+      ulp_example.c
+      DEPENDS
+      ${_ulp_example_deps})
 
 
 - Contents in Makefile:
@@ -804,6 +1035,19 @@ this example will demonstrate how to add ULP code into a custom application:
       return 0;
     }
 
+.. _ulp_cmake:
+
+- Contents in ulp/CMakeLists.txt:
+
+.. code-block:: cmake
+
+    set(_ulp_example_deps)
+    set(ULP_APP_NAME ulp_example)
+    set(ULP_APP_FOLDER ${CMAKE_CURRENT_LIST_DIR}/ulp)
+    set(ULP_APP_C_SRCS ulp_main.c)
+    include(${NUTTX_DIR}/arch/risc-v/src/common/espressif/esp_ulp.cmake)
+    list(APPEND _ulp_example_deps ulp_example_ulp_bin)
+
 .. _ulp_makefile:
 
 - Contents in ulp/Makefile:
@@ -845,7 +1089,7 @@ this example will demonstrate how to add ULP code into a custom application:
        return 0;
     }
 
-- Command to build::
+- Command to build using make build system::
 
     make distclean
     ./tools/configure.sh esp32c6-devkitc:nsh
@@ -856,7 +1100,17 @@ this example will demonstrate how to add ULP code into a custom application:
     make olddefconfig
     make -j
 
-Here is an example of a single ULP application. However, support is not limited to just 
+- Command to build using CMake build system::
+
+    cmake -B build -DBOARD_CONFIG=esp32c6-devkitc:nsh -GNinja
+    kconfig-tweak --file build/.config -e CONFIG_ESPRESSIF_GPIO_IRQ
+    kconfig-tweak --file build/.config -e CONFIG_DEV_GPIO
+    kconfig-tweak --file build/.config -e CONFIG_ESPRESSIF_USE_LP_CORE
+    kconfig-tweak --file build/.config -e CONFIG_EXAMPLES_ULP_EXAMPLE
+    cmake --build build -t olddefconfig
+    cmake --build build
+
+Here is an example of a single ULP application. However, support is not limited to just
 one application. Multiple ULP applications are also supported.
 By following the same guideline, multiple ULP applications can be created and loaded using ``write`` POSIX call.
 Each NuttX application can build one ULP application. Therefore, to build multiple ULP applications, multiple NuttX
@@ -865,7 +1119,7 @@ build multiple ULP applications; it does not affect the ability to load multiple
 
 ULP binary can be included in NuttX application by adding
 ``#include "ulp/ulp/ulp_code.h"`` line. Then, the ULP binary is accessible by using the ULP application
-prefix (defined by the ``ULP_APP_NAME`` variable in the ULP application Makefile) with the ``bin`` keyword to
+prefix (defined by the ``ULP_APP_NAME`` variable in the ULP application Makefile or CMake file) with the ``bin`` keyword to
 access the binary data (e.g., if ``ULP_APP_NAME`` is ``ulp_test``, the binary variable will be ``ulp_test_bin``)
 and ``bin_len`` keyword to access its length (e.g., ``ulp_test_bin_len`` for ``ULP_APP_NAME`` is ``ulp_test``).
 
@@ -874,8 +1128,8 @@ Accessing the ULP LP-Core Program Variables
 
 Global symbols defined in the ULP application are available to the HP core through a shared memory region. To read or write ULP variables,
 direct reading/writing to such memory positions are not allowed. POSIX calls are needed instead. To access the ULP variable through the HP core,
-consider that its name is defined by the ULP application prefix (defined by the ``ULP_APP_NAME`` variable in the ULP application Makefile) + the ULP application variable.
-For example if HP core tries to access a ULP application variable named ``result`` and ``ULP_APP_NAME`` in the ULP application Makefile set as ``ulp_app``, required name for
+consider that its name is defined by the ULP application prefix (defined by the ``ULP_APP_NAME`` variable in the ULP Makefile or CMake integration) + the ULP application variable.
+For example if HP core tries to access a ULP application variable named ``result`` and ``ULP_APP_NAME`` in the ULP application build file set as ``ulp_app``, required name for
 that variable will be ``ulp_app_result``.
 ``FIONREAD`` or ``FIONWRITE`` ioctl calls are, then, performed with the address of a ``struct symtab_s`` previously defined with the name of the variable to be read or written.
 
@@ -913,6 +1167,18 @@ Here is a snippet for reading and writing to a ULP variable named ``var_test`` (
 
       return OK;
     }
+
+ULP LP-Core Wakeup Configuration
+--------------------------------
+
+By default, ULP LP-Core is woken up by HP core but other wakeup sources can be selected.
+
+The available wakeup sources are:
+
+* ``CONFIG_ESPRESSIF_ULP_WAKEUP_HP_CPU``: Wakeup by HP core
+* ``CONFIG_ESPRESSIF_ULP_WAKEUP_LP_TIMER``: Wakeup by LP timer
+* ``CONFIG_ESPRESSIF_ULP_WAKEUP_LP_UART``: Wakeup by LP UART activity
+* ``CONFIG_ESPRESSIF_ULP_WAKEUP_LP_IO``: Wakeup by LP IO
 
 Debugging ULP LP-Core
 ---------------------

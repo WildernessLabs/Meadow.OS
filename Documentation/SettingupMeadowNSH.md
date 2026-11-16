@@ -96,7 +96,7 @@ CONFIG_NSH_DISABLE_IFUPDOWN=y
 CONFIG_NSH_DISABLE_TIMEDATECTL=y
 CONFIG_READLINE_CMD_HISTORY=y
 CONFIG_READLINE_ECHO=y
-CONFIG_STM32F7_USART6=y
+CONFIG_STM32_USART6=y
 CONFIG_USART6_RXBUFSIZE=512
 CONFIG_USART6_TXBUFSIZE=512
 CONFIG_SYSTEM_NSH=y
@@ -219,7 +219,7 @@ Notes:
 - `CONFIG_FS_PROCFS_INCLUDE_PROGMEM` is the exception to the point above and must
   stay off. Kconfig offers it because `ARCH_HAVE_PROGMEM` is selected arch-wide,
   but the STM32F7 implementation (`arch/arm/src/stm32f7/stm32_flash.c`) is only
-  compiled when `CONFIG_STM32F7_PROGMEM=y`, which this board does not set. Turning
+  compiled when `CONFIG_STM32_PROGMEM=y`, which this board does not set. Turning
   it on fails the link with undefined references to `up_progmem_*`.
 - `CONFIG_NSH_NETINIT` defaults to `y` whenever networking is enabled and would
   have NSH bring the network up itself. It is left off (along with the

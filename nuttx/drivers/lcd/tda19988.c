@@ -1309,14 +1309,14 @@ static int tda19988_hwinitialize(FAR struct tda1988_dev_s *priv)
   priv->version = version & ~0x30;
   switch (priv->version)
     {
-    case HDMI_CTRL_REV_TDA19988:
-      lcdinfo("TDA19988\n");
-      break;
+      case HDMI_CTRL_REV_TDA19988:
+        lcdinfo("TDA19988\n");
+        break;
 
-    default:
-      lcderr("ERROR: Unknown device: %04x\n", priv->version);
-      ret = -ENODEV;
-      goto done;
+      default:
+        lcderr("ERROR: Unknown device: %04x\n", priv->version);
+        ret = -ENODEV;
+        goto done;
     }
 
   tda19988_hdmi_putreg(priv, HDMI_CTRL_DDC_CTRL_REG, HDMI_CTRL_DDC_EN);
@@ -1621,12 +1621,12 @@ static void tda19988_shutdown(FAR struct tda1988_dev_s *priv)
  * Name: tda19988_register
  *
  * Description:
- *   Create and register the the TDA19988 driver at 'devpath'
+ *   Create and register the TDA19988 driver at 'devpath'
  *
  * Input Parameters:
  *   devpath - The location to register the TDA19988 driver instance.  The
  *             standard location would be a path like /dev/hdmi0.
- *   lower   - The interface to the the TDA19988 lower half driver.
+ *   lower   - The interface to the TDA19988 lower half driver.
  *
  * Returned Value:
  *   On success, non-NULL handle is returned that may be subsequently used
@@ -1682,7 +1682,7 @@ TDA19988_HANDLE tda19988_register(FAR const char *devpath,
 
   /* Register the driver */
 
-  ret = register_driver(devpath, &g_tda19988_fops, 0666, NULL);
+  ret = register_driver(devpath, &g_tda19988_fops, 0600, NULL);
   if (ret < 0)
     {
       lcderr("ERROR: register_driver() failed: %d\n", ret);

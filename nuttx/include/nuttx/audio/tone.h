@@ -32,6 +32,7 @@
 
 #include <fixedmath.h>
 
+#include <nuttx/timers/oneshot.h>
 #include <nuttx/timers/pwm.h>
 #include <nuttx/fs/ioctl.h>
 
@@ -76,9 +77,7 @@ extern "C"
  ****************************************************************************/
 
 int tone_register(FAR const char *path, FAR struct pwm_lowerhalf_s *tone,
-#ifdef CONFIG_PWM_MULTICHAN
                   int channel,
-#endif
                   FAR struct oneshot_lowerhalf_s *oneshot);
 
 #undef EXTERN

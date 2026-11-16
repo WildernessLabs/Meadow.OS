@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <strings.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/bits.h>
 #include <nuttx/mm/gran.h>
@@ -225,7 +225,10 @@ failure:
     {
       size_t tmp;
 
-      v = gran->gat[c];
+      /* v holds only the used bits inside the range.  A used bit above the
+       * range must not move the search past the free bits below it.
+       */
+
       DEBUGASSERT(v);
 
       if (v == GATCFULL)
@@ -260,6 +263,7 @@ failure:
 int gran_search(const gran_t *gran, size_t size)
 {
   int ret = -EINVAL;
+  size_t i;
 
   if (gran == NULL || gran->ngranules < size)
     {
@@ -267,7 +271,7 @@ int gran_search(const gran_t *gran, size_t size)
     }
 
   ret = -ENOMEM;
-  for (size_t i = 0; i <= gran->ngranules - size; i++)
+  for (i = 0; i <= gran->ngranules - size; i++)
     {
       if (gran_match(gran, i, size, 0, &i))
         {

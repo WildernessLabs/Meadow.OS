@@ -49,7 +49,7 @@
 #include <debug.h>
 #include <errno.h>
 
-#if defined (CONFIG_STM32F7_SDMMC2)
+#if defined (CONFIG_STM32_SDMMC2)
 
 #include <nuttx/irq.h>
 #include <nuttx/clock.h>

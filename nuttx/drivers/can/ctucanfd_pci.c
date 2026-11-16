@@ -27,7 +27,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 #include <stdio.h>
 
@@ -263,6 +263,7 @@ static uint32_t ctucanfd_getreg(FAR struct ctucanfd_can_s *priv,
                                 unsigned int offset)
 {
   uintptr_t addr = priv->base + offset;
+
   return *((FAR volatile uint32_t *)addr);
 }
 
@@ -275,6 +276,7 @@ static void ctucanfd_putreg(FAR struct ctucanfd_can_s *priv,
                             uint32_t value)
 {
   uintptr_t addr = priv->base + offset;
+
   *((FAR volatile uint32_t *)addr) = value;
 }
 
@@ -739,6 +741,8 @@ static void ctucanfd_chardev_receive(FAR struct ctucanfd_can_s *priv)
   uint16_t                     frc    = 0;
   uint32_t                     regval = 0;
 
+  memset(&hdr, 0, sizeof(hdr));
+
   /* Get frame count */
 
   regval = ctucanfd_getreg(priv, CTUCANFD_RXSETSTAT);
@@ -757,6 +761,14 @@ static void ctucanfd_chardev_receive(FAR struct ctucanfd_can_s *priv)
       /* RX buffer in automatic mode */
 
       buff[0] = ctucanfd_getreg(priv, CTUCANFD_RXDATA);
+
+      /* buff[0] populated the frame->fmt.rwcnt. Check before use. */
+
+      if (frame->fmt.rwcnt > sizeof(buff) / sizeof(buff[0]) - 1)
+        {
+          canerr("ERROR: CAN read/write count is too large.  Dropped\n");
+          return;
+        }
 
       /* Read the rest of data */
 
@@ -1247,6 +1259,15 @@ static FAR netpkt_t *ctucanfd_sock_recv(FAR struct netdev_lowerhalf_s *dev)
 
   buff[0] = ctucanfd_getreg(priv, CTUCANFD_RXDATA);
 
+  /* buff[0] populated the frame->fmt.rwcnt. Check before use. */
+
+  if (rxframe->fmt.rwcnt > sizeof(buff) / sizeof(buff[0]) - 1)
+    {
+      canerr("ERROR: CAN read/write count is too large.  Dropped\n");
+      netpkt_free(dev, pkt, NETPKT_RX);
+      return NULL;
+    }
+
   /* Read the rest of data */
 
   for (i = 0; i < rxframe->fmt.rwcnt; i++)
@@ -1285,7 +1306,8 @@ static FAR netpkt_t *ctucanfd_sock_recv(FAR struct netdev_lowerhalf_s *dev)
         {
           canerr("ERROR: Received message with extended"
                  " identifier.  Dropped\n");
-          continue;
+          netpkt_free(dev, pkt, NETPKT_RX);
+          return NULL;
         }
 
       frame->can_id = rxframe->id.id;
@@ -1349,7 +1371,8 @@ static FAR netpkt_t *ctucanfd_sock_recv(FAR struct netdev_lowerhalf_s *dev)
         {
           canerr("ERROR: Received message with extended"
                  " identifier.  Dropped\n");
-          continue;
+          netpkt_free(dev, pkt, NETPKT_RX);
+          return NULL;
         }
 
       frame->can_id = rxframe->id.id;

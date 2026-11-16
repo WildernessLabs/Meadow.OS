@@ -30,12 +30,14 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/binfmt/binfmt.h>
 #include <nuttx/kmalloc.h>
+
+#include "binfmt.h"
 
 #ifdef CONFIG_ELF
 
@@ -96,6 +98,7 @@ static int elf_loadbinary(FAR struct binary_s *binp,
                           int nexports)
 {
   struct mod_loadinfo_s loadinfo;
+  Elf_Sym sym;
   int ret;
 
   binfo("Loading file: %s\n", filename);
@@ -109,6 +112,20 @@ static int elf_loadbinary(FAR struct binary_s *binp,
       berr("Failed to initialize to load ELF program binary: %d\n", ret);
       goto errout_with_init;
     }
+
+#ifdef CONFIG_SCHED_USER_IDENTITY
+  /* Save IDs and mode from file system before loading segments */
+
+  binp->uid  = loadinfo.fileuid;
+  binp->gid  = loadinfo.filegid;
+  binp->mode = loadinfo.filemode;
+
+  ret = binfmt_checkexecperm(binp);
+  if (ret < 0)
+    {
+      goto errout_with_init;
+    }
+#endif
 
   /* Load the program binary */
 
@@ -157,7 +174,57 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 
   /* Return the load information */
 
-  binp->stacksize = CONFIG_ELF_STACKSIZE;
+  ret = libelf_findsymbol(&loadinfo, "nx_stacksize", &sym);
+  if (ret == 0)
+    {
+      binp->stacksize = sym.st_value;
+    }
+  else
+    {
+      binp->stacksize = CONFIG_ELF_STACKSIZE;
+    }
+
+  ret = libelf_findsymbol(&loadinfo, "nx_priority", &sym);
+  if (ret == 0)
+    {
+      binp->priority = sym.st_value;
+    }
+  else
+    {
+      binp->priority = SCHED_PRIORITY_DEFAULT;
+    }
+
+#ifdef CONFIG_SCHED_USER_IDENTITY
+  ret = libelf_findsymbol(&loadinfo, "nx_uid", &sym);
+  if (ret == 0)
+    {
+      binp->uid = sym.st_value;
+    }
+  else
+    {
+      binp->uid = 0;
+    }
+
+  ret = libelf_findsymbol(&loadinfo, "nx_gid", &sym);
+  if (ret == 0)
+    {
+      binp->gid = sym.st_value;
+    }
+  else
+    {
+      binp->gid = 0;
+    }
+
+  ret = libelf_findsymbol(&loadinfo, "nx_mode", &sym);
+  if (ret == 0)
+    {
+      binp->mode = sym.st_value;
+    }
+  else
+    {
+      binp->mode = 0;
+    }
+#endif
 
   /* Add the ELF allocation to the alloc[] only if there is no address
    * environment.  If there is an address environment, it will automatically
@@ -199,14 +266,6 @@ static int elf_loadbinary(FAR struct binary_s *binp,
 
   binp->mod.finiarr = loadinfo.finiarr;
   binp->mod.nfini   = loadinfo.nfini;
-#endif
-
-#ifdef CONFIG_SCHED_USER_IDENTITY
-  /* Save IDs and mode from file system */
-
-  binp->uid  = loadinfo.fileuid;
-  binp->gid  = loadinfo.filegid;
-  binp->mode = loadinfo.filemode;
 #endif
 
   libelf_dumpentrypt(&loadinfo);

@@ -1296,6 +1296,7 @@ static int alt1250_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         {
           FAR struct alt_evtbuffer_s *buff =
             (FAR struct alt_evtbuffer_s *)arg;
+
           add_evtbuff(dev, buff);
         }
         break;
@@ -1511,7 +1512,7 @@ FAR void *alt1250_register(FAR const char *devpath,
   nxsem_init(&g_alt1250_res_s.sem, 0, 0);
 #endif
 
-  ret = register_driver(devpath, &g_alt1250fops, 0666, priv);
+  ret = register_driver(devpath, &g_alt1250fops, 0600, priv);
   if (ret < 0)
     {
       m_err("Failed to register driver: %d\n", ret);

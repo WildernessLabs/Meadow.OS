@@ -52,7 +52,7 @@ The shipping `meadow_os` defconfig sets:
 
 | Option | Value |
 |--------|-------|
-| `CONFIG_STM32F7_OTGFS` | `y` (the USB OTG full-speed controller) |
+| `CONFIG_STM32_OTGFS` | `y` (the USB OTG full-speed controller) |
 | `CONFIG_USBDEV` | `y` |
 | `CONFIG_CDCACM` | `y` |
 | `CONFIG_BOARDCTL`, `CONFIG_BOARDCTL_USBDEVCTRL` | `y` (lets board code connect the device through `boardctl()`) |

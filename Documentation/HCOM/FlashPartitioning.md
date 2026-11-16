@@ -15,7 +15,7 @@ OTA is out of scope; where a partition belongs to the OTA process it is only nam
 
 | Property | Value |
 |----------|-------|
-| Size | 64 MB (`CONFIG_STM32F7_QSPI_FLASH_SIZE`) |
+| Size | 64 MB (`CONFIG_STM32_QSPI_FLASH_SIZE`) |
 | Driver | NuttX `w25qxxxjv` MTD driver over the QUADSPI controller |
 | Erase block ("sector") | 4096 bytes |
 | Read/write block ("page") | 256 bytes |

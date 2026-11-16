@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/binfmt/binfmt.h>
 #include <nuttx/binfmt/symtab.h>
@@ -128,7 +128,17 @@ int execve(FAR const char *path, FAR char * const argv[],
   ret = exec(path, argv, envp, symtab, nsymbols);
   if (ret < 0)
     {
-      serr("ERROR: exec failed: %d\n", get_errno());
+      /* No such program (ENOENT) or not a loadable format (ENOEXEC) is an
+       * ordinary result for the caller, for example a shell that runs a
+       * script itself when execve() cannot.
+       */
+
+      ret = get_errno();
+      if (ret != ENOENT && ret != ENOEXEC)
+        {
+          serr("ERROR: exec failed: %d\n", ret);
+        }
+
       return ERROR;
     }
 

@@ -38,7 +38,7 @@
 #include <assert.h>
 #include <poll.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
@@ -88,6 +88,13 @@
 
 #define HALF_SECOND_MSEC 500
 #define HALF_SECOND_USEC 500000L
+
+/* can_close waits for SW queue and H/W TX to drain.  Without a second bus
+ * node (no ACK) bxCAN may retry indefinitely; dev_txempty() then never
+ * becomes true.  Bound the wait so close() does not hang forever.
+ */
+
+#define CAN_CLOSE_DRAIN_LOOPS 20u  /* 20 * 500 ms = 10 s per stage */
 
 /****************************************************************************
  * Private Function Prototypes
@@ -257,14 +264,22 @@ static int can_open(FAR struct file *filep)
 
       if (ret == OK)
         {
+          FAR struct can_reader_s *reader;
+
           dev->cd_crefs++;
 
-          /* Update the reader list only if driver was open for reading */
+          /* Per-file context (msgalign, optional ioctl FIFO).  Always
+           * allocated: write-only path needs msgalign / CANIOC_* even
+           * without O_RDONLY.  Receive path and poll() only use readers
+           * that are also queued on cd_readers (see below).
+           */
 
-          if ((filep->f_oflags & O_RDOK) != 0)
+          reader = init_can_reader(filep);
+
+          if ((filep->f_oflags & O_ACCMODE) != O_WRONLY)
             {
               list_add_head(&dev->cd_readers,
-                            (FAR struct list_node *)init_can_reader(filep));
+                            (FAR struct list_node *)reader);
             }
         }
 
@@ -287,11 +302,14 @@ errout:
 
 static int can_close(FAR struct file *filep)
 {
-  FAR struct inode     *inode = filep->f_inode;
-  FAR struct can_dev_s *dev   = inode->i_private;
-  irqstate_t            flags;
-  FAR struct list_node *node;
-  int                   ret;
+  FAR struct inode        *inode = filep->f_inode;
+  FAR struct can_dev_s    *dev   = inode->i_private;
+  irqstate_t              flags;
+  FAR struct list_node    *node;
+  FAR struct can_reader_s *priv  = (FAR struct can_reader_s *)filep->f_priv;
+  bool                    onlist = false;
+  int                     ret;
+  unsigned int            n;
 
 #ifdef  CONFIG_DEBUG_CAN_INFO
   caninfo("ocount: %u\n", dev->cd_crefs);
@@ -307,10 +325,10 @@ static int can_close(FAR struct file *filep)
 
   list_for_every(&dev->cd_readers, node)
     {
-      if (((FAR struct can_reader_s *)node) ==
-          ((FAR struct can_reader_s *)filep->f_priv))
+      if (((FAR struct can_reader_s *)node) == priv)
         {
-          FAR struct can_reader_s *reader = (FAR struct can_reader_s *)node;
+          FAR struct can_reader_s *reader =
+            (FAR struct can_reader_s *)node;
           FAR struct can_rxfifo_s *fifo   = &reader->fifo;
 
           /* Unlock the binary semaphore, waking up can_read if it
@@ -319,16 +337,24 @@ static int can_close(FAR struct file *filep)
 
           nxsem_post(&fifo->rx_sem);
 
-          /* Notify specific poll/select waiter that they can read from the
-           * cd_recv buffer
+          /* Notify specific poll/select waiter that they can read from
+           * the cd_recv buffer
            */
 
           poll_notify(&reader->cd_fds, 1, POLLHUP);
           reader->cd_fds = NULL;
           list_delete(node);
           kmm_free(node);
+          onlist = true;
           break;
         }
+    }
+
+  /* Write-only opens use init_can_reader() but are not on cd_readers */
+
+  if (!onlist && priv != NULL)
+    {
+      kmm_free(priv);
     }
 
   filep->f_priv = NULL;
@@ -347,16 +373,29 @@ static int can_close(FAR struct file *filep)
 
   /* Now we wait for the sender to clear */
 
-  while (!TX_EMPTY(&dev->cd_sender))
+  for (n = 0;
+       !TX_EMPTY(&dev->cd_sender) && n < CAN_CLOSE_DRAIN_LOOPS;
+       n++)
     {
       nxsched_usleep(HALF_SECOND_USEC);
     }
 
+  if (!TX_EMPTY(&dev->cd_sender))
+    {
+      canerr("CAN close: SW TX queue still not empty after timeout\n");
+    }
+
   /* And wait for the hardware sender to drain */
 
-  while (!dev_txempty(dev))
+  for (n = 0; !dev_txempty(dev) && n < CAN_CLOSE_DRAIN_LOOPS; n++)
     {
       nxsched_usleep(HALF_SECOND_USEC);
+    }
+
+  if (!dev_txempty(dev))
+    {
+      canerr("CAN close: H/W TX still busy after timeout "
+              "(no ACK / bus-off / stuck mailbox)\n");
     }
 
   /* Free the IRQ and disable the CAN device */
@@ -595,6 +634,48 @@ static int can_xmit(FAR struct can_dev_s *dev)
         }
     }
 
+  /* When the hardware transmit buffer, not H/W FIFO, is full and
+   * there are frames in the tx_pending list.
+   *
+   * the cancel logic requires hardware transmit buffer must have ability
+   * of Canceling the transmission of frames.
+   *
+   * The can_txneed_cancel function checks whether the ID of the first
+   * frame in the tx_pending list is smaller than the minimum ID in the
+   * tx_sending list.
+   *
+   * If this condition is met, the can_cancel_mbmsg function is invoked
+   * to attempt to cancel the transmission of the frame with the largest
+   * ID in the tx_sending list, and this frame with the largest ID in the
+   * tx_sending list is then reinserted into the tx_pending list at a
+   * specified position, can_cancel_mbmsg return true if cancel succeed.
+   *
+   * Afterwards, dev_send is called to load the first frame(minimum ID)
+   * from the tx_pending list into the hardware transmit buffer. make
+   * this frame with the minimum ID appear on the bus in real time.
+   */
+
+#ifdef CONFIG_CAN_STRICT_TX_PRIORITY
+  if (TX_PENDING(&dev->cd_sender) && can_txneed_cancel(&dev->cd_sender))
+    {
+      DEBUGASSERT(dev->cd_ops->co_cancel != NULL);
+
+      if (can_cancel_mbmsg(dev))
+        {
+          msg = can_get_msg(&dev->cd_sender);
+
+          /* Send the next message at the sender */
+
+          ret = dev_send(dev, msg);
+          if (ret < 0)
+            {
+              canerr("dev_send failed: %d\n", ret);
+              can_revert_msg(&dev->cd_sender, msg);
+            }
+        }
+    }
+#endif
+
   /* Make sure that TX interrupts are enabled */
 
   dev_txint(dev, true);
@@ -627,13 +708,18 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer,
 
   flags = enter_critical_section();
 
-  /* Check if the H/W TX is inactive when we started. In certain race
-   * conditions, there may be a pending interrupt to kick things back off,
-   * but we will be sure here that there is not.  That the hardware is IDLE
-   * and will need to be kick-started.
+  /* if CONFIG_CAN_STRICT_TX_PRIORITY is enable, inactive will be always
+   * true, else check if the H/W TX is inactive when we started. In certain
+   * race conditions, there may be a pending interrupt to kick things back
+   * off, but we will be sure here that there is not.  That the hardware
+   * is IDLE and will need to be kick-started.
    */
 
-  inactive = dev_txempty(dev);
+#ifdef CONFIG_CAN_STRICT_TX_PRIORITY
+  inactive = true;
+#else
+  inactive = dev_txready(dev);
+#endif
 
   /* Add the messages to the sender.  Ignore any trailing messages that are
    * shorter than the minimum.
@@ -647,6 +733,21 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer,
 
       while (TX_FULL(sender))
         {
+          /* The transmit sender is full. In order to resolve the Lower half
+           * interrupt exception, attempt to release invalid unconfirm
+           * messages and trigger can_xmit.
+           */
+
+          if (dev_txempty(dev))
+            {
+              can_send_done(sender);
+
+              if (!TX_FULL(sender))
+                {
+                  break;
+                }
+            }
+
           /* The transmit sender is full  -- non-blocking mode selected? */
 
           if ((filep->f_oflags & O_NONBLOCK) != 0)
@@ -686,7 +787,11 @@ static ssize_t can_write(FAR struct file *filep, FAR const char *buffer,
 
           /* Re-check the H/W sender state */
 
-          inactive = dev_txempty(dev);
+#ifdef CONFIG_CAN_STRICT_TX_PRIORITY
+          inactive = true;
+#else
+          inactive = dev_txready(dev);
+#endif
         }
 
       /* We get here if there is space in sender.  Add the new
@@ -1186,7 +1291,7 @@ int can_register(FAR const char *path, FAR struct can_dev_s *dev)
   /* Register the CAN device */
 
   caninfo("Registering %s\n", path);
-  return register_driver(path, &g_canops, 0666, dev);
+  return register_driver(path, &g_canops, 0600, dev);
 }
 
 /****************************************************************************

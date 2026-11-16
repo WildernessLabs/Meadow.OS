@@ -111,7 +111,7 @@ void hcom_nx_common_utils_only_restart_meadow()
 // setlogmask() call; there's no single call that could cover both.
 int hcom_nx_utils_startup_handling_of_trace_level()
 {
-#if defined(CONFIG_STM32F7_PWR)
+#if defined(CONFIG_STM32_PWR)
   // Check if this is a reboot or a power-on restart. The MCU at
   // Power-on (unless there's a coin cell) clears all 32 battery
   // backed registers to 0.
@@ -169,7 +169,7 @@ int hcom_nx_utils_startup_handling_of_trace_level()
     return syslogMaskPrev;    // not old mask but error
   }
 #else
-#warning "CONFIG_STM32F7_PWR not defined\n"
+#warning "CONFIG_STM32_PWR not defined\n"
   // Without battery backed registers the best we can do is defaults
   _syslogMask = LOG_MASK(LOG_EMERG) | LOG_MASK(LOG_ALERT) | LOG_MASK(LOG_CRIT) |
               LOG_MASK(LOG_ERR) | LOG_MASK(LOG_WARNING);

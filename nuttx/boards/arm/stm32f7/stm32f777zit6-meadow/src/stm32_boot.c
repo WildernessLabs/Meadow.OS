@@ -26,7 +26,7 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <assert.h>
 
 #include <nuttx/board.h>
@@ -43,14 +43,14 @@
 #include "hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_shared_common.h>
 
-#ifdef CONFIG_STM32F7_QUADSPI
+#ifdef CONFIG_STM32_QSPI
 #  include "stm32_qspi.h"
 
 #  ifdef CONFIG_FS_FAT
 #    include <sys/mount.h>
 #    include <nuttx/fs/fat.h>
 #  endif
-#endif    // #ifdef CONFIG_STM32F7_QUADSPI
+#endif    // #ifdef CONFIG_STM32_QSPI
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -64,7 +64,7 @@
  * Global definitions
  ****************************************************************************/
 
-#if defined(CONFIG_STM32F7_QUADSPI)
+#if defined(CONFIG_STM32_QSPI)
 struct qspi_dev_s *g_qspi;
 #endif
 
@@ -172,9 +172,9 @@ void stm32_boardinitialize(void)
 // CONFIG_DEBUG_FEATURES alone used to hang the board right after showprogress
 // prints 'A' and before it prints 'B'.
 
-#if defined(CONFIG_STM32F7_SPI1) || defined(CONFIG_STM32F7_SPI2) || \
-    defined(CONFIG_STM32F7_SPI3) || defined(CONFIG_STM32F7_SPI4) || \
-    defined(CONFIG_STM32F7_SPI5)
+#if defined(CONFIG_STM32_SPI1) || defined(CONFIG_STM32_SPI2) || \
+    defined(CONFIG_STM32_SPI3) || defined(CONFIG_STM32_SPI4) || \
+    defined(CONFIG_STM32_SPI5)
   /* Configure SPI chip selects if 1) SPI is not disabled, and 2) the weak
    * function stm32_spidev_initialize() has been brought into the link.
    */
@@ -196,11 +196,11 @@ void stm32_boardinitialize(void)
 
 // Rebase Note: Nuttx function name changed from stm32_enablefmc() to
 // stm32_sdram_initialize(). The code is also slightly different.
-#ifdef CONFIG_STM32F7_FMC
+#ifdef CONFIG_STM32_FMC
   stm32_sdram_initialize();
 #endif
 
-#ifdef CONFIG_STM32F7_OTGFS
+#ifdef CONFIG_STM32_OTGFS
   // This configures the USB gpio
   stm32_usbinitialize();
 #endif
@@ -228,7 +228,7 @@ void board_late_initialize(void)
 {
   int ret;
 
-#if defined(CONFIG_STM32F7_PWR)
+#if defined(CONFIG_STM32_PWR)
   // Initialize the backup SRAM and the 32 registers
   stm32_pwr_initbkp(true);    // initialize as writable
 #endif
@@ -289,20 +289,20 @@ void board_late_initialize(void)
     return;
   }
 
-#ifdef CONFIG_STM32F7_QUADSPI
+#ifdef CONFIG_STM32_QSPI
   FAR struct qspi_dev_s *qspi;
   FAR struct mtd_dev_s *mtd = NULL;
 
   // Part of every QSPI flash chip is an API with at a standard set of
   // functions. This means we can read the flash chip's vendor information
-  // without knowing much about the chip. stm32f7_qspi_initialize() sets the
-  // defconfig CONFIG_STM32F7_QSPI_FLASH_SIZE, the 64 MB of the W25Q512 used
+  // without knowing much about the chip. stm32_qspi_initialize() sets the
+  // defconfig CONFIG_STM32_QSPI_FLASH_SIZE, the 64 MB of the W25Q512 used
   // by every supported board, and reading the chip's ID does not depend on
   // that size.
-  qspi = stm32f7_qspi_initialize(0);
+  qspi = stm32_qspi_initialize(0);
   if (!qspi)
     {
-      syslog(LOG_ERR, "ERROR: stm32f7_qspi_initialize, no qspi\n");
+      syslog(LOG_ERR, "ERROR: stm32_qspi_initialize, no qspi\n");
       return;
     }
 
@@ -393,6 +393,6 @@ void board_late_initialize(void)
     }
  #endif
 
-#endif    // #ifdef CONFIG_STM32F7_QUADSPI
+#endif    // #ifdef CONFIG_STM32_QSPI
 }
 #endif    // #ifdef CONFIG_BOARD_LATE_INITIALIZE

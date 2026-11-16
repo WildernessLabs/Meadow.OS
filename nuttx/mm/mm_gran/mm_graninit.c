@@ -99,7 +99,7 @@ GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
   FAR struct gran_s *priv;
   uintptr_t          heapend;
   uintptr_t          alignedstart;
-  unsigned int       mask;
+  size_t             mask;
   unsigned int       alignedsize;
   unsigned int       ngranules;
 
@@ -123,6 +123,14 @@ GRAN_HANDLE gran_initialize(FAR void *heapstart, size_t heapsize,
   heapend      = (uintptr_t)heapstart + heapsize;
   alignedsize  = (heapend - alignedstart) & ~mask;
   ngranules    = alignedsize >> log2gran;
+
+  /* Reject empty pools. */
+
+  DEBUGASSERT(ngranules > 0);
+  if (ngranules == 0)
+    {
+      return NULL;
+    }
 
   /* Allocate the information structure with a granule table of the
    * correct size.

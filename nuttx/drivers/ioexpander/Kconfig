@@ -56,6 +56,18 @@ config IOEXPANDER_DUMMY_INT_POLLDELAY
 
 endif # IOEXPANDER_DUMMY
 
+config IOEXPANDER_CH422G
+	bool "CH422G I2C IO expander"
+	default n
+	depends on I2C
+	---help---
+		Enable support for the WCH CH422G IO Expander, which offers eight
+		bi-directional pins, IO0-IO7, and four open-drain outputs, OC0-OC3.
+
+		IO0-IO7 share a single direction control in the hardware.  The
+		driver puts the group in output mode when at least one of them has
+		been configured as an output.
+
 config IOEXPANDER_ICJX
 	bool "iC-JX SPI IO expander"
 	default n
@@ -311,6 +323,34 @@ config PCA9538_RETRY
 		error occurs (eg. caused by EMC).
 
 endif # IOEXPANDER_PCA9538
+
+config IOEXPANDER_PI4IOE5V6408
+	bool "PI4IOE5V6408 I2C IO expander"
+	default n
+	depends on I2C
+	---help---
+		Enable support for the Diodes Incorporated PI4IOE5V6408
+		8-bit I2C I/O expander.
+
+if IOEXPANDER_PI4IOE5V6408
+
+config PI4IOE5V6408_INT_ENABLE
+	bool "Enable PI4IOE5V6408 interrupt support"
+	default n
+	select IOEXPANDER_INT_ENABLE
+	select SCHED_HPWORK
+	---help---
+		Enable the PI4IOE5V6408 interrupt callback interface.  The board
+		must provide hooks for the device's active-low interrupt pin.
+
+config PI4IOE5V6408_INT_NCALLBACKS
+	int "Max number of interrupt callbacks"
+	default 4
+	depends on PI4IOE5V6408_INT_ENABLE
+	---help---
+		This is the maximum number of interrupt callbacks supported.
+
+endif # IOEXPANDER_PI4IOE5V6408
 
 config IOEXPANDER_PCA9557
 	bool "PCA9557 I2C IO expander"
@@ -587,6 +627,23 @@ config DEV_GPIO
 		Enables a simple GPIO input/output driver to support application-
 		space testing of hardware.
 
+config GPIO_PROCFS
+	bool "GPIO procfs entry"
+	default n
+	depends on DEV_GPIO && FS_PROCFS && FS_PROCFS_REGISTER
+	---help---
+		Create /proc/gpio, listing every registered pin with its type,
+		its current value, and how many times it has been registered for
+		signals and taken an interrupt.
+
+		The pins are visible in /dev and each can be read through its own
+		node, but surveying a board that way means an open and two ioctls
+		per pin, and the counters are not reachable through any of them.
+
+		A lower half that supplies the optional go_describe method also
+		contributes whatever only it can say, such as which pad carries
+		the line.
+
 config DEV_GPIO_NPOLLWAITERS
 	int "Max number of polls"
 	default 1
@@ -598,7 +655,7 @@ config DEV_GPIO_NPOLLWAITERS
 config DEV_GPIO_NSIGNALS
 	int "Max number of signals"
 	default 1
-	depends on DEV_GPIO
+	depends on DEV_GPIO && !DISABLE_ALL_SIGNALS
 	---help---
 		The maximum number of signals that can be registered with the GPIO
 		driver

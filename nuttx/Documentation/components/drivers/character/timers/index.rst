@@ -8,9 +8,11 @@ Timers Drivers
   timer.rst
   oneshot.rst
   pwm.rst
+  pulsecount.rst
   watchdog.rst
   rtc.rst
   capture.rst
+  dshot.rst
 
 The NuttX timing subsystem consists of four layers:
 

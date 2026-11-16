@@ -20,6 +20,19 @@
  *
  ****************************************************************************/
 
+/* WARNING for developers:
+ *
+ * This driver uses the legacy style of writing sensor drivers for NuttX. The
+ * project has since decided to adopt a new sensor framework in order to
+ * have a consistent API and feature-set.
+ *
+ * Sensors which use the uORB framework are typically suffixed "_uorb". You
+ * can also visit the documentation about the new sensor framework to learn
+ * more.
+ */
+
+#warning "This is a deprecated legacy sensor driver."
+
 /* Character driver for the APDS9922 Proximity and Ambient Light Sensor     */
 
 /****************************************************************************
@@ -30,7 +43,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <poll.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <stdlib.h>
 
 #include <nuttx/compiler.h>
@@ -2493,7 +2506,7 @@ int apds9922_register(FAR const char *devpath_als,
 
   if (devpath_als != NULL)
     {
-      ret = register_driver(devpath_als, &g_apds9922_alsfops, 0666, priv);
+      ret = register_driver(devpath_als, &g_apds9922_alsfops, 0600, priv);
       if (ret < 0)
         {
           snerr("ERROR: Failed to register driver %s: %d\n",
@@ -2505,7 +2518,7 @@ int apds9922_register(FAR const char *devpath_als,
 
   if (devpath_ps != NULL)
     {
-      ret = register_driver(devpath_ps, &g_apds9922_psfops, 0666, priv);
+      ret = register_driver(devpath_ps, &g_apds9922_psfops, 0600, priv);
       if (ret < 0)
         {
           snerr("ERROR: Failed to register driver %s: %d\n",

@@ -48,7 +48,7 @@
  *   Check for special cases where the character driver is really just a
  *   proxy for the real, underlying MTD or block driver.
  *
- *   NOTE:  This must be done here rather than in the the common
+ *   NOTE:  This must be done here rather than in the common
  *   inode_stat() function because the filep reference must be available
  *   in order to call the character driver ioctl method.
  *
@@ -117,7 +117,7 @@ static int proxy_fstat(FAR struct file *filep, FAR struct inode *inode,
               buf->st_mode |= S_IROTH | S_IRGRP | S_IRUSR;
             }
 
-          if (inode->u.i_ops->writev || inode->u.i_ops->read)
+          if (inode->u.i_ops->writev || inode->u.i_ops->write)
             {
               buf->st_mode |= S_IWOTH | S_IWGRP | S_IWUSR;
             }
@@ -211,14 +211,22 @@ int file_fstat(FAR struct file *filep, FAR struct stat *buf)
   else
 #endif
     {
-      /* Check if the inode is a proxy for a block or MTD driver */
+      /* A directory opened with open() has a stand-in inode; stat the
+       * directory itself.
+       */
 
-      ret = proxy_fstat(filep, inode, buf);
-      if (ret < 0)
+      ret = dir_fstat(filep, buf);
+      if (ret == -ENOTTY)
         {
-          /* The inode is part of the root pseudo file system. */
+          /* Check if the inode is a proxy for a block or MTD driver */
 
-          ret = inode_stat(inode, buf, 0);
+          ret = proxy_fstat(filep, inode, buf);
+          if (ret < 0)
+            {
+              /* The inode is part of the root pseudo file system. */
+
+              ret = inode_stat(inode, buf, 0);
+            }
         }
     }
 

@@ -24,7 +24,7 @@
 
 #include <nuttx/config.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 #include <sys/param.h>
 
@@ -330,14 +330,26 @@ FAR void *libelf_insert(FAR const char *filename, FAR const char *modname)
 
   libelf_registry_lock();
 
-  /* Check if this module is already installed */
+  /* Already installed?  Take another reference rather than load a second
+   * copy: there is one instance of a module per name, and every caller
+   * shares it.  The count is kept here so that insmod()/rmmod() and
+   * dlopen()/dlclose() get the same behaviour from the same code.
+   */
 
 #ifdef HAVE_LIBC_ELF_NAMES
-  if (libelf_registry_find(modname) != NULL)
+  modp = libelf_registry_find(modname);
+  if (modp != NULL)
     {
+      if (modp->nopen == UINT8_MAX)
+        {
+          libelf_registry_unlock();
+          set_errno(EMFILE);
+          return NULL;
+        }
+
+      modp->nopen++;
       libelf_registry_unlock();
-      set_errno(EEXIST);
-      return NULL;
+      return modp;
     }
 #endif
 
@@ -365,6 +377,7 @@ FAR void *libelf_insert(FAR const char *filename, FAR const char *modname)
   /* Save the module name in the registry entry */
 
   strlcpy(modp->modname, modname, sizeof(modp->modname));
+  modp->nopen = 1;
 #endif
 
   /* Load the program binary */

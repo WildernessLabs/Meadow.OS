@@ -65,6 +65,7 @@ include littlefs/Make.defs
 include rpmsgfs/Make.defs
 include zipfs/Make.defs
 include mnemofs/Make.defs
+include xipfs/Make.defs
 include v9fs/Make.defs
 endif
 
@@ -89,7 +90,7 @@ $(COBJS): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN): $(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
+	$(call ARCHIVE_REBUILD, $@, $(OBJS))
 
 context::
 
@@ -108,6 +109,7 @@ clean:
 	$(call CLEAN)
 
 distclean:: clean
+	$(call DELFILE, $(CSRCS:.c=.ddc) $(ASRCS:.S=.dds))
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

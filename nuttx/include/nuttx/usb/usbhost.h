@@ -44,7 +44,6 @@
 #ifdef CONFIG_USBHOST_MSC_NOTIFIER
 #  include <nuttx/wqueue.h>
 #endif
-
 #include <nuttx/usb/usbhost_devaddr.h>
 
 /****************************************************************************
@@ -737,6 +736,14 @@ struct usbhost_roothubport_s
 
   struct usbhost_hubport_s hport;        /* Common hub port definitions */
   FAR struct usbhost_devaddr_s *pdevgen; /* Address generation data pointer */
+
+  /* The host controller this root port belongs to.  Each controller numbers
+   * its own ports from the same start, so a port number alone does not
+   * identify a port on a system with more than one.  Zero is the only bus a
+   * driver that does not set it has.
+   */
+
+  uint8_t bus;
 };
 
 /* struct usbhost_class_s provides access from the USB host driver to the
@@ -1140,6 +1147,27 @@ void usbhost_msc_notifier_signal(uint8_t event, char sdchar);
  ****************************************************************************/
 
 int usbhost_cdcacm_initialize(void);
+#endif
+
+#ifdef CONFIG_USBHOST_CDCECM
+/****************************************************************************
+ * Name: usbhost_cdcacm_initialize
+ *
+ * Description:
+ *   Initialize the USB host CDC/ECM class.  This function should be called
+ *   by platform-specific code in order to initialize and register support
+ *   for the USB host CDC/ECM class.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   On success this function will return zero (OK);  A negated errno value
+ *   will be returned on failure.
+ *
+ ****************************************************************************/
+
+int usbhost_cdcecm_initialize(void);
 #endif
 
 #ifdef CONFIG_USBHOST_FT232R

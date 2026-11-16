@@ -30,7 +30,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/time.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -104,8 +104,8 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
             }
 
           /* Get the timeout value.  This is a atomic operation and should
-         * require no special operation.
-         */
+           * require no special operation.
+           */
 
           if (option == SO_RCVTIMEO)
             {
@@ -140,15 +140,17 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
        * is outside of the scope of getsockopt.
        */
 
-      case SO_BROADCAST:  /* Permits sending of broadcast messages */
-      case SO_DEBUG:      /* Enables recording of debugging information */
-      case SO_DONTROUTE:  /* Requests outgoing messages bypass standard routing */
-      case SO_KEEPALIVE:  /* Verifies TCP connections active by enabling the
-                           * periodic transmission of probes */
-      case SO_OOBINLINE:  /* Leaves received out-of-band data inline */
-      case SO_REUSEADDR:  /* Allow reuse of local addresses */
+      case SO_BROADCAST:   /* Permits sending of broadcast messages */
+      case SO_DEBUG:       /* Enables recording of debugging information */
+      case SO_DONTROUTE:   /* Requests outgoing messages bypass standard routing */
+      case SO_KEEPALIVE:   /* Verifies TCP connections active by enabling the
+                            * periodic transmission of probes */
+      case SO_OOBINLINE:   /* Leaves received out-of-band data inline */
+      case SO_REUSEADDR:   /* Allow reuse of local addresses */
 #ifdef CONFIG_NET_TIMESTAMP
-      case SO_TIMESTAMP:  /* Generates a timestamp for each incoming packet */
+      case SO_TIMESTAMP:   /* Generates a timestamp in us for each incoming packet */
+      case SO_TIMESTAMPNS: /* Generates a timestamp in ns for each incoming packet */
+      case SO_TIMESTAMPING:/*  Timestamping options */
 #endif
         {
           sockopt_t optionset;
@@ -160,7 +162,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
           if (*value_len < sizeof(int))
             {
               return -EINVAL;
-           }
+            }
 
           /* Sample the current options.  This is atomic operation and so
            * should not require any special steps for thread safety. We

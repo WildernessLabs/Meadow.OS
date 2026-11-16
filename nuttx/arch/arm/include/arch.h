@@ -37,18 +37,22 @@
 #  include <nuttx/pgalloc.h>
 #endif
 
+#include <arch/barriers.h>
+
 /****************************************************************************
  * Pre-processor Prototypes
  ****************************************************************************/
 
 #ifdef CONFIG_PIC
 
-/* This identifies the register the is used by the processor as the PIC base
- * register.  It is usually r9 or r10
+/* This identifies the register that is used by the processor as the PIC base
+ * register.  r9 is the AAPCS platform register (the "static base"), which is
+ * also what GCC picks for -msingle-pic-base on an EABI target, so the whole
+ * of PIC uses it: NXFLAT, ELF PIC, and CONFIG_BUILD_PIC alike.
  */
 
-#define PIC_REG         r10
-#define PIC_REG_STRING "r10"
+#define PIC_REG         r9
+#define PIC_REG_STRING "r9"
 
 /* Macros to get and set the PIC base register.  picbase is assumed to be
  * of type (void*) and that it will fit into a uint32_t.  These must be
@@ -110,6 +114,11 @@ do { \
 #ifdef CONFIG_ARM_TOOLCHAIN_ARMCLANG
 #  define _sinit   Image$$init_section$$Base
 #  define _einit   Image$$init_section$$Limit
+#endif
+
+#ifdef CONFIG_ARM_HAVE_WFE_SEV
+#  define UP_WFE() __asm__ __volatile__ ("wfe" : : : "memory")
+#  define UP_SEV() __asm__ __volatile__ ("sev" : : : "memory")
 #endif
 
 /****************************************************************************

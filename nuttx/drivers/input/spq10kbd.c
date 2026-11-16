@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 #include <poll.h>
 #include <fcntl.h>
@@ -296,6 +296,7 @@ static djoy_buttonset_t djoy_sample(
 {
   FAR struct spq10kbd_dev_s *priv =
     (FAR struct spq10kbd_dev_s *)(lower->config);
+
   return priv->djoystate;
 }
 
@@ -314,6 +315,7 @@ static void djoy_enable(FAR const struct djoy_lowerhalf_s *lower,
 {
   FAR struct spq10kbd_dev_s *priv =
     (FAR struct spq10kbd_dev_s *)(lower->config);
+
   priv->djoypressmask    = press;
   priv->djoyreleasemask  = release;
   priv->djoyhandle       = handler;
@@ -661,6 +663,7 @@ static int spq10kbd_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This is a request to tear down the poll. */
 
       FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
+
       DEBUGASSERT(slot);
 
       /* Remove all memory of the poll setup */
@@ -1032,7 +1035,7 @@ int spq10kbd_register(FAR struct i2c_master_s *i2c,
 
   snprintf(kbddevname, sizeof(kbddevname), DEV_FORMAT, kbdminor);
   iinfo("Registering %s\n", kbddevname);
-  ret = register_driver(kbddevname, &g_hidkbd_fops, 0666, priv);
+  ret = register_driver(kbddevname, &g_hidkbd_fops, 0600, priv);
 
 #ifdef CONFIG_SPQ10KBD_DJOY
   iinfo("Registering %s\n", joydevname);

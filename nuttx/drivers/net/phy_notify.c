@@ -40,7 +40,7 @@
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <net/if.h>
 
 #include <nuttx/arch.h>
@@ -226,12 +226,14 @@ static int phy_handler(int irq, FAR void *context, FAR void *arg)
 
   /* Signal the client that the PHY has something interesting to say to us */
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
   ret = nxsig_notification(client->pid, &client->event,
                            SI_QUEUE, &client->work);
   if (ret < 0)
     {
       phyerr("ERROR: nxsig_notification failed: %d\n", ret);
     }
+#endif
 
   return OK;
 }
@@ -286,6 +288,12 @@ int phy_notify_subscribe(FAR const char *intf, pid_t pid,
   if (event->sigev_notify == SIGEV_NONE)
     {
       return phy_notify_unsubscribe(intf, pid);
+    }
+
+  ret = nxsig_event_valid(event);
+  if (ret < 0)
+    {
+      return ret;
     }
 
   /* Check if this client already exists */

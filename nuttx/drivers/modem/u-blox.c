@@ -45,7 +45,7 @@
 #include <string.h>
 #include <poll.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 
 #include <nuttx/fs/fs.h>
@@ -161,94 +161,94 @@ static int ubxmdm_ioctl(FAR struct file *filep,
        * arg:         Ignored
        */
 
-    case MODEM_IOC_POWERON:
-      if (lower->ops->poweron)
-        {
-          ret = lower->ops->poweron(lower);
-        }
-      else
-        {
-          ret = -ENOSYS;
-        }
+      case MODEM_IOC_POWERON:
+        if (lower->ops->poweron)
+          {
+            ret = lower->ops->poweron(lower);
+          }
+        else
+          {
+            ret = -ENOSYS;
+          }
 
-      break;
+        break;
 
       /* cmd:         UBXMDM_IOC_STOP
        * Description:
        * arg:         Ignored
        */
 
-    case MODEM_IOC_POWEROFF:
-      if (lower->ops->poweroff)
-        {
-          ret = lower->ops->poweroff(lower);
-        }
-      else
-        {
-          ret = -ENOSYS;
-        }
+      case MODEM_IOC_POWEROFF:
+        if (lower->ops->poweroff)
+          {
+            ret = lower->ops->poweroff(lower);
+          }
+        else
+          {
+            ret = -ENOSYS;
+          }
 
-      break;
+        break;
 
       /* cmd:         UBXMDM_IOC_RESET
        * Description:
        * arg:         Ignored
        */
 
-    case MODEM_IOC_RESET:
-      if (lower->ops->reset)
-        {
-          ret = lower->ops->reset(lower);
-        }
-      else
-        {
-          ret = -ENOSYS;
-        }
+      case MODEM_IOC_RESET:
+        if (lower->ops->reset)
+          {
+            ret = lower->ops->reset(lower);
+          }
+        else
+          {
+            ret = -ENOSYS;
+          }
 
-      break;
+        break;
 
       /* cmd:         UBXMDM_IOC_GETSTATUS
        * Description:
        * arg:         Writeable pointer to struct ubxmdm_status.
        */
 
-    case MODEM_IOC_GETSTATUS:
-      if (lower->ops->getstatus)
-        {
-          status = (FAR struct ubxmdm_status *)((uintptr_t)arg);
-          if (status)
-            {
-              ret = lower->ops->getstatus(lower, status);
-            }
-          else
-            {
-              ret = -EINVAL;
-            }
-        }
-      else
-        {
-          ret = -ENOSYS;
-        }
+      case MODEM_IOC_GETSTATUS:
+        if (lower->ops->getstatus)
+          {
+            status = (FAR struct ubxmdm_status *)((uintptr_t)arg);
+            if (status)
+              {
+                ret = lower->ops->getstatus(lower, status);
+              }
+            else
+              {
+                ret = -EINVAL;
+              }
+          }
+        else
+          {
+            ret = -ENOSYS;
+          }
 
-      break;
+        break;
 
       /* Unrecognized IOCTL commands are forwarded to the lower-half IOCTL
        * handler, if defined.
        */
 
-    default:
-      m_info("Forwarding unrecognized cmd: %d arg: %ld\n", cmd, arg);
+      default:
+        m_info("Forwarding unrecognized cmd: %d arg: %ld\n", cmd, arg);
 
-      if (lower->ops->ioctl)
-        {
-          ret = lower->ops->ioctl(lower, cmd, arg);
-        }
-      else
-        {
-          ret = -ENOTTY;
-        }
+        if (lower->ops->ioctl)
+          {
+            ret = lower->ops->ioctl(lower, cmd, arg);
+          }
+        else
+          {
+            ret = -ENOTTY;
+          }
 
-      break;
+        break;
     }
 
   return ret;
@@ -294,7 +294,7 @@ FAR void *ubxmdm_register(FAR const char *path,
       goto errout_with_upper;
     }
 
-  ret = register_driver(path, &g_ubxmdm_fops, 0666, upper);
+  ret = register_driver(path, &g_ubxmdm_fops, 0600, upper);
   if (ret < 0)
     {
       m_err("ERROR: register_driver failed: %d\n", ret);

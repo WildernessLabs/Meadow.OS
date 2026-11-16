@@ -64,6 +64,9 @@
 #  elif defined(CONFIG_RPMSG_UART_CONSOLE)
 #    undef  USE_SERIALDRIVER
 #    undef  USE_EARLYSERIALINIT
+#  elif defined(CONFIG_RPMSG_UART_RAW_CONSOLE)
+#    undef  USE_SERIALDRIVER
+#    undef  USE_EARLYSERIALINIT
 #  else
 #    define USE_SERIALDRIVER 1
 #    define USE_EARLYSERIALINIT 1
@@ -80,25 +83,13 @@
 #  define USE_SERIALDRIVER 1
 #endif
 
-/* For use with EABI and floating point, the stack must be aligned to 8-byte
- * addresses.
- */
-
-#define STACK_ALIGNMENT     8
-
-/* Stack alignment macros */
-
-#define STACK_ALIGN_MASK    (STACK_ALIGNMENT - 1)
-#define STACK_ALIGN_DOWN(a) ((a) & ~STACK_ALIGN_MASK)
-#define STACK_ALIGN_UP(a)   (((a) + STACK_ALIGN_MASK) & ~STACK_ALIGN_MASK)
-
 /* Check if an interrupt stack size is configured */
 
 #ifndef CONFIG_ARCH_INTERRUPTSTACK
 #  define CONFIG_ARCH_INTERRUPTSTACK 0
 #endif
 
-#define INTSTACK_SIZE (CONFIG_ARCH_INTERRUPTSTACK & ~STACK_ALIGN_MASK)
+#define INTSTACK_SIZE (CONFIG_ARCH_INTERRUPTSTACK & ~STACKFRAME_ALIGN_MASK)
 
 /* Toolchain dependent, linker defined section addresses */
 
@@ -326,6 +317,10 @@ uint32_t *arm_doirq(int irq, uint32_t *regs);
 EXTERN const void *__vector_table[];
 #else
 EXTERN const void * const _vectors[];
+#endif
+
+#ifdef CONFIG_LIB_SYSCALL
+void arm_dispatch_syscall(void);
 #endif
 
 /* Exception Handlers */

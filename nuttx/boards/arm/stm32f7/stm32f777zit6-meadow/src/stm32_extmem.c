@@ -28,7 +28,7 @@
 
 #include <stdint.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <arch/board/board.h>
 
@@ -43,11 +43,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifndef CONFIG_STM32F7_FMC
+#ifndef CONFIG_STM32_FMC
 #  warning "FMC is not enabled"
 #endif
 
-#if STM32F7_NGPIO < 6
+#if STM32_NGPIO < 6
 //
 //  This condition should not manifest itself so suppress the cppcheck message and 
 //  let the compiler deal with it if it does.

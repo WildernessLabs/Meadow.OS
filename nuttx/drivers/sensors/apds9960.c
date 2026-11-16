@@ -20,6 +20,19 @@
  *
  ****************************************************************************/
 
+/* WARNING for developers:
+ *
+ * This driver uses the legacy style of writing sensor drivers for NuttX. The
+ * project has since decided to adopt a new sensor framework in order to
+ * have a consistent API and feature-set.
+ *
+ * Sensors which use the uORB framework are typically suffixed "_uorb". You
+ * can also visit the documentation about the new sensor framework to learn
+ * more.
+ */
+
+#warning "This is a deprecated legacy sensor driver."
+
 /* Character driver for the APDS9960 Gesture Sensor
  *
  * This driver is based on APDS-9960 Arduino library developed by
@@ -35,7 +48,7 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <stdlib.h>
 
 #include <nuttx/kmalloc.h>
@@ -1274,7 +1287,7 @@ int apds9960_register(FAR const char *devpath,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_apds9960_fops, 0666, priv);
+  ret = register_driver(devpath, &g_apds9960_fops, 0600, priv);
   if (ret < 0)
     {
       snerr("ERROR: Failed to register driver: %d\n", ret);

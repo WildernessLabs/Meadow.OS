@@ -46,6 +46,9 @@ in :menuselection:`RTOS Features --> Clocks and Timers --> Support tick-less OS`
 changed to value of at least 300. Higher value is recommended though,
 300us is not going to be precise at all.
 
+Architecture code for this CPU family provides custom ``up_udelay`` function.
+More information can be found in :doc:`docs/up_udelay` document
+
 Peripheral Support
 ==================
 
@@ -81,6 +84,17 @@ with baud rate higher than 57600 even with the chip running at its
 highest speed. With baud rate 57600, performance was dependent
 on read/write buffer size. With buffer size of 8 there were still
 some missed bytes.
+
+Since NuttX version 13.1, this was observed to be even worse when
+the system is under load and uses round-robin preemptive scheduling.
+This version fixed multiple scheduling bugs on a tickless system
+but the fixes unfortunately add more accounting work that needs
+to be performed during preemption.
+
+Because the preemption code runs with interrupts disabled, the UART driver
+may be unable to retrieve received bytes for almost a millisecond
+of time with the chip running at 24MHz (maximum) clock. That causes
+an overrun of the 2-byte receive buffer even with 38400 baud rate.
 
 To be able to use standard serial driver, it is needed to enable
 the peripheral in MCU-specific configuration in

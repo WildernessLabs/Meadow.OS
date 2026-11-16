@@ -92,7 +92,7 @@ enable_nsh() {
     # USART6 is the NSH console.  It is not the system console, so TTY_SIGINT has
     # to be requested explicitly for Ctrl+C to work (e.g. to get out of "top").
     #
-    ktweak --enable STM32F7_USART6
+    ktweak --enable STM32_USART6
     ktweak --enable USART6_SERIALDRIVER
     ktweak --set-val USART6_BAUD 115200
     ktweak --set-val USART6_BITS 8
@@ -121,7 +121,7 @@ enable_nsh() {
     # /proc/meminfo's progmem section is the one procfs feature that has to stay
     # off.  Kconfig offers it because ARCH_HAVE_PROGMEM is selected arch-wide, but
     # the STM32F7 implementation (stm32_flash.c) is only compiled when
-    # CONFIG_STM32F7_PROGMEM=y, which this board does not set - enabling it fails
+    # CONFIG_STM32_PROGMEM=y, which this board does not set - enabling it fails
     # the link with undefined references to up_progmem_*.
     #
     ktweak --disable FS_PROCFS_INCLUDE_PROGMEM
@@ -451,13 +451,13 @@ enable_emulator() {
     #
     ktweak --disable CDCACM
     ktweak --disable BOARDCTL_USBDEVCTRL
-    ktweak --disable STM32F7_OTGFS
+    ktweak --disable STM32_OTGFS
     ktweak --disable USBDEV
 
     #
     # HCOM on UART4 (/dev/ttyS1), 115200 8N1.
     #
-    ktweak --enable STM32F7_UART4
+    ktweak --enable STM32_UART4
     ktweak --set-str HCOM_COMMS_DEVICE_NAME "/dev/ttyS1"
     ktweak --set-val UART4_BAUD 115200
     ktweak --set-val UART4_BITS 8

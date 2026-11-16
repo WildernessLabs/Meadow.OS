@@ -29,7 +29,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <poll.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/compiler.h>
 #include <nuttx/fs/fs.h>
@@ -773,56 +773,56 @@ static int fusb303_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   fusb303_info("cmd: 0x%02X, arg:%lu\n", cmd, arg);
 
   switch (cmd)
-  {
-  case USBCIOC_READ_DEVID:
     {
-      ret = fusb303_read_device_id(priv, (FAR uint8_t *)arg, NULL);
-    }
-    break;
+      case USBCIOC_READ_DEVID:
+        {
+          ret = fusb303_read_device_id(priv, (FAR uint8_t *)arg, NULL);
+        }
+        break;
 
-  case USBCIOC_SETUP:
-    {
-      ret = fusb303_setup(priv, (struct fusb303_setup_s *)arg);
-    }
-    break;
+      case USBCIOC_SETUP:
+        {
+          ret = fusb303_setup(priv, (struct fusb303_setup_s *)arg);
+        }
+        break;
 
-  case USBCIOC_SET_MODE:
-    {
-      ret = fusb303_set_mode(priv, (uint8_t)arg);
-    }
-    break;
+      case USBCIOC_SET_MODE:
+        {
+          ret = fusb303_set_mode(priv, (uint8_t)arg);
+        }
+        break;
 
-  case USBCIOC_SET_STATE:
-    {
-      ret = fusb303_set_state(priv, (uint8_t)arg);
-    }
-    break;
+      case USBCIOC_SET_STATE:
+        {
+          ret = fusb303_set_state(priv, (uint8_t)arg);
+        }
+        break;
 
-  case USBCIOC_READ_STATUS:
-    {
-      ret = fusb303_read_status(priv, (FAR uint8_t *)arg);
-    }
-    break;
+      case USBCIOC_READ_STATUS:
+        {
+          ret = fusb303_read_status(priv, (FAR uint8_t *)arg);
+        }
+        break;
 
-  case USBCIOC_READ_DEVTYPE:
-    {
-      ret = fusb303_read_devtype(priv, (FAR uint8_t *)arg);
-    }
-    break;
+      case USBCIOC_READ_DEVTYPE:
+        {
+          ret = fusb303_read_devtype(priv, (FAR uint8_t *)arg);
+        }
+        break;
 
-  case USBCIOC_RESET:
-    {
-      ret = fusb303_reset(priv);
-    }
-    break;
+      case USBCIOC_RESET:
+        {
+          ret = fusb303_reset(priv);
+        }
+        break;
 
-  default:
-    {
-      fusb303_err("ERROR: Unrecognized cmd: %d\n", cmd);
-      ret = -ENOTTY;
+      default:
+        {
+          fusb303_err("ERROR: Unrecognized cmd: %d\n", cmd);
+          ret = -ENOTTY;
+        }
+        break;
     }
-    break;
-  }
 
   nxmutex_unlock(&priv->devlock);
   return ret;
@@ -905,6 +905,7 @@ static int fusb303_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This is a request to tear down the poll. */
 
       FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
+
       DEBUGASSERT(slot != NULL);
 
       /* Remove all memory of the poll setup */
@@ -975,7 +976,7 @@ int fusb303_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_fusb303ops, 0666, priv);
+  ret = register_driver(devpath, &g_fusb303ops, 0600, priv);
   if (ret < 0)
     {
       fusb303_err("ERROR: Failed to register driver: %d\n", ret);

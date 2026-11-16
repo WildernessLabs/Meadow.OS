@@ -232,6 +232,42 @@ was successful by running ``cxxtest``::
     Invalid file! /invalid
     File /proc/version exists!
 
+efuse
+-----
+
+This configuration demonstrates the use of the E-Fuse driver. It can be accessed
+through the ``/dev/efuse`` device file.
+Virtual E-Fuse mode can be used by enabling `CONFIG_ESPRESSIF_EFUSE_VIRTUAL`
+option to prevent possible damages on chip.
+
+The following snippet demonstrates how to read MAC address:
+
+.. code-block:: C
+
+   int fd;
+   int ret;
+   uint8_t mac[6];
+   struct efuse_param_s param;
+   struct efuse_desc_s mac_addr =
+   {
+     .bit_offset = 1,
+     .bit_count = 48
+   };
+
+   const efuse_desc_t* desc[] =
+   {
+       &mac_addr,
+       NULL
+   };
+   param.field = desc;
+   param.size = 48;
+   param.data = mac;
+
+   fd = open("/dev/efuse", O_RDONLY);
+   ret = ioctl(fd, EFUSEIOC_READ_FIELD, &param);
+
+To find offset and count variables for related E-Fuse, please refer to Espressif's Technical Reference Manuals.
+
 gpio
 ----
 
@@ -522,11 +558,16 @@ RMT symbol, which is represented by ``rmt_item32_t`` in the driver:
 .. figure:: rmt_symbol.png
    :align: center
 
-The example ``rmtchar`` can be used to test the RMT peripheral. Connecting
+The example ``irtest`` can be used to test the RMT peripheral. Connecting
 these pins externally to each other will make the transmitter send RMT items
 and demonstrates the usage of the RMT peripheral::
 
-    nsh> rmtchar
+    nsh> irtest
+    $open_device(/dev/lirc0)
+    $open_device(/dev/lirc1)
+    $write_data(1) 16777229 16 16777235 23
+    $read_data(0,4)
+    16777229, 16, 16777235, 23
 
 **WS2812 addressable RGB LEDs**
 
@@ -652,6 +693,17 @@ For example, you can read a file and write to it::
     Hello World!
     NuttX RTOS
     nsh>
+
+spi
+---
+
+This configuration enables the support for the SPI driver.
+You can test it by connecting MOSI and MISO pins which are GPIO11 and GPIO13
+by default to each other and running the ``spi`` example::
+
+    nsh> spi exch -b 2 "AB"
+    Sending:	AB
+    Received:	AB
 
 timer
 -----

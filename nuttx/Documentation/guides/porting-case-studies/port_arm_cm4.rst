@@ -641,7 +641,7 @@ Appendix : out-of-tree code
   +
   +ARCHSCRIPT += $(BOARD_DIR)$(DELIM)scripts$(DELIM)$(LDSCRIPT)
   +
-  +ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r10
+  +ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r9
   +
   +CFLAGS := $(ARCHCFLAGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS) -pipe
   +CPICFLAGS = $(ARCHPICFLAGS) $(CFLAGS)
@@ -936,7 +936,7 @@ Appendix : out-of-tree code
   +
   +#include <nuttx/config.h>
   +
-  +#include <debug.h>
+  +#include <nuttx/debug.h>
   +
   +#include <nuttx/board.h>
   +#include <arch/board/board.h>

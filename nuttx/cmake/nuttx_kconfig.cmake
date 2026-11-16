@@ -216,12 +216,40 @@ function(nuttx_olddefconfig)
         "nuttx_olddefconfig: Failed to initialize Kconfig configuration: ${KCONFIG_OUTPUT}"
     )
   endif()
+
+  # save the orig compressed formatted defconfig at the very beginning
+  execute_process(COMMAND savedefconfig --out ${NUTTX_BINARY_DIR}/defconfig.tmp
+                  WORKING_DIRECTORY ${NUTTX_DIR})
+
+  execute_process(
+    COMMAND
+      ${CMAKE_COMMAND} -P ${NUTTX_DIR}/cmake/savedefconfig.cmake
+      ${NUTTX_BINARY_DIR}/.config.compressed ${NUTTX_BINARY_DIR}/defconfig.tmp
+      ${NUTTX_BINARY_DIR}/defconfig.orig
+    WORKING_DIRECTORY ${NUTTX_DIR})
+
 endfunction()
 
 function(nuttx_setconfig)
-  set(ENV{KCONFIG_CONFIG} ${CMAKE_BINARY_DIR}/.config)
+  cmake_parse_arguments(SETCONFIG "" "CONFIG_FILE" "SETTINGS" ${ARGN})
+
+  if(SETCONFIG_UNPARSED_ARGUMENTS)
+    message(
+      FATAL_ERROR
+        "nuttx_setconfig: unknown arguments: ${SETCONFIG_UNPARSED_ARGUMENTS}")
+  endif()
+
+  if(NOT SETCONFIG_SETTINGS)
+    message(FATAL_ERROR "nuttx_setconfig: SETTINGS is required")
+  endif()
+
+  if(NOT SETCONFIG_CONFIG_FILE)
+    set(SETCONFIG_CONFIG_FILE ${NUTTX_BINARY_DIR}/.config)
+  endif()
+
+  set(ENV{KCONFIG_CONFIG} ${SETCONFIG_CONFIG_FILE})
   execute_process(
-    COMMAND setconfig ${ARGN} --kconfig ${NUTTX_DIR}/Kconfig
+    COMMAND setconfig ${SETCONFIG_SETTINGS} --kconfig ${NUTTX_DIR}/Kconfig
     ERROR_VARIABLE KCONFIG_ERROR
     OUTPUT_VARIABLE KCONFIG_OUTPUT
     RESULT_VARIABLE KCONFIG_STATUS

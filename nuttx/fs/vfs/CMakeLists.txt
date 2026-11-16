@@ -51,7 +51,8 @@ set(SRCS
     fs_dir.c
     fs_fsync.c
     fs_syncfs.c
-    fs_truncate.c)
+    fs_truncate.c
+    fs_link.c)
 
 # File notify support
 
@@ -65,8 +66,8 @@ if(NOT "${CONFIG_FS_LOCK_BUCKET_SIZE}" STREQUAL "0")
   list(APPEND SRCS fs_lock.c)
 endif()
 
-if(NOT "${CONFIG_PSEUDOFS_SOFTLINKS}" STREQUAL "0")
-  list(APPEND SRCS fs_link.c fs_symlink.c fs_readlink.c)
+if(NOT "${CONFIG_FS_LINKS}" STREQUAL "0")
+  list(APPEND SRCS fs_symlink.c fs_readlink.c)
 endif()
 
 # Pseudofile support
@@ -91,6 +92,12 @@ endif()
 
 if(CONFIG_SIGNAL_FD)
   list(APPEND SRCS fs_signalfd.c)
+endif()
+
+# Support for profiler
+
+if(CONFIG_FS_PROFILER)
+  list(APPEND SRCS fs_profile.c)
 endif()
 
 target_sources(fs PRIVATE ${SRCS})

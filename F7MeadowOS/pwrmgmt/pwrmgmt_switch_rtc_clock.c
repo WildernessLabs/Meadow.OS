@@ -124,8 +124,8 @@ int meadow_pwr_mgmt_use_hse_for_rtc(void)
 {
   int ret;
 
-#ifndef CONFIG_STM32F7_RTC_HSECLOCK
-#  error "CONFIG_STM32F7_PWR must selected to use this driver"
+#ifndef CONFIG_STM32_RTC_HSECLOCK
+#  error "CONFIG_STM32_PWR must selected to use this driver"
 #endif
 
   // What clock source is currently in use?

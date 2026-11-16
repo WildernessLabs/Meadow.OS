@@ -192,7 +192,7 @@ kconfig_frontends() {
   add_path "${NUTTXTOOLS}"/kconfig-frontends/bin
 
   if [ ! -f "${NUTTXTOOLS}/kconfig-frontends/bin/kconfig-conf" ]; then
-    git clone --depth 1 https://bitbucket.org/nuttx/tools.git "${NUTTXTOOLS}"/nuttx-tools
+    git clone --depth 1 https://github.com/patacongo/tools.git "${NUTTXTOOLS}"/nuttx-tools
     cd "${NUTTXTOOLS}"/nuttx-tools/kconfig-frontends
     ./configure --prefix="${NUTTXTOOLS}"/kconfig-frontends \
       --disable-kconfig --disable-nconf --disable-qconf \
@@ -254,7 +254,7 @@ python_tools() {
     construct \
     cvt2utf \
     cxxfilt \
-    esptool==4.8.dev4 \
+    esptool==5.2.0 \
     imgtool==1.9.0 \
     kconfiglib \
     pexpect==4.8.0 \

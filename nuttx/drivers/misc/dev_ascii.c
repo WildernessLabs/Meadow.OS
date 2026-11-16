@@ -77,6 +77,7 @@ static ssize_t devascii_read(FAR struct file *filep, FAR char *buffer,
                              size_t len)
 {
   size_t i;
+
   for (i = 0; i < len; i++)
     {
       buffer[i] = PRINTABLE_FIRST + (filep->f_pos + i) % PRINTABLE_COUNT;
@@ -137,5 +138,5 @@ static int devascii_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
 void devascii_register(void)
 {
-  register_driver("/dev/ascii", &g_devascii_fops, 0666, NULL);
+  register_driver("/dev/ascii", &g_devascii_fops, 0644, NULL);
 }

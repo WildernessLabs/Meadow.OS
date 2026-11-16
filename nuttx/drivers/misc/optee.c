@@ -36,6 +36,7 @@
 #include <sys/param.h>
 
 #ifdef CONFIG_ARCH_ADDRENV
+#  include <nuttx/addrenv.h>
 #  include <nuttx/pgalloc.h>
 #  include <nuttx/sched.h>
 #  include <nuttx/arch.h>
@@ -936,7 +937,7 @@ optee_ioctl_shm_alloc(FAR struct optee_priv_data *priv,
     }
 
   ret = file_allocate_from_inode(&g_optee_shm_inode,
-                                 O_CLOEXEC | O_RDOK, 0, shm, 0);
+                                 O_CLOEXEC | O_RDONLY, 0, shm, 0);
 
   if (ret < 0)
     {
@@ -1500,7 +1501,7 @@ int optee_register(void)
     }
 
 #ifdef CONFIG_DEV_OPTEE_SUPPLICANT
-  ret = register_driver(OPTEE_SUPPLICANT_DEV_PATH, &g_optee_ops, 0666,
+  ret = register_driver(OPTEE_SUPPLICANT_DEV_PATH, &g_optee_ops, 0600,
                         (FAR void *)OPTEE_ROLE_SUPPLICANT);
   if (ret < 0)
     {
@@ -1508,7 +1509,7 @@ int optee_register(void)
     }
 #endif
 
-  return register_driver(OPTEE_DEV_PATH, &g_optee_ops, 0666,
+  return register_driver(OPTEE_DEV_PATH, &g_optee_ops, 0600,
                          (FAR void *)OPTEE_ROLE_CA);
 }
 

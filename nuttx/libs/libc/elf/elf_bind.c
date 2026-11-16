@@ -30,7 +30,7 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/cache.h>
@@ -435,13 +435,17 @@ static int libelf_relocateadd(FAR struct module_s *modp,
 {
   FAR Elf_Shdr     *relsec = &loadinfo->shdr[relidx];
   FAR Elf_Shdr     *dstsec = &loadinfo->shdr[relsec->sh_info];
+  FAR Elf_Shdr     *symsec = &loadinfo->shdr[loadinfo->symtabidx];
   FAR Elf_Rela     *relas;
   FAR Elf_Rela     *rela;
   FAR Elf_SymCache *cache;
+  FAR Elf_Sym      *syms;
   FAR Elf_Sym      *sym;
+  FAR uint8_t      *done;
   FAR dq_entry_t   *e;
   dq_queue_t        q;
   uintptr_t         addr;
+  size_t            nsyms;
   int               symidx;
   int               ret = OK;
   int               i;
@@ -460,6 +464,27 @@ static int libelf_relocateadd(FAR struct module_s *modp,
     }
 
   dq_init(&q);
+
+  /* A large module has many more relocations than symbols, and reading
+   * the symbols one at a time through the cache below is then very slow.
+   * If there is memory for it, read the whole symbol table at once and
+   * resolve each symbol only once.  Otherwise use the cache.
+   */
+
+  nsyms = symsec->sh_size / sizeof(Elf_Sym);
+  syms  = lib_malloc(nsyms * sizeof(Elf_Sym) + nsyms);
+  done  = NULL;
+  if (syms != NULL)
+    {
+      done = (FAR uint8_t *)&syms[nsyms];
+      memset(done, 0, nsyms);
+      if (libelf_read(loadinfo, (FAR uint8_t *)syms,
+                      nsyms * sizeof(Elf_Sym), symsec->sh_offset) < 0)
+        {
+          lib_free(syms);
+          syms = NULL;
+        }
+    }
 
   /* Examine each relocation in the section.  'relsec' is the section
    * containing the relations.  'dstsec' is the section containing the data
@@ -491,94 +516,126 @@ static int libelf_relocateadd(FAR struct module_s *modp,
 
       symidx = ELF_R_SYM(rela->r_info);
 
-      /* First try the cache */
-
-      sym = NULL;
-      for (e = dq_peek(&q); e; e = dq_next(e))
+      if (syms != NULL)
         {
-          cache = (FAR Elf_SymCache *)e;
-          if (cache->idx == symidx)
+          if (symidx < 0 || (size_t)symidx >= nsyms)
             {
-              dq_rem(&cache->entry, &q);
-              dq_addfirst(&cache->entry, &q);
-              sym = &cache->sym;
-              break;
-            }
-        }
-
-      /* If the symbol was not found in the cache, we will need to read the
-       * symbol from the file.
-       */
-
-      if (sym == NULL)
-        {
-          if (j < CONFIG_LIBC_ELF_SYMBOL_CACHECOUNT)
-            {
-              cache = lib_malloc(sizeof(Elf_SymCache));
-              if (!cache)
-                {
-                  berr("Failed to allocate memory for elf symbols\n");
-                  ret = -ENOMEM;
-                  break;
-                }
-
-              j++;
-            }
-          else
-            {
-              cache = (FAR Elf_SymCache *)dq_remlast(&q);
-            }
-
-          sym = &cache->sym;
-
-          /* Read the symbol table entry into memory */
-
-          ret = libelf_readsym(loadinfo, symidx, sym,
-                               &loadinfo->shdr[loadinfo->symtabidx]);
-          if (ret < 0)
-            {
-              berr("ERROR: Section %d reloc %d: "
-                   "Failed to read symbol[%d]: %d\n",
-                   relidx, i, symidx, ret);
-              lib_free(cache);
+              berr("ERROR: Section %d reloc %d: bad symbol index %d\n",
+                   relidx, i, symidx);
+              ret = -EINVAL;
               break;
             }
 
-          /* Get the value of the symbol (in sym.st_value) */
-
-          ret = libelf_symvalue(modp, loadinfo, sym,
-                           loadinfo->shdr[loadinfo->strtabidx].sh_offset,
-                           exports, nexports);
-          if (ret < 0)
+          sym = &syms[symidx];
+          if (!done[symidx])
             {
-              /* The special error -ESRCH is returned only in one condition:
-               * The symbol has no name.
-               *
-               * There are a few relocations for a few architectures that do
-               * no depend upon a named symbol.  We don't know if that is the
-               * case here, but we will use a NULL symbol pointer to indicate
-               * that case to up_relocate().  That function can then do what
-               * is best.
-               */
+              /* Get the value of the symbol (in sym.st_value) */
 
-              if (ret == -ESRCH)
-                {
-                  berr("ERROR: Section %d reloc %d: "
-                       "Undefined symbol[%d] has no name: %d\n",
-                       relidx, i, symidx, ret);
-                }
-              else
+              ret = libelf_symvalue(modp, loadinfo, sym,
+                          loadinfo->shdr[loadinfo->strtabidx].sh_offset,
+                          exports, nexports);
+              if (ret < 0 && ret != -ESRCH)
                 {
                   berr("ERROR: Section %d reloc %d: "
                        "Failed to get value of symbol[%d]: %d\n",
                        relidx, i, symidx, ret);
-                  lib_free(cache);
+                  break;
+                }
+
+              done[symidx] = 1;
+            }
+        }
+      else
+        {
+          /* First try the cache */
+
+          sym = NULL;
+          for (e = dq_peek(&q); e; e = dq_next(e))
+            {
+              cache = (FAR Elf_SymCache *)e;
+              if (cache->idx == symidx)
+                {
+                  dq_rem(&cache->entry, &q);
+                  dq_addfirst(&cache->entry, &q);
+                  sym = &cache->sym;
                   break;
                 }
             }
 
-          cache->idx = symidx;
-          dq_addfirst(&cache->entry, &q);
+          /* If the symbol was not found in the cache, we will need to read
+           * the symbol from the file.
+           */
+
+          if (sym == NULL)
+            {
+              if (j < CONFIG_LIBC_ELF_SYMBOL_CACHECOUNT)
+                {
+                  cache = lib_malloc(sizeof(Elf_SymCache));
+                  if (!cache)
+                    {
+                      berr("Failed to allocate memory for elf symbols\n");
+                      ret = -ENOMEM;
+                      break;
+                    }
+
+                  j++;
+                }
+              else
+                {
+                  cache = (FAR Elf_SymCache *)dq_remlast(&q);
+                }
+
+              sym = &cache->sym;
+
+              /* Read the symbol table entry into memory */
+
+              ret = libelf_readsym(loadinfo, symidx, sym,
+                                   &loadinfo->shdr[loadinfo->symtabidx]);
+              if (ret < 0)
+                {
+                  berr("ERROR: Section %d reloc %d: "
+                       "Failed to read symbol[%d]: %d\n",
+                       relidx, i, symidx, ret);
+                  lib_free(cache);
+                  break;
+                }
+
+              /* Get the value of the symbol (in sym.st_value) */
+
+              ret = libelf_symvalue(modp, loadinfo, sym,
+                               loadinfo->shdr[loadinfo->strtabidx].sh_offset,
+                               exports, nexports);
+              if (ret < 0)
+                {
+                  /* The special error -ESRCH is returned only in one
+                   * condition: The symbol has no name.
+                   *
+                   * There are a few relocations for a few architectures that
+                   * do no depend upon a named symbol.  We don't know if that
+                   * is the case here, but we will use a NULL symbol pointer
+                   * to indicate that case to up_relocate().  That function
+                   * can then do what is best.
+                   */
+
+                  if (ret == -ESRCH)
+                    {
+                      berr("ERROR: Section %d reloc %d: "
+                           "Undefined symbol[%d] has no name: %d\n",
+                           relidx, i, symidx, ret);
+                    }
+                  else
+                    {
+                      berr("ERROR: Section %d reloc %d: "
+                           "Failed to get value of symbol[%d]: %d\n",
+                           relidx, i, symidx, ret);
+                      lib_free(cache);
+                      break;
+                    }
+                }
+
+              cache->idx = symidx;
+              dq_addfirst(&cache->entry, &q);
+            }
         }
 
       if (sym->st_shndx == SHN_UNDEF && sym->st_name == 0)
@@ -614,6 +671,7 @@ static int libelf_relocateadd(FAR struct module_s *modp,
     }
 
   lib_free(relas);
+  lib_free(syms);
   while ((e = dq_peek(&q)) != NULL)
     {
       dq_rem(e, &q);
@@ -815,56 +873,48 @@ static int libelf_relocatedyn(FAR struct module_s *modp,
 
               if (sym[idx_sym].st_shndx == SHN_UNDEF)
                 {
-                    FAR void *ep;
+                  FAR void *ep;
 
-                    ep = libelf_findglobal(modp, loadinfo, symhdr,
-                                           &sym[idx_sym]);
-                    if ((ep == NULL) && (ELF_ST_BIND(sym[idx_sym].st_info)
-                        != STB_WEAK))
-                      {
-                        berr("ERROR: Unable to resolve addr of ext ref %s\n",
-                             loadinfo->iobuffer);
-                        ret = -EINVAL;
-                        lib_free(sym);
-                        lib_free(rels);
-                        lib_free(dyn);
-                        return ret;
-                      }
+                  ep = libelf_findglobal(modp, loadinfo, symhdr,
+                                         &sym[idx_sym]);
+                  if ((ep == NULL) && (ELF_ST_BIND(sym[idx_sym].st_info)
+                      != STB_WEAK))
+                    {
+                      berr("ERROR: Unable to resolve addr of ext ref %s\n",
+                           loadinfo->iobuffer);
+                      ret = -EINVAL;
+                      lib_free(sym);
+                      lib_free(rels);
+                      lib_free(dyn);
+                      return ret;
+                    }
 
-                    addr = rel->r_offset + loadinfo->textalloc;
+                  addr = libelf_addr(loadinfo, rel->r_offset);
 
-                    if (reldata.relrela[idx_rel] == 1)
-                      {
-                        addr += rela->r_addend;
-                      }
+                  if (reldata.relrela[idx_rel] == 1)
+                    {
+                      addr += rela->r_addend;
+                    }
 
-                    *(FAR uintptr_t *)addr = (uintptr_t)ep;
+                  *(FAR uintptr_t *)addr = (uintptr_t)ep;
                 }
             }
           else
             {
               Elf_Sym dynsym =
-                {
-                  0
-                };
+              {
+                0
+              };
 
-              addr = rel->r_offset - loadinfo->datasec + loadinfo->datastart;
+              addr = libelf_addr(loadinfo, rel->r_offset);
 
               if (reldata.relrela[idx_rel] == 1)
                 {
                   addr += rela->r_addend;
                 }
 
-              if ((*(FAR uint32_t *)addr) < loadinfo->datasec)
-                {
-                  dynsym.st_value = *(FAR uint32_t *)addr +
-                                    loadinfo->textalloc;
-                }
-              else
-                {
-                  dynsym.st_value = *(FAR uint32_t *)addr -
-                                    loadinfo->datasec + loadinfo->datastart;
-                }
+              dynsym.st_value = libelf_addr(loadinfo,
+                                            *(FAR uint32_t *)addr);
 
               ret = up_relocate(rel, &dynsym, addr, ARCH_ELFDATA_PARM);
             }
@@ -951,6 +1001,7 @@ int libelf_bind(FAR struct module_s *modp,
       /* Get the index to the relocation section */
 
       int infosec = loadinfo->shdr[i].sh_info;
+
       if (infosec >= loadinfo->ehdr.e_shnum)
         {
           continue;
@@ -968,23 +1019,20 @@ int libelf_bind(FAR struct module_s *modp,
                 loadinfo->dsymtabidx = i;
                 break;
               case SHT_INIT_ARRAY:
-                loadinfo->initarr = loadinfo->shdr[i].sh_addr -
-                                    loadinfo->datasec +
-                                    loadinfo->datastart;
+                loadinfo->initarr = libelf_addr(loadinfo,
+                                                loadinfo->shdr[i].sh_addr);
                 loadinfo->ninit = loadinfo->shdr[i].sh_size /
                                   sizeof(uintptr_t);
                 break;
               case SHT_FINI_ARRAY:
-                loadinfo->finiarr = loadinfo->shdr[i].sh_addr -
-                                    loadinfo->datasec +
-                                    loadinfo->datastart;
+                loadinfo->finiarr = libelf_addr(loadinfo,
+                                                loadinfo->shdr[i].sh_addr);
                 loadinfo->nfini = loadinfo->shdr[i].sh_size /
                                   sizeof(uintptr_t);
                 break;
               case SHT_PREINIT_ARRAY:
-                loadinfo->preiarr = loadinfo->shdr[i].sh_addr -
-                                    loadinfo->datasec +
-                                    loadinfo->datastart;
+                loadinfo->preiarr = libelf_addr(loadinfo,
+                                                loadinfo->shdr[i].sh_addr);
                 loadinfo->nprei = loadinfo->shdr[i].sh_size /
                                   sizeof(uintptr_t);
                 break;
@@ -1085,6 +1133,7 @@ errout_with_addrenv:
   if (loadinfo->addrenv != NULL)
     {
       int status = libelf_addrenv_restore(loadinfo);
+
       if (status < 0)
         {
           berr("ERROR: libelf_addrenv_restore() failed: %d\n", status);

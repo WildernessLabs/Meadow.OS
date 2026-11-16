@@ -50,7 +50,7 @@
 #include <arch/stm32f7/chip.h>
 #include "stm32_gpio.h"
 
-#ifdef CONFIG_STM32F7_QUADSPI
+#ifdef CONFIG_STM32_QSPI
 #  include <nuttx/mtd/mtd.h>
 #  include "stm32_qspi.h"
 #endif
@@ -155,7 +155,7 @@ bool meadow_hw_version_ethernet_supported(void)
 // Returns true if hardware and software support SD card storage
 bool meadow_hw_version_sdcard_supported(void)
 {
-#if defined(CONFIG_STM32F7_SDMMC2)
+#if defined(CONFIG_STM32_SDMMC2)
   switch(meadow_hw_version_get())
   {
     case MEADOW_F7_HW_VERSION_NUMB_CCMV2:
@@ -166,7 +166,7 @@ bool meadow_hw_version_sdcard_supported(void)
   }
 #else
   return false;
-#endif    // #if defined(CONFIG_STM32F7_SDMMC2)
+#endif    // #if defined(CONFIG_STM32_SDMMC2)
 }
 
 //============================================================================

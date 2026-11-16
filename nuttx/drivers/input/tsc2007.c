@@ -46,8 +46,8 @@
 #include <poll.h>
 #include <errno.h>
 #include <assert.h>
-#include <debug.h>
 
+#include <nuttx/debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/arch.h>
@@ -634,7 +634,7 @@ static void tsc2007_worker(FAR void *arg)
 
       /* Power down ADC and enable PENIRQ */
 
-     tsc2007_transfer(priv, TSC2007_ENABLE_PENIRQ);
+      tsc2007_transfer(priv, TSC2007_ENABLE_PENIRQ);
 
       /* Now calculate the pressure using the first method, reduced to:
        *
@@ -696,7 +696,7 @@ static void tsc2007_worker(FAR void *arg)
        * after the loss of contact is sampled.
        */
 
-       priv->sample.contact = CONTACT_UP;
+      priv->sample.contact = CONTACT_UP;
     }
 
   /* Indicate the availability of new sample data for this ID */
@@ -1023,6 +1023,7 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case TSIOC_SETXRCAL:  /* arg: Pointer to int calibration value */
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           DEBUGASSERT(priv->config != NULL && ptr != NULL);
           priv->config->rxplate = *ptr;
         }
@@ -1031,6 +1032,7 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case TSIOC_GETXRCAL:  /* arg: Pointer to int calibration value */
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           DEBUGASSERT(priv->config != NULL && ptr != NULL);
           *ptr = priv->config->rxplate;
         }
@@ -1039,6 +1041,7 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case TSIOC_SETFREQUENCY:  /* arg: Pointer to uint32_t frequency value */
         {
           FAR uint32_t *ptr = (FAR uint32_t *)((uintptr_t)arg);
+
           DEBUGASSERT(priv->config != NULL && ptr != NULL);
           priv->config->frequency = *ptr;
         }
@@ -1047,6 +1050,7 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case TSIOC_GETFREQUENCY:  /* arg: Pointer to uint32_t frequency value */
         {
           FAR uint32_t *ptr = (FAR uint32_t *)((uintptr_t)arg);
+
           DEBUGASSERT(priv->config != NULL && ptr != NULL);
           *ptr = priv->config->frequency;
         }
@@ -1139,6 +1143,7 @@ static int tsc2007_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This is a request to tear down the poll. */
 
       FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
+
       DEBUGASSERT(slot != NULL);
 
       /* Remove all memory of the poll setup */
@@ -1247,7 +1252,7 @@ int tsc2007_register(FAR struct i2c_master_s *dev,
   snprintf(devname, sizeof(devname), DEV_FORMAT, minor);
   iinfo("Registering %s\n", devname);
 
-  ret = register_driver(devname, &g_tsc2007_fops, 0666, priv);
+  ret = register_driver(devname, &g_tsc2007_fops, 0600, priv);
   if (ret < 0)
     {
       ierr("ERROR: register_driver() failed: %d\n", ret);

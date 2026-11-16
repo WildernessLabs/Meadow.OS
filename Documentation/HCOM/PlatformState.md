@@ -20,7 +20,7 @@ start. It is the reference for the bit numbers used throughout the other documen
 
 The STM32F7 has a block of memory that keeps its contents through a reset and, with a battery on the VBAT pin,
 through power loss: 32 backup registers of 32 bits (`RTC_BK0R` to `RTC_BK31R`, in the RTC) and 4 KB of backup SRAM
-(`CONFIG_STM32F7_BKPSRAM`, at 0x40024000). Board start-up enables them with `stm32_pwr_initbkp(true)`
+(`CONFIG_STM32_BKPSRAM`, at 0x40024000). Board start-up enables them with `stm32_pwr_initbkp(true)`
 ([KernelStartup.md](KernelStartup.md)). Without a battery or coin cell the contents are lost at power-on and the
 registers read 0.
 

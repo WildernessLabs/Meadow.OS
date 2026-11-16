@@ -29,8 +29,8 @@
 #include <sched.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
 
+#include <nuttx/debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
@@ -59,7 +59,7 @@
  *   Release group resources after the last member has left the group.
  *
  * Input Parameters:
- *   group - The group to be removed.
+ *   group - The group to be released.
  *
  * Returned Value:
  *   None.
@@ -86,7 +86,9 @@ static inline void group_release(FAR struct task_group_s *group)
 
   /* Release pending signals */
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
   nxsig_release(group);
+#endif
 
 #ifndef CONFIG_DISABLE_PTHREAD
   /* Release pthread resources */
@@ -102,11 +104,9 @@ static inline void group_release(FAR struct task_group_s *group)
 
   fdlist_free(&group->tg_fdlist);
 
-#ifndef CONFIG_DISABLE_ENVIRON
   /* Release all shared environment variables */
 
   env_release(group);
-#endif
 
   /* Destroy the mm_map list */
 
@@ -173,17 +173,26 @@ void group_leave(FAR struct tcb_s *tcb)
   group = tcb->group;
   if (group)
     {
+      /* Kernel threads share a single statically allocated g_kthread_group.
+       * Never call group_release() for them: doing so would destroy shared
+       * resources (mutex, fdlist, task_info) while other kernel threads are
+       * still using them, causing use-after-free crashes.
+       */
+
+      bool release = !(tcb->flags & TCB_FLAG_TTYPE_KERNEL);
+
       /* Remove the member from group. */
 
 #ifdef HAVE_GROUP_MEMBERS
       flags = spin_lock_irqsave(&group->tg_lock);
       sq_rem(&tcb->member, &group->tg_members);
+      release = release && sq_empty(&group->tg_members);
       spin_unlock_irqrestore(&group->tg_lock, flags);
 
       /* Have all of the members left the group? */
-
-      if (sq_empty(&group->tg_members))
 #endif
+
+      if (release)
         {
           /* Yes.. Release all of the resource held by the task group */
 

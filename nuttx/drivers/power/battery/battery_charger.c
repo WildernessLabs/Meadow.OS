@@ -31,11 +31,12 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <poll.h>
 #include <fcntl.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/wqueue.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/power/battery_charger.h>
 #include <nuttx/power/battery_ioctl.h>
@@ -61,7 +62,9 @@ struct battery_charger_priv_s
   mutex_t           lock;
   sem_t             wait;
   uint32_t          mask;
+  clock_t           interval; /* tick unit */
   FAR struct pollfd *fds;
+  struct work_s     work;
 };
 
 /****************************************************************************
@@ -102,11 +105,28 @@ static const struct file_operations g_batteryops =
  * Private Functions
  ****************************************************************************/
 
+static void battery_charger_work(FAR void *arg)
+{
+  FAR struct battery_charger_priv_s *priv =
+    (FAR struct battery_charger_priv_s *)arg;
+  FAR struct pollfd *fds = priv->fds;
+  int semcnt;
+
+  if (priv->mask != 0)
+    {
+      poll_notify(&fds, 1, POLLIN);
+
+      nxsem_get_value(&priv->wait, &semcnt);
+      if (semcnt < 1)
+        {
+          nxsem_post(&priv->wait);
+        }
+    }
+}
+
 static int battery_charger_notify(FAR struct battery_charger_priv_s *priv,
                                   uint32_t mask)
 {
-  FAR struct pollfd *fds = priv->fds;
-  int semcnt;
   int ret;
 
   ret = nxmutex_lock(&priv->lock);
@@ -116,14 +136,16 @@ static int battery_charger_notify(FAR struct battery_charger_priv_s *priv,
     }
 
   priv->mask |= mask;
-  if (priv->mask)
+  if (priv->mask != 0)
     {
-      poll_notify(&fds, 1, POLLIN);
-
-      nxsem_get_value(&priv->wait, &semcnt);
-      if (semcnt < 1)
+      if (priv->interval > 0)
         {
-          nxsem_post(&priv->wait);
+          work_queue(LPWORK, &priv->work, battery_charger_work, priv,
+                     priv->interval);
+        }
+      else
+        {
+          battery_charger_work(priv);
         }
     }
 
@@ -267,6 +289,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct battery_charger_dev_s *dev  = inode->i_private;
+  FAR struct battery_charger_priv_s *priv = filep->f_priv;
   int ret;
 
   /* Enforce mutually exclusive access to the battery driver */
@@ -285,6 +308,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_STATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->state(dev, ptr);
@@ -295,6 +319,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_HEALTH:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->health(dev, ptr);
@@ -305,6 +330,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_ONLINE:
         {
           FAR bool *ptr = (FAR bool *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->online(dev, ptr);
@@ -316,6 +342,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
         {
           int volts;
           FAR int *voltsp = (FAR int *)((uintptr_t)arg);
+
           if (voltsp)
             {
               volts = *voltsp;
@@ -328,6 +355,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
         {
           int amps;
           FAR int *ampsp = (FAR int *)((uintptr_t)arg);
+
           if (ampsp)
             {
               amps = *ampsp;
@@ -340,6 +368,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
         {
           int amps;
           FAR int *ampsp = (FAR int *)((uintptr_t)arg);
+
           if (ampsp)
             {
               amps = *ampsp;
@@ -351,6 +380,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_OPERATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->operate(dev, (uintptr_t)arg);
@@ -361,6 +391,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_CHIPID:
         {
           FAR unsigned int *ptr = (FAR unsigned int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->chipid(dev, ptr);
@@ -371,6 +402,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_GET_VOLTAGE:
         {
           FAR int *outvoltsp = (FAR int *)((uintptr_t)arg);
+
           if (outvoltsp)
             {
               ret = dev->ops->get_voltage(dev, outvoltsp);
@@ -381,6 +413,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_VOLTAGE_INFO:
         {
           FAR int *outvoltsp = (FAR int *)((uintptr_t)arg);
+
           if (outvoltsp)
             {
               ret = dev->ops->voltage_info(dev, outvoltsp);
@@ -391,6 +424,7 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_GET_PROTOCOL:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               if (dev->ops->get_protocol)
@@ -403,6 +437,13 @@ static int bat_charger_ioctl(FAR struct file *filep, int cmd,
                   ret = OK;
                 }
             }
+        }
+        break;
+
+      case BATIOC_SET_DEBOUNCE:
+        {
+          priv->interval = arg;
+          ret = OK;
         }
         break;
 
@@ -438,7 +479,7 @@ static int bat_charger_poll(FAR struct file *filep,
         {
           priv->fds = fds;
           fds->priv = &priv->fds;
-          if (priv->mask)
+          if (priv->mask != 0)
             {
               poll_notify(&fds, 1, POLLIN);
             }
@@ -529,7 +570,7 @@ int battery_charger_register(FAR const char *devpath,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_batteryops, 0666, dev);
+  ret = register_driver(devpath, &g_batteryops, 0600, dev);
   if (ret < 0)
     {
       baterr("ERROR: Failed to register driver: %d\n", ret);

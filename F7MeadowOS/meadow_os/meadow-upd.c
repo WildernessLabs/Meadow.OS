@@ -513,7 +513,7 @@ static int upd_handle_spi_data(int cmd, struct upd_spi_data_cmd* data)
     return ENODEV;
   }
 
-#if defined (CONFIG_STM32F7_SPI_DMA)
+#if defined (CONFIG_STM32_SPI_DMA)
   // The STM32F777 used in Meadow has a DMA transfer size limit of 65535
   // bytes. For more information see Ref Man section 8.3.6 and 8.3.16 the
   // last bullet,"...This means that a maximum of 65535 data items can be
@@ -852,18 +852,16 @@ static int upd_handle_pwm_locked(int cmd, struct upd_pwm_cmd *_upd_pwm_cmd)
 
       struct pwm_info_s info = {};
       info.frequency = _upd_pwm_cmd->frequency;
-#ifdef CONFIG_PWM_MULTICHAN
       // pwm->ops->ioctl() has no implementation in the STM32 PWM lower
       // half (stm32_pwm.c's pwm_ioctl() unconditionally returns -ENOTTY
       // without touching its argument), so info.channels[] can't be
       // "read, then modify" - it has to be built from scratch here.
       // channel == -1 terminates the list for pwm_duty_channels_update().
+      // NuttX 13 removed CONFIG_PWM_MULTICHAN: channels[] is always used,
+      // and the defconfig sets CONFIG_PWM_NCHANNELS > 1 for the terminator.
       info.channels[0].channel = _upd_pwm_cmd->channel;
       info.channels[0].duty = _upd_pwm_cmd->duty;
       info.channels[1].channel = -1;
-#else
-      info.duty = _upd_pwm_cmd->duty;
-#endif
 
       pwm->ops->start(pwm, &info);
       return OK;
@@ -872,13 +870,9 @@ static int upd_handle_pwm_locked(int cmd, struct upd_pwm_cmd *_upd_pwm_cmd)
   {
       struct pwm_info_s info = {};
       info.frequency = _upd_pwm_cmd->frequency;
-#ifdef CONFIG_PWM_MULTICHAN
       info.channels[0].channel = _upd_pwm_cmd->channel;
       info.channels[0].duty = 0;
       info.channels[1].channel = -1;
-#else
-      info.duty = 0;
-#endif
 
       pwm->ops->start(pwm, &info);
       return OK;

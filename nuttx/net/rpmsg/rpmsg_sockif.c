@@ -27,7 +27,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <poll.h>
 #include <stdio.h>
 #include <string.h>
@@ -39,6 +39,7 @@
 #include <nuttx/crc32.h>
 #include <nuttx/rpmsg/rpmsg.h>
 #include <nuttx/mutex.h>
+#include <nuttx/sched.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/fs/ioctl.h>
 
@@ -170,7 +171,8 @@ static int        rpmsg_socket_accept(FAR struct socket *psock,
 static int        rpmsg_socket_poll(FAR struct socket *psock,
                                     FAR struct pollfd *fds, bool setup);
 static ssize_t    rpmsg_socket_sendmsg(FAR struct socket *psock,
-                                       FAR struct msghdr *msg, int flags);
+                                       FAR const struct msghdr *msg,
+                                       int flags);
 static ssize_t    rpmsg_socket_recvmsg(FAR struct socket *psock,
                                        FAR struct msghdr *msg, int flags);
 static int        rpmsg_socket_close(FAR struct socket *psock);
@@ -477,7 +479,7 @@ static void rpmsg_socket_ns_unbind(FAR struct rpmsg_endpoint *ept)
   conn->unbind = true;
   rpmsg_socket_post(&conn->sendsem);
   rpmsg_socket_post(&conn->recvsem);
-  rpmsg_socket_poll_notify(conn, POLLIN | POLLOUT);
+  rpmsg_socket_poll_notify(conn, POLLIN | POLLOUT | POLLHUP | POLLERR);
 
   nxmutex_unlock(&conn->recvlock);
 }
@@ -501,6 +503,7 @@ static void rpmsg_socket_format_name(FAR struct rpmsg_socket_conn_s *conn,
     {
       uint32_t crc = crc32((const uint8_t *)conn->rpaddr.rp_name,
                            strlen(conn->rpaddr.rp_name));
+
       snprintf(namebuf, RPMSG_NAME_SIZE, "%s%.2s%08" PRIx32 "%s",
                RPMSG_SOCKET_NAME_PREFIX, conn->rpaddr.rp_name,
                crc, conn->nameid);
@@ -776,6 +779,10 @@ static int rpmsg_socket_connect_internal(FAR struct socket *psock)
 
       ret = net_sem_timedwait(&conn->sendsem,
                               _SO_TIMEOUT(conn->sconn.s_sndtimeo));
+      if (!conn->ept.rdev || conn->unbind)
+        {
+          ret = -ECONNRESET;
+        }
 
       if (ret < 0)
         {
@@ -985,6 +992,7 @@ static uint32_t rpmsg_socket_get_iovlen(FAR const struct iovec *buf,
                                         size_t iovcnt)
 {
   uint32_t len = 0;
+
   while (iovcnt--)
     {
       len += (buf++)->iov_len;
@@ -1054,6 +1062,7 @@ static ssize_t rpmsg_socket_send_continuous(FAR struct socket *psock,
       while (block_written < block)
         {
           uint32_t chunk = MIN(block - block_written, buf->iov_len - offset);
+
           memcpy(msg->data + block_written,
                  (FAR const uint8_t *)buf->iov_base + offset, chunk);
           offset += chunk;
@@ -1181,7 +1190,7 @@ static ssize_t rpmsg_socket_send_single(FAR struct socket *psock,
 }
 
 static ssize_t rpmsg_socket_sendmsg(FAR struct socket *psock,
-                                    FAR struct msghdr *msg, int flags)
+                                    FAR const struct msghdr *msg, int flags)
 {
   FAR struct rpmsg_socket_conn_s *conn = psock->s_conn;
   FAR const struct iovec *buf = msg->msg_iov;
@@ -1445,7 +1454,9 @@ static int rpmsg_socket_shutdown(FAR struct socket *psock, int how)
 
   ret = rpmsg_send(&conn->ept, &msg, sizeof(msg));
   if (ret < 0)
+    {
       return ret;
+    }
 
   return OK;
 }

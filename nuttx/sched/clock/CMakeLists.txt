@@ -23,6 +23,8 @@
 set(SRCS
     clock.c
     clock_initialize.c
+    clock_notifier.c
+    clock_getres.c
     clock_settime.c
     clock_gettime.c
     clock_realtime2absticks.c
@@ -36,7 +38,7 @@ set(SRCS
 # don't want the weak references to conflict.
 
 if(NOT CONFIG_TIMER_ARCH AND NOT CONFIG_ALARM_ARCH)
-  list(APPEND SRCS delay.c)
+  list(APPEND SRCS clock_delay.c)
 endif()
 
 if(CONFIG_CLOCK_TIMEKEEPING)

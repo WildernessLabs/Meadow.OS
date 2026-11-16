@@ -28,7 +28,7 @@
 #include <sys/types.h>
 
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <poll.h>
@@ -290,6 +290,7 @@ static int touch_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case TSIOC_GRAB:
         {
           int enable = (int)arg;
+
           ret = OK;
           if (enable)
             {
@@ -398,6 +399,7 @@ static void touch_event_notify(FAR struct touch_upperhalf_s *upper,
       if (lower->flags & TOUCH_FLAG_SWAPXY)
         {
           int16_t p = point[n].x;
+
           point[n].x = point[n].y;
           point[n].y = p;
         }
@@ -492,7 +494,7 @@ int touch_register(FAR struct touch_lowerhalf_s *lower,
   list_initialize(&upper->head);
   nxmutex_init(&upper->lock);
 
-  ret = register_driver(path, &g_touch_fops, 0666, upper);
+  ret = register_driver(path, &g_touch_fops, 0600, upper);
   if (ret < 0)
     {
       nxmutex_destroy(&upper->lock);

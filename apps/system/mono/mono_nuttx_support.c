@@ -158,22 +158,15 @@ uint64_t __sync_val_compare_and_swap_8(volatile void *ptr, uint64_t oldval,
 }
 
 /****************************************************************************
- * Name: mprotect, posix_madvise
+ * Name: posix_madvise
  *
  * Description:
- *   Declared by NuttX's <sys/mman.h> but not implemented.  Memory protection
- *   is by MPU region, not by page, so there is nothing to change; and there
- *   is no paging to advise.
+ *   Declared by NuttX's <sys/mman.h> but only implemented in the kernel
+ *   (fs/mmap/fs_mmisc.c), with no syscall.  There is no paging to advise.
+ *   (mprotect() is a NuttX syscall since NuttX 13, so it is no longer
+ *   provided here.)
  *
  ****************************************************************************/
-
-int mprotect(void *addr, size_t len, int prot)
-{
-  (void)addr;
-  (void)len;
-  (void)prot;
-  return 0;
-}
 
 int posix_madvise(void *addr, size_t len, int advice)
 {

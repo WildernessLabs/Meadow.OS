@@ -31,12 +31,13 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <poll.h>
 #include <fcntl.h>
 
 #include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/wqueue.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/power/battery_monitor.h>
 #include <nuttx/power/battery_ioctl.h>
@@ -62,7 +63,9 @@ struct battery_monitor_priv_s
   mutex_t           lock;
   sem_t             wait;
   uint32_t          mask;
+  clock_t           interval; /* tick unit */
   FAR struct pollfd *fds;
+  struct work_s     work;
 };
 
 /****************************************************************************
@@ -103,11 +106,28 @@ static const struct file_operations g_batteryops =
  * Private Functions
  ****************************************************************************/
 
+static void battery_monitor_work(FAR void *arg)
+{
+  FAR struct battery_monitor_priv_s *priv =
+    (FAR struct battery_monitor_priv_s *)arg;
+  FAR struct pollfd *fds = priv->fds;
+  int semcnt;
+
+  if (priv->mask != 0)
+    {
+      poll_notify(&fds, 1, POLLIN);
+
+      nxsem_get_value(&priv->wait, &semcnt);
+      if (semcnt < 1)
+        {
+          nxsem_post(&priv->wait);
+        }
+    }
+}
+
 static int battery_monitor_notify(FAR struct battery_monitor_priv_s *priv,
                                   uint32_t mask)
 {
-  FAR struct pollfd *fds = priv->fds;
-  int semcnt;
   int ret;
 
   ret = nxmutex_lock(&priv->lock);
@@ -117,14 +137,16 @@ static int battery_monitor_notify(FAR struct battery_monitor_priv_s *priv,
     }
 
   priv->mask |= mask;
-  if (priv->mask)
+  if (priv->mask != 0)
     {
-      poll_notify(&fds, 1, POLLIN);
-
-      nxsem_get_value(&priv->wait, &semcnt);
-      if (semcnt < 1)
+      if (priv->interval != 0)
         {
-          nxsem_post(&priv->wait);
+          work_queue(LPWORK, &priv->work, battery_monitor_work, priv,
+                     priv->interval);
+        }
+      else
+        {
+          battery_monitor_work(priv);
         }
     }
 
@@ -268,6 +290,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct battery_monitor_dev_s *dev  = inode->i_private;
+  FAR struct battery_monitor_priv_s *priv = filep->f_priv;
   int ret;
 
   /* Enforce mutually exclusive access to the battery driver */
@@ -286,6 +309,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_STATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->state(dev, ptr);
@@ -296,6 +320,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_HEALTH:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->health(dev, ptr);
@@ -306,6 +331,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_ONLINE:
         {
           FAR bool *ptr = (FAR bool *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->online(dev, ptr);
@@ -316,6 +342,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_VOLTAGE:
         {
           FAR int *voltsp = (FAR int *)((uintptr_t)arg);
+
           if (voltsp)
             {
               ret = dev->ops->voltage(dev, voltsp);
@@ -327,6 +354,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_current_s *current =
               (FAR struct battery_monitor_current_s *)((uintptr_t)arg);
+
           if (current)
             {
               ret = dev->ops->current(dev, current);
@@ -337,6 +365,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_OPERATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->operate(dev, (uintptr_t)arg);
@@ -348,6 +377,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_voltage_s *ptr =
               (FAR struct battery_monitor_voltage_s *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->cell_voltage(dev, ptr);
@@ -359,6 +389,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_balance_s *ptr =
               (FAR struct battery_monitor_balance_s *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->balance(dev, ptr);
@@ -378,6 +409,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_limits_s *ptr =
               (FAR struct battery_monitor_limits_s *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->setlimits(dev, ptr);
@@ -389,6 +421,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_switches_s *ptr =
               (FAR struct battery_monitor_switches_s *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->chgdsg(dev, ptr);
@@ -408,6 +441,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
         {
           FAR struct battery_monitor_temperature_s *ptr =
               (FAR struct battery_monitor_temperature_s *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->temperature(dev, ptr);
@@ -418,6 +452,7 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_COULOMBS:
         {
           FAR int *coulombp = (FAR int *)((uintptr_t)arg);
+
           if (coulombp)
             {
               ret = dev->ops->coulombs(dev, coulombp);
@@ -428,10 +463,18 @@ static int bat_monitor_ioctl(FAR struct file *filep, int cmd,
       case BATIOC_CHIPID:
         {
           FAR unsigned int *ptr = (FAR unsigned int *)((uintptr_t)arg);
+
           if (ptr)
             {
               ret = dev->ops->chipid(dev, ptr);
             }
+        }
+        break;
+
+      case BATIOC_SET_DEBOUNCE:
+        {
+          priv->interval = arg;
+          ret = OK;
         }
         break;
 
@@ -467,7 +510,7 @@ static int bat_monitor_poll(FAR struct file *filep,
         {
           priv->fds = fds;
           fds->priv = &priv->fds;
-          if (priv->mask)
+          if (priv->mask != 0)
             {
               poll_notify(&fds, 1, POLLIN);
             }
@@ -518,6 +561,7 @@ int battery_monitor_changed(FAR struct battery_monitor_dev_s *dev,
                        struct battery_monitor_priv_s, node)
     {
       battery_monitor_notify(priv, mask);
+      priv->mask |= mask;
     }
 
 out:
@@ -554,7 +598,7 @@ int battery_monitor_register(FAR const char *devpath,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_batteryops, 0555, dev);
+  ret = register_driver(devpath, &g_batteryops, 0500, dev);
   if (ret < 0)
     {
       baterr("ERROR: Failed to register driver: %d\n", ret);

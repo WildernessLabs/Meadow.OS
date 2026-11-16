@@ -41,6 +41,11 @@
  *              24xx1025  131072    128   2     1010PAA Special case: address
  *                                                      bit is shifted.
  *              24xx1026  131072    128   2     1010AAP
+ *              24CM02    262144    256   2     1010APP
+ *              24CW160     2048     32   2     1010AAA Not a 24xx16
+ *                                                      variant: 24CW uses
+ *                                                      2-byte addressing
+ *                                                      and 32-byte pages.
  *
  * Atmel
  *              AT24C01      128     8    1     1010AAA
@@ -80,13 +85,12 @@
 #include <stdbool.h>
 #include <sys/types.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 #include <string.h>
 #include <inttypes.h>
 
 #include <nuttx/eeprom/eeprom.h>
-#include <nuttx/eeprom/i2c_xx24xx.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/kmalloc.h>
@@ -164,7 +168,7 @@ static ssize_t at24cs_read_uuid(FAR struct file *filep, FAR char *buffer,
 
 /* Supported device geometries.
  * One geometry can fit more than one device.
- * The user will use an enum'ed index from include/eeprom/i2c_xx24xx.h
+ * The user will use an enum'ed index from include/eeprom/eeprom.h
  */
 
 static const struct ee24xx_geom_s g_ee24xx_devices[] =
@@ -215,6 +219,9 @@ static const struct ee24xx_geom_s g_ee24xx_devices[] =
   {
     11, 5, 2, 2, 0
   }, /* AT24CM02  262144  256     2 */
+  {
+    4, 2, 2, 0, 0
+  }, /* 24CW160     2048   32     2 */
 
   /* STM devices */
 
@@ -328,6 +335,147 @@ static int ee24xx_writepage(FAR struct ee24xx_dev_s *eedev, uint32_t memaddr,
 }
 
 /****************************************************************************
+ * Name: ee24xx_eraseall
+ *
+ * Description:
+ *   Erase all data on the device
+ *
+ * Input Parameters:
+ *   eedev - Device structure
+ *
+ ****************************************************************************/
+
+static int ee24xx_eraseall(FAR struct ee24xx_dev_s *eedev)
+{
+  FAR char *buf;
+  off_t     offset;
+  int       ret;
+
+  DEBUGASSERT(eedev);
+
+  if (eedev->readonly)
+    {
+      return -EACCES;
+    }
+
+  buf = kmm_malloc(eedev->pgsize);
+  if (buf == NULL)
+    {
+      ferr("ERROR: Failed to allocate memory for ee24xx eraseall\n");
+      return -ENOMEM;
+    }
+
+  memset(buf, 0xff, eedev->pgsize);
+
+  ret = nxmutex_lock(&eedev->lock);
+  if (ret < 0)
+    {
+      goto free_buffer;
+    }
+
+  for (offset = 0; offset < eedev->size; offset += eedev->pgsize)
+    {
+      ret = ee24xx_writepage(eedev, offset, buf, eedev->pgsize);
+      if (ret < 0)
+        {
+          ferr("ERROR: Failed to write page at offset %" PRIdOFF
+               " (ret = %d)",
+               offset, ret);
+          goto release_semaphore;
+        }
+
+      ret = ee24xx_waitwritecomplete(eedev, offset);
+      if (ret < 0)
+        {
+          ferr("ERROR while waiting for write at offset %" PRIdOFF
+               " to complete (ret = %d)",
+               offset, ret);
+          goto release_semaphore;
+        }
+    }
+
+release_semaphore:
+  nxmutex_unlock(&eedev->lock);
+
+free_buffer:
+  kmm_free(buf);
+  return ret;
+}
+
+/****************************************************************************
+ * Name: ee24xx_erasepage
+ *
+ * Description:
+ *   Erase 1 page of data
+ *
+ * Input Parameters:
+ *   eedev - Device structure
+ *   index - Index of the page to erase
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
+
+static int ee24xx_erasepage(FAR struct ee24xx_dev_s *eedev,
+                            unsigned long index)
+{
+  FAR char *buf;
+  int       ret;
+  off_t     offset;
+
+  DEBUGASSERT(eedev);
+  DEBUGASSERT(eedev->pgsize > 0);
+
+  if (eedev->readonly)
+    {
+      return -EACCES;
+    }
+
+  if (index >= (eedev->size / eedev->pgsize))
+    {
+      return -EFBIG;
+    }
+
+  buf = kmm_malloc(eedev->pgsize);
+
+  if (buf == NULL)
+    {
+      ferr("ERROR: Failed to allocate memory for ee24xx_erasepage\n");
+      return -ENOMEM;
+    }
+
+  memset(buf, 0xff, eedev->pgsize);
+
+  ret = nxmutex_lock(&eedev->lock);
+  if (ret < 0)
+    {
+      goto free_buffer;
+    }
+
+  offset = index * eedev->pgsize;
+  ret    = ee24xx_writepage(eedev, offset, buf, eedev->pgsize);
+  if (ret < 0)
+    {
+      ferr("ERROR: Failed to write page (ret = %d)", ret);
+      goto release_semaphore;
+    }
+
+  ret = ee24xx_waitwritecomplete(eedev, offset);
+  if (ret < 0)
+    {
+      ferr("ERROR while waiting for write to complete (ret = %d)", ret);
+    }
+
+release_semaphore:
+  nxmutex_unlock(&eedev->lock);
+
+free_buffer:
+  kmm_free(buf);
+  return ret;
+}
+
+/****************************************************************************
  * Driver Functions
  ****************************************************************************/
 
@@ -430,20 +578,35 @@ static off_t ee24xx_seek(FAR struct file *filep, off_t offset, int whence)
       return ret;
     }
 
-  /* Determine the new, requested file position */
+  /* Determine the new, requested file position
+   * For EEPROM sparse files are not allowed.
+   * "offset" can be negative, "newpos" must be between 0 and eedev->size
+   */
 
   switch (whence)
     {
     case SEEK_CUR:
       newpos = filep->f_pos + offset;
+      if (newpos < 0 || newpos > eedev->size)
+        {
+          return -EINVAL;
+        }
       break;
 
     case SEEK_SET:
       newpos = offset;
+      if (newpos < 0 || newpos > eedev->size)
+        {
+          return -EINVAL;
+        }
       break;
 
     case SEEK_END:
       newpos = eedev->size + offset;
+      if (newpos < 0 || newpos > eedev->size)
+        {
+          return -EINVAL;
+        }
       break;
 
     default:
@@ -814,6 +977,17 @@ static int ee24xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
+      case EEPIOC_PAGEERASE:
+      case EEPIOC_SECTORERASE:
+        ret = ee24xx_erasepage(eedev, arg);
+        break;
+
+      case EEPIOC_CHIPERASE:
+        ret = ee24xx_eraseall(eedev);
+        break;
+
+      /* TODO: add "case EEPIOC_BLOCKPROTECT:" */
+
       default:
         ret = -ENOTTY;
     }
@@ -920,7 +1094,7 @@ int ee24xx_initialize(FAR struct i2c_master_s *bus, uint8_t devaddr,
 
   strlcpy(uuidname, devname, size);
   strlcat(uuidname, ".uuid", size);
-  ret = register_driver(uuidname, &g_at24cs_uuid_fops, 0444, eedev);
+  ret = register_driver(uuidname, &g_at24cs_uuid_fops, 0400, eedev);
 
   kmm_free(uuidname);
 
@@ -931,6 +1105,6 @@ int ee24xx_initialize(FAR struct i2c_master_s *bus, uint8_t devaddr,
     }
 #endif
 
-  return register_driver_with_size(devname, &g_ee24xx_fops, 0666, eedev,
+  return register_driver_with_size(devname, &g_ee24xx_fops, 0600, eedev,
                                    eedev->size);
 }
