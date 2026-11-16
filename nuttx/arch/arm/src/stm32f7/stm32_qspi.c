@@ -1975,10 +1975,17 @@ static uint32_t qspi_setfrequency(struct qspi_dev_s *dev, uint32_t frequency)
   spiinfo("frequency=%" PRId32 "\n", frequency);
   DEBUGASSERT(priv);
 
-  /* Wait till BUSY flag reset */
+  /* Wait till BUSY flag reset.  This runs before every flash access
+   * (w25qxxxjv_lock() calls it), so it needs the same bound as the other
+   * run-time waits (#753): BUSY can stay set for ever when a transfer ends
+   * with data left in the FIFO (SR TCF=1, BUSY=1, FLEVEL=32), and the task
+   * reading the file system then spins here with no log.  On a timeout
+   * qspi_waitstatusflags_bounded() logs and recovers the controller, and the
+   * caller's transfer goes ahead.
+   */
 
   qspi_abort(priv);
-  qspi_waitstatusflags(priv, QSPI_SR_BUSY, 0);
+  qspi_waitstatusflags_bounded(priv, QSPI_SR_BUSY, 0, "set frequency BUSY");
 
   /* Check if the requested frequency is the same as the frequency
    * selection
