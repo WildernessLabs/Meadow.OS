@@ -1,0 +1,17 @@
+Device:
+    Name: MeadowTests
+Network:
+    Interfaces:
+        - Name: WiFi
+          UseDHCP: true
+    DefaultInterface: WiFi
+    CountryCode: GB
+    DnsServers:
+        - 1.1.1.1
+        - 8.8.8.8
+CoProcessor:
+    AutomaticallyStartNetwork: true
+    AutomaticallyReconnect: true
+    MaximumRetryCount: 7
+    LogDestination: UART
+    LogComponents: WiFi;Messages;System

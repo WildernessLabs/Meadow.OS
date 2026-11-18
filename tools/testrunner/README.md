@@ -49,6 +49,10 @@ TESTRUN END failures=<n> cases=<n>
 - **`INFO`:** recorded in the result but does not affect the verdict.
 - **`END`:** the app finished. Its counts must match the `CASE` lines.
 - **Other output** is kept in the log as context.
+- **Long lines:** the board's console splits a line after 256 characters, and the CLI shows the rest
+  as a new line with the same prefix. A `TESTRUN` line of exactly 256 characters is joined to the
+  lines from the same source that follow it, up to the next `TESTRUN` line. The log keeps the pieces
+  as they arrived.
 
 After `END` the app must stay alive, as the Meadow apps do with a final `Task.Delay` loop. The
 runner then stops the CLI.
@@ -88,6 +92,7 @@ its own. A test app that takes part must do the same (see `tests/managed/MiniTes
 | A `CASE` failed that is in `known_failures` | reported as KNOWN; does not fail the test |
 | The CLI exited before `BEGIN` | fail (deploy) |
 | The CLI exited after `BEGIN`, before `END` | fail (crash) |
+| A second `BEGIN`, or `Meadow successfully started MONO`, after `BEGIN` (the runtime restarted) | fail (restart) |
 | The CLI reported a build error, port error, CLI timeout or app failure | fail (build, port, cli-timeout or crash) |
 | No `END` within `timeout_s` | fail (timeout) |
 | The `END` counts do not match the `CASE` lines | fail (contract) |
