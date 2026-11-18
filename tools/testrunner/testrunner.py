@@ -36,6 +36,14 @@ SOURCE_PREFIX = re.compile(r"^(stdout|stderr|info|warn|error)> ?")
 MONO_STARTED = re.compile(r"Meadow successfully started MONO")
 
 #
+#   The board's console splits a line longer than this many characters (after the source prefix) and the
+#   CLI shows the rest as a new line with the same prefix.  A TESTRUN line of exactly this length is joined
+#   to the lines that follow it.
+#
+CONSOLE_LINE_LIMIT = 256
+CONTINUATION_WAIT_S = 2
+
+#
 #   CLI output that ends a test early.  Matched against every line, with the source prefix removed.
 #
 CLI_FAILURES = [
@@ -161,6 +169,39 @@ def read_lines(stream, lines):
     lines.put(None)
 
 
+def split_source(line):
+    """Return (source, text) for a CLI line; source is None when the line has no source prefix."""
+    match = SOURCE_PREFIX.match(line)
+    return (match.group(1), line[match.end():]) if match else (None, line)
+
+
+def join_continuations(line, lines, log):
+    """Join the console continuations of a TESTRUN line that the board split at CONSOLE_LINE_LIMIT.
+
+    Returns the joined text and the next line taken from the queue that is not a continuation (or
+    NO_LINE when none was taken).  Each continuation is written to the log as it arrived.
+    """
+    source, text = split_source(line)
+    piece = text
+    while len(piece) == CONSOLE_LINE_LIMIT:
+        try:
+            following = lines.get(timeout=CONTINUATION_WAIT_S)
+        except queue.Empty:
+            break
+        if following is None:
+            return text, following
+        following_source, piece = split_source(redact(following))
+        if (following_source != source) or TESTRUN.match(piece.strip()):
+            return text, following
+        log.write(redact(following) + "\n")
+        log.flush()
+        text += piece
+    return text, NO_LINE
+
+
+NO_LINE = object()
+
+
 def run_test(test, mode, mode_options, settings, run_dir, events):
     """Deploy and run one test app in one mode; return its result record."""
     name = f"{test['name']}-{mode}"
@@ -199,19 +240,23 @@ def run_test(test, mode, mode_options, settings, run_dir, events):
 
     failure = None
     last_progress = start
+    carried = NO_LINE
     with open(log_path, "w", encoding="utf-8") as log:
         while True:
             remaining = timeout_s - (time.monotonic() - start)
             if remaining <= 0:
                 failure = ("timeout", f"no END after {timeout_s}s")
                 break
-            try:
-                line = lines.get(timeout=min(remaining, 10))
-            except queue.Empty:
-                if time.monotonic() - last_progress >= 60:
-                    last_progress = time.monotonic()
-                    events.emit("progress", f"{name}: {len(result['cases'])} cases, {int(time.monotonic() - start)}s", test=name)
-                continue
+            if carried is not NO_LINE:
+                line, carried = carried, NO_LINE
+            else:
+                try:
+                    line = lines.get(timeout=min(remaining, 10))
+                except queue.Empty:
+                    if time.monotonic() - last_progress >= 60:
+                        last_progress = time.monotonic()
+                        events.emit("progress", f"{name}: {len(result['cases'])} cases, {int(time.monotonic() - start)}s", test=name)
+                    continue
             if line is None:
                 if result["end"] is None:
                     failure = ("crash" if result["begin"] else "deploy", f"CLI exited ({process.wait()}) before END")
@@ -222,6 +267,8 @@ def run_test(test, mode, mode_options, settings, run_dir, events):
             text = SOURCE_PREFIX.sub("", line.strip())
             match = TESTRUN.match(text)
             if match:
+                text, carried = join_continuations(line, lines, log)
+                match = TESTRUN.match(text.strip())
                 kind, rest = match.group(1), match.group(2)
                 if kind == "BEGIN":
                     if result["begin"] is not None:
