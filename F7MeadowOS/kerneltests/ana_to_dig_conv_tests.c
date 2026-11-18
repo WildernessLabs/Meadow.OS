@@ -60,8 +60,8 @@
 
 #pragma message "(--) ana_to_dig_conv_tests.c included"
 
-#ifndef CONFIG_STM32F7_DMA2
-#error "Meadow ADC with DMA requires CONFIG_STM32F7_DMA2"
+#ifndef CONFIG_STM32_DMA2
+#error "Meadow ADC with DMA requires CONFIG_STM32_DMA2"
 #endif
 
 //

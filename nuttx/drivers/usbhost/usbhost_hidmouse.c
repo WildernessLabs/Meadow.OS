@@ -36,8 +36,8 @@
 #include <assert.h>
 #include <errno.h>
 #include <fixedmath.h>
-#include <debug.h>
 
+#include <nuttx/debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
@@ -276,6 +276,7 @@ struct usbhost_state_s
   struct work_s           work;         /* For cornercase error handling by the worker thread */
   struct mouse_sample_s   sample;       /* Last sampled mouse data */
   usbhost_ep_t            epin;         /* Interrupt IN endpoint */
+  size_t                  packet_len;
 
   /* The following is a list if poll structures of threads waiting for
    * driver events. The 'struct pollfd' reference for each open is also
@@ -485,6 +486,7 @@ static int usbhost_allocdevno(FAR struct usbhost_state_s *priv)
   for (devno = 0; devno < 26; devno++)
     {
       uint32_t bitno = 1 << devno;
+
       if ((g_devinuse & bitno) == 0)
         {
           g_devinuse |= bitno;
@@ -505,6 +507,7 @@ static void usbhost_freedevno(FAR struct usbhost_state_s *priv)
   if (devno >= 0 && devno < 26)
     {
       irqstate_t flags = enter_critical_section();
+
       g_devinuse &= ~(1 << devno);
       leave_critical_section(flags);
     }
@@ -820,7 +823,7 @@ static bool usbhost_touchscreen(FAR struct usbhost_state_s *priv,
        * small, then ignore the event.
        */
 
-      else if (!usbhost_xythreshold(priv))
+      else if (!usbhost_threshold(priv))
         {
           return false;
         }
@@ -988,7 +991,7 @@ static int usbhost_mouse_poll(int argc, FAR char *argv[])
        */
 
       nbytes = DRVR_TRANSFER(hport->drvr, priv->epin,
-                             priv->tbuffer, priv->tbuflen);
+                             priv->tbuffer, priv->packet_len);
 
       /* Check for errors -- Bail if an excessive number of consecutive
        * errors are encountered.
@@ -1395,101 +1398,103 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
       desc = (FAR struct usb_desc_s *)configdesc;
       switch (desc->type)
         {
-        /* Interface descriptor. We really should get the number of endpoints
-         * from this descriptor too.
-         */
+          /* Interface descriptor. We really should get the number of
+           * endpoints from this descriptor too.
+           */
 
-        case USB_DESC_TYPE_INTERFACE:
-          {
-            uinfo("Interface descriptor\n");
-            DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
+          case USB_DESC_TYPE_INTERFACE:
+            {
+              uinfo("Interface descriptor\n");
+              DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
 
-            /* Did we already find what we needed from
-             * a preceding interface?
-             */
+              /* Did we already find what we needed from
+               * a preceding interface?
+               */
 
-            if ((found & USBHOST_ALLFOUND) == USBHOST_ALLFOUND)
-              {
-                /* Yes.. then break out of the loop and use the preceding
-                 * interface.
-                 */
+              if ((found & USBHOST_ALLFOUND) == USBHOST_ALLFOUND)
+                {
+                  /* Yes.. then break out of the loop and use the preceding
+                   * interface.
+                   */
 
-                done = true;
-              }
-            else
-              {
-                /* Otherwise, discard any endpoints previously found */
+                  done = true;
+                }
+              else
+                {
+                  /* Otherwise, discard any endpoints previously found */
 
-                found = USBHOST_IFFOUND;
-              }
-          }
-          break;
+                  found = USBHOST_IFFOUND;
+                }
+            }
+            break;
 
-        /* HID descriptor */
+          /* HID descriptor */
 
-        case USBHID_DESCTYPE_HID:
+          case USBHID_DESCTYPE_HID:
             uinfo("HID descriptor\n");
             break;
 
-        /* Endpoint descriptor.  We expect one or two interrupt endpoints,
-         * a required IN endpoint and an optional OUT endpoint.
-         */
+          /* Endpoint descriptor.  We expect one or two interrupt endpoints,
+           * a required IN endpoint and an optional OUT endpoint.
+           */
 
-        case USB_DESC_TYPE_ENDPOINT:
-          {
-            FAR struct usb_epdesc_s *epdesc =
-              (FAR struct usb_epdesc_s *)configdesc;
+          case USB_DESC_TYPE_ENDPOINT:
+            {
+              FAR struct usb_epdesc_s *epdesc =
+                (FAR struct usb_epdesc_s *)configdesc;
 
-            uinfo("Endpoint descriptor\n");
-            DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
+              uinfo("Endpoint descriptor\n");
+              DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
 
-            /* Check for an interrupt endpoint. */
+              /* Check for an interrupt endpoint. */
 
-            if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) ==
-                USB_EP_ATTR_XFER_INT)
-              {
-                /* Yes.. it is a interrupt endpoint.  IN or OUT? */
+              if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) ==
+                  USB_EP_ATTR_XFER_INT)
+                {
+                  /* Yes.. it is a interrupt endpoint.  IN or OUT? */
 
-                if (USB_ISEPIN(epdesc->addr))
-                  {
-                    /* It is an interrupt IN endpoint.  There should be only
-                     * one interrupt IN endpoint.
-                     */
+                  if (USB_ISEPIN(epdesc->addr))
+                    {
+                      /* It is an interrupt IN endpoint.  There should be
+                       * only one interrupt IN endpoint.
+                       */
 
-                    if ((found & USBHOST_EPINFOUND) != 0)
-                      {
-                        /* Oops.. more than one endpoint.  We don't know what
-                         * to do with this.
-                         */
+                      if ((found & USBHOST_EPINFOUND) != 0)
+                        {
+                          /* Oops.. more than one endpoint.  We don't know
+                           * what to do with this.
+                           */
 
-                        return -EINVAL;
-                      }
+                          return -EINVAL;
+                        }
 
-                    found |= USBHOST_EPINFOUND;
+                      found |= USBHOST_EPINFOUND;
 
-                    /* Save the interrupt IN endpoint information */
+                      /* Save the interrupt IN endpoint information */
 
-                    epindesc.hport        = hport;
-                    epindesc.addr         = epdesc->addr &
-                                            USB_EP_ADDR_NUMBER_MASK;
-                    epindesc.in           = true;
-                    epindesc.xfrtype      = USB_EP_ATTR_XFER_INT;
-                    epindesc.interval     = epdesc->interval;
-                    epindesc.mxpacketsize =
-                      usbhost_getle16(epdesc->mxpacketsize);
+                      epindesc.hport        = hport;
+                      epindesc.addr         = epdesc->addr &
+                                              USB_EP_ADDR_NUMBER_MASK;
+                      epindesc.in           = true;
+                      epindesc.xfrtype      = USB_EP_ATTR_XFER_INT;
+                      epindesc.interval     = epdesc->interval;
+                      epindesc.mxpacketsize =
+                        usbhost_getle16(epdesc->mxpacketsize);
 
-                    uinfo("Interrupt IN EP addr:%d mxpacketsize:%d\n",
-                          epindesc.addr, epindesc.mxpacketsize);
-                  }
-              }
-          }
-          break;
+                      priv->packet_len = (size_t)epindesc.mxpacketsize;
 
-        /* Other descriptors are just ignored for now */
+                      uinfo("Interrupt IN EP addr:%d mxpacketsize:%d\n",
+                            epindesc.addr, epindesc.mxpacketsize);
+                    }
+                }
+            }
+            break;
 
-        default:
-          uinfo("Other descriptor: %d\n", desc->type);
-          break;
+          /* Other descriptors are just ignored for now */
+
+          default:
+            uinfo("Other descriptor: %d\n", desc->type);
+            break;
         }
 
       /* What we found everything that we are going to find? */
@@ -1630,7 +1635,7 @@ static inline int usbhost_devinit(FAR struct usbhost_state_s *priv)
 
   uinfo("Register driver\n");
   usbhost_mkdevname(priv, devname);
-  ret = register_driver(devname, &g_hidmouse_fops, 0666, priv);
+  ret = register_driver(devname, &g_hidmouse_fops, 0600, priv);
 
   /* We now have to be concerned about asynchronous modification of crefs
    * because the driver has been registered.
@@ -1708,6 +1713,7 @@ static inline int usbhost_tdfree(FAR struct usbhost_state_s *priv)
 {
   FAR struct usbhost_hubport_s *hport;
   int result = OK;
+
   DEBUGASSERT(priv);
 
   if (priv->tbuffer)
@@ -2387,6 +2393,7 @@ static int usbhost_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This is a request to tear down the poll. */
 
       FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
+
       DEBUGASSERT(slot);
 
       /* Remove all memory of the poll setup */

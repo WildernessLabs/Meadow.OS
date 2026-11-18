@@ -110,8 +110,7 @@ void nxmutex_add_backtrace(FAR mutex_t *mutex);
  *
  * Return Value:
  *   This is an internal OS interface and should not be used by applications.
- *   It follows the NuttX internal error return policy:  Zero (OK) is
- *   returned on success.  A negated errno value is returned on failure.
+ *   Zero (OK) is always returned.
  *
  ****************************************************************************/
 
@@ -461,18 +460,17 @@ static inline_function bool nxmutex_is_locked(FAR mutex_t *mutex)
  * Name: nxmutex_destroy
  *
  * Description:
- *   This function initializes the UNNAMED mutex. Following a
- *   successful call to nxmutex_init(), the mutex may be used in subsequent
- *   calls to nxmutex_lock(), nxmutex_unlock(), and nxmutex_trylock().  The
- *   mutex remains usable until it is destroyed.
+ *   This function destroys the specified mutex. After a successful call,
+ *   the mutex is no longer valid and must not be used in subsequent calls
+ *   to nxmutex_lock(), nxmutex_unlock(), or nxmutex_trylock() unless it is
+ *   reinitialized with nxmutex_init().
  *
  * Parameters:
  *   mutex - Semaphore to be destroyed
  *
  * Return Value:
  *   This is an internal OS interface and should not be used by applications.
- *   It follows the NuttX internal error return policy:  Zero (OK) is
- *   returned on success.  A negated errno value is returned on failure.
+ *   Zero (OK) is always returned.
  *
  ****************************************************************************/
 
@@ -584,12 +582,10 @@ static inline_function int nxmutex_unlock(FAR mutex_t *mutex)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
 static inline_function void nxmutex_reset(FAR mutex_t *mutex)
 {
   nxsem_reset(&mutex->sem, 1);
 }
-#endif
 
 /****************************************************************************
  * Name: nxmutex_breaklock
@@ -737,8 +733,7 @@ static inline_function int nxmutex_setprioceiling(FAR mutex_t *mutex,
  *
  * Return Value:
  *   This is an internal OS interface and should not be used by applications.
- *   It follows the NuttX internal error return policy:  Zero (OK) is
- *   returned on success.  A negated errno value is returned on failure.
+ *   Zero (OK) is always returned.
  *
  ****************************************************************************/
 
@@ -759,8 +754,7 @@ static inline_function int nxrmutex_init(FAR rmutex_t *rmutex)
  *
  * Return Value:
  *   This is an internal OS interface and should not be used by applications.
- *   It follows the NuttX internal error return policy:  Zero (OK) is
- *   returned on success.  A negated errno value is returned on failure.
+ *   Zero (OK) is always returned.
  *
  ****************************************************************************/
 
@@ -768,11 +762,7 @@ static inline_function int nxrmutex_destroy(FAR rmutex_t *rmutex)
 {
   int ret = nxmutex_destroy(&rmutex->mutex);
 
-  if (ret >= 0)
-    {
-      rmutex->count = 0;
-    }
-
+  rmutex->count = 0;
   return ret;
 }
 
@@ -870,13 +860,11 @@ static inline_function bool nxrmutex_is_locked(FAR rmutex_t *rmutex)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
 static inline_function void nxrmutex_reset(FAR rmutex_t *rmutex)
 {
   rmutex->count = 0;
   nxmutex_reset(&rmutex->mutex);
 }
-#endif
 
 #undef EXTERN
 #ifdef __cplusplus

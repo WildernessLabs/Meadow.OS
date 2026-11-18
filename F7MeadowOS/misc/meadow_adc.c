@@ -60,8 +60,8 @@
 #include <meadow/meadow_syscall_support.h>
 #include "../include/board.h"
 
-#ifndef CONFIG_STM32F7_DMA2
-#error "Meadow ADC requires CONFIG_STM32F7_DMA2 to be configured"
+#ifndef CONFIG_STM32_DMA2
+#error "Meadow ADC requires CONFIG_STM32_DMA2 to be configured"
 #endif
 
 // Diagnostic always as this is test code

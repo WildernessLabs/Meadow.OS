@@ -115,4 +115,28 @@ config TESTING_OSTEST_POWEROFF
 	default n
 	depends on BOARDCTL_POWEROFF && TESTING_OSTEST_WAITRESULT
 
+config TESTING_OSTEST_SPINLOCK_THREADS
+	int "Number of spinlock test threads"
+	default 2
+	range 1 32
+
+config TESTING_OSTEST_MULTIUSER
+	bool "Multi-user identity and permission tests"
+	default n
+	depends on SCHED_USER_IDENTITY
+	depends on LIBC_PASSWD_FILE
+	---help---
+		Enable regression tests for UID/GID identity switching and file
+		permission enforcement.  Individual sub-tests run only when the
+		corresponding kernel options are enabled (for example pseudoFS
+		permission checks require FS_PERMISSION and PSEUDOFS_FILE).
+
+		The passwd lookup sub-test creates a temporary passwd file at
+		CONFIG_LIBC_PASSWD_FILEPATH (default /tmp/ostest_passwd when this
+		option is enabled).
+
+config TEST_LOOP_SCALE
+	int "Loop scale of spinlock test (N x 10,000)"
+	default 100
+
 endif # TESTING_OSTEST

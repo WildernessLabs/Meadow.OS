@@ -23,6 +23,11 @@
 /* Reference:
  * "NuttX RTOS for PinePhone: LVGL Terminal for NSH Shell"
  * https://lupyuen.github.io/articles/terminal
+ *
+ * Code shared by both input variants: it starts the NSH shell on a
+ * pseudo-terminal, renders the shell output in an LVGL text area, and
+ * delegates the input source to the selected variant (on-screen keyboard in
+ * lvglterm_touch.c, physical keyboard in lvglterm_kbd.c).
  */
 
 /****************************************************************************
@@ -31,15 +36,21 @@
 
 #include <nuttx/config.h>
 #include <sys/boardctl.h>
+#include <sys/ioctl.h>
 #include <unistd.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
-#include <debug.h>
+#include <errno.h>
+#include <nuttx/debug.h>
 #include <poll.h>
+#include <pty.h>
 #include <spawn.h>
 #include <lvgl/lvgl.h>
+
+#include "lvglterm.h"
 
 /* NSH Task requires posix_spawn() */
 
@@ -47,88 +58,105 @@
 #  error posix_spawn() should be enabled in the configuration
 #endif
 
-/* NSH Redirection requires Pipes */
+/* The shell runs on a pseudo-terminal rather than on plain pipes because
+ * that is what makes its standard streams look like a console.  Interactive
+ * programs decide from isatty() whether to echo, to prompt and to
+ * line-buffer their output and the terminal driver is what echoes back what
+ * the user types.
+ */
 
-#ifndef CONFIG_DEV_PIPE_SIZE
-#  error FIFO and Named Pipe Drivers should be enabled in the configuration
+#ifndef CONFIG_PSEUDOTERM
+#  error Pseudo-Terminal (PTY) support should be enabled in the configuration
 #endif
 
-/* NSH Output requires a Monospaced Font */
+/* NSH Output requires a Monospaced Font.  The size is selectable so that
+ * low-resolution displays can use the smaller UNSCII 8.
+ */
 
-#ifndef CONFIG_LV_FONT_UNSCII_16
-#  error LVGL Font UNSCII 16 should be enabled in the configuration
+#if defined(CONFIG_EXAMPLES_LVGLTERM_FONT_UNSCII_8)
+#  ifndef CONFIG_LV_FONT_UNSCII_8
+#    error LVGL Font UNSCII 8 should be enabled in the configuration
+#  endif
+#  define LVGLTERM_FONT lv_font_unscii_8
+#else
+#  ifndef CONFIG_LV_FONT_UNSCII_16
+#    error LVGL Font UNSCII 16 should be enabled in the configuration
+#  endif
+#  define LVGLTERM_FONT lv_font_unscii_16
 #endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Should we perform board-specific driver initialization?  There are two
- * ways that board initialization can occur:  1) automatically via
- * board_late_initialize() during bootupif CONFIG_BOARD_LATE_INITIALIZE
- * or 2).
- * via a call to boardctl() if the interface is enabled
- * (CONFIG_BOARDCTL=y).
- * If this task is running as an NSH built-in application, then that
- * initialization has probably already been performed otherwise we do it
- * here.
- */
-
-#undef NEED_BOARDINIT
-
-#if defined(CONFIG_BOARDCTL) && !defined(CONFIG_NSH_ARCHINIT)
-#  define NEED_BOARDINIT 1
-#endif
-
 /* How often to poll for output from NSH Shell (milliseconds) */
 
-#define TIMER_PERIOD_MS 100
+#define TIMER_PERIOD_MS 20
 
-/* Read and Write Pipes for NSH stdin, stdout and stderr */
+/* How many reads the output poll may perform on a single timer tick */
 
-#define READ_PIPE  0
-#define WRITE_PIPE 1
+#define MAX_READS_PER_TICK 16
+
+/* How many keystrokes may wait for the shell to consume them.  A shell line
+ * is shorter than this, and the shell truncates the over-long ones anyway.
+ */
+
+#define INPUT_QUEUE_SIZE 256
+
+/* Trim the output text area once it grows past this many characters */
+
+#define TERM_MAXCHARS  4096
+#define TERM_KEEPCHARS 3072
 
 /* NSH Task to be started */
 
-#define NSH_TASK "nsh"
+/* The shell to run.  A name is looked up on PATH, a path is taken as
+ * given, which matters where the shell is installed under another name,
+ * as it is when NSH is built as the system's init.
+ */
+
+#ifdef CONFIG_EXAMPLES_LVGLTERM_SHELL
+#  define NSH_TASK CONFIG_EXAMPLES_LVGLTERM_SHELL
+#else
+#  define NSH_TASK "nsh"
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
+static bool has_output(void);
+static void flush_input(void);
 static int create_widgets(void);
-static void timer_callback(lv_timer_t * timer);
-static void input_callback(lv_event_t * e);
-static bool has_input(int fd);
-static void remove_escape_codes(char *buf, int len);
+static void timer_callback(lv_timer_t *timer);
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/* LVGL Column Container and NSH Output Text Area (shared with the variant) */
+
+lv_obj_t *g_col;
+lv_obj_t *g_output;
+
+/* LVGL Font Style for NSH Input and Output */
+
+lv_style_t g_terminal_style;
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* Pipes for NSH Shell: stdin, stdout, stderr */
+/* PTY master:  the terminal's end of the shell's console.  Keystrokes are
+ * written to it and the shell output is read from it.
+ */
 
-static int g_nsh_stdin[2];
-static int g_nsh_stdout[2];
-static int g_nsh_stderr[2];
+static int g_nsh_fd = -1;
 
-/* LVGL Column Container for NSH Widgets */
+/* Keystrokes waiting for room in the terminal (see lvglterm_send_input) */
 
-static lv_obj_t *g_col;
-
-/* LVGL Text Area Widgets for NSH Input and Output */
-
-static lv_obj_t *g_input;
-static lv_obj_t *g_output;
-
-/* LVGL Keyboard Widget for NSH Terminal */
-
-static lv_obj_t *g_kb;
-
-/* LVGL Font Style for NSH Input and Output */
-
-static lv_style_t g_terminal_style;
+static char g_input_queue[INPUT_QUEUE_SIZE];
+static int g_input_queued;
 
 /* LVGL Timer for polling NSH Output */
 
@@ -146,104 +174,195 @@ static char * const g_nsh_argv[] =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: create_terminal
+ * Name: has_output
  *
  * Description:
- *   Create the LVGL Terminal. Start the NSH Shell and redirect the NSH
- *   stdin, stdout and stderr to the LVGL Widgets.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value is returned on any failure.
+ *   Return true if the shell has produced output that can be read without
+ *   blocking.
  *
  ****************************************************************************/
 
-static int create_terminal(void)
+static bool has_output(void)
 {
-  int ret;
-  pid_t pid;
+  struct pollfd fdp;
 
-  /* Create the pipes for NSH Shell: stdin, stdout and stderr */
-
-  ret = pipe(g_nsh_stdin);
-  if (ret < 0)
-    {
-      _err("stdin pipe failed: %d\n", errno);
-      return ERROR;
-    }
-
-  ret = pipe(g_nsh_stdout);
-  if (ret < 0)
-    {
-      _err("stdout pipe failed: %d\n", errno);
-      return ERROR;
-    }
-
-  ret = pipe(g_nsh_stderr);
-  if (ret < 0)
-    {
-      _err("stderr pipe failed: %d\n", errno);
-      return ERROR;
-    }
-
-  /* Close default stdin, stdout and stderr */
-
-  close(0);
-  close(1);
-  close(2);
-
-  /* Assign the new pipes as stdin, stdout and stderr */
-
-  dup2(g_nsh_stdin[READ_PIPE], 0);
-  dup2(g_nsh_stdout[WRITE_PIPE], 1);
-  dup2(g_nsh_stderr[WRITE_PIPE], 2);
-
-  /* Start the NSH Shell and inherit stdin, stdout and stderr */
-
-  ret = posix_spawn(&pid,        /* Returned Task ID */
-                    NSH_TASK,    /* NSH Path */
-                    NULL,        /* Inherit stdin, stdout and stderr */
-                    NULL,        /* Default spawn attributes */
-                    g_nsh_argv,  /* Arguments */
-                    NULL);       /* No environment */
-  if (ret < 0)
-    {
-      int errcode = errno;
-      _err("posix_spawn failed: %d\n", errcode);
-      return -errcode;
-    }
-
-  /* Create an LVGL Timer to poll for output from NSH Shell */
-
-  g_timer = lv_timer_create(timer_callback,  /* Callback Function */
-                            TIMER_PERIOD_MS, /* Timer Period (millisec) */
-                            NULL);           /* Callback Argument */
-  DEBUGASSERT(g_timer != NULL);
-
-  /* Create the LVGL Terminal Widgets */
-
-  ret = create_widgets();
-  if (ret < 0)
-    {
-      return ret;
-    }
-
-  return OK;
+  fdp.fd     = g_nsh_fd;
+  fdp.events = POLLIN;
+  return poll(&fdp, 1, 0) > 0 && (fdp.revents & POLLIN) != 0;
 }
+
+/****************************************************************************
+ * Name: flush_input
+ *
+ * Description:
+ *   Hand the queued keystrokes to the terminal, but no more of them than it
+ *   can take right now:  a write that has to wait for room blocks the LVGL
+ *   thread, and that deadlocks the terminal, since the shell stops reading
+ *   as soon as the echo it produces has filled the output buffer that only
+ *   this thread drains.  Runs in the LVGL thread.
+ *
+ ****************************************************************************/
+
+static void flush_input(void)
+{
+  int nwritten;
+  int space;
+
+  if (g_input_queued == 0)
+    {
+      return;
+    }
+
+  if (ioctl(g_nsh_fd, FIONSPACE, &space) < 0 || space <= 0)
+    {
+      return;
+    }
+
+  if (space > g_input_queued)
+    {
+      space = g_input_queued;
+    }
+
+  nwritten = write(g_nsh_fd, g_input_queue, space);
+  if (nwritten <= 0)
+    {
+      return;
+    }
+
+  g_input_queued -= nwritten;
+  memmove(g_input_queue, g_input_queue + nwritten, g_input_queued);
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: lvglterm_send_input
+ *
+ * Description:
+ *   Send keystrokes to the shell.  Whatever the terminal cannot take yet is
+ *   queued and handed over by the terminal's periodic timer.  Must run in
+ *   the LVGL thread.
+ *
+ ****************************************************************************/
+
+void lvglterm_send_input(FAR const char *buf, int len)
+{
+  int room = INPUT_QUEUE_SIZE - g_input_queued;
+
+  if (len > room)
+    {
+      /* The queue drains no faster than the shell reads.  Dropping what does
+       * not fit keeps the terminal responsive, and a line that long would be
+       * truncated by the shell in any case.
+       */
+
+      gwarn("WARNING: dropping %d input bytes\n", len - room);
+      len = room;
+    }
+
+  memcpy(g_input_queue + g_input_queued, buf, len);
+  g_input_queued += len;
+
+  flush_input();
+}
+
+/****************************************************************************
+ * Name: lvglterm_add_output
+ *
+ * Description:
+ *   Append text to the NSH output text area, dropping VT100 escape sequences
+ *   and carriage returns, honouring backspace, and trimming the buffer once
+ *   it grows too large.  Must run in the LVGL thread.
+ *
+ ****************************************************************************/
+
+void lvglterm_add_output(FAR const char *buf, int len)
+{
+  char clean[64];
+  int  ci = 0;
+  int  i;
+
+  for (i = 0; i < len; i++)
+    {
+      char c = buf[i];
+
+      if (c == 0x1b)                /* ESC: skip the escape sequence */
+        {
+          i++;
+          if (i < len && buf[i] == '[')
+            {
+              for (i++; i < len; i++)
+                {
+                  if ((buf[i] >= 'A' && buf[i] <= 'Z') ||
+                      (buf[i] >= 'a' && buf[i] <= 'z'))
+                    {
+                      break;
+                    }
+                }
+            }
+
+          continue;
+        }
+
+      if (c == '\r')                /* Drop carriage return */
+        {
+          continue;
+        }
+
+      if (c == 0x08 || c == 0x7f)   /* Backspace/DEL: erase last character */
+        {
+          if (ci > 0)
+            {
+              clean[ci] = '\0';
+              lv_textarea_add_text(g_output, clean);
+              ci = 0;
+            }
+
+          lv_textarea_delete_char(g_output);
+          continue;
+        }
+
+      if (c == '\n' || c == '\t' || (c >= 0x20 && c < 0x7f))
+        {
+          clean[ci++] = c;
+          if (ci >= (int)sizeof(clean) - 1)
+            {
+              clean[ci] = '\0';
+              lv_textarea_add_text(g_output, clean);
+              ci = 0;
+            }
+        }
+    }
+
+  if (ci > 0)
+    {
+      clean[ci] = '\0';
+      lv_textarea_add_text(g_output, clean);
+    }
+
+  /* Trim the text area if it has grown too large */
+
+  if ((int)strlen(lv_textarea_get_text(g_output)) > TERM_MAXCHARS)
+    {
+      FAR const char *txt = lv_textarea_get_text(g_output);
+      int total = strlen(txt);
+      lv_textarea_set_text(g_output, txt + (total - TERM_KEEPCHARS));
+      lv_textarea_set_cursor_pos(g_output, LV_TEXTAREA_CURSOR_LAST);
+    }
+}
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: create_widgets
  *
  * Description:
- *   Create the LVGL Widgets for LVGL Terminal.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value is returned on any failure.
+ *   Create the shared LVGL widgets: a column container and the NSH output
+ *   text area.  The input source is added by the selected variant.
  *
  ****************************************************************************/
 
@@ -252,7 +371,7 @@ static int create_widgets(void)
   /* Set the Font Style for NSH Input and Output to a Monospaced Font */
 
   lv_style_init(&g_terminal_style);
-  lv_style_set_text_font(&g_terminal_style, &lv_font_unscii_16);
+  lv_style_set_text_font(&g_terminal_style, &LVGLTERM_FONT);
 
   /* Create an LVGL Container with Column Flex Direction */
 
@@ -260,7 +379,7 @@ static int create_widgets(void)
   DEBUGASSERT(g_col != NULL);
   lv_obj_set_size(g_col, LV_PCT(100), LV_PCT(100));
   lv_obj_set_flex_flow(g_col, LV_FLEX_FLOW_COLUMN);
-  lv_obj_set_style_pad_all(g_col, 0, 0);  /* No padding */
+  lv_obj_set_style_pad_all(g_col, 0, 0);
 
   /* Create an LVGL Text Area Widget for NSH Output */
 
@@ -268,29 +387,74 @@ static int create_widgets(void)
   DEBUGASSERT(g_output != NULL);
   lv_obj_add_style(g_output, &g_terminal_style, 0);
   lv_obj_set_width(g_output, LV_PCT(100));
-  lv_obj_set_flex_grow(g_output, 1);  /* Fill the column */
+  lv_obj_set_flex_grow(g_output, 1);
 
-  /* Create an LVGL Text Area Widget for NSH Input */
+  return OK;
+}
 
-  g_input = lv_textarea_create(g_col);
-  DEBUGASSERT(g_input != NULL);
-  lv_obj_add_style(g_input, &g_terminal_style, 0);
-  lv_obj_set_size(g_input, LV_PCT(100), LV_SIZE_CONTENT);
+/****************************************************************************
+ * Name: create_terminal
+ *
+ * Description:
+ *   Start the NSH shell on a pseudo-terminal, create the shared widgets and
+ *   the output-polling timer, and set up the input variant.
+ *
+ ****************************************************************************/
 
-  /* Create an LVGL Keyboard Widget */
+static int create_terminal(int argc, FAR char *argv[])
+{
+  int ret;
+  pid_t pid;
+  int slave;
 
-  g_kb = lv_keyboard_create(g_col);
-  DEBUGASSERT(g_kb != NULL);
-  lv_obj_set_style_pad_all(g_kb, 0, 0);  /* No padding */
+  /* Create the pseudo-terminal.  The slave keeps the driver defaults, ECHO
+   * and the \n -> \r\n output translation among them, which is what a
+   * console provides and what the shell's line editor expects.
+   */
 
-  /* Register the Callback Function for NSH Input */
+  if (openpty(&g_nsh_fd, &slave, NULL, NULL, NULL) < 0)
+    {
+      fprintf(stderr, "openpty failed: %d\n", errno);
+      return ERROR;
+    }
 
-  lv_obj_add_event_cb(g_input, input_callback, LV_EVENT_ALL, NULL);
+  /* Close default stdin, stdout and stderr and assign the terminal slave,
+   * which is the shell's console once it is spawned below.
+   */
 
-  /* Set the Keyboard to populate the NSH Input Text Area */
+  close(0);
+  close(1);
+  close(2);
 
-  lv_keyboard_set_textarea(g_kb, g_input);
+  dup2(slave, 0);
+  dup2(slave, 1);
+  dup2(slave, 2);
+  close(slave);
 
+  /* Start the NSH Shell and inherit stdin, stdout and stderr */
+
+  ret = posix_spawn(&pid, NSH_TASK, NULL, NULL, g_nsh_argv, NULL);
+  if (ret < 0)
+    {
+      int errcode = errno;
+      fprintf(stderr, "posix_spawn failed: %d\n", errcode);
+      return -errcode;
+    }
+
+  /* Create an LVGL Timer to poll for output from NSH Shell */
+
+  g_timer = lv_timer_create(timer_callback, TIMER_PERIOD_MS, NULL);
+  DEBUGASSERT(g_timer != NULL);
+
+  /* Create the shared widgets and the input source for the variant */
+
+  ret = create_widgets();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  lvglterm_input_create(argc, argv);
   return OK;
 }
 
@@ -298,225 +462,45 @@ static int create_widgets(void)
  * Name: timer_callback
  *
  * Description:
- *   Callback Function for LVGL Timer. Poll NSH stdout and stderr for output
- *   and display the output.
- *
- * Input Parameters:
- *   timer - LVGL Timer for the callback
- *
- * Returned Value:
- *   None
+ *   Poll the terminal for shell output and render it, then let the input
+ *   variant perform its periodic work.  Runs in the LVGL thread.
  *
  ****************************************************************************/
 
 static void timer_callback(lv_timer_t *timer)
 {
-  int ret;
   static char buf[64];
-
-  DEBUGASSERT(g_nsh_stdout[READ_PIPE] != 0);
-  DEBUGASSERT(g_nsh_stderr[READ_PIPE] != 0);
-
-  /* Poll NSH stdout to check if there's output to be processed */
-
-  if (has_input(g_nsh_stdout[READ_PIPE]))
-    {
-      /* Read the output from NSH stdout */
-
-      ret = read(g_nsh_stdout[READ_PIPE], buf, sizeof(buf) - 1);
-      if (ret > 0)
-        {
-          /* Add to NSH Output Text Area */
-
-          buf[ret] = 0;
-          remove_escape_codes(buf, ret);
-
-          DEBUGASSERT(g_output != NULL);
-          lv_textarea_add_text(g_output, buf);
-        }
-    }
-
-  /* Poll NSH stderr to check if there's output to be processed */
-
-  if (has_input(g_nsh_stderr[READ_PIPE]))
-    {
-      /* Read the output from NSH stderr */
-
-      ret = read(g_nsh_stderr[READ_PIPE], buf, sizeof(buf) - 1);
-      if (ret > 0)
-        {
-          /* Add to NSH Output Text Area */
-
-          buf[ret] = 0;
-          remove_escape_codes(buf, ret);
-
-          DEBUGASSERT(g_output != NULL);
-          lv_textarea_add_text(g_output, buf);
-        }
-    }
-}
-
-/****************************************************************************
- * Name: input_callback
- *
- * Description:
- *   Callback Function for NSH Input Text Area. If Enter Key was pressed,
- *   send the NSH Input Command to NSH stdin.
- *
- * Input Parameters:
- *   e - LVGL Event for the callback
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void input_callback(lv_event_t *e)
-{
+  int reads;
   int ret;
 
-  /* Decode the LVGL Event */
+  /* Collect the keystrokes and hand them over first, so that what the user
+   * typed is rendered (the terminal echoes it back to us) before the
+   * resulting shell output.
+   */
 
-  const lv_event_code_t code = lv_event_get_code(e);
+  lvglterm_input_poll();
+  flush_input();
 
-  /* If NSH Input Text Area has changed, get the Key Pressed */
+  /* Drain what the shell has produced.  A writer blocks once it has filled
+   * the terminal buffer, so read as long as there is something to read, but
+   * keep a cap:  a program producing output faster than the screen can take
+   * it must not keep the LVGL thread out of lv_timer_handler().
+   */
 
-  if (code == LV_EVENT_VALUE_CHANGED)
+  for (reads = 0; reads < MAX_READS_PER_TICK; reads++)
     {
-      /* Get the Button Index of the Keyboard Button Pressed */
-
-      const uint16_t id = lv_keyboard_get_selected_button(g_kb);
-
-      /* Get the Text of the Keyboard Button */
-
-      const char *key = lv_keyboard_get_button_text(g_kb, id);
-      if (key == NULL)
+      if (!has_output())
         {
-          return;
+          break;
         }
 
-      /* If Key Pressed is Enter, send the Command to NSH stdin */
-
-      if (key[0] == 0xef && key[1] == 0xa2 && key[2] == 0xa2)
+      ret = read(g_nsh_fd, buf, sizeof(buf));
+      if (ret <= 0)
         {
-          /* Read the NSH Input */
-
-          const char *cmd;
-          DEBUGASSERT(g_input != NULL);
-          cmd = lv_textarea_get_text(g_input);
-          if (cmd == NULL || cmd[0] == 0)
-            {
-              return;
-            }
-
-          /* Send the Command to NSH stdin */
-
-          DEBUGASSERT(g_nsh_stdin[WRITE_PIPE] != 0);
-          ret = write(g_nsh_stdin[WRITE_PIPE], cmd, strlen(cmd));
-          DEBUGASSERT(ret == strlen(cmd));
-
-          /* Erase the NSH Input */
-
-          lv_textarea_set_text(g_input, "");
-        }
-    }
-}
-
-/****************************************************************************
- * Name: has_input
- *
- * Description:
- *   Return true if the File Descriptor has data to be read.
- *
- * Input Parameters:
- *   fd - File Descriptor to be checked
- *
- * Returned Value:
- *   True if File Descriptor has data to be read; False otherwise
- *
- ****************************************************************************/
-
-static bool has_input(int fd)
-{
-  int ret;
-
-  /* Poll the File Descriptor for input */
-
-  struct pollfd fdp;
-  fdp.fd = fd;
-  fdp.events = POLLIN;
-  ret = poll(&fdp,  /* File Descriptors */
-             1,     /* Number of File Descriptors */
-             0);    /* Poll Timeout (Milliseconds) */
-
-  if (ret > 0)
-    {
-      /* If poll is OK and there is input */
-
-      if ((fdp.revents & POLLIN) != 0)
-        {
-          /* Report that there is input */
-
-          return true;
+          break;
         }
 
-      /* Else report no input */
-
-      return false;
-    }
-  else if (ret == 0)
-    {
-      /* If timeout, report no input */
-
-      return false;
-    }
-  else if (ret < 0)
-    {
-      /* Handle error */
-
-      _err("poll failed: %d, fd=%d\n", ret, fd);
-      return false;
-    }
-
-  /* Never comes here */
-
-  DEBUGPANIC();
-  return false;
-}
-
-/****************************************************************************
- * Name: remove_escape_codes
- *
- * Description:
- *   Remove ANSI Escape Codes from the string. Assumes that buf[len] is 0.
- *
- * Input Parameters:
- *   buf - String to be processed
- *   len - Length of string
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-static void remove_escape_codes(char *buf, int len)
-{
-  int i;
-  int j;
-
-  for (i = 0; i < len; i++)
-    {
-      /* Escape Code looks like 0x1b 0x5b 0x4b */
-
-      if (buf[i] == 0x1b)
-        {
-          /* Remove 3 bytes */
-
-          for (j = i; j + 2 < len; j++)
-            {
-              buf[j] = buf[j + 3];
-            }
-        }
+      lvglterm_add_output(buf, ret);
     }
 }
 
@@ -528,15 +512,10 @@ static void remove_escape_codes(char *buf, int len)
  * Name: main or lvglterm_main
  *
  * Description:
- *   Start an LVGL Terminal that runs interactive commands with NSH Shell.
- *   NSH Commands are entered through an LVGL Keyboard. NSH Output is
- *   rendered in an LVGL Widget.
- *
- * Input Parameters:
- *   Standard argc and argv
- *
- * Returned Value:
- *   Zero on success; a positive, non-zero value on failure.
+ *   Start an LVGL Terminal that runs interactive commands with NSH.
+ *   NSH output is rendered in an LVGL text area; the input comes from an
+ *   on-screen keyboard (touch) or a physical keyboard, selected at build
+ *   time.
  *
  ****************************************************************************/
 
@@ -550,22 +529,11 @@ int main(int argc, FAR char *argv[])
   uv_loop_t ui_loop;
 #endif
 
-#ifdef NEED_BOARDINIT
-  /* Perform board-specific driver initialization */
-
-  boardctl(BOARDIOC_INIT, 0);
-
 #ifdef CONFIG_BOARDCTL_FINALINIT
-  /* Perform architecture-specific final-initialization (if configured) */
-
   boardctl(BOARDIOC_FINALINIT, 0);
 #endif
-#endif
-
-  /* LVGL initialization */
 
   lv_init();
-
   lv_nuttx_dsc_init(&info);
 
 #ifdef CONFIG_LV_USE_NUTTX_LCD
@@ -573,22 +541,17 @@ int main(int argc, FAR char *argv[])
 #endif
 
   lv_nuttx_init(&info, &result);
-
   if (result.disp == NULL)
     {
-      LV_LOG_ERROR("lv_demos initialization failure!");
+      LV_LOG_ERROR("lv_nuttx_init failure!");
       return 1;
     }
 
-  /* Create the LVGL Widgets */
-
-  ret = create_terminal();
+  ret = create_terminal(argc, argv);
   if (ret < 0)
     {
       return EXIT_FAILURE;
     }
-
-  /* Handle LVGL tasks */
 
 #ifdef CONFIG_LV_USE_NUTTX_LIBUV
   lv_nuttx_uv_loop(&ui_loop, &result);
@@ -597,13 +560,10 @@ int main(int argc, FAR char *argv[])
     {
       uint32_t idle;
       idle = lv_timer_handler();
-
-      /* Minimum sleep of 1ms */
-
       idle = idle ? idle : 1;
       usleep(idle * 1000);
     }
-
 #endif
+
   return EXIT_SUCCESS;
 }

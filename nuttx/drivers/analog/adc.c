@@ -35,7 +35,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
@@ -115,7 +115,7 @@ static int adc_open(FAR struct file *filep)
    * finished.
    */
 
-  ret = nxmutex_lock(&dev->ad_closelock);
+  ret = nxmutex_lock(&dev->ad_lock);
   if (ret >= 0)
     {
       /* Increment the count of references to the device.  If this is the
@@ -141,6 +141,7 @@ static int adc_open(FAR struct file *filep)
               /* Yes.. perform one time hardware initialization. */
 
               irqstate_t flags = enter_critical_section();
+
               ret = dev->ad_ops->ao_setup(dev);
               if (ret == OK)
                 {
@@ -166,7 +167,7 @@ static int adc_open(FAR struct file *filep)
           dev->ad_ocount = tmp;
         }
 
-      nxmutex_unlock(&dev->ad_closelock);
+      nxmutex_unlock(&dev->ad_lock);
     }
 
   return ret;
@@ -188,7 +189,7 @@ static int adc_close(FAR struct file *filep)
   irqstate_t            flags;
   int                   ret;
 
-  ret = nxmutex_lock(&dev->ad_closelock);
+  ret = nxmutex_lock(&dev->ad_lock);
   if (ret >= 0)
     {
       /* Decrement the references to the driver.  If the reference count will
@@ -198,7 +199,7 @@ static int adc_close(FAR struct file *filep)
       if (dev->ad_ocount > 1)
         {
           dev->ad_ocount--;
-          nxmutex_unlock(&dev->ad_closelock);
+          nxmutex_unlock(&dev->ad_lock);
         }
       else
         {
@@ -212,7 +213,7 @@ static int adc_close(FAR struct file *filep)
           dev->ad_ops->ao_shutdown(dev);       /* Disable the ADC */
           leave_critical_section(flags);
 
-          nxmutex_unlock(&dev->ad_closelock);
+          nxmutex_unlock(&dev->ad_lock);
         }
     }
 
@@ -230,7 +231,6 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer,
   FAR struct adc_dev_s  *dev   = inode->i_private;
   FAR struct adc_fifo_s *fifo  = &dev->ad_recv;
   size_t                nread;
-  irqstate_t            flags;
   int                   ret    = 0;
   int                   msglen;
 
@@ -273,7 +273,13 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer,
     {
       /* Interrupts must be disabled while accessing the fifo FIFO */
 
-      flags = enter_critical_section();
+      ret = nxmutex_lock(&dev->ad_lock);
+
+      if (ret < 0)
+        {
+          return ret;
+        }
+
       while (fifo->af_head == fifo->af_tail)
         {
           /* Check if there was an overrun, if set we need to return EIO */
@@ -373,6 +379,7 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer,
                    */
 
                   int16_t data16 = data >> 16;
+
                   memcpy(&buffer[nread], &data16, 2);
                 }
               else if (msglen == 3)
@@ -412,7 +419,7 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer,
       ret = nread;
 
 return_with_irqdisabled:
-      leave_critical_section(flags);
+      nxmutex_unlock(&dev->ad_lock);
     }
 
   ainfo("Returning: %d\n", ret);
@@ -754,7 +761,7 @@ int adc_register(FAR const char *path, FAR struct adc_dev_s *dev)
   /* Initialize semaphores & mutex */
 
   nxsem_init(&dev->ad_recv.af_sem, 0, 0);
-  nxmutex_init(&dev->ad_closelock);
+  nxmutex_init(&dev->ad_lock);
 
   /* Reset the ADC hardware */
 
@@ -798,21 +805,21 @@ int adc_register(FAR const char *path, FAR struct adc_dev_s *dev)
 
   /* Register the ADC character driver */
 
-  ret = register_driver(path, &g_adc_fops, 0444, dev);
+  ret = register_driver(path, &g_adc_fops, 0400, dev);
   if (ret < 0)
     {
       if (alloc_channel)
         {
-           kmm_free(fifo->af_channel);
+          kmm_free(fifo->af_channel);
         }
 
       if (alloc_data)
         {
-           kmm_free(fifo->af_data);
+          kmm_free(fifo->af_data);
         }
 
       nxsem_destroy(&dev->ad_recv.af_sem);
-      nxmutex_destroy(&dev->ad_closelock);
+      nxmutex_destroy(&dev->ad_lock);
       return ret;
     }
 

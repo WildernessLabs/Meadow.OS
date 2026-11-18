@@ -44,7 +44,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <poll.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <fcntl.h>
 
 #include <nuttx/kmalloc.h>
@@ -365,16 +365,16 @@ static uint8_t nrf24l01_access(FAR struct nrf24l01_dev_s *dev,
 
   switch (mode)
     {
-    case MODE_WRITE:
-      if (length > 0)
-        {
-          SPI_SNDBLOCK(dev->spi, buf, length);
-        }
-      break;
+      case MODE_WRITE:
+        if (length > 0)
+          {
+            SPI_SNDBLOCK(dev->spi, buf, length);
+          }
+        break;
 
-    case MODE_READ:
-      SPI_RECVBLOCK(dev->spi, buf, length);
-      break;
+      case MODE_READ:
+        SPI_RECVBLOCK(dev->spi, buf, length);
+        break;
     }
 
   nrf24l01_deselect(dev);
@@ -427,6 +427,7 @@ static inline uint8_t nrf24l01_readregbyte(FAR struct nrf24l01_dev_s *dev,
                                            uint8_t reg)
 {
   uint8_t val;
+
   nrf24l01_readreg(dev, reg, &val, 1);
   return val;
 }
@@ -779,25 +780,25 @@ static void nrf24l01_tostate(FAR struct nrf24l01_dev_s *dev,
 
   switch (state)
     {
-    case ST_UNKNOWN:
+      case ST_UNKNOWN:
 
-      /* Power down the module here... */
+        /* Power down the module here... */
 
-    case ST_POWER_DOWN:
-      nrf24l01_chipenable(dev, false);
-      nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PWR_UP, false);
-      break;
+      case ST_POWER_DOWN:
+        nrf24l01_chipenable(dev, false);
+        nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PWR_UP, false);
+        break;
 
-    case ST_STANDBY:
-      nrf24l01_chipenable(dev, false);
-      nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PRIM_RX, false);
-      break;
+      case ST_STANDBY:
+        nrf24l01_chipenable(dev, false);
+        nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PRIM_RX, false);
+        break;
 
 #ifdef CONFIG_WL_NRF24L01_RXSUPPORT
-    case ST_RX:
-      nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PRIM_RX, true);
-      nrf24l01_chipenable(dev, true);
-      break;
+      case ST_RX:
+        nrf24l01_setregbit(dev, NRF24L01_CONFIG, NRF24L01_PRIM_RX, true);
+        nrf24l01_chipenable(dev, true);
+        break;
 #endif
     }
 
@@ -918,6 +919,7 @@ static void binarycvt(FAR char *deststr, size_t destlen,
                       FAR const uint8_t *srcbin, size_t srclen)
 {
   int i = 0;
+
   while (i < srclen && 2 * (i + 1) < destlen)
     {
       snprintf(deststr + i * 2, destlen - i * 2, "%02x", srcbin[i]);
@@ -1116,73 +1118,143 @@ static int nrf24l01_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   switch (cmd)
     {
-      case WLIOC_SETRADIOFREQ:  /* Set radio frequency. Arg: Pointer to
-                                 * uint32_t frequency value */
+      /* --- Common Wireless IOCTLs --- */
+
+      case WLIOC_SETRADIOFREQ:
         {
           FAR uint32_t *ptr = (FAR uint32_t *)((uintptr_t)arg);
+
           DEBUGASSERT(ptr != NULL);
 
-          nrf24l01_setradiofreq(dev, *ptr);
+          /* Convert Hz from ioctl to MHz for the underlying function */
+
+          nrf24l01_setradiofreq(dev, *ptr / 1000000);
         }
         break;
 
-      case WLIOC_GETRADIOFREQ:  /* Get current radio frequency. arg: Pointer
-                                 * to uint32_t frequency value */
+      case WLIOC_GETRADIOFREQ:
         {
           FAR uint32_t *ptr = (FAR uint32_t *)((uintptr_t)arg);
+
           DEBUGASSERT(ptr != NULL);
-          *ptr = nrf24l01_getradiofreq(dev);
+
+          /* Convert MHz from the underlying function to Hz for ioctl */
+
+          *ptr = nrf24l01_getradiofreq(dev) * 1000000;
         }
         break;
 
-      case NRF24L01IOC_SETTXADDR:  /* Set current TX addr. arg: Pointer to
-                                    * uint8_t array defining the address */
+      case WLIOC_SETADDR:
         {
           FAR const uint8_t *addr = (FAR const uint8_t *)(arg);
+
           DEBUGASSERT(addr != NULL);
           nrf24l01_settxaddr(dev, addr);
         }
         break;
 
-      case NRF24L01IOC_GETTXADDR:  /* Get current TX addr. arg: Pointer to
-                                    * uint8_t array defining the address */
+      case WLIOC_GETADDR:
         {
           FAR uint8_t *addr = (FAR uint8_t *)(arg);
+
           DEBUGASSERT(addr != NULL);
           nrf24l01_gettxaddr(dev, addr);
         }
         break;
 
-      case WLIOC_SETTXPOWER:  /* Set current radio frequency. arg: Pointer
-                               * to int32_t, output power */
+      case WLIOC_SETTXPOWER:
         {
           FAR int32_t *ptr = (FAR int32_t *)(arg);
+
           DEBUGASSERT(ptr != NULL);
           nrf24l01_settxpower(dev, *ptr);
         }
         break;
 
-      case WLIOC_GETTXPOWER:  /* Get current radio frequency. arg: Pointer
-                               * to int32_t, output power */
+      case WLIOC_GETTXPOWER:
         {
           FAR int32_t *ptr = (FAR int32_t *)(arg);
+
           DEBUGASSERT(ptr != NULL);
           *ptr = nrf24l01_gettxpower(dev);
         }
         break;
 
-      case NRF24L01IOC_SETRETRCFG:  /* Set retransmit params. arg: Pointer
-                                     * to nrf24l01_retrcfg_t */
+      case WLIOC_SETFINEPOWER:
+        {
+          FAR int32_t *ptr = (FAR int32_t *)(arg);
+
+          DEBUGASSERT(ptr != NULL);
+
+          /* Convert from 0.01 dBm to standard dBm */
+
+          nrf24l01_settxpower(dev, *ptr / 100);
+        }
+        break;
+
+      case WLIOC_GETFINEPOWER:
+        {
+          FAR int32_t *ptr = (FAR int32_t *)(arg);
+
+          DEBUGASSERT(ptr != NULL);
+
+          /* Convert from standard dBm to 0.01 dBm */
+
+          *ptr = nrf24l01_gettxpower(dev) * 100;
+        }
+        break;
+
+      case WLIOC_SETMODU:
+        {
+          FAR enum wlioc_modulation_e *ptr =
+            (FAR enum wlioc_modulation_e *)(arg);
+
+          DEBUGASSERT(ptr != NULL);
+
+          /* nRF24L01 only supports GFSK modulation natively */
+
+          if (*ptr != WLIOC_GFSK)
+            {
+              ret = -EINVAL;
+            }
+        }
+        break;
+
+      case WLIOC_GETMODU:
+        {
+          FAR enum wlioc_modulation_e *ptr =
+            (FAR enum wlioc_modulation_e *)(arg);
+
+          DEBUGASSERT(ptr != NULL);
+          *ptr = WLIOC_GFSK;
+        }
+        break;
+
+      /* --- nRF24L01 Specific IOCTLs --- */
+
+      case NRF24L01IOC_SETRETRCFG:
         {
           FAR nrf24l01_retrcfg_t *ptr = (FAR nrf24l01_retrcfg_t *)(arg);
+
           DEBUGASSERT(ptr != NULL);
           nrf24l01_setretransmit(dev, ptr->delay, ptr->count);
         }
         break;
 
-      case NRF24L01IOC_GETRETRCFG:  /* Get retransmit params. arg: Pointer
-                                     * to nrf24l01_retrcfg_t */
-        ret = -ENOSYS;              /* TODO */
+      case NRF24L01IOC_GETRETRCFG:
+        {
+          FAR nrf24l01_retrcfg_t *ptr = (FAR nrf24l01_retrcfg_t *)(arg);
+          uint8_t val;
+
+          DEBUGASSERT(ptr != NULL);
+
+          nrf24l01_lock(dev->spi);
+          val = nrf24l01_readregbyte(dev, NRF24L01_SETUP_RETR);
+          nrf24l01_unlock(dev->spi);
+
+          ptr->delay = (val >> NRF24L01_ARD_SHIFT) & 0x0f;
+          ptr->count = (val >> NRF24L01_ARC_SHIFT) & 0x0f;
+        }
         break;
 
       case NRF24L01IOC_SETPIPESCFG:
@@ -1240,74 +1312,102 @@ static int nrf24l01_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case NRF24L01IOC_GETPIPESENABLED:
         {
-           FAR uint8_t *en_pipesp = (FAR uint8_t *)(arg);
+          FAR uint8_t *en_pipesp = (FAR uint8_t *)(arg);
 
-           DEBUGASSERT(en_pipesp != NULL);
-           *en_pipesp = dev->en_pipes;
-           break;
+          DEBUGASSERT(en_pipesp != NULL);
+          *en_pipesp = dev->en_pipes;
+          break;
         }
 
       case NRF24L01IOC_SETDATARATE:
         {
-           FAR nrf24l01_datarate_t *drp = (FAR nrf24l01_datarate_t *)(arg);
-           DEBUGASSERT(drp != NULL);
+          FAR nrf24l01_datarate_t *drp = (FAR nrf24l01_datarate_t *)(arg);
 
-           nrf24l01_setdatarate(dev, *drp);
-           break;
+          DEBUGASSERT(drp != NULL);
+          nrf24l01_setdatarate(dev, *drp);
+          break;
         }
 
       case NRF24L01IOC_GETDATARATE:
-        ret = -ENOSYS;  /* TODO */
-        break;
+        {
+          FAR nrf24l01_datarate_t *drp = (FAR nrf24l01_datarate_t *)(arg);
+          uint8_t val;
+
+          DEBUGASSERT(drp != NULL);
+
+          nrf24l01_lock(dev->spi);
+          val = nrf24l01_readregbyte(dev, NRF24L01_RF_SETUP);
+          nrf24l01_unlock(dev->spi);
+
+          if (val & NRF24L01_RF_DR_LOW)
+            {
+              *drp = RATE_250kbps;
+            }
+          else if (val & NRF24L01_RF_DR_HIGH)
+            {
+              *drp = RATE_2Mbps;
+            }
+          else
+            {
+              *drp = RATE_1Mbps;
+            }
+          break;
+        }
 
       case NRF24L01IOC_SETADDRWIDTH:
         {
-           FAR uint32_t *widthp = (FAR uint32_t *)(arg);
-           DEBUGASSERT(widthp != NULL);
+          FAR uint32_t *widthp = (FAR uint32_t *)(arg);
 
-           nrf24l01_setaddrwidth(dev, *widthp);
-           break;
+          DEBUGASSERT(widthp != NULL);
+
+          nrf24l01_setaddrwidth(dev, *widthp);
+          break;
         }
 
       case NRF24L01IOC_GETADDRWIDTH:
         {
-           FAR int *widthp = (FAR int *)(arg);
-           DEBUGASSERT(widthp != NULL);
+          FAR int *widthp = (FAR int *)(arg);
 
-           *widthp = (int)dev->addrlen;
-           break;
+          DEBUGASSERT(widthp != NULL);
+
+          *widthp = (int)dev->addrlen;
+          break;
         }
 
       case NRF24L01IOC_SETSTATE:
         {
-           FAR nrf24l01_state_t *statep = (FAR nrf24l01_state_t *)(arg);
-           DEBUGASSERT(statep != NULL);
+          FAR nrf24l01_state_t *statep = (FAR nrf24l01_state_t *)(arg);
 
-           nrf24l01_changestate(dev, *statep);
-           break;
+          DEBUGASSERT(statep != NULL);
+
+          nrf24l01_changestate(dev, *statep);
+          break;
         }
 
       case NRF24L01IOC_GETSTATE:
         {
-           FAR nrf24l01_state_t *statep = (FAR nrf24l01_state_t *)(arg);
-           DEBUGASSERT(statep != NULL);
+          FAR nrf24l01_state_t *statep = (FAR nrf24l01_state_t *)(arg);
 
-           *statep = dev->state;
-           break;
+          DEBUGASSERT(statep != NULL);
+
+          *statep = dev->state;
+          break;
         }
 
       case NRF24L01IOC_GETLASTXMITCOUNT:
         {
-           FAR uint32_t *xmitcntp = (FAR uint32_t *)(arg);
-           DEBUGASSERT(xmitcntp != NULL);
+          FAR uint32_t *xmitcntp = (FAR uint32_t *)(arg);
 
-           *xmitcntp = dev->lastxmitcount;
-           break;
+          DEBUGASSERT(xmitcntp != NULL);
+
+          *xmitcntp = dev->lastxmitcount;
+          break;
         }
 
       case NRF24L01IOC_GETLASTPIPENO:
         {
           FAR uint32_t *lastpipep = (FAR uint32_t *)(arg);
+
           DEBUGASSERT(lastpipep != NULL);
 
           *lastpipep = dev->last_recvpipeno;
@@ -1317,6 +1417,7 @@ static int nrf24l01_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case NRF24L01IOC_SETTXPAYLOADNOACK:
         {
           FAR uint32_t *tx_payload_noack = (FAR uint32_t *)(arg);
+
           DEBUGASSERT(tx_payload_noack != NULL);
 
           dev->tx_payload_noack = (*tx_payload_noack) > 0;
@@ -1326,6 +1427,7 @@ static int nrf24l01_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case NRF24L01IOC_GETTXPAYLOADNOACK:
         {
           FAR uint32_t *tx_payload_noack = (FAR uint32_t *)(arg);
+
           DEBUGASSERT(tx_payload_noack != NULL);
 
           *tx_payload_noack = dev->tx_payload_noack ? 1 : 0;
@@ -1504,7 +1606,7 @@ int nrf24l01_register(FAR struct spi_dev_s *spi,
 
   wlinfo("Registering " DEV_NAME "\n");
 
-  ret = register_driver(DEV_NAME, &g_nrf24l01_fops, 0666, dev);
+  ret = register_driver(DEV_NAME, &g_nrf24l01_fops, 0600, dev);
   if (ret < 0)
     {
       wlerr("ERROR: register_driver() failed: %d\n", ret);
@@ -1550,6 +1652,7 @@ int nrf24l01_init(FAR struct nrf24l01_dev_s *dev)
        */
 
       uint8_t v = 0x73;
+
       nrf24l01_access(dev, MODE_WRITE, NRF24L01_ACTIVATE, &v, 1);
 
       features = nrf24l01_readregbyte(dev, NRF24L01_FEATURE);
@@ -1815,25 +1918,25 @@ int nrf24l01_settxpower(FAR struct nrf24l01_dev_s *dev, int outpower)
 
   switch (outpower)
     {
-    case 0:
-      hwpow = 3 << NRF24L01_RF_PWR_SHIFT;
-      break;
+      case 0:
+        hwpow = 3 << NRF24L01_RF_PWR_SHIFT;
+        break;
 
-    case -6:
-      hwpow = 2 << NRF24L01_RF_PWR_SHIFT;
-      break;
+      case -6:
+        hwpow = 2 << NRF24L01_RF_PWR_SHIFT;
+        break;
 
-    case -12:
-      hwpow = 1 << NRF24L01_RF_PWR_SHIFT;
-      break;
+      case -12:
+        hwpow = 1 << NRF24L01_RF_PWR_SHIFT;
+        break;
 
-    case -18:
-      hwpow = 0;
-      break;
+      case -18:
+        hwpow = 0;
+        break;
 
-    default:
-      return -EINVAL;
-  }
+      default:
+        return -EINVAL;
+    }
 
   nrf24l01_lock(dev->spi);
 
@@ -2041,6 +2144,7 @@ ssize_t nrf24l01_recv(FAR struct nrf24l01_dev_s *dev, FAR uint8_t *buffer,
                       size_t buflen, FAR uint8_t *recvpipe)
 {
   int ret = nxsem_wait(&dev->sem_rx);
+
   if (ret < 0)
     {
       return ret;

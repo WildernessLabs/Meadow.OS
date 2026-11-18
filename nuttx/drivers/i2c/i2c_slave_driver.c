@@ -431,6 +431,7 @@ static int i2c_slave_poll(FAR struct file *filep, FAR struct pollfd *fds,
   else if (fds->priv != NULL)
     {
       FAR struct pollfd **slot = fds->priv;
+
       *slot     = NULL;
       fds->priv = NULL;
     }
@@ -567,7 +568,7 @@ int i2c_slave_register(FAR struct i2c_slave_s *dev, int bus, int addr,
     }
 
   snprintf(devname, sizeof(devname), DEVNAME_FMT, bus);
-  ret = register_driver(devname, &g_i2cslavefops, 0666, priv);
+  ret = register_driver(devname, &g_i2cslavefops, 0600, priv);
   if (ret < 0)
     {
       kmm_free(priv);

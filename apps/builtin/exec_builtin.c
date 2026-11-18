@@ -29,7 +29,7 @@
 #include <spawn.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include "builtin/builtin.h"
 
@@ -209,6 +209,11 @@ int exec_builtin(FAR const char *appname, FAR char * const *argv,
   /* Load and execute the application. */
 
   ret = posix_spawn(&pid, builtin->name, &file_actions, &attr, argv, NULL);
+  if (ret == EACCES)
+    {
+      goto errout_with_actions;
+    }
+
   if (ret != 0 && builtin->main != NULL)
 #endif
     {

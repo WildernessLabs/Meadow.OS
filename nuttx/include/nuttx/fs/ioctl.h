@@ -112,6 +112,9 @@
 #define _I2SOCBASE      (0x4400) /* I2S driver ioctl commands */
 #define _1WIREBASE      (0x4500) /* 1WIRE ioctl commands */
 #define _EEPIOCBASE     (0x4600) /* EEPROM driver ioctl commands */
+#define _PTPBASE        (0x4700) /* PTP ioctl commands */
+#define _DSHOTIOCBASE   (0x4800) /* Dshot device ioctl commands */
+#define _PULSECOUNTBASE (0x4900) /* Pulse count driver ioctl commands */
 #define _WLIOCBASE      (0x8b00) /* Wireless modules ioctl network commands */
 
 /* boardctl() commands share the same number space */
@@ -246,6 +249,37 @@
                                            */
 #define FIOGCLEX            _FIOC(0x0018) /* IN:  FAR int *
                                            * OUT: None
+                                           */
+
+/* XIPFS specific commands.  See include/nuttx/fs/xipfs.h for the argument
+ * structures.
+ */
+
+#define XIPFSIOC_DEFRAG     _FIOC(0x0019) /* IN:  FAR struct
+                                           *      xipfs_defrag_arg_s *
+                                           * OUT: Defragmentation result
+                                           */
+#define XIPFSIOC_LISTPINNED _FIOC(0x001a) /* IN:  FAR struct
+                                           *      xipfs_pinned_arg_s *
+                                           * OUT: Extents holding XIP pins
+                                           */
+#define XIPFSIOC_EXTENTINFO _FIOC(0x001b) /* IN:  FAR struct
+                                           *      xipfs_extent_info_s *
+                                           * OUT: Physical extent placement
+                                           */
+
+/* IN:  FAR struct xipfs_fault_s * (op countdown and tear mode)
+ * OUT: None
+ */
+
+#define XIPFSIOC_FAULTINJECT _FIOC(0x001c)
+
+#define XIPFSIOC_PIN        _FIOC(0x001d) /* IN:  FAR uintptr_t *
+                                           * OUT: Flash address; pins the
+                                           *      extent in place
+                                           */
+#define XIPFSIOC_UNPIN      _FIOC(0x001e) /* IN:  None
+                                           * OUT: Releases one pin
                                            */
 
 /* NuttX character driver ioctl definitions *********************************/
@@ -798,6 +832,25 @@
 
 #define _EEPIOCVALID(c)    (_IOC_TYPE(c)==_EEPIOCBASE)
 #define _EEPIOC(nr)        _IOC(_EEPIOCBASE,nr)
+
+/* PTP driver ioctl definitions *********************************************/
+
+/* see nuttx/include/ptp_clock.h */
+
+#define _PTPIOCVALID(c)       (_IOC_TYPE(c)==_PTPBASE)
+#define _PTPIOC(nr)           _IOC(_PTPBASE,nr)
+
+/* DSHOT ioctl definitions (see nuttx/timers/dshot.h) ***********************/
+
+/* see nuttx/include/timers/dshot.h */
+
+#define _DSHOTIOCVALID(c)   (_IOC_TYPE(c)==_DSHOTIOCBASE)
+#define _DSHOTIOC(nr)       _IOC(_DSHOTIOCBASE,nr)
+
+/* Pulse count driver ioctl definitions *************************************/
+
+#define _PULSECOUNTIOCVALID(c) (_IOC_TYPE(c)==_PULSECOUNTBASE)
+#define _PULSECOUNTIOC(nr)     _IOC(_PULSECOUNTBASE,nr)
 
 /****************************************************************************
  * Public Type Definitions

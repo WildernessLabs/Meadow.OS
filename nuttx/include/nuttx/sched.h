@@ -46,7 +46,6 @@
 #include <nuttx/queue.h>
 #include <nuttx/wdog.h>
 #include <nuttx/fs/fs.h>
-#include <nuttx/net/net.h>
 #include <nuttx/mm/map.h>
 #include <nuttx/tls.h>
 #include <nuttx/spinlock_type.h>
@@ -118,7 +117,10 @@
 #define GROUP_FLAG_PRIVILEGED      (1 << 1)                      /* Bit 1: Group is privileged */
 #define GROUP_FLAG_DELETED         (1 << 2)                      /* Bit 2: Group has been deleted but not yet freed */
 #define GROUP_FLAG_EXITING         (1 << 3)                      /* Bit 3: Group exit is in progress */
-                                                                 /* Bits 3-7: Available */
+#define GROUP_FLAG_FD_BACKTRACE    (1 << 4)                      /* Bit 4: Enable FD backtrace for the group */
+#define GROUP_FLAG_SECURE_EXEC     (1 << 5)                      /* Bit 5: Secure (setuid/setgid) executable */
+#define GROUP_FLAG_DUMPABLE        (1 << 6)                      /* Bit 6: Process may be traced / coredumped */
+                                                                 /* Bit 7: Available */
 
 /* Values for struct child_status_s ch_flags */
 
@@ -455,13 +457,19 @@ struct task_group_s
   pid_t tg_ppid;                    /* This is the ID of the parent thread      */
   uint8_t tg_flags;                 /* See GROUP_FLAG_* definitions             */
 
-  /* User identity **********************************************************/
+  /* User identity (POSIX real, effective, and saved-set IDs) ***************/
 
 #ifdef CONFIG_SCHED_USER_IDENTITY
-  uid_t   tg_uid;                   /* User identity                            */
-  gid_t   tg_gid;                   /* User group identity                      */
+  uid_t   tg_uid;                   /* Real user identity                       */
+  gid_t   tg_gid;                   /* Real group identity                      */
   uid_t   tg_euid;                  /* Effective user identity                  */
-  gid_t   tg_egid;                  /* Effective user group identity            */
+  gid_t   tg_egid;                  /* Effective group identity                 */
+  uid_t   tg_suid;                  /* Saved set-user identity                  */
+  gid_t   tg_sgid;                  /* Saved set-group identity                 */
+#  if CONFIG_SCHED_NGROUPS > 0
+  int     tg_ngroups;               /* Number of supplementary group IDs        */
+  gid_t   tg_groups[CONFIG_SCHED_NGROUPS];
+#  endif
 #endif
 
   /* Group membership *******************************************************/
@@ -515,8 +523,12 @@ struct task_group_s
 
   /* POSIX Signal Control Fields ********************************************/
 
+#ifdef CONFIG_ENABLE_ALL_SIGNALS
   sq_queue_t tg_sigactionq;         /* List of actions for signals              */
+#endif /* CONFIG_ENABLE_ALL_SIGNALS */
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
   sq_queue_t tg_sigpendingq;        /* List of pending signals                  */
+#endif /* !CONFIG_DISABLE_ALL_SIGNALS */
 #ifdef CONFIG_SIG_DEFAULT
   sigset_t tg_sigdefault;           /* Set of signals set to the default action */
 #endif
@@ -604,7 +616,7 @@ struct tcb_s
   start_t  start;                        /* Thread start function           */
   entry_t  entry;                        /* Entry Point into the thread     */
 
-  uint8_t  task_state;                   /* Current state of the thread     */
+  tstate_t task_state;                   /* Current state of the thread     */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
   uint8_t  boost_priority;               /* Boosted priority of the thread  */
@@ -627,6 +639,10 @@ struct tcb_s
   int32_t  timeslice;                    /* RR timeslice OR Sporadic budget */
                                          /* interval remaining              */
 #endif
+#if CONFIG_RR_INTERVAL > 0 && defined(CONFIG_SCHED_TICKLESS)
+  clock_t  rr_starttime;                 /* Time when RR task was last      */
+                                         /* accounted                       */
+#endif
 #ifdef CONFIG_SCHED_SPORADIC
   FAR struct sporadic_s *sporadic;       /* Sporadic scheduling parameters  */
 #endif
@@ -643,6 +659,14 @@ struct tcb_s
   FAR void *stack_base_ptr;              /* Adjusted initial stack pointer  */
                                          /* after the frame has been        */
                                          /* removed from the stack.         */
+
+  /* vfork() Support ********************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_VFORK
+  FAR sem_t *vfork_rel;                  /* Non-NULL in a vfork() child:    */
+                                         /* the suspended parent to release */
+                                         /* when this task is torn down.    */
+#endif
 
   /* External Module Support ************************************************/
 
@@ -661,18 +685,16 @@ struct tcb_s
 
   /* POSIX Signal Control Fields ********************************************/
 
-  sigset_t   sigprocmask;                /* Signals that are blocked        */
-  sigset_t   sigwaitmask;                /* Waiting for pending signals     */
+#ifdef CONFIG_ENABLE_ALL_SIGNALS
+  sig_deliver_t sigdeliver;
   sq_queue_t sigpendactionq;             /* List of pending signal actions  */
   sq_queue_t sigpostedq;                 /* List of posted signals          */
+#endif /* CONFIG_ENABLE_ALL_SIGNALS*/
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
+  sigset_t   sigprocmask;                /* Signals that are blocked        */
+  sigset_t   sigwaitmask;                /* Waiting for pending signals     */
   siginfo_t  *sigunbinfo;                /* Signal info when task unblocked */
-
-  /* Robust mutex support ***************************************************/
-
-#if !defined(CONFIG_DISABLE_PTHREAD) && !defined(CONFIG_PTHREAD_MUTEX_UNSAFE)
-  FAR struct pthread_mutex_s *mhead;     /* List of mutexes held by thread  */
-  spinlock_t mhead_lock;
-#endif
+#endif /* !CONFIG_DISABLE_ALL_SIGNALS */
 
   /* CPU load monitoring support ********************************************/
 
@@ -702,17 +724,20 @@ struct tcb_s
   void   *crit_max_caller;               /* Caller of max critical section  */
 #endif
 
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_BUSYWAIT >= 0
+  clock_t busywait_start;                /* Time when thread busywait       */
+  clock_t busywait_max;                  /* Max time of busywait            */
+  clock_t busywait_total;                /* Total time of busywait          */
+  void   *busywait_caller;               /* Caller of busywait              */
+  void   *busywait_max_caller;           /* Caller of max busywait          */
+#endif
+
   /* State save areas *******************************************************/
 
   /* The form and content of these fields are platform-specific.            */
 
   struct xcptcontext xcp;                /* Interrupt register save area    */
 
-  /* The following function pointer is non-zero if there are pending signals
-   * to be processed.
-   */
-
-  sig_deliver_t sigdeliver;
 #if CONFIG_TASK_NAME_SIZE > 0
   char name[CONFIG_TASK_NAME_SIZE + 1];  /* Task name (with NUL terminator) */
 #endif
@@ -729,25 +754,6 @@ struct tcb_s
 #endif
 };
 
-/* struct task_tcb_s ********************************************************/
-
-/* This is the particular form of the task control block (TCB) structure used
- * by tasks (and kernel threads).  There are two TCB forms:  one for pthreads
- * and one for tasks.
- * Both share the common TCB fields (which must appear at the top of the
- * structure) plus additional fields unique to tasks and threads.
- * Having separate structures for tasks and pthreads adds some complexity,
- * but saves memory in that it prevents pthreads from being burdened with the
- * overhead required for tasks (and vice versa).
- */
-
-struct task_tcb_s
-{
-  /* Common TCB fields ******************************************************/
-
-  struct tcb_s cmn;                      /* Common TCB fields               */
-};
-
 /* struct pthread_tcb_s *****************************************************/
 
 /* This is the particular form of the task control block (TCB) structure used
@@ -760,12 +766,8 @@ struct task_tcb_s
  */
 
 #ifndef CONFIG_DISABLE_PTHREAD
-struct pthread_tcb_s
+struct pthread_entry_s
 {
-  /* Common TCB fields ******************************************************/
-
-  struct tcb_s cmn;                      /* Common TCB fields               */
-
   /* Task Management Fields *************************************************/
 
   pthread_trampoline_t trampoline;       /* User-space startup function     */
@@ -850,6 +852,11 @@ EXTERN clock_t g_preemp_max[CONFIG_SMP_NCPUS];
 EXTERN clock_t g_crit_max[CONFIG_SMP_NCPUS];
 #endif /* CONFIG_SCHED_CRITMONITOR_MAXTIME_CSECTION >= 0 */
 
+#if CONFIG_SCHED_CRITMONITOR_MAXTIME_BUSYWAIT >= 0
+EXTERN clock_t g_busywait_max[CONFIG_SMP_NCPUS];
+EXTERN clock_t g_busywait_total[CONFIG_SMP_NCPUS];
+#endif /* CONFIG_SCHED_CRITMONITOR_MAXTIME_BUSYWAIT >= 0 */
+
 /* g_running_tasks[] holds a references to the running task for each CPU.
  * It is valid only when up_interrupt_context() returns true.
  */
@@ -861,6 +868,43 @@ EXTERN const struct tcbinfo_s g_tcbinfo;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: nxsched_has_gid
+ *
+ * Description:
+ *   Return true if the task's group matches 'gid' via the effective GID or
+ *   any supplementary group ID.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_USER_IDENTITY
+static inline_function bool nxsched_has_gid(FAR struct tcb_s *tcb,
+                                            gid_t gid)
+{
+  FAR struct task_group_s *group = tcb->group;
+#if CONFIG_SCHED_NGROUPS > 0
+  int i;
+#endif
+
+  if (group->tg_egid == gid)
+    {
+      return true;
+    }
+
+#if CONFIG_SCHED_NGROUPS > 0
+  for (i = 0; i < group->tg_ngroups; i++)
+    {
+      if (group->tg_groups[i] == gid)
+        {
+          return true;
+        }
+    }
+#endif
+
+  return false;
+}
+#endif
 
 /****************************************************************************
  * Name: nxsched_self
@@ -1009,7 +1053,7 @@ FAR struct fdlist *nxsched_get_fdlist(void);
  *
  ****************************************************************************/
 
-int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
+int nxtask_init(FAR struct tcb_s *tcb, const char *name, int priority,
                 FAR void *stack, uint32_t stack_size, main_t entry,
                 FAR char * const argv[], FAR char * const envp[],
                 FAR const posix_spawn_file_actions_t *actions);
@@ -1033,7 +1077,7 @@ int nxtask_init(FAR struct task_tcb_s *tcb, const char *name, int priority,
  *
  ****************************************************************************/
 
-void nxtask_uninit(FAR struct task_tcb_s *tcb);
+void nxtask_uninit(FAR struct tcb_s *tcb);
 
 /****************************************************************************
  * Name: nxtask_create
@@ -1145,23 +1189,35 @@ void nxtask_startup(main_t entrypt, int argc, FAR char *argv[]);
 #endif
 
 /****************************************************************************
- * Internal fork support.  The overall sequence is:
+ * Internal support for the two cloning primitives, vfork() and fork().  The
+ * sequence below is common to both, and `vfork' says which one was called:
  *
- * 1) User code calls fork().  fork() is provided in architecture-specific
- *    code.
- * 2) fork()and calls nxtask_setup_fork().
+ *   vfork()  the child shares the parent's memory and the parent is
+ *            suspended until the child _exit()s or exec()s.
+ *   fork()   the child gets its own copy of the parent's memory at the same
+ *            virtual addresses, and both run.
+ *
+ * 1) User code calls vfork() or fork().  Both are libc wrappers around
+ *    up_fork(), which is provided in architecture-specific code.
+ * 2) The architecture-specific code snapshots the caller's registers and
+ *    calls nxtask_setup_fork().
  * 3) nxtask_setup_fork() allocates and configures the child task's TCB.
  *    This consists of:
  *    - Allocation of the child task's TCB.
  *    - Initialization of file descriptors and streams
  *    - Configuration of environment variables
- *    - Allocate and initialize the stack
+ *    - Establishing the child's address environment:  joined to the parent's
+ *      for vfork(), duplicated from it for fork()
+ *    - Allocating the stack, or inheriting the parent's for fork()
  *    - Setup the input parameters for the task.
  *    - Initialization of the TCB (including call to up_initial_state())
- * 4) fork() provides any additional operating context. fork must:
+ * 4) The architecture-specific code provides any additional operating
+ *    context:
  *    - Initialize special values in any CPU registers that were not
  *      already configured by up_initial_state()
- * 5) fork() then calls nxtask_start_fork()
+ *    - Relocate the copied stack, unless the child shares the parent's
+ * 5) It then calls nxtask_start_fork(), which for vfork() additionally
+ *    suspends the caller.
  * 6) nxtask_start_fork() then executes the child thread.
  *
  * nxtask_abort_fork() may be called if an error occurs between
@@ -1169,9 +1225,9 @@ void nxtask_startup(main_t entrypt, int argc, FAR char *argv[]);
  *
  ****************************************************************************/
 
-FAR struct task_tcb_s *nxtask_setup_fork(start_t retaddr);
-pid_t nxtask_start_fork(FAR struct task_tcb_s *child);
-void nxtask_abort_fork(FAR struct task_tcb_s *child, int errcode);
+FAR struct tcb_s *nxtask_setup_fork(start_t retaddr, bool vfork);
+pid_t nxtask_start_fork(FAR struct tcb_s *child, bool vfork);
+void nxtask_abort_fork(FAR struct tcb_s *child, int errcode);
 
 /****************************************************************************
  * Name: nxtask_argvstr
@@ -1191,31 +1247,6 @@ void nxtask_abort_fork(FAR struct task_tcb_s *child, int errcode);
  ****************************************************************************/
 
 size_t nxtask_argvstr(FAR struct tcb_s *tcb, FAR char *args, size_t size);
-
-/****************************************************************************
- * Name: group_exitinfo
- *
- * Description:
- *   This function may be called to when a task is loaded into memory.  It
- *   will setup the to automatically unload the module when the task exits.
- *
- * Input Parameters:
- *   pid     - The task ID of the newly loaded task
- *   bininfo - This structure allocated with kmm_malloc().  This memory
- *             persists until the task exits and will be used unloads
- *             the module from memory.
- *
- * Returned Value:
- *   This is a NuttX internal function so it follows the convention that
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_BINFMT_LOADABLE
-struct binary_s;  /* Forward reference */
-int group_exitinfo(pid_t pid, FAR struct binary_s *bininfo);
-#endif
 
 /****************************************************************************
  * Name: nxsched_get_param
@@ -1574,14 +1605,15 @@ pid_t nxsched_getppid(void);
  * Name: nxsched_collect_deadlock
  *
  * Description:
- *   Check if there is a deadlock and get the thread pid of the deadlock.
+ *   Find mutex deadlocks and collect the IDs of participating threads.
  *
  * Input parameters:
- *   pid   - The array to store the thread pid of the deadlock.
- *   count - The size of the pid array.
+ *   pid   - The array to store deadlocked thread IDs.
+ *   count - The maximum number of thread IDs to store.
  *
  * Returned Value:
- *   The number of thread deadlocks.
+ *   The number of thread IDs stored in pid.  A return value equal to count
+ *   may indicate that the result was truncated.
  *
  ****************************************************************************/
 
@@ -1718,6 +1750,25 @@ int nxsched_smp_call_async(cpu_set_t cpuset,
 #endif
 
 /****************************************************************************
+ * Name: nxsched_abstick_sleep
+ *
+ * Description:
+ *   The nxsched_abstick_sleep() function will cause the calling thread to be
+ *   suspended from execution to the specified ticks.
+ *
+ *   It can only be resumed through scheduler operations.
+ *
+ * Input Parameters:
+ *   ticks - Absolute time in clock ticks.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void nxsched_abstick_sleep(clock_t ticks);
+
+/****************************************************************************
  * Name: nxsched_ticksleep
  *
  * Description:
@@ -1817,14 +1868,16 @@ void nxsched_sleep(unsigned int sec);
  * Name: nxsched_nanosleep
  *
  * Description:
- *   Internal nanosleep implementation used by the scheduler.  This function
+ *   Internal nanosleep implementation used by the scheduler. This function
  *   converts the requested sleep interval into system ticks, performs a
  *   tick-based blocking sleep, and optionally returns the remaining time if
  *   the sleep is interrupted by a signal.
  *
  * Input Parameters:
  *   rqtp - Requested sleep interval (may be NULL)
- *   rmtp - Remaining time returned when interrupted (optional, may be NULL)
+ *   rmtp - If the rmtp argument is non-NULL, the timespec structure
+ *          referenced by it is updated to contain the amount of time
+ *          remaining.
  *
  * Returned Value:
  *   Returns OK (0) on success.  Returns -EINVAL for an invalid timespec

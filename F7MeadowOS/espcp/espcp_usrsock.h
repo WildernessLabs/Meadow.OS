@@ -608,7 +608,7 @@ int espcp_usrsock_ioctl(struct socket *psock, int cmd, unsigned long arg);
 
 void usrsock_register_sockif(const struct sock_intf_s* sockif);
 
-ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flags);
+ssize_t espcp_usrsock_sendmsg(struct socket *psock, const struct msghdr *msg, int flags);
 int espcp_usrsock_shutdown(struct socket *psock, int how);
 ssize_t espcp_usrsock_recvmsg(struct socket *psock, struct msghdr *msg, int flags);
 void espcp_usrsock_not_implemented(const char *source);

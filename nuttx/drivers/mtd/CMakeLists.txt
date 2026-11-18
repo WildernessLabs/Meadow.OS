@@ -23,8 +23,8 @@
 if(CONFIG_MTD)
   set(SRCS ftl.c)
 
-  if(CONFIG_MTD_CONFIG_FAIL_SAFE)
-    list(APPEND SRCS mtd_config_fs.c)
+  if(CONFIG_MTD_CONFIG_NVS)
+    list(APPEND SRCS mtd_config_nvs.c)
   elseif(CONFIG_MTD_CONFIG)
     list(APPEND SRCS mtd_config.c)
   endif()
@@ -138,6 +138,10 @@ if(CONFIG_MTD)
     list(APPEND SRCS gd5f.c)
   endif()
 
+  if(CONFIG_MTD_W25N)
+    list(APPEND SRCS w25n.c)
+  endif()
+
   if(CONFIG_MTD_AT25)
     list(APPEND SRCS at25.c)
   endif()
@@ -148,6 +152,10 @@ if(CONFIG_MTD)
 
   if(CONFIG_MTD_MX25L)
     list(APPEND SRCS mx25lx.c)
+  endif()
+
+  if(CONFIG_MTD_MX25UW25645G)
+    list(APPEND SRCS mx25uw25645g.c)
   endif()
 
   if(CONFIG_MTD_MX35)
@@ -184,7 +192,7 @@ if(CONFIG_MTD)
         dhara
         URL https://github.com/dlbeer/dhara/archive/refs/heads/master.zip
             SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/dhara BINARY_DIR
-            ${CMAKE_BINARY_DIR}/drivers/mtd/dhara
+            ${NUTTX_BINARY_DIR}/drivers/mtd/dhara
         DOWNLOAD_NO_PROGRESS true)
       FetchContent_Populate(dhara)
     endif()
@@ -200,7 +208,7 @@ if(CONFIG_MTD)
         nvblk
         URL https://github.com/Laczen/nvblk/archive/refs/heads/main.zip
             SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/nvblk BINARY_DIR
-            ${CMAKE_BINARY_DIR}/drivers/mtd/nvblk
+            ${NUTTX_BINARY_DIR}/drivers/mtd/nvblk
         DOWNLOAD_NO_PROGRESS true)
       FetchContent_Populate(nvblk)
     endif()

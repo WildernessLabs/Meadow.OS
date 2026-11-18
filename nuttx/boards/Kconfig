@@ -16,7 +16,7 @@ config ARCH_BOARD_ESP32S3_MEADOW
 	depends on ARCH_CHIP_ESP32S3WROOM1N4 || ARCH_CHIP_ESP32S3CUSTOM
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
-	select ARCH_HAVE_IRQBUTTONS if ESP32S3_GPIO_IRQ
+	select ARCH_HAVE_IRQBUTTONS if ESPRESSIF_GPIO_IRQ
 	---help---
 		The ESP32-S3-Meadow is a small-sized board produced by WildernessLabs
 		featuring the ESP32-S3 CPU with 32MiB Octal SPI PSRAM and 64 MiB flash.
@@ -148,8 +148,8 @@ config ARCH_BOARD_COMMON
 		Board common logic located in each board/common folder.
 
 if ARCH_BOARD_COMMON
-if ARCH_CHIP_STM32
-source "boards/arm/stm32/common/Kconfig"
+if ARCH_CHIP_STM32F7
+source "boards/arm/common/stm32/Kconfig"
 endif
 endif
 
@@ -250,8 +250,7 @@ config BOARDCTL
 	bool "Enable boardctl() interface"
 	default n
 	---help---
-		Enables support for the boardctl() interface.  Architecture
-		specific logic must provide board_app_initialize() interface.
+		Enables support for the boardctl() interface.
 
 if BOARDCTL
 
@@ -421,12 +420,13 @@ config BOARDCTL_START_CPU
 		Architecture specific logic must provide the board_start_cpu()
 		interface.
 
-config BOARDCTL_IRQ_AFFINITY
-	bool "Set an IRQ affinity to CPUs by software"
+config BOARDCTL_MACADDR
+	bool "Get network MAC address"
 	default n
-	depends on SMP
 	---help---
-		Enables support for Set an IRQ affinity to CPUs by software.
+		Enables support for the BOARDIOC_MACADDR boardctl() command.
+		Architecture specific logic must provide the board_macaddr()
+		interface.
 
 config BOARDCTL_IOCTL
 	bool "Board-specific boardctl() commands"
@@ -458,3 +458,131 @@ config BOARD_MEMORY_RANGE
 		end: end address of memory range
 		flags: Executable 0x1, Writable 0x2, Readable 0x4
 		example:{0x1000,0x2000,0x4},{0x2000,0x3000,0x6},{0x3000,0x4000,0x7} ... {0x0,0x0,0x0}
+
+config BOARD_ETC_ROMFS_PASSWD_ENABLE
+	bool "Auto-generate /etc/passwd at build time"
+	default n
+	depends on ETC_ROMFS
+	depends on FSUTILS_PASSWD
+	depends on CRYPTO_CRYPTODEV_SOFTWARE_CRYPTO || CRYPTO_CRYPTODEV_HARDWARE
+	---help---
+		Generate /etc/passwd at build time. The password is hashed with
+		PBKDF2-HMAC-SHA256 by tools/mkpasswd; the plaintext is not stored
+		in the firmware.
+
+		Requires CONFIG_FSUTILS_PASSWD (nuttx-apps) and a cryptodev
+		backend (CONFIG_CRYPTO_CRYPTODEV_SOFTWARE_CRYPTO on sim, or
+		CONFIG_CRYPTO_CRYPTODEV_HARDWARE on targets with hardware crypto).
+
+		The password is hashed at build time by the host tool
+		tools/mkpasswd (compiled from tools/mkpasswd.c) using
+		PBKDF2-HMAC-SHA256 — the same algorithm used at runtime in
+		apps/fsutils/passwd/passwd_encrypt.c.  The plaintext password is
+		never stored in the firmware image.
+
+		The iteration count is taken from
+		CONFIG_FSUTILS_PASSWD_PBKDF2_ITERATIONS (default 10000).  Higher
+		values slow brute-force attacks but increase login latency on
+		low-MHz MCUs.
+
+		Before building, set the root password (below) or export
+		NUTTX_ROMFS_PASSWD_PASSWORD for CI and scripted builds (see
+		tools/update_romfs_password.sh).
+
+		When using CONFIG_NSH_CONSOLE_LOGIN with ETC_ROMFS, enable this
+		option so /etc/passwd is present at runtime.
+
+		Password is not saved in defconfig. Do not commit it.
+
+		See Documentation/components/tools/index.rst (mkpasswd section) for
+		details.
+
+if BOARD_ETC_ROMFS_PASSWD_ENABLE
+
+comment "--- Set the root password below ---"
+
+config BOARD_ETC_ROMFS_PASSWD_USER
+	string "Root username"
+	default "root"
+	---help---
+		The username for the auto-generated /etc/passwd entry.
+
+config BOARD_ETC_ROMFS_PASSWD_PASSWORD
+	string "Root password (required, no default)"
+	---help---
+		The plaintext password for the auto-generated /etc/passwd entry.
+		This value is hashed with PBKDF2-HMAC-SHA256 at build time; the
+		plaintext is NOT stored in the firmware image.  There is no default;
+		set CONFIG_BOARD_ETC_ROMFS_PASSWD_PASSWORD in the board defconfig,
+		via menuconfig, or enter it when prompted during an interactive
+		build.  Password must be at least 8 characters and contain:
+		uppercase letter, lowercase letter, digit, and special character.
+
+		Not saved in defconfig.  For CI or scripted builds, set the
+		environment variable NUTTX_ROMFS_PASSWD_PASSWORD instead (see
+		tools/update_romfs_password.sh).
+
+config BOARD_ETC_ROMFS_PASSWD_UID
+	int "Root user ID"
+	default 0
+
+config BOARD_ETC_ROMFS_PASSWD_GID
+	int "Root group ID"
+	default 0
+
+config BOARD_ETC_ROMFS_PASSWD_HOME
+	string "Root home directory"
+	default "/"
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_ENABLE
+	bool "Add an unprivileged user to /etc/passwd"
+	default n
+	---help---
+		Append a second passwd entry (default name ``user``, UID/GID
+		1000) so ``su user`` works on ROMFS-backed /etc/passwd.
+		Needed for a valid setuid sudo test: drop to this user, then
+		run ``sudo``.
+
+if BOARD_ETC_ROMFS_PASSWD_EXTRA_ENABLE
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_USER
+	string "Extra username"
+	default "user"
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_UID
+	int "Extra user ID"
+	default 1000
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_GID
+	int "Extra group ID"
+	default 1000
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_HOME
+	string "Extra user home directory"
+	default "/"
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_USE_ROOT_PASSWORD
+	bool "Use the root password for the extra user"
+	default y
+	---help---
+		If enabled, the extra user gets the same password as root.
+		Disable to set CONFIG_BOARD_ETC_ROMFS_PASSWD_EXTRA_PASSWORD
+		or NUTTX_ROMFS_PASSWD_EXTRA_PASSWORD separately.
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_PASSWORD
+	string "Extra user password (required if not using the root password)"
+	depends on !BOARD_ETC_ROMFS_PASSWD_EXTRA_USE_ROOT_PASSWORD
+	---help---
+		Hashed at build time; not stored in firmware and not saved in
+		defconfig.  Same complexity rules as the root password.
+
+config BOARD_ETC_ROMFS_PASSWD_EXTRA_SUDOERS
+	bool "Install /etc/sudoers allowing the extra user"
+	default y
+	---help---
+		Write /etc/sudoers with ``root`` and the extra username so
+		``CONFIG_SYSTEM_SUDO`` can authorize that account.
+
+endif # BOARD_ETC_ROMFS_PASSWD_EXTRA_ENABLE
+
+endif # BOARD_ETC_ROMFS_PASSWD_ENABLE

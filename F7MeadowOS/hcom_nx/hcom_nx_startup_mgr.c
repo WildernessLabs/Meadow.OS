@@ -356,7 +356,7 @@ int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
   syslog(LOG_MDIAG,  "Kernel startup manager 20\n"); usleep(5 * 1000);
 #endif
 
-#if defined (CONFIG_STM32F7_SDMMC2)
+#if defined (CONFIG_STM32_SDMMC2)
   if (meadow_hw_version_sdcard_supported())
   {
     hcom_nx_config_lock();

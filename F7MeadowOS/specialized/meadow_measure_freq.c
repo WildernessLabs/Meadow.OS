@@ -308,9 +308,9 @@ static uint32_t meadow_measure_freq_get_max_clock(
           const mdwFreqTimerInfo_t *mdwFreqTimerInfo)
 {
   if(mdwFreqTimerInfo->timerMaxClk)
-    return STM32_APB2_TIM1_CLKIN;
+    return STM32_TIM1_CLKIN;
   else
-    return STM32_APB1_TIM2_CLKIN;
+    return STM32_TIM2_CLKIN;
 }
 
 //=============================================================
@@ -391,7 +391,7 @@ static int meadow_measure_freq_get_current_time(uint64_t *nowNsec)
   long nsecs;
   long prevNsecs;
 
-#ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
+#ifdef CONFIG_STM32_HAVE_RTC_SUBSECONDS
   // This function reads the date, time and sub-seconds from the MCU's
   // hardware into a struct tm. However, the STM32F77X Errata warns about a
   // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar

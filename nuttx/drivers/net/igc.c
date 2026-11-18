@@ -27,7 +27,7 @@
 #include <nuttx/config.h>
 
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 
 #include <nuttx/arch.h>
@@ -151,6 +151,10 @@ struct igc_driver_s
 
   FAR uint32_t *mta;
 #endif
+
+  /* A spinlock for protecting the driving state */
+
+  spinlock_t lock;
 };
 
 /*****************************************************************************
@@ -234,6 +238,10 @@ static const struct pci_device_id_s g_igc_id_table[] =
     .driver_data = (uintptr_t)&g_igc_i225lm
   },
   {
+    PCI_DEVICE(0x8086, 0x15f3),
+    .driver_data = (uintptr_t)&g_igc_i225lm
+  },
+  {
     PCI_DEVICE(0x8086, 0x125c),
     .driver_data = (uintptr_t)&g_igc_i226v
   },
@@ -262,6 +270,12 @@ static const struct netdev_ops_s g_igc_ops =
  * Private Functions
  *****************************************************************************/
 
+/* The device requires 32-bit register accesses, but volatile does not pin
+ * the access width: GCC 16 narrows a 32-bit load feeding a single bit test
+ * into a byte load.  Launder the value through a register with an empty
+ * asm, on loads and stores both, to force the full-width access.
+ */
+
 /*****************************************************************************
  * Name: igc_getreg_mem
  *****************************************************************************/
@@ -269,8 +283,11 @@ static const struct netdev_ops_s g_igc_ops =
 static uint32_t igc_getreg_mem(FAR struct igc_driver_s *priv,
                                unsigned int offset)
 {
-  uintptr_t addr = priv->base + offset;
-  return *((FAR volatile uint32_t *)addr);
+  uintptr_t addr   = priv->base + offset;
+  uint32_t  regval = *((FAR volatile uint32_t *)addr);
+
+  __asm__ __volatile__("" : "+r"(regval));
+  return regval;
 }
 
 /*****************************************************************************
@@ -282,6 +299,8 @@ static void igc_putreg_mem(FAR struct igc_driver_s *priv,
                            uint32_t value)
 {
   uintptr_t addr = priv->base + offset;
+
+  __asm__ __volatile__("" : "+r"(value));
   *((FAR volatile uint32_t *)addr) = value;
 }
 
@@ -620,8 +639,37 @@ static FAR netpkt_t *igc_receive(FAR struct netdev_lowerhalf_s *dev)
   priv->rx_pkt[desc] = netpkt_alloc(dev, NETPKT_RX);
   if (priv->rx_pkt[desc] == NULL)
     {
-      nerr("alloc pkt_new failed\n");
-      PANIC();
+      int i;
+
+      /* No free packet (e.g. the IOBs are held by the stack): drop this
+       * frame and the other received frames in the ring and give the
+       * descriptors their packets back, so that the ring keeps receiving
+       * and the next interrupt starts a new RX poll.  Stop after one pass
+       * over the ring, so that the stack can run and free packets.
+       */
+
+      priv->rx_pkt[desc] = pkt;
+
+      for (i = 0; i < IGC_RX_DESC; i++)
+        {
+          NETDEV_RXDROPPED(&priv->dev.netdev);
+
+          rx->len    = 0;
+          rx->status = 0;
+
+          igc_putreg_mem(priv, IGC_RDT0, desc);
+
+          desc = priv->rx_now;
+          rx   = &priv->rx[desc];
+          if (!(rx->status & IGC_RDESC_STATUS_DD))
+            {
+              break;
+            }
+
+          priv->rx_now = (priv->rx_now + 1) % IGC_RX_DESC;
+        }
+
+      return NULL;
     }
 
   /* Set packet length */
@@ -644,7 +692,7 @@ static FAR netpkt_t *igc_receive(FAR struct netdev_lowerhalf_s *dev)
   if (rx->errors)
     {
       nerr("RX error reported (%"PRIu8")\n", rx->errors);
-      NETDEV_RXERRORS(&priv->dev);
+      NETDEV_RXERRORS(&priv->dev.netdev);
       netpkt_free(dev, pkt, NETPKT_RX);
       return NULL;
     }
@@ -683,7 +731,7 @@ static void igc_txdone(FAR struct netdev_lowerhalf_s *dev)
       if (!(priv->tx[priv->tx_done].status & IGC_TDESC_STATUS_DD))
         {
           nerr("tx failed: 0x%" PRIx32 "\n", priv->tx[priv->tx_done].status);
-          NETDEV_TXERRORS(priv->dev);
+          NETDEV_TXERRORS(&priv->dev.netdev);
         }
 
       /* Free net packet */
@@ -876,12 +924,12 @@ static int igc_ifup(FAR struct netdev_lowerhalf_s *dev)
         dev->netdev.d_ipv6addr[6], dev->netdev.d_ipv6addr[7]);
 #endif
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&priv->lock);
 
   /* Enable the Ethernet */
 
   igc_enable(priv);
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&priv->lock, flags);
 
   /* Update link status in case link status interrupt is missing */
 
@@ -912,7 +960,7 @@ static int igc_ifdown(FAR struct netdev_lowerhalf_s *dev)
   FAR struct igc_driver_s *priv = (FAR struct igc_driver_s *)dev;
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&priv->lock);
 
   /* Put the EMAC in its reset, non-operational state.  This should be
    * a known configuration that will guarantee the igc_ifup() always
@@ -923,7 +971,7 @@ static int igc_ifdown(FAR struct netdev_lowerhalf_s *dev)
 
   /* Mark the device "down" */
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&priv->lock, flags);
   return OK;
 }
 
@@ -1193,6 +1241,21 @@ static void igc_enable(FAR struct igc_driver_s *priv)
   regval = IGC_RX_DESC * sizeof(struct igc_rx_leg_s);
   igc_putreg_mem(priv, IGC_RDLEN0, regval);
 
+  /* Configure MSI-X.  Done on every enable, not once at probe, because
+   * igc_disable() resets the device.
+   */
+
+  igc_putreg_mem(priv, IGC_IVAR0, IGC_MSIX_IVAR0);
+  igc_putreg_mem(priv, IGC_IVARMSC, IGC_MSIX_IVARMSC);
+
+  /* Enable MSI-X Single Vector */
+
+  igc_putreg_mem(priv, IGC_GPIE, IGC_GPIE_MSIX_SINGLE);
+
+  /* Configure Interrupt Throttle */
+
+  igc_putreg_mem(priv, IGC_EITR0, (CONFIG_NET_IGC_INT_INTERVAL << 2));
+
   /* Enable interrupts */
 
   igc_putreg_mem(priv, IGC_EIMS, IGC_MSIX_EIMS);
@@ -1283,24 +1346,6 @@ static int igc_initialize(FAR struct igc_driver_s *priv)
 
   igc_putreg_mem(priv, IGC_EIMC, 0xffffffff);
   igc_putreg_mem(priv, IGC_IMC, 0xffffffff);
-
-  /* Configure MSI-X */
-
-  igc_putreg_mem(priv, IGC_IVAR0, IGC_MSIX_IVAR0);
-  igc_putreg_mem(priv, IGC_IVARMSC, IGC_MSIX_IVARMSC);
-
-  /* Enable MSI-X Single Vector */
-
-  igc_putreg_mem(priv, IGC_GPIE, IGC_GPIE_MSIX_SINGLE);
-  igc_putreg_mem(priv, IGC_EIMS, IGC_MSIX_EIMS);
-
-  /* Configure Other causes */
-
-  igc_putreg_mem(priv, IGC_IMS, IGC_MSIX_IMS);
-
-  /* Configure Interrupt Throttle */
-
-  igc_putreg_mem(priv, IGC_EITR0, (CONFIG_NET_IGC_INT_INTERVAL << 2));
 
   /* Get MAC if valid */
 
@@ -1431,6 +1476,8 @@ static int igc_probe(FAR struct pci_device_s *dev)
       nerr("igc_initialize failed %d\n", ret);
       return ret;
     }
+
+  spin_lock_init(&priv->lock);
 
   /* Register the network device */
 

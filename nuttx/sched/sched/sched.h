@@ -307,6 +307,8 @@ extern volatile spinlock_t g_cpu_tasklistlock;
  * Public Function Prototypes
  ****************************************************************************/
 
+int issetugid(void);
+
 int nxthread_create(FAR const char *name, uint8_t ttype, int priority,
                     FAR void *stack_addr, int stack_size, main_t entry,
                     FAR char * const argv[], FAR char * const envp[]);
@@ -319,6 +321,16 @@ void nxsched_remove_self(FAR struct tcb_s *rtrtcb);
 void nxsched_add_blocked(FAR struct tcb_s *btcb, tstate_t task_state);
 void nxsched_remove_blocked(FAR struct tcb_s *btcb);
 int  nxsched_set_priority(FAR struct tcb_s *tcb, int sched_priority);
+
+/* Release the vfork() parent suspended on this child, if there is one.
+ * Called from nxsched_release_tcb(), the last point in the child's life --
+ * by which time an exec()ing child has already handed its pid to the
+ * program it loaded.
+ */
+
+#ifdef CONFIG_ARCH_HAVE_VFORK
+void nxtask_resume_vfork(FAR struct tcb_s *child);
+#endif
 #ifndef CONFIG_SMP
 bool nxsched_merge_pending(void);
 bool nxsched_reprioritize_rtr(FAR struct tcb_s *tcb, int priority);
@@ -337,26 +349,35 @@ int  nxsched_reprioritize(FAR struct tcb_s *tcb, int sched_priority);
 
 #ifdef CONFIG_SCHED_TICKLESS
 void nxsched_reassess_timer(void);
+void nxsched_timer_start(clock_t now, clock_t delay);
 #else
 #  define nxsched_reassess_timer()
+#  define nxsched_timer_start(now, delay)
 #endif
 
 /* Scheduler policy support */
 
 #if CONFIG_RR_INTERVAL > 0
-uint32_t nxsched_process_roundrobin(FAR struct tcb_s *tcb, uint32_t ticks,
-                                    bool noswitches);
+clock_t nxsched_process_roundrobin(FAR struct tcb_s *tcb, clock_t ticks,
+                                   bool noswitches);
+#  ifdef CONFIG_SCHED_TICKLESS
+void nxsched_suspend_roundrobin(FAR struct tcb_s *tcb);
+void nxsched_resume_roundrobin(FAR struct tcb_s *tcb);
+#  endif
 #endif
 
 #ifdef CONFIG_SCHED_SPORADIC
+int  nxsched_validate_sporadic(FAR const struct sched_param *param,
+                                FAR clock_t *repl_ticks,
+                                FAR clock_t *budget_ticks);
 int  nxsched_initialize_sporadic(FAR struct tcb_s *tcb);
 int  nxsched_start_sporadic(FAR struct tcb_s *tcb);
 int  nxsched_stop_sporadic(FAR struct tcb_s *tcb);
 int  nxsched_reset_sporadic(FAR struct tcb_s *tcb);
 int  nxsched_resume_sporadic(FAR struct tcb_s *tcb);
 int  nxsched_suspend_sporadic(FAR struct tcb_s *tcb);
-uint32_t nxsched_process_sporadic(FAR struct tcb_s *tcb, uint32_t ticks,
-                                  bool noswitches);
+clock_t nxsched_process_sporadic(FAR struct tcb_s *tcb, clock_t ticks,
+                                 bool noswitches);
 void nxsched_sporadic_lowpriority(FAR struct tcb_s *tcb);
 #endif
 
@@ -571,7 +592,7 @@ static inline_function int nxsched_select_cpu(cpu_set_t affinity)
   int i;
 
   minprio = SCHED_PRIORITY_MAX;
-  cpu     = CONFIG_SMP_NCPUS;
+  cpu     = 0xff;
 
   for (i = 0; i < CONFIG_SMP_NCPUS; i++)
     {
@@ -594,8 +615,7 @@ static inline_function int nxsched_select_cpu(cpu_set_t affinity)
               DEBUGASSERT(rtcb->sched_priority == 0);
               return i;
             }
-          else if (rtcb->sched_priority <= minprio &&
-                   !nxsched_islocked_tcb(rtcb))
+          else if (rtcb->sched_priority <= minprio)
             {
               DEBUGASSERT(rtcb->sched_priority > 0);
               minprio = rtcb->sched_priority;
@@ -604,6 +624,7 @@ static inline_function int nxsched_select_cpu(cpu_set_t affinity)
         }
     }
 
+  DEBUGASSERT(cpu != 0xff);
   return cpu;
 }
 #  endif

@@ -60,7 +60,7 @@ The steps, in order:
 | 4 | MPU: user access to the GPIO registers | `mpu_user_peripheral()` over the GPIO port range |
 | 5 | MPU: Mono Runtime area in SDRAM | `mpu_configure_region()` at `HCOM_NX_MONO_RUNTIME_SDRAM_ADDR`, cacheable, user read/write |
 | 6 | `/dev/upd` | `meadow_upd_initialize()`; failure is logged as critical and the function **returns**, so nothing after this runs ([UpdInterface.md](UpdInterface.md)) |
-| 7 | QSPI controller | `stm32f7_qspi_initialize(0)`; no controller returns |
+| 7 | QSPI controller | `stm32_qspi_initialize(0)`; no controller returns |
 | 8 | Hardware version | `meadow_hw_version_find_device_ver()` reads the flash chip's identity; unknown or error returns ([PlatformState.md](PlatformState.md)) |
 | 9 | Unsupported board check | The original F7 Feather V1 (a different flash chip) lights the red LED and returns (Issue #453) |
 | 10 | MPU: QSPI flash region | `mpu_configure_region()` at `STM32_FMC_BANK4`, strongly ordered, user read/write |
@@ -106,7 +106,7 @@ which shows how far a failing start got. The steps, in the order the code runs:
 | 17, 18 | Prepare QSPI flash tests, SD card tests | test builds only | returns |
 | 19 | `meadow_interrupt_setup()` ([GpioInterrupts.md](GpioInterrupts.md)) | always | returns |
 | 20 | `meadow_power_mgmt_initialize()` | `CONFIG_MEADOW_PWR_MGMT_SUPPORT` | logged only |
-| 21 | SD card driver | `CONFIG_STM32F7_SDMMC2`, hardware has an SD socket, and the configuration enables it | logged; SD marked unsupported |
+| 21 | SD card driver | `CONFIG_STM32_SDMMC2`, hardware has an SD socket, and the configuration enables it | logged; SD marked unsupported |
 | 22 | Ethernet driver | Ethernet build, hardware supports it, and the default interface is Ethernet | `-ENODEV` is logged and written to `meadow.log`; other errors return |
 | 23 | Cell module: read `cell.config.yaml` and power the modem on ([Cell.md](../Cell.md)) | `CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD` and the default interface is Cell | none |
 | 24 | Idle monitor | `CONFIG_ARCH_IDLE_CUSTOM` | returns |

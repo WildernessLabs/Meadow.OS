@@ -27,7 +27,7 @@
 #include <nuttx/config.h>
 
 #include <sched.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/sched_note.h>
 
@@ -108,16 +108,6 @@ int nxtask_exit(void)
   rtcb = this_task();
 #endif
 
-  /* Update scheduler parameters.
-   *
-   * When the thread exits, SYS_restore_context is called to
-   * restore the context, which does not update the scheduling
-   * information.
-   * We need to update the scheduling information before tcb is released.
-   */
-
-  nxsched_switch_context(dtcb, rtcb);
-
   /* We are now in a bad state -- the head of the ready to run task list
    * does not correspond to the thread that is running.  Disabling pre-
    * emption on this TCB and marking the new ready-to-run task as not
@@ -143,6 +133,17 @@ int nxtask_exit(void)
 #endif
 
   dtcb->task_state = TSTATE_TASK_INACTIVE;
+
+  /* Update scheduler parameters.
+   *
+   * When the thread exits, SYS_restore_context is called to
+   * restore the context, which does not update the scheduling
+   * information.
+   * We need to update the scheduling information before tcb is released.
+   */
+
+  nxsched_switch_context(dtcb, rtcb);
+
   sched_note_stop(dtcb);
   ret = nxsched_release_tcb(dtcb, dtcb->flags & TCB_FLAG_TTYPE_MASK);
 
@@ -155,6 +156,20 @@ int nxtask_exit(void)
   /* Decrement the lockcount on rctb. */
 
   rtcb->lockcount--;
+
+  /* Publish anything woken while the TCB was being released.  lockcount was
+   * raised directly rather than through sched_lock(), so the matching
+   * decrement above does not publish the way sched_unlock() would, and a
+   * vfork() parent released by nxsched_release_tcb() would be stranded --
+   * in g_pendingtasks, or in g_readytorun on SMP.  This mirrors what
+   * sched_unlock() does for each case.
+   */
+
+#ifdef CONFIG_SMP
+  nxsched_deliver_task(this_cpu(), rtcb->cpu, SWITCH_HIGHER);
+#else
+  nxsched_merge_pending();
+#endif
 
   return ret;
 }

@@ -43,7 +43,7 @@
 #include <poll.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/signal.h>
@@ -84,9 +84,11 @@ struct djoy_open_s
 
   /* Joystick event notification information */
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
   pid_t do_pid;
   struct djoy_notify_s do_notify;
   struct sigwork_s do_work;
+#endif
 
   /* Poll event information */
 
@@ -172,9 +174,10 @@ static void djoy_enable(FAR struct djoy_upperhalf_s *priv)
       release |= opriv->do_pollevents.dp_release;
 
       /* OR in the signal events */
-
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
       press   |= opriv->do_notify.dn_press;
       release |= opriv->do_notify.dn_release;
+#endif
     }
 
   /* Enable/disable button interrupts */
@@ -271,6 +274,7 @@ static void djoy_sample(FAR struct djoy_upperhalf_s *priv)
 
       /* Have any signal events occurred? */
 
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
       if ((press & opriv->do_notify.dn_press)     != 0 ||
           (release & opriv->do_notify.dn_release) != 0)
         {
@@ -280,6 +284,7 @@ static void djoy_sample(FAR struct djoy_upperhalf_s *priv)
           nxsig_notification(opriv->do_pid, &opriv->do_notify.dn_event,
                              SI_QUEUE, &opriv->do_work);
         }
+#endif
     }
 
   priv->du_sample = sample;
@@ -476,97 +481,100 @@ static int djoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = -EINVAL;
   switch (cmd)
     {
-    /* Command:     DJOYIOC_SUPPORTED
-     * Description: Report the set of button events supported by the
-     *              hardware;
-     * Argument:    A pointer to writeable integer value in which to return
-     *              the set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on
-     *              failure with the errno value set appropriately.
-     */
+      /* Command:     DJOYIOC_SUPPORTED
+       * Description: Report the set of button events supported by the
+       *              hardware;
+       * Argument:    A pointer to writeable integer value in which to return
+       *              the set of supported buttons.
+       * Return:      Zero (OK) on success.  Minus one will be returned on
+       *              failure with the errno value set appropriately.
+       */
 
-    case DJOYIOC_SUPPORTED:
-      {
-        FAR int *supported = (FAR int *)((uintptr_t)arg);
+      case DJOYIOC_SUPPORTED:
+        {
+          FAR int *supported = (FAR int *)((uintptr_t)arg);
 
-        if (supported)
-          {
-            lower = priv->du_lower;
-            DEBUGASSERT(lower && lower->dl_supported);
+          if (supported)
+            {
+              lower = priv->du_lower;
+              DEBUGASSERT(lower && lower->dl_supported);
 
-            *supported = (int)lower->dl_supported(lower);
-            ret = OK;
-          }
-      }
-      break;
+              *supported = (int)lower->dl_supported(lower);
+              ret = OK;
+            }
+        }
+        break;
 
-    /* Command:     DJOYIOC_POLLEVENTS
-     * Description: Specify the set of button events that can cause a poll()
-     *              to awaken.  The default is all button depressions and
-     *              all button releases (all supported buttons);
-     * Argument:    A read-only pointer to an instance of struct
-     *              djoy_pollevents_s
-     * Return:      Zero (OK) on success.  Minus one will be returned on
-     *              failure with the errno value set appropriately.
-     */
+      /* Command:     DJOYIOC_POLLEVENTS
+       * Description: Specify the set of button events that can cause a
+       *              poll() to awaken.  The default is all button
+       *              depressions and all button releases (all supported
+       *              buttons);
+       * Argument:    A read-only pointer to an instance of struct
+       *              djoy_pollevents_s
+       * Return:      Zero (OK) on success.  Minus one will be returned on
+       *              failure with the errno value set appropriately.
+       */
 
-    case DJOYIOC_POLLEVENTS:
-      {
-        FAR struct djoy_pollevents_s *pollevents =
-          (FAR struct djoy_pollevents_s *)((uintptr_t)arg);
+      case DJOYIOC_POLLEVENTS:
+        {
+          FAR struct djoy_pollevents_s *pollevents =
+            (FAR struct djoy_pollevents_s *)((uintptr_t)arg);
 
-        if (pollevents)
-          {
-            /* Save the poll events */
+          if (pollevents)
+            {
+              /* Save the poll events */
 
-            opriv->do_pollevents.dp_press   = pollevents->dp_press;
-            opriv->do_pollevents.dp_release = pollevents->dp_release;
+              opriv->do_pollevents.dp_press   = pollevents->dp_press;
+              opriv->do_pollevents.dp_release = pollevents->dp_release;
 
-            /* Enable/disable interrupt handling */
+              /* Enable/disable interrupt handling */
 
-            djoy_enable(priv);
-            ret = OK;
-          }
-      }
-      break;
+              djoy_enable(priv);
+              ret = OK;
+            }
+        }
+        break;
 
-    /* Command:     DJOYIOC_REGISTER
-     * Description: Register to receive a signal whenever there is a change
-     *              in any of the joystick discrete inputs.  This feature,
-     *              of course, depends upon interrupt GPIO support from the
-     *              platform.
-     * Argument:    A read-only pointer to an instance of struct
-     *              djoy_notify_s
-     * Return:      Zero (OK) on success.  Minus one will be returned on
-     *              failure with the errno value set appropriately.
-     */
+      /* Command:     DJOYIOC_REGISTER
+       * Description: Register to receive a signal whenever there is a change
+       *              in any of the joystick discrete inputs.  This feature,
+       *              of course, depends upon interrupt GPIO support from the
+       *              platform.
+       * Argument:    A read-only pointer to an instance of struct
+       *              djoy_notify_s
+       * Return:      Zero (OK) on success.  Minus one will be returned on
+       *              failure with the errno value set appropriately.
+       */
 
-    case DJOYIOC_REGISTER:
-      {
-        FAR struct djoy_notify_s *notify =
-          (FAR struct djoy_notify_s *)((uintptr_t)arg);
+#ifndef CONFIG_DISABLE_ALL_SIGNALS
+      case DJOYIOC_REGISTER:
+        {
+          FAR struct djoy_notify_s *notify =
+            (FAR struct djoy_notify_s *)((uintptr_t)arg);
 
-        if (notify)
-          {
-            /* Save the notification events */
+          if (notify)
+            {
+              /* Save the notification events */
 
-            opriv->do_notify.dn_press   = notify->dn_press;
-            opriv->do_notify.dn_release = notify->dn_release;
-            opriv->do_notify.dn_event   = notify->dn_event;
-            opriv->do_pid               = nxsched_getpid();
+              opriv->do_notify.dn_press   = notify->dn_press;
+              opriv->do_notify.dn_release = notify->dn_release;
+              opriv->do_notify.dn_event   = notify->dn_event;
+              opriv->do_pid               = nxsched_getpid();
 
-            /* Enable/disable interrupt handling */
+              /* Enable/disable interrupt handling */
 
-            djoy_enable(priv);
-            ret = OK;
-          }
-      }
-      break;
+              djoy_enable(priv);
+              ret = OK;
+            }
+        }
+        break;
+#endif
 
-    default:
-      ierr("ERROR: Unrecognized command: %d\n", cmd);
-      ret = -ENOTTY;
-      break;
+      default:
+        ierr("ERROR: Unrecognized command: %d\n", cmd);
+        ret = -ENOTTY;
+        break;
     }
 
   leave_critical_section(flags);
@@ -714,7 +722,7 @@ int djoy_register(FAR const char *devname,
 
   /* And register the djoystick driver */
 
-  ret = register_driver(devname, &g_djoy_fops, 0666, priv);
+  ret = register_driver(devname, &g_djoy_fops, 0600, priv);
   if (ret < 0)
     {
       ierr("ERROR: register_driver failed: %d\n", ret);

@@ -118,7 +118,7 @@ int pwrmgmt_config_rtc_alarm_wakeup_seconds(time_t secondsTillAlarm)
   // possible problem in ES0334-Rev 9 2.12.1 related to the RTC calendar
   // register not locked properly. Therefore, we'll read nsec twice and
   // compare, the suggested workaround.
-#ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
+#ifdef CONFIG_STM32_HAVE_RTC_SUBSECONDS
   long nsec;
   long prevNsec;
 do

@@ -100,7 +100,7 @@
 
 // The timer 5, channel 4 input is the only input that can be connected to LSI
 // clock.
-#define PWRMGMT_CLK_TIMER_5_BASE_CLOCK_FREQ (STM32_APB1_TIM5_CLKIN)
+#define PWRMGMT_CLK_TIMER_5_BASE_CLOCK_FREQ (STM32_TIM5_CLKIN)
 #define PWRMGMT_CLK_CAL_TARGET_FREQUENCY (32768.00)     // Ideal clock source freq
 #define PWRMGMT_CLK_CAL_MEASURE_CLK_COUNT (100)         // Test LSI freq x times
 #define PWRMGMT_CLK_CAL_MEASURE_CLK_DELAY (5000)        // Wait x usec between tests
@@ -503,7 +503,7 @@ static int pwrmgmt_lsi_init_timer_5_for_measuring(void)
 
   // Must be between 0 and 0xffff. Set the prescaler value of 0 to allow
   // highest speed. A prescaler value of 1 will divide the clock by 2.
-  // Timer 5 (STM32_APB1_TIM5_CLKIN).
+  // Timer 5 (STM32_TIM5_CLKIN).
   uint16_t prescaler = 0;
   putreg16(prescaler, STM32_TIM5_PSC);
 

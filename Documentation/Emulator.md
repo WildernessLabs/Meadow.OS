@@ -16,7 +16,7 @@ run scripts are documented in the emulator repository's README.
 
 | Change | Why |
 |--------|-----|
-| USB device off (`CDCACM`, `USBDEV`, `STM32F7_OTGFS`, `BOARDCTL_USBDEVCTRL`) | Renode does not model the USB OTG peripheral |
+| USB device off (`CDCACM`, `USBDEV`, `STM32_OTGFS`, `BOARDCTL_USBDEVCTRL`) | Renode does not model the USB OTG peripheral |
 | HCOM on UART4, `/dev/ttyS1`, 115200 8N1 | The emulator exposes UART4 to Meadow.CLI as `socket://localhost:4242` |
 | Receive flow control on UART4 (`SERIAL_IFLOWCONTROL`, `UART4_IFLOWCONTROL`) | Renode delivers a file download as bursts of tens of KB; without it the serial driver drops everything past its 512 byte buffer. There is no RTS pin: `board.h` defines `GPIO_UART4_RTS` as 0, and the driver holds the RX interrupt off while the buffer is full |
 | Syslog on the serial console, USART1 (`SYSLOG_CONSOLE`, `SYSLOG_REGISTER`, `RAMLOG_SYSLOG` off) | The emulator writes USART1 to its console log. In NuttX 12, `SYSLOG_CONSOLE` is what routes the syslog to the console; `SYSLOG_SERIAL_CONSOLE` alone does not |

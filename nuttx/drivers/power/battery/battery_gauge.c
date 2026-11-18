@@ -31,11 +31,12 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <poll.h>
 #include <fcntl.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/wqueue.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/power/battery_gauge.h>
 #include <nuttx/power/battery_ioctl.h>
@@ -61,7 +62,9 @@ struct battery_gauge_priv_s
   mutex_t           lock;
   sem_t             wait;
   uint32_t          mask;
+  clock_t           interval; /* tick unit */
   FAR struct pollfd *fds;
+  struct work_s     work;
 };
 
 /****************************************************************************
@@ -104,11 +107,28 @@ static const struct file_operations g_batteryops =
  * Private Functions
  ****************************************************************************/
 
+static void battery_gauge_work(FAR void *arg)
+{
+  FAR struct battery_gauge_priv_s *priv =
+    (FAR struct battery_gauge_priv_s *)arg;
+  FAR struct pollfd *fds = priv->fds;
+  int semcnt;
+
+  if (priv->mask != 0)
+    {
+      poll_notify(&fds, 1, POLLIN);
+
+      nxsem_get_value(&priv->wait, &semcnt);
+      if (semcnt < 1)
+        {
+          nxsem_post(&priv->wait);
+        }
+    }
+}
+
 static int battery_gauge_notify(FAR struct battery_gauge_priv_s *priv,
                                 uint32_t mask)
 {
-  FAR struct pollfd *fds = priv->fds;
-  int semcnt;
   int ret;
 
   ret = nxmutex_lock(&priv->lock);
@@ -118,14 +138,16 @@ static int battery_gauge_notify(FAR struct battery_gauge_priv_s *priv,
     }
 
   priv->mask |= mask;
-  if (priv->mask)
+  if (priv->mask != 0)
     {
-      poll_notify(&fds, 1, POLLIN);
-
-      nxsem_get_value(&priv->wait, &semcnt);
-      if (semcnt < 1)
+      if (priv->interval > 0)
         {
-          nxsem_post(&priv->wait);
+          work_queue(LPWORK, &priv->work, battery_gauge_work, priv,
+                     priv->interval);
+        }
+      else
+        {
+          battery_gauge_work(priv);
         }
     }
 
@@ -271,6 +293,7 @@ static int bat_gauge_ioctl(FAR struct file *filep,
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct battery_gauge_dev_s *dev  = inode->i_private;
+  FAR struct battery_gauge_priv_s *priv = filep->f_priv;
   int ret;
 
   /* Enforce mutually exclusive access to the battery driver */
@@ -289,80 +312,159 @@ static int bat_gauge_ioctl(FAR struct file *filep,
       case BATIOC_STATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
-          if (ptr)
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->state(dev, ptr);
+              break;
             }
+
+          if (dev->ops->state == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->state(dev, ptr);
         }
         break;
 
       case BATIOC_ONLINE:
         {
           FAR bool *ptr = (FAR bool *)((uintptr_t)arg);
-          if (ptr)
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->online(dev, ptr);
+              break;
             }
+
+          if (dev->ops->online == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->online(dev, ptr);
         }
         break;
 
       case BATIOC_VOLTAGE:
         {
-          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg);
-          if (ptr)
+          FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->voltage(dev, ptr);
+              break;
             }
+
+          if (dev->ops->voltage == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->voltage(dev, ptr);
         }
         break;
 
       case BATIOC_CAPACITY:
         {
-          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg);
-          if (ptr)
+          FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->capacity(dev, ptr);
+              break;
             }
+
+          if (dev->ops->capacity == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->capacity(dev, ptr);
         }
         break;
 
-        case BATIOC_CURRENT:
+      case BATIOC_CURRENT:
         {
-          FAR b16_t *ptr = (FAR b16_t *)((uintptr_t)arg);
-          if (ptr)
+          FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->current(dev, ptr);
+              break;
             }
+
+          if (dev->ops->current == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->current(dev, ptr);
         }
         break;
 
-        case BATIOC_TEMPERATURE:
+      case BATIOC_TEMPERATURE:
         {
-          FAR b8_t *ptr = (FAR b8_t *)((uintptr_t)arg);
-          if (ptr)
+          FAR int *ptr = (FAR int *)((uintptr_t)arg);
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->temp(dev, ptr);
+              break;
             }
+
+          if (dev->ops->temp == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->temp(dev, ptr);
         }
         break;
 
       case BATIOC_CHIPID:
         {
           FAR unsigned int *ptr = (FAR unsigned int *)((uintptr_t)arg);
-          if (ptr)
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->chipid(dev, ptr);
+              break;
             }
+
+          if (dev->ops->chipid == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->chipid(dev, ptr);
         }
         break;
 
       case BATIOC_OPERATE:
         {
           FAR int *ptr = (FAR int *)((uintptr_t)arg);
-          if (ptr)
+
+          if (ptr == NULL)
             {
-              ret = dev->ops->operate(dev, ptr);
+              break;
             }
+
+          if (dev->ops->operate == NULL)
+            {
+              ret = -ENOTTY;
+              break;
+            }
+
+          ret = dev->ops->operate(dev, ptr);
+        }
+        break;
+
+      case BATIOC_SET_DEBOUNCE:
+        {
+          priv->interval = arg;
+          ret = OK;
         }
         break;
 
@@ -398,7 +500,7 @@ static int bat_gauge_poll(FAR struct file *filep,
         {
           priv->fds = fds;
           fds->priv = &priv->fds;
-          if (priv->mask)
+          if (priv->mask != 0)
             {
               poll_notify(&fds, 1, POLLIN);
             }
@@ -489,7 +591,7 @@ int battery_gauge_register(FAR const char *devpath,
 
   /* Register the character driver */
 
-  ret = register_driver(devpath, &g_batteryops, 0666, dev);
+  ret = register_driver(devpath, &g_batteryops, 0600, dev);
   if (ret < 0)
     {
       baterr("ERROR: Failed to register driver: %d\n", ret);

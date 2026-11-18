@@ -96,7 +96,7 @@
  *   power clocking modes!
  ****************************************************************************/
 
-#ifndef CONFIG_STM32F7_CUSTOM_CLOCKCONFIG
+#ifndef CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG
 static void meadow_stdclockconfig(void)
 {
   uint32_t regval;
@@ -191,7 +191,7 @@ static void meadow_stdclockconfig(void)
       regval |= STM32_RCC_CFGR_PPRE1;
       putreg32(regval, STM32_RCC_CFGR);
 
-#ifdef CONFIG_STM32F7_RTC_HSECLOCK
+#ifdef CONFIG_STM32_RTC_HSECLOCK
       /* Set the RTC clock divisor */
 
       regval = getreg32(STM32_RCC_CFGR);
@@ -258,7 +258,7 @@ static void meadow_stdclockconfig(void)
 
       regval = FLASH_ACR_LATENCY(BOARD_FLASH_WAITSTATES);
 
-#ifdef CONFIG_STM32F7_FLASH_ART_ACCELERATOR
+#ifdef CONFIG_STM32_FLASH_ART_ACCELERATOR
       /* The Flash memory interface accelerates code execution with a system
        * of instruction prefetch and cache lines on ITCM interface (ART
        * Accelerator™).
@@ -284,7 +284,7 @@ static void meadow_stdclockconfig(void)
         {
         }
 
-#if defined(CONFIG_STM32F7_LTDC) || defined(CONFIG_STM32F7_PLLSAI)
+#if defined(CONFIG_STM32_LTDC) || defined(CONFIG_STM32_PLLSAI)
 
       /* Configure PLLSAI */
 
@@ -332,7 +332,7 @@ static void meadow_stdclockconfig(void)
         {
         }
 #endif
-#if defined(CONFIG_STM32F7_PLLI2S) || (STM32_RCC_DCKCFGR1_SAI1SRC == RCC_DCKCFGR1_SAI1SEL(1)) || (STM32_RCC_DCKCFGR1_SAI2SRC == RCC_DCKCFGR1_SAI2SEL(1))
+#if defined(CONFIG_STM32_PLLI2S) || (STM32_RCC_DCKCFGR1_SAI1SRC == RCC_DCKCFGR1_SAI1SEL(1)) || (STM32_RCC_DCKCFGR1_SAI2SRC == RCC_DCKCFGR1_SAI2SEL(1))
 
       /* Configure PLLI2S */
 
@@ -399,13 +399,13 @@ static void meadow_stdclockconfig(void)
 
       putreg32(regval, STM32_RCC_DCKCFGR2);
 
-#if defined(CONFIG_STM32F7_IWDG) || defined(CONFIG_STM32F7_RTC_LSICLOCK)
+#if defined(CONFIG_STM32_IWDG) || defined(CONFIG_STM32_RTC_LSICLOCK)
       /* Low speed internal clock source LSI */
 
       stm32_rcc_enablelsi();
 #endif
 
-#if defined(CONFIG_STM32F7_RTC_LSECLOCK)
+#if defined(CONFIG_STM32_RTC_LSECLOCK)
       /* Low speed external clock source LSE
        *
        * TODO: There is another case where the LSE needs to
@@ -448,7 +448,7 @@ static inline void rcc_itm_syslog(void)
  *   stm32_clockconfig():  It does not reset any devices, and it does not
  *   reset the currently enabled peripheral clocks.
  *
- *   If CONFIG_STM32F7_CUSTOM_CLOCKCONFIG is defined, then clocking
+ *   If CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is defined, then clocking
  *   will be enabled by an externally provided, board-specific function
  *   called stm32_board_clockconfig().
  *
@@ -463,7 +463,7 @@ static inline void rcc_itm_syslog(void)
 #ifndef CONFIG_PM
 void meadow_clockenable(void)
 {
-#if defined(CONFIG_STM32F7_CUSTOM_CLOCKCONFIG)
+#if defined(CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG)
 
   /* Invoke Board Custom Clock Configuration */
 

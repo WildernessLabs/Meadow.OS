@@ -107,7 +107,7 @@ it. That leads to these rules for the DAC:
 
 ## Why Not the NuttX DAC Driver
 
-NuttX has Kconfig options for the F7 DAC (`CONFIG_STM32F7_DAC1`, `CONFIG_STM32F7_DAC2`)
+NuttX has Kconfig options for the F7 DAC (`CONFIG_STM32_DAC1`, `CONFIG_STM32_DAC2`)
 but no F7 driver behind them: there is no `stm32_dac.c` in `arch/arm/src/stm32f7/`, so
 turning them on builds nothing. The only candidate to port is the F4 driver,
 `arch/arm/src/stm32/stm32_dac.c`, used with the generic upper half

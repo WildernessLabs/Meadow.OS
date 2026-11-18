@@ -20,6 +20,19 @@
  *
  ****************************************************************************/
 
+/* WARNING for developers:
+ *
+ * This driver uses the legacy style of writing sensor drivers for NuttX. The
+ * project has since decided to adopt a new sensor framework in order to
+ * have a consistent API and feature-set.
+ *
+ * Sensors which use the uORB framework are typically suffixed "_uorb". You
+ * can also visit the documentation about the new sensor framework to learn
+ * more.
+ */
+
+#warning "This is a deprecated legacy sensor driver."
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -283,7 +296,7 @@ int bmi160_register(FAR const char *devpath, FAR struct spi_dev_s *dev)
 
   bmi160_putreg8(priv, BMI160_PMU_TRIGGER, 0);
 
-  ret = register_driver(devpath, &g_bmi160fops, 0666, priv);
+  ret = register_driver(devpath, &g_bmi160fops, 0600, priv);
   if (ret < 0)
     {
       snerr("Failed to register driver: %d\n", ret);

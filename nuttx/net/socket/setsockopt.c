@@ -31,7 +31,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <assert.h>
 #include <arch/irq.h>
 
@@ -130,15 +130,17 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
           return OK;
         }
 
-      case SO_BROADCAST:  /* Permits sending of broadcast messages */
-      case SO_DEBUG:      /* Enables recording of debugging information */
-      case SO_DONTROUTE:  /* Requests outgoing messages bypass standard routing */
-      case SO_KEEPALIVE:  /* Verifies TCP connections active by enabling the
-                           * periodic transmission of probes */
-      case SO_OOBINLINE:  /* Leaves received out-of-band data inline */
-      case SO_REUSEADDR:  /* Allow reuse of local addresses */
+      case SO_BROADCAST:   /* Permits sending of broadcast messages */
+      case SO_DEBUG:       /* Enables recording of debugging information */
+      case SO_DONTROUTE:   /* Requests outgoing messages bypass standard routing */
+      case SO_KEEPALIVE:   /* Verifies TCP connections active by enabling the
+                            * periodic transmission of probes */
+      case SO_OOBINLINE:   /* Leaves received out-of-band data inline */
+      case SO_REUSEADDR:   /* Allow reuse of local addresses */
 #ifdef CONFIG_NET_TIMESTAMP
-      case SO_TIMESTAMP:  /* Generates a timestamp for each incoming packet */
+      case SO_TIMESTAMP:   /* Generates a timestamp in us for each incoming packet */
+      case SO_TIMESTAMPNS: /* Generates a timestamp in ns for each incoming packet */
+      case SO_TIMESTAMPING:/*  Timestamp all packets */
 #endif
         {
           int setting;
@@ -160,7 +162,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
            * options.
            */
 
-           net_lock();
+          conn_lock(conn);
 
           /* Set or clear the option bit */
 
@@ -173,7 +175,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
               _SO_CLROPT(conn->s_options, option);
             }
 
-          net_unlock();
+          conn_unlock(conn);
         }
         break;
 

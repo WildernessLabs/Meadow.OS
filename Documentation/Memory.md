@@ -54,7 +54,7 @@ Tightly coupled to the Cortex-M7 core: zero wait states and not cached.
 dtcm (rwx) : ORIGIN = 0x20000000, LENGTH = 128K
 ```
 
-**Currently unused.** The linker places nothing in DTCM and `CONFIG_STM32F7_DTCMEXCLUDE=y` keeps
+**Currently unused.** The linker places nothing in DTCM and `CONFIG_STM32_DTCMEXCLUDE=y` keeps
 it out of every heap. NuttX excludes it by default when ELF loading is enabled
 (`default LIBC_ARCH_ELF`), because ELF modules cannot execute from DTCM.
 
@@ -136,7 +136,7 @@ The `MM_REGIONS=3` setting accounts for: ksram heap, usram heap, and SDRAM heap2
 
 ## External QSPI Flash -- 64 MB
 
-A 64 MB Winbond W25Q512 on the F7FeatherV2 and CCMv2 (`CONFIG_STM32F7_QSPI_FLASH_SIZE`). The F7FeatherV1 and its 32 MB Spansion S25FL are not supported: `board_late_initialize()` detects the V1 from the flash chip's ID, lights the red LED and sets up nothing more; hcom starts only host comms and answers every CLI request with a "not supported" error (Issue #453).
+A 64 MB Winbond W25Q512 on the F7FeatherV2 and CCMv2 (`CONFIG_STM32_QSPI_FLASH_SIZE`). The F7FeatherV1 and its 32 MB Spansion S25FL are not supported: `board_late_initialize()` detects the V1 from the flash chip's ID, lights the red LED and sets up nothing more; hcom starts only host comms and answers every CLI request with a "not supported" error (Issue #453).
 
 Not directly memory-mapped by NuttX at runtime but accessed through the QSPI driver. Partition layout (from `bootloader/Core/Inc/partitions.h`):
 

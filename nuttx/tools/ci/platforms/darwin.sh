@@ -62,6 +62,7 @@ arm_gcc_toolchain() {
     local basefile
     basefile=arm-gnu-toolchain-13.2.rel1-darwin-x86_64-arm-none-eabi
     cd "${NUTTXTOOLS}"
+    # Download the latest ARM GCC toolchain prebuilt by ARM
     curl -O -L -s https://developer.arm.com/-/media/Files/downloads/gnu/13.2.rel1/binrel/${basefile}.tar.xz
     xz -d ${basefile}.tar.xz
     tar xf ${basefile}.tar
@@ -187,6 +188,15 @@ elf_toolchain() {
 gen_romfs() {
   if ! type genromfs > /dev/null 2>&1; then
     brew tap PX4/px4
+
+    # Trust each tap non-interactively before installing from it. Without this,
+    # `brew install` aborts before pouring any package (including ccache).
+    # `brew trust` only exists on Homebrew 6.0+; guard it so older versions,
+    # which don't gate untrusted taps, skip it silently.
+    if brew trust --help &> /dev/null; then
+      brew trust PX4/px4
+    fi
+
     brew install genromfs
   fi
 }
@@ -214,7 +224,7 @@ kconfig_frontends() {
   add_path "${NUTTXTOOLS}"/kconfig-frontends/bin
 
   if [ ! -f "${NUTTXTOOLS}/kconfig-frontends/bin/kconfig-conf" ]; then
-    git clone --depth 1 https://bitbucket.org/nuttx/tools.git "${NUTTXTOOLS}"/nuttx-tools
+    git clone --depth 1 https://github.com/patacongo/tools.git "${NUTTXTOOLS}"/nuttx-tools
     cd "${NUTTXTOOLS}"/nuttx-tools/kconfig-frontends
     ./configure --prefix="${NUTTXTOOLS}"/kconfig-frontends \
       --disable-kconfig --disable-nconf --disable-qconf \
@@ -278,7 +288,7 @@ python_tools() {
     construct \
     cvt2utf \
     cxxfilt \
-    esptool==4.8.dev4 \
+    esptool==5.2.0 \
     imgtool==1.9.0 \
     kconfiglib \
     pexpect==4.8.0 \
@@ -435,6 +445,8 @@ install_build_tools() {
   rm -f /usr/local/bin/python3-config || :
   # same for openssl
   rm -f /usr/local/bin/openssl || :
+
+  brew update
 
   oldpath=$(cd . && pwd -P)
   for func in ${install}; do

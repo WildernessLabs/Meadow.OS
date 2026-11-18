@@ -80,11 +80,11 @@ int hcom_diag_trace_priority_level_init()
   bool isPowerOnRestart;
 
   // Needed unconditionally for the startup info banner below (os_version,
-  // hardware_version_text, mono_version), not just the CONFIG_STM32F7_PWR
+  // hardware_version_text, mono_version), not just the CONFIG_STM32_PWR
   // path -- fetched here so it's always in scope, regardless of that config.
   meadow_configuration_t *config = meadow_os_deep_copy_config();
 
-#if defined(CONFIG_STM32F7_PWR)
+#if defined(CONFIG_STM32_PWR)
   // This BBR was set by hcom nx since it starts first -- hcom_nx already
   // establishes a sane default mask here on a true power-on restart (and
   // persists it), so this can always just read back whatever is there.
@@ -154,7 +154,7 @@ int hcom_diag_trace_priority_level_init()
   isPowerOnRestart = true;
 #endif
 
-#if defined(CONFIG_STM32F7_PWR)
+#if defined(CONFIG_STM32_PWR)
   // Check the host and uart1 bits in battery backed register
   char *traceCombo[] = {
     "none",

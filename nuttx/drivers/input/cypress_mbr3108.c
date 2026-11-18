@@ -32,7 +32,7 @@
 #include <poll.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
@@ -804,51 +804,51 @@ static ssize_t mbr3108_write(FAR struct file *filep, FAR const char *buffer,
 
   switch (type)
     {
-    case CYPRESS_MBR3108_CMD_SENSOR_CONF:
-      {
-        FAR const struct mbr3108_cmd_sensor_conf_s *conf =
-            (FAR const struct mbr3108_cmd_sensor_conf_s *)buffer;
+      case CYPRESS_MBR3108_CMD_SENSOR_CONF:
+        {
+          FAR const struct mbr3108_cmd_sensor_conf_s *conf =
+              (FAR const struct mbr3108_cmd_sensor_conf_s *)buffer;
 
-        if (buflen != sizeof(*conf))
-          {
-            ret = -EINVAL;
-            goto out;
-          }
+          if (buflen != sizeof(*conf))
+            {
+              ret = -EINVAL;
+              goto out;
+            }
 
-        ret = mbr3108_device_configuration(priv, &conf->conf);
+          ret = mbr3108_device_configuration(priv, &conf->conf);
+          break;
+        }
+
+      case CYPRESS_MBR3108_CMD_DEBUG_CONF:
+        {
+          FAR const struct mbr3108_cmd_debug_conf_s *conf =
+              (FAR const struct mbr3108_cmd_debug_conf_s *)buffer;
+
+          if (buflen != sizeof(*conf))
+            {
+              ret = -EINVAL;
+              goto out;
+            }
+
+          ret = mbr3108_debug_setup(priv, &conf->conf);
+          break;
+        }
+
+      case CYPRESS_MBR3108_CMD_CLEAR_LATCHED:
+        {
+          if (buflen != sizeof(type))
+            {
+              ret = -EINVAL;
+              goto out;
+            }
+
+          ret = mbr3108_clear_latched(priv);
+          break;
+        }
+
+      default:
+        ret = -EINVAL;
         break;
-      }
-
-    case CYPRESS_MBR3108_CMD_DEBUG_CONF:
-      {
-        FAR const struct mbr3108_cmd_debug_conf_s *conf =
-            (FAR const struct mbr3108_cmd_debug_conf_s *)buffer;
-
-        if (buflen != sizeof(*conf))
-          {
-            ret = -EINVAL;
-            goto out;
-          }
-
-        ret = mbr3108_debug_setup(priv, &conf->conf);
-        break;
-      }
-
-    case CYPRESS_MBR3108_CMD_CLEAR_LATCHED:
-      {
-        if (buflen != sizeof(type))
-          {
-            ret = -EINVAL;
-            goto out;
-          }
-
-        ret = mbr3108_clear_latched(priv);
-        break;
-      }
-
-    default:
-      ret = -EINVAL;
-      break;
     }
 
 out:
@@ -1045,6 +1045,7 @@ static int mbr3108_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This is a request to tear down the poll. */
 
       FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
+
       DEBUGASSERT(slot != NULL);
 
       /* Remove all memory of the poll setup */
@@ -1105,7 +1106,7 @@ cypress_mbr3108_register(FAR const char *devpath,
 
   nxmutex_init(&priv->devlock);
 
-  ret = register_driver(devpath, &g_mbr3108_fileops, 0666, priv);
+  ret = register_driver(devpath, &g_mbr3108_fileops, 0600, priv);
   if (ret < 0)
     {
       nxmutex_destroy(&priv->devlock);

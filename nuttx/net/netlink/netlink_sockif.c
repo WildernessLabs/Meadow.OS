@@ -34,7 +34,7 @@
 #include <sched.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/sched.h>
 #include <nuttx/kmalloc.h>
@@ -67,7 +67,7 @@ static int  netlink_connect(FAR struct socket *psock,
 static int  netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
                          bool setup);
 static ssize_t netlink_sendmsg(FAR struct socket *psock,
-                               FAR struct msghdr *msg, int flags);
+                               FAR const struct msghdr *msg, int flags);
 static ssize_t netlink_recvmsg(FAR struct socket *psock,
                                FAR struct msghdr *msg, int flags);
 static int netlink_close(FAR struct socket *psock);
@@ -143,14 +143,14 @@ static int netlink_setup(FAR struct socket *psock)
 
   /* Verify the socket type (domain should always be PF_NETLINK here) */
 
-  if (domain == PF_NETLINK &&
-      (type == SOCK_RAW || type == SOCK_DGRAM || type == SOCK_CTRL))
+  if (domain == PF_NETLINK && (type == SOCK_RAW || type == SOCK_DGRAM))
     {
       /* Allocate the NetLink socket connection structure and save it in the
        * new socket instance.
        */
 
       FAR struct netlink_conn_s *conn = netlink_alloc();
+
       if (conn == NULL)
         {
           /* Failed to reserve a connection structure */
@@ -429,7 +429,7 @@ static void netlink_response_available(FAR void *arg)
    * condition?
    */
 
-  net_lock();
+  netlink_lock();
 
   if (conn->fds != NULL)
     {
@@ -446,7 +446,7 @@ static void netlink_response_available(FAR void *arg)
 
   conn->fds = NULL;
 
-  net_unlock();
+  netlink_unlock();
 }
 
 /****************************************************************************
@@ -492,7 +492,7 @@ static int netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
        * immediately (maybe).
        */
 
-      net_lock();
+      netlink_lock();
       if (netlink_check_response(conn))
         {
           revents |= POLLIN;
@@ -505,7 +505,7 @@ static int netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
       poll_notify(&fds, 1, revents);
       if (fds->revents != 0)
         {
-          net_unlock();
+          netlink_unlock();
           return OK;
         }
 
@@ -522,7 +522,7 @@ static int netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
           if (conn->fds != NULL)
             {
               nerr("ERROR: Multiple polls() on socket not supported.\n");
-              net_unlock();
+              netlink_unlock();
               return -EBUSY;
             }
 
@@ -539,7 +539,7 @@ static int netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
             }
         }
 
-      net_unlock();
+      netlink_unlock();
     }
   else
     {
@@ -576,7 +576,7 @@ static int netlink_poll(FAR struct socket *psock, FAR struct pollfd *fds,
  ****************************************************************************/
 
 static ssize_t netlink_sendmsg(FAR struct socket *psock,
-                               FAR struct msghdr *msg, int flags)
+                               FAR const struct msghdr *msg, int flags)
 {
   FAR const void *buf = msg->msg_iov->iov_base;
   FAR const struct sockaddr *to = msg->msg_name;
@@ -639,8 +639,8 @@ static ssize_t netlink_sendmsg(FAR struct socket *psock,
 #endif
 
       default:
-       ret = -EOPNOTSUPP;
-       break;
+        ret = -EOPNOTSUPP;
+        break;
     }
 
   return ret;

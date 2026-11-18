@@ -79,6 +79,18 @@ static FAR struct inode *inode_unlink(FAR const char *path)
       inode = desc.node;
       DEBUGASSERT(inode != NULL);
 
+      if (desc.parent != NULL)
+        {
+          /* Caller holds the inode tree lock. */
+
+          ret = inode_checkpathperm(desc.parent, W_OK, INODE_CHECK_LOCKED);
+          if (ret < 0)
+            {
+              inode = NULL;
+              goto errout;
+            }
+        }
+
       /* If peer is non-null, then remove the node from the right of
        * of that peer node.
        */
@@ -107,7 +119,21 @@ static FAR struct inode *inode_unlink(FAR const char *path)
 
       inode->i_peer   = NULL;
       inode->i_parent = NULL;
-      atomic_fetch_sub(&inode->i_crefs, 1);
+      atomic_sub(&inode->i_crefs, 1);
+#ifdef CONFIG_FS_LINKS
+      if (INODE_IS_HARDLINK(inode))
+        {
+          FAR struct inode *target;
+
+          DEBUGASSERT(inode->i_private != NULL);
+          target = inode->i_private;
+          atomic_sub(&target->i_crefs, INODE_NLINK_INC);
+          if (atomic_read(&target->i_crefs) == 0)
+            {
+              inode_free(target);
+            }
+        }
+#endif
     }
 
 errout:

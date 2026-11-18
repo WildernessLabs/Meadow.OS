@@ -25,6 +25,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/spinlock.h>
 
 #include <inttypes.h>
 #include <stdio.h>
@@ -33,8 +34,8 @@
 #include <unistd.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
 
+#include <nuttx/debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/signal.h>
@@ -42,6 +43,7 @@
 #include <nuttx/wqueue.h>
 #include <nuttx/scsi.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/fs/partition.h>
 #include <nuttx/mutex.h>
 
 #include <nuttx/usb/usb.h>
@@ -120,6 +122,7 @@ struct usbhost_state_s
   int16_t                 crefs;        /* Reference count on the driver instance */
   uint16_t                blocksize;    /* Block size of USB mass storage device */
   uint32_t                nblocks;      /* Number of blocks on the USB mass storage device */
+  spinlock_t              spinlock;     /* Used to protect critical section */
   mutex_t                 lock;         /* Used to maintain mutual exclusive access */
   struct work_s           work;         /* For interacting with the worker thread */
   FAR uint8_t            *tbuffer;      /* The allocated transfer buffer */
@@ -298,6 +301,8 @@ static FAR struct usbhost_freestate_s *g_freelist;
 
 static uint32_t g_devinuse;
 
+static spinlock_t g_lock = SP_UNLOCKED;
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -331,14 +336,14 @@ static inline FAR struct usbhost_state_s *usbhost_allocclass(void)
    * our pre-allocated class instances from the free list.
    */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&g_lock);
   entry = g_freelist;
   if (entry)
     {
       g_freelist = entry->flink;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&g_lock, flags);
   uinfo("Allocated: %p\n", entry);
   return (FAR struct usbhost_state_s *)entry;
 }
@@ -381,16 +386,17 @@ static inline void usbhost_freeclass(FAR struct usbhost_state_s *usbclass)
   FAR struct usbhost_freestate_s *entry =
     (FAR struct usbhost_freestate_s *)usbclass;
   irqstate_t flags;
+
   DEBUGASSERT(entry != NULL);
 
   uinfo("Freeing: %p\n", entry);
 
   /* Just put the pre-allocated class structure back on the freelist */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&g_lock);
   entry->flink = g_freelist;
   g_freelist = entry;
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&g_lock, flags);
 }
 #else
 static inline void usbhost_freeclass(FAR struct usbhost_state_s *usbclass)
@@ -420,20 +426,21 @@ static int usbhost_allocdevno(FAR struct usbhost_state_s *priv)
   irqstate_t flags;
   int devno;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&g_lock);
   for (devno = 0; devno < 26; devno++)
     {
       uint32_t bitno = 1 << devno;
+
       if ((g_devinuse & bitno) == 0)
         {
           g_devinuse |= bitno;
           priv->sdchar = 'a' + devno;
-          leave_critical_section(flags);
+          spin_unlock_irqrestore(&g_lock, flags);
           return OK;
         }
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&g_lock, flags);
   return -EMFILE;
 }
 
@@ -443,9 +450,11 @@ static void usbhost_freedevno(FAR struct usbhost_state_s *priv)
 
   if (devno >= 0 && devno < 26)
     {
-      irqstate_t flags = enter_critical_section();
+      irqstate_t flags;
+
+      flags = spin_lock_irqsave(&g_lock);
       g_devinuse &= ~(1 << devno);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(&g_lock, flags);
     }
 }
 
@@ -475,9 +484,9 @@ static void usbhost_dumpcbw(FAR struct usbmsc_cbw_s *cbw)
   int i;
 
   uinfo("CBW:\n");
-  uinfo("  signature: %08x\n", usbhost_getle32(cbw->signature));
-  uinfo("  tag:       %08x\n", usbhost_getle32(cbw->tag));
-  uinfo("  datlen:    %08x\n", usbhost_getle32(cbw->datlen));
+  uinfo("  signature: %08" PRIx32 "\n", usbhost_getle32(cbw->signature));
+  uinfo("  tag:       %08" PRIx32 "\n", usbhost_getle32(cbw->tag));
+  uinfo("  datlen:    %08" PRIx32 "\n", usbhost_getle32(cbw->datlen));
   uinfo("  flags:     %02x\n", cbw->flags);
   uinfo("  lun:       %02x\n", cbw->lun);
   uinfo("  cdblen:    %02x\n", cbw->cdblen);
@@ -495,9 +504,9 @@ static void usbhost_dumpcbw(FAR struct usbmsc_cbw_s *cbw)
 static void usbhost_dumpcsw(FAR struct usbmsc_csw_s *csw)
 {
   uinfo("CSW:\n");
-  uinfo("  signature: %08x\n", usbhost_getle32(csw->signature));
-  uinfo("  tag:       %08x\n", usbhost_getle32(csw->tag));
-  uinfo("  residue:   %08x\n", usbhost_getle32(csw->residue));
+  uinfo("  signature: %08" PRIx32 "\n", usbhost_getle32(csw->signature));
+  uinfo("  tag:       %08" PRIx32 "\n", usbhost_getle32(csw->tag));
+  uinfo("  residue:   %08" PRIx32 "\n", usbhost_getle32(csw->residue));
   uinfo("  status:    %02x\n", csw->status);
 }
 #endif
@@ -646,8 +655,9 @@ static inline int usbhost_maxlunreq(FAR struct usbhost_state_s *priv)
 {
   FAR struct usb_ctrlreq_s *req = (FAR struct usb_ctrlreq_s *)priv->tbuffer;
   FAR struct usbhost_hubport_s *hport;
-  DEBUGASSERT(priv && priv->tbuffer);
   int ret;
+
+  DEBUGASSERT(priv && priv->tbuffer);
 
   /* Request maximum logical unit number.  NOTE: On an IN transaction, The
    * req and buffer pointers passed to DRVR_CTRLIN may refer to the same
@@ -800,13 +810,22 @@ static inline int usbhost_readcapacity(FAR struct usbhost_state_s *priv)
           priv->nblocks   = usbhost_getbe32(resp->lba) + 1;
           priv->blocksize = usbhost_getbe32(resp->blklen);
 
+          if (priv->blocksize == 0)
+            {
+              uerr("ERROR: Invalid zero block size\n");
+              nbytes = -EINVAL;
+            }
+
           /* Receive the CSW */
 
-          nbytes = DRVR_TRANSFER(hport->drvr, priv->bulkin,
-                                 priv->tbuffer, USBMSC_CSW_SIZEOF);
           if (nbytes >= 0)
             {
-              usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
+              nbytes = DRVR_TRANSFER(hport->drvr, priv->bulkin,
+                                     priv->tbuffer, USBMSC_CSW_SIZEOF);
+              if (nbytes >= 0)
+                {
+                  usbhost_dumpcsw((FAR struct usbmsc_csw_s *)priv->tbuffer);
+                }
             }
         }
     }
@@ -865,6 +884,41 @@ static inline int usbhost_inquiry(FAR struct usbhost_state_s *priv)
 
   return nbytes < 0 ? (int)nbytes : OK;
 }
+
+#ifdef CONFIG_USBHOST_MSC_PARTITIONS
+/****************************************************************************
+ * Name: usbhost_part_handler
+ *
+ * Description:
+ *   Give one partition found on a drive a block device of its own, named
+ *   after the drive it came from with the partition number after it, which
+ *   is the convention every other system uses.
+ *
+ ****************************************************************************/
+
+static void usbhost_part_handler(FAR struct partition_s *part, FAR void *arg)
+{
+  FAR const char *devname = arg;
+  char            partname[DEV_NAMELEN + 4];
+
+  if (part->nblocks == 0)
+    {
+      return;
+    }
+
+  snprintf(partname, sizeof(partname), "%s%zu", devname, part->index + 1);
+
+  if (register_blockpartition(partname, 0, devname, part->firstblock,
+                              part->nblocks) < 0)
+    {
+      uerr("ERROR: cannot register %s\n", partname);
+      return;
+    }
+
+  uinfo("%s: %zu blocks from %zu\n", partname, part->nblocks,
+        part->firstblock);
+}
+#endif
 
 /****************************************************************************
  * Name: usbhost_destroy
@@ -1000,7 +1054,7 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
   configdesc += cfgdesc->len;
   remaining  -= cfgdesc->len;
 
-  /* Loop where there are more descriptors to examine */
+  /* Loop while there are more descriptors to examine */
 
   while (remaining >= sizeof(struct usb_desc_s))
     {
@@ -1009,116 +1063,119 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
       desc = (FAR struct usb_desc_s *)configdesc;
       switch (desc->type)
         {
-        /* Interface descriptor. We really should get the number of endpoints
-         * from this descriptor too.
-         */
+          /* Interface descriptor. We really should get the number of
+           * endpoints from this descriptor too.
+           */
 
-        case USB_DESC_TYPE_INTERFACE:
-          {
-            FAR struct usb_ifdesc_s *ifdesc =
-              (FAR struct usb_ifdesc_s *)configdesc;
+          case USB_DESC_TYPE_INTERFACE:
+            {
+              FAR struct usb_ifdesc_s *ifdesc =
+                (FAR struct usb_ifdesc_s *)configdesc;
 
-            uinfo("Interface descriptor\n");
-            DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
+              uinfo("Interface descriptor\n");
+              DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
 
-            /* Save the interface number and mark ONLY the interface found */
+              /* Save the interface number and mark ONLY the interface
+               * found.
+               */
 
-            priv->ifno = ifdesc->ifno;
-            found      = USBHOST_IFFOUND;
-          }
-          break;
+              priv->ifno = ifdesc->ifno;
+              found      = USBHOST_IFFOUND;
+            }
+            break;
 
-        /* Endpoint descriptor.  We expect two bulk endpoints, an IN and an
-         * OUT.
-         */
+          /* Endpoint descriptor.  We expect two bulk endpoints, an IN and an
+           * OUT.
+           */
 
-        case USB_DESC_TYPE_ENDPOINT:
-          {
-            FAR struct usb_epdesc_s *epdesc =
-              (FAR struct usb_epdesc_s *)configdesc;
+          case USB_DESC_TYPE_ENDPOINT:
+            {
+              FAR struct usb_epdesc_s *epdesc =
+                (FAR struct usb_epdesc_s *)configdesc;
 
-            uinfo("Endpoint descriptor\n");
-            DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
+              uinfo("Endpoint descriptor\n");
+              DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
 
-            /* Check for a bulk endpoint.  We only support the bulk-only
-             * protocol so I suppose anything else should really be an error.
-             */
+              /* Check for a bulk endpoint.  We only support the bulk-only
+               * protocol so I suppose anything else should really be an
+               * error.
+               */
 
-            if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) ==
-                USB_EP_ATTR_XFER_BULK)
-              {
-                /* Yes.. it is a bulk endpoint.  IN or OUT? */
+              if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) ==
+                  USB_EP_ATTR_XFER_BULK)
+                {
+                  /* Yes.. it is a bulk endpoint.  IN or OUT? */
 
-                if (USB_ISEPOUT(epdesc->addr))
-                  {
-                    /* It is an OUT bulk endpoint.  There should be only one
-                     * bulk OUT endpoint.
-                     */
+                  if (USB_ISEPOUT(epdesc->addr))
+                    {
+                      /* It is an OUT bulk endpoint.  There should be only
+                       * one bulk OUT endpoint.
+                       */
 
-                    if ((found & USBHOST_BOUTFOUND) != 0)
-                      {
-                        /* Oops.. more than one endpoint.  We don't know
-                         * what to do with this.
-                         */
+                      if ((found & USBHOST_BOUTFOUND) != 0)
+                        {
+                          /* Oops.. more than one endpoint.  We don't know
+                           * what to do with this.
+                           */
 
-                        return -EINVAL;
-                      }
+                          return -EINVAL;
+                        }
 
-                    found |= USBHOST_BOUTFOUND;
+                      found |= USBHOST_BOUTFOUND;
 
-                    /* Save the bulk OUT endpoint information */
+                      /* Save the bulk OUT endpoint information */
 
-                    boutdesc.hport        = hport;
-                    boutdesc.addr         = epdesc->addr &
-                                            USB_EP_ADDR_NUMBER_MASK;
-                    boutdesc.in           = false;
-                    boutdesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
-                    boutdesc.interval     = epdesc->interval;
-                    boutdesc.mxpacketsize =
-                      usbhost_getle16(epdesc->mxpacketsize);
+                      boutdesc.hport        = hport;
+                      boutdesc.addr         = epdesc->addr &
+                                              USB_EP_ADDR_NUMBER_MASK;
+                      boutdesc.in           = false;
+                      boutdesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
+                      boutdesc.interval     = epdesc->interval;
+                      boutdesc.mxpacketsize =
+                        usbhost_getle16(epdesc->mxpacketsize);
 
-                    uinfo("Bulk OUT EP addr:%d mxpacketsize:%d\n",
-                          boutdesc.addr, boutdesc.mxpacketsize);
-                  }
-                else
-                  {
-                    /* It is an IN bulk endpoint.  There should be only one
-                     * bulk IN endpoint.
-                     */
+                      uinfo("Bulk OUT EP addr:%d mxpacketsize:%d\n",
+                            boutdesc.addr, boutdesc.mxpacketsize);
+                    }
+                  else
+                    {
+                      /* It is an IN bulk endpoint.  There should be only one
+                       * bulk IN endpoint.
+                       */
 
-                    if ((found & USBHOST_BINFOUND) != 0)
-                      {
-                        /* Oops.. more than one endpoint.  We don't know
-                         * what to do with this.
-                         */
+                      if ((found & USBHOST_BINFOUND) != 0)
+                        {
+                          /* Oops.. more than one endpoint.  We don't know
+                           * what to do with this.
+                           */
 
-                        return -EINVAL;
-                      }
+                          return -EINVAL;
+                        }
 
-                    found |= USBHOST_BINFOUND;
+                      found |= USBHOST_BINFOUND;
 
-                    /* Save the bulk IN endpoint information */
+                      /* Save the bulk IN endpoint information */
 
-                    bindesc.hport        = hport;
-                    bindesc.addr         = epdesc->addr &
-                                           USB_EP_ADDR_NUMBER_MASK;
-                    bindesc.in           = 1;
-                    bindesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
-                    bindesc.interval     = epdesc->interval;
-                    bindesc.mxpacketsize =
-                      usbhost_getle16(epdesc->mxpacketsize);
+                      bindesc.hport        = hport;
+                      bindesc.addr         = epdesc->addr &
+                                             USB_EP_ADDR_NUMBER_MASK;
+                      bindesc.in           = 1;
+                      bindesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
+                      bindesc.interval     = epdesc->interval;
+                      bindesc.mxpacketsize =
+                        usbhost_getle16(epdesc->mxpacketsize);
 
-                    uinfo("Bulk IN EP addr:%d mxpacketsize:%d\n",
-                          bindesc.addr, bindesc.mxpacketsize);
-                  }
-              }
-          }
-          break;
+                      uinfo("Bulk IN EP addr:%d mxpacketsize:%d\n",
+                            bindesc.addr, bindesc.mxpacketsize);
+                    }
+                }
+            }
+            break;
 
-        /* Other descriptors are just ignored for now */
+          /* Other descriptors are just ignored for now */
 
-        default:
-          break;
+          default:
+            break;
         }
 
       /* If we found everything we need with this interface, then break out
@@ -1231,7 +1288,7 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
 
       /* Send TESTUNITREADY to see if the unit is ready.  The most likely
        * error error that can occur here is a a stall which simply means
-       * that the the device is not yet able to respond.
+       * that the device is not yet able to respond.
        */
 
       ret = usbhost_testunitready(priv);
@@ -1327,6 +1384,18 @@ static inline int usbhost_initvolume(FAR struct usbhost_state_s *priv)
       uinfo("Register block driver\n");
       usbhost_mkdevname(priv, devname);
       ret = register_blockdriver(devname, &g_bops, 0, priv);
+
+#ifdef CONFIG_USBHOST_MSC_PARTITIONS
+      /* Such a drive is usually partitioned rather than holding a
+       * filesystem outright.  Give each partition a block device beside
+       * the whole drive, which stays available.
+       */
+
+      if (ret >= 0)
+        {
+          parse_block_partition(devname, usbhost_part_handler, devname);
+        }
+#endif
     }
 
   /* Decrement the reference count.  We incremented the reference count
@@ -1703,6 +1772,7 @@ static FAR struct usbhost_class_s *
            */
 
           nxmutex_init(&priv->lock);
+          spin_lock_init(&priv->spinlock);
 
           /* NOTE: We do not yet know the geometry of the USB mass storage
            * device.
@@ -1825,7 +1895,7 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
    * device is no longer available.
    */
 
-  flags              = enter_critical_section();
+  flags = spin_lock_irqsave(&priv->spinlock);
   priv->disconnected = true;
 
   /* Now check the number of references on the class instance.  If it is one,
@@ -1834,7 +1904,6 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
    * block driver.
    */
 
-  uinfo("crefs: %d\n", priv->crefs);
   if (priv->crefs == 1)
     {
       /* Destroy the class instance.  If we are executing from an interrupt
@@ -1842,6 +1911,7 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
        * Otherwise, destroy the instance now.
        */
 
+      spin_unlock_irqrestore(&priv->spinlock, flags);
       if (up_interrupt_context())
         {
           /* Destroy the instance on the worker thread. */
@@ -1857,9 +1927,11 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
 
           usbhost_destroy(priv);
         }
+
+      return OK;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&priv->spinlock, flags);
   return OK;
 }
 
@@ -1894,7 +1966,7 @@ static int usbhost_open(FAR struct inode *inode)
    * disconnect events.
    */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&priv->spinlock);
   if (priv->disconnected)
     {
       /* No... the block driver is no longer bound to the class.  That means
@@ -1912,7 +1984,7 @@ static int usbhost_open(FAR struct inode *inode)
       ret = OK;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&priv->spinlock, flags);
 
   nxmutex_unlock(&priv->lock);
   return ret;
@@ -1939,20 +2011,13 @@ static int usbhost_close(FAR struct inode *inode)
   DEBUGASSERT(priv->crefs > 1);
 
   nxmutex_lock(&priv->lock);
-  priv->crefs--;
-
-  /* Release the semaphore.  The following operations when crefs == 1 are
-   * safe because we know that there is no outstanding open references to
-   * the block driver.
-   */
-
-  nxmutex_unlock(&priv->lock);
 
   /* We need to disable interrupts momentarily to assure that there are
    * no asynchronous disconnect events.
    */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&priv->spinlock);
+  priv->crefs--;
 
   /* Check if the USB mass storage device is still connected.  If the
    * storage device is not connected and the reference count just
@@ -1965,10 +2030,14 @@ static int usbhost_close(FAR struct inode *inode)
       /* Destroy the class instance */
 
       DEBUGASSERT(priv->crefs == 1);
+      spin_unlock_irqrestore(&priv->spinlock, flags);
+      nxmutex_unlock(&priv->lock);
       usbhost_destroy(priv);
+      return OK;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&priv->spinlock, flags);
+  nxmutex_unlock(&priv->lock);
   return OK;
 }
 
@@ -2231,7 +2300,7 @@ static int usbhost_geometry(FAR struct inode *inode,
           geometry->geo_sectorsize    = priv->blocksize;
           nxmutex_unlock(&priv->lock);
 
-          uinfo("nsectors: %" PRIdOFF " sectorsize: %" PRIi16 "\n",
+          uinfo("nsectors: %" PRIdOFF " sectorsize: %" PRId32 "\n",
                 geometry->geo_nsectors, geometry->geo_sectorsize);
         }
     }

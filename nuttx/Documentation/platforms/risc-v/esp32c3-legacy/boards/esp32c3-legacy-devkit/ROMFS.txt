@@ -9,7 +9,7 @@ README
   that will be mounted at /etc and will look like this at run-time:
 
     NuttShell (NSH) NuttX-10.1.0-RC1
-    MOTD: username=admin password=Administrator
+    This is an example NuttX Message Of The Day (MOTD). Have fun!
     nsh> ls -Rl /etc
     /etc:
      dr-xr-xr-x       0 .
@@ -23,18 +23,25 @@ README
     nsh>
 
   /etc/init.d/rc.sysinit is system init script; /etc/init.d/rcS is the start-up
-  script; /etc/passwd is a the password file.  It supports a single user:
+  script; /etc/passwd is the password file.
 
-    USERNAME:  admin
-    PASSWORD:  Administrator
+  The /etc/passwd file is auto-generated at build time when
+  CONFIG_BOARD_ETC_ROMFS_PASSWD_ENABLE is set.  To configure the root user and
+  password, run 'make menuconfig' and set:
 
-    nsh> cat /etc/passwd
-    admin:8Tv+Hbmr3pLVb5HHZgd26D:0:0:/
+    CONFIG_BOARD_ETC_ROMFS_PASSWD_ENABLE=y
+    CONFIG_BOARD_ETC_ROMFS_PASSWD_USER (default: root)
+    CONFIG_BOARD_ETC_ROMFS_PASSWD_PASSWORD (required; minimum 8 characters
+    with uppercase, lowercase, digit, and special character)
 
-  The encrypted passwords in the provided passwd file are only valid if the
-  TEA key is set to:  012345678 9abcdef0 012345678 9abcdef0.  Changes to either
-  the key or the password word will require regeneration of the nsh_romfimg.h
-  header file.
+  The password is hashed with PBKDF2-HMAC-SHA256 at build time by the host tool
+  tools/mkpasswd; the plaintext is NOT stored in the firmware image.
+  If the password is not set in .config, an interactive make prompts via
+  tools/promptpasswd.sh (root password, then confirm password).
+
+  For the full description of the mechanism, file format, complexity rules,
+  and verification steps, see Documentation/components/tools/index.rst
+  (mkpasswd section).
 
   The format of the password file is:
 
@@ -42,7 +49,7 @@ README
 
   Where:
     user:  User name
-    x:     Encrypted password
+    x:     PBKDF2-HMAC-SHA256 hash (modular crypt format)
     uid:   User ID (0 for now)
     gid:   Group ID (0 for now)
     home:  Login directory (/ for now)
@@ -50,7 +57,7 @@ README
   /etc/group is a group file.  It is not currently used.
 
     nsh> cat /etc/group
-    root:*:0:root,admin
+    root:*:0:root
 
   The format of the group file is:
 

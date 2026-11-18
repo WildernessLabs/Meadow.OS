@@ -128,6 +128,7 @@
 #define   FSNODEFLAG_TYPE_SOCKET     0x00000009 /*   Socket                 */
 #define   FSNODEFLAG_TYPE_PIPE       0x0000000a /*   Pipe                   */
 #define   FSNODEFLAG_TYPE_NAMEDEVENT 0x0000000b /*   Named event group      */
+#define   FSNODEFLAG_TYPE_HARDLINK   0x0000000c /*   Hard link              */
 
 #define INODE_IS_TYPE(i,t) \
   (((i)->i_flags & FSNODEFLAG_TYPE_MASK) == (t))
@@ -144,6 +145,7 @@
 #define INODE_IS_SOCKET(i)     INODE_IS_TYPE(i,FSNODEFLAG_TYPE_SOCKET)
 #define INODE_IS_PIPE(i)       INODE_IS_TYPE(i,FSNODEFLAG_TYPE_PIPE)
 #define INODE_IS_NAMEDEVENT(i) INODE_IS_TYPE(i,FSNODEFLAG_TYPE_NAMEDEVENT)
+#define INODE_IS_HARDLINK(i)   INODE_IS_TYPE(i,FSNODEFLAG_TYPE_HARDLINK)
 
 #define INODE_GET_TYPE(i)     ((i)->i_flags & FSNODEFLAG_TYPE_MASK)
 #define INODE_SET_TYPE(i,t) \
@@ -164,6 +166,7 @@
 #define INODE_SET_SOCKET(i)     INODE_SET_TYPE(i,FSNODEFLAG_TYPE_SOCKET)
 #define INODE_SET_PIPE(i)       INODE_SET_TYPE(i,FSNODEFLAG_TYPE_PIPE)
 #define INODE_SET_NAMEDEVENT(i) INODE_SET_TYPE(i,FSNODEFLAG_TYPE_NAMEDEVENT)
+#define INODE_SET_HARDLINK(i)   INODE_SET_TYPE(i,FSNODEFLAG_TYPE_HARDLINK)
 
 /* The status change flags.
  * These should be or-ed together to figure out what want to change.
@@ -360,6 +363,59 @@ struct mountpt_operations
   CODE int     (*chstat)(FAR struct inode *mountpt, FAR const char *relpath,
                          FAR const struct stat *buf, int flags);
   CODE int     (*syncfs)(FAR struct inode *mountpt);
+
+  /* ioctl issued on a descriptor for the mountpoint directory rather than
+   * on a file inside the volume.  It belongs with the directory operations
+   * above -- it takes the same (mountpt, dir) pair as opendir/readdir -- but
+   * is placed here at the end so the positional initialisers every file
+   * system uses stay unchanged; a file system that does not implement it
+   * simply leaves the slot NULL.
+   *
+   * Commands such as FIOC_REFORMAT, FIOC_OPTIMIZE and FIOC_INTEGRITY act on
+   * the volume, not on any one file, but the only route to a file system
+   * has historically been the per-file ioctl method.  That forces a caller
+   * to open an unrelated file just to name the volume, and a file system
+   * whose volume operation is incompatible with an open file then cannot
+   * implement the command at all.
+   *
+   * A file system that has such commands implements this method; the ioctl
+   * arrives with the mountpoint inode and the open directory, and no open
+   * file in sight.  It is consulted before the VFS acts on the command, so
+   * it must answer -ENOTTY for anything it does not recognise; the VFS then
+   * applies its own handling.  Leaving it NULL keeps the previous behaviour,
+   * in which the VFS answers -ENOTTY for any command it does not handle
+   * itself.
+   */
+
+  CODE int     (*ioctldir)(FAR struct inode *mountpt,
+                           FAR struct fs_dirent_s *dir,
+                           int cmd, unsigned long arg);
+
+  /* Optional DAC check for a path relative to this mountpoint.
+   * Filesystems may implement this for a common in-volume permission
+   * entry point.  The VFS mount-crossing gate does not call it; entry
+   * into a volume uses inode_checkpathperm() on the mountpoint inode.
+   * Filesystems without Unix permissions leave it NULL.
+   *
+   * Placed at the end so existing positional initialisers stay valid.
+   */
+
+  CODE int     (*permission)(FAR struct inode *mountpt,
+                             FAR const char *relpath, int amode);
+
+#ifdef CONFIG_FS_LINKS
+  CODE int     (*link)(FAR struct inode *mountpt, FAR const char *relpath1,
+                       FAR const char *relpath2);
+  CODE int     (*symlink)(FAR struct inode *mountpt,
+                          FAR const char *path1,
+                          FAR const char *relpath2);
+  CODE ssize_t (*readlink)(FAR struct inode *mountpt,
+                           FAR const char *relpath,
+                           FAR char *buf, size_t bufsize);
+  CODE int     (*lstat)(FAR struct inode *mountpt,
+                        FAR const char *relpath,
+                        FAR struct stat *buf);
+#endif
 };
 #endif /* CONFIG_DISABLE_MOUNTPOINT */
 
@@ -391,7 +447,7 @@ union inode_ops_u
 #ifdef CONFIG_FS_NAMED_EVENTS
   FAR struct nevent_inode_s            *i_nevent; /* Named event */
 #endif
-#ifdef CONFIG_PSEUDOFS_SOFTLINKS
+#ifdef CONFIG_FS_LINKS
   FAR char                             *i_link;   /* Full path to link target */
 #endif
 };
@@ -1036,59 +1092,6 @@ int fdlist_dupfile(FAR struct fdlist *list, int oflags, int minfd,
                    FAR struct file *filep);
 
 /****************************************************************************
- * Name: fdlist_allocate
- *
- * Description:
- *   Allocate a struct fd instance and associate it with an empty file
- *   instance. The difference between this function and
- *   file_allocate_from_inode is that this function is only used for
- *   placeholder purposes. Later, the caller will initialize the file entity
- *   through the returned filep.
- *
- *   The fd allocated by this function can be released using fdlist_close.
- *
- *   After the function call is completed, it will hold a reference count
- *   for the filep. Therefore, when the filep is no longer in use, it is
- *   necessary to call file_put to release the reference count, in order
- *   to avoid a race condition where the file might be closed during
- *   this process.
- *
- * Returned Value:
- *   Returns the file descriptor == index into the files array on success;
- *   a negated errno value is returned on any failure.
- *
- ****************************************************************************/
-
-int fdlist_allocate(FAR struct fdlist *list, int oflags,
-                    int minfd, FAR struct file **filep);
-
-/****************************************************************************
- * Name: file_allocate
- *
- * Description:
- *   Allocate a struct fd instance and associate it with an empty file
- *   instance. The difference between this function and
- *   file_allocate_from_inode is that this function is only used for
- *   placeholder purposes. Later, the caller will initialize the file entity
- *   through the returned filep.
- *
- *   The fd allocated by this function can be released using nx_close.
- *
- *   After the function call is completed, it will hold a reference count
- *   for the filep. Therefore, when the filep is no longer in use, it is
- *   necessary to call file_put to release the reference count, in order
- *   to avoid a race condition where the file might be closed during
- *   this process.
- *
- * Returned Value:
- *   Returns the file descriptor == index into the files array on success;
- *   a negated errno value is returned on any failure.
- *
- ****************************************************************************/
-
-int file_allocate(int oflags, int minfd, FAR struct file **filep);
-
-/****************************************************************************
  * Name: file_allocate_from_inode
  *
  * Description:
@@ -1250,7 +1253,7 @@ int fdlist_open(FAR struct fdlist *list,
  * Name: nx_open
  *
  * Description:
- *   nx_open() is similar to the standard 'open' interface except that is is
+ *   nx_open() is similar to the standard 'open' interface except that it is
  *   not a cancellation point and it does not modify the errno variable.
  *
  *   nx_open() is an internal NuttX interface and should not be called
@@ -1263,6 +1266,26 @@ int fdlist_open(FAR struct fdlist *list,
  ****************************************************************************/
 
 int nx_open(FAR const char *path, int oflags, ...);
+
+/****************************************************************************
+ * Name: file_allocate
+ *
+ * Description:
+ *   Allocate a file instance and return
+ *
+ ****************************************************************************/
+
+FAR struct file *file_allocate(void);
+
+/****************************************************************************
+ * Name: file_deallocate
+ *
+ * Description:
+ *   Free a file instance.
+ *
+ ****************************************************************************/
+
+void file_deallocate(FAR struct file *filep);
 
 /****************************************************************************
  * Name: file_get2

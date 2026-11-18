@@ -614,6 +614,7 @@ static void goldfish_pipe_write_addr(FAR void *addr,
                                      FAR void *portl, FAR void *porth)
 {
   uintptr_t paddr = up_addrenv_va_to_pa(addr);
+
   goldfish_pipe_putreg32((paddr >> 16) >> 16, porth);
   goldfish_pipe_putreg32(paddr, portl);
 }
@@ -681,7 +682,7 @@ int goldfish_pipe_register(FAR void *base, int irq)
   /* Register the pipe device */
 
   return register_driver("/dev/goldfish_pipe",
-                         &g_goldfish_pipe_fops, 0666, dev);
+                         &g_goldfish_pipe_fops, 0600, dev);
 
 out:
   kmm_free(dev);

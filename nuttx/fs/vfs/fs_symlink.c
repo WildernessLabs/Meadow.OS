@@ -45,7 +45,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_PSEUDOFS_SOFTLINKS
+#ifdef CONFIG_FS_LINKS
 
 /****************************************************************************
  * Public Functions
@@ -109,9 +109,23 @@ int symlink(FAR const char *path1, FAR const char *path2)
       DEBUGASSERT(desc.node != NULL);
       if (INODE_IS_MOUNTPT(desc.node))
         {
-          /* Symbolic links within the mounted volume are not supported */
+          if (desc.node->u.i_mops && desc.node->u.i_mops->symlink)
+            {
+              ret = desc.node->u.i_mops->symlink(desc.node, path1,
+                                                 desc.relpath);
+              if (ret < 0)
+                {
+                  errcode = -ret;
+                  goto errout_with_inode;
+                }
+            }
+          else
+            {
+              /* Symbolic links within this type of fs are not supported */
 
-          errcode = ENOSYS;
+              errcode = ENOSYS;
+              goto errout_with_inode;
+            }
         }
       else
 #endif
@@ -119,9 +133,8 @@ int symlink(FAR const char *path1, FAR const char *path2)
           /* A node already exists in the pseudofs at 'path1' */
 
           errcode = EEXIST;
+          goto errout_with_inode;
         }
-
-      goto errout_with_inode;
     }
 
   /* No inode exists that contains this path.  Create a new inode in the
@@ -133,6 +146,7 @@ int symlink(FAR const char *path1, FAR const char *path2)
       /* Copy path1 */
 
       FAR char *newpath2 = fs_heap_strdup(path1);
+
       if (newpath2 == NULL)
         {
           errcode = ENOMEM;
@@ -146,6 +160,15 @@ int symlink(FAR const char *path1, FAR const char *path2)
 
       inode_lock();
       ret = inode_reserve(path2, 0777, &inode);
+
+      if (ret >= 0)
+        {
+          /* Initialize the inode */
+
+          INODE_SET_SOFTLINK(inode);
+          inode->u.i_link = newpath2;
+        }
+
       inode_unlock();
       if (ret < 0)
         {
@@ -153,11 +176,6 @@ int symlink(FAR const char *path1, FAR const char *path2)
           errcode = -ret;
           goto errout_with_search;
         }
-
-      /* Initialize the inode */
-
-      INODE_SET_SOFTLINK(inode);
-      inode->u.i_link = newpath2;
     }
 
   /* Symbolic link successfully created */
@@ -179,4 +197,4 @@ errout:
   return ERROR;
 }
 
-#endif /* CONFIG_PSEUDOFS_SOFTLINKS */
+#endif /* CONFIG_FS_LINKS */

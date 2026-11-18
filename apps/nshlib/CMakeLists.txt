@@ -42,6 +42,10 @@ if(CONFIG_NSH_LIBRARY)
     nsh_syscmds.c
     nsh_dbgcmds.c)
 
+  if(CONFIG_SCHED_USER_IDENTITY)
+    list(APPEND CSRCS nsh_identity.c)
+  endif()
+
   list(APPEND CSRCS nsh_session.c)
 
   if(CONFIG_NSH_CONSOLE_LOGIN)
@@ -95,6 +99,10 @@ if(CONFIG_NSH_LIBRARY)
     if(CONFIG_NSH_TELNET_LOGIN)
       list(APPEND CSRCS nsh_telnetlogin.c)
     endif()
+  endif()
+
+  if(CONFIG_NSH_DROPBEAR)
+    list(APPEND CSRCS nsh_dropbear.c)
   endif()
 
   if(NOT CONFIG_NSH_DISABLESCRIPT)

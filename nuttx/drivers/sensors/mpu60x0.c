@@ -20,6 +20,19 @@
  *
  ****************************************************************************/
 
+/* WARNING for developers:
+ *
+ * This driver uses the legacy style of writing sensor drivers for NuttX. The
+ * project has since decided to adopt a new sensor framework in order to
+ * have a consistent API and feature-set.
+ *
+ * Sensors which use the uORB framework are typically suffixed "_uorb". You
+ * can also visit the documentation about the new sensor framework to learn
+ * more.
+ */
+
+#warning "This is a deprecated legacy sensor driver."
+
 /****************************************************************************
  * TODO: Theory of Operation
  ****************************************************************************/
@@ -31,7 +44,7 @@
 #include <nuttx/config.h>
 
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <string.h>
 #include <limits.h>
 #include <nuttx/bits.h>
@@ -1174,7 +1187,7 @@ int mpu60x0_register(FAR const char *path, FAR struct mpu_config_s *config)
 
   /* Register the device node. */
 
-  ret = register_driver(path, &g_mpu_fops, 0666, priv);
+  ret = register_driver(path, &g_mpu_fops, 0600, priv);
   if (ret < 0)
     {
       snerr("ERROR: Failed to register mpu60x0 interface: %d\n", ret);

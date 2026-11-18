@@ -50,7 +50,7 @@ RUN mkdir -p /tools
 WORKDIR /tools
 
 RUN mkdir -p /tools/nuttx-tools
-RUN curl -s -L https://bitbucket.org/nuttx/tools/get/9ad3e1ee75c7.tar.gz \
+RUN curl -s -L https://github.com/patacongo/tools/archive/9ad3e1ee75c7d39bfee8019ce44f4fd035d89584.tar.gz \
   | tar -C nuttx-tools --strip-components=1 -xz
 
 RUN mkdir -p /tools/bloaty \
@@ -157,6 +157,43 @@ RUN mkdir -p gcc-arm-none-eabi && \
   | tar -C gcc-arm-none-eabi --strip-components 1 -xJ
 
 ###############################################################################
+# Build image for tool required by FDPIC module builds
+###############################################################################
+FROM nuttx-toolchain-base AS nuttx-toolchain-fdpic
+# Build the arm-uclinuxfdpiceabi binutils.  The stock arm-none-eabi compiler
+# emits correct FDPIC objects, but its assembler and linker cannot handle
+# them: ld is configured with the armelf emulation alone and links an FDPIC
+# object into an ordinary shared object, turning every import into an
+# R_ARM_JUMP_SLOT where the ABI wants an R_ARM_FUNCDESC_VALUE.  No
+# distribution packages this target, so it is built here.
+RUN apt-get update -qq && DEBIAN_FRONTEND="noninteractive" apt-get install -y -qq \
+  bison \
+  flex \
+  g++ \
+  gcc \
+  make \
+  texinfo \
+  zlib1g-dev
+
+RUN mkdir -p /tools/fdpic-tools/source && \
+  curl -s -L --fail "https://sourceware.org/pub/binutils/releases/binutils-2.43.tar.xz" \
+  | tar -C /tools/fdpic-tools/source --strip-components=1 -xJ
+
+# MAKEINFO=true because the info pages are of no use here and building them
+# is the slowest part of a binutils build.
+
+RUN mkdir -p /tools/fdpic-tools/build && cd /tools/fdpic-tools/build && \
+  /tools/fdpic-tools/source/configure \
+  --target=arm-uclinuxfdpiceabi \
+  --prefix=/tools/binutils-arm-uclinuxfdpiceabi \
+  --disable-nls \
+  --disable-werror \
+  --with-system-zlib && \
+  make -j$(nproc) MAKEINFO=true && make install-strip MAKEINFO=true && \
+  rm -rf /tools/binutils-arm-uclinuxfdpiceabi/share && \
+  cd /tools && rm -rf fdpic-tools
+
+###############################################################################
 # Build image for tool required by ARM64 builds
 ###############################################################################
 FROM nuttx-toolchain-base AS nuttx-toolchain-arm64
@@ -250,7 +287,7 @@ RUN cd /tools/renesas-tools/build/gcc && \
 FROM nuttx-toolchain-base AS nuttx-toolchain-riscv
 # Download the latest RISCV GCC toolchain prebuilt by xPack
 RUN mkdir -p riscv-none-elf-gcc && \
-  curl -s -L "https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.2.0-3/xpack-riscv-none-elf-gcc-14.2.0-3-linux-x64.tar.gz" \
+  curl -s -L "https://github.com/xpack-dev-tools/riscv-none-elf-gcc-xpack/releases/download/v14.3.0-1/xpack-riscv-none-elf-gcc-14.3.0-1-linux-x64.tar.gz" \
   | tar -C riscv-none-elf-gcc --strip-components 1 -xz
 
 ###############################################################################
@@ -358,6 +395,7 @@ RUN apt-get update -qq && DEBIAN_FRONTEND="noninteractive" TZ=Etc/UTC apt-get in
   libpython2.7 \
   libtinfo5 \
   libusb-1.0-0-dev libusb-1.0-0-dev:i386 \
+  libftdi1-dev \
   libv4l-dev libv4l-dev:i386 \
   libx11-dev libx11-dev:i386 \
   libxext-dev libxext-dev:i386 \
@@ -367,6 +405,7 @@ RUN apt-get update -qq && DEBIAN_FRONTEND="noninteractive" TZ=Etc/UTC apt-get in
   npm \
   qemu-system-arm \
   qemu-system-misc \
+  qemu-system-x86 \
   python3 \
   python3-pip \
   python-is-python3 \
@@ -396,6 +435,7 @@ ENV PIP_NO_CACHE_DIR=0
 # We are using the minimal python installation from the system so include
 # setuptools and also wheel so we can use the binary releases of packages
 # instead of requiring them to be compiled.
+RUN pip3 install --upgrade pip
 RUN pip3 install setuptools
 RUN pip3 install wheel
 RUN pip3 install cmake-format
@@ -406,7 +446,7 @@ RUN pip3 install cvt2utf
 # Install pytest
 RUN pip3 install cxxfilt
 RUN pip3 install construct
-RUN pip3 install esptool==4.8.dev4
+RUN pip3 install esptool==5.2.0
 RUN pip3 install imgtool
 RUN pip3 install kconfiglib
 RUN pip3 install pexpect==4.8.0
@@ -467,6 +507,10 @@ ENV PATH="/tools/gcc-arm-none-eabi/bin:$PATH"
 # ARM64 toolchain
 COPY --from=nuttx-toolchain-arm64 /tools/gcc-aarch64-none-elf/ gcc-aarch64-none-elf/
 ENV PATH="/tools/gcc-aarch64-none-elf/bin:$PATH"
+
+# FDPIC module toolchain
+COPY --from=nuttx-toolchain-fdpic /tools/binutils-arm-uclinuxfdpiceabi/ binutils-arm-uclinuxfdpiceabi/
+ENV PATH="/tools/binutils-arm-uclinuxfdpiceabi/bin:$PATH"
 
 # AVR32 toolchain
 COPY --from=nuttx-toolchain-avr32 /tools/gcc-avr32-gnu/ gcc-avr32-gnu/

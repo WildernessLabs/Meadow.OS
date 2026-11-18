@@ -222,7 +222,7 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
     return pathnameMeadow;
   }
 
-#if defined (CONFIG_STM32F7_SDMMC2)
+#if defined (CONFIG_STM32_SDMMC2)
   else if(memcmp(MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR,
               pathName, MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN) == 0)
   {
@@ -263,7 +263,7 @@ static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
       return pathnameSdcardNoConfig;
     }
   }
-#endif    // CONFIG_STM32F7_SDMMC2
+#endif    // CONFIG_STM32_SDMMC2
 
   // The following 2 path names ('/' and '/text/') where originally thought to
   // be needed, but have been changed to be considered errors. This means that

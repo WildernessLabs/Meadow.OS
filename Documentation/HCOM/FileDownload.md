@@ -59,7 +59,7 @@ The 8-element limit (`HCOM_FILE_DNLD_MAX_NUMB_DIR_ELEMENTS`) counts `meadow0` or
 file name, leaving 6 user sub-directories (`HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS`). A refusal sends a
 `TEXT_ERROR` naming the reason, then `INIT_DOWNLOAD_FAIL` and `TEXT_CONCLUDED`
 ([RequestRouting.md](RequestRouting.md#command-packets)). The SD card form only exists in builds with
-`CONFIG_STM32F7_SDMMC2`, and only when the device's configuration enables SD storage
+`CONFIG_STM32_SDMMC2`, and only when the device's configuration enables SD storage
 (`sd_storage_supported`).
 
 The code looks only at the prefix and the trailing slash. It does not remove `.` or `..` elements, and

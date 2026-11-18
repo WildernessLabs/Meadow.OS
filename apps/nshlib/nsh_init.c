@@ -143,12 +143,6 @@ void nsh_initialize(void)
   boardctl(BOARDIOC_APP_SYMTAB, (uintptr_t)&symdesc);
 #endif
 
-#ifdef CONFIG_NSH_ARCHINIT
-  /* Perform architecture-specific initialization (if configured) */
-
-  boardctl(BOARDIOC_INIT, 0);
-#endif
-
 #if defined(CONFIG_ETC_ROMFS) && !defined(CONFIG_NSH_DISABLESCRIPT)
   pstate = nsh_newconsole(false);
 
@@ -161,12 +155,6 @@ void nsh_initialize(void)
   /* Bring up the network */
 
   netinit_bringup();
-#endif
-
-#if defined(CONFIG_NSH_ARCHINIT) && defined(CONFIG_BOARDCTL_FINALINIT)
-  /* Perform architecture-specific final-initialization (if configured) */
-
-  boardctl(BOARDIOC_FINALINIT, 0);
 #endif
 
 #if defined(CONFIG_ETC_ROMFS) && !defined(CONFIG_NSH_DISABLESCRIPT)
@@ -186,5 +174,17 @@ void nsh_initialize(void)
    */
 
   nsh_telnetstart(AF_UNSPEC);
+#endif
+
+#if defined(CONFIG_NSH_DROPBEAR) && \
+    !defined(CONFIG_NSH_DISABLE_DROPBEARSTART) && \
+    !defined(CONFIG_NETINIT_NETLOCAL)
+  /* If Dropbear is selected as an SSH front-end, then start the daemon
+   * UNLESS network initialization is deferred via CONFIG_NETINIT_NETLOCAL.
+   * In that case, Dropbear must be started manually with the dropbear
+   * command after the network has been initialized.
+   */
+
+  nsh_dropbearstart();
 #endif
 }

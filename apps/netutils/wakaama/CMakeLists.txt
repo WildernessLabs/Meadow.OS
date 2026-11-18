@@ -31,7 +31,7 @@ if(CONFIG_NETUTILS_WAKAAMA)
           SOURCE_DIR
           ${CMAKE_CURRENT_LIST_DIR}/wakaama
           BINARY_DIR
-          ${CMAKE_BINARY_DIR}/apps/netutils/wakaama/wakaama
+          ${NUTTX_BINARY_DIR}/apps/netutils/wakaama/wakaama
       DOWNLOAD_NO_PROGRESS true
       TIMEOUT 30)
 
@@ -76,6 +76,10 @@ if(CONFIG_NETUTILS_WAKAAMA)
 
   if(CONFIG_WAKAAMA_SENML_JSON)
     list(APPEND WAKAAMA_DEFINITIONS LWM2M_SUPPORT_SENML_JSON)
+  endif()
+
+  if(CONFIG_WAKAAMA_TLV)
+    list(APPEND WAKAAMA_DEFINITIONS LWM2M_SUPPORT_TLV)
   endif()
 
   list(APPEND WAKAAMA_DEFINITIONS

@@ -36,7 +36,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
@@ -258,7 +258,7 @@ static int smartfs_open(FAR struct file *filep, FAR const char *relpath,
 
   if (ret == OK)
     {
-      /* The name exists -- but is is a file or a directory? */
+      /* The name exists -- but is it a file or a directory? */
 
       if (sf->entry.flags & SMARTFS_DIRENT_TYPE_DIR)
         {
@@ -285,7 +285,7 @@ static int smartfs_open(FAR struct file *filep, FAR const char *relpath,
        * is writeable. O_TRUNC without write access is ignored.
        */
 
-      if ((oflags & (O_TRUNC | O_WROK)) == (O_TRUNC | O_WROK))
+      if ((oflags & (O_TRUNC | O_WRONLY)) == (O_TRUNC | O_WRONLY))
         {
           /* Truncate the file as part of the open */
 
@@ -693,7 +693,7 @@ static ssize_t smartfs_write(FAR struct file *filep, FAR const char *buffer,
    * write flags.
    */
 
-  if ((sf->oflags & O_WROK) == 0)
+  if ((sf->oflags & O_ACCMODE) == O_RDONLY)
     {
       ret = -EACCES;
       goto errout_with_lock;
@@ -1047,10 +1047,12 @@ static int smartfs_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case FIOC_FILEPATH:
         {
           FAR char *path = (FAR char *)(uintptr_t)arg;
+
           ret = inode_getpath(inode, path, PATH_MAX);
           if (ret >= 0)
             {
               size_t len = strlen(path);
+
               if (path[len - 1] != '/')
                 {
                   path[len++] = '/';
@@ -1223,7 +1225,7 @@ static int smartfs_truncate(FAR struct file *filep, off_t length)
    * write flags.
    */
 
-  if ((sf->oflags & O_WROK) == 0)
+  if ((sf->oflags & O_ACCMODE) == O_RDONLY)
     {
       ret = -EACCES;
       goto errout_with_lock;
@@ -2131,9 +2133,12 @@ static void smartfs_stat_common(FAR struct smartfs_mountpt_s *fs,
     }
   else
     {
-      /* Mask out the file type */
+      /* Preserve only the permission bits.  The other directory-entry
+       * flags include SMARTFS_DIRENT_RESERVED, which overlaps the POSIX
+       * setuid, setgid, and sticky mode bits.
+       */
 
-      buf->st_mode = entry->flags & ~S_IFMT;
+      buf->st_mode = entry->flags & SMARTFS_DIRENT_MODE;
 
       /* Add the file type based on the SmartFS entry flags */
 

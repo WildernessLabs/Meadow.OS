@@ -29,7 +29,7 @@
 #include <inttypes.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <endian.h>
 
 #include <nuttx/compiler.h>
@@ -485,11 +485,20 @@ int up_relocateadd(const Elf64_Rela *rel, const Elf64_Sym *sym,
   uint64_t val;
   int ret = 0;
 
+  /* Only R_AARCH64_NONE may come without a symbol (symbol index 0) */
+
+  if (sym == NULL && ELF64_R_TYPE(rel->r_info) != R_AARCH64_NONE)
+    {
+      berr("ERROR: Relocation type %d has no symbol\n",
+           (int)ELF64_R_TYPE(rel->r_info));
+      return -EINVAL;
+    }
+
   /* addr corresponds to P in the AArch64 ELF document. */
 
   /* val corresponds to (S + A) in the AArch64 ELF document. */
 
-  val = sym->st_value + rel->r_addend;
+  val = (sym != NULL ? sym->st_value : 0) + rel->r_addend;
 
   /* Handle the relocation by relocation type */
 

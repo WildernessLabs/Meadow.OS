@@ -27,7 +27,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <unistd.h>
 
 #include <nuttx/signal.h>
@@ -484,9 +484,9 @@ int nrf24_read(int wl_fd)
 {
   int ret;
   uint32_t pipeno;
-  uint8_t rbuf[32];
+  uint8_t rbuf[NRF24L01_MAX_PAYLOAD_LEN + 1];
 
-  ret = read(wl_fd, rbuf, sizeof(rbuf));
+  ret = read(wl_fd, rbuf, NRF24L01_MAX_PAYLOAD_LEN);
   if (ret < 0)
     {
       perror("Error reading packet\n");
@@ -512,7 +512,7 @@ int nrf24_read(int wl_fd)
 
 #ifdef CONFIG_DEBUG_WIRELESS
   syslog(LOG_INFO, "Message received : (on pipe %d)\n",  pipeno);
-  nrf24_dumpbuffer("Hex Dump", &rbuf[0], 32);
+  nrf24_dumpbuffer("Hex Dump", &rbuf[0], ret);
 #endif
   return 0;
 }

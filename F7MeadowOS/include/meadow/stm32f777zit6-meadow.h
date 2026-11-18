@@ -135,7 +135,7 @@ int meadow_upd_initialize(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STM32F7_OTGFS
+#ifdef CONFIG_STM32_OTGFS
 void stm32_usbinitialize(void);
 #endif
 
@@ -171,7 +171,7 @@ void arch_sporadic_initialize(void);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_STM32F7_FMC
+#ifdef CONFIG_STM32_FMC
 void stm32_sdram_initialize(void);
 
 void stm32_disablefmc(void);

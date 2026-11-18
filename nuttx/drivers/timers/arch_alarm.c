@@ -26,13 +26,34 @@
 
 #include <nuttx/config.h>
 
+#include <assert.h>
+
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
+#include <nuttx/lib/math32.h>
 #include <nuttx/timers/arch_alarm.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* If no value is given, we proceed with 0 since a one-shot timer is used for
+ * accurate delays. A runtime DEBUGASSERT catches the case where the one-shot
+ * timer lower-half isn't registered in time.
+ *
+ * If ARCH_HAVE_DYNAMIC_UDELAY is set, BOARD_LOOPSPERMSEC is unset.
+ * Considering the above, it should not be used. Set a default value of -1,
+ * turning this case into an already handled one.
+ */
+
+#ifndef CONFIG_BOARD_LOOPSPERMSEC
+#  define CONFIG_BOARD_LOOPSPERMSEC -1
+#endif
+
+#if CONFIG_BOARD_LOOPSPERMSEC == -1
+#  undef  CONFIG_BOARD_LOOPSPERMSEC
+#  define CONFIG_BOARD_LOOPSPERMSEC 0
+#endif
 
 #define CONFIG_BOARD_LOOPSPER100USEC ((CONFIG_BOARD_LOOPSPERMSEC+5)/10)
 #define CONFIG_BOARD_LOOPSPER10USEC  ((CONFIG_BOARD_LOOPSPERMSEC+50)/100)
@@ -55,6 +76,8 @@ static clock_t g_current_tick;
 static void udelay_coarse(useconds_t microseconds)
 {
   volatile int i;
+
+  DEBUGASSERT(CONFIG_BOARD_LOOPSPERMSEC != 0);
 
   /* We'll do this a little at a time because we expect that the
    * CONFIG_BOARD_LOOPSPERUSEC is very inaccurate during to truncation in
@@ -118,12 +141,13 @@ static void ndelay_accurate(unsigned long nanoseconds)
 static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower,
                              FAR void *arg)
 {
+#if defined(CONFIG_SCHED_TICKLESS)
+  nxsched_process_timer();
+#else
   clock_t now;
 
   ONESHOT_TICK_CURRENT(g_oneshot_lower, &now);
-#ifdef CONFIG_SCHED_TICKLESS
-  nxsched_tick_expiration(now);
-#else
+
   /* It is always an error if this progresses more than 1 tick at a time.
    * That would break any timer based on wdog; such timers might timeout
    * early. Add a DEBUGASSERT here to catch those errors. It is not added
@@ -166,12 +190,20 @@ void weak_function up_mdelay(unsigned int milliseconds)
  *   Delay inline for the requested number of microseconds.
  *   WARNING: NOT multi-tasking friendly
  *
+ *   This function is both compiled optionally based on ARCH_HAVE_UDELAY
+ *   and declared with weak attribute. See comment of up_udelay
+ *   implementation in sched/clock/clock_delay.c for explanation.
+ *
  ****************************************************************************/
+
+#ifndef CONFIG_ARCH_HAVE_UDELAY
 
 void weak_function up_udelay(useconds_t microseconds)
 {
   up_ndelay(NSEC_PER_USEC * microseconds);
 }
+
+#endif
 
 /****************************************************************************
  * Name: up_ndelay
@@ -257,16 +289,8 @@ void weak_function up_timer_getmask(FAR clock_t *mask)
 
       ONESHOT_TICK_MAX_DELAY(g_oneshot_lower, &maxticks);
 
-      for (; ; )
-        {
-          clock_t next = (*mask << 1) | 1;
-          if (next > maxticks)
-            {
-              break;
-            }
-
-          *mask = next;
-        }
+      *mask = maxticks == 0 ? 0 :
+              UINT64_MAX >> (sizeof(clock_t) * 8u - flsx(maxticks));
     }
 }
 
@@ -300,7 +324,7 @@ int weak_function up_timer_gettime(struct timespec *ts)
  * Description:
  *   Cancel the alarm and return the time of cancellation of the alarm.
  *   These two steps need to be as nearly atomic as possible.
- *   nxsched_alarm_expiration() will not be called unless the alarm is
+ *   nxsched_process_timer() will not be called unless the alarm is
  *   restarted with up_alarm_start().
  *
  *   If, as a race condition, the alarm has already expired when this
@@ -329,6 +353,18 @@ int weak_function up_timer_gettime(struct timespec *ts)
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_TICKLESS
+int weak_function up_alarm_cancel(FAR struct timespec *ts)
+{
+  int ret = -EAGAIN;
+
+  if (g_oneshot_lower != NULL)
+    {
+      ret = ONESHOT_CANCEL(g_oneshot_lower, ts);
+    }
+
+  return ret;
+}
+
 int weak_function up_alarm_tick_cancel(FAR clock_t *ticks)
 {
   int ret = -EAGAIN;
@@ -347,14 +383,14 @@ int weak_function up_alarm_tick_cancel(FAR clock_t *ticks)
  * Name: up_alarm_start
  *
  * Description:
- *   Start the alarm.  nxsched_alarm_expiration() will be called when the
+ *   Start the alarm.  nxsched_process_timer() will be called when the
  *   alarm occurs (unless up_alaram_cancel is called to stop it).
  *
  *   Provided by platform-specific code and called from the RTOS base code.
  *
  * Input Parameters:
  *   ts - The time in the future at the alarm is expected to occur. When the
- *        alarm occurs the timer logic will call nxsched_alarm_expiration().
+ *        alarm occurs the timer logic will call nxsched_process_timer().
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -367,7 +403,19 @@ int weak_function up_alarm_tick_cancel(FAR clock_t *ticks)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_TICKLESS
+#if defined(CONFIG_SCHED_TICKLESS) || defined(CONFIG_HRTIMER)
+int weak_function up_alarm_start(FAR const struct timespec *ts)
+{
+  int ret = -EAGAIN;
+
+  if (g_oneshot_lower != NULL)
+    {
+      ret = ONESHOT_ABSOLUTE(g_oneshot_lower, ts);
+    }
+
+  return ret;
+}
+
 int weak_function up_alarm_tick_start(clock_t ticks)
 {
   int ret = -EAGAIN;

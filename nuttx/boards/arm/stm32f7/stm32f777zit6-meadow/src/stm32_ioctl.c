@@ -147,12 +147,12 @@ int board_ioctl(unsigned int cmd, uintptr_t arg)
           // Timeout. It's a 16-bit number that determines how many clock
           // cycles to wait before entering into low-power mode, if in
           // memory-mapped mode. Probably won't save any current, but easy.
-          stm32f7_qspi_enter_memorymapped(g_qspi, &meminfo, 0x0100 /*LPTO=256*/);
+          stm32_qspi_enter_memorymapped(g_qspi, &meminfo, 0x0100 /*LPTO=256*/);
         }
         break;
 
       case BIOC_EXIT_MEMMAP:
-        stm32f7_qspi_exit_memorymapped(g_qspi);
+        stm32_qspi_exit_memorymapped(g_qspi);
         break;
 
       default:

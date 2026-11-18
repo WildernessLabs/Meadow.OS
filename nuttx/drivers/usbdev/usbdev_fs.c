@@ -26,7 +26,7 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
@@ -85,6 +85,7 @@ struct usbdev_fs_ep_s
   struct sq_queue_s           reqq;       /* Available request containers */
   FAR struct usbdev_fs_req_s *reqbuffer;  /* Request buffer */
   FAR struct pollfd          *fds[CONFIG_USBDEV_FS_NPOLLWAITERS];
+  spinlock_t                  spinlock;
 
   /* These member is valid for endpoint 0 */
 
@@ -192,6 +193,7 @@ static void usbdev_fs_notify(FAR struct usbdev_fs_ep_s *fs_ep,
   /* Notify all of the waiting readers */
 
   FAR usbdev_fs_waiter_sem_t *cur_sem = fs_ep->sems;
+
   while (cur_sem != NULL)
     {
       nxsem_post(&cur_sem->sem);
@@ -278,37 +280,37 @@ static void usbdev_fs_rdcomplete(FAR struct usbdev_ep_s *ep,
     {
       case 0: /* Normal completion */
 
-      usbtrace(TRACE_CLASSRDCOMPLETE, sq_count(&fs_ep->reqq));
+        usbtrace(TRACE_CLASSRDCOMPLETE, sq_count(&fs_ep->reqq));
 
-      /* Restart request due to empty frame received */
+        /* Restart request due to empty frame received */
 
-      if (req->xfrd <= 0)
-        {
-          goto restart_req;
-        }
+        if (req->xfrd <= 0)
+          {
+            goto restart_req;
+          }
 
-      /* Queue request and notify readers */
+        /* Queue request and notify readers */
 
-      flags = enter_critical_section();
+        flags = spin_lock_irqsave_nopreempt(&fs_ep->spinlock);
 
-      /* Put request on RX pending queue */
+        /* Put request on RX pending queue */
 
-      container->offset = 0;
-      sq_addlast(&container->node, &fs_ep->reqq);
+        container->offset = 0;
+        sq_addlast(&container->node, &fs_ep->reqq);
 
-      usbdev_fs_notify(fs_ep, POLLIN);
+        usbdev_fs_notify(fs_ep, POLLIN);
 
-      leave_critical_section(flags);
-      return;
+        spin_unlock_irqrestore_nopreempt(&fs_ep->spinlock, flags);
+        return;
 
       case -ESHUTDOWN: /* Disconnection */
-      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDSHUTDOWN), 0);
-      return;
+        usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDSHUTDOWN), 0);
+        return;
 
       default: /* Some other error occurred */
-      usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDUNEXPECTED),
-               (uint16_t)-req->result);
-      break;
+        usbtrace(TRACE_CLSERROR(USBSER_TRACEERR_RDUNEXPECTED),
+                 (uint16_t)-req->result);
+        break;
     };
 
 restart_req:
@@ -351,7 +353,7 @@ static void usbdev_fs_wrcomplete(FAR struct usbdev_ep_s *ep,
 
   /* Return the write request to the free list */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave_nopreempt(&fs_ep->spinlock);
   sq_addlast(&container->node, &fs_ep->reqq);
 
   /* Check for termination condition */
@@ -383,7 +385,7 @@ static void usbdev_fs_wrcomplete(FAR struct usbdev_ep_s *ep,
         break;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore_nopreempt(&fs_ep->spinlock, flags);
 }
 
 /****************************************************************************
@@ -402,13 +404,13 @@ static int usbdev_fs_blocking_io(FAR struct usbdev_fs_ep_s *fs_ep,
   irqstate_t flags;
   int ret;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave(&fs_ep->spinlock);
 
   if (!sq_empty(queue))
     {
       /* Queue not empty after all */
 
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(&fs_ep->spinlock, flags);
       return 0;
     }
 
@@ -419,7 +421,7 @@ static int usbdev_fs_blocking_io(FAR struct usbdev_fs_ep_s *fs_ep,
   sem.next = *list;
   *list = &sem;
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(&fs_ep->spinlock, flags);
 
   nxmutex_unlock(&fs_ep->lock);
 
@@ -435,7 +437,7 @@ static int usbdev_fs_blocking_io(FAR struct usbdev_fs_ep_s *fs_ep,
 
   if (ret < 0)
     {
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave(&fs_ep->spinlock);
 
       FAR usbdev_fs_waiter_sem_t *cur_sem = *list;
 
@@ -457,7 +459,7 @@ static int usbdev_fs_blocking_io(FAR struct usbdev_fs_ep_s *fs_ep,
             }
         }
 
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(&fs_ep->spinlock, flags);
       nxmutex_unlock(&fs_ep->lock);
     }
 
@@ -645,10 +647,10 @@ static ssize_t usbdev_fs_read(FAR struct file *filep, FAR char *buffer,
               memcpy(buffer, &ctrl_container->req, retlen);
             }
 
-          flags = enter_critical_section();
+          flags = spin_lock_irqsave(&fs_ep->spinlock);
           sq_remfirst(queue);
           sq_addlast(&ctrl_container->node, &fs_ep->ctrlreqq_free);
-          leave_critical_section(flags);
+          spin_unlock_irqrestore(&fs_ep->spinlock, flags);
 
           break;
         }
@@ -691,9 +693,9 @@ static ssize_t usbdev_fs_read(FAR struct file *filep, FAR char *buffer,
 
       /* FIXME use atomic queue primitives ? */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave(&fs_ep->spinlock);
       sq_remfirst(queue);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(&fs_ep->spinlock, flags);
 
       ret = usbdev_fs_submit_rdreq(fs_ep->ep, container);
       if (ret < 0)
@@ -783,12 +785,12 @@ static ssize_t usbdev_fs_write(FAR struct file *filep,
 
       /* Get available TX request slot */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave(&fs_ep->spinlock);
 
       container = container_of(sq_remfirst(&fs_ep->reqq),
                                struct usbdev_fs_req_s, node);
 
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(&fs_ep->spinlock, flags);
 
       req = container->req;
 
@@ -872,7 +874,7 @@ static int usbdev_fs_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   /* FIXME only parts of this function required interrupt disabled */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave_nopreempt(&fs_ep->spinlock);
 
   /* This is a request to set up the poll. Find an available
    * slot for the poll structure reference
@@ -934,7 +936,7 @@ static int usbdev_fs_poll(FAR struct file *filep, FAR struct pollfd *fds,
   poll_notify(fs_ep->fds, CONFIG_USBDEV_FS_NPOLLWAITERS, eventset);
 
 exit_leave_critical:
-  leave_critical_section(flags);
+  spin_unlock_irqrestore_nopreempt(&fs_ep->spinlock, flags);
 errout:
   nxmutex_unlock(&fs_ep->lock);
   return ret;
@@ -952,9 +954,8 @@ static void usbdev_fs_connect(FAR struct usbdev_fs_dev_s *fs, int connect)
 {
   FAR struct usbdev_devinfo_s *devinfo = &fs->devinfo;
   FAR struct usbdev_fs_ep_s *fs_ep;
+  irqstate_t flags;
   uint16_t cnt;
-
-  irqstate_t flags = enter_critical_section();
 
   if (connect)
     {
@@ -963,7 +964,9 @@ static void usbdev_fs_connect(FAR struct usbdev_fs_dev_s *fs, int connect)
       for (cnt = 0; cnt < devinfo->nendpoints + 1; cnt++)
         {
           fs_ep = &fs->eps[cnt];
+          flags = spin_lock_irqsave_nopreempt(&fs_ep->spinlock);
           poll_notify(fs_ep->fds, CONFIG_USBDEV_FS_NPOLLWAITERS, POLLPRI);
+          spin_unlock_irqrestore_nopreempt(&fs_ep->spinlock, flags);
         }
     }
   else
@@ -973,11 +976,11 @@ static void usbdev_fs_connect(FAR struct usbdev_fs_dev_s *fs, int connect)
       for (cnt = 0; cnt < devinfo->nendpoints + 1; cnt++)
         {
           fs_ep = &fs->eps[cnt];
+          flags = spin_lock_irqsave_nopreempt(&fs_ep->spinlock);
           usbdev_fs_notify(fs_ep, POLLERR | POLLHUP);
+          spin_unlock_irqrestore_nopreempt(&fs_ep->spinlock, flags);
         }
     }
-
-  leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -1004,6 +1007,7 @@ static int usbdev_fs_ep_bind(FAR struct usbdev_s *dev, uint8_t epno,
   /* Initialize fs ep lock */
 
   nxmutex_init(&fs_ep->lock);
+  spin_lock_init(&fs_ep->spinlock);
 
   /* Initialize request queue */
 
@@ -1142,6 +1146,7 @@ static void usbdev_fs_ep_unbind(FAR const char *devname,
         {
           FAR struct usbdev_fs_req_s *container =
             &fs_ep->reqbuffer[i];
+
           if (container->req)
             {
               usbdev_freereq(fs_ep->ep, container->req);
@@ -1241,7 +1246,7 @@ static void usbdev_fs_register_driver(FAR void *arg)
     {
       snprintf(devname, sizeof(devname), "%s/ep%d",
                devinfo->name, i);
-      ret = register_driver(devname, &g_usbdev_fs_fops, 0666, &fs->eps[i]);
+      ret = register_driver(devname, &g_usbdev_fs_fops, 0600, &fs->eps[i]);
       if (ret < 0)
         {
           uerr("Failed to register driver:%s, ret:%d\n", devname, ret);
@@ -1308,6 +1313,7 @@ static int usbdev_fs_classsetconfig(FAR struct usbdev_fs_dev_s *fs,
           for (j = 0; j < devinfo->epinfos[i]->reqnum; j++)
             {
               FAR struct usbdev_fs_req_s *container;
+
               container = &fs_ep->reqbuffer[j];
               container->req->callback = usbdev_fs_rdcomplete;
               usbdev_fs_submit_rdreq(fs_ep->ep, container);
@@ -1487,8 +1493,8 @@ static int usbdev_fs_classsetup(FAR struct usbdevclass_driver_s *driver,
     }
   else
     {
-      irqstate_t flags = enter_critical_section();
       FAR struct usbdev_fs_ep_s *ep0 = &fs->eps[0];
+      irqstate_t flags = spin_lock_irqsave_nopreempt(&ep0->spinlock);
 
       if (!sq_empty(&ep0->ctrlreqq_free))
         {
@@ -1508,7 +1514,7 @@ static int usbdev_fs_classsetup(FAR struct usbdevclass_driver_s *driver,
           uerr("Failed to find free control request for ep0");
         }
 
-      leave_critical_section(flags);
+      spin_unlock_irqrestore_nopreempt(&ep0->spinlock, flags);
     }
 
   /* Returning a negative value will cause a STALL */

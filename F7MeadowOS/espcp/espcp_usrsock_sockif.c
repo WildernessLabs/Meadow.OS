@@ -3132,7 +3132,7 @@ int espcp_usrsock_socket(int domain, int type, int protocol, struct socket *psoc
  *  None
  *
  ****************************************************************************/
-ssize_t espcp_usrsock_sendmsg(struct socket *psock, struct msghdr *msg, int flags)
+ssize_t espcp_usrsock_sendmsg(struct socket *psock, const struct msghdr *msg, int flags)
 {
     MEADOW_TRACE_INFORMATION("sendmsg(%d, %p, %d)\n", espcp_sockfd(psock), msg, flags);
 

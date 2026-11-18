@@ -34,7 +34,10 @@ include(nuttx_parse_function_args)
 #   - riscv32: riscv32imc/imac/imafc-unknown-nuttx-elf
 #   - riscv64: riscv64imac/imafdc-unknown-nuttx-elf
 #   - x86: i686-unknown-nuttx
-#   - x86_64: x86_64-unknown-nuttx
+#   - x86_64: x86_64-unknown-nuttx-macho for sim on macOS,
+#              x86_64-unknown-nuttx otherwise
+#   - aarch64: aarch64-unknown-nuttx-macho for sim on macOS,
+#              aarch64-unknown-nuttx otherwise
 #
 # Inputs:
 #   ARCHTYPE - Architecture type (e.g. thumbv7m, riscv32)
@@ -48,9 +51,22 @@ include(nuttx_parse_function_args)
 
 function(nuttx_rust_target_triple ARCHTYPE ABITYPE CPUTYPE OUTPUT)
   if(ARCHTYPE STREQUAL "x86_64")
-    set(TARGET_TRIPLE "x86_64-unknown-nuttx")
+    if(CONFIG_ARCH_SIM AND CONFIG_HOST_MACOS)
+      set(TARGET_TRIPLE
+          "${PROJECT_SOURCE_DIR}/tools/x86_64-unknown-nuttx-macho.json")
+    else()
+      set(TARGET_TRIPLE "${PROJECT_SOURCE_DIR}/tools/x86_64-unknown-nuttx.json")
+    endif()
   elseif(ARCHTYPE STREQUAL "x86")
-    set(TARGET_TRIPLE "i686-unknown-nuttx")
+    set(TARGET_TRIPLE "${PROJECT_SOURCE_DIR}/tools/i486-unknown-nuttx.json")
+  elseif(ARCHTYPE STREQUAL "aarch64")
+    if(CONFIG_ARCH_SIM AND CONFIG_HOST_MACOS)
+      set(TARGET_TRIPLE
+          "${PROJECT_SOURCE_DIR}/tools/aarch64-unknown-nuttx-macho.json")
+    else()
+      set(TARGET_TRIPLE
+          "${PROJECT_SOURCE_DIR}/tools/aarch64-unknown-nuttx.json")
+    endif()
   elseif(ARCHTYPE MATCHES "thumb")
     if(ARCHTYPE MATCHES "thumbv8m")
       # Extract just the base architecture type (thumbv8m.main or thumbv8m.base)
@@ -90,6 +106,13 @@ function(nuttx_rust_target_triple ARCHTYPE ABITYPE CPUTYPE OUTPUT)
       set(TARGET_TRIPLE "riscv64imac-unknown-nuttx-elf")
     endif()
   endif()
+
+  if(NOT TARGET_TRIPLE)
+    message(
+      FATAL_ERROR
+        "Unsupported Rust target: LLVM_ARCHTYPE=${ARCHTYPE}, LLVM_ABITYPE=${ABITYPE}, LLVM_CPUTYPE=${CPUTYPE}"
+    )
+  endif()
   set(${OUTPUT}
       ${TARGET_TRIPLE}
       PARENT_SCOPE)
@@ -107,6 +130,8 @@ endfunction()
 #    hello
 #    CRATE_PATH
 #    ${CMAKE_CURRENT_SOURCE_DIR}/hello
+#    FEATURES
+#    sim
 #  )
 # ~~~
 
@@ -119,6 +144,8 @@ function(nuttx_add_rust)
     ONE_VALUE
     CRATE_NAME
     CRATE_PATH
+    MULTI_VALUE
+    FEATURES
     REQUIRED
     CRATE_NAME
     CRATE_PATH
@@ -127,34 +154,60 @@ function(nuttx_add_rust)
 
   # Determine build profile based on CONFIG_DEBUG_FULLOPT
   if(CONFIG_DEBUG_FULLOPT)
+    set(RUST_PROFILE_FLAG "--release")
     set(RUST_PROFILE "release")
-    set(RUST_DEBUG_FLAGS "-Zbuild-std-features=panic_immediate_abort")
+    set(RUST_PANIC_FLAGS "-Zunstable-options -Cpanic=immediate-abort")
   else()
+    set(RUST_PROFILE_FLAG "")
     set(RUST_PROFILE "debug")
-    set(RUST_DEBUG_FLAGS "")
+    set(RUST_PANIC_FLAGS "")
   endif()
+
+  foreach(feature ${FEATURES})
+    list(APPEND RUST_FEATURE_FLAGS --features ${feature})
+  endforeach()
 
   # Get the Rust target triple
   nuttx_rust_target_triple(${LLVM_ARCHTYPE} ${LLVM_ABITYPE} ${LLVM_CPUTYPE}
                            RUST_TARGET)
 
-  # Set up build directory in current binary dir
-  set(RUST_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CRATE_NAME})
+  # Get binary directory path using target triple base name if it's a JSON file
+  if(RUST_TARGET MATCHES ".json$")
+    get_filename_component(TARGET_BASE ${RUST_TARGET} NAME_WE)
+  else()
+    set(TARGET_BASE ${RUST_TARGET})
+  endif()
+
+  set(RUST_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CRATE_NAME}/target)
   set(RUST_LIB_PATH
-      ${RUST_BUILD_DIR}/${RUST_TARGET}/${RUST_PROFILE}/lib${CRATE_NAME}.a)
+      ${RUST_BUILD_DIR}/${TARGET_BASE}/${RUST_PROFILE}/lib${CRATE_NAME}.a)
 
   # Create build directory
   file(MAKE_DIRECTORY ${RUST_BUILD_DIR})
+
+  # Collect Rust source files and manifests as dependencies so that changes in
+  # the crate trigger a rebuild via CMake/Ninja.
+  file(
+    GLOB_RECURSE
+    RUST_CRATE_SOURCES
+    CONFIGURE_DEPENDS
+    "${CRATE_PATH}/Cargo.toml"
+    "${CRATE_PATH}/Cargo.lock"
+    "${CRATE_PATH}/build.rs"
+    "${CRATE_PATH}/src/*.rs"
+    "${CRATE_PATH}/src/**/*.rs")
 
   # Add a custom command to build the Rust crate
   add_custom_command(
     OUTPUT ${RUST_LIB_PATH}
     COMMAND
       ${CMAKE_COMMAND} -E env
-      NUTTX_INCLUDE_DIR=${PROJECT_SOURCE_DIR}/include:${CMAKE_BINARY_DIR}/include:${CMAKE_BINARY_DIR}/include/arch
-      cargo build --${RUST_PROFILE} -Zbuild-std=std,panic_abort
-      ${RUST_DEBUG_FLAGS} --manifest-path ${CRATE_PATH}/Cargo.toml --target
-      ${RUST_TARGET} --target-dir ${RUST_BUILD_DIR}
+      NUTTX_INCLUDE_DIR=${PROJECT_SOURCE_DIR}/include:${NUTTX_BINARY_DIR}/include:${NUTTX_BINARY_DIR}/include/arch
+      RUSTFLAGS=${RUST_PANIC_FLAGS} cargo build ${RUST_PROFILE_FLAG}
+      -Zbuild-std=std,panic_abort -Zjson-target-spec --manifest-path
+      ${CRATE_PATH}/Cargo.toml --target ${RUST_TARGET} --target-dir
+      ${RUST_BUILD_DIR} ${RUST_FEATURE_FLAGS}
+    DEPENDS ${RUST_CRATE_SOURCES}
     COMMENT "Building Rust crate ${CRATE_NAME}"
     VERBATIM)
 

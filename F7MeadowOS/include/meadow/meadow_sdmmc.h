@@ -45,11 +45,11 @@
 /****************************************************************************************************
  * SDCard Support
  ****************************************************************************************************/
-#if defined (CONFIG_STM32F7_SDMMC1)
-#error "CONFIG_STM32F7_SDMMC1 is not supported on the Meadow"
+#if defined (CONFIG_STM32_SDMMC1)
+#error "CONFIG_STM32_SDMMC1 is not supported on the Meadow"
 #endif
 
-#if defined (CONFIG_STM32F7_SDMMC2)
+#if defined (CONFIG_STM32_SDMMC2)
 int stm32_sdio_initialize_meadow(void);
 
 // NCD because C=Card, D=Detection and N=because the pin is pulled to ground
@@ -62,6 +62,6 @@ int stm32_sdio_initialize_meadow(void);
 #define SDIO_MINOR              0
 #define HAVE_SDIO               1
 
-#endif      // #if defined (CONFIG_STM32F7_SDMMC2)
+#endif      // #if defined (CONFIG_STM32_SDMMC2)
 
 #endif // __CONFIGS_MEADOW_SRC_MEADOW_SDMMC__H

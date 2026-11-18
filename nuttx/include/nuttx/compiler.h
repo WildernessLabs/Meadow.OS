@@ -79,6 +79,15 @@
 #  define CONFIG_HAVE_CXX14 1
 #endif
 
+/* Keyword about _Atomic */
+
+#if defined(__cplusplus) || defined(__clang__) || \
+    !defined(__STDC_VERSION__) || __STDC_VERSION__ < 201112L
+#  define __Atomic(t) t
+#else
+#  define __Atomic(t) _Atomic(t)
+#endif
+
 /* Green Hills Software definitions *****************************************/
 
 #if defined(__ghs__)
@@ -135,6 +144,13 @@
                                  extern __inline__ no_builtin(#fn) \
                                  __attribute__((__always_inline__, \
                                                 __gnu_inline__, __artificial__))
+#  elif defined(__OPTIMIZE__) && __OPTIMIZE__ > 0 && defined(__has_builtin)
+#    define builtin_original(fn)  __typeof__(fn)  __orig_##fn __asm__(#fn)
+#    define builtin_function(fn)  builtin_original(fn); \
+                                  extern __inline__ no_builtin(#fn) \
+                                  __attribute__((__always_inline__, \
+                                                 __gnu_inline__, __artificial__))
+#    define CONFIG_HAVE_BUILTIN 1 /* Use built-in functions */
 #  endif
 
 /* Pre-processor */
@@ -167,6 +183,14 @@
 
 #  define offsetof(a, b) __builtin_offsetof(a, b)
 #  define return_address(x) __builtin_return_address(x)
+
+#  define PRAGMA(x)         _Pragma(#x)
+
+#  if defined(__clang__)
+#    define unroll_loop(n)  PRAGMA(clang loop unroll_count(n))
+#  else
+#    define unroll_loop(n)  PRAGMA(GCC unroll n)
+#  endif
 
 /* Attributes
  *
@@ -427,7 +451,6 @@
 
 /* Define these here and allow specific architectures to override as needed */
 
-#  define CONFIG_HAVE_LONG_LONG 1
 #  define CONFIG_HAVE_FLOAT 1
 #  define CONFIG_HAVE_DOUBLE 1
 #  define CONFIG_HAVE_LONG_DOUBLE 1
@@ -607,6 +630,12 @@
 
 #  endif
 
+/* Use compiler definition to define long double mantisa digits */
+
+#  ifdef CONFIG_HAVE_LONG_DOUBLE
+#    define LDBL_MANT_DIG __LDBL_MANT_DIG__
+#  endif
+
 /* Indicate that a local variable is not used */
 
 #  ifndef UNUSED
@@ -631,6 +660,35 @@
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function  __attribute__((deprecated))
+
+/* Memory barrier. */
+
+#  define memory_barrier()  __asm__ __volatile__ ("" : : : "memory")
+
+/* Atomic functions. */
+
+#  ifdef CONFIG_LIBC_ATOMIC_TOOLCHAIN
+#    define atomic_store_4(obj, val, memorder)     __atomic_store_n(obj, val, memorder)
+#    define atomic_store_8(obj, val, memorder)     __atomic_store_n(obj, val, memorder)
+#    define atomic_load_4(obj, memorder)           __atomic_load_n(obj, memorder)
+#    define atomic_load_8(obj, memorder)           __atomic_load_n(obj, memorder)
+#    define atomic_fetch_add_4(obj, val, memorder) __atomic_fetch_add(obj, val, memorder)
+#    define atomic_fetch_add_8(obj, val, memorder) __atomic_fetch_add(obj, val, memorder)
+#    define atomic_fetch_sub_4(obj, val, memorder) __atomic_fetch_sub(obj, val, memorder)
+#    define atomic_fetch_sub_8(obj, val, memorder) __atomic_fetch_sub(obj, val, memorder)
+#    define atomic_fetch_and_4(obj, val, memorder) __atomic_fetch_and(obj, val, memorder)
+#    define atomic_fetch_and_8(obj, val, memorder) __atomic_fetch_and(obj, val, memorder)
+#    define atomic_fetch_or_4(obj, val, memorder)  __atomic_fetch_or(obj, val, memorder)
+#    define atomic_fetch_or_8(obj, val, memorder)  __atomic_fetch_or(obj, val, memorder)
+#    define atomic_fetch_xor_4(obj, val, memorder) __atomic_fetch_xor(obj, val, memorder)
+#    define atomic_fetch_xor_8(obj, val, memorder) __atomic_fetch_xor(obj, val, memorder)
+#    define atomic_exchange_4(obj, val, memorder)  __atomic_exchange_n(obj, val, memorder)
+#    define atomic_exchange_8(obj, val, memorder)  __atomic_exchange_n(obj, val, memorder)
+#    define atomic_compare_exchange_4(obj, expected, desired, weak, success, failure) \
+       __atomic_compare_exchange_n(obj, expected, desired, weak, success, failure)
+#    define atomic_compare_exchange_8(obj, expected, desired, weak, success, failure) \
+       __atomic_compare_exchange_n(obj, expected, desired, weak, success, failure)
+#  endif
 
 /* SDCC-specific definitions ************************************************/
 
@@ -795,7 +853,6 @@
  * double.
  */
 
-#  define CONFIG_HAVE_LONG_LONG 1
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
@@ -803,11 +860,18 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
+
+/* Memory barrier. */
+
+#  define memory_barrier()
 
 /* Zilog-specific definitions ***********************************************/
 
@@ -956,7 +1020,6 @@
  * simply do not support long long or double.
  */
 
-#  undef  CONFIG_HAVE_LONG_LONG
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
@@ -964,11 +1027,18 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
+
+/* Memory barrier. */
+
+#  define memory_barrier()
 
 /* ICCARM-specific definitions **********************************************/
 
@@ -1054,11 +1124,18 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
+
+/* Memory barrier. */
+
+#  define memory_barrier()
 
 /* MSVC(Microsoft Visual C++)-specific definitions **************************/
 
@@ -1066,7 +1143,6 @@
 
 /* Define these here and allow specific architectures to override as needed */
 
-#  define CONFIG_HAVE_LONG_LONG 1
 #  define CONFIG_HAVE_FLOAT 1
 #  define CONFIG_HAVE_DOUBLE 1
 #  define CONFIG_HAVE_LONG_DOUBLE 1
@@ -1152,11 +1228,63 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
+
+/* Memory barrier. */
+
+#  define memory_barrier()
+
+/* long double is suppose to be same as double on MSVC. */
+
+#  define LDBL_MANT_DIG 53
+
+/* Atomic functions. */
+
+#  ifdef CONFIG_LIBC_ATOMIC_TOOLCHAIN
+#    define atomic_store_4(obj, val, memorder) \
+       _InterlockedExchange((FAR long volatile *)(obj), val)
+#    define atomic_store_8(obj, val, memorder) \
+       _InterlockedExchange64((FAR long long volatile *)(obj), val)
+#    define atomic_load_4(obj, memorder) \
+       _InterlockedOr((FAR long volatile *)(obj), 0)
+#    define atomic_load_8(obj, memorder) \
+       _InterlockedOr64((FAR long long volatile *)(obj), 0)
+#    define atomic_fetch_add_4(obj, val, memorder) \
+       _InterlockedExchangeAdd((FAR long volatile *)(obj), val)
+#    define atomic_fetch_add_8(obj, val, memorder) \
+       _InterlockedExchangeAdd64((FAR long long volatile *)(obj), val)
+#    define atomic_fetch_sub_4(obj, val, memorder) \
+       _InterlockedExchangeAdd((FAR long volatile *)(obj), -val)
+#    define atomic_fetch_sub_8(obj, val, memorder) \
+       _InterlockedExchangeAdd64((FAR long long volatile *)(obj), -val)
+#    define atomic_fetch_and_4(obj, val, memorder) \
+       _InterlockedAnd((FAR long volatile *)(obj), val)
+#    define atomic_fetch_and_8(obj, val, memorder) \
+       _InterlockedAnd64((FAR long long volatile *)(obj), val)
+#    define atomic_fetch_or_4(obj, val, memorder) \
+       _InterlockedOr((FAR long volatile *)(obj), val)
+#    define atomic_fetch_or_8(obj, val, memorder) \
+       _InterlockedOr64((FAR long long volatile *)(obj), val)
+#    define atomic_fetch_xor_4(obj, val, memorder) \
+       _InterlockedXor((FAR long volatile *)(obj), val)
+#    define atomic_fetch_xor_8(obj, val, memorder) \
+       _InterlockedXor64((FAR long long volatile *)(obj), val)
+#    define atomic_exchange_4(obj, val, memorder) \
+       _InterlockedExchange((FAR long volatile *)(obj), val)
+#    define atomic_exchange_8(obj, val, memorder) \
+       _InterlockedExchange64((FAR long long volatile *)(obj), val)
+#    define atomic_compare_exchange_4(obj, expect, desired, weak, success, failure) \
+       (_InterlockedCompareExchange((FAR long volatile *)(obj), desired, *expect) == *expect)
+#    define atomic_compare_exchange_8(obj, expect, desired, weak, success, failure) \
+       (_InterlockedCompareExchange64((FAR long long volatile *)(obj), desired, *expect) == *expect)
+#  endif
 
 /* TASKING (Infineon AURIX C/C++)-specific definitions **********************/
 
@@ -1164,7 +1292,6 @@
 
 /* Define these here and allow specific architectures to override as needed */
 
-#  define CONFIG_HAVE_LONG_LONG         1
 #  define CONFIG_HAVE_FLOAT             1
 #  define CONFIG_HAVE_DOUBLE            1
 #  define CONFIG_HAVE_LONG_DOUBLE       1
@@ -1249,11 +1376,45 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
+
+/* Memory barrier. */
+
+#  define memory_barrier()  __asm__ __volatile__ ("" : : : "memory")
+
+/* Atomic functions. */
+
+#  ifdef CONFIG_LIBC_ATOMIC_TOOLCHAIN
+#    define atomic_store_4(obj, val, memorder)     __c11_atomic_store(obj, val, memorder)
+#    define atomic_store_8(obj, val, memorder)     __c11_atomic_store(obj, val, memorder)
+#    define atomic_load_4(obj, memorder)           __c11_atomic_load(obj, memorder)
+#    define atomic_load_8(obj, memorder)           __c11_atomic_load(obj, memorder)
+#    define atomic_fetch_add_4(obj, val, memorder) __c11_atomic_add(obj, val, memorder)
+#    define atomic_fetch_add_8(obj, val, memorder) __c11_atomic_add(obj, val, memorder)
+#    define atomic_fetch_sub_4(obj, val, memorder) __c11_atomic_sub(obj, val, memorder)
+#    define atomic_fetch_sub_8(obj, val, memorder) __c11_atomic_sub(obj, val, memorder)
+#    define atomic_fetch_and_4(obj, val, memorder) __c11_atomic_and(obj, val, memorder)
+#    define atomic_fetch_and_8(obj, val, memorder) __c11_atomic_and(obj, val, memorder)
+#    define atomic_fetch_or_4(obj, val, memorder)  __c11_atomic_or(obj, val, memorder)
+#    define atomic_fetch_or_8(obj, val, memorder)  __c11_atomic_or(obj, val, memorder)
+#    define atomic_fetch_xor_4(obj, val, memorder) __c11_atomic_xor(obj, val, memorder)
+#    define atomic_fetch_xor_8(obj, val, memorder) __c11_atomic_xor(obj, val, memorder)
+#    define atomic_exchange_4(obj, val, memorder)  __c11_atomic_exchange(obj, val, memorder)
+#    define atomic_exchange_8(obj, val, memorder)  __c11_atomic_exchange(obj, val, memorder)
+#    define atomic_compare_exchange_4(obj, expected, desired, weak, success, failure) \
+       ((weak) ? __c11_atomic_compare_exchange_weak(obj, expected, desired, success, failure) \
+               : __c11_atomic_compare_exchange_strong(obj, expected, desired, success, failure))
+#    define atomic_compare_exchange_8(obj, expected, desired, weak, success, failure) \
+       ((weak) ? __c11_atomic_compare_exchange_weak(obj, expected, desired, success, failure) \
+               : __c11_atomic_compare_exchange_strong(obj, expected, desired, success, failure))
+#  endif
 
 /* Unknown compiler *********************************************************/
 
@@ -1325,7 +1486,6 @@
 #  undef  CONFIG_SMALL_MEMORY
 #  undef  CONFIG_LONG_IS_NOT_INT
 #  undef  CONFIG_PTR_IS_NOT_INT
-#  undef  CONFIG_HAVE_LONG_LONG
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
@@ -1337,16 +1497,19 @@
 #  define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 #  define return_address(x) 0
 
+#  define PRAGMA(x)
+#  define unroll_loop(n)
+
 #  define no_builtin(n)
 
 /* Warning about usage of deprecated features. */
 
 #  define deprecated_function
 
-#endif
+/* Memory barrier. */
 
-#ifndef CONFIG_HAVE_LONG_LONG
-#  undef CONFIG_FS_LARGEFILE
+#  define memory_barrier()
+
 #endif
 
 #ifdef CONFIG_DISABLE_FLOAT
@@ -1363,6 +1526,12 @@
 #  define osentry_function no_builtin("memcpy") no_builtin("memset")
 #else
 #  define osentry_function
+#endif
+
+/* Micro about __has_include */
+
+#ifndef __has_include
+#  define __has_include(x) 0
 #endif
 
 /****************************************************************************

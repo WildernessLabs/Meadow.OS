@@ -108,6 +108,112 @@ show in units of mV)::
     3: channel: 2 value: 1
     4: channel: 3 value: 0
 
+analog_cmpr
+-----------
+
+Enables the analog comparator driver. Driver unit is registered as ``/dev/anacmpr0``
+for analog comparator unit0. For each unit, the reference is either internal,
+comparing the source input against a fraction of VDD in 10% steps from 0% to 70%
+(for example, 50% VDD triggers when the source crosses half the supply voltage), or
+external, comparing the source GPIO against the voltage on the external reference
+pin. Reference source and debounce timeout for each unit can be adjusted in
+``Analog Comparator Configuration``.
+
+Comparator GPIOs are fixed by hardware and cannot be remapped. Following table demonstrates
+which pins are dedicated for comparator:
+
+======== =================================================================================
+Pin      Role
+======== =================================================================================
+GPIO11   Input source for unit0
+GPIO10   External reference input (if external reference source is selected for unit0)
+======== =================================================================================
+
+The following snippet demonstrates how to read the comparator result:
+
+.. code-block:: C
+
+   int fd;
+   int ret;
+   int res;
+
+   fd = open("/dev/anacmpr0", O_RDONLY);
+   ret = read(fd, &res, sizeof(res));
+
+autopm
+------
+
+This configuration makes the device automatically enter the low power consumption mode
+when in the idle state, powering off the cpu and other peripherals.
+
+ble
+---
+
+This configuration is used to enable the Bluetooth Low Energy (BLE) of
+ESP32-H2 chip.
+
+To test it, just run the following commands below.
+
+Confirm that bnep interface exist::
+
+    nsh> ifconfig
+    bnep0   Link encap:UNSPEC at DOWN mtu -9
+        inet addr:0.0.0.0 DRaddr:0.0.0.0 Mask:0.0.0.0
+
+Get basic information from it::
+
+    nsh> bt bnep0 info
+    Device: bnep0
+    BDAddr: 58:41:81:40:02:08
+    Flags:  0000
+    Free:   20
+      ACL:  20
+      SCO:  0
+    Max:
+      ACL:  24
+      SCO:  0
+    MTU:
+      ACL:  70
+      SCO:  70
+    Policy: 0
+    Type:   0
+
+Start the scanning process::
+
+    nsh> bt bnep0 scan start
+
+Wait a little bit before stopping it.
+
+Then after some minutes stop it::
+
+    nsh> bt bnep0 scan stop
+
+Get the list of BLE devices found around you::
+
+    nsh> bt bnep0 scan get
+    Scan result:
+    1.     addr:           d7:c4:e6:xx:xx:xx type: 0
+           rssi:            -62
+           response type:   4
+           advertiser data: 10 09 4d 69 20 XX XX XX XX XX XX XX XX XX XX 20                      e
+    2.     addr:           cb:23:18:xx:xx:xx type: 0
+           rssi:            -60
+           response type:   0
+           advertiser data: 02 01 06 1b ff XX XX XX ff ff ff ff ff ff ff ff                      8
+    3.     addr:           cb:23:18:xx:xx:xx type: 0
+           rssi:            -60
+           response type:   4
+           advertiser data: 10 09 4d 69 20 XX XX XX XX XX XX XX XX XX XX 20                      e
+    4.     addr:           d7:c4:e6:xx:xx:xx type: 0
+           rssi:            -62
+           response type:   0
+           advertiser data: 02 01 06 1b ff XX XX XX ff ff ff ff ff ff ff ff                      e
+    5.     addr:           d7:c4:e6:xx:xx:xx type: 0
+           rssi:            -62
+           response type:   4
+           advertiser data: 10 09 4d 69 20 XX XX XX XX XX XX XX XX XX XX 20                      e
+    nsh>
+
 bmp180
 ------
 
@@ -133,6 +239,22 @@ the ``buttons`` application and pressing the ``BOOT`` button on the board::
     button_daemon: Supported BUTTONs 0x01
     nsh> Sample = 1
     Sample = 0
+
+capture
+--------
+
+The capture configuration enables the capture driver and the capture example, allowing
+the user to measure duty cycle and frequency of a signal. Default pin is GPIO12 with
+an internal pull-up resistor enabled. When connecting a 50 Hz pulse with 50% duty cycle,
+the following output is expected::
+
+    nsh> cap
+    cap_main: Hardware initialized. Opening the capture device: /dev/capture0
+    cap_main: Number of samples: 0
+    pwm duty cycle: 50 %
+    pwm frequency: 50 Hz
+    pwm duty cycle: 50 %
+    pwm frequency: 50 Hz
 
 coremark
 --------
@@ -310,6 +432,18 @@ This configuration is the same as the ``nsh`` configuration, but it generates th
 image in a format that can be used by MCUboot. It also makes the ``make bootloader`` command to
 build the MCUboot bootloader image using the Espressif HAL.
 
+motor
+-------
+
+The motor configuration enables the MCPWM peripheral with support to brushed DC motor
+control.
+
+It creates a ``/dev/motor0`` device with speed and direction control capabilities
+by using two GPIOs (GPIO10 and GPIO11) for PWM output. PWM frequency is configurable
+from 25 Hz to 3 kHz, however it defaults to 1 kHz.
+There is also support for an optional fault GPIO (defaults to GPIO9), which can be used
+for quick motor braking. All GPIOs are configurable in ``menuconfig``.
+
 nsh
 ---
 
@@ -384,6 +518,10 @@ Note: When normal mode COUNT is 0, it will switch to the next PM state where COU
 Note: During light sleep, overall current consumption of board should drop from 14mA (without any system load) to 880 μA on ESP32-H2 DevkitM-1.
 During deep sleep, current consumption of module (ESP32-H2-MINI-1) should drop from 9mA (without any system load) to 8 μA.
 
+To save power without using sleep modes, lowering the clock speed is another approach. For dynamic frequency scaling
+``CONFIG_ESPRESSIF_DFS`` option needs to enabled and minimum CPU frequency needs to set under ``CONFIG_ESPRESSIF_MIN_CPU_FREQ`` option.
+With these options, the device scales the CPU clock according to workload.
+
 pwm
 ---
 
@@ -404,6 +542,18 @@ using 1 second delay)::
 
     nsh> qe
 
+random
+------
+
+This configuration shows the use of the ESP32-H2's hardware True Random Number Generator.
+To test it, just run ``rand`` to get 32 randomly generated bytes::
+
+    nsh> rand
+    Reading 8 random numbers
+    Random values (0x3ffe0b00):
+    0000  98 b9 66 a2 a2 c0 a2 ae 09 70 93 d1 b5 91 86 c8  ..f......p......
+    0010  8f 0e 0b 04 29 64 21 72 01 92 7c a2 27 60 6f 90  ....)d!r..|.'`o.
+
 rmt
 ---
 
@@ -417,11 +567,16 @@ RMT symbol, which is represented by ``rmt_item32_t`` in the driver:
 .. figure:: rmt_symbol.png
    :align: center
 
-The example ``rmtchar`` can be used to test the RMT peripheral. Connecting
+The example ``irtest`` can be used to test the RMT peripheral. Connecting
 these pins externally to each other will make the transmitter send RMT items
 and demonstrates the usage of the RMT peripheral::
 
-    nsh> rmtchar
+    nsh> irtest
+    $open_device(/dev/lirc0)
+    $open_device(/dev/lirc1)
+    $write_data(1) 16777229 16 16777235 23
+    $read_data(0,4)
+    16777229, 16, 16777235, 23
 
 **WS2812 addressable RGB LEDs**
 
@@ -587,6 +742,20 @@ To test it, just run the following::
   nsh> timer -d /dev/timerx
 
 Where x in the timer instance.
+
+temperature_sensor
+------------------
+
+This configuration enables the on-chip temperature sensor driver. The sensor is
+exposed through the uORB interface and can be read with the ``sensortest``
+utility::
+
+    nsh> sensortest temp
+
+tickless
+--------
+
+This configuration enables the support for tickless scheduler mode.
 
 twai
 ----

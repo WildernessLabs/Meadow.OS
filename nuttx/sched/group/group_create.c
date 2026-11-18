@@ -26,11 +26,12 @@
 
 #include <nuttx/config.h>
 
+#include <string.h>
 #include <sched.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
 
+#include <nuttx/debug.h>
 #include <nuttx/irq.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/kmalloc.h>
@@ -78,10 +79,20 @@ static inline void group_inherit_identity(FAR struct task_group_s *group)
   /* Inherit the user identity from the parent task group. */
 
   DEBUGASSERT(group != NULL);
-  group->tg_uid = rgroup->tg_uid;
-  group->tg_gid = rgroup->tg_gid;
+  group->tg_uid  = rgroup->tg_uid;
+  group->tg_gid  = rgroup->tg_gid;
   group->tg_euid = rgroup->tg_euid;
   group->tg_egid = rgroup->tg_egid;
+  group->tg_suid = rgroup->tg_suid;
+  group->tg_sgid = rgroup->tg_sgid;
+#if CONFIG_SCHED_NGROUPS > 0
+  group->tg_ngroups = rgroup->tg_ngroups;
+  if (rgroup->tg_ngroups > 0)
+    {
+      memcpy(group->tg_groups, rgroup->tg_groups,
+             rgroup->tg_ngroups * sizeof(gid_t));
+    }
+#endif
 }
 #else
 #  define group_inherit_identity(group)
@@ -116,12 +127,12 @@ static inline void group_inherit_identity(FAR struct task_group_s *group)
  *
  ****************************************************************************/
 
-int group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype)
+int group_allocate(FAR struct tcb_s *tcb, uint8_t ttype)
 {
   FAR struct task_group_s *group;
   int ret;
 
-  DEBUGASSERT(tcb && !tcb->cmn.group);
+  DEBUGASSERT(tcb && !tcb->group);
 
   ttype &= TCB_FLAG_TTYPE_MASK;
 
@@ -130,7 +141,7 @@ int group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype)
   if (ttype == TCB_FLAG_TTYPE_KERNEL)
     {
       group = &g_kthread_group;
-      tcb->cmn.group = group;
+      tcb->group = group;
       if (group->tg_info)
         {
           return OK;
@@ -163,9 +174,17 @@ int group_allocate(FAR struct task_tcb_s *tcb, uint8_t ttype)
   sq_init(&group->tg_members);
 #endif
 
+#ifdef CONFIG_FS_BACKTRACE_DEFAULT
+  /* Enable FD backtrace for the group by default */
+
+  group->tg_flags |= GROUP_FLAG_FD_BACKTRACE;
+#endif
+
+  group->tg_flags |= GROUP_FLAG_DUMPABLE;
+
   /* Attach the group to the TCB */
 
-  tcb->cmn.group = group;
+  tcb->group = group;
 
   /* Inherit the user identity from the parent task group */
 
@@ -225,23 +244,23 @@ errout_with_group:
  *
  ****************************************************************************/
 
-void group_initialize(FAR struct task_tcb_s *tcb)
+void group_initialize(FAR struct tcb_s *tcb)
 {
   FAR struct task_group_s *group;
 
-  DEBUGASSERT(tcb && tcb->cmn.group);
-  group = tcb->cmn.group;
+  DEBUGASSERT(tcb && tcb->group);
+  group = tcb->group;
   spin_lock_init(&group->tg_lock);
 
   /* Allocate mm_map list if required */
 
   mm_map_initialize(&group->tg_mm_map,
-                    (tcb->cmn.flags & TCB_FLAG_TTYPE_KERNEL) != 0);
+                    (tcb->flags & TCB_FLAG_TTYPE_KERNEL) != 0);
 
 #ifdef HAVE_GROUP_MEMBERS
   /* Assign the PID of this new task as a member of the group. */
 
-  sq_addlast(&tcb->cmn.member, &group->tg_members);
+  sq_addlast(&tcb->member, &group->tg_members);
 #endif
 
   /* Save the ID of the main task within the group of threads.  This needed
@@ -252,6 +271,8 @@ void group_initialize(FAR struct task_tcb_s *tcb)
 
   if (group != &g_kthread_group)
     {
-      group->tg_pid = tcb->cmn.pid;
+      group->tg_pid = tcb->pid;
     }
+
+  group->tg_info->ta_pid = group->tg_pid;
 }

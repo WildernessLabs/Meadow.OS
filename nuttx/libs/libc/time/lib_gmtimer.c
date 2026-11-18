@@ -28,7 +28,7 @@
 
 #include <stdbool.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 
 #include <nuttx/clock.h>
 
@@ -337,7 +337,7 @@ FAR struct tm *gmtime_r(FAR const time_t *timep, FAR struct tm *result)
                                             clock_isleapyear(year));
   result->tm_isdst  = 0;
   result->tm_gmtoff = 0;
-  result->tm_zone   = NULL;
+  result->tm_zone   = "UTC";
 
   return result;
 }

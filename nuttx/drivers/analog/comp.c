@@ -32,7 +32,7 @@
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <poll.h>
 
 #include <nuttx/arch.h>
@@ -221,6 +221,7 @@ static int comp_open(FAR struct file *filep)
               /* Yes.. perform one time hardware initialization. */
 
               irqstate_t flags = enter_critical_section();
+
               ret = dev->ad_ops->ao_setup(dev);
               if (ret == OK)
                 {
@@ -372,7 +373,7 @@ int comp_register(FAR const char *path, FAR struct comp_dev_s *dev)
 
   /* Register the COMP character driver */
 
-  ret = register_driver(path, &g_comp_fops, 0444, dev);
+  ret = register_driver(path, &g_comp_fops, 0400, dev);
   if (ret < 0)
     {
       nxmutex_destroy(&dev->ad_lock);

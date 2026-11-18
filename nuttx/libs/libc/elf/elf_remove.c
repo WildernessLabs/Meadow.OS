@@ -24,7 +24,7 @@
 
 #include <nuttx/config.h>
 #include <assert.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 
 #include <nuttx/arch.h>
@@ -81,17 +81,19 @@ int libelf_uninit(FAR struct module_s *modp)
           return ret;
         }
 
-      libelf_freesymtab(modp);
-
       /* Nullify so that the uninitializer cannot be called again */
 
       modp->modinfo.uninitializer = NULL;
-#if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
       modp->modinfo.arg           = NULL;
-      modp->modinfo.exports       = NULL;
-      modp->modinfo.nexports      = 0;
-#endif
     }
+
+  /* Free the symbol table that the module exports.  It is built for
+   * every loaded module, whether or not it has an uninitializer.
+   */
+
+  libelf_freesymtab(modp);
+  modp->modinfo.exports  = NULL;
+  modp->modinfo.nexports = 0;
 
   /* Release resources held by the module */
 
@@ -205,6 +207,20 @@ int libelf_remove(FAR void *handle)
       goto errout_with_lock;
     }
 
+  /* Give back a reference.  The module goes only when the last one does,
+   * so an rmmod() cannot pull a module out from under a dlopen() that is
+   * still holding it.
+   */
+
+  if (modp->nopen > 1)
+    {
+      modp->nopen--;
+      libelf_registry_unlock();
+      return OK;
+    }
+
+  modp->nopen = 0;
+
   ret = libelf_uninit(modp);
   if (ret < 0)
     {
@@ -225,6 +241,8 @@ int libelf_remove(FAR void *handle)
   libelf_registry_unlock();
 
   /* And free the registry entry */
+
+  lib_free(modp);
 
   return ret;
 

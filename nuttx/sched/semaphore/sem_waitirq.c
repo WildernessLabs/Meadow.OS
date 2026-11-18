@@ -84,47 +84,50 @@ void nxsem_wait_irq(FAR struct tcb_s *wtcb, int errcode)
 
   /* Mutex is never interrupted by a signal or canceled */
 
-  if (mutex && (errcode == EINTR || errcode == ECANCELED))
+  if (!(mutex && (errcode == EINTR || errcode == ECANCELED)))
     {
-      return;
-    }
+      /* Restore the correct priority of all threads that hold references
+       * to this semaphore.
+       */
 
-  /* Restore the correct priority of all threads that hold references
-   * to this semaphore.
-   */
+      nxsem_canceled(wtcb, sem);
 
-  nxsem_canceled(wtcb, sem);
+      /* Remove task from waiting list */
 
-  /* Remove task from waiting list */
+      dq_rem((FAR dq_entry_t *)wtcb, SEM_WAITLIST(sem));
 
-  dq_rem((FAR dq_entry_t *)wtcb, SEM_WAITLIST(sem));
+      /* Restore the semaphore state changed by the previous sem_wait().
+       * For mutexes, the holder TID remains unchanged, but the blocking bit
+       * must be cleared when the timed-out task was the last waiter.
+       */
 
-  /* This restores the value to what it was before the previous sem_wait.
-   * This caused the thread to be blocked in the first place.
-   *
-   * For mutexes, the holder is updated by the thread itself
-   * when it exits nxsem_wait
-   */
+      if (mutex)
+        {
+          if (dq_empty(SEM_WAITLIST(sem)))
+            {
+              atomic_and(NXSEM_MHOLDER(sem), ~NXSEM_MBLOCKING_BIT);
+            }
+        }
+      else
+        {
+          atomic_add(NXSEM_COUNT(sem), 1);
+        }
 
-  if (!mutex)
-    {
-      atomic_fetch_add(NXSEM_COUNT(sem), 1);
-    }
+      /* Indicate that the wait is over. */
 
-  /* Indicate that the wait is over. */
+      wtcb->waitobj = NULL;
 
-  wtcb->waitobj = NULL;
+      /* Mark the errno value for the thread. */
 
-  /* Mark the errno value for the thread. */
+      wtcb->errcode = errcode;
 
-  wtcb->errcode = errcode;
+      /* Add the task to ready-to-run task list and
+       * perform the context switch if one is needed
+       */
 
-  /* Add the task to ready-to-run task list and
-   * perform the context switch if one is needed
-   */
-
-  if (nxsched_add_readytorun(wtcb))
-    {
-      up_switch_context(this_task(), rtcb);
+      if (nxsched_add_readytorun(wtcb))
+        {
+          up_switch_context(this_task(), rtcb);
+        }
     }
 }

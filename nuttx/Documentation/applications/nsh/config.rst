@@ -35,6 +35,7 @@ Command                Depends on Configuration                    Can Be Disabl
 :ref:`cmdbase64enc`    ``CONFIG_NETUTILS_CODECS`` &&               ``CONFIG_NSH_DISABLE_BASE64ENC``
                        ``CONFIG_CODECS_BASE64``
 :ref:`cmdbasename`     .                                           ``CONFIG_NSH_DISABLE_BASENAME``
+:ref:`cmdboot`         ``CONFIG_BOARDCTL_BOOT_IMAGE``              ``CONFIG_NSH_DISABLE_BOOT``
 :ref:`cmdbreak`        ! ``CONFIG_NSH_DISABLESCRIPT`` &&           .
                        ! ``CONFIG_NSH_DISABLE_LOOPS``  
 :ref:`cmdcat`          ``CONFIG_NSH_DISABLE_CAT``                  .
@@ -72,7 +73,7 @@ Command                Depends on Configuration                    Can Be Disabl
 :ref:`cmdkill`         ``CONFIG_NSH_DISABLE_KILL``                 .
 :ref:`cmdlosetup`      ! ``CONFIG_DISABLE_MOUNTPOINT`` &&          ``CONFIG_NSH_DISABLE_LOSETUP``
                        ``CONFIG_DEV_LOOP``
-:ref:`cmdln`           ``CONFIG_PSEUDOFS_SOFTLINKS``               ``CONFIG_NSH_DISABLE_LN``
+:ref:`cmdln`           ``CONFIG_FS_LINKS``                         ``CONFIG_NSH_DISABLE_LN``
 :ref:`cmdls`           ``CONFIG_NSH_DISABLE_LS``                   .
 :ref:`cmdlsmod`        ``CONFIG_MODULE`` && ``CONFIG_FS_PROCFS``   ``CONFIG_NSH_DISABLE_MODCMDS``
                        && |br|
@@ -105,7 +106,7 @@ Command                Depends on Configuration                    Can Be Disabl
 :ref:`cmdput`          ``CONFIG_NET`` && ``CONFIG_NET_UDP`` &&     ``CONFIG_NSH_DISABLE_PUT``
                        ``MTU >= 558`` [#1]_, [#2]_
 :ref:`cmdpwd`          !  ``CONFIG_DISABLE_ENVIRON``               ``CONFIG_NSH_DISABLE_PWD``
-:ref:`cmdreadlink`     ``CONFIG_PSEUDOFS_SOFTLINKS``               ``CONFIG_NSH_DISABLE_READLINK``
+:ref:`cmdreadlink`     ``CONFIG_FS_LINKS``                         ``CONFIG_NSH_DISABLE_READLINK``
 :ref:`cmdreboot`       ``CONFIG_BOARD_RESET``                      ``CONFIG_NSH_DISABLE_REBOOT``
 :ref:`cmdrm`           ! ``CONFIG_DISABLE_MOUNTPOINT`` \|\|        ``CONFIG_NSH_DISABLE_RM``
                        ! ``CONFIG_DISABLE_PSEUDOFS_OPERATIONS``
@@ -374,12 +375,6 @@ Configuration                        Description
  ``CONFIG_NSH_TELNET``               If ``CONFIG_NSH_TELNET`` is set to *y*, then a TELNET server
                                      front-end is selected. When this option is provided, you may log
                                      into NuttX remotely using telnet in order to access NSH.
-
- ``CONFIG_NSH_ARCHINIT``             Set ``CONFIG_NSH_ARCHINIT`` if your board provides architecture
-                                     specific initialization via the board-specific function
-                                     ``board_app_initialize()``. This function will be called early in
-                                     NSH initialization to allow board logic to do such things as
-                                     configure MMC/SD slots.
 ===================================  ==================================
 
 .. _nsh_vars_table:

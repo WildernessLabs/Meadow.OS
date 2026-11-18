@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <debug.h>
+#include <nuttx/debug.h>
 #include <errno.h>
 
 #include <nuttx/fs/fs.h>
@@ -69,7 +69,7 @@ int init_corecomp(void)
 #endif
 
   /* Ethernet is not initialized here.  It is not enabled for the Core Compute
-   * variant (CONFIG_STM32F7_ETHMAC and CONFIG_NETINIT are not set in
+   * variant (CONFIG_STM32_ETHMAC and CONFIG_NETINIT are not set in
    * configs/f7corecomp/defconfig).  If Ethernet is ever enabled for this
    * variant, the initialization must be added here.
    */

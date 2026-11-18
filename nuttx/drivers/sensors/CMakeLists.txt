@@ -29,6 +29,10 @@ if(CONFIG_SENSORS)
     list(APPEND SRCS usensor.c)
   endif()
 
+  if(CONFIG_SENSORS_MONITOR)
+    list(APPEND SRCS sensor_monitor.c)
+  endif()
+
   if(CONFIG_SENSORS_RPMSG)
     list(APPEND SRCS sensor_rpmsg.c)
   endif()
@@ -103,6 +107,10 @@ if(CONFIG_SENSORS)
       list(APPEND SRCS ak09912.c)
     endif()
 
+    if(CONFIG_SENSORS_MT6816)
+      list(APPEND SRCS mt6816.c)
+    endif()
+
     if(CONFIG_SENSORS_AS5048B)
       list(APPEND SRCS as5048b.c)
     endif()
@@ -141,6 +149,10 @@ if(CONFIG_SENSORS)
 
     if(CONFIG_SENSORS_LSM6DSO32)
       list(APPEND SRCS lsm6dso32_uorb.c)
+    endif()
+
+    if(CONFIG_SENSORS_LSM6DS3TRC)
+      list(APPEND SRCS lsm6ds3trc_uorb.c)
     endif()
 
     if(CONFIG_SENSORS_LSM9DS1)
@@ -341,7 +353,11 @@ if(CONFIG_SENSORS)
     endif()
 
     if(CONFIG_SENSORS_TMP112)
-      list(APPEND SRCS tmp112.c)
+      if(CONFIG_SENSORS_TMP112_UORB)
+        list(APPEND SRCS tmp112_uorb.c)
+      else()
+        list(APPEND SRCS tmp112.c)
+      endif()
     endif()
 
     # QMI8658 6-axis IMU
@@ -370,6 +386,10 @@ if(CONFIG_SENSORS)
       else()
         list(APPEND SRCS adxl372.c)
       endif()
+    endif()
+
+    if(CONFIG_SENSORS_LIS3DSH_UORB)
+      list(APPEND SRCS lis3dsh_uorb.c)
     endif()
 
     if(CONFIG_LIS3DSH)
@@ -426,6 +446,10 @@ if(CONFIG_SENSORS)
 
   if(CONFIG_SENSORS_MPU60X0)
     list(APPEND SRCS mpu60x0.c)
+  endif()
+
+  if(CONFIG_SENSORS_MPU6050)
+    list(APPEND SRCS mpu6050_uorb.c)
   endif()
 
   if(CONFIG_SENSORS_MPU9250)

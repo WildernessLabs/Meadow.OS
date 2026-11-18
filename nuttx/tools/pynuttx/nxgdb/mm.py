@@ -223,7 +223,9 @@ class MemPool(Value, p.MemPool):
 
     @property
     def nwaiter(self) -> int:
-        return -int(self.waitsem.semcount) if self.wait and self.expandsize == 0 else 0
+        return (
+            -int(self.waitsem.val.semcount) if self.wait and self.expandsize == 0 else 0
+        )
 
     @property
     def nused(self) -> int:
@@ -372,7 +374,7 @@ class MMNode(gdb.Value, p.MMFreeNode):
     MM_MASK_BIT = MM_ALLOC_BIT | MM_PREVFREE_BIT
     MM_SIZEOF_ALLOCNODE = utils.sizeof("struct mm_allocnode_s")
     MM_ALLOCNODE_OVERHEAD = MM_SIZEOF_ALLOCNODE - utils.sizeof("mmsize_t")
-    MM_MIN_CHUNK = utils.get_symbol_value("MM_MIN_CHUNK", locspec="mm_initialize")
+    MM_MIN_CHUNK = utils.get_symbol_value("MM_MIN_CHUNK", locspec="mm_initialize_heap")
     if MM_MIN_CHUNK is None:
         # No macro information in the ELF (built with -g rather than -g3): derive it
         # as mm/mm_heap/mm.h does, MM_MIN_CHUNK = 1 << LOG2_CEIL(sizeof(struct mm_freenode_s)).
