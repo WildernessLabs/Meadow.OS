@@ -32,11 +32,15 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#ifndef __INCLUDE_HCOM_NUTTX_SHARED__H
-#define __INCLUDE_HCOM_NUTTX_SHARED__H
+#pragma once
+
+// clang-format off
 
 // This file is copied from repo on each build.
-// To modify this file the repo version must be changed.
+// To modify this file the repo version must be changed and committed.
+//
+// Clang formatting is turned off as it will convert the ### to ## #
+// which breaks the substitution script.
 
 // Update the following for each release build
 #define HCOM_DEVICE_INFO_PRODUCT "Meadow"
@@ -61,4 +65,4 @@
 #define HCOM_DEVICE_INFO_PROCESSOR_TYPE "STM32F777IIK6"
 #define HCOM_DEVICE_INFO_COPROCESSOR_TYPE "ESP32"
 
-#endif // __INCLUDE_HCOM_NUTTX_SHARED__H
+// clang-format on
