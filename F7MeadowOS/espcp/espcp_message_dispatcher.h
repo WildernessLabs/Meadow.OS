@@ -57,7 +57,7 @@
  *  with and ID under 0x80000000 are from the ESP32 to the STM32, messages
  *  over 0x80000000 are from the STM32 to the ESP32.
  */
-#define ESP32_MESSAGE_ID_MASK  0x80000000
+#define ESP32_MESSAGE_ID_MASK 0x80000000
 
 /****************************************************************************
  * Public Types

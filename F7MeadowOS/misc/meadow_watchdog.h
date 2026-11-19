@@ -65,16 +65,16 @@
  */
 
 #define WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS (60 * 1000)
-#define WATCHDOG_POLL_TIMEOUT_MILLISECONDS    (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
-#define WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS   (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
-#define WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS  (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
+#define WATCHDOG_POLL_TIMEOUT_MILLISECONDS (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
+#define WATCHDOG_CLOSE_TIMEOUT_MILLISECONDS (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
+#define WATCHDOG_SOCKET_TIMEOUT_MILLISECONDS (WATCHDOG_DEFAULT_TIMEOUT_MILLISECONDS)
 
 /* Returned by meadow_watchdog_activate() when no watchdog could be armed.
  * Passing it to meadow_watchdog_deactivate() is harmless, so callers do not
  * need to special case it.
  */
 
-#define MEADOW_WATCHDOG_NO_SLOT  (-1)
+#define MEADOW_WATCHDOG_NO_SLOT (-1)
 
 /****************************************************************************
  * Public Types
@@ -88,13 +88,7 @@ typedef int meadow_watchdog_t;
  * and selects the exception raised into the managed environment.
  */
 
-typedef enum
-{
-  POLL_WATCHDOG = 0,
-  CLOSE_WATCHDOG,
-  SOCKET_WATCHDOG,
-  MEADOW_WATCHDOG_METHOD_COUNT
-} meadow_watchdog_methods_e;
+typedef enum { POLL_WATCHDOG = 0, CLOSE_WATCHDOG, SOCKET_WATCHDOG, MEADOW_WATCHDOG_METHOD_COUNT } meadow_watchdog_methods_e;
 
 /****************************************************************************
  * Public Function Prototypes
@@ -102,24 +96,22 @@ typedef enum
 
 #ifdef CONFIG_MEADOW_WATCHDOGS
 
-meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout,
-                                    meadow_watchdog_methods_e method);
+meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_methods_e method);
 
 void meadow_watchdog_deactivate(meadow_watchdog_t watchdog);
 
 #else
 
-static inline meadow_watchdog_t
-meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_methods_e method)
+static inline meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_methods_e method)
 {
-  UNUSED(timeout);
-  UNUSED(method);
-  return MEADOW_WATCHDOG_NO_SLOT;
+    UNUSED(timeout);
+    UNUSED(method);
+    return MEADOW_WATCHDOG_NO_SLOT;
 }
 
 static inline void meadow_watchdog_deactivate(meadow_watchdog_t watchdog)
 {
-  UNUSED(watchdog);
+    UNUSED(watchdog);
 }
 
 #endif /* CONFIG_MEADOW_WATCHDOGS */

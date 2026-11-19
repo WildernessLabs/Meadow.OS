@@ -54,9 +54,9 @@
 // Request bits passed by the managed API to meadow_cell_change_state(). The
 // values are fixed by Meadow.Core; 0 means resume, which is a no-op here
 // because the link is never paused.
-#define CELL_AT_CMD_GPS             (1 << 1)
-#define CELL_AT_CMD_SIGNAL_QUALITY  (1 << 2)
-#define CELL_AT_CMD_SCAN            (1 << 3)
+#define CELL_AT_CMD_GPS (1 << 1)
+#define CELL_AT_CMD_SIGNAL_QUALITY (1 << 2)
+#define CELL_AT_CMD_SCAN (1 << 3)
 
 /****************************************************************************
  * Public Data
@@ -64,13 +64,12 @@
 
 // Error codes returned by meadow_get_cell_error(). The values are reported
 // to the managed API, do not renumber them.
-enum hcom_cell_err_e
-{
-  CELL_INVALID_SETTING_ERR,
-  CELL_INVALID_MODEM_ERR,
-  CELL_PPPD_LOST_CONNECTION_ERR,
-  CELL_PPPD_TIMEOUT_ERR,
-  CELL_PPPD_THREAD_ERR,
+enum hcom_cell_err_e {
+    CELL_INVALID_SETTING_ERR,
+    CELL_INVALID_MODEM_ERR,
+    CELL_PPPD_LOST_CONNECTION_ERR,
+    CELL_PPPD_TIMEOUT_ERR,
+    CELL_PPPD_THREAD_ERR,
 };
 typedef enum hcom_cell_err_e hcom_cell_err_t;
 
@@ -88,8 +87,7 @@ int meadow_get_cell_error(void);
 
 #if defined(CONFIG_CELL_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 // Entry points for the native cell tests (tests/cell_tests.c).
-int hcom_cell_test_create_scripts(const cell_settings_t *settings, char *connect_script, size_t connect_size,
-                                  char *disconnect_script, size_t disconnect_size);
+int hcom_cell_test_create_scripts(const cell_settings_t *settings, char *connect_script, size_t connect_size, char *disconnect_script, size_t disconnect_size);
 int hcom_cell_test_at(int fd, const char *command, int timeout_ms, char *out, size_t out_size);
 bool hcom_cell_test_gga_has_fix(const char *reply);
 #endif

@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/kerneltests/iso8601_time_tests.c
- * 
+ *
  *   Copyright (C) 2019 - 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -58,7 +58,7 @@
 // Using C#'s 's', 'o' and 'u' format specifiers are indicated below
 //                 11111111112222222222333
 //       01234567890123456789012345678901234567890
-// 's' = 2022-04-01T21:34:05 - No utcTimeOffset information 
+// 's' = 2022-04-01T21:34:05 - No utcTimeOffset information
 // 'o' = 2022-04-01T21:35:03.9174375+00:00 - UTC
 // 'o' = 2022-04-01T14:38:25.1838288-07:00 - Local time
 // 'u' = 2022-04-01 21:35:31Z - Notice no 'T' but a space
@@ -68,17 +68,7 @@
 
 // If any of these test cases are modified the tests will also need
 // to be modified
-static char *iso8601TestCases[] =
-{
-  "2022-04-01T14:37:34",
-  "2022-04-01T14:37:34.9174375+00:00",
-  "2022-04-01T14:37:34.1838288-07:00",
-  "2022-04-01 14:37:34Z",
-  "2022-04-01T14:37:34+00:00",
-  "2022-04-01T14:37:34+09:30",
-  "20220401T143734Z",
-  NULL
-};
+static char *iso8601TestCases[] = {"2022-04-01T14:37:34", "2022-04-01T14:37:34.9174375+00:00", "2022-04-01T14:37:34.1838288-07:00", "2022-04-01 14:37:34Z", "2022-04-01T14:37:34+00:00", "2022-04-01T14:37:34+09:30", "20220401T143734Z", NULL};
 
 // ISO 8601 also defines a duration format called time period. I it is pretty
 // simple compared to the time format above. It must start with 'P' (for period)
@@ -87,17 +77,15 @@ static char *iso8601TestCases[] =
 // P[n]Y[n]M[n]DT[n]H[n]M[n]S
 
 // If any of these test cases are modified the tests will need to be modified
-static char *iso8601PeriodTests[] =
-{
-  "P0Y0M0DT0H3M19S",  // Duration = 199
-  "P0Y0M0DT0H0M0S",   // Duration = 0
-  "P0Y0M0D0TH0M0S",   // 'T' in wrong place
-  "P0Y0M0DT0H3M0S",   // Duration = 180
-  "P1Y1M0DT0H0M1S",   // Duration = 1
-  "PDT1M",            // Extra 'D'
-  "PT1M",             // Duration = 60
-  NULL
-};
+static char *iso8601PeriodTests[] = {
+    "P0Y0M0DT0H3M19S", // Duration = 199
+    "P0Y0M0DT0H0M0S",  // Duration = 0
+    "P0Y0M0D0TH0M0S",  // 'T' in wrong place
+    "P0Y0M0DT0H3M0S",  // Duration = 180
+    "P1Y1M0DT0H0M1S",  // Duration = 1
+    "PDT1M",           // Extra 'D'
+    "PT1M",            // Duration = 60
+    NULL};
 
 /****************************************************************************************************
  * Functions
@@ -113,267 +101,360 @@ static char *iso8601PeriodTests[] =
 // Need to test this function for the above defined ISO 8601 formats
 static int TestParsingISO8601DateTime(void)
 {
-  int ret;
-  int formatOff = 0;
-  struct tm tmResult;
-  size_t testLen;
+    int ret;
+    int formatOff = 0;
+    struct tm tmResult;
+    size_t testLen;
 
-  do
-  {
-    testLen = strlen(iso8601TestCases[formatOff]);
-
-    // This call returns date and time in a struct tm.
-    ret = meadow_parse_iso8601_date_time(iso8601TestCases[formatOff], testLen, &tmResult);
-    if(ret < 0)
+    do
     {
-      syslog(LOG_MTEST, "DateTime Test failed on '%s' element#:%d \n",
-                iso8601TestCases[formatOff], formatOff + 1);
-      return -1;
+        testLen = strlen(iso8601TestCases[formatOff]);
+
+        // This call returns date and time in a struct tm.
+        ret = meadow_parse_iso8601_date_time(iso8601TestCases[formatOff], testLen, &tmResult);
+        if (ret < 0)
+        {
+            syslog(LOG_MTEST, "DateTime Test failed on '%s' element#:%d \n", iso8601TestCases[formatOff], formatOff + 1);
+            return -1;
+        }
+
+        // Is the information right (compensates for unix time)?
+        if (tmResult.tm_year + 1900 != 2022)
+        {
+            syslog(LOG_MTEST, "ERROR in year:%d- '%s'\n", tmResult.tm_year + 1900, iso8601TestCases[formatOff]);
+            return -1;
+        }
+        if (tmResult.tm_mon + 1 != 04)
+        {
+            syslog(LOG_MTEST, "ERROR in mon:%d - '%s'\n", tmResult.tm_mon + 1, iso8601TestCases[formatOff]);
+            return -1;
+        }
+        if (tmResult.tm_mday != 01)
+        {
+            syslog(LOG_MTEST, "ERROR in mday:%d- '%s'\n", tmResult.tm_mday, iso8601TestCases[formatOff]);
+            return -1;
+        }
+        if (tmResult.tm_hour != 14)
+        {
+            syslog(LOG_MTEST, "ERROR in hour:%d- '%s'\n", tmResult.tm_hour, iso8601TestCases[formatOff]);
+            return -1;
+        }
+        if (tmResult.tm_min != 37)
+        {
+            syslog(LOG_MTEST, "ERROR in min:%d - '%s'\n", tmResult.tm_min, iso8601TestCases[formatOff]);
+            return -1;
+        }
+        if (tmResult.tm_sec != 34)
+        {
+            syslog(LOG_MTEST, "ERROR in sec:%d - '%s'\n", tmResult.tm_sec, iso8601TestCases[formatOff]);
+            return -1;
+        }
+
+        formatOff++;
     }
+    while (iso8601TestCases[formatOff] != NULL);
 
-    // Is the information right (compensates for unix time)?
-    if(tmResult.tm_year + 1900 != 2022) {syslog(LOG_MTEST, "ERROR in year:%d- '%s'\n",
-              tmResult.tm_year + 1900, iso8601TestCases[formatOff]); return -1;}
-    if(tmResult.tm_mon + 1 != 04)       {syslog(LOG_MTEST, "ERROR in mon:%d - '%s'\n",
-              tmResult.tm_mon + 1, iso8601TestCases[formatOff]); return -1;}
-    if(tmResult.tm_mday != 01)          {syslog(LOG_MTEST, "ERROR in mday:%d- '%s'\n",
-              tmResult.tm_mday, iso8601TestCases[formatOff]); return -1;}
-    if(tmResult.tm_hour != 14)          {syslog(LOG_MTEST, "ERROR in hour:%d- '%s'\n",
-              tmResult.tm_hour, iso8601TestCases[formatOff]); return -1;}
-    if(tmResult.tm_min  != 37)          {syslog(LOG_MTEST, "ERROR in min:%d - '%s'\n",
-              tmResult.tm_min, iso8601TestCases[formatOff]); return -1;}
-    if(tmResult.tm_sec  != 34)          {syslog(LOG_MTEST, "ERROR in sec:%d - '%s'\n",
-              tmResult.tm_sec, iso8601TestCases[formatOff]); return -1;}
+    syslog(LOG_MTEST, "All %d ISO 8601 time tests Passed\n", formatOff);
 
-    formatOff++;
-  } while (iso8601TestCases[formatOff] != NULL);
-  
-  syslog(LOG_MTEST, "All %d ISO 8601 time tests Passed\n", formatOff);
-
-  return OK;
+    return OK;
 }
 
 //=================================================================
 // Need to test this function for the above defined ISO 8601 formats
 static int TestParsingISO8601UtcOffset(void)
 {
-  int ret;
-  int formatOff = 0;
-  size_t testLen;
-  int utcTimeOffset;
-  double fracSec;
+    int ret;
+    int formatOff = 0;
+    size_t testLen;
+    int utcTimeOffset;
+    double fracSec;
 
-  do
-  {
-    testLen = strlen(iso8601TestCases[formatOff]);
-
-    // This call returns the utc offset and any fractional seconds
-    ret = meadow_parse_iso8601_utc_offset(iso8601TestCases[formatOff], testLen,
-              &utcTimeOffset, &fracSec);
-    if(ret < 0)
+    do
     {
-      syslog(LOG_MTEST, "DateTime Test failed on '%s' element#:%d \n",
-                iso8601TestCases[formatOff], formatOff + 1);
-      return -1;
+        testLen = strlen(iso8601TestCases[formatOff]);
+
+        // This call returns the utc offset and any fractional seconds
+        ret = meadow_parse_iso8601_utc_offset(iso8601TestCases[formatOff], testLen, &utcTimeOffset, &fracSec);
+        if (ret < 0)
+        {
+            syslog(LOG_MTEST, "DateTime Test failed on '%s' element#:%d \n", iso8601TestCases[formatOff], formatOff + 1);
+            return -1;
+        }
+
+        // Now verify the utc offset and fractional seconds
+        // These tests are based on values defined above in the iso8601TestCases array
+        switch (formatOff)
+        {
+            case 0:
+                if (utcTimeOffset != 0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != 0.0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 1:
+                if (utcTimeOffset != 0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != .9174375)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not .9174375\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 2:
+                if (utcTimeOffset != -420)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not -420\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != .1838288)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not .1838288\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 3:
+                if (utcTimeOffset != 0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not -420\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != 0.0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 4:
+                if (utcTimeOffset != 0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != 0.0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 5:
+                if (utcTimeOffset != 570)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not +570\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != 0.0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            case 6:
+                if (utcTimeOffset != 0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n", iso8601TestCases[formatOff], formatOff, utcTimeOffset);
+                    return -1;
+                }
+
+                if (fracSec != 0.0)
+                {
+                    syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n", iso8601TestCases[formatOff], formatOff, fracSec);
+                    return -1;
+                }
+                break;
+            default:
+                syslog(LOG_MTEST, "'%s' ERROR at default with offset %d\n", iso8601TestCases[formatOff] ? iso8601TestCases[formatOff] : "(null)", formatOff);
+                break;
+        }
+
+        formatOff++;
     }
+    while (iso8601TestCases[formatOff] != NULL);
 
-    // Now verify the utc offset and fractional seconds
-    // These tests are based on values defined above in the iso8601TestCases array
-    switch(formatOff)
-    {
-      case 0:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
+    syslog(LOG_MTEST, "All %d ISO8601 utc offset tests Passed\n", formatOff);
 
-        if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 1:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != .9174375) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not .9174375\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 2:
-        if(utcTimeOffset != -420) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not -420\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != .1838288) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not .1838288\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 3:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not -420\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 4:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 5:
-        if(utcTimeOffset != 570) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not +570\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      case 6:
-        if(utcTimeOffset != 0) {syslog(LOG_MTEST, "'%s' ERROR offset %d utcTimeOffset %d not 0\n",
-                  iso8601TestCases[formatOff], formatOff, utcTimeOffset); return -1;}
-
-        if(fracSec != 0.0) {syslog(LOG_MTEST, "'%s' ERROR offset %d fracSec %f not 0.0\n",
-                  iso8601TestCases[formatOff], formatOff, fracSec); return -1;}
-        break;
-      default:
-        syslog(LOG_MTEST, "'%s' ERROR at default with offset %d\n",
-          iso8601TestCases[formatOff] ? iso8601TestCases[formatOff] : "(null)", formatOff);
-        break;
-    }
-
-    formatOff++;
-  } while (iso8601TestCases[formatOff] != NULL);
-  
-  syslog(LOG_MTEST, "All %d ISO8601 utc offset tests Passed\n", formatOff);
-
-  return OK;
+    return OK;
 }
 
 //=================================================================
 // Need to test this function for the above defined ISO 8601 formats
 static int TestParsingISO8601TimePeriod(void)
 {
-  int ret;
-  int formatOff = 0;
-  time_t secondsTillAlarm;
+    int ret;
+    int formatOff = 0;
+    time_t secondsTillAlarm;
 
-  do
-  {
-    // syslog(LOG_MTEST, "==> Offset:%d '%s'\n",
-    //   formatOff, iso8601PeriodTests[formatOff]);
-
-    // Parse ISO period (duration) formatted string
-    ret = meadow_parse_iso8601_time_period(iso8601PeriodTests[formatOff],
-              &secondsTillAlarm);
-
-    switch(formatOff)
+    do
     {
-      case 0:  // "P0Y0M0DT0H3M19S",  // Duration = 199
-        if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+        // syslog(LOG_MTEST, "==> Offset:%d '%s'\n",
+        //   formatOff, iso8601PeriodTests[formatOff]);
 
-        if(secondsTillAlarm != 199) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:199 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:199 Got:%lu\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
-        break;
-        
-      case 1:  // "P0Y0M0DT0H0M0S",   // Duration = 0
-        if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+        // Parse ISO period (duration) formatted string
+        ret = meadow_parse_iso8601_time_period(iso8601PeriodTests[formatOff], &secondsTillAlarm);
 
-        if(secondsTillAlarm != 0) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:0 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:0 Got:%lu\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
-        break;
+        switch (formatOff)
+        {
+            case 0: // "P0Y0M0DT0H3M19S",  // Duration = 199
+                if (ret != OK)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-      case 2:   // "P0Y0M0D0TH0M0S",   // 'T' in wrong place
-        if(ret != -EINVAL) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); }
-        break;
+                if (secondsTillAlarm != 199)
+                {
+                    syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:199 Got:%llu\n", ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:199 Got:%lu\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                break;
 
-      case 3:  // "P0Y0M0DT0H3M0S",   // Duration = 180
-        if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+            case 1: // "P0Y0M0DT0H0M0S",   // Duration = 0
+                if (ret != OK)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 180) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:180 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:180 Got:%lu\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
-        break;
+                if (secondsTillAlarm != 0)
+                {
+                    syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:0 Got:%llu\n", ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:0 Got:%lu\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                break;
 
-      case 4:  // "P1Y1M0DT0H0M1S",   // Duration = 1
-        if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+            case 2: // "P0Y0M0D0TH0M0S",   // 'T' in wrong place
+                if (ret != -EINVAL)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], -EINVAL, ret); }
+                break;
 
-        if(secondsTillAlarm != 1) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:1 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:1 Got:%lu\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
-        break;
+            case 3: // "P0Y0M0DT0H3M0S",   // Duration = 180
+                if (ret != OK)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-      case 5:  // "PDT1M",            // Extra 'D'
-        if(ret != -EFTYPE) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); }
-        break;
+                if (secondsTillAlarm != 180)
+                {
+                    syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:180 Got:%llu\n", ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:180 Got:%lu\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                break;
 
-      case 6:  // "PT1M",             // Duration = 60
-        if(ret != OK) {syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n",
-                  formatOff + 1, iso8601PeriodTests[formatOff], ret); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+            case 4: // "P1Y1M0DT0H0M1S",   // Duration = 1
+                if (ret != OK)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
 
-        if(secondsTillAlarm != 60) {syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:60 Got:%llu\n",
-                  ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); return -1;}
-        // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:60 Got:%lu\n",
-        //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
-        break;
+                if (secondsTillAlarm != 1)
+                {
+                    syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:1 Got:%llu\n", ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:1 Got:%lu\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                break;
+
+            case 5: // "PDT1M",            // Extra 'D'
+                if (ret != -EFTYPE)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:%d Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:%d Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], -EFTYPE, ret); }
+                break;
+
+            case 6: // "PT1M",             // Duration = 60
+                if (ret != OK)
+                {
+                    syslog(LOG_MTEST, "Test#%d FAILED '%s' Expected:OK Got:ret:%d\n", formatOff + 1, iso8601PeriodTests[formatOff], ret);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:OK Got:%d\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], ret); }
+
+                if (secondsTillAlarm != 60)
+                {
+                    syslog(LOG_MTEST, "FAILED ret:%d in time period:%d-'%s' Expected:60 Got:%llu\n", ret, formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm);
+                    return -1;
+                }
+                // else {syslog(LOG_MTEST, "Test#%d Passed '%s' Expected:60 Got:%lu\n",
+                //           formatOff + 1, iso8601PeriodTests[formatOff], secondsTillAlarm); }
+                break;
+        }
+
+        formatOff++;
     }
+    while (iso8601PeriodTests[formatOff] != NULL);
 
-    formatOff++;
-  } while (iso8601PeriodTests[formatOff] != NULL);
-  
-  syslog(LOG_MTEST, "All %d ISO 8601 time period tests Passed\n", formatOff);
+    syslog(LOG_MTEST, "All %d ISO 8601 time period tests Passed\n", formatOff);
 
-  return OK;
+    return OK;
 }
 
 //=================================================================
 // These tests are for testing the power management implementation
 int meadow_kt_iso8601_tests(uint32_t userData)
 {
-  int ret = OK;
+    int ret = OK;
 
-  switch(userData)
-  {
-    // 60 - 69
-    case 60:
-      // Test ISO 8601 parsing feature for date, time
-      ret = TestParsingISO8601DateTime();
-      break;
+    switch (userData)
+    {
+        // 60 - 69
+        case 60:
+            // Test ISO 8601 parsing feature for date, time
+            ret = TestParsingISO8601DateTime();
+            break;
 
-    case 61:
-      // Test ISO 8601 parsing feature for utc offset and frac sec
-      ret = TestParsingISO8601UtcOffset();
-      break;
+        case 61:
+            // Test ISO 8601 parsing feature for utc offset and frac sec
+            ret = TestParsingISO8601UtcOffset();
+            break;
 
-    case 62:
-      // Test ISO 8601 parsing for time period values
-      ret = TestParsingISO8601TimePeriod();
-      break;
+        case 62:
+            // Test ISO 8601 parsing for time period values
+            ret = TestParsingISO8601TimePeriod();
+            break;
 
-    default:
-    syslog(LOG_MTEST, "Unknown value %lu passed to RTC Tests()\n", userData);
-    break;
-
-  }
-  return ret;
+        default:
+            syslog(LOG_MTEST, "Unknown value %lu passed to RTC Tests()\n", userData);
+            break;
+    }
+    return ret;
 }

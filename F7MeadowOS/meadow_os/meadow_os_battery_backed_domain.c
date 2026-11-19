@@ -68,22 +68,22 @@
 /**
  *  @brief Address of the battery backed domain SRAM.
  */
-#define BATTERY_BACKED_DOMAIN_SRAM_ADDRESS          0x40024000
+#define BATTERY_BACKED_DOMAIN_SRAM_ADDRESS 0x40024000
 
 /**
  * @brief Maximum register number (register numbers start at 0).
  */
-#define MEADOW_OS_BBD_REGISTER_NUMBER_MAX           (STM32_RTC_BKCOUNT - 1)
+#define MEADOW_OS_BBD_REGISTER_NUMBER_MAX (STM32_RTC_BKCOUNT - 1)
 
 /**
  * @brief Base address of the battery backed domain registers.
  */
-#define MEADOW_OS_BBR_BASE_ADDRESS                  STM32_RTC_BK0R
+#define MEADOW_OS_BBR_BASE_ADDRESS STM32_RTC_BK0R
 
 /**
  * @brief Maximum address of the battery backed domain registers.
  */
-#define MEADOW_OS_BBR_MAXIMUM_ADDRESS               (MEADOW_OS_BBR_BASE_ADDRESS + (MEADOW_OS_BBD_REGISTER_NUMBER_MAX * 4))
+#define MEADOW_OS_BBR_MAXIMUM_ADDRESS (MEADOW_OS_BBR_BASE_ADDRESS + (MEADOW_OS_BBD_REGISTER_NUMBER_MAX * 4))
 
 /****************************************************************************
  * Local type definitions.
@@ -129,7 +129,7 @@ static bool __attribute__((unused)) meadow_os_bbd_is_bbr_address_valid(uint32_t 
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -150,7 +150,7 @@ static bool __attribute__((unused)) meadow_os_bbd_is_bbr_address_valid(uint32_t 
  ****************************************************************************/
 static bool inline meadow_os_bbd_is_bbr_number_valid(uint32_t number)
 {
-    return(number <= MEADOW_OS_BBD_REGISTER_NUMBER_MAX);
+    return (number <= MEADOW_OS_BBD_REGISTER_NUMBER_MAX);
 }
 
 /****************************************************************************
@@ -171,7 +171,7 @@ static bool inline meadow_os_bbd_is_bbr_number_valid(uint32_t number)
  ****************************************************************************/
 static uint32_t inline *meadow_os_bbd_bbr_number_to_address(uint32_t number)
 {
-    return((uint32_t *) (MEADOW_OS_BBR_BASE_ADDRESS + (number * 4)));
+    return ((uint32_t *) (MEADOW_OS_BBR_BASE_ADDRESS + (number * 4)));
 }
 
 /****************************************************************************
@@ -183,10 +183,10 @@ static uint32_t inline *meadow_os_bbd_bbr_number_to_address(uint32_t number)
  *
  * Description:
  *  Copy the message into battery backed RAM.
- * 
+ *
  *  The message will be truncated to the 4095 bytes (allowing 1 byte for the
  *  terminating NULL).
- * 
+ *
  *  The battery backed domain SRAM is cleared before the message is copied.
  *
  * Input Parameters:
@@ -221,7 +221,7 @@ void meadow_os_bbd_strdup_to_sram(const char *message)
  *
  * Description:
  *  Copy the string held in battery backed RAM into the specified location.
- * 
+ *
  * Input Parameters:
  *  destination - Location for the copy of the SRAM string.
  *  length - Length of the destination buffer.  Ideally this should be 4096
@@ -303,7 +303,7 @@ int meadow_os_bbd_register_get_value(uint32_t register_number, uint32_t *value)
         *value = getreg32(meadow_os_bbd_bbr_number_to_address(register_number));
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -336,7 +336,7 @@ int meadow_os_bbd_register_set_value(uint32_t register_number, uint32_t value)
         putreg32(value, meadow_os_bbd_bbr_number_to_address(register_number));
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -375,7 +375,7 @@ int meadow_os_bbd_register_set_bits(uint32_t register_number, uint32_t value)
         leave_critical_section(flags);
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -414,6 +414,5 @@ int meadow_os_bbd_register_clear_bits(uint32_t register_number, uint32_t value)
         leave_critical_section(flags);
     }
 
-    return(result);
+    return (result);
 }
-

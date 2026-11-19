@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\os_rqsts\hcom_bbreg_access.c
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -61,59 +61,56 @@
 // right justifies the remaining bit(s).
 uint32_t hcom_bbreg_read_bbr_and_right_justify(uint32_t bitMask)
 {
-  uint32_t regValue;
- 
-  if(bitMask == 0)
-    return 0;
-  
-  int ret = hcom_via_nx_get_bbr(&regValue);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, __func__, ret, errno);
-    return 0;
-  }
+    uint32_t regValue;
 
-  if(regValue == 0)
-    return 0;
+    if (bitMask == 0)
+        return 0;
 
-  regValue &= bitMask;    // Save only bit in mask
+    int ret = hcom_via_nx_get_bbr(&regValue);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return 0;
+    }
 
-  // We have the 32-bit value, shift right based on the mask
-  while((bitMask & 0x00000001) == 0)
-  {
-    bitMask >>= 1;
-    regValue >>= 1;
-  }
+    if (regValue == 0)
+        return 0;
 
-  return regValue;
+    regValue &= bitMask; // Save only bit in mask
+
+    // We have the 32-bit value, shift right based on the mask
+    while ((bitMask & 0x00000001) == 0)
+    {
+        bitMask >>= 1;
+        regValue >>= 1;
+    }
+
+    return regValue;
 }
 
 //===================================================================
 // Reads the defined battery backed register
 uint32_t hcom_bbreg_read_bbr()
 {
-  uint32_t regValue;
-  int ret = hcom_via_nx_get_bbr(&regValue);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-    return 0;
-  }
-  return regValue;
+    uint32_t regValue;
+    int ret = hcom_via_nx_get_bbr(&regValue);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return 0;
+    }
+    return regValue;
 }
 
 //===================================================================
 // Writes the defined battery backed register
 void hcom_bbreg_write_bbr(uint32_t value)
 {
-  int ret = hcom_via_nx_set_bbr(value);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
+    int ret = hcom_via_nx_set_bbr(value);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
 }
 
 //===================================================================
@@ -121,61 +118,56 @@ void hcom_bbreg_write_bbr(uint32_t value)
 // original state.
 bool hcom_bbreg_is_bbr_bits_set_n_clear(uint32_t value)
 {
-  uint32_t regValue;
-  int ret = hcom_via_nx_get_bbr(&regValue);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() #1 Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-    return false;
-  }
+    uint32_t regValue;
+    int ret = hcom_via_nx_get_bbr(&regValue);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() #1 Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return false;
+    }
 
-  ret = hcom_via_nx_set_bbr(regValue & (~value));
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() #2 Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
-  return (value & regValue) != 0;
+    ret = hcom_via_nx_set_bbr(regValue & (~value));
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() #2 Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
+    return (value & regValue) != 0;
 }
 
 //===================================================================
 // Reads bits in register and returns their state
 bool hcom_bbreg_is_bbr_bit_set(uint32_t value)
 {
-  uint32_t regValue;
-  int ret = hcom_via_nx_get_bbr(&regValue);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-    return false;
-  }
-  return (value & regValue) != 0;
+    uint32_t regValue;
+    int ret = hcom_via_nx_get_bbr(&regValue);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return false;
+    }
+    return (value & regValue) != 0;
 }
 
 //===================================================================
 // Set bit(s) in the defined battery backed register
 void hcom_bbreg_set_bbr_bits(uint32_t value)
 {
-  int ret = hcom_via_nx_update_bbr(0, value);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
+    int ret = hcom_via_nx_update_bbr(0, value);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
 }
 
 //===================================================================
 // Clears the specified bits
 void hcom_bbreg_clear_bbr_bits(uint32_t value)
 {
-  int ret = hcom_via_nx_update_bbr(value, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
+    int ret = hcom_via_nx_update_bbr(value, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
 }
 
 //-------------------------------------------------------------------
@@ -183,22 +175,20 @@ void hcom_bbreg_clear_bbr_bits(uint32_t value)
 // the HCOM task list of file descriptors
 void hcom_bbreg_clear_bbr_bits_alt(int nx_access_fd, uint32_t value)
 {
-  int ret = hcom_via_nx_update_bbr_alt(nx_access_fd, value, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
+    int ret = hcom_via_nx_update_bbr_alt(nx_access_fd, value, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
 }
 
 //===================================================================
 // Clears then sets the specified bits
 void hcom_bbreg_clear_then_set_bbr_bits(uint32_t clearBits, uint32_t setBits)
 {
-  int ret = hcom_via_nx_update_bbr(clearBits, setBits);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-  }
+    int ret = hcom_via_nx_update_bbr(clearBits, setBits);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s() Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+    }
 }

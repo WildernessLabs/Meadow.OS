@@ -1,6 +1,6 @@
 /*************************************************************************
  * \include\meadow\hcom_shared_common.h
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -59,52 +59,52 @@
 // nuttx sides
 
 #ifndef OK
-  #define OK 0
+    #define OK 0
 #endif
 
 #ifndef MIN
-#  define MIN(a,b) (((a) < (b)) ? (a) : (b))
+    #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #endif
 
 #ifndef MAX
-#  define MAX(a,b) (((a) > (b)) ? (a) : (b))
+    #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 #endif
 
 // Used by OS and apps (hcom_mono_control.c, hcom_nx_littlefs.c, etc.)
 #define MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME "/meadow0"
 
-// Used by meadow_client_cert.h and tensorflow_tests.c 
+// Used by meadow_client_cert.h and tensorflow_tests.c
 #define MONO_MEADOW_EXECUTABLE_PARTITION_NAME "/meadow0"
 #define MONO_MEADOW_EXECUTABLE_APP_EXE "/meadow0/Meadow.dll"
 
 // The Meadow UPD driver. This single node serves both the MUPD_* commands
 // (meadow-upd.h, used by the .NET runtime) and the HCOM_NX_UPD_* commands
 // (hcom_upd_shared.h, used by hcom). Registered in meadow_os/meadow-upd.c.
-#define MEADOW_UPD_DRIVER_NAME  "/dev/upd"
+#define MEADOW_UPD_DRIVER_NAME "/dev/upd"
 
-#define MEADOW_SDCARD_MOUNT_POINT_NAME  "/sdcard"
-#define MEADOW_SDCARD_FILE_SYS_TYPE  "vfat"
-#define MEADOW_SDCARD_BLOCK_NAME   "/dev/mmcsd0"
+#define MEADOW_SDCARD_MOUNT_POINT_NAME "/sdcard"
+#define MEADOW_SDCARD_FILE_SYS_TYPE "vfat"
+#define MEADOW_SDCARD_BLOCK_NAME "/dev/mmcsd0"
 
 // These are copied from Legacy Meadow and can be somewhat misleading
-#define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000   // 3MB
+#define HCOM_NX_FS_MONO_RAW_PARTITION_SIZE 0x300000 // 3MB
 
 // The Mono runtime image is copied from the raw QSPI partition above to the start of
 // SDRAM, and the user heap (CONFIG_HEAP2_BASE) begins straight after it.  These values
 // must agree with CONFIG_HEAP2_BASE/CONFIG_HEAP2_SIZE in the defconfig and with the
 // sdram region in scripts/memory.ld; build.sh checks this.
-#define HCOM_NX_MONO_RUNTIME_SDRAM_ADDR    0xC0000000
-#define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000        // 2MB reserved space for updates
-#define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000         // (2MB - 256KB)
-#define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000    // 32 Kb
+#define HCOM_NX_MONO_RUNTIME_SDRAM_ADDR 0xC0000000
+#define HCOM_NX_FS_OTA_RESERVED_SPACE 0x200000     // 2MB reserved space for updates
+#define HCOM_NX_FS_NUTTX_UPDATE_SIZE 0x1C0000      // (2MB - 256KB)
+#define HCOM_NX_MAXIMUM_ASSERTION_DATA_SIZE 0x8000 // 32 Kb
 
 //==================================================
 // Host text message buffer sizes for text messages
-#define HCOM_TINY_HOST_STRING_BUFF_LENGTH 64        // automatic variable
-#define HCOM_SHORT_HOST_STRING_BUFF_LENGTH 128      // automatic variable
-#define HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH 144  // automatic variable
-#define HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH 512   // allocate
-#define HCOM_MAX_HOST_STRING_BUFF_LENGTH 2048       // allocate
+#define HCOM_TINY_HOST_STRING_BUFF_LENGTH 64       // automatic variable
+#define HCOM_SHORT_HOST_STRING_BUFF_LENGTH 128     // automatic variable
+#define HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH 144 // automatic variable
+#define HCOM_MED_LONG_HOST_STRING_BUFF_LENGTH 512  // allocate
+#define HCOM_MAX_HOST_STRING_BUFF_LENGTH 2048      // allocate
 // PATH_MAX is defined by Nuttx in limits.h. It's 256 or less
 #define HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
 
@@ -119,7 +119,7 @@
 
 //==================================================
 // Meadow file logging definitions.
-#define MEADOW_LOGGING_OS_FILE_NAME    "/meadow0/meadow.log"
+#define MEADOW_LOGGING_OS_FILE_NAME "/meadow0/meadow.log"
 
 #define HCOM_NX_FS_NUTTX_UPDATE_FILENAME "Meadow.OS.Update.bin"
 #define HCOM_NX_FS_MONO_RUNTIME_FILENAME "Meadow.OS.Runtime.bin"
@@ -129,106 +129,106 @@
 #define UPDATE_FIRMWARE_DIR UPDATE_DIR "firmware/"
 #define ROLLBACK_DIR "/meadow0/rollback"
 #define CRASH_DIR "/meadow0/crash"
-#define MEADOW_SYSTEM_DIR                         "/meadow0/system"
-#define MEADOW_SYSTEM_OS_PERSISTENT_DATA_FILE     MEADOW_SYSTEM_DIR "/os_data.bin"
+#define MEADOW_SYSTEM_DIR "/meadow0/system"
+#define MEADOW_SYSTEM_OS_PERSISTENT_DATA_FILE MEADOW_SYSTEM_DIR "/os_data.bin"
 
 //==================================================
 //  Network interface types.
 //
 //  These values are flag values.
-#define MEADOW_IFT_UNKNOWN          0xffffffff
-#define MEADOW_IFT_UNKNOWN_NAME     "Unknown"
-#define MEADOW_IFT_ESP32            0x00000000
-#define MEADOW_IFT_ESP32_NAME       "WiFi"
-#define MEADOW_IFT_ETHERNET         0x00000001
-#define MEADOW_IFT_ETHERNET_NAME    "Ethernet"
-#define MEADOW_IFT_CELL             0x00000002
-#define MEADOW_IFT_CELL_NAME        "Cell"
+#define MEADOW_IFT_UNKNOWN 0xffffffff
+#define MEADOW_IFT_UNKNOWN_NAME "Unknown"
+#define MEADOW_IFT_ESP32 0x00000000
+#define MEADOW_IFT_ESP32_NAME "WiFi"
+#define MEADOW_IFT_ETHERNET 0x00000001
+#define MEADOW_IFT_ETHERNET_NAME "Ethernet"
+#define MEADOW_IFT_CELL 0x00000002
+#define MEADOW_IFT_CELL_NAME "Cell"
 
 //==================================================
 //  Cell module models.
 //
 //  These values are flag values.
-#define CELL_UNKNOWN_MODULE          0xffffffff
-#define CELL_UNKNOWN_MODULE_NAME     "Unknown"
-#define CELL_BG770A_MODULE           0x00000000
-#define CELL_BG770A_MODULE_NAME      "BG770A"
-#define CELL_M95_MODULE              0x00000001
-#define CELL_M95_MODULE_NAME         "M95"
-#define CELL_BG95M3_MODULE           0x00000002
-#define CELL_BG95M3_MODULE_NAME      "BG95M3"
-#define CELL_EG21GL_MODULE           0x00000003
-#define CELL_EG21GL_MODULE_NAME      "EG21GL"
+#define CELL_UNKNOWN_MODULE 0xffffffff
+#define CELL_UNKNOWN_MODULE_NAME "Unknown"
+#define CELL_BG770A_MODULE 0x00000000
+#define CELL_BG770A_MODULE_NAME "BG770A"
+#define CELL_M95_MODULE 0x00000001
+#define CELL_M95_MODULE_NAME "M95"
+#define CELL_BG95M3_MODULE 0x00000002
+#define CELL_BG95M3_MODULE_NAME "BG95M3"
+#define CELL_EG21GL_MODULE 0x00000003
+#define CELL_EG21GL_MODULE_NAME "EG21GL"
 
 //  Cell network operation modes.
 //
 //  These values are flag values.
-#define CELL_UNKNOWN_MODE                  0xffffffff
-#define CELL_UNKNOWN_MODE_NAME             "Unknown"
-#define CELL_CATM1_MODE                    0x00000000
-#define CELL_CATM1_MODE_NAME               "CATM1"
-#define CELL_NBIOT_MODE                    0x00000001
-#define CELL_NBIOT_MODE_NAME               "NBIOT"
-#define CELL_GSM_MODE                      0x00000002
-#define CELL_GSM_MODE_NAME                 "GSM"
-#define CELL_UTRAN_MODE                    0x00000003
-#define CELL_UTRAN_MODE_NAME               "UTRAN"
-#define CELL_GSM_W_EGPRS_MODE              0x00000004
-#define CELL_GSM_W_EGPRS_MODE_NAME         "GSM_W_EGPRS"
-#define CELL_UTRAN_W_HSDPA_MODE            0x00000005
-#define CELL_UTRAN_W_HSDPA_MODE_NAME       "UTRAN_W_HSDPA"
-#define CELL_UTRAN_W_HSUPA_MODE            0x00000006
-#define CELL_UTRAN_W_HSUPA_MODE_NAME       "UTRAN_W_HSUPA"
-#define CELL_UTRAN_W_HSDPA_HSUPA_MODE      0x00000007
+#define CELL_UNKNOWN_MODE 0xffffffff
+#define CELL_UNKNOWN_MODE_NAME "Unknown"
+#define CELL_CATM1_MODE 0x00000000
+#define CELL_CATM1_MODE_NAME "CATM1"
+#define CELL_NBIOT_MODE 0x00000001
+#define CELL_NBIOT_MODE_NAME "NBIOT"
+#define CELL_GSM_MODE 0x00000002
+#define CELL_GSM_MODE_NAME "GSM"
+#define CELL_UTRAN_MODE 0x00000003
+#define CELL_UTRAN_MODE_NAME "UTRAN"
+#define CELL_GSM_W_EGPRS_MODE 0x00000004
+#define CELL_GSM_W_EGPRS_MODE_NAME "GSM_W_EGPRS"
+#define CELL_UTRAN_W_HSDPA_MODE 0x00000005
+#define CELL_UTRAN_W_HSDPA_MODE_NAME "UTRAN_W_HSDPA"
+#define CELL_UTRAN_W_HSUPA_MODE 0x00000006
+#define CELL_UTRAN_W_HSUPA_MODE_NAME "UTRAN_W_HSUPA"
+#define CELL_UTRAN_W_HSDPA_HSUPA_MODE 0x00000007
 #define CELL_UTRAN_W_HSDPA_HSUPA_MODE_NAME "UTRAN_W_HSDPA_HSUPA"
-#define CELL_E_UTRAN_MODE                  0x00000008
-#define CELL_E_UTRAN_MODE_NAME             "E_UTRAN"
-#define CELL_CDMA_MODE                     0x00000064
-#define CELL_CDMA_MODE_NAME                "CDMA"
+#define CELL_E_UTRAN_MODE 0x00000008
+#define CELL_E_UTRAN_MODE_NAME "E_UTRAN"
+#define CELL_CDMA_MODE 0x00000064
+#define CELL_CDMA_MODE_NAME "CDMA"
 
 //  Meadow F7FeatherV2 pin names
-#define F7_MICRO_V2_A4_PIN_NAME  "A4"
-#define F7_MICRO_V2_A5_PIN_NAME  "A5"
-#define F7_MICRO_V2_A3_PIN_NAME  "A3"
-#define F7_MICRO_V2_B0_PIN_NAME  "B0"
-#define F7_MICRO_V2_B1_PIN_NAME  "B1"
-#define F7_MICRO_V2_C0_PIN_NAME  "C0"
-#define F7_MICRO_V2_I9_PIN_NAME  "I9"
+#define F7_MICRO_V2_A4_PIN_NAME "A4"
+#define F7_MICRO_V2_A5_PIN_NAME "A5"
+#define F7_MICRO_V2_A3_PIN_NAME "A3"
+#define F7_MICRO_V2_B0_PIN_NAME "B0"
+#define F7_MICRO_V2_B1_PIN_NAME "B1"
+#define F7_MICRO_V2_C0_PIN_NAME "C0"
+#define F7_MICRO_V2_I9_PIN_NAME "I9"
 #define F7_MICRO_V2_H13_PIN_NAME "H13"
 #define F7_MICRO_V2_H10_PIN_NAME "H10"
-#define F7_MICRO_V2_B8_PIN_NAME  "B8"
-#define F7_MICRO_V2_B9_PIN_NAME  "B9"
-#define F7_MICRO_V2_B4_PIN_NAME  "B4"
+#define F7_MICRO_V2_B8_PIN_NAME "B8"
+#define F7_MICRO_V2_B9_PIN_NAME "B9"
+#define F7_MICRO_V2_B4_PIN_NAME "B4"
 #define F7_MICRO_V2_B13_PIN_NAME "B13"
-#define F7_MICRO_V2_B7_PIN_NAME  "B7"
-#define F7_MICRO_V2_B6_PIN_NAME  "B6"
-#define F7_MICRO_V2_C6_PIN_NAME  "C6"
-#define F7_MICRO_V2_C7_PIN_NAME  "C7"
-#define F7_MICRO_V2_C9_PIN_NAME  "C9"
+#define F7_MICRO_V2_B7_PIN_NAME "B7"
+#define F7_MICRO_V2_B6_PIN_NAME "B6"
+#define F7_MICRO_V2_C6_PIN_NAME "C6"
+#define F7_MICRO_V2_C7_PIN_NAME "C7"
+#define F7_MICRO_V2_C9_PIN_NAME "C9"
 #define F7_MICRO_V2_B14_PIN_NAME "B14"
 #define F7_MICRO_V2_B15_PIN_NAME "B15"
 #define F7_MICRO_V2_B12_PIN_NAME "B12"
 #define F7_MICRO_V2_G12_PIN_NAME "G12"
 
 //  Correspondent MCU pin names for F7FeatherV2
-#define F7_MICRO_V2_A4_PIN  GPIO_PORTA | GPIO_PIN4
-#define F7_MICRO_V2_A5_PIN  GPIO_PORTA | GPIO_PIN5
-#define F7_MICRO_V2_A3_PIN  GPIO_PORTA | GPIO_PIN3
-#define F7_MICRO_V2_B0_PIN  GPIO_PORTB | GPIO_PIN0
-#define F7_MICRO_V2_B1_PIN  GPIO_PORTB | GPIO_PIN1
-#define F7_MICRO_V2_C0_PIN  GPIO_PORTC | GPIO_PIN0
-#define F7_MICRO_V2_I9_PIN  GPIO_PORTI | GPIO_PIN9
+#define F7_MICRO_V2_A4_PIN GPIO_PORTA | GPIO_PIN4
+#define F7_MICRO_V2_A5_PIN GPIO_PORTA | GPIO_PIN5
+#define F7_MICRO_V2_A3_PIN GPIO_PORTA | GPIO_PIN3
+#define F7_MICRO_V2_B0_PIN GPIO_PORTB | GPIO_PIN0
+#define F7_MICRO_V2_B1_PIN GPIO_PORTB | GPIO_PIN1
+#define F7_MICRO_V2_C0_PIN GPIO_PORTC | GPIO_PIN0
+#define F7_MICRO_V2_I9_PIN GPIO_PORTI | GPIO_PIN9
 #define F7_MICRO_V2_H13_PIN GPIO_PORTH | GPIO_PIN13
 #define F7_MICRO_V2_H10_PIN GPIO_PORTH | GPIO_PIN10
-#define F7_MICRO_V2_B8_PIN  GPIO_PORTB | GPIO_PIN8
-#define F7_MICRO_V2_B9_PIN  GPIO_PORTB | GPIO_PIN9
-#define F7_MICRO_V2_B4_PIN  GPIO_PORTB | GPIO_PIN4
+#define F7_MICRO_V2_B8_PIN GPIO_PORTB | GPIO_PIN8
+#define F7_MICRO_V2_B9_PIN GPIO_PORTB | GPIO_PIN9
+#define F7_MICRO_V2_B4_PIN GPIO_PORTB | GPIO_PIN4
 #define F7_MICRO_V2_B13_PIN GPIO_PORTB | GPIO_PIN13
-#define F7_MICRO_V2_B7_PIN  GPIO_PORTB | GPIO_PIN7
-#define F7_MICRO_V2_B6_PIN  GPIO_PORTB | GPIO_PIN6
-#define F7_MICRO_V2_C6_PIN  GPIO_PORTC | GPIO_PIN6
-#define F7_MICRO_V2_C7_PIN  GPIO_PORTC | GPIO_PIN7
-#define F7_MICRO_V2_C9_PIN  GPIO_PORTC | GPIO_PIN9
+#define F7_MICRO_V2_B7_PIN GPIO_PORTB | GPIO_PIN7
+#define F7_MICRO_V2_B6_PIN GPIO_PORTB | GPIO_PIN6
+#define F7_MICRO_V2_C6_PIN GPIO_PORTC | GPIO_PIN6
+#define F7_MICRO_V2_C7_PIN GPIO_PORTC | GPIO_PIN7
+#define F7_MICRO_V2_C9_PIN GPIO_PORTC | GPIO_PIN9
 #define F7_MICRO_V2_B14_PIN GPIO_PORTB | GPIO_PIN14
 #define F7_MICRO_V2_B15_PIN GPIO_PORTB | GPIO_PIN15
 #define F7_MICRO_V2_B12_PIN GPIO_PORTB | GPIO_PIN12
@@ -240,165 +240,165 @@
 /**
  * @brief Meadow OS Component has errored
  */
-#define FAULT_LOGGING_COMPONENT_ERRORED         (1 << 0)
+#define FAULT_LOGGING_COMPONENT_ERRORED (1 << 0)
 
 /**
  * @brief Meadow OS Component has started phase 1 logging.
  */
-#define FAULT_LOGGING_PHASE1_STARTED            (1 << 1)
+#define FAULT_LOGGING_PHASE1_STARTED (1 << 1)
 
 /**
  * @brief Meadow OS Component has completed phase 1 logging.
  */
-#define FAULT_LOGGING_PHASE1_COMPLETED          (1 << 2)
+#define FAULT_LOGGING_PHASE1_COMPLETED (1 << 2)
 
 /**
  * @brief Meadow OS Component has started phase 2 logging.
  */
-#define FAULT_LOGGING_PHASE2_STARTED            (1 << 3)
+#define FAULT_LOGGING_PHASE2_STARTED (1 << 3)
 
 /**
  * @brief Meadow OS Component has completed phase 2 logging.
  */
-#define FAULT_LOGGING_PHASE2_COMPLETED          (1 << 4)
+#define FAULT_LOGGING_PHASE2_COMPLETED (1 << 4)
 
 /**
  * @brief Number of bits to shift the OS component fault logging flags in the status register.
  */
-#define FAULT_LOGGING_OS_BIT_SHIFT              0
+#define FAULT_LOGGING_OS_BIT_SHIFT 0
 
 /**
  * @brief Number of bits to shift the runtime component fault logging flags in the status register.
  */
-#define FAULT_LOGGING_RT_BIT_SHIFT              8
+#define FAULT_LOGGING_RT_BIT_SHIFT 8
 
 /**
  * @brief Meadow OS Component has errored
  */
-#define FAULT_LOGGING_OS_COMPONENT_ERRORED      (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_OS_BIT_SHIFT)
+#define FAULT_LOGGING_OS_COMPONENT_ERRORED (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_OS_BIT_SHIFT)
 
 /**
  * @brief Meadow OS Component has started phase 1 logging.
  */
-#define FAULT_LOGGING_OS_PHASE1_STARTED         (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
+#define FAULT_LOGGING_OS_PHASE1_STARTED (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
 
 /**
  * @brief Meadow OS Component has completed phase 1 logging.
  */
-#define FAULT_LOGGING_OS_PHASE1_COMPLETED       (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
+#define FAULT_LOGGING_OS_PHASE1_COMPLETED (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
 
 /**
  * @brief Meadow OS Component has started phase 2 logging.
  */
-#define FAULT_LOGGING_OS_PHASE2_STARTED         (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
+#define FAULT_LOGGING_OS_PHASE2_STARTED (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_OS_BIT_SHIFT)
 
 /**
  * @brief Meadow OS Component has completed phase 2 logging.
  */
-#define FAULT_LOGGING_OS_PHASE2_COMPLETED       (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
+#define FAULT_LOGGING_OS_PHASE2_COMPLETED (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_OS_BIT_SHIFT)
 
 /**
  * @brief Meadow RT Component has errored
  */
-#define FAULT_LOGGING_RT_COMPONENT_ERRORED      (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_COMPONENT_ERRORED (FAULT_LOGGING_COMPONENT_ERRORED << FAULT_LOGGING_RT_BIT_SHIFT)
 
 /**
  * @brief Meadow RT Component has started phase 1 logging.
  */
-#define FAULT_LOGGING_RT_PHASE1_STARTED         (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_PHASE1_STARTED (FAULT_LOGGING_PHASE1_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
 
 /**
  * @brief Meadow RT Component has completed phase 1 logging.
  */
-#define FAULT_LOGGING_RT_PHASE1_COMPLETED       (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_PHASE1_COMPLETED (FAULT_LOGGING_PHASE1_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
 
 /**
  * @brief Meadow RT Component has started phase 2 logging.
  */
-#define FAULT_LOGGING_RT_PHASE2_STARTED         (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_PHASE2_STARTED (FAULT_LOGGING_PHASE2_STARTED << FAULT_LOGGING_RT_BIT_SHIFT)
 
 /**
  * @brief Meadow RT Component has completed phase 2 logging.
  */
-#define FAULT_LOGGING_RT_PHASE2_COMPLETED       (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_PHASE2_COMPLETED (FAULT_LOGGING_PHASE2_COMPLETED << FAULT_LOGGING_RT_BIT_SHIFT)
 
 /**
  * @brief File creation error (RT has tried to create a log file but failed).
  */
-#define FAULT_LOGGING_RT_FILE_ERROR             ((1 << 5) << FAULT_LOGGING_RT_BIT_SHIFT)
+#define FAULT_LOGGING_RT_FILE_ERROR ((1 << 5) << FAULT_LOGGING_RT_BIT_SHIFT)
 
 //==================================================
 //  Structure to hold cell network interface information
 struct cell_settings_s
 {
-  /**
-   *  @brief Default name module (i.e BG770A, M95, BG95M3).
-   */
-  char* module;
-  
-  /**
-   *  @brief Default module id.
-   */
-  uint32_t module_id;
+    /**
+     *  @brief Default name module (i.e BG770A, M95, BG95M3).
+     */
+    char *module;
 
-  /**
-   *  @brief Default cell access point name (APN).
-   */
-  char* apn;
+    /**
+     *  @brief Default module id.
+     */
+    uint32_t module_id;
 
-  /**
-   *  @brief Default cell numeric operator code (i.e. 72410).
-   */
-  char* operator;
+    /**
+     *  @brief Default cell access point name (APN).
+     */
+    char *apn;
 
-  /**
-   *  @brief Default IoT operation mode (e.g, NBIoT, CatM1, GSM)
-   */
-  char* mode;
+    /**
+     *  @brief Default cell numeric operator code (i.e. 72410).
+     */
+    char *operator;
 
-  /**
-   *  @brief Default IoT operation mode id
-   */
-  uint32_t mode_id;
+    /**
+     *  @brief Default IoT operation mode (e.g, NBIoT, CatM1, GSM)
+     */
+    char *mode;
 
-  /**
-   *  @brief Default interface name used in the communication 
-   *  with the cell module.
-   */
-  char* ttyname;
+    /**
+     *  @brief Default IoT operation mode id
+     */
+    uint32_t mode_id;
 
-  /**
-   *  @brief Default Meadow device pin name used to turn on the
-   *  cell modules (e.g, C7)
-   */
-  char* turn_on_pin_name;
+    /**
+     *  @brief Default interface name used in the communication
+     *  with the cell module.
+     */
+    char *ttyname;
 
-  /**
-   *  @brief Default Meadow device pin used to turn on the
-   *  cell modules
-   */
-  uint32_t turn_on_pin;
+    /**
+     *  @brief Default Meadow device pin name used to turn on the
+     *  cell modules (e.g, C7)
+     */
+    char *turn_on_pin_name;
 
-  /**
-   *  @brief Default chat app timeout in seconds, used to 
-   * define how long to wait for the modem response.
-   */
-  char* timeout;
+    /**
+     *  @brief Default Meadow device pin used to turn on the
+     *  cell modules
+     */
+    uint32_t turn_on_pin;
 
-  /**
-  *  @brief Default cell PAP authentication user.
-  */
-  char* pap_user;
+    /**
+     *  @brief Default chat app timeout in seconds, used to
+     * define how long to wait for the modem response.
+     */
+    char *timeout;
 
-  /**
-   *  @brief Default cell PAP authentication password.
-   */
-  char* pap_password;
+    /**
+     *  @brief Default cell PAP authentication user.
+     */
+    char *pap_user;
 
-  /**
-   *  @brief Enable cell network scanner mode
-  */
-  uint32_t scan_mode;
+    /**
+     *  @brief Default cell PAP authentication password.
+     */
+    char *pap_password;
+
+    /**
+     *  @brief Enable cell network scanner mode
+     */
+    uint32_t scan_mode;
 };
 typedef struct cell_settings_s cell_settings_t;
 
@@ -406,50 +406,50 @@ typedef struct cell_settings_s cell_settings_t;
 //  Structure to hold network interface information
 struct meadow_network_interface_s
 {
-  /**
-   *  @brief Network interface type (see MEADOW_IFT_* constants).
-   */
-  uint32_t interface_type;
+    /**
+     *  @brief Network interface type (see MEADOW_IFT_* constants).
+     */
+    uint32_t interface_type;
 
-  /**
-   * @brief Name used to identify this interface.
-   */
-  char *name;
+    /**
+     * @brief Name used to identify this interface.
+     */
+    char *name;
 
-  /**
-   *  @brief Use a DHCP server?
-   */
-  int32_t use_dhcp;
+    /**
+     *  @brief Use a DHCP server?
+     */
+    int32_t use_dhcp;
 
-  /**
-   *  @brief IP address.
-   */
-  uint32_t ip_address;
+    /**
+     *  @brief IP address.
+     */
+    uint32_t ip_address;
 
-  /**
-   *  @brief Subnet mask.
-   */
-  uint32_t netmask;
+    /**
+     *  @brief Subnet mask.
+     */
+    uint32_t netmask;
 
-  /**
-   *  @brief Default gateway.
-   */
-  uint32_t gateway;
+    /**
+     *  @brief Default gateway.
+     */
+    uint32_t gateway;
 
-  /**
-   *  @brief DNS address.
-   */
-  uint32_t dns_address;
+    /**
+     *  @brief DNS address.
+     */
+    uint32_t dns_address;
 
-  /**
-   *  @brief Changing default gateway?
-   */
-  bool gateway_changed;
+    /**
+     *  @brief Changing default gateway?
+     */
+    bool gateway_changed;
 
-  /**
-   * @brief Pointer to the psock methods
-   */
-  const struct sock_intf_s *psock_methods;
+    /**
+     * @brief Pointer to the psock methods
+     */
+    const struct sock_intf_s *psock_methods;
 };
 typedef struct meadow_network_interface_s meadow_network_interface_t;
 
@@ -458,99 +458,98 @@ typedef struct meadow_network_interface_s meadow_network_interface_t;
 
 /**
  * @brief Structure hold a version number as component parts.
- * 
+ *
  *  The version number is assumed to be of the format:
- * 
+ *
  *    major.minor.patch.build
  */
 struct meadow_version_number_s
 {
-  /**
-   * @brief Major part of the version number. 
-   */
-  uint32_t major;
+    /**
+     * @brief Major part of the version number.
+     */
+    uint32_t major;
 
-  /**
-   * @brief Minor part of the version number.
-   */
-  uint32_t minor;
+    /**
+     * @brief Minor part of the version number.
+     */
+    uint32_t minor;
 
-  /**
-   * @brief Patch part of the version number.
-   */
-  uint32_t revision;
+    /**
+     * @brief Patch part of the version number.
+     */
+    uint32_t revision;
 
-  /**
-   * @brief Build part of the version number.
-   */
-  uint32_t build;
+    /**
+     * @brief Build part of the version number.
+     */
+    uint32_t build;
 
-  /**
-   * @brief Day of the build.
-   */
-  uint8_t day;
+    /**
+     * @brief Day of the build.
+     */
+    uint8_t day;
 
-  /**
-   * @brief Month of the build.
-   */
-  uint8_t month;
+    /**
+     * @brief Month of the build.
+     */
+    uint8_t month;
 
-  /**
-   * @brief Three day month text of the build.
-   */
-  char month_text[4];
+    /**
+     * @brief Three day month text of the build.
+     */
+    char month_text[4];
 
-  /**
-   * @brief Year of the build.
-   */
-  uint8_t year;
+    /**
+     * @brief Year of the build.
+     */
+    uint8_t year;
 
-  /**
-   * @brief Hour of the build.
-   */
-  uint8_t hour;
+    /**
+     * @brief Hour of the build.
+     */
+    uint8_t hour;
 
-  /**
-   * @brief Minute of the build.
-   */
-  uint8_t minute;
+    /**
+     * @brief Minute of the build.
+     */
+    uint8_t minute;
 
-  /**
-   * @brief Second of the build.
-   */
-  uint8_t second;
+    /**
+     * @brief Second of the build.
+     */
+    uint8_t second;
 
-  /**
-   * @brief Git hash at the time of the build.
-   */
-  uint32_t hash;
+    /**
+     * @brief Git hash at the time of the build.
+     */
+    uint32_t hash;
 
-  /**
-   * @brief Name of the branch used in this build.
-   */
-  char *branch_name;
+    /**
+     * @brief Name of the branch used in this build.
+     */
+    char *branch_name;
 
-  /**
-   * @brief Short version string (%d.%d.%d.%d)
-   */
-  char *short_string;
+    /**
+     * @brief Short version string (%d.%d.%d.%d)
+     */
+    char *short_string;
 
-  /**
-   * @brief Long version string (%d.%d.%d.%d, built %02d %s 20%02d %02d:%02d:%02d UTC (%08x/%s))
-   */
-  char *long_string;
+    /**
+     * @brief Long version string (%d.%d.%d.%d, built %02d %s 20%02d %02d:%02d:%02d UTC (%08x/%s))
+     */
+    char *long_string;
 };
 typedef struct meadow_version_number_s meadow_version_number_t;
 
 /**
  * @brief Where should the ESP log messages be sent?
  */
-typedef enum esp_log_destination_e
-{
-  esp_log_destination_none = 0,
-  esp_log_destination_uart = 1,
-  esp_log_destination_jtag = 2,
-  esp_log_destination_udp = 3,
+typedef enum esp_log_destination_e {
+    esp_log_destination_none = 0,
+    esp_log_destination_uart = 1,
+    esp_log_destination_jtag = 2,
+    esp_log_destination_udp = 3,
 } esp_log_destination_t;
 
 /**
@@ -558,219 +557,219 @@ typedef enum esp_log_destination_e
  */
 typedef struct meadow_log_destinations_s
 {
-  /**
-   * @brief Name of the log destination.
-   */
-  char *name;
+    /**
+     * @brief Name of the log destination.
+     */
+    char *name;
 
-  /**
-   * @brief Value of the log destination.
-   */
-  esp_log_destination_t destination;
+    /**
+     * @brief Value of the log destination.
+     */
+    esp_log_destination_t destination;
 } meadow_log_destinations_t;
 
 //  Structure to hold the configuration of the Meadow board.
 struct meadow_configuration_s
 {
-  /**
-   *  @brief Using default configuration because the configuration file cannot be found
-   *         or there was a problem reading the configuration file.
-   */
-  int using_default_configuration;
-  
-  /**
-   *  @brief Options to be passed to the Mono runtime system when the
-   *         applications is started.
-   */
-  char *mono_options;
+    /**
+     *  @brief Using default configuration because the configuration file cannot be found
+     *         or there was a problem reading the configuration file.
+     */
+    int using_default_configuration;
 
-  /**
-   *  @brief Should the ESP32 be reset at startup.  This is used by developers to prevent
-   *         STM32 code from resetting the ESP32 and disconnecting the debugger.
-   */
-  int reset_esp32_at_startup;
+    /**
+     *  @brief Options to be passed to the Mono runtime system when the
+     *         applications is started.
+     */
+    char *mono_options;
 
-  /**
-   *  @brief Reason for the last ESP32 restart.
-   */
-  uint8_t esp32_reset_reason;
+    /**
+     *  @brief Should the ESP32 be reset at startup.  This is used by developers to prevent
+     *         STM32 code from resetting the ESP32 and disconnecting the debugger.
+     */
+    int reset_esp32_at_startup;
 
-  /**
-   *  @brief Level of trace output to generate.
-   */
-  int trace_level;
+    /**
+     *  @brief Reason for the last ESP32 restart.
+     */
+    uint8_t esp32_reset_reason;
 
-  /**
-   *  @brief Should trace output be diverted to UART?
-   */
-  uint8_t use_uart1_for_trace;
+    /**
+     *  @brief Level of trace output to generate.
+     */
+    int trace_level;
 
-  /**
-   *  @brief Should profiler output be diverted to UART?
-   */
-  uint8_t use_uart1_for_profiling;
+    /**
+     *  @brief Should trace output be diverted to UART?
+     */
+    uint8_t use_uart1_for_trace;
 
-  /**
-   * @brief Copy the managed application output to UART (COM1) ?
-   */
-  uint8_t copy_application_output_to_uart;
+    /**
+     *  @brief Should profiler output be diverted to UART?
+     */
+    uint8_t use_uart1_for_profiling;
 
-  /**
-   *  @brief Clock speed of the SPI interface between the STM32 and the ESP32.
-   */
-  uint32_t esp_spi_speed_hz;
+    /**
+     * @brief Copy the managed application output to UART (COM1) ?
+     */
+    uint8_t copy_application_output_to_uart;
 
-  /**
-   *  @brief Name of the board.
-   */
-  char *device_name;
+    /**
+     *  @brief Clock speed of the SPI interface between the STM32 and the ESP32.
+     */
+    uint32_t esp_spi_speed_hz;
 
-  /**
-   *  @brief Should the system reboot if the .NET application encounter an unhandled exception?
-   */
-  uint8_t reboot_on_unhandled_exceptions;
+    /**
+     *  @brief Name of the board.
+     */
+    char *device_name;
 
-  /**
-   *  @brief Maximum amount of time the initialisation method in the .NET application can run
-   *         before it is assumed to have failed.
-   */
-  uint32_t initialisation_timeout_seconds;
+    /**
+     *  @brief Should the system reboot if the .NET application encounter an unhandled exception?
+     */
+    uint8_t reboot_on_unhandled_exceptions;
 
-  /**
-   * @brief Does the system have SD card hardware installed (CCM).
-   */
-  uint8_t sd_storage_supported;
+    /**
+     *  @brief Maximum amount of time the initialisation method in the .NET application can run
+     *         before it is assumed to have failed.
+     */
+    uint32_t initialisation_timeout_seconds;
 
-  /**
-   * @brief Names of any reserved pins.
-   */
-  char *reserved_pins;
+    /**
+     * @brief Does the system have SD card hardware installed (CCM).
+     */
+    uint8_t sd_storage_supported;
 
-  /**
-   * @brief Operating system version information.
-   */
-  meadow_version_number_t os_version;
+    /**
+     * @brief Names of any reserved pins.
+     */
+    char *reserved_pins;
 
-  /**
-   *  @brief Mono version.
-   */
-  meadow_version_number_t mono_version;
+    /**
+     * @brief Operating system version information.
+     */
+    meadow_version_number_t os_version;
 
-  /**
-   *  @brief ESP32 firmware version.
-   */
-  meadow_version_number_t esp_version;
+    /**
+     *  @brief Mono version.
+     */
+    meadow_version_number_t mono_version;
 
-  /**
-   *  @brief Meadow hardware version software is executing on.
-   *
-   *  Note that this is normally NULL except when passing the version
-   *  information from kernel space to HCOM in user space.
-   */
-  char *hardware_version_text;
+    /**
+     *  @brief ESP32 firmware version.
+     */
+    meadow_version_number_t esp_version;
 
-  /**
-   *  @brief Hardware version number.
-   */
-  int hardware_version;
+    /**
+     *  @brief Meadow hardware version software is executing on.
+     *
+     *  Note that this is normally NULL except when passing the version
+     *  information from kernel space to HCOM in user space.
+     */
+    char *hardware_version_text;
 
-  /**
-   *  @brief Serial number of the STM32 microcontroller.
-   */
-  uint8_t serial_number[16];
+    /**
+     *  @brief Hardware version number.
+     */
+    int hardware_version;
 
-  /**
-   *  @brief ID of the STM32 microprocessor.
-   */
-  uint8_t chip_id[12];
+    /**
+     *  @brief Serial number of the STM32 microcontroller.
+     */
+    uint8_t serial_number[16];
 
-  /**
-   *  @brief Point to the structure holding the default network interface information.
-   */
-  meadow_network_interface_t *default_interface;
+    /**
+     *  @brief ID of the STM32 microprocessor.
+     */
+    uint8_t chip_id[12];
 
-  /**
-   *  @brief Default access point (used with the automatically_start_network property).
-   */
-  char *default_access_point;
+    /**
+     *  @brief Point to the structure holding the default network interface information.
+     */
+    meadow_network_interface_t *default_interface;
 
-  /**
-   *  @brief Default cell network interface settings
-   */
-  cell_settings_t *default_cell_settings;
-  
-  /**
-   *  @brief Get network time at startup?
-   */
-  uint8_t get_network_time_at_startup;
+    /**
+     *  @brief Default access point (used with the automatically_start_network property).
+     */
+    char *default_access_point;
 
-  /**
-   *  @brief DNS servers and the number of servers in the list.
-   */
-  char **dns_servers;
-  uint32_t dns_servers_count;
+    /**
+     *  @brief Default cell network interface settings
+     */
+    cell_settings_t *default_cell_settings;
 
-  /**
-   *  @brief Network time servers and the number of servers in the list.
-   */
-  char **ntp_servers;
-  uint32_t ntp_servers_count;
+    /**
+     *  @brief Get network time at startup?
+     */
+    uint8_t get_network_time_at_startup;
 
-  /**
-   *  @brief Number of seconds between time updates from the NTP server.
-   */
-  uint32_t ntp_refresh_period_seconds;
+    /**
+     *  @brief DNS servers and the number of servers in the list.
+     */
+    char **dns_servers;
+    uint32_t dns_servers_count;
 
-  /**
-   *  @brief Automatically start the network?
-   */
-  uint8_t automatically_start_network;
+    /**
+     *  @brief Network time servers and the number of servers in the list.
+     */
+    char **ntp_servers;
+    uint32_t ntp_servers_count;
 
-  /**
-   *  @brief Automatically reconnect to the preconfigured access point?
-   */
-  uint8_t automatically_reconnect;
+    /**
+     *  @brief Number of seconds between time updates from the NTP server.
+     */
+    uint32_t ntp_refresh_period_seconds;
 
-  /**
-   * @brief Which components should generate log messages?
-   */
-  char *esp_log_components;
+    /**
+     *  @brief Automatically start the network?
+     */
+    uint8_t automatically_start_network;
 
-  /**
-   * @brief Where should any ESP log messages be sent?
-   */
-  esp_log_destination_t esp_log_destination;
+    /**
+     *  @brief Automatically reconnect to the preconfigured access point?
+     */
+    uint8_t automatically_reconnect;
 
-  /**
-   * @brief UDP port to send ESP32 messages to when UDP logging is active.
-   */
-  uint32_t esp_log_udp_port;
+    /**
+     * @brief Which components should generate log messages?
+     */
+    char *esp_log_components;
 
-  /**
-   * @brief Should the core dump be retrieved from the ESP32?
-   */
-  bool esp_retrieve_core_dump;
+    /**
+     * @brief Where should any ESP log messages be sent?
+     */
+    esp_log_destination_t esp_log_destination;
 
-  /**
-   * @brief MAC address of the board. 
-   */
-  uint8_t board_mac_address[6];
+    /**
+     * @brief UDP port to send ESP32 messages to when UDP logging is active.
+     */
+    uint32_t esp_log_udp_port;
 
-  /**
-   * @brief MAC address of the soft access point. 
-   */  
-  uint8_t soft_ap_mac_address[6];
+    /**
+     * @brief Should the core dump be retrieved from the ESP32?
+     */
+    bool esp_retrieve_core_dump;
 
-  /**
-   *  @brief Number of retries for connects etc before the system gives up
-   *         and returns an error code.
-   */  
-  uint32_t maximum_retry_count;
+    /**
+     * @brief MAC address of the board.
+     */
+    uint8_t board_mac_address[6];
 
-  /**
-   * @brief Country code for the network interface.
-   */
-  char *country_code;
+    /**
+     * @brief MAC address of the soft access point.
+     */
+    uint8_t soft_ap_mac_address[6];
+
+    /**
+     *  @brief Number of retries for connects etc before the system gives up
+     *         and returns an error code.
+     */
+    uint32_t maximum_retry_count;
+
+    /**
+     * @brief Country code for the network interface.
+     */
+    char *country_code;
 };
 typedef struct meadow_configuration_s meadow_configuration_t;
 
@@ -779,72 +778,72 @@ typedef struct meadow_configuration_s meadow_configuration_t;
  */
 struct mono_signature_s
 {
-  /**
-   * @brief Signature to verify that the this is Mono runtime.
-   */
-  uint32_t signature;
+    /**
+     * @brief Signature to verify that the this is Mono runtime.
+     */
+    uint32_t signature;
 
-  /**
-   * @brief Build number.
-   */
-  uint32_t build;
+    /**
+     * @brief Build number.
+     */
+    uint32_t build;
 
-  /**
-   * @brief Build revision.
-   */
-  uint32_t revision;
+    /**
+     * @brief Build revision.
+     */
+    uint32_t revision;
 
-  /**
-   * @brief Build minor number.
-   */
-  uint32_t minor;
+    /**
+     * @brief Build minor number.
+     */
+    uint32_t minor;
 
-  /**
-   * @brief Build major number.
-   */
-  uint32_t major;
+    /**
+     * @brief Build major number.
+     */
+    uint32_t major;
 
-  /**
-   * @brief Day of the build.
-   */
-  uint8_t day;
+    /**
+     * @brief Day of the build.
+     */
+    uint8_t day;
 
-  /**
-   * @brief Month of the build.
-   */
-  uint8_t month;
+    /**
+     * @brief Month of the build.
+     */
+    uint8_t month;
 
-  /**
-   * @brief Year of the build.
-   */
-  uint8_t year;
+    /**
+     * @brief Year of the build.
+     */
+    uint8_t year;
 
-  /**
-   * @brief Hour of the build.
-   */
-  uint8_t hour;
+    /**
+     * @brief Hour of the build.
+     */
+    uint8_t hour;
 
-  /**
-   * @brief Minute of the build.
-   */
-  uint8_t minute;
+    /**
+     * @brief Minute of the build.
+     */
+    uint8_t minute;
 
-  /**
-   * @brief Second of the build.
-   */
-  uint8_t second;
+    /**
+     * @brief Second of the build.
+     */
+    uint8_t second;
 
-  /**
-   * @brief Git has of this build.
-   */
-  uint32_t hash;
+    /**
+     * @brief Git has of this build.
+     */
+    uint32_t hash;
 
-  /**
-   * @brief First character of the branch used for this build.
-   * 
-   * This is actually a byte array (null terminated string).
-   */
-  char start_of_branch_string;
+    /**
+     * @brief First character of the branch used for this build.
+     *
+     * This is actually a byte array (null terminated string).
+     */
+    char start_of_branch_string;
 } __attribute__((packed));
 typedef struct mono_signature_s mono_signature_t;
 
@@ -852,10 +851,10 @@ typedef struct mono_signature_s mono_signature_t;
 //  The three options below define the possible Mono options that can be used
 //  to control the run mode of the application.
 //
-#define MONO_OPTION_JIT       "--jit"
-#define MONO_OPTION_AOT       "--aot"
-#define MONO_OPTION_INTERP    "--interp"
-#define MONO_OPTION_SDB	      "--soft-breakpoints"
+#define MONO_OPTION_JIT "--jit"
+#define MONO_OPTION_AOT "--aot"
+#define MONO_OPTION_INTERP "--interp"
+#define MONO_OPTION_SDB "--soft-breakpoints"
 
 //
 //  Default NTP server to be used if none is specified.
@@ -963,16 +962,15 @@ typedef struct mono_signature_s mono_signature_t;
 //==================================================
 // hcom nx upd ioctl commands
 // Augments the normal Nuttx LOG_XXXX list
-#define LOG_NONE                         0xff
+#define LOG_NONE 0xff
 
 // Meadow uses these syslog defines when doing diagnostics and testing,
 // since LOG_CRIT will always be output.
-#define LOG_MDIAG                       LOG_CRIT
-#define LOG_MTEST                       LOG_CRIT
+#define LOG_MDIAG LOG_CRIT
+#define LOG_MTEST LOG_CRIT
 
 // typedef for sending messages to host (e.g. CLI) from nuttx side
-typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
-          size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
+typedef int (*send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg, size_t totalMsgLen, char *sourceFileName, int sourceLineNumber);
 
 //--------------------------------------------------------------------
 /* Rebase Note: This infrastructure isn't in place yet. Added to defconfig file
@@ -985,14 +983,14 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 
 // This Meadow features can be excluded from a build by
 // using the make menuconfig 'Board Selection' option.
-// To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING 
+// To enable/disable remote debugging use CONFIG_HCOM_MONO_REMOTE_DEBUGGING
 
 //--------------------------------------------------------------------
 // This is a non-optional #define, it must be set
 // The only valid UART options are 1, 4 or 6. All other value are considered
 // a build error.
 // The default, due to hardware design, must be UART 1.
-#define HCOM_DIAG_SYSLOG_UART_NUMBER                  1
+#define HCOM_DIAG_SYSLOG_UART_NUMBER 1
 
 //--------------------------------------------------------------------
 // What uses the second USB CDC/ACM port (/dev/ttyACM1). Set by the build,
@@ -1002,84 +1000,83 @@ typedef int (* send_host_std_msg_data)(HcomProtoHdrMsg_t *hdrMsg,
 //                                to the UART and CLI outputs
 //   build.sh --dualcdc --nsh  -> HCOM_USB_PORT2_NSH, NSH instead of syslog
 //   otherwise                 -> HCOM_USB_PORT2_NONE, no second port
-#define HCOM_USB_PORT2_NONE                           0
-#define HCOM_USB_PORT2_SYSLOG                         1
-#define HCOM_USB_PORT2_NSH                            2
+#define HCOM_USB_PORT2_NONE 0
+#define HCOM_USB_PORT2_SYSLOG 1
+#define HCOM_USB_PORT2_NSH 2
 #if defined(CONFIG_BOARD_USB_PORT2_NSH)
-#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_NSH
+    #define HCOM_USB_PORT2_USAGE HCOM_USB_PORT2_NSH
 #elif defined(CONFIG_BOARD_DUAL_CDCACM)
-#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_SYSLOG
+    #define HCOM_USB_PORT2_USAGE HCOM_USB_PORT2_SYSLOG
 #else
-#define HCOM_USB_PORT2_USAGE                          HCOM_USB_PORT2_NONE
+    #define HCOM_USB_PORT2_USAGE HCOM_USB_PORT2_NONE
 #endif
 
 // 1 when syslog goes to the second port.
-#if defined(CONFIG_RAMLOG_SYSLOG) && defined(CONFIG_BOARD_DUAL_CDCACM) && \
-    (HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_SYSLOG)
-#define HCOM_TRACE_USB_ENABLED                        1
+#if defined(CONFIG_RAMLOG_SYSLOG) && defined(CONFIG_BOARD_DUAL_CDCACM) && (HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_SYSLOG)
+    #define HCOM_TRACE_USB_ENABLED 1
 #else
-#define HCOM_TRACE_USB_ENABLED                        0
+    #define HCOM_TRACE_USB_ENABLED 0
 #endif
 
 //--------------------------------------------------------------------
 // The following control diagnostics that can be added to the built
 // This will enable debug code in the hcom_nx/create_fs/ files.
-#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING       0
+#define HCOM_NX_CREATE_FS_INCLUDE_DEBUG_LOGGING 0
 
 // When set to 1 the syslog mask is set for all tracing except for
 // debug. At startup syslog messages are routed to UART without
 // the need for configuration or the CLI Uart Trace command.
-#define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART     0
+#define HCOM_FORCE_SYSLOG_MASK_AND_OUTPUT_TO_UART 0
 
 // Cause the build to include the ability to print a buffer
 // full of data, showing hex and ascii. Duplicate code is created
-// on both the apps and nuttx side of hcom. On Apps side 
+// on both the apps and nuttx side of hcom. On Apps side
 // 'hcom_diag_print_buffer' on Nuttx 'hcom_nx_diag_print_buffer'
-#define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE           0
- // To output non-null terminated string. This won't work if binary in buffer
- // syslog(LOG_XXX, "%.*s\n", textLen, buffer);
+#define HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE 0
+// To output non-null terminated string. This won't work if binary in buffer
+// syslog(LOG_XXX, "%.*s\n", textLen, buffer);
 
 // Outputs to syslog the PID of each new thread
-#define HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS    0
+#define HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS 0
 
 // When Meadow startup never finishes, these defines make it easier to find
 // the last command executed.
-#define HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG           0
-#define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG          0
+#define HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG 0
+#define HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG 0
 
 // Should mono be prevented from running?
-#define HCOM_DIAG_PREVENT_MONO_FROM_RUNNING           0
+#define HCOM_DIAG_PREVENT_MONO_FROM_RUNNING 0
 
 // Adds code that takes the HCOM messages from/to CLI and outputs a decoded
 // version to syslog. Enable HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE to add hex
 // dump of HCOM messages
-#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD   0
+#define HCOM_DIAG_INCLUDE_MESSAGE_DECODING_IN_BUILD 0
 
 // LOG_DEBUG syslog message are almost never used. Set this to 1
 // if you wish to have them compiled into Meadow
-#define HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD          0
+#define HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD 0
 
 // The following will force Meadow into an infinite sleep/wake cycle.
 // It was intended to verify that Meadow.OS could Sleep/Wake without failing.
-#define HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER        0
+#define HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER 0
 
 //-------------------------------------------------------------------
 // Include test code
-#define HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD      0
+#define HCOM_VS_DEBUGGING_TESTS_INCLUDE_IN_BUILD 0
 
 // Include tests related to F7 timers
-#define MEADOW_INCLUDE_TIMER_HARDWARE_TESTS_IN_BUILD  0
+#define MEADOW_INCLUDE_TIMER_HARDWARE_TESTS_IN_BUILD 0
 
 // Include in the build code that shows the time being calculated
 // when low-power sleep is requested in seconds.
-#define MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC        0
+#define MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC 0
 
 // Include the tests code for outputting the current idle percentage
 // via a once / second syslog output message
-#define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD    0
+#define MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD 0
 
 // Test partitioning of 5 MB of external flash
-#define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH  0
+#define MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH 0
 #if MEADOW_INCLUDE_CODE_FOR_TESTING_5MB_OF_FLASH > 0
 void hcom_nx_flash_testing_fill_5mb_of_flash(void);
 void hcom_nx_flash_testing_verify_regions(void);
@@ -1095,4 +1092,4 @@ void hcom_nx_flash_testing_verify_regions(void);
 extern bool g_copy_application_output_to_uart;
 #endif
 
-#endif  // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H
+#endif // __INCLUDE_MEADOW_HCOM_SHARED_COMMON__H

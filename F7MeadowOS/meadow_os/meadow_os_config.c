@@ -94,7 +94,7 @@ char *meadow_os_copy_string(char *source)
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -102,7 +102,7 @@ char *meadow_os_copy_string(char *source)
  *
  * Description:
  *  Copy the strings from a meadow_version_number_t object
- * 
+ *
  * Input Parameters:
  *  source - Original version number object being copied.
  *  destination - Destination of the copies.
@@ -130,7 +130,7 @@ static void meadow_os_copy_version_strings(meadow_version_number_t *source, mead
  *
  * Description:
  *  Get a copy of the system config and place the copy in user space memory.
- * 
+ *
  *  Note that the release method must be called to free all of the memory
  *  allocated here.
  *
@@ -191,13 +191,13 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
             if (result->default_cell_settings != NULL)
             {
                 result->default_cell_settings->apn = meadow_os_copy_string(config->default_cell_settings->apn);
-                result->default_cell_settings->operator = meadow_os_copy_string(config->default_cell_settings->operator);
+                result->default_cell_settings->operator= meadow_os_copy_string(config->default_cell_settings->operator);
                 result->default_cell_settings->pap_user = meadow_os_copy_string(config->default_cell_settings->pap_user);
                 result->default_cell_settings->pap_password = meadow_os_copy_string(config->default_cell_settings->pap_password);
                 result->default_cell_settings->timeout = meadow_os_copy_string(config->default_cell_settings->timeout);
                 result->default_cell_settings->ttyname = meadow_os_copy_string(config->default_cell_settings->ttyname);
                 result->default_cell_settings->mode = meadow_os_copy_string(config->default_cell_settings->mode);
-                result->default_cell_settings->module = meadow_os_copy_string(config->default_cell_settings->module); 
+                result->default_cell_settings->module = meadow_os_copy_string(config->default_cell_settings->module);
                 result->default_cell_settings->module_id = config->default_cell_settings->module_id;
                 result->default_cell_settings->scan_mode = config->default_cell_settings->scan_mode;
                 result->default_cell_settings->turn_on_pin_name = meadow_os_copy_string(config->default_cell_settings->turn_on_pin_name);
@@ -262,7 +262,7 @@ meadow_configuration_t *meadow_os_deep_copy_config(void)
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************

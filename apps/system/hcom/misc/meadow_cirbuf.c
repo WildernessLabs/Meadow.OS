@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\misc\meadow_cirbuf.c
- * 
+ *
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -61,7 +61,7 @@
  ****************************************************************************/
 // Circular Buffer
 // This circular buffer was written for the Meadow F7. Unlike the classic
-// version, this version has a byte array as input (received data). It 
+// version, this version has a byte array as input (received data). It
 // returns a byte array consisting of everything from the head to and including
 // the first byte whose value is 0. It's designed to work with the COBS
 // encoding scheme. It both buffers and isolates the packets.
@@ -75,149 +75,146 @@
 //     tail only by the consumer.
 // Adding a new caller that doesn't fit one of these two patterns would
 // need real locking, not just a semaphore signal.
-int hcom_cirbuf_init(host_com_cir_buffer_t *hcbuf, size_t totalCapacity,
-          uint8_t delimiter)
+int hcom_cirbuf_init(host_com_cir_buffer_t *hcbuf, size_t totalCapacity, uint8_t delimiter)
 {
-  hcbuf->delimiter = delimiter;
+    hcbuf->delimiter = delimiter;
 
-  hcbuf->bottom = (uint8_t *)malloc(totalCapacity);
-  if (hcbuf->bottom == NULL)
-    return HCOM_CIR_BUF_ALLOC_FAILED;
+    hcbuf->bottom = (uint8_t *) malloc(totalCapacity);
+    if (hcbuf->bottom == NULL)
+        return HCOM_CIR_BUF_ALLOC_FAILED;
 
-  hcbuf->top = hcbuf->bottom + totalCapacity;
-  hcbuf->head = hcbuf->bottom;
-  hcbuf->tail = hcbuf->bottom;
+    hcbuf->top = hcbuf->bottom + totalCapacity;
+    hcbuf->head = hcbuf->bottom;
+    hcbuf->tail = hcbuf->bottom;
 
-  return HCOM_CIR_BUF_INIT_OK;
+    return HCOM_CIR_BUF_INIT_OK;
 }
 
 //=====================================================================
 size_t hcom_cirbuf_avail_space(host_com_cir_buffer_t *hcbuf)
 {
-  // We leave one free byte so the head and tail are equal only if
-  // empty not when full. Full means 1 free byte.
-  if (hcbuf->head < hcbuf->tail)
-    return hcbuf->tail - hcbuf->head - 1;
-  else
-    return ((hcbuf->top - hcbuf->bottom) - (hcbuf->head - hcbuf->tail)) - 1;
+    // We leave one free byte so the head and tail are equal only if
+    // empty not when full. Full means 1 free byte.
+    if (hcbuf->head < hcbuf->tail)
+        return hcbuf->tail - hcbuf->head - 1;
+    else
+        return ((hcbuf->top - hcbuf->bottom) - (hcbuf->head - hcbuf->tail)) - 1;
 }
 
 //==============================================================================
 //
 int hcom_cirbuf_release_memory(host_com_cir_buffer_t *hcbuf)
 {
-  free(hcbuf->bottom);
-  hcbuf->bottom = NULL;
-  hcbuf->top = NULL;
-  hcbuf->head = NULL;
-  hcbuf->tail = NULL;
-  return HCOM_CIR_BUF_INIT_OK;
+    free(hcbuf->bottom);
+    hcbuf->bottom = NULL;
+    hcbuf->top = NULL;
+    hcbuf->head = NULL;
+    hcbuf->tail = NULL;
+    return HCOM_CIR_BUF_INIT_OK;
 }
 
 //==============================================================================
 // Added this to clear the buffer if it is filled with text and no delimiter
 int hcom_cirbuf_clear_buffer(host_com_cir_buffer_t *hcbuf)
 {
-  // Reinitialize head and tail pointers
-  hcbuf->head = hcbuf->bottom;
-  hcbuf->tail = hcbuf->bottom;
-  return HCOM_CIR_BUF_INIT_OK;
+    // Reinitialize head and tail pointers
+    hcbuf->head = hcbuf->bottom;
+    hcbuf->tail = hcbuf->bottom;
+    return HCOM_CIR_BUF_INIT_OK;
 }
 
 //==============================================================================
 // Add the bytes requested, if they will fit
-int hcom_cirbuf_add_bytes(host_com_cir_buffer_t *hcbuf, uint8_t *newBytes,
-          uint32_t bytesToAdd)
+int hcom_cirbuf_add_bytes(host_com_cir_buffer_t *hcbuf, uint8_t *newBytes, uint32_t bytesToAdd)
 {
-  if (bytesToAdd == 0)
-    return HCOM_CIR_BUF_ADD_BAD_ARG;
+    if (bytesToAdd == 0)
+        return HCOM_CIR_BUF_ADD_BAD_ARG;
 
-  if (hcom_cirbuf_avail_space(hcbuf) < bytesToAdd)
-    return HCOM_CIR_BUF_ADD_WONT_FIT;
+    if (hcom_cirbuf_avail_space(hcbuf) < bytesToAdd)
+        return HCOM_CIR_BUF_ADD_WONT_FIT;
 
-  uint8_t *newHead = hcbuf->head + bytesToAdd;
-  if (newHead < hcbuf->top)
-  {
-    // Simple case (no wrap around)
-    memcpy(hcbuf->head, newBytes, bytesToAdd);
-    hcbuf->head = newHead;
-  }
-  else
-  {
-    // Wrap around - fill up head-top space and use bottom space too
-    size_t spaceFreeOnTop = (hcbuf->top - hcbuf->head);
-    memcpy(hcbuf->head, newBytes, spaceFreeOnTop);
-    memcpy(hcbuf->bottom, newBytes + spaceFreeOnTop, bytesToAdd - spaceFreeOnTop);
-    hcbuf->head = hcbuf->bottom + bytesToAdd - spaceFreeOnTop;
-  }
-  return HCOM_CIR_BUF_ADD_SUCCESS;
+    uint8_t *newHead = hcbuf->head + bytesToAdd;
+    if (newHead < hcbuf->top)
+    {
+        // Simple case (no wrap around)
+        memcpy(hcbuf->head, newBytes, bytesToAdd);
+        hcbuf->head = newHead;
+    }
+    else
+    {
+        // Wrap around - fill up head-top space and use bottom space too
+        size_t spaceFreeOnTop = (hcbuf->top - hcbuf->head);
+        memcpy(hcbuf->head, newBytes, spaceFreeOnTop);
+        memcpy(hcbuf->bottom, newBytes + spaceFreeOnTop, bytesToAdd - spaceFreeOnTop);
+        hcbuf->head = hcbuf->bottom + bytesToAdd - spaceFreeOnTop;
+    }
+    return HCOM_CIR_BUF_ADD_SUCCESS;
 }
 
 //==============================================================================
 // Caller must supply packetDestBuf and it's size
-int hcom_cirbuf_get_next_packet(host_com_cir_buffer_t *hcbuf, uint8_t *packetDestBuf,
-                                size_t packetDestBufSize, size_t *packetLength)
+int hcom_cirbuf_get_next_packet(host_com_cir_buffer_t *hcbuf, uint8_t *packetDestBuf, size_t packetDestBufSize, size_t *packetLength)
 {
-  uint8_t *found;
-  size_t sizeFoundTop;
+    uint8_t *found;
+    size_t sizeFoundTop;
 
-  *packetLength = 0;
-  
-  if (hcbuf->head == hcbuf->tail)
-    return HCOM_CIR_BUF_GET_NONE_FOUND; // Buffer empty
+    *packetLength = 0;
 
-  // Scan the buffer looking for the delimiter
-  if (hcbuf->head > hcbuf->tail)
-  {
-    // Simple case (no wrap around)
-    found = (uint8_t *)memchr(hcbuf->tail, hcbuf->delimiter, hcbuf->head - hcbuf->tail);
-    if (found == NULL)
-      return HCOM_CIR_BUF_GET_NONE_FOUND;
-  }
-  else
-  {
-    found = (uint8_t *)memchr(hcbuf->tail, hcbuf->delimiter, hcbuf->top - hcbuf->tail);
-  }
+    if (hcbuf->head == hcbuf->tail)
+        return HCOM_CIR_BUF_GET_NONE_FOUND; // Buffer empty
 
-  // Move bytes of packet or it's first half
-  if (found != NULL)
-  {
-    // Found the delimiter, message in one contiguous packet
-    sizeFoundTop = found - hcbuf->tail + 1;
-    if (sizeFoundTop > packetDestBufSize)
+    // Scan the buffer looking for the delimiter
+    if (hcbuf->head > hcbuf->tail)
     {
-      // Won't fit in caller supplied packet
-      *packetLength = sizeFoundTop;   // Size needed
-      hcbuf->tail = found + 1;        // Skip over long msg
-      return HCOM_CIR_BUF_GET_DELETED_TOO_BIG;
+        // Simple case (no wrap around)
+        found = (uint8_t *) memchr(hcbuf->tail, hcbuf->delimiter, hcbuf->head - hcbuf->tail);
+        if (found == NULL)
+            return HCOM_CIR_BUF_GET_NONE_FOUND;
+    }
+    else
+    {
+        found = (uint8_t *) memchr(hcbuf->tail, hcbuf->delimiter, hcbuf->top - hcbuf->tail);
     }
 
-    // It will all fit we can copy and exit
+    // Move bytes of packet or it's first half
+    if (found != NULL)
+    {
+        // Found the delimiter, message in one contiguous packet
+        sizeFoundTop = found - hcbuf->tail + 1;
+        if (sizeFoundTop > packetDestBufSize)
+        {
+            // Won't fit in caller supplied packet
+            *packetLength = sizeFoundTop; // Size needed
+            hcbuf->tail = found + 1;      // Skip over long msg
+            return HCOM_CIR_BUF_GET_DELETED_TOO_BIG;
+        }
+
+        // It will all fit we can copy and exit
+        memcpy(packetDestBuf, hcbuf->tail, sizeFoundTop);
+        *packetLength = sizeFoundTop; // Size found
+        hcbuf->tail = found + 1;
+        return HCOM_CIR_BUF_GET_FOUND_MSG;
+    }
+
+    // Continue looking for the delimiter from the bottom up since we got
+    // here because the delimiter was not found while scanning above
+    found = (uint8_t *) memchr(hcbuf->bottom, hcbuf->delimiter, hcbuf->head - hcbuf->bottom);
+    if (found == NULL)
+        return HCOM_CIR_BUF_GET_NONE_FOUND;
+
+    sizeFoundTop = hcbuf->top - hcbuf->tail;
+    size_t sizeFoundBottom = found - hcbuf->bottom + 1;
+    if (sizeFoundBottom + sizeFoundTop > packetDestBufSize)
+    {
+        // Won't fit in provided packet
+        *packetLength = sizeFoundBottom + sizeFoundTop;
+        hcbuf->tail = found + 1; // Skip over long msg
+        return HCOM_CIR_BUF_GET_DELETED_TOO_BIG;
+    }
+
     memcpy(packetDestBuf, hcbuf->tail, sizeFoundTop);
-    *packetLength = sizeFoundTop;     // Size found
+    memcpy(packetDestBuf + sizeFoundTop, hcbuf->bottom, sizeFoundBottom);
+    *packetLength = sizeFoundTop + sizeFoundBottom;
     hcbuf->tail = found + 1;
     return HCOM_CIR_BUF_GET_FOUND_MSG;
-  }
-
-  // Continue looking for the delimiter from the bottom up since we got
-  // here because the delimiter was not found while scanning above
-  found = (uint8_t *)memchr(hcbuf->bottom, hcbuf->delimiter, hcbuf->head - hcbuf->bottom);
-  if (found == NULL)
-    return HCOM_CIR_BUF_GET_NONE_FOUND;
-
-  sizeFoundTop = hcbuf->top - hcbuf->tail;
-  size_t sizeFoundBottom = found - hcbuf->bottom + 1;
-  if (sizeFoundBottom + sizeFoundTop > packetDestBufSize)
-  {
-    // Won't fit in provided packet
-    *packetLength = sizeFoundBottom + sizeFoundTop;
-    hcbuf->tail = found + 1;        // Skip over long msg
-    return HCOM_CIR_BUF_GET_DELETED_TOO_BIG;
-  }
-
-  memcpy(packetDestBuf, hcbuf->tail, sizeFoundTop);
-  memcpy(packetDestBuf + sizeFoundTop, hcbuf->bottom, sizeFoundBottom);
-  *packetLength = sizeFoundTop + sizeFoundBottom;
-  hcbuf->tail = found + 1;
-  return HCOM_CIR_BUF_GET_FOUND_MSG;
 }

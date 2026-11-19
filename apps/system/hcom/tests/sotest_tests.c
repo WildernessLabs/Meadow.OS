@@ -40,10 +40,10 @@
 
 #if defined(CONFIG_SOTEST_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <dlfcn.h>
-#include <nuttx/symtab.h>
+    #include <dlfcn.h>
+    #include <nuttx/symtab.h>
 
-#include "../hcom_common.h"
+    #include "../hcom_common.h"
 
 /****************************************************************************
  * Symbols from Auto-Generated Code
@@ -77,7 +77,7 @@ static void *sotest_tests_open_module(const char *name)
     void *handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
     syslog(LOG_MTEST, "    Handle: %p\n", handle);
 
-    return(handle);
+    return (handle);
 }
 
 /****************************************************************************
@@ -107,14 +107,14 @@ void meadow_sotest_tests(uint32_t value)
 
     syslog(LOG_MTEST, "Executing sotest dlopen/dlsym test\n");
 
-    ret = dlsymtab((struct symtab_s *)g_sot_exports, g_sot_nexports);
+    ret = dlsymtab((struct symtab_s *) g_sot_exports, g_sot_nexports);
     if (ret < 0)
     {
         syslog(LOG_MTEST, "    dlsymtab failed: %d\n", ret);
         return;
     }
 
-#if CONFIG_LIBC_ELF_MAXDEPEND > 0
+    #if CONFIG_LIBC_ELF_MAXDEPEND > 0
     /* Install the first test module.  It only verifies that symbols
      * exported by one module can be used to resolve undefined symbols
      * in a second module.
@@ -126,7 +126,7 @@ void meadow_sotest_tests(uint32_t value)
         syslog(LOG_MTEST, "    Cannot open modprint module\n");
         pass = false;
     }
-#endif
+    #endif
 
     void *handle2 = sotest_tests_open_module("sotest");
     if (handle2 != NULL)
@@ -170,7 +170,7 @@ void meadow_sotest_tests(uint32_t value)
             pass = false;
         }
 
-#if CONFIG_LIBC_ELF_MAXDEPEND > 0
+    #if CONFIG_LIBC_ELF_MAXDEPEND > 0
         /* sotest depends on modprint, so this close should fail while
          * handle2 (sotest) is still open.
          */
@@ -180,7 +180,7 @@ void meadow_sotest_tests(uint32_t value)
             syslog(LOG_MTEST, "    dlclose(modprint) unexpectedly succeeded with a dependency\n");
             pass = false;
         }
-#endif
+    #endif
 
         if (dlclose(handle2) < 0)
         {
@@ -188,13 +188,13 @@ void meadow_sotest_tests(uint32_t value)
             pass = false;
         }
 
-#if CONFIG_LIBC_ELF_MAXDEPEND > 0
+    #if CONFIG_LIBC_ELF_MAXDEPEND > 0
         if ((handle1 != NULL) && (dlclose(handle1) < 0))
         {
             syslog(LOG_MTEST, "    dlclose(modprint) failed\n");
             pass = false;
         }
-#endif
+    #endif
     }
     else
     {

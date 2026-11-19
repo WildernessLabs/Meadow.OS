@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\file\hcom_file_lists_subdir.c
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -59,8 +59,8 @@
 // #define MEADOW_USE_HCOM_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-#pragma message "(--) hcom_file_lists_subdir.c"
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    #pragma message "(--) hcom_file_lists_subdir.c"
 #endif
 
 /****************************************************************************
@@ -77,209 +77,160 @@
 // This single function handles file list with and without CRC checksum.
 // This is called directly from hcom_host_route.c and sends the file list
 // to the CLI.
-int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg,
-          hcom_dnld_shared_t *dnldShared, bool isCrcNeeded)
+int hcom_file_lists_all_files_in_subdirectories(const HcomProtoHdrMsg_t *hdrMsg, hcom_dnld_shared_t *dnldShared, bool isCrcNeeded)
 {
-  int fileCount = 0;
-  int dirCount = 0;
-  DIR *dirp;
-  struct dirent *direntry;
-  off_t totalSizeOfFiles;
-  uint32_t totalFlashSizeKB;
+    int fileCount = 0;
+    int dirCount = 0;
+    DIR *dirp;
+    struct dirent *direntry;
+    off_t totalSizeOfFiles;
+    uint32_t totalFlashSizeKB;
 
-  char *fileInformation = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(fileInformation == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
+    char *fileInformation = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
+    if (fileInformation == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return -ENOMEM;
+    }
 
-  char *completeNameBuf = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
-  if(completeNameBuf == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    free(fileInformation);
-    return -ENOMEM;
-  }
+    char *completeNameBuf = malloc(HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH);
+    if (completeNameBuf == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        free(fileInformation);
+        return -ENOMEM;
+    }
 
-  // Tell CLI to output a header for the file list
-  hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_LIST_HEADER, 0, __FILE__, __LINE__);
+    // Tell CLI to output a header for the file list
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_TEXT_LIST_HEADER, 0, __FILE__, __LINE__);
 
-  // Open the directory
-  dirp = opendir(dnldShared->dnldFullPathName);
-  if ( !dirp )
-  {
-    int savedErrno = errno;
-    syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n",
-              __FILE__, __LINE__, dnldShared->dnldFullPathName, savedErrno);
+    // Open the directory
+    dirp = opendir(dnldShared->dnldFullPathName);
+    if (!dirp)
+    {
+        int savedErrno = errno;
+        syslog(LOG_ERR, "%s@%d-opendir(\"%s\") errno:%d\n", __FILE__, __LINE__, dnldShared->dnldFullPathName, savedErrno);
 
-    // Without this the host just sees an empty list
-    snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-              "'%s' is not a directory or can't be opened, errno %d",
-              dnldShared->dnldOrigPathName != NULL ? dnldShared->dnldOrigPathName : "",
-              savedErrno);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-              fileInformation, __FILE__, __LINE__);
+        // Without this the host just sees an empty list
+        snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "'%s' is not a directory or can't be opened, errno %d", dnldShared->dnldOrigPathName != NULL ? dnldShared->dnldOrigPathName : "", savedErrno);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, fileInformation, __FILE__, __LINE__);
+
+        free(fileInformation);
+        free(completeNameBuf);
+        return -ENOENT;
+    }
+
+    // For file list, there's no file name just path so, 0 elements is the
+    // default. Anything greater we should include in the returned list.
+    bool useFullPath = false; // For now don't add full path name to files
+    totalSizeOfFiles = 0;
+    totalFlashSizeKB = 0;
+
+    // Show the starting point for this group of items
+    snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "Directory:%s", dnldShared->dnldOrigPathName);
+
+    // Send to directory to CLI
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+    MEADOW_TRACE_INFORMATION("%s@%d-%s\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
+
+    while ((direntry = readdir(dirp)) != NULL)
+    {
+        if (DIRENT_ISFILE(direntry->d_type))
+        {
+            fileCount++;
+
+            // CRC or No CRC?
+            if (isCrcNeeded)
+            {
+                // Build full path and file name, for CRC call
+                snprintf_chk(completeNameBuf, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s/%s", dnldShared->dnldFullPathName, direntry->d_name);
+
+                // Find the CRC checksum
+                off_t fileSize;
+                uint32_t blockSizeKB;
+                int detectError;
+                uint32_t crcChecksum = hcom_file_misc_calc_crc_for_file(completeNameBuf, &fileSize, &blockSizeKB, &detectError);
+                if (detectError < 0)
+                {
+                    syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n", __FILE__, __LINE__, detectError);
+
+                    free(completeNameBuf);
+                    free(fileInformation);
+                    closedir(dirp);
+                    return detectError;
+                }
+
+                totalSizeOfFiles += fileSize;
+                totalFlashSizeKB += blockSizeKB;
+
+                // Send this file's information to CLI
+                snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s%s [0x%08x] %lu KB (%d bytes)", useFullPath ? dnldShared->dnldFullPathName : "", direntry->d_name, crcChecksum, blockSizeKB, fileSize);
+
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+                MEADOW_TRACE_INFORMATION("%s@%d-%s%s checksum:0x%08x, %lu KB (%d bytes)\n", __FILE__, __LINE__, useFullPath ? dnldShared->dnldFullPathName : "", direntry->d_name, crcChecksum, blockSizeKB, fileSize);
+            }
+            else
+            {
+                // Get the file name and size but not CRC
+                snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s%s", useFullPath ? dnldShared->dnldFullPathName : "", direntry->d_name);
+
+                // Send to file to CLI
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+                MEADOW_TRACE_INFORMATION("%s@%d-%s%s\n", __FILE__, __LINE__, useFullPath ? dnldShared->dnldFullPathName : "", direntry->d_name);
+            }
+        }
+        else if (DIRENT_ISDIRECTORY(direntry->d_type) && dnldShared->dnldRqstCat != pathnameOriginal)
+        {
+            // Ignore these directories, we only care about named directories
+            if (strcmp(direntry->d_name, ".") == 0 || strcmp(direntry->d_name, "..") == 0)
+                continue;
+
+            dirCount++;
+
+            snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "/%s", direntry->d_name);
+
+            // Send directory name to CLI
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+            MEADOW_TRACE_INFORMATION("%s@%d-/%s\n", __FILE__, __LINE__, direntry->d_name);
+        }
+        else if (DIRENT_ISBLK(direntry->d_type) && dnldShared->dnldRqstCat != pathnameOriginal)
+        {
+            // Show block devices too
+            snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "/%s", direntry->d_name);
+
+            // Send block device to CLI
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+            MEADOW_TRACE_INFORMATION("%s@%d-/%s\n", __FILE__, __LINE__, direntry->d_name);
+        }
+        // Ignore character devices and links
+    }
+
+    // The following code doesn't display block devices
+    if (isCrcNeeded)
+    {
+        snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "A total of %d file%s using %lu KB (%d bytes) and %d director%s", fileCount, fileCount == 1 ? "" : "s", totalFlashSizeKB, totalSizeOfFiles, dirCount, dirCount == 1 ? "y" : "ies");
+
+        // Send the totals
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+
+        MEADOW_TRACE_INFORMATION("%s@%d-A total of %lu file%s using %lu KB (%d bytes) and %d director%s \n", __FILE__, __LINE__, fileCount, fileCount == 1 ? "" : "s", totalFlashSizeKB, totalSizeOfFiles, dirCount, dirCount == 1 ? "y" : "ies");
+    }
+    else
+    {
+        snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "A total of %d file%s and %d director%s", fileCount, fileCount == 1 ? "" : "s", dirCount, dirCount == 1 ? "y" : "ies");
+
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0, fileInformation, __FILE__, __LINE__);
+    }
+
+    closedir(dirp);
 
     free(fileInformation);
     free(completeNameBuf);
-    return -ENOENT;
-  }
 
-  // For file list, there's no file name just path so, 0 elements is the
-  // default. Anything greater we should include in the returned list.
-  bool useFullPath = false;   // For now don't add full path name to files
-  totalSizeOfFiles = 0;
-  totalFlashSizeKB = 0;
-
-  // Show the starting point for this group of items 
-  snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-              "Directory:%s", dnldShared->dnldOrigPathName);
-
-  // Send to directory to CLI
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-              fileInformation, __FILE__, __LINE__);
-
-  MEADOW_TRACE_INFORMATION("%s@%d-%s\n",
-              __FILE__, __LINE__, dnldShared->dnldFullPathName);
-
-  while((direntry = readdir(dirp)) != NULL)
-  {
-    if(DIRENT_ISFILE(direntry->d_type))
-    {
-      fileCount++;
-
-      // CRC or No CRC?
-      if(isCrcNeeded)
-      {
-        // Build full path and file name, for CRC call
-        snprintf_chk(completeNameBuf, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH, "%s/%s",
-                  dnldShared->dnldFullPathName, direntry->d_name);
-
-        // Find the CRC checksum
-        off_t fileSize;
-        uint32_t blockSizeKB;
-        int detectError;
-        uint32_t crcChecksum = hcom_file_misc_calc_crc_for_file(completeNameBuf,
-                  &fileSize, &blockSizeKB, &detectError);
-        if(detectError < 0)
-        {
-          syslog(LOG_ERR, "%s@%d-Error in Checksum calculation,err:%d\n",
-                    __FILE__, __LINE__, detectError);
-          
-          free(completeNameBuf);
-          free(fileInformation);
-          closedir(dirp);
-          return detectError;
-        }
-      
-        totalSizeOfFiles += fileSize;
-        totalFlashSizeKB += blockSizeKB;
-
-        // Send this file's information to CLI
-        snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-                  "%s%s [0x%08x] %lu KB (%d bytes)",
-                  useFullPath ? dnldShared->dnldFullPathName : "",
-                  direntry->d_name,
-                  crcChecksum, blockSizeKB, fileSize);
-
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
-                      fileInformation, __FILE__, __LINE__);
-
-        MEADOW_TRACE_INFORMATION("%s@%d-%s%s checksum:0x%08x, %lu KB (%d bytes)\n",
-                  __FILE__, __LINE__,
-                  useFullPath ? dnldShared->dnldFullPathName : "",
-                  direntry->d_name,
-                  crcChecksum, blockSizeKB, fileSize);
-      }
-      else
-      {
-        // Get the file name and size but not CRC
-        snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-                  "%s%s",
-                  useFullPath ? dnldShared->dnldFullPathName : "",
-                  direntry->d_name);
-
-        // Send to file to CLI
-        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                  fileInformation, __FILE__, __LINE__);
-
-        MEADOW_TRACE_INFORMATION("%s@%d-%s%s\n",
-                  __FILE__, __LINE__,
-                  useFullPath ? dnldShared->dnldFullPathName : "",
-                  direntry->d_name);
-      }
-    }
-    else if(DIRENT_ISDIRECTORY(direntry->d_type) &&
-              dnldShared->dnldRqstCat != pathnameOriginal)
-    {
-      // Ignore these directories, we only care about named directories
-      if (strcmp(direntry->d_name, ".") == 0 || strcmp(direntry->d_name, "..") == 0)
-        continue;
-
-      dirCount++;
-
-      snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-                "/%s", direntry->d_name);
-
-      // Send directory name to CLI
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                fileInformation, __FILE__, __LINE__);
-
-      MEADOW_TRACE_INFORMATION("%s@%d-/%s\n",
-                __FILE__, __LINE__, direntry->d_name);
-    }
-    else if(DIRENT_ISBLK(direntry->d_type) &&
-              dnldShared->dnldRqstCat != pathnameOriginal)
-    {
-      // Show block devices too
-      snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-                "/%s", direntry->d_name);
-
-      // Send block device to CLI
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                fileInformation, __FILE__, __LINE__);
-
-      MEADOW_TRACE_INFORMATION("%s@%d-/%s\n",
-                __FILE__, __LINE__, direntry->d_name);
-    }
-    // Ignore character devices and links
-  }
-
-  // The following code doesn't display block devices
-  if(isCrcNeeded)
-  {
-    snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-          "A total of %d file%s using %lu KB (%d bytes) and %d director%s",
-          fileCount, fileCount == 1 ? "" : "s",
-          totalFlashSizeKB, totalSizeOfFiles,
-          dirCount, dirCount == 1 ? "y" : "ies");
-
-    // Send the totals
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_CRC_MEMBER, 0,
-                  fileInformation, __FILE__, __LINE__);
-
-    MEADOW_TRACE_INFORMATION("%s@%d-A total of %lu file%s using %lu KB (%d bytes) and %d director%s \n",
-              __FILE__, __LINE__,
-              fileCount, fileCount == 1 ? "" : "s",
-              totalFlashSizeKB, totalSizeOfFiles,
-              dirCount, dirCount == 1 ? "y" : "ies");
-  }
-  else
-  {
-      snprintf_chk(fileInformation, HCOM_MAX_PATH_AND_FILE_BUFF_LENGTH,
-                "A total of %d file%s and %d director%s",
-                fileCount, fileCount == 1 ? "" : "s",
-                dirCount, dirCount == 1 ? "y" : "ies");
-
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_LIST_MEMBER, 0,
-                    fileInformation, __FILE__, __LINE__);
-  }
-
-  closedir(dirp);
-
-  free(fileInformation);
-  free(completeNameBuf);
-
-  return OK;
+    return OK;
 }

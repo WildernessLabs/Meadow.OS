@@ -3,9 +3,9 @@
  *
  *  Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *  Author: Mark Stevens
- * 
+ *
  *  Methods supporting the ESP system functions (e.g. GetBatteryChargeLevel).
- *  
+ *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -68,7 +68,7 @@
  *
  * Description:
  *  Delete the data in the specified espcp_system_configuration_t object.
- * 
+ *
  *  Note: the object is not freed, this is left to the caller.
  *
  * Input Parameters:
@@ -97,7 +97,7 @@ void espcp_clean_system_config_object(espcp_system_configuration_t *config)
  *
  * Description:
  *  Start the heap tracing on the ESP32.
- * 
+ *
  * Input Parameters:
  *  None.
  *
@@ -110,9 +110,7 @@ void espcp_clean_system_config_object(espcp_system_configuration_t *config)
  ****************************************************************************/
 void espcp_system_start_esp_heap_trace(void)
 {
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                               espcp_system_function_start_heap_trace, espcp_status_codes_completed_ok,
-                                               espcp_get_next_message_id(), NULL, 0);
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_start_heap_trace, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message != NULL)
     {
         espcp_queue_message(message, false);
@@ -125,7 +123,7 @@ void espcp_system_start_esp_heap_trace(void)
  * Description:
  *  Tell the ESP32 to stop heap tracing and dump the statistics to the
  *  serial port.
- * 
+ *
  * Input Parameters:
  *  None.
  *
@@ -139,9 +137,7 @@ void espcp_system_start_esp_heap_trace(void)
  ****************************************************************************/
 void espcp_system_stop_esp_heap_trace(void)
 {
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                               espcp_system_function_stop_heap_trace, espcp_status_codes_completed_ok,
-                                               espcp_get_next_message_id(), NULL, 0);
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_stop_heap_trace, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message != NULL)
     {
         espcp_queue_message(message, false);

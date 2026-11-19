@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #ifndef __ASSEMBLY__
-#include <stdint.h>
+    #include <stdint.h>
 #endif
 #include <stdbool.h>
 #include <pthread.h>
@@ -73,202 +73,197 @@
 
 // #include "../../bootloader/Core/Inc/ota_data.h"
 
-#if defined (CONFIG_ARCH_CHIP_STM32F7)
-#include "hardware/stm32f76xx77xx_memorymap.h"
-#include "hardware/stm32_rtcc.h"    // battery backed registers and ram
+#if defined(CONFIG_ARCH_CHIP_STM32F7)
+    #include "hardware/stm32f76xx77xx_memorymap.h"
+    #include "hardware/stm32_rtcc.h" // battery backed registers and ram
 #else
-#error "This implementation only designed to work with STM32F7"
+    #error "This implementation only designed to work with STM32F7"
 #endif
 
 #ifndef __ASSEMBLY__
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
+    #ifdef __cplusplus
+        #define EXTERN extern "C"
 extern "C"
 {
-#else
-#define EXTERN extern
-#endif
+    #else
+        #define EXTERN extern
+    #endif
 
+    // PATH_MAX is defined by Nuttx in limits.h. It's 256 or less.
+    // For a buffer large enough for the path PLUS file name we this length
+    #define HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
 
-// PATH_MAX is defined by Nuttx in limits.h. It's 256 or less.
-// For a buffer large enough for the path PLUS file name we this length
-#define HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH ((PATH_MAX * 2) + 2) // allocate
+        // #define UPDATE_DIR "/meadow0/update/"
+        // #define UPDATE_APP_DIR UPDATE_DIR "app"
+        // #define UPDATE_OS_DIR UPDATE_DIR "os"
+        // #define ROLLBACK_DIR "/meadow0/rollback/"
 
+    #ifdef CONFIG_FS_LITTLEFS
+        #define HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE "littlefs"
+        #define HCOM_NX_FILE_MOUNT_FORCE_FORMAT "forceformat"
 
-// #define UPDATE_DIR "/meadow0/update/"
-// #define UPDATE_APP_DIR UPDATE_DIR "app"
-// #define UPDATE_OS_DIR UPDATE_DIR "os"
-// #define ROLLBACK_DIR "/meadow0/rollback/"
+        // Note:The following string must fit into a buffer whose size is defined
+        // by HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH
+        #define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
+    #endif
 
-#ifdef CONFIG_FS_LITTLEFS
-#define HCOM_NX_FILE_MOUNT_FILE_SYS_TYPE "littlefs"
-#define HCOM_NX_FILE_MOUNT_FORCE_FORMAT "forceformat"
+    // Support ISO-8601 time standard
+    // This #define may not control all ISO-8601 code, as maybe it should
+    #define HCOM_INCLUDE_ISO8601_SUPPORT 0
 
-// Note:The following string must fit into a buffer whose size is defined
-// by HCOM_NX_MAX_PATH_AND_FILE_BUFF_LENGTH
-#define HCOM_NX_FILE_MOUNT_POINT_SOURCE "/dev/little"
-#endif
+    // This define controls if the legacy flash chip layout scheme is display at
+    // startup
+    #define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (0)
 
-// Support ISO-8601 time standard
-// This #define may not control all ISO-8601 code, as maybe it should
-#define HCOM_INCLUDE_ISO8601_SUPPORT 0
+    /****************************************************************************************************
+     * Public Functions
+     ****************************************************************************************************/
+    int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd);
+    int hcom_nx_utils_startup_handling_of_trace_level(void);
+    void hcom_nx_utils_apply_config_trace_level(int configTraceLevel);
+    void hcom_nx_utils_set_syslog_mask_now(uint32_t newMask);
 
-// This define controls if the legacy flash chip layout scheme is display at
-// startup
-#define HCOM_NX_EX_FLASH_SHOW_FLASH_STATS (0)
+    // Common Utils
+    void hcom_nx_common_utils_host_restart_meadow(void);
+    void hcom_nx_common_utils_only_restart_meadow(void);
+    void hcom_nx_common_utils_calc_f7_sn(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[]);
 
-/****************************************************************************************************
- * Public Functions
- ****************************************************************************************************/
-  int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd);
-  int hcom_nx_utils_startup_handling_of_trace_level(void);
-  void hcom_nx_utils_apply_config_trace_level(int configTraceLevel);
-  void hcom_nx_utils_set_syslog_mask_now(uint32_t newMask);
+    // HCOM command handling on the Nuttx kernel side
+    int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_profiler_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_profiler_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
 
-  // Common Utils
-  void hcom_nx_common_utils_host_restart_meadow(void);
-  void hcom_nx_common_utils_only_restart_meadow(void);
-  void hcom_nx_common_utils_calc_f7_sn(uint8_t mcu6ByteSerialNumb[], char mcu12CharSerialNumb[]);
+    // External flash
+    int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd);
+    int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmd_data);
+    int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_ex_flash_OS_update_flash1(void);
+    int hcom_nx_exec_ex_flash_OS_update_flash2(void);
+    uint32_t hcom_nx_exec_ex_flash_get_block_size(void);
+    uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
+    int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *);
+    int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destinationAddress);
+    int hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t *data_buf, off_t size, off_t offset);
+    int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock, void *destinationAddress, uint32_t numberOfBlocks);
+    int hcom_nx_exec_ex_flash_read_persistent_data(meadow_os_persistent_data_t *data);
+    int hcom_nx_exec_ex_flash_write_persistent_data(meadow_os_persistent_data_t *data);
+    uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
+    int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
+    int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data);
+    #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
+    void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd);
+    #endif
 
-  // HCOM command handling on the Nuttx kernel side
-  int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_profiler_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_profiler_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
+    // Syslog tracing
+    int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_trace_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
+    int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
+    #if defined(CONFIG_RAMLOG_SYSLOG)
+    int hcom_nx_trace_msg_proc_setup(void);
+    int hcom_nx_trace_msg_mono_started(void);
+    void hcom_nx_trace_insure_correct_config(bool uartTracing, bool cliTracing, bool uartProfiling);
+    bool hcom_nx_trace_msg_is_shutting_down(void);
+        #if HCOM_TRACE_USB_ENABLED > 0
+    int hcom_nx_trace_usb_setup(void);
+        #endif
+    #else
+// No ramlog kthread exists to be shutting down in this configuration.
+static inline bool hcom_nx_trace_msg_is_shutting_down(void)
+{
+    return false;
+}
+    #endif
 
-  // External flash
-  int hcom_nx_exec_ex_flash_setup(FAR struct mtd_dev_s *mtd);
-  int hcom_nx_exec_ex_flash_mono_flash(struct hcom_nx_cmd_data *cmd_data);
-  int hcom_nx_exec_ex_flash_erase_ex_flash(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_ex_flash_verify_ex_flash(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_ex_flash_renew_file_system(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_ex_flash_OS_update_flash1(void);
-  int hcom_nx_exec_ex_flash_OS_update_flash2(void);
-  uint32_t hcom_nx_exec_ex_flash_get_block_size(void);
-  uint32_t hcom_nx_exec_ex_flash_get_erase_block_size(void);
-  int hcom_nx_exec_ex_flash_get_geometry(struct mtd_geometry_s *);
-  int hcom_nx_exec_ex_flash_read_absolute_block(uint32_t blockNumber, void *destinationAddress);
-  int  hcom_nx_exec_ex_flash_write_buffer_to_flash(uint8_t* data_buf, off_t size, off_t offset);
-  int hcom_nx_exec_ex_flash_copy_blocks_to_memory(uint32_t startBlock, void *destinationAddress, uint32_t numberOfBlocks);
-  int hcom_nx_exec_ex_flash_read_persistent_data(meadow_os_persistent_data_t *data);
-  int hcom_nx_exec_ex_flash_write_persistent_data(meadow_os_persistent_data_t *data);
-  uint32_t hcom_nx_exec_ex_flash_assert_data_location(void);
-  int hcom_nx_exec_ex_flash_write_assertion_data(const char *data, uint32_t length);
-  int hcom_nx_exec_ex_flash_read_assertion_data(uint8_t *data);
-  #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
-  void hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(FAR struct mtd_dev_s *mtd);
-  #endif
+    // Low-level file system support
+    int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd);
+    bool hcom_nx_fs_is_mounted(uint32_t partitionId);
+    int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
 
-  // Syslog tracing
-  int hcom_nx_exec_trace_do_not_send_to_host(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_trace_do_send_to_host(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_trace_do_not_send_to_uart(struct hcom_nx_cmd_data *cmdData);
-  int hcom_nx_exec_trace_forward_to_uart(struct hcom_nx_cmd_data *cmdData);
-#if defined (CONFIG_RAMLOG_SYSLOG)
-  int hcom_nx_trace_msg_proc_setup(void);
-  int hcom_nx_trace_msg_mono_started(void);
-  void hcom_nx_trace_insure_correct_config (bool uartTracing, bool cliTracing, bool uartProfiling);
-  bool hcom_nx_trace_msg_is_shutting_down(void);
-#if HCOM_TRACE_USB_ENABLED > 0
-  int hcom_nx_trace_usb_setup(void);
-#endif
-#else
-  // No ramlog kthread exists to be shutting down in this configuration.
-  static inline bool hcom_nx_trace_msg_is_shutting_down(void) { return false; }
-#endif
+    #ifdef CONFIG_FS_LITTLEFS
+    int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
+    int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId, const char *mountPoint);
+    #endif
 
-  // Low-level file system support
-  int hcom_nx_create_fs_initialize(FAR struct mtd_dev_s *mtd);
-  bool hcom_nx_fs_is_mounted(uint32_t partitionId);
-  int hcom_nx_fs_1st_erase_sector_of_partition(uint32_t partitionId);
+    #if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+        // This functions allow mono to access power management
 
-#ifdef CONFIG_FS_LITTLEFS
-  int hcom_nx_create_one_littlefs_file_dev(uint32_t partitionId, struct mtd_dev_s *partMtd);
-  int hcom_nx_create_littlefs_mount_format_file_dev(uint32_t partitionId,
-            const char *mountPoint);
-#endif
+        // Distinct informational return from pwrmgmt_enter_stm32f7_stop_mode() when
+        // wakeupPeriod is below the minimum and the call is a no-op (didn't
+        // actually sleep). Positive, so it's distinguishable from OK (0, a
+        // completed sleep cycle) and from a negative error code.
+        #define PWRMGMT_SLEEP_SKIPPED_TOO_SHORT (1)
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
-  // This functions allow mono to access power management
+    // Public functions to manage power management
+    int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
+    int pwrmgmt_most_recent_wakeup_reason(void);
+    int pwrmgmt_isr_gpio_wakeup_code(void);
 
-  // Distinct informational return from pwrmgmt_enter_stm32f7_stop_mode() when
-  // wakeupPeriod is below the minimum and the call is a no-op (didn't
-  // actually sleep). Positive, so it's distinguishable from OK (0, a
-  // completed sleep cycle) and from a negative error code.
-  #define PWRMGMT_SLEEP_SKIPPED_TOO_SHORT (1)
-
-  // Public functions to manage power management
-  int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod);
-  int pwrmgmt_most_recent_wakeup_reason(void);
-  int pwrmgmt_isr_gpio_wakeup_code(void);
-
-  // Power Management Real-time clock hardware available to mono
-  int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg, size_t packetSize);
-  int pwrmgmt_mono_cmd_time_read_clock(struct hcom_nx_cmd_data *cmdData);
-  #if HCOM_INCLUDE_ISO8601_SUPPORT > 0
+    // Power Management Real-time clock hardware available to mono
+    int pwrmgmt_mono_cmd_time_set_clock(const HcomProtoHdrMsg_t *hdrMsg, size_t packetSize);
+    int pwrmgmt_mono_cmd_time_read_clock(struct hcom_nx_cmd_data *cmdData);
+        #if HCOM_INCLUDE_ISO8601_SUPPORT > 0
     int pwrmgmt_mono_cmd_time_wakeup_period(const HcomProtoHdrMsg_t *hdrMsg, size_t packetSize);
-  #endif
+        #endif
 
-#endif    // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+    #endif // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
-#if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-int hcom_nx_exec_test_sdcard_setup(void);
-#endif
+    #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    int hcom_nx_exec_test_sdcard_setup(void);
+    #endif
 
-// Low-level QSPI flash tests. hcom_nx_exec_test_qspi_flash_setup() hooks up
-// the real MTD device for meadow_kt_qspi_flash_init/write/read_tests() (see
-// F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c, dispatched via
-// meadow_kt_dispatcher.c, not through this module's request-code switch).
-#if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-  int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd);
-#endif
+    // Low-level QSPI flash tests. hcom_nx_exec_test_qspi_flash_setup() hooks up
+    // the real MTD device for meadow_kt_qspi_flash_init/write/read_tests() (see
+    // F7MeadowOS/kerneltests/hcom_nx_qspi_flash_tests.c, dispatched via
+    // meadow_kt_dispatcher.c, not through this module's request-code switch).
+    #if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd);
+    #endif
 
-// Access to battery backed registers
-uint32_t hcom_nx_bbreg_read_bbr_and_right_justify(uint32_t bitMask);
-uint32_t hcom_nx_bbreg_read_bbr(void);
-void hcom_nx_bbreg_write_bbr(uint32_t value);
-void hcom_nx_bbreg_set_bbr_bits(uint32_t value);
-void hcom_nx_bbreg_clear_bbr_bits(uint32_t value);
-void hcom_nx_bbreg_clear_then_set_bbr_bits(uint32_t clearBits, uint32_t setBits);
-bool hcom_nx_bbreg_is_bbr_bits_set_n_clear(uint32_t value);
-bool hcom_nx_bbreg_is_bbr_bit_set(uint32_t value);
+    // Access to battery backed registers
+    uint32_t hcom_nx_bbreg_read_bbr_and_right_justify(uint32_t bitMask);
+    uint32_t hcom_nx_bbreg_read_bbr(void);
+    void hcom_nx_bbreg_write_bbr(uint32_t value);
+    void hcom_nx_bbreg_set_bbr_bits(uint32_t value);
+    void hcom_nx_bbreg_clear_bbr_bits(uint32_t value);
+    void hcom_nx_bbreg_clear_then_set_bbr_bits(uint32_t clearBits, uint32_t setBits);
+    bool hcom_nx_bbreg_is_bbr_bits_set_n_clear(uint32_t value);
+    bool hcom_nx_bbreg_is_bbr_bit_set(uint32_t value);
 
-// Configuration related
-int hcom_nx_config_copy_for_user_mode(uint8_t *, int);
+    // Configuration related
+    int hcom_nx_config_copy_for_user_mode(uint8_t *, int);
 
-// Power Management/RTC
-int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDateTimeLen, struct tm *tmResult);
-int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDateTimeLen,
-          int *utcTimeOffset, double *fractSec);
-int meadow_parse_iso8601_time_period(const char *isoTimePeriod,
-          time_t *secondsTillAlarm);
+    // Power Management/RTC
+    int meadow_parse_iso8601_date_time(char *isoDateTime, size_t isoDateTimeLen, struct tm *tmResult);
+    int meadow_parse_iso8601_utc_offset(char *isoDateTime, size_t isoDateTimeLen, int *utcTimeOffset, double *fractSec);
+    int meadow_parse_iso8601_time_period(const char *isoTimePeriod, time_t *secondsTillAlarm);
 
-#define MEADOW_ISO_8601_PERIOD_FORMAT_LEAD_IN ('P')
+    #define MEADOW_ISO_8601_PERIOD_FORMAT_LEAD_IN ('P')
 
-// Diagnostic related 
-int hcom_nx_diagnostic_app_execute(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t msgLen);
-int meadow_idle_monitor_setup(void);
+    // Diagnostic related
+    int hcom_nx_diagnostic_app_execute(const HcomProtoHdrMsg_t *hdrMsg, const size_t msgLen);
+    int meadow_idle_monitor_setup(void);
 
-#if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
-int pwmmgmt_test_sleep_wake_only_setup(void);
-#endif
+    #if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
+    int pwmmgmt_test_sleep_wake_only_setup(void);
+    #endif
 
-  // Diagnostics
-#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
-  void hcom_nx_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t msgPriority);
-  void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8_t msgPriority,
-        void (*logger)(int priority, const char *string, ...));
-#endif
+        // Diagnostics
+    #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
+    void hcom_nx_diag_print_buffer(const uint8_t buffer[], const int bufLen, uint8_t msgPriority);
+    void hcom_nx_diag_print_buffer_x(const uint8_t buffer[], const int bufLen, uint8_t msgPriority, void (*logger)(int priority, const char *string, ...));
+    #endif
 
-// This macro and function simplify checking snprintf buffer overflow. The
-// the function internally calls vsnprinf. The function
-// hcom_nx_common_utils_snprintf_chk checks the return and outputs a syslog
-// message if the message is truncated, if there's an error this is reported.
-#define snprintf_chk(Buf, Len, Fmt, ...) hcom_nx_common_utils_snprintf_chk(Buf, Len, __FILE__, __LINE__, Fmt, ##__VA_ARGS__ )
+    // This macro and function simplify checking snprintf buffer overflow. The
+    // the function internally calls vsnprinf. The function
+    // hcom_nx_common_utils_snprintf_chk checks the return and outputs a syslog
+    // message if the message is truncated, if there's an error this is reported.
+    #define snprintf_chk(Buf, Len, Fmt, ...) hcom_nx_common_utils_snprintf_chk(Buf, Len, __FILE__, __LINE__, Fmt, ##__VA_ARGS__)
 
-int hcom_nx_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, int lineNumb,
-          FAR const IPTR char *fmt, ...);
+    int hcom_nx_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, int lineNumb, FAR const IPTR char *fmt, ...);
 
 #endif // __ASSEMBLY__
 

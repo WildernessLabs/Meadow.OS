@@ -62,9 +62,9 @@
  * Definitions
  ****************************************************************************/
 
- /**
-  * @brief How many bytes should be output per line when dumping a buffer.
-  */
+/**
+ * @brief How many bytes should be output per line when dumping a buffer.
+ */
 #define DEBUG_BYTES_PER_LINE 16
 
 /****************************************************************************
@@ -87,7 +87,7 @@
  * Name: espcp_dump_buffer
  *
  * Description:
- *  Output the contents of a buffer to syslog if USE_MEADOW_DEBUG_HELPERS is 
+ *  Output the contents of a buffer to syslog if USE_MEADOW_DEBUG_HELPERS is
  *  defined.
  *
  * Input Parameters:
@@ -160,7 +160,7 @@ static void espcp_dump_buffer(uint8_t *buffer, uint32_t length, uint32_t bytes_p
     }
 
 #endif
- }
+}
 
 /****************************************************************************
  * Public Functions
@@ -186,9 +186,7 @@ int espcp_file_system_format(void)
 {
     int result = -1;
 
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                               espcp_system_function_file_system_format, espcp_status_codes_completed_ok,
-                                               espcp_get_next_message_id(), NULL, 0);
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_file_system_format, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message != NULL)
     {
         if (espcp_queue_message(message, true) == espcp_status_codes_completed_ok)
@@ -203,7 +201,7 @@ int espcp_file_system_format(void)
 
     MEADOW_TRACE_INFORMATION("espcp_file_system_format: %s\n", result == 0 ? "Success" : "Failed");
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -218,7 +216,7 @@ int espcp_file_system_format(void)
  *           retrieved.
  *
  * Returned Value:
- *  Pointer to an array holding the contents of the file or NULL if there 
+ *  Pointer to an array holding the contents of the file or NULL if there
  *  was a problem.
  *
  * Assumptions/Limitations:
@@ -241,9 +239,7 @@ uint8_t *espcp_file_system_read_file(char *name, int32_t *length)
         if (payload != NULL)
         {
             espcp_encode_file_name_and_contents(&fileDetails, payload);
-            espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                                espcp_system_function_file_system_read_file, espcp_status_codes_completed_ok,
-                                                espcp_get_next_message_id(), payload, payloadLength);
+            espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_file_system_read_file, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payloadLength);
 
             if (message != NULL)
             {
@@ -277,7 +273,7 @@ uint8_t *espcp_file_system_read_file(char *name, int32_t *length)
         syslog(LOG_ERR, "espcp_file_system_read_file: Invalid parameters.\n");
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -314,9 +310,7 @@ int espcp_file_system_write_file(char *name, uint8_t *buffer, int16_t length)
         if (payload != NULL)
         {
             espcp_encode_file_name_and_contents(&fileDetails, payload);
-            message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                                espcp_system_function_file_system_write_file, espcp_status_codes_completed_ok,
-                                                espcp_get_next_message_id(), payload, payloadLength);
+            message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_file_system_write_file, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payloadLength);
 
             if (message != NULL)
             {
@@ -335,7 +329,7 @@ int espcp_file_system_write_file(char *name, uint8_t *buffer, int16_t length)
 
     MEADOW_TRACE_INFORMATION("espcp_file_system_write_file: %s\n", result == 0 ? "Success" : "Failed");
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -368,9 +362,7 @@ int espcp_file_system_delete_file(char *name)
         if (payload != NULL)
         {
             espcp_encode_file_details(&fileDetails, payload);
-            message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                                espcp_system_function_file_system_delete_file, espcp_status_codes_completed_ok,
-                                                espcp_get_next_message_id(), payload, payloadLength);
+            message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_file_system_delete_file, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payloadLength);
 
             if (message != NULL)
             {
@@ -401,7 +393,7 @@ int espcp_file_system_delete_file(char *name)
 
     MEADOW_TRACE_INFORMATION("espcp_file_system_delete_file: %s\n", result == 0 ? "Success" : "Failed");
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -416,7 +408,7 @@ int espcp_file_system_delete_file(char *name)
  * Returned Value:
  *  Pointer to a espcp_file_system_info_t object holding information about
  *  the files on the file system.
- * 
+ *
  *  NULL if there was a problem.
  *
  * Assumptions/Limitations:
@@ -428,9 +420,7 @@ espcp_file_system_info_t *espcp_file_system_list_files(void)
     espcp_file_system_info_t *result = NULL;
     espcp_message_t *message = NULL;
 
-    message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                           espcp_system_function_file_system_list_files, espcp_status_codes_completed_ok,
-                                           espcp_get_next_message_id(), NULL, 0);
+    message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_file_system_list_files, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
 
     if (message != NULL)
     {
@@ -495,7 +485,7 @@ espcp_file_system_info_t *espcp_file_system_list_files(void)
         espcp_delete_message_and_payload(message);
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************

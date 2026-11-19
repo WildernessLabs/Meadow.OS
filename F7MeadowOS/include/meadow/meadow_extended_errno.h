@@ -1,6 +1,6 @@
 /****************************************************************************
  * /Meadow.OS/include/meadow/meadow_extended_errno.h
- * 
+ *
  *   Copyright (C) 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -40,21 +40,21 @@
 // #define __ELASTERROR        2000
 
 // Something is wrong with the path name
-#define EMEADOW_PATH_INVALID            (__ELASTERROR + 1)
+#define EMEADOW_PATH_INVALID (__ELASTERROR + 1)
 
 // A problem with the path name slashes
-#define EMEADOW_PATH_SLASHS             (EMEADOW_PATH_INVALID + 1)
+#define EMEADOW_PATH_SLASHS (EMEADOW_PATH_INVALID + 1)
 
 // Don't know what the path problem is
-#define EMEADOW_PATH_UNKNOWN            (EMEADOW_PATH_SLASHS + 1)
+#define EMEADOW_PATH_UNKNOWN (EMEADOW_PATH_SLASHS + 1)
 
 // The subdirectory depth is too deep
-#define EMEADOW_PATH_SUBDIR_DEPTH       (EMEADOW_PATH_UNKNOWN + 1)
+#define EMEADOW_PATH_SUBDIR_DEPTH (EMEADOW_PATH_UNKNOWN + 1)
 
 // The path is too long
-#define EMEADOW_PATH_INVALID_CONFIG     (EMEADOW_PATH_SUBDIR_DEPTH + 1)
+#define EMEADOW_PATH_INVALID_CONFIG (EMEADOW_PATH_SUBDIR_DEPTH + 1)
 
 // The Caller is not in the required task group
-#define EMEADOW_TASK_GRP_MISMATCH       (EMEADOW_PATH_INVALID_CONFIG + 1)
+#define EMEADOW_TASK_GRP_MISMATCH (EMEADOW_PATH_INVALID_CONFIG + 1)
 
 #endif /* __MEADOW_EXTENDED_ERRNO_H */

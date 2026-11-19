@@ -66,11 +66,11 @@
  * below PIPE_BUF (512 bytes on NuttX) to guarantee an atomic write().
  */
 
-#define HCOM_TRAVERSE_KU_PAYLOAD_MAX  256
+#define HCOM_TRAVERSE_KU_PAYLOAD_MAX 256
 
 /* Path of the named FIFO used to cross the kernel/user boundary. */
 
-#define HCOM_TRAVERSE_KU_PIPE_PATH    "/dev/hcom_traverse_ku"
+#define HCOM_TRAVERSE_KU_PIPE_PATH "/dev/hcom_traverse_ku"
 
 /****************************************************************************
  * Public Types
@@ -78,13 +78,12 @@
 
 /* Discriminator used to route each message to the correct handler. */
 
-enum HcomTraverseKUType
-{
-  HCOM_TRAVERSE_KU_TYPE_UNKNOWN = 0,      /* Start of enum              */
-  HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,      /* kernel syslog / trace text */
-  HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,     /* generic snapshot text      */
-  HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING,   /* NULL terminated char array */
-  HCOM_TRAVERSE_KU_TYPE_COUNT             /* sentinel -- keep last      */
+enum HcomTraverseKUType {
+    HCOM_TRAVERSE_KU_TYPE_UNKNOWN = 0,    /* Start of enum              */
+    HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,    /* kernel syslog / trace text */
+    HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,   /* generic snapshot text      */
+    HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING, /* NULL terminated char array */
+    HCOM_TRAVERSE_KU_TYPE_COUNT           /* sentinel -- keep last      */
 };
 
 /* Fixed-size envelope transferred atomically through the FIFO.
@@ -93,10 +92,10 @@ enum HcomTraverseKUType
  */
 struct hcom_traverse_ku_msg_t
 {
-  enum HcomTraverseKUType traverseType;
-  uint16_t                  rqstType;
-  uint16_t                  length;
-  uint8_t                   payload[HCOM_TRAVERSE_KU_PAYLOAD_MAX];
+    enum HcomTraverseKUType traverseType;
+    uint16_t rqstType;
+    uint16_t length;
+    uint8_t payload[HCOM_TRAVERSE_KU_PAYLOAD_MAX];
 };
 
 /****************************************************************************
@@ -120,14 +119,11 @@ int hcom_traverse_ku_kernel_setup(void);
  * called from a real interrupt handler.
  */
 int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen);
-int hcom_traverse_ku_text_to_host(uint16_t requestType,
-        char *textMsg, size_t textLen);
+int hcom_traverse_ku_text_to_host(uint16_t requestType, char *textMsg, size_t textLen);
 int hcom_traverse_ku_string_to_host(uint16_t requestType, char *stringMsg);
-int hcom_traverse_ku_send_string(enum HcomTraverseKUType type,
-  uint16_t requestType, const char *string);
+int hcom_traverse_ku_send_string(enum HcomTraverseKUType type, uint16_t requestType, const char *string);
 
-int hcom_traverse_ku_send(enum HcomTraverseKUType type,
-  uint16_t requestType, const void *data, uint16_t len);
+int hcom_traverse_ku_send(enum HcomTraverseKUType type, uint16_t requestType, const void *data, uint16_t len);
 
 /* User-side API ---------------------------------------------------------- */
 

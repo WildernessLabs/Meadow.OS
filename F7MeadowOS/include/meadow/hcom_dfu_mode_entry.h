@@ -1,6 +1,6 @@
 /****************************************************************************
  * include/meadow/hcom_dfu_mode_entry.h
- * 
+ *
  *   Copyright (C) 2025 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -39,4 +39,3 @@
 #define MEADOW_ENTER_DFU_MODE_MAGIC_NUMB (0x1c0ffee2)
 
 #endif // __INCLUDE_HCOM_DFU_MODE_ENTRY__H
-

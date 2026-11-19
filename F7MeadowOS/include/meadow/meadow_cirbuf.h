@@ -1,6 +1,6 @@
 /****************************************************************************
  * nuttx\include\meadow\meadow_cirbuf.h
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -55,36 +55,32 @@
 // need real locking, not just a semaphore signal.
 typedef struct host_com_cir_buffer_s
 {
-  uint8_t *bottom;    // bottom of buffer
-  uint8_t *top;       // top end of buffer
-  uint8_t *head;      // add data here
-  uint8_t *tail;      // remove from here
-  uint8_t delimiter;  // custom message delimiter
-}host_com_cir_buffer_t;
+    uint8_t *bottom;   // bottom of buffer
+    uint8_t *top;      // top end of buffer
+    uint8_t *head;     // add data here
+    uint8_t *tail;     // remove from here
+    uint8_t delimiter; // custom message delimiter
+} host_com_cir_buffer_t;
 
 // Circular buffer return values
-enum hcom_comms_recv_buffer_return
-{
-  HCOM_CIR_BUF_INIT_OK,
-  HCOM_CIR_BUF_ALLOC_FAILED,
+enum hcom_comms_recv_buffer_return {
+    HCOM_CIR_BUF_INIT_OK,
+    HCOM_CIR_BUF_ALLOC_FAILED,
 
-  HCOM_CIR_BUF_ADD_SUCCESS,
-  HCOM_CIR_BUF_ADD_WONT_FIT,
-  HCOM_CIR_BUF_ADD_BAD_ARG,
+    HCOM_CIR_BUF_ADD_SUCCESS,
+    HCOM_CIR_BUF_ADD_WONT_FIT,
+    HCOM_CIR_BUF_ADD_BAD_ARG,
 
-  HCOM_CIR_BUF_GET_FOUND_MSG,
-  HCOM_CIR_BUF_GET_NONE_FOUND,
-  HCOM_CIR_BUF_GET_DELETED_TOO_BIG
+    HCOM_CIR_BUF_GET_FOUND_MSG,
+    HCOM_CIR_BUF_GET_NONE_FOUND,
+    HCOM_CIR_BUF_GET_DELETED_TOO_BIG
 };
 
-int hcom_cirbuf_init(host_com_cir_buffer_t *hcom_cbuf, size_t totalCapacity,
-                      uint8_t delimiter);
+int hcom_cirbuf_init(host_com_cir_buffer_t *hcom_cbuf, size_t totalCapacity, uint8_t delimiter);
 size_t hcom_cirbuf_avail_space(host_com_cir_buffer_t *hcom_cbuf);
-int hcom_cirbuf_add_bytes(host_com_cir_buffer_t *hcom_cbuf, uint8_t *newBytes,
-                      uint32_t bytesToAdd);
-int hcom_cirbuf_get_next_packet(host_com_cir_buffer_t *hcom_cbuf, uint8_t *packetBuffer,
-                                size_t packetBufferSize, size_t *packetLength);
+int hcom_cirbuf_add_bytes(host_com_cir_buffer_t *hcom_cbuf, uint8_t *newBytes, uint32_t bytesToAdd);
+int hcom_cirbuf_get_next_packet(host_com_cir_buffer_t *hcom_cbuf, uint8_t *packetBuffer, size_t packetBufferSize, size_t *packetLength);
 int hcom_cirbuf_release_memory(host_com_cir_buffer_t *hcom_cbuf);
 int hcom_cirbuf_clear_buffer(host_com_cir_buffer_t *hcbuf);
 
-#endif  // __CONFIGS_MEADOW_SRC_MEADOW_CIRCULAR_BUFFER__H
+#endif // __CONFIGS_MEADOW_SRC_MEADOW_CIRCULAR_BUFFER__H

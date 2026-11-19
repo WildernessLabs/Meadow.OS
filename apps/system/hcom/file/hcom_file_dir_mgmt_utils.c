@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\file\hcom_dir_mgmt_utils.c
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -73,8 +73,8 @@
 #include <nuttx/fs/fs.h>
 #include <syslog.h>
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-#pragma message "(--) dir_mgmt_utils.c"
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    #pragma message "(--) dir_mgmt_utils.c"
 #endif
 
 // #pragma GCC optimize("O0")    // Prevent compiler from changing the code
@@ -82,10 +82,10 @@
 #define HCOM_FILE_DIR_OUTPUT_TO_SYSLOG (1)
 
 // The following deal with testing subdirectory support
-#define MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR   ("/meadow0/")
-#define MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN   (strlen(MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR))
-#define MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR   ("/sdcard/")
-#define MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN   (strlen(MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR))
+#define MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR ("/meadow0/")
+#define MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN (strlen(MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR))
+#define MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR ("/sdcard/")
+#define MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN (strlen(MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR))
 
 /****************************************************************************
  * Private Data
@@ -107,62 +107,62 @@ static hcom_dnld_shared_t *_dnldShared;
 // This function will return the depth of subdirectories in the file name.
 static uint32_t find_pathname_element_count(const char *pathName, size_t strLen)
 {
-  // Allocate a modifiable version of the string for tokenizing
-  char *pathNameTemp = malloc(strLen + 1);
-  if(pathNameTemp == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return 0;
-  }
-  strcpy(pathNameTemp, pathName);
+    // Allocate a modifiable version of the string for tokenizing
+    char *pathNameTemp = malloc(strLen + 1);
+    if (pathNameTemp == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return 0;
+    }
+    strcpy(pathNameTemp, pathName);
 
-  // Count the number of '/' characters to give an indication of the subdir
-  // depth
-  uint32_t elementCount = 0;
-  char *savePtr;
-  char *token = strtok_r(pathNameTemp, "/", &savePtr);
+    // Count the number of '/' characters to give an indication of the subdir
+    // depth
+    uint32_t elementCount = 0;
+    char *savePtr;
+    char *token = strtok_r(pathNameTemp, "/", &savePtr);
 
-  while (token != NULL)
-  {
-    elementCount++;
-    token = strtok_r(NULL, "/", &savePtr);
-  }
+    while (token != NULL)
+    {
+        elementCount++;
+        token = strtok_r(NULL, "/", &savePtr);
+    }
 
-  free(pathNameTemp);
+    free(pathNameTemp);
 
-  return elementCount;
+    return elementCount;
 }
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
+#if defined(CONFIG_DIR_MGMT_TESTS)
 //============================================================================
 // This function will check the received path/file name and categorize it and
 char *hcom_file_dir_mgmt_find_category(enum hcom_file_msg_cat_e cat)
 {
-  switch(cat)
-  {
-    case pathnameNotUsed:
-      return "pathnameNotUsed";
-    case pathnameInvalid:
-      return "pathnameInvalid";
-    case pathnameInvalidNoSlash:
-      return "pathnameInvalidNoSlash";
-    case pathnameInvalidSlash:
-      return "pathnameInvalidSlash";
-    case pathnameOriginal:
-      return "pathnameOriginal";
-    case pathnameMeadow:
-      return "pathnameMeadow";
-    case pathnameSdcard:
-      return "pathnameSdcard";
-    case pathnameSingleSlash:
-      return "pathnameSingleSlash";
-    case pathnameSlashSlash:
-      return "pathnameSlashSlash";
-    default:
-      return "Not categorized";
-  }
+    switch (cat)
+    {
+        case pathnameNotUsed:
+            return "pathnameNotUsed";
+        case pathnameInvalid:
+            return "pathnameInvalid";
+        case pathnameInvalidNoSlash:
+            return "pathnameInvalidNoSlash";
+        case pathnameInvalidSlash:
+            return "pathnameInvalidSlash";
+        case pathnameOriginal:
+            return "pathnameOriginal";
+        case pathnameMeadow:
+            return "pathnameMeadow";
+        case pathnameSdcard:
+            return "pathnameSdcard";
+        case pathnameSingleSlash:
+            return "pathnameSingleSlash";
+        case pathnameSlashSlash:
+            return "pathnameSlashSlash";
+        default:
+            return "Not categorized";
+    }
 
-  return "Not categorized";
+    return "Not categorized";
 }
 #endif
 
@@ -176,380 +176,339 @@ char *hcom_file_dir_mgmt_find_category(enum hcom_file_msg_cat_e cat)
 // '/filename' - has leading '/'
 // /dirname/filename/ - missing leading '/meadow0'
 // endExpectFileName: true = pathname no ending '/', false = ending '/' needed
-static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(
-          const char *pathName, size_t strLen,
-          uint32_t *pathNameElements, bool endExpectFileName)
+static enum hcom_file_msg_cat_e hcom_dir_mgmt_categorize_pathname(const char *pathName, size_t strLen, uint32_t *pathNameElements, bool endExpectFileName)
 {
-  *pathNameElements = 0;
+    *pathNameElements = 0;
 
-  // Is this a simple filename (i.e. no '/')
-  if(memchr(pathName, '/', strLen) == NULL)
-  {
-    // No '/' in file name, this is like original file naming scheme for
-    // download
-    if(endExpectFileName)
-      *pathNameElements = 2;  // 2 includes '/meadow0' and file name
-    else
-      *pathNameElements = 0;  // For file list there's no file name
-    
-    return pathnameOriginal;
-  }
-  else if(memcmp(MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR,
-              pathName, MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN) == 0)
-  {
-    // '/meadow0/' found. If this is for file download it cannot end in '/',
-    // it must end with a file name. However, if this being called for a file
-    // list it must end in '/'.
-    if(endExpectFileName)
+    // Is this a simple filename (i.e. no '/')
+    if (memchr(pathName, '/', strLen) == NULL)
     {
-      // Ends without file name
-      if(pathName[strLen-1] == '/')
-          return pathnameInvalidSlash;
+        // No '/' in file name, this is like original file naming scheme for
+        // download
+        if (endExpectFileName)
+            *pathNameElements = 2; // 2 includes '/meadow0' and file name
+        else
+            *pathNameElements = 0; // For file list there's no file name
+
+        return pathnameOriginal;
+    }
+    else if (memcmp(MEADOW_FILE_SUBDIR_PREPEND_MEADOW_STR, pathName, MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN) == 0)
+    {
+        // '/meadow0/' found. If this is for file download it cannot end in '/',
+        // it must end with a file name. However, if this being called for a file
+        // list it must end in '/'.
+        if (endExpectFileName)
+        {
+            // Ends without file name
+            if (pathName[strLen - 1] == '/')
+                return pathnameInvalidSlash;
+        }
+        else
+        {
+            // Ends with something beside '/'
+            if (pathName[strLen - 1] != '/')
+                return pathnameInvalidNoSlash;
+        }
+
+        *pathNameElements = find_pathname_element_count(pathName, strLen);
+#if defined(CONFIG_DIR_MGMT_TESTS)
+
+        syslog(2, "%s@%d-Directory-pathname for Meadow found, path name:'%s'\n", __FILE__, __LINE__, pathName);
+#endif
+        return pathnameMeadow;
+    }
+
+#if defined(CONFIG_STM32_SDMMC2)
+    else if (memcmp(MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR, pathName, MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN) == 0)
+    {
+        meadow_configuration_t *config = meadow_os_deep_copy_config();
+        bool sdcardSupported = (config != NULL) && (config->sd_storage_supported != 0);
+        meadow_os_config_free_resources(config);
+
+        if (sdcardSupported)
+        {
+            // '/sdcard/' found, If this is for file download it cannot end in '/',
+            // it must end with a file name. However, if this being called for a file
+            // list it must end in '/'.
+            if (endExpectFileName)
+            {
+                // Ends without file name
+                if (pathName[strLen - 1] == '/')
+                    return pathnameInvalidSlash;
+            }
+            else
+            {
+                // Ends with something beside '/'
+                if (pathName[strLen - 1] != '/')
+                    return pathnameInvalidNoSlash;
+            }
+
+            *pathNameElements = find_pathname_element_count(pathName, strLen);
+    #if defined(CONFIG_DIR_MGMT_TESTS)
+            syslog(2, "-->%s@%d-Directory-pathname for SDCard found at path name:'%s'\n", __FILE__, __LINE__, pathName);
+    #endif
+            return pathnameSdcard;
+        }
+        else
+        {
+    #if defined(CONFIG_DIR_MGMT_TESTS)
+            syslog(LOG_MTEST, "SDCard not configured for use\n");
+    #endif
+            return pathnameSdcardNoConfig;
+        }
+    }
+#endif // CONFIG_STM32_SDMMC2
+
+    // The following 2 path names ('/' and '/text/') where originally thought to
+    // be needed, but have been changed to be considered errors. This means that
+    // only '/meadow0', '/meadow0/' and '/sdcard', /sdcard/ are available to the
+    // HCOM user. Some existing code was left for possible future use.
+    else if (strLen == 1 && pathName[0] == '/')
+    {
+        // At this time this is considered an error.
+#if defined(CONFIG_DIR_MGMT_TESTS)
+        syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
+#endif
+        return pathnameSingleSlash; // Starts with '/' or '/dev'
+
+                                    // The following code was left for possible future use.
+        // Found a single '/', only useful for file list to see devices etc.
+        // if(endExpectFileName)
+        // {
+        //   return pathnameInvalidNoSlash;
+        // }
+        // else
+        // {
+        //   *pathNameElements = 1;      // One is kind of correct
+        //   return pathnameSingleSlash;
+        // }
+    }
+    else if (pathName[0] == '/' && pathName[strLen - 1] == '/')
+    {
+        // Not /meadow0/ or /sdcard/ but starts with '/' and ends with '/'
+        // At this time this is considered an error.
+#if defined(CONFIG_DIR_MGMT_TESTS)
+        syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
+#endif
+        return pathnameSlashSlash; // Starts with '/anytext/'
+
+                                   // The following code was left for possible future use.
+        // Found '/pathname/', this maybe used in the future for file list (e.g. /dev/)
+        // if(endExpectFileName)
+        // {
+        //   return pathnameInvalidNoSlash;
+        // }
+        // else
+        // {
+        //   *pathNameElements = find_pathname_element_count(pathName, strLen);
+        //   return pathnameSlashSlash;
+        // }
     }
     else
     {
-      // Ends with something beside '/'
-      if(pathName[strLen-1] != '/')
-          return pathnameInvalidNoSlash;
+#if defined(CONFIG_DIR_MGMT_TESTS)
+        syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
+#endif
+        return pathnameInvalid;
     }
 
-    *pathNameElements = find_pathname_element_count(pathName, strLen);
-#if defined (CONFIG_DIR_MGMT_TESTS)
-
-    syslog(2, "%s@%d-Directory-pathname for Meadow found, path name:'%s'\n",
-              __FILE__, __LINE__, pathName);
+    // Lots of other reasons, upper/lower case, spelling.... Wish I knew them
+    // all above mostly looking for the positive reasons to allow processing.
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    syslog(1, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
 #endif
-    return pathnameMeadow;
-  }
-
-#if defined (CONFIG_STM32_SDMMC2)
-  else if(memcmp(MEADOW_FILE_SUBDIR_PREPEND_SDCARD_STR,
-              pathName, MEADOW_FILE_SUBDIR_PREPEND_SDCARD_LEN) == 0)
-  {
-    meadow_configuration_t *config = meadow_os_deep_copy_config();
-    bool sdcardSupported = (config != NULL) &&  (config->sd_storage_supported != 0);
-    meadow_os_config_free_resources(config);
-
-    if (sdcardSupported)
-    {
-      // '/sdcard/' found, If this is for file download it cannot end in '/',
-      // it must end with a file name. However, if this being called for a file
-      // list it must end in '/'.
-      if(endExpectFileName)
-      {
-      // Ends without file name
-        if(pathName[strLen-1] == '/')
-            return pathnameInvalidSlash;
-      }
-      else
-      {
-      // Ends with something beside '/'
-        if(pathName[strLen-1] != '/')
-            return pathnameInvalidNoSlash;
-      }
-
-      *pathNameElements = find_pathname_element_count(pathName, strLen);
-#if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(2, "-->%s@%d-Directory-pathname for SDCard found at path name:'%s'\n",
-                __FILE__, __LINE__, pathName);
-#endif
-      return pathnameSdcard;
-    }
-    else
-    {
-#if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(LOG_MTEST, "SDCard not configured for use\n");
-#endif
-      return pathnameSdcardNoConfig;
-    }
-  }
-#endif    // CONFIG_STM32_SDMMC2
-
-  // The following 2 path names ('/' and '/text/') where originally thought to
-  // be needed, but have been changed to be considered errors. This means that
-  // only '/meadow0', '/meadow0/' and '/sdcard', /sdcard/ are available to the
-  // HCOM user. Some existing code was left for possible future use.
-  else if(strLen == 1 && pathName[0] == '/')
-  {
-    // At this time this is considered an error.
-#if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
-#endif
-    return pathnameSingleSlash; // Starts with '/' or '/dev'
-
-    // The following code was left for possible future use.
-    // Found a single '/', only useful for file list to see devices etc.
-    // if(endExpectFileName)
-    // {
-    //   return pathnameInvalidNoSlash;
-    // }
-    // else
-    // {
-    //   *pathNameElements = 1;      // One is kind of correct
-    //   return pathnameSingleSlash;
-    // }
-  }
-  else if(pathName[0] == '/' && pathName[strLen -1] == '/')
-  {
-    // Not /meadow0/ or /sdcard/ but starts with '/' and ends with '/'
-    // At this time this is considered an error.
-#if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n", __FILE__, __LINE__, pathName);
-#endif
-    return pathnameSlashSlash;  // Starts with '/anytext/'
-
-    // The following code was left for possible future use.
-    // Found '/pathname/', this maybe used in the future for file list (e.g. /dev/)
-    // if(endExpectFileName)
-    // {
-    //   return pathnameInvalidNoSlash;
-    // }
-    // else
-    // {
-    //   *pathNameElements = find_pathname_element_count(pathName, strLen);
-    //   return pathnameSlashSlash;
-    // }
-  }
-  else
-  {
-#if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(2, "-->%s@%d-Directory-invalid path name:'%s'\n",
-              __FILE__, __LINE__, pathName);
-#endif
+    // Lots of reasons, upper/lower case, spelling.... Wish I knew them all
+    // The above is only looking for the positive reasons to allow processing.
     return pathnameInvalid;
-  }
-  
-  // Lots of other reasons, upper/lower case, spelling.... Wish I knew them
-  // all above mostly looking for the positive reasons to allow processing.
-#if defined (CONFIG_DIR_MGMT_TESTS)
-  syslog(1, "-->%s@%d-Directory-invalid path name:'%s'\n",
-              __FILE__, __LINE__, pathName);
-#endif
-  // Lots of reasons, upper/lower case, spelling.... Wish I knew them all
-  // The above is only looking for the positive reasons to allow processing.
-  return pathnameInvalid;
 }
 
 //=====================================================================
 // File name processing. This is the entry point for all downloads, deletes
 // etc.
-static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
-          char *pathNameStr, size_t fileNameLength,
-          bool endExpectFileName)
+static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared, char *pathNameStr, size_t fileNameLength, bool endExpectFileName)
 {
-  enum hcom_file_msg_cat_e catType;
-  uint32_t pathNameElements;
-  size_t dnldFileAndPathLen;
-  char *hostMsg = NULL;
+    enum hcom_file_msg_cat_e catType;
+    uint32_t pathNameElements;
+    size_t dnldFileAndPathLen;
+    char *hostMsg = NULL;
 
-  // Make sure shared version available
-  _dnldShared = dnldShared;
+    // Make sure shared version available
+    _dnldShared = dnldShared;
 
-  // Allocated + space for string terminating NULL
-  dnldShared->dnldOrigPathName = malloc(fileNameLength + 1);
-  if(dnldShared->dnldOrigPathName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
-
-  // Continue to populate shared download struct with file information
-  strcpy(dnldShared->dnldOrigPathName, pathNameStr);
-
-  // There are 3 valid path name formats.
-  // 1. A simple file name, with just a file name, nothing else.
-  // 2. A path name beginning with '/meadow0/'
-  // 3. A path name beginning with '/sdcard/'
-  // This call will categorize as one of the above or error. It is assumes
-  // that the last '/' signifies the start of the file name, unless it is
-  // a 'file list' command.
-  catType = hcom_dir_mgmt_categorize_pathname(dnldShared->dnldOrigPathName,
-            fileNameLength, &pathNameElements, endExpectFileName);
-  
-  // Check the number of elements included all levels.
-  if(pathNameElements > HCOM_FILE_DNLD_MAX_NUMB_DIR_ELEMENTS)
-  {
-    syslog(LOG_ERR, "%s@%d-subdirectories limited to %u, found %lu\n",
-              __FILE__, __LINE__,
-              HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS,
-              pathNameElements - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS);
-
-    hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
-    if(hostMsg == NULL)
+    // Allocated + space for string terminating NULL
+    dnldShared->dnldOrigPathName = malloc(fileNameLength + 1);
+    if (dnldShared->dnldOrigPathName == NULL)
     {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-                __FILE__, __LINE__);
-      return -ENOMEM;   // No Memory
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return -ENOMEM;
     }
 
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-            "Maximum subdirectory levels %lu, request contained %lu\n",
-            HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS,
-            pathNameElements - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-            hostMsg, __FILE__, __LINE__);
+    // Continue to populate shared download struct with file information
+    strcpy(dnldShared->dnldOrigPathName, pathNameStr);
 
-    free(hostMsg);
-    return -EMEADOW_PATH_SUBDIR_DEPTH; // Too many subdirectories
-  }
+    // There are 3 valid path name formats.
+    // 1. A simple file name, with just a file name, nothing else.
+    // 2. A path name beginning with '/meadow0/'
+    // 3. A path name beginning with '/sdcard/'
+    // This call will categorize as one of the above or error. It is assumes
+    // that the last '/' signifies the start of the file name, unless it is
+    // a 'file list' command.
+    catType = hcom_dir_mgmt_categorize_pathname(dnldShared->dnldOrigPathName, fileNameLength, &pathNameElements, endExpectFileName);
 
-  // Preallocate memory as needed either for the full file name or
-  // error message to host.
-  // The error messages will free the memory before returning. The full
-  // path name will be freed after the file has been processed.
-  if(catType == pathnameOriginal)
-  {
-    // A file name based on the original naming convention needs
-    // to have '/meadow0/' prepended to the filename.
-    // (e.g. /meadow0/filename.ext).
-    dnldFileAndPathLen = strlen(dnldShared->dnldOrigPathName) + \
-              MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN + 2; // Room for '/' + NULL
+    // Check the number of elements included all levels.
+    if (pathNameElements > HCOM_FILE_DNLD_MAX_NUMB_DIR_ELEMENTS)
+    {
+        syslog(LOG_ERR, "%s@%d-subdirectories limited to %u, found %lu\n", __FILE__, __LINE__, HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS, pathNameElements - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS);
 
-    dnldShared->dnldFullPathName = malloc(dnldFileAndPathLen + 1);
-    if (dnldShared->dnldFullPathName == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-      return -ENOMEM;
-    }
-  }
-  else if(catType == pathnameMeadow || catType == pathnameSdcard)
-  {
-    // The '/meadow0/' or '/sdcard/' is already part of the string, so allocate
-    // as provided plus room for null.
-    dnldShared->dnldFullPathName = malloc(fileNameLength + 1);
-    if (dnldShared->dnldFullPathName == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-      return -ENOMEM;
-    }
-  }
-  else
-  {
-    // All other categories are currently considered errors. So we need
-    // a buffer for the error message.
-    hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
-    if (hostMsg == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-                          __FILE__, __LINE__);
-      return -ENOMEM; // No Memory
-    }
-  }
+        hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
+        if (hostMsg == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM; // No Memory
+        }
 
-  //-------------------------------------------------------------------------
-  // This switch statement will process each category type as needed. For
-  // bad categories, a message will be sent to the host.
-  // MEADOW.REBASE - There is a lot of room in the following code for
-  // refactoring.
-  switch (catType)
-  {
-    case pathnameOriginal:
-    {
-      // The following code is for the original file naming scheme. This is
-      // where the file name is sent without any path information.
-      // A file name based on the original naming convention needs to have
-      // '/meadow0/' prepended to the filename as the desired directory was
-      // always /meadow0, thus treating it as if a CLIv1 command.
-      // (e.g. convert 'filename.ext' to '/meadow0/filename.ext').
-      dnldFileAndPathLen = strlen(dnldShared->dnldOrigPathName) +
-                MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN + 2; // Room for '/' + NULL
-      
-      // Prepend '/meadow0/' the file name in the prepared location
-      snprintf_chk(dnldShared->dnldFullPathName, dnldFileAndPathLen, "%s/%s",
-                  MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME,
-                  dnldShared->dnldOrigPathName);
-      break;
+        snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Maximum subdirectory levels %lu, request contained %lu\n", HCOM_FILE_DNLD_MAX_NUMB_USER_SUBDIRS, pathNameElements - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+        free(hostMsg);
+        return -EMEADOW_PATH_SUBDIR_DEPTH; // Too many subdirectories
     }
 
-    case pathnameMeadow:
+    // Preallocate memory as needed either for the full file name or
+    // error message to host.
+    // The error messages will free the memory before returning. The full
+    // path name will be freed after the file has been processed.
+    if (catType == pathnameOriginal)
     {
-      // The '/meadow0/ is already here so just copy the name, null and all.
-      strcpy(dnldShared->dnldFullPathName, dnldShared->dnldOrigPathName);
-      break;
+        // A file name based on the original naming convention needs
+        // to have '/meadow0/' prepended to the filename.
+        // (e.g. /meadow0/filename.ext).
+        dnldFileAndPathLen = strlen(dnldShared->dnldOrigPathName) + MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN + 2; // Room for '/' + NULL
+
+        dnldShared->dnldFullPathName = malloc(dnldFileAndPathLen + 1);
+        if (dnldShared->dnldFullPathName == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM;
+        }
+    }
+    else if (catType == pathnameMeadow || catType == pathnameSdcard)
+    {
+        // The '/meadow0/' or '/sdcard/' is already part of the string, so allocate
+        // as provided plus room for null.
+        dnldShared->dnldFullPathName = malloc(fileNameLength + 1);
+        if (dnldShared->dnldFullPathName == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM;
+        }
+    }
+    else
+    {
+        // All other categories are currently considered errors. So we need
+        // a buffer for the error message.
+        hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
+        if (hostMsg == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM; // No Memory
+        }
     }
 
-    case pathnameSdcard:
+    //-------------------------------------------------------------------------
+    // This switch statement will process each category type as needed. For
+    // bad categories, a message will be sent to the host.
+    // MEADOW.REBASE - There is a lot of room in the following code for
+    // refactoring.
+    switch (catType)
     {
-      // '/sdcard/ is there so just copy the name, null and all.
-      strcpy(dnldShared->dnldFullPathName, dnldShared->dnldOrigPathName);
-      break;
+        case pathnameOriginal:
+            {
+                // The following code is for the original file naming scheme. This is
+                // where the file name is sent without any path information.
+                // A file name based on the original naming convention needs to have
+                // '/meadow0/' prepended to the filename as the desired directory was
+                // always /meadow0, thus treating it as if a CLIv1 command.
+                // (e.g. convert 'filename.ext' to '/meadow0/filename.ext').
+                dnldFileAndPathLen = strlen(dnldShared->dnldOrigPathName) + MEADOW_FILE_SUBDIR_PREPEND_MEADOW_LEN + 2; // Room for '/' + NULL
+
+                // Prepend '/meadow0/' the file name in the prepared location
+                snprintf_chk(dnldShared->dnldFullPathName, dnldFileAndPathLen, "%s/%s", MONO_MEADOW_FILE_SYSTEM_MOUNTED_NAME, dnldShared->dnldOrigPathName);
+                break;
+            }
+
+        case pathnameMeadow:
+            {
+                // The '/meadow0/ is already here so just copy the name, null and all.
+                strcpy(dnldShared->dnldFullPathName, dnldShared->dnldOrigPathName);
+                break;
+            }
+
+        case pathnameSdcard:
+            {
+                // '/sdcard/ is there so just copy the name, null and all.
+                strcpy(dnldShared->dnldFullPathName, dnldShared->dnldOrigPathName);
+                break;
+            }
+
+        // The remaining cases are considered errors and will send an error
+        // message to the CLI.
+        case pathnameSdcardNoConfig:
+            {
+                syslog(LOG_ERR, "%s@%d-pathname '%s' but, SDCard not configured\n", __FILE__, __LINE__, dnldShared->dnldOrigPathName);
+
+                snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Path name '%s' is valid, but not configured\n", dnldShared->dnldOrigPathName);
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+                free(hostMsg);
+                return -EMEADOW_PATH_INVALID_CONFIG; // Invalid pathname
+            }
+
+        case pathnameInvalid:
+            {
+                syslog(LOG_ERR, "%s@%d-pathname '%s' is invalid\n", __FILE__, __LINE__, dnldShared->dnldOrigPathName);
+
+                snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Path name '%s' is invalid\n", dnldShared->dnldOrigPathName);
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+                free(hostMsg);
+                return -EMEADOW_PATH_INVALID; // Invalid pathname
+            }
+
+        // These 2 cases are not currently supported.
+        case pathnameInvalidNoSlash:
+        case pathnameInvalidSlash:
+            {
+                syslog(LOG_ERR, "%s@%d-pathname '%s' invalid, %s ending '/'\n", __FILE__, __LINE__, dnldShared->dnldOrigPathName, catType == pathnameInvalidSlash ? "has" : "missing");
+
+                snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Path name '%s' is invalid, %s ending '/'\n", dnldShared->dnldOrigPathName, catType == pathnameInvalidSlash ? "has" : "missing");
+
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+                free(hostMsg);
+                return -EMEADOW_PATH_SLASHS; // Problem with '/' in pathname
+            }
+
+        default:
+            {
+                syslog(LOG_ERR, "%s@%d-Unhandled pathname category: %d\n", __FILE__, __LINE__, catType);
+
+                snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Path name '%s' couldn't be parsed\n", dnldShared->dnldOrigPathName);
+
+                hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+
+                free(hostMsg);
+                return -EMEADOW_PATH_UNKNOWN; // Bad argument
+            }
     }
 
-    // The remaining cases are considered errors and will send an error
-    // message to the CLI.
-    case pathnameSdcardNoConfig:
-    {
-      syslog(LOG_ERR, "%s@%d-pathname '%s' but, SDCard not configured\n",
-                          __FILE__, __LINE__, dnldShared->dnldOrigPathName);
+    // Only valid entries reach here.
+    dnldShared->dnldRqstCat = catType;
 
-      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                  "Path name '%s' is valid, but not configured\n",
-                  dnldShared->dnldOrigPathName);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                                      hostMsg, __FILE__, __LINE__);
+    // Save number of elements in pathname.
+    dnldShared->dnldPathNameEleCount = pathNameElements;
 
-      free(hostMsg);
-      return -EMEADOW_PATH_INVALID_CONFIG; // Invalid pathname
-    }
-
-    case pathnameInvalid:
-    {
-      syslog(LOG_ERR, "%s@%d-pathname '%s' is invalid\n",
-                          __FILE__, __LINE__, dnldShared->dnldOrigPathName);
-
-      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                  "Path name '%s' is invalid\n", dnldShared->dnldOrigPathName);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                                      hostMsg, __FILE__, __LINE__);
-
-      free(hostMsg);
-      return -EMEADOW_PATH_INVALID; // Invalid pathname
-    }
-
-    // These 2 cases are not currently supported.
-    case pathnameInvalidNoSlash:
-    case pathnameInvalidSlash:
-    {
-      syslog(LOG_ERR, "%s@%d-pathname '%s' invalid, %s ending '/'\n",
-                          __FILE__, __LINE__, dnldShared->dnldOrigPathName,
-                          catType == pathnameInvalidSlash ? "has" : "missing");
-
-      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                  "Path name '%s' is invalid, %s ending '/'\n",
-                  dnldShared->dnldOrigPathName,
-                  catType == pathnameInvalidSlash ? "has" : "missing");
-
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                                      hostMsg, __FILE__, __LINE__);
-
-      free(hostMsg);
-      return -EMEADOW_PATH_SLASHS; // Problem with '/' in pathname
-    }
-
-    default:
-    {
-      syslog(LOG_ERR, "%s@%d-Unhandled pathname category: %d\n",
-                          __FILE__, __LINE__, catType);
-
-      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                  "Path name '%s' couldn't be parsed\n",
-                  dnldShared->dnldOrigPathName);
-
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                                      hostMsg, __FILE__, __LINE__);
-
-      free(hostMsg);
-      return -EMEADOW_PATH_UNKNOWN; // Bad argument
-    }
-  }
-
-  // Only valid entries reach here.
-  dnldShared->dnldRqstCat = catType;
-  
-  // Save number of elements in pathname.
-  dnldShared->dnldPathNameEleCount = pathNameElements;
-  
-  return OK;
+    return OK;
 }
 
 /****************************************************************************
@@ -566,77 +525,70 @@ static int hcom_dir_mgmt_eval_build_pathname(hcom_dnld_shared_t *dnldShared,
 // It depends on the type of request. A file list request doesn't contain a
 // a file name, therefore, it's last character must be '/'. Where as a file
 // download must end in a file name, so the last character cannot be '/'.
-int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared,
-          const HcomProtoHdrMsg_t *hdrMsg, const size_t packetSize,
-          bool isFileMsgType, bool endExpectFileName)
+int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared, const HcomProtoHdrMsg_t *hdrMsg, const size_t packetSize, bool isFileMsgType, bool endExpectFileName)
 {
-  int ret;
-  char *pathName;
-  size_t pathNameLength;
+    int ret;
+    char *pathName;
+    size_t pathNameLength;
 
-  // Ensure any unremoved information is gone
-  hcom_dir_mgmt_free_file_info(dnldShared);
+    // Ensure any unremoved information is gone
+    hcom_dir_mgmt_free_file_info(dnldShared);
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
+#if defined(CONFIG_DIR_MGMT_TESTS)
     syslog(LOG_MTEST, "===> %s@%d-Populating dnldShared information\n", __FILE__, __LINE__);
 #endif
 
-  if(isFileMsgType)
-  {
-    pathNameLength = packetSize - HCOM_PROTOCOL_FILE_MSG_LENGTH;
-  }
-  else
-  {
-    pathNameLength = packetSize - HCOM_PROTOCOL_TEXT_MSG_LENGTH;
-  }
-  
-  pathName = malloc(pathNameLength + 1);
-  if (pathName == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-allocation failed\n",
-              __FILE__, __LINE__);
+    if (isFileMsgType)
+    {
+        pathNameLength = packetSize - HCOM_PROTOCOL_FILE_MSG_LENGTH;
+    }
+    else
+    {
+        pathNameLength = packetSize - HCOM_PROTOCOL_TEXT_MSG_LENGTH;
+    }
 
-    return -ENOMEM;
-  }
+    pathName = malloc(pathNameLength + 1);
+    if (pathName == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-allocation failed\n", __FILE__, __LINE__);
 
-  // Note: isFileMsgType is only true based for a few request types. These are
-  // 3 for stm32f7 and for 1 for ESP32.
-  if(isFileMsgType)
-  {
-    HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *)hdrMsg;
-    memcpy(pathName, fileMsg->fileInfo.fileName, pathNameLength);
-  }
-  else
-  {
-    HcomProtoTextMsg_t *textMsg = (HcomProtoTextMsg_t *)hdrMsg;
-    memcpy(pathName, textMsg->textData, pathNameLength);
-  }
+        return -ENOMEM;
+    }
 
-  pathName[pathNameLength] = '\0';  // Make into C string
+    // Note: isFileMsgType is only true based for a few request types. These are
+    // 3 for stm32f7 and for 1 for ESP32.
+    if (isFileMsgType)
+    {
+        HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *) hdrMsg;
+        memcpy(pathName, fileMsg->fileInfo.fileName, pathNameLength);
+    }
+    else
+    {
+        HcomProtoTextMsg_t *textMsg = (HcomProtoTextMsg_t *) hdrMsg;
+        memcpy(pathName, textMsg->textData, pathNameLength);
+    }
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-  if(isFileMsgType)
-    syslog(2, "===> %s@%d-Populating dnldShared, FileType? Yes, FileName:%s\n",
-              __FILE__, __LINE__, pathName);
-  else
-    syslog(2, "===> %s@%d-Populating dnldShared, FileType? No\n",
-              __FILE__, __LINE__);
+    pathName[pathNameLength] = '\0'; // Make into C string
+
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    if (isFileMsgType)
+        syslog(2, "===> %s@%d-Populating dnldShared, FileType? Yes, FileName:%s\n", __FILE__, __LINE__, pathName);
+    else
+        syslog(2, "===> %s@%d-Populating dnldShared, FileType? No\n", __FILE__, __LINE__);
 #endif
 
-  // Construct the proper full path file name
-  // Note: This call will allocate memory for all successfully parsed
-  // commands, therefore, this must be considered after this point.
-  // It returns a negative value on error.
-  ret = hcom_dir_mgmt_eval_build_pathname(dnldShared, pathName,
-            pathNameLength, endExpectFileName);
-  if(ret < 0)
-  {
-    syslog(1, "%s@%d-Eval pathname: '%s', ret:%d, errno:%d\n",
-              __FILE__, __LINE__, pathName, ret, errno);
-  }
+    // Construct the proper full path file name
+    // Note: This call will allocate memory for all successfully parsed
+    // commands, therefore, this must be considered after this point.
+    // It returns a negative value on error.
+    ret = hcom_dir_mgmt_eval_build_pathname(dnldShared, pathName, pathNameLength, endExpectFileName);
+    if (ret < 0)
+    {
+        syslog(1, "%s@%d-Eval pathname: '%s', ret:%d, errno:%d\n", __FILE__, __LINE__, pathName, ret, errno);
+    }
 
-  free(pathName);
-  return ret;
+    free(pathName);
+    return ret;
 }
 
 //===========================================================================
@@ -644,167 +596,155 @@ int hcom_host_process_init_hcom_dnld_share(hcom_dnld_shared_t *dnldShared,
 // being added
 int hcom_dir_mgmt_check_and_add_subdir(hcom_dnld_shared_t *dnldShared)
 {
-  int ret;
-  struct stat statBuf;
-  struct stat *pStatBuf;
-  char *savePtr;
-  char *token;
-  char *delimiterOffset;
-  uint32_t tokenCount;
-  int dirLevel;
-  int dirOffset[dnldShared->dnldPathNameEleCount + 1];
+    int ret;
+    struct stat statBuf;
+    struct stat *pStatBuf;
+    char *savePtr;
+    char *token;
+    char *delimiterOffset;
+    uint32_t tokenCount;
+    int dirLevel;
+    int dirOffset[dnldShared->dnldPathNameEleCount + 1];
 
-  pStatBuf = &statBuf;
+    pStatBuf = &statBuf;
 
-  // Allocate a modifiable version of the string
-  char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName) + 1);
-  if(fullFileNamePath == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-              __FILE__, __LINE__);
-    return -ENOMEM;
-  }
-
-  strcpy(fullFileNamePath, dnldShared->dnldFullPathName);
-
-  token = strtok_r(fullFileNamePath, "/", &savePtr);
-  dirOffset[0] = 0;
-  tokenCount = 0;
-
-  // This loop will tokenize the directories and filename. We don't really
-  // care about the tokens, we want the side-effect of this operation which
-  // removes the tokens from the original pathname and replaces them with
-  // nulls. This allows us to find the offsets of theses "gaps" and then
-  // rebuild the directory path one element at a time in the next step.
-  while (token != NULL)
-  {
-    tokenCount++;
-    token = strtok_r(NULL, "/", &savePtr);
-    dirOffset[tokenCount] = (token - fullFileNamePath);
-  }
-
-  // fullFileNamePath now contains all the subdirectory elements as NULL
-  // separated C strings.
-  // This loop will replace 1 NULL with a '/' on each pass to eventually
-  // reconstruct the entire path. As each element is added, stat() will
-  // determine if this element exist. if not it will be created.
-  // The number of directories is 1 less than the number of elements, so we -1.
-  for(dirLevel = 0; dirLevel < dnldShared->dnldPathNameEleCount - 1; dirLevel++)
-  {
-    delimiterOffset = fullFileNamePath + dirOffset[dirLevel];
-
-    if(dirLevel != 0)
+    // Allocate a modifiable version of the string
+    char *fullFileNamePath = malloc(strlen(dnldShared->dnldFullPathName) + 1);
+    if (fullFileNamePath == NULL)
     {
-      // Restore the token ()'/') for next element
-      *(delimiterOffset - 1) = '/';
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return -ENOMEM;
     }
 
-    ret = stat(fullFileNamePath, pStatBuf);
-    if(ret < 0)
+    strcpy(fullFileNamePath, dnldShared->dnldFullPathName);
+
+    token = strtok_r(fullFileNamePath, "/", &savePtr);
+    dirOffset[0] = 0;
+    tokenCount = 0;
+
+    // This loop will tokenize the directories and filename. We don't really
+    // care about the tokens, we want the side-effect of this operation which
+    // removes the tokens from the original pathname and replaces them with
+    // nulls. This allows us to find the offsets of theses "gaps" and then
+    // rebuild the directory path one element at a time in the next step.
+    while (token != NULL)
     {
-      // No Entry?
-      if(errno == ENOENT)
-      {
-        // Make the missing directory
-        // 0644 owner has read and write permission, group and others read
-        // 0777 everyone has read write and execute permission.
-        ret = mkdir(fullFileNamePath, 0777);
-        if(ret < 0)
+        tokenCount++;
+        token = strtok_r(NULL, "/", &savePtr);
+        dirOffset[tokenCount] = (token - fullFileNamePath);
+    }
+
+    // fullFileNamePath now contains all the subdirectory elements as NULL
+    // separated C strings.
+    // This loop will replace 1 NULL with a '/' on each pass to eventually
+    // reconstruct the entire path. As each element is added, stat() will
+    // determine if this element exist. if not it will be created.
+    // The number of directories is 1 less than the number of elements, so we -1.
+    for (dirLevel = 0; dirLevel < dnldShared->dnldPathNameEleCount - 1; dirLevel++)
+    {
+        delimiterOffset = fullFileNamePath + dirOffset[dirLevel];
+
+        if (dirLevel != 0)
         {
-          syslog(LOG_ERR, "%s@%d-mkdir of '%s' failed with, ret:%d, errno:%d\n",
-                    __FILE__, __LINE__, fullFileNamePath, ret, errno);
-
-          char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
-          if(hostMsg == NULL)
-          {
-            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-                      __FILE__, __LINE__);
-            free(fullFileNamePath);
-            return -ENOMEM;
-          }
-
-          snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-                  "Create directory '%s' failed, ret:%d, errno:%d\n",
-                  fullFileNamePath, ret, errno);
-          hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                  hostMsg, __FILE__, __LINE__);
-          free(hostMsg);
-          free(fullFileNamePath);
-
-          return ret;
+            // Restore the token ()'/') for next element
+            *(delimiterOffset - 1) = '/';
         }
 
-        // Don't move to next directory, re-evaluate this new one, then move
-        // forward.
-        dirLevel--;
-        continue;
-      }
+        ret = stat(fullFileNamePath, pStatBuf);
+        if (ret < 0)
+        {
+            // No Entry?
+            if (errno == ENOENT)
+            {
+                // Make the missing directory
+                // 0644 owner has read and write permission, group and others read
+                // 0777 everyone has read write and execute permission.
+                ret = mkdir(fullFileNamePath, 0777);
+                if (ret < 0)
+                {
+                    syslog(LOG_ERR, "%s@%d-mkdir of '%s' failed with, ret:%d, errno:%d\n", __FILE__, __LINE__, fullFileNamePath, ret, errno);
 
-      // Some failure other than "doesn't exist yet" -- nothing to recover,
-      // report it and give up.
-      syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-      free(fullFileNamePath);
-      return ret;
-    }
+                    char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
+                    if (hostMsg == NULL)
+                    {
+                        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+                        free(fullFileNamePath);
+                        return -ENOMEM;
+                    }
 
-    // stat() succeeded, the entry exists. Every element this loop walks
-    // must be a directory (the filename itself is handled separately, by
-    // the caller, once this function returns) -- if it isn't, that's an
-    // error.
-    if (! S_ISDIR(statBuf.st_mode))
-    {
-      // All entries must be a directory, if not, it's an error
-      char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
-      if(hostMsg == NULL)
-      {
-        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n",
-                  __FILE__, __LINE__);
-        free(fullFileNamePath);
-        return -ENOMEM;
-      }
+                    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Create directory '%s' failed, ret:%d, errno:%d\n", fullFileNamePath, ret, errno);
+                    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+                    free(hostMsg);
+                    free(fullFileNamePath);
 
-      snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-              "Pathname '%s' is invalid, last element not a directory\n",
-               fullFileNamePath);
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-              hostMsg, __FILE__, __LINE__);
-      free(hostMsg);
-      free(fullFileNamePath);
-      return -ENOTDIR;
-    }
+                    return ret;
+                }
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-    syslog(LOG_MTEST, "===> %s@%d- Searching FS found '%s' which is:\n",
-              __FILE__, __LINE__, fullFileNamePath);
+                // Don't move to next directory, re-evaluate this new one, then move
+                // forward.
+                dirLevel--;
+                continue;
+            }
 
-    if (S_ISREG(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: File\n");
-    else if (S_ISDIR(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Directory\n");
-    else if (S_ISCHR(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Character driver\n");
-    else if (S_ISBLK(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Block driver\n");
-    else if (S_ISMQ(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Message queue\n");
-    else if (S_ISSEM(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Named semaphore\n");
-    else if (S_ISSHM(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Shared memory\n");
-    else if (S_ISSOCK(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Socket\n");
-    else if (S_ISMTD(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Named MTD driver\n");
-    else if (S_ISLNK(statBuf.st_mode))
-      syslog(LOG_MTEST, "type: Symbolic link\n");
-    else
-      syslog(LOG_MTEST, "type: Unknown\n");
+            // Some failure other than "doesn't exist yet" -- nothing to recover,
+            // report it and give up.
+            syslog(LOG_ERR, "%s@%d-Error from stat() call, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            free(fullFileNamePath);
+            return ret;
+        }
 
-    usleep(30 * 1000);
+        // stat() succeeded, the entry exists. Every element this loop walks
+        // must be a directory (the filename itself is handled separately, by
+        // the caller, once this function returns) -- if it isn't, that's an
+        // error.
+        if (!S_ISDIR(statBuf.st_mode))
+        {
+            // All entries must be a directory, if not, it's an error
+            char *hostMsg = malloc(HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH);
+            if (hostMsg == NULL)
+            {
+                syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+                free(fullFileNamePath);
+                return -ENOMEM;
+            }
+
+            snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Pathname '%s' is invalid, last element not a directory\n", fullFileNamePath);
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
+            free(hostMsg);
+            free(fullFileNamePath);
+            return -ENOTDIR;
+        }
+
+#if defined(CONFIG_DIR_MGMT_TESTS)
+        syslog(LOG_MTEST, "===> %s@%d- Searching FS found '%s' which is:\n", __FILE__, __LINE__, fullFileNamePath);
+
+        if (S_ISREG(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: File\n");
+        else if (S_ISDIR(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Directory\n");
+        else if (S_ISCHR(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Character driver\n");
+        else if (S_ISBLK(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Block driver\n");
+        else if (S_ISMQ(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Message queue\n");
+        else if (S_ISSEM(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Named semaphore\n");
+        else if (S_ISSHM(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Shared memory\n");
+        else if (S_ISSOCK(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Socket\n");
+        else if (S_ISMTD(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Named MTD driver\n");
+        else if (S_ISLNK(statBuf.st_mode))
+            syslog(LOG_MTEST, "type: Symbolic link\n");
+        else
+            syslog(LOG_MTEST, "type: Unknown\n");
+
+        usleep(30 * 1000);
 #endif
-  }
+    }
 
-  free(fullFileNamePath);
-  return OK;
+    free(fullFileNamePath);
+    return OK;
 }

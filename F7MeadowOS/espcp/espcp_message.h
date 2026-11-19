@@ -56,58 +56,58 @@
 /**
  *  @brief Size of an encoded message header (in bytes).
  */
-#define ESPCP_MESSAGE_HEADER_SIZE           27
+#define ESPCP_MESSAGE_HEADER_SIZE 27
 
 /**
  *  @brief Offset of the CRC in an encoded message header.
  */
-#define ESPCP_MESSAGE_CRC_OFFSET            1
+#define ESPCP_MESSAGE_CRC_OFFSET 1
 
 /**
  *  @brief Protocol version.
  */
-#define ESPCP_PROTOCOL_NUMBER               1
+#define ESPCP_PROTOCOL_NUMBER 1
 
 /**
  *  @brief Maximum number of bytes that the ESP32 can receive in a single SPI transaction.
- * 
+ *
  *  Note that there is a bug in the ESP32 silicon that has created this limit.
  */
-#define ESPCP_MAXIMUM_SPI_FRAME_SIZE        4092
+#define ESPCP_MAXIMUM_SPI_FRAME_SIZE 4092
 
 /**
  * @brief SPI overhead in bytes.
- * 
+ *
  *  The buffer should always be 4 bytes longer than needed.  During development it
  *  was found that the last four bytes of any transmission were being discarded.
  *  Empirical tests proved this for 24, 32 and 40 byte packets.
- * 
+ *
  *  The work around is to increase the packet size by 4 and have dummy data in the
  *  last four bytes and discard the bytes.
- * 
+ *
  * See support post: https://esp32.com/viewtopic.php?f=13&t=10117
  */
-#define ESPCP_SPI_MESSAGE_OVERHEAD          4
+#define ESPCP_SPI_MESSAGE_OVERHEAD 4
 
 /**
  *  @brief Maximum number of bytes in a SPI frame.
  */
-#define ESPCP_MAXIMUM_PACKET_SIZE           (ESPCP_MAXIMUM_SPI_FRAME_SIZE - ESPCP_MESSAGE_HEADER_SIZE - ESPCP_SPI_MESSAGE_OVERHEAD)
+#define ESPCP_MAXIMUM_PACKET_SIZE (ESPCP_MAXIMUM_SPI_FRAME_SIZE - ESPCP_MESSAGE_HEADER_SIZE - ESPCP_SPI_MESSAGE_OVERHEAD)
 
 /**
  *  @brief Maximum size of a payload.
  */
-#define ESPCP_MAXIMUM_PAYLOAD_SIZE          8192
+#define ESPCP_MAXIMUM_PAYLOAD_SIZE 8192
 
 /**
  *  @brief Longest string (excluding the NULL terminator) that can be extracted from a payload.
  */
-#define ESPCP_MAXIMUM_STRING_LENGTH         (ESPCP_MAXIMUM_PAYLOAD_SIZE - 4 - 1)
+#define ESPCP_MAXIMUM_STRING_LENGTH (ESPCP_MAXIMUM_PAYLOAD_SIZE - 4 - 1)
 
 /**
  *  @brief Message ID used to indicate an invalid (or unknown) message ID.
  */
-#define ESPCP_MESSAGE_INVALID_MESSAGE_ID    0xffffffff
+#define ESPCP_MESSAGE_INVALID_MESSAGE_ID 0xffffffff
 
 /****************************************************************************
  * Public Types
@@ -171,10 +171,10 @@ struct espcp_message_s
 
     /**
      * @brief Indicate that the system has sent the message to the ESP32.
-     * 
+     *
      *  For the majority of messages this semaphore will be NULL and
      *  therefore ignored.
-     * 
+     *
      *  This semaphore is needed for edge cases where the STM32 needs to
      *  know that the message has been sent to the ESP32.  One known case
      *  is the message to tell the ESP32 to enter deep sleep.  Without this

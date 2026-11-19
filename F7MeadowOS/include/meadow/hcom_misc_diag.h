@@ -1,6 +1,6 @@
 /****************************************************************************
  * /nuttx/include/meadow/hcom_misc_diag.h
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -38,11 +38,11 @@
 #include <nuttx/config.h>
 #include <stdint.h>
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
 // Callable from syscall
 int meadow_idle_monitor_get_value(void);
 void meadow_idle_mon_before_sleep(void);
 void meadow_idle_mon_after_sleep(void);
 #endif
 
-#endif      // #ifndef __INCLUDE_HCOM_MISC_DIAG__H
+#endif // #ifndef __INCLUDE_HCOM_MISC_DIAG__H

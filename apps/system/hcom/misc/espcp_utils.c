@@ -1,6 +1,6 @@
 /*************************************************************************
  * \apps\examples\hcom\misc\espcp_utils.c
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -49,10 +49,10 @@
  * Private Data
  ****************************************************************************/
 
- /**
-  * @brief Handle for the event queue.
-  */
-static mqd_t espcp_events_queue_handle = (mqd_t) - 1;
+/**
+ * @brief Handle for the event queue.
+ */
+static mqd_t espcp_events_queue_handle = (mqd_t) -1;
 
 /****************************************************************************
  * Private Functions
@@ -62,8 +62,8 @@ static mqd_t espcp_events_queue_handle = (mqd_t) - 1;
  * Name: espcp_encode_uint32
  *
  * Description:
- *   Encodes a 32-bit unsigned integer (uint32_t) into a 4-byte buffer. The 
- *   function breaks down the 32-bit value into its individual bytes and 
+ *   Encodes a 32-bit unsigned integer (uint32_t) into a 4-byte buffer. The
+ *   function breaks down the 32-bit value into its individual bytes and
  *   stores them in little-endian format in the provided buffer.
  *
  * Input Parameters:
@@ -83,9 +83,9 @@ void espcp_encode_uint32(uint32_t value, uint8_t *buffer)
  * Name: espcp_open_esp32_events_message_queue
  *
  * Description:
- *   Opens the ESP32 event message queue if it is not already open. The 
- *   function creates a message queue with predefined attributes, and if the 
- *   queue handler is valid, it is reused. The function logs an error if the 
+ *   Opens the ESP32 event message queue if it is not already open. The
+ *   function creates a message queue with predefined attributes, and if the
+ *   queue handler is valid, it is reused. The function logs an error if the
  *   queue fails to open.
  *
  * Input Parameters:
@@ -93,7 +93,7 @@ void espcp_encode_uint32(uint32_t value, uint8_t *buffer)
  *
  * Returned Value:
  *   Returns EXIT_SUCCESS on success or EXIT_FAILURE on failure.
- * 
+ *
  * Assumptions:
  *   Only called once at startup and before any thread attempts to read
  *   or write to the queue.
@@ -101,16 +101,16 @@ void espcp_encode_uint32(uint32_t value, uint8_t *buffer)
  ****************************************************************************/
 int espcp_open_esp32_events_message_queue()
 {
-    if (espcp_events_queue_handle == (mqd_t) - 1)
+    if (espcp_events_queue_handle == (mqd_t) -1)
     {
-        struct mq_attr queue_attributes = { 0 };
+        struct mq_attr queue_attributes = {0};
 
         queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
         queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE;
         queue_attributes.mq_flags = 0;
 
         espcp_events_queue_handle = mq_open(ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, 0666, &queue_attributes);
-        if (espcp_events_queue_handle == (mqd_t) - 1)
+        if (espcp_events_queue_handle == (mqd_t) -1)
         {
             syslog(LOG_ERR, "Failed to open queue for sending event messages\n");
             return EXIT_FAILURE;
@@ -124,12 +124,12 @@ int espcp_open_esp32_events_message_queue()
  * Name: espcp_encode_event_data
  *
  * Description:
- *   Encodes the ESP32 event data into a buffer. It serializes the event 
- *   interface, function, status code, and message ID into the provided buffer 
+ *   Encodes the ESP32 event data into a buffer. It serializes the event
+ *   interface, function, status code, and message ID into the provided buffer
  *   in a fixed format.
  *
  * Input Parameters:
- *   event_data - Pointer to the structure containing the event data to be 
+ *   event_data - Pointer to the structure containing the event data to be
  *                encoded.
  *   buffer     - Pointer to the buffer where the encoded data will be stored.
  *
@@ -153,8 +153,8 @@ void espcp_encode_event_data(espcp_event_data_t *event_data, uint8_t *buffer)
  * Name: espcp_queue_event_messages
  *
  * Description:
- *   Sends the provided message to the ESP32 event message queue. If the 
- *   message queue is not open, an error is logged. It attempts to send the 
+ *   Sends the provided message to the ESP32 event message queue. If the
+ *   message queue is not open, an error is logged. It attempts to send the
  *   message and logs errors if the operation fails.
  *
  * Input Parameters:
@@ -164,11 +164,11 @@ void espcp_encode_event_data(espcp_event_data_t *event_data, uint8_t *buffer)
  *   Returns 0 on success or -1 on failure.
  *
  ****************************************************************************/
-int espcp_queue_event_messages(uint8_t *message) 
+int espcp_queue_event_messages(uint8_t *message)
 {
     int result;
 
-    if (espcp_events_queue_handle == (mqd_t) - 1)
+    if (espcp_events_queue_handle == (mqd_t) -1)
     {
         syslog(LOG_ERR, "ESP32 events message queue is not opened\n");
         return -1;

@@ -43,7 +43,7 @@
 //
 //  Maximum length of a line in the log file.
 //
-#define MEADOW_FILE_LOG_LINE_LENGTH             256
+#define MEADOW_FILE_LOG_LINE_LENGTH 256
 
 /****************************************************************************
  * Local type definitions.
@@ -52,10 +52,7 @@
 /**
  * @brief Meadow file logging level.
  */
-typedef enum 
-{
-    mfl_info, mfl_debug, mfl_warning, mfl_error
-} meadow_file_logging_level_t;
+typedef enum { mfl_info, mfl_debug, mfl_warning, mfl_error } meadow_file_logging_level_t;
 
 /****************************************************************************
  * Private Data

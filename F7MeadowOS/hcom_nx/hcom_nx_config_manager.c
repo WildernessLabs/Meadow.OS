@@ -3164,9 +3164,7 @@ static bool hcom_nx_config_is_pin_reserved(uint32_t pin)
     bool reserved = false;
     meadow_configuration_t *config;
 
-    snprintf(name, sizeof(name), "%c%u",
-             (char) ('A' + ((pin & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT)),
-             (unsigned int) ((pin & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT));
+    snprintf(name, sizeof(name), "%c%u", (char) ('A' + ((pin & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT)), (unsigned int) ((pin & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT));
     length = strlen(name);
 
     hcom_nx_config_lock();

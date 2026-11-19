@@ -1,6 +1,6 @@
 /****************************************************************************
  * timing.h
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -50,15 +50,13 @@
 // volatile uint32_t *DWT_CYCCNT = (uint32_t *) 0xE0001004;
 // volatile uint32_t *DEMCR = (uint32_t *) 0xE000EDFC;
 // volatile uint32_t *LAR  = (uint32_t *) 0xE0001FB0;   // <-- added lock access register
-// 
+//
 
 // *DEMCR = *DEMCR | 0x01000000;     // enable trace
 // *NVIC_DEMCR = *NVIC_DEMCR | NVIC_DEMCR_TRCENA;
 
-
-// *LAR = 0xC5ACCE55;                // <-- added unlock access to DWT (ITM, etc.)registers 
+// *LAR = 0xC5ACCE55;                // <-- added unlock access to DWT (ITM, etc.)registers
 // *ETM_ETMLAR = 0xC5ACCE55;
-
 
 // *DWT_CYCCNT = 0;                  // clear DWT cycle counter
 

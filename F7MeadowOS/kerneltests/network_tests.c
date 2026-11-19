@@ -40,51 +40,50 @@
 
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#pragma message "(--) network_tests.c included"
+    #pragma message "(--) network_tests.c included"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <inttypes.h>
-#include <stdio.h>
-#include <poll.h>
-#include <nuttx/mm/mm.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
-#include <net/if.h>
-#include <ifaddrs.h>
-#include <sys/ioctl.h>
-#include <sys/time.h>
+    #include <stdint.h>
+    #include <stdbool.h>
+    #include <stdlib.h>
+    #include <inttypes.h>
+    #include <stdio.h>
+    #include <poll.h>
+    #include <nuttx/mm/mm.h>
+    #include <sys/socket.h>
+    #include <arpa/inet.h>
+    #include <net/if.h>
+    #include <ifaddrs.h>
+    #include <sys/ioctl.h>
+    #include <sys/time.h>
 
-#include <nuttx/net/usrsock.h>
+    #include <nuttx/net/usrsock.h>
 
-
-#include "../espcp/espcp_test_heap_tracing.h"
+    #include "../espcp/espcp_test_heap_tracing.h"
 
 /****************************************************************************
  * Compiler directives.
  ****************************************************************************/
 
- #pragma GCC diagnostic ignored "-Wunused-function"
+    #pragma GCC diagnostic ignored "-Wunused-function"
 
-/****************************************************************************
- * Local defines.
- ****************************************************************************/
+    /****************************************************************************
+     * Local defines.
+     ****************************************************************************/
 
-//
-//  Default logging level for this file.
-//
-#define LOGGING_LEVEL   1
+    //
+    //  Default logging level for this file.
+    //
+    #define LOGGING_LEVEL 1
 
-//
-//  Delay following the tests to allow any events to be processed.
-//
-#define DELAY           2000000
+    //
+    //  Delay following the tests to allow any events to be processed.
+    //
+    #define DELAY 2000000
 
-//
-//  Size of the buffer used to send / receive data to / from the server.
-//
-#define BUFFER_SIZE     4096
+    //
+    //  Size of the buffer used to send / receive data to / from the server.
+    //
+    #define BUFFER_SIZE 4096
 
 /**
  * @brief Time out for any poll requests.
@@ -95,10 +94,10 @@ const int POLL_TIMEOUT = 500;
  * Private variables.
  ****************************************************************************/
 
- /**
-  * @brief Buffer to hold the data received from the server.
-  */
- static uint8_t _read_buffer[BUFFER_SIZE];
+/**
+ * @brief Buffer to hold the data received from the server.
+ */
+static uint8_t _read_buffer[BUFFER_SIZE];
 
 /****************************************************************************
  * Private Functions
@@ -125,19 +124,19 @@ const int POLL_TIMEOUT = 500;
  ****************************************************************************/
 static int network_test_wait_for_poll_event(int sd, int events, int attempts)
 {
-    struct pollfd pollfds[] = { { sd, events, 0} };
+    struct pollfd pollfds[] = {{sd, events, 0}};
     uint32_t attempt = 0;
     while ((poll(pollfds, 1, 500) < 0) || ((pollfds[0].revents & events) == 0))
     {
         if (attempt > 10)
         {
-            return(-1);
+            return (-1);
         }
         usleep(10000);
         attempt++;
     }
 
-    return(pollfds[0].revents & events ? 0 : -1);
+    return (pollfds[0].revents & events ? 0 : -1);
 }
 
 /****************************************************************************
@@ -163,7 +162,7 @@ static int network_test_wait_for_poll_event(int sd, int events, int attempts)
  ****************************************************************************/
 char *network_test_number_with_commas(uint32_t number)
 {
-    uint32_t buffer_size = 14;              // 10 digits, plus 3 commas (max) + terminator.
+    uint32_t buffer_size = 14; // 10 digits, plus 3 commas (max) + terminator.
     char *buffer = malloc(buffer_size);
 
     if (buffer == NULL)
@@ -194,21 +193,21 @@ char *network_test_number_with_commas(uint32_t number)
  * Public Functions
  ****************************************************************************/
 
- /**
-  * @brief Convert a string representation of a port number to a uint16_t.
-  *
-  * @param port The string representation of the port number.
-  * @return uint16_t The converted port number, or 80 if the port string is invalid.
-  */
- uint16_t string_to_server_port(const char *port)
- {
+/**
+ * @brief Convert a string representation of a port number to a uint16_t.
+ *
+ * @param port The string representation of the port number.
+ * @return uint16_t The converted port number, or 80 if the port string is invalid.
+ */
+uint16_t string_to_server_port(const char *port)
+{
     if (port == NULL)
     {
         return 80;
     }
 
     int number = atoi(port);
-    return((number == 0) ? 80 : (uint16_t) number);
+    return ((number == 0) ? 80 : (uint16_t) number);
 }
 
 /****************************************************************************
@@ -237,7 +236,7 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     if (sd < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: socket - Failed to create socket.\n");
-        return(-1);
+        return (-1);
     }
 
     struct sockaddr_in server;
@@ -245,20 +244,20 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     server.sin_family = AF_INET;
     server.sin_port = port;
 
-	if (connect(sd, (struct sockaddr *) &server, sizeof(server)) < 0)
-	{
-		syslog(LOGGING_LEVEL, "    FAIL: connect - Failed to connect server.\n");
+    if (connect(sd, (struct sockaddr *) &server, sizeof(server)) < 0)
+    {
+        syslog(LOGGING_LEVEL, "    FAIL: connect - Failed to connect server.\n");
         close(sd);
-        return(-1);
-	}
+        return (-1);
+    }
 
     struct sockaddr addr;
     socklen_t addrlen = sizeof(addr);
     if (getpeername(sd, &addr, &addrlen) < 0)
     {
-		syslog(LOGGING_LEVEL, "    FAIL: getpeername - Failed.\n");
+        syslog(LOGGING_LEVEL, "    FAIL: getpeername - Failed.\n");
         close(sd);
-        return(-1);
+        return (-1);
     }
     else
     {
@@ -267,7 +266,7 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
         {
             syslog(LOGGING_LEVEL, "    FAIL: getpeername - Socket address details are incorrect.\n");
             close(sd);
-            return(-1);
+            return (-1);
         }
     }
 
@@ -275,21 +274,21 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     {
         syslog(LOGGING_LEVEL, "    FAIL: poll - Socket is not ready for output.\n");
         close(sd);
-        return(-1);
+        return (-1);
     }
 
-	if (send(sd, request, strlen(request), 0) < 0)
+    if (send(sd, request, strlen(request), 0) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: send - Failed to send GET request message.\n");
         close(sd);
-        return(-1);
+        return (-1);
     }
 
     if (network_test_wait_for_poll_event(sd, POLLIN, 10) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: poll - Socket is not ready for input.\n");
         close(sd);
-        return(-1);
+        return (-1);
     }
 
     int bytes_read = 0;
@@ -302,7 +301,7 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
         {
             syslog(LOGGING_LEVEL, "    FAIL: recvfrom - Failed to receive server reply.\n");
             close(sd);
-            return(-1);
+            return (-1);
         }
         total_bytes += bytes_read;
     }
@@ -311,10 +310,10 @@ int network_test_get_resource(in_addr_t address, in_port_t port, char *request)
     if (close(sd) < 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: close - Failed to close socket.\n");
-        return(-1);
+        return (-1);
     }
 
-    return(total_bytes);
+    return (total_bytes);
 }
 
 /****************************************************************************
@@ -368,7 +367,7 @@ int network_test_get_web_resource(uint32_t number_of_requests, char *webserver_i
         if (result < 0)
         {
             syslog(LOGGING_LEVEL, "    FAIL: network_test_get_resource - Failed to get resource.\n");
-            return(-1);
+            return (-1);
         }
         total_bytes += result;
     }
@@ -379,7 +378,7 @@ int network_test_get_web_resource(uint32_t number_of_requests, char *webserver_i
     if (seconds == 0)
     {
         syslog(LOGGING_LEVEL, "    FAIL: network_test_get_resource - Time taken is 0.\n");
-        return(-1);
+        return (-1);
     }
 
     char *formatted_number = network_test_number_with_commas(total_bytes);
@@ -393,7 +392,7 @@ int network_test_get_web_resource(uint32_t number_of_requests, char *webserver_i
         syslog(LOGGING_LEVEL, "    PASS: Downloaded %" PRIu32 " bytes in %.2f seconds, %.2f KBytes per second\n", total_bytes, seconds, (total_bytes / seconds) / 1024);
     }
 
-    return(0);
+    return (0);
 }
 
 /**
@@ -424,7 +423,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         if (sockfd < 0)
         {
             syslog(LOGGING_LEVEL, "    FAIL: socket - Failed to create socket.\n");
-            return(ERROR);
+            return (ERROR);
         }
 
         memset(&server_addr, 0, sizeof(server_addr));
@@ -434,21 +433,21 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         {
             close(sockfd);
             syslog(LOGGING_LEVEL, "    FAIL: inet_pton - Invalid address.\n");
-            return(ERROR);
+            return (ERROR);
         }
 
         if (connect(sockfd, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0)
         {
             close(sockfd);
             syslog(LOGGING_LEVEL, "    FAIL: connect - Failed to connect to server.\n");
-            return(ERROR);
+            return (ERROR);
         }
 
         if (send(sockfd, file_name, strlen(file_name), 0) < 0)
         {
             close(sockfd);
             syslog(LOGGING_LEVEL, "    FAIL: send - Failed to send request.\n");
-            return(ERROR);
+            return (ERROR);
         }
 
         uint32_t total_bytes = 0;
@@ -457,7 +456,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         {
             close(sockfd);
             syslog(LOGGING_LEVEL, "    FAIL: malloc - Failed to allocate memory.\n");
-            return(ERROR);
+            return (ERROR);
         }
 
         while ((bytes_received = recv(sockfd, buffer, BUFFER_SIZE - 1, 0)) > 0)
@@ -471,7 +470,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
         {
             syslog(LOGGING_LEVEL, "    FAIL: recv - Failed to receive data.\n");
             close(sockfd);
-            return(ERROR);
+            return (ERROR);
         }
 
         close(sockfd);
@@ -485,7 +484,7 @@ int network_test_performance(char *webserver_ip, uint16_t webserver_port, char *
     }
     usleep(DELAY);
 
-    return(OK);
+    return (OK);
 }
 
 /****************************************************************************
@@ -520,7 +519,7 @@ int network_test_misc_network_functions(void)
     if (getifaddrs(&ifa) == ERROR)
     {
         syslog(LOGGING_LEVEL, "    FAIL: getifaddrs (ioctl) - Failed to get interface names.\n");
-        return(-1);
+        return (-1);
     }
     else
     {
@@ -559,19 +558,19 @@ int network_test_misc_network_functions(void)
     if (errors == 1)
     {
         syslog(LOGGING_LEVEL, "    FAIL: ioctl\n");
-        return(-1);
+        return (-1);
     }
     else
     {
         syslog(LOGGING_LEVEL, "    PASS: ioctl\n");
     }
 
-    usleep(DELAY);          // Wait for the messages to be processed.
+    usleep(DELAY); // Wait for the messages to be processed.
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
 
-    return(0);
+    return (0);
 }
 
 #endif /* defined(CONFIG_ESP_TESTS) || defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */

@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/kerneltests/hcom_nx_qspi_flash_tests.c
- * 
+ *
  *   Copyright (C) 2019 - 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -70,36 +70,36 @@
 
 #if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+    /****************************************************************************
+     * Pre-processor Definitions
+     ****************************************************************************/
 
-/* Configuration ************************************************************/
+    /* Configuration ************************************************************/
 
-// Tried to align terminology with Nuttx. Page(256), Sector (4K)
-// and Block (64k)
+    // Tried to align terminology with Nuttx. Page(256), Sector (4K)
+    // and Block (64k)
 
-// How often to output syslog information?
-#define FLASH_TEST_DISPLAY_INTERVAL (16 * 1024)
+    // How often to output syslog information?
+    #define FLASH_TEST_DISPLAY_INTERVAL (16 * 1024)
 
-// Sub-command sentinels for the developerValue passed to
-// meadow_kt_qspi_flash_write/init/read_tests(). Real page/sector numbers are
-// always small (0 to a few hundred thousand at most for this flash chip), so
-// the 0xf0000000 range is safely reserved for these -- any other value is
-// treated as a literal page/sector number (see the bounds checks in each
-// function's default: case). Meadow.CLI's 'developer -v' option is a plain
-// uint (0 to 4,294,967,295), so these must not be negative. Numbered 1-n to
-// match the original (Legacy-era) -1/-2/-3/-4 sub-command convention.
-#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY  0xf0000001ul
-#define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY    0xf0000002ul
-#define QSPI_FLASH_TEST_WRITE_COMPREHENSIVE            0xf0000003ul
-#define QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE           0xf0000004ul
+    // Sub-command sentinels for the developerValue passed to
+    // meadow_kt_qspi_flash_write/init/read_tests(). Real page/sector numbers are
+    // always small (0 to a few hundred thousand at most for this flash chip), so
+    // the 0xf0000000 range is safely reserved for these -- any other value is
+    // treated as a literal page/sector number (see the bounds checks in each
+    // function's default: case). Meadow.CLI's 'developer -v' option is a plain
+    // uint (0 to 4,294,967,295), so these must not be negative. Numbered 1-n to
+    // match the original (Legacy-era) -1/-2/-3/-4 sub-command convention.
+    #define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY 0xf0000001ul
+    #define QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY 0xf0000002ul
+    #define QSPI_FLASH_TEST_WRITE_COMPREHENSIVE 0xf0000003ul
+    #define QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE 0xf0000004ul
 
-#define QSPI_FLASH_TEST_INIT_BULK_ERASE                0xf0000001ul
-#define QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS        0xf0000002ul
+    #define QSPI_FLASH_TEST_INIT_BULK_ERASE 0xf0000001ul
+    #define QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS 0xf0000002ul
 
-#define QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES        0xf0000001ul
-#define QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES      0xf0000002ul
+    #define QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES 0xf0000001ul
+    #define QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES 0xf0000002ul
 
 /****************************************************************************
  * Private Data
@@ -113,7 +113,7 @@ static uint32_t _flash_test_total_write_pages;
 static uint32_t _flash_test_pages_per_4k_sector;
 static bool _mtdGeoShown;
 
-//static   void * memTest;
+// static   void * memTest;
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -126,8 +126,8 @@ static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, boo
  ****************************************************************************/
 int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd)
 {
-  _test_mtd = mtd;
-  return OK;
+    _test_mtd = mtd;
+    return OK;
 }
 
 //===================================================================
@@ -136,401 +136,373 @@ int hcom_nx_exec_test_qspi_flash_setup(FAR struct mtd_dev_s *mtd)
 // Nuttx's clock resolution.
 static uint64_t hcom_nx_utils_get_current_time64(void)
 {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * NSEC_PER_SEC + (uint64_t) ts.tv_nsec;
 }
 
 //===================================================================
-static void hcom_exec_flash_convert_ms_to_time(uint32_t elapsedTimeMs, char* timeStr, int bufLen)
+static void hcom_exec_flash_convert_ms_to_time(uint32_t elapsedTimeMs, char *timeStr, int bufLen)
 {
-  uint32_t hours = 0;
-  if(elapsedTimeMs >= 3600000)
-  {
-    hours = elapsedTimeMs/3600000;
-    elapsedTimeMs = elapsedTimeMs - (3600000 * hours);
-  }
+    uint32_t hours = 0;
+    if (elapsedTimeMs >= 3600000)
+    {
+        hours = elapsedTimeMs / 3600000;
+        elapsedTimeMs = elapsedTimeMs - (3600000 * hours);
+    }
 
-  uint32_t minutes = elapsedTimeMs/60000;
-  elapsedTimeMs = elapsedTimeMs - (60000 * minutes);
-  uint32_t seconds = elapsedTimeMs/1000;
-  elapsedTimeMs = elapsedTimeMs - (1000 * seconds);
+    uint32_t minutes = elapsedTimeMs / 60000;
+    elapsedTimeMs = elapsedTimeMs - (60000 * minutes);
+    uint32_t seconds = elapsedTimeMs / 1000;
+    elapsedTimeMs = elapsedTimeMs - (1000 * seconds);
 
-  if(hours > 0)
-    snprintf_chk(timeStr, bufLen, "%02lu:%02lu:%02lu.%03lu", hours, minutes, seconds, elapsedTimeMs);
-  else
-    snprintf_chk(timeStr, bufLen, "%02lu:%02lu.%03lu", minutes, seconds, elapsedTimeMs);
+    if (hours > 0)
+        snprintf_chk(timeStr, bufLen, "%02lu:%02lu:%02lu.%03lu", hours, minutes, seconds, elapsedTimeMs);
+    else
+        snprintf_chk(timeStr, bufLen, "%02lu:%02lu.%03lu", minutes, seconds, elapsedTimeMs);
 }
 
 //=====================================================================
 // Use this if the actual mtd is not known
 static int hcom_exec_flash_initialize_mtd_for_testing(void)
 {
-  int ret;
-  
-  if(_test_mtd == NULL)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR MTD offset is NULL\n",
-      __FILE__, __LINE__);
-    usleep(50 * 1000);
-    return -1;
-  }
+    int ret;
 
-  ret = _test_mtd->ioctl(_test_mtd, MTDIOC_GEOMETRY, (unsigned long)((uintptr_t)&_test_geo));
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return ret;
-  }
+    if (_test_mtd == NULL)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR MTD offset is NULL\n", __FILE__, __LINE__);
+        usleep(50 * 1000);
+        return -1;
+    }
 
-  _flash_test_write_page_size = _test_geo.blocksize;
-  _flash_test_total_mtd_bytes = _test_geo.neraseblocks * _test_geo.erasesize;
-  _flash_test_total_write_pages = _flash_test_total_mtd_bytes / _test_geo.blocksize;
-  _flash_test_pages_per_4k_sector = _test_geo.erasesize / _test_geo.blocksize;
+    ret = _test_mtd->ioctl(_test_mtd, MTDIOC_GEOMETRY, (unsigned long) ((uintptr_t) &_test_geo));
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        usleep(50 * 1000);
+        return ret;
+    }
 
-  if(!_mtdGeoShown)
-  {
-    syslog(LOG_MTEST, "MTD Geo-Numb Erase Sectors:%lu, Erase Size:%lu Page Size:%lu, Total Pages:%lu, Pages/Sector %lu\n",
-            _test_geo.neraseblocks, _test_geo.erasesize, _test_geo.blocksize,
-            _flash_test_total_write_pages, _flash_test_pages_per_4k_sector);
-    _mtdGeoShown = true;
-  }
-  return OK;
+    _flash_test_write_page_size = _test_geo.blocksize;
+    _flash_test_total_mtd_bytes = _test_geo.neraseblocks * _test_geo.erasesize;
+    _flash_test_total_write_pages = _flash_test_total_mtd_bytes / _test_geo.blocksize;
+    _flash_test_pages_per_4k_sector = _test_geo.erasesize / _test_geo.blocksize;
+
+    if (!_mtdGeoShown)
+    {
+        syslog(LOG_MTEST, "MTD Geo-Numb Erase Sectors:%lu, Erase Size:%lu Page Size:%lu, Total Pages:%lu, Pages/Sector %lu\n", _test_geo.neraseblocks, _test_geo.erasesize, _test_geo.blocksize, _flash_test_total_write_pages, _flash_test_pages_per_4k_sector);
+        _mtdGeoShown = true;
+    }
+    return OK;
 }
 
 //=====================================================================
 // Populate the buffer with a complex pattern
 static void hcom_exec_flash_populate_buffer(uint32_t pageNumber, uint8_t *pageBuffer)
 {
-  off_t off;
-  uint8_t 
-  tempBuffer[3];
+    off_t off;
+    uint8_t tempBuffer[3];
 
-  // Pattern - Each 256 byte page will be divided into 64, 32-bit words. Each 32-bit
-  // word will contain the page number 0 - 131072 (0x20000) (bits 0-17), the page offset
-  // (bits 18-23) and the crc8 checksum of bytes 0-2 (bits 24-31)
+    // Pattern - Each 256 byte page will be divided into 64, 32-bit words. Each 32-bit
+    // word will contain the page number 0 - 131072 (0x20000) (bits 0-17), the page offset
+    // (bits 18-23) and the crc8 checksum of bytes 0-2 (bits 24-31)
 
-  tempBuffer[0] = pageNumber & 0x000000ff;
-  tempBuffer[1] = (pageNumber & 0x0000ff00) >> 8;
-  tempBuffer[2] = (pageNumber & 0x00030000) >> 16;
+    tempBuffer[0] = pageNumber & 0x000000ff;
+    tempBuffer[1] = (pageNumber & 0x0000ff00) >> 8;
+    tempBuffer[2] = (pageNumber & 0x00030000) >> 16;
 
-  // syslog(LOG_MTEST, "pageNumber = %d buff[0] 0x%02x, buff[1] 0x%02x, buff[2] 0x%02x\n",
-  //     pageNumber, tempBuffer[0], tempBuffer[1], tempBuffer[2]);
+    // syslog(LOG_MTEST, "pageNumber = %d buff[0] 0x%02x, buff[1] 0x%02x, buff[2] 0x%02x\n",
+    //     pageNumber, tempBuffer[0], tempBuffer[1], tempBuffer[2]);
 
-  for(off = 0; off < _flash_test_write_page_size; off += 4)
-  {
-    pageBuffer[off]     = tempBuffer[0];
-    pageBuffer[off + 1] = tempBuffer[1];
-    pageBuffer[off + 2] = tempBuffer[2];
-    pageBuffer[off + 2] |= off;  // use offset / 4 (0 - 64)
-    pageBuffer[off + 3] = crc8(pageBuffer + off, 3);
+    for (off = 0; off < _flash_test_write_page_size; off += 4)
+    {
+        pageBuffer[off] = tempBuffer[0];
+        pageBuffer[off + 1] = tempBuffer[1];
+        pageBuffer[off + 2] = tempBuffer[2];
+        pageBuffer[off + 2] |= off; // use offset / 4 (0 - 64)
+        pageBuffer[off + 3] = crc8(pageBuffer + off, 3);
 
-    // syslog(LOG_MTEST, "  offset = %04d (0x%02x) buff[2] 0x%02x, buff[3] 0x%02x\n",
-    // off, ((off >> 2) & 0x3f) << 2, pageBuffer[off+2], pageBuffer[off+3]);
-  }
+        // syslog(LOG_MTEST, "  offset = %04d (0x%02x) buff[2] 0x%02x, buff[3] 0x%02x\n",
+        // off, ((off >> 2) & 0x3f) << 2, pageBuffer[off+2], pageBuffer[off+3]);
+    }
 }
-
 
 //=====================================================================
 // Takes a populated page buffer and verifies that its contents match
 // what should be in it.
 static bool hcom_exec_flash_verify_buffered_data(uint32_t pageNumber, uint8_t *pageBuffer)
 {
-  uint8_t testBuffer[_flash_test_write_page_size];
+    uint8_t testBuffer[_flash_test_write_page_size];
 
-  hcom_exec_flash_populate_buffer(pageNumber, testBuffer);
+    hcom_exec_flash_populate_buffer(pageNumber, testBuffer);
 
-  // syslog(LOG_MTEST, "\n--------- data read ----------\n");
-  // hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
-  // syslog(LOG_MTEST, "\n--------- data calculated ----------\n");
-  // hcom_nx_diag_print_buffer(testBuffer, _flash_test_write_page_size, 1);
+    // syslog(LOG_MTEST, "\n--------- data read ----------\n");
+    // hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+    // syslog(LOG_MTEST, "\n--------- data calculated ----------\n");
+    // hcom_nx_diag_print_buffer(testBuffer, _flash_test_write_page_size, 1);
 
-  if(memcmp(pageBuffer, testBuffer, _flash_test_write_page_size) == 0)
-    return true;
+    if (memcmp(pageBuffer, testBuffer, _flash_test_write_page_size) == 0)
+        return true;
 
-  return false;
+    return false;
 }
 
 //=====================================================================
 // Populate the buffer with the user provided information
 static void hcom_exec_flash_populate_buffer_user_pat(uint8_t userPattern, uint8_t *pageBuffer)
 {
-  off_t off;
-  for(off = 0; off < _flash_test_write_page_size; off++)
-  {
-    pageBuffer[off] = userPattern;
-  }
+    off_t off;
+    for (off = 0; off < _flash_test_write_page_size; off++)
+    {
+        pageBuffer[off] = userPattern;
+    }
 }
 
 //=====================================================================
-// 
-static bool hcom_exec_flash_verify_buffered_data_2(uint8_t userPattern,
-          uint32_t pageNumber, uint8_t *pageBuffer)
+//
+static bool hcom_exec_flash_verify_buffered_data_2(uint8_t userPattern, uint32_t pageNumber, uint8_t *pageBuffer)
 {
-  uint8_t testBuffer[_flash_test_write_page_size];
+    uint8_t testBuffer[_flash_test_write_page_size];
 
-  hcom_exec_flash_populate_buffer_user_pat(userPattern, testBuffer);
+    hcom_exec_flash_populate_buffer_user_pat(userPattern, testBuffer);
 
-  // syslog(LOG_MTEST, "\n--------- data read ----------\n");
-  // hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
-  // syslog(LOG_MTEST, "\n--------- data calculated ----------\n");
-  // hcom_nx_diag_print_buffer(testBuffer, _flash_test_write_page_size, 1);
+    // syslog(LOG_MTEST, "\n--------- data read ----------\n");
+    // hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+    // syslog(LOG_MTEST, "\n--------- data calculated ----------\n");
+    // hcom_nx_diag_print_buffer(testBuffer, _flash_test_write_page_size, 1);
 
-  if(memcmp(pageBuffer, testBuffer, _flash_test_write_page_size) == 0)
-    return true;
+    if (memcmp(pageBuffer, testBuffer, _flash_test_write_page_size) == 0)
+        return true;
 
-  return false;
+    return false;
 }
 
 //===========================================================
 static int hcom_exec_flash_fs_flash_test_erase_used_4k_sectors(void)
 {
-  return hcom_exec_flash_test_find_display_used_pages(true, false);
+    return hcom_exec_flash_test_find_display_used_pages(true, false);
 }
 
 //===========================================================
 static int hcom_exec_flash_test_find_display_erased_pages(void)
 {
-  return hcom_exec_flash_test_find_display_used_pages(false, true);
+    return hcom_exec_flash_test_find_display_used_pages(false, true);
 }
 
 //===========================================================
 // This function can display or erase the sectors used
 static int hcom_exec_flash_test_find_display_used_pages(bool eraseUsedPages, bool displayErasedPages)
 {
-  off_t pageOff;
-  int nread;
-  int ret;
-  int numbUsed = 0;
-  bool patternFailed;
-  bool eraseFailed;
+    off_t pageOff;
+    int nread;
+    int ret;
+    int numbUsed = 0;
+    bool patternFailed;
+    bool eraseFailed;
 
-  uint8_t pageBuffer[_flash_test_write_page_size];
-  uint8_t eraseBuffer[_flash_test_write_page_size];
-  memset(eraseBuffer, 0xff, _flash_test_write_page_size);
+    uint8_t pageBuffer[_flash_test_write_page_size];
+    uint8_t eraseBuffer[_flash_test_write_page_size];
+    memset(eraseBuffer, 0xff, _flash_test_write_page_size);
 
-  if(eraseUsedPages && displayErasedPages)
-  {
-    syslog(LOG_MTEST, "Unsupported request\n");
-    usleep(50 * 1000);
-    return -1;
-  }
-
-  else if(eraseUsedPages)
-    syslog(LOG_MTEST, "Checking %lu pages to erase those used\n",
-      _flash_test_total_write_pages);
-  else if(displayErasedPages)
-    syslog(LOG_MTEST, "Checking %lu pages to display those erased\n",
-      _flash_test_total_write_pages);
-  else
-    syslog(LOG_MTEST, "Checking %lu pages to display those not erased\n",
-      _flash_test_total_write_pages);
-
-  // Now read and test that the entire qspi flash is correct
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    patternFailed = false;
-    eraseFailed = false;
-
-    nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
-    if(nread != 1)
+    if (eraseUsedPages && displayErasedPages)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        __FILE__, __LINE__, __func__, nread);
-      usleep(50 * 1000);
-      return nread;
-    }
-
-    // We are only interested in pages that do not have the
-    // normal test pattern and are not erased.
-    if(!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
-      patternFailed = true;
-
-    if(memcmp(eraseBuffer, pageBuffer, _flash_test_write_page_size) != 0)
-      eraseFailed = true;
-
-    // Erase sector if it's not erased
-    if(eraseUsedPages && (eraseFailed || patternFailed))
-    {
-      // Note this erases multiple pages
-      uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
-      syslog(LOG_MTEST, "Page offset %ld (0x%08lx) used. Erasing associated 4k sector %lu (0x%08lx)\n",
-          pageOff, pageOff, sectorOff, sectorOff);
-      ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(sectorOff);
-      if(ret < 0)
-      {
         syslog(LOG_MTEST, "Unsupported request\n");
         usleep(50 * 1000);
-        return ret;
-      }
-      
-      numbUsed++;
+        return -1;
     }
-    else if(displayErasedPages && patternFailed && !eraseFailed)
-    {
-      // Assumes pattern written to entire flash device except where erased.
-      // Used to verify erase functionality.
-      // Display erased page
-      uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
-      syslog(LOG_MTEST, "Page offset %ld (0x%08lx) erased. Associated 4k erase sector %lu (0x%08lx)\n",
-          pageOff, pageOff, sectorOff, sectorOff);
-      numbUsed++;
-    }
-    else if(patternFailed && eraseFailed)
-    {
-      // Just display if not pattern nor erased
-      syslog(LOG_MTEST, "\n--------- data read from page# %ld----------\n", pageOff);
-#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
-      hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
-#else
-      syslog(LOG_MTEST, "Print buffer not included in build\n");
-#endif
-      numbUsed++;
-    }
-  }
 
-  if(eraseUsedPages)
-    syslog(LOG_MTEST, "Erased %d used pages\n", numbUsed);
-  else if(displayErasedPages)
-    syslog(LOG_MTEST, "Found %d erased pages\n", numbUsed);
-  else
-    syslog(LOG_MTEST, "Found %d pages not erased\n", numbUsed);
-  
-  return OK;
+    else if (eraseUsedPages)
+        syslog(LOG_MTEST, "Checking %lu pages to erase those used\n", _flash_test_total_write_pages);
+    else if (displayErasedPages)
+        syslog(LOG_MTEST, "Checking %lu pages to display those erased\n", _flash_test_total_write_pages);
+    else
+        syslog(LOG_MTEST, "Checking %lu pages to display those not erased\n", _flash_test_total_write_pages);
+
+    // Now read and test that the entire qspi flash is correct
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
+    {
+        patternFailed = false;
+        eraseFailed = false;
+
+        nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
+        if (nread != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+            usleep(50 * 1000);
+            return nread;
+        }
+
+        // We are only interested in pages that do not have the
+        // normal test pattern and are not erased.
+        if (!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
+            patternFailed = true;
+
+        if (memcmp(eraseBuffer, pageBuffer, _flash_test_write_page_size) != 0)
+            eraseFailed = true;
+
+        // Erase sector if it's not erased
+        if (eraseUsedPages && (eraseFailed || patternFailed))
+        {
+            // Note this erases multiple pages
+            uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
+            syslog(LOG_MTEST, "Page offset %ld (0x%08lx) used. Erasing associated 4k sector %lu (0x%08lx)\n", pageOff, pageOff, sectorOff, sectorOff);
+            ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(sectorOff);
+            if (ret < 0)
+            {
+                syslog(LOG_MTEST, "Unsupported request\n");
+                usleep(50 * 1000);
+                return ret;
+            }
+
+            numbUsed++;
+        }
+        else if (displayErasedPages && patternFailed && !eraseFailed)
+        {
+            // Assumes pattern written to entire flash device except where erased.
+            // Used to verify erase functionality.
+            // Display erased page
+            uint32_t sectorOff = pageOff / _flash_test_pages_per_4k_sector;
+            syslog(LOG_MTEST, "Page offset %ld (0x%08lx) erased. Associated 4k erase sector %lu (0x%08lx)\n", pageOff, pageOff, sectorOff, sectorOff);
+            numbUsed++;
+        }
+        else if (patternFailed && eraseFailed)
+        {
+            // Just display if not pattern nor erased
+            syslog(LOG_MTEST, "\n--------- data read from page# %ld----------\n", pageOff);
+    #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
+            hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+    #else
+            syslog(LOG_MTEST, "Print buffer not included in build\n");
+    #endif
+            numbUsed++;
+        }
+    }
+
+    if (eraseUsedPages)
+        syslog(LOG_MTEST, "Erased %d used pages\n", numbUsed);
+    else if (displayErasedPages)
+        syslog(LOG_MTEST, "Found %d erased pages\n", numbUsed);
+    else
+        syslog(LOG_MTEST, "Found %d pages not erased\n", numbUsed);
+
+    return OK;
 }
 
 //=====================================================================
 // Returns 0 for 100% success, 1-n = number failed, -value = error code
 static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
 {
-  uint8_t pageBuffer[_flash_test_write_page_size];
-  off_t pageOff;
-  int nread;
-  int nfailed = 0;
-  
-  syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n",
-    _flash_test_total_write_pages);
-  uint64_t testTimeEraStart = hcom_nx_utils_get_current_time64();
+    uint8_t pageBuffer[_flash_test_write_page_size];
+    off_t pageOff;
+    int nread;
+    int nfailed = 0;
 
-#if 1 // Disable to allow retesting after power cycle etc.
-  int nwrite;
-  syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash (2-3 minutes)\n",
-    _test_mtd);
-  int ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
+    syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n", _flash_test_total_write_pages);
+    uint64_t testTimeEraStart = hcom_nx_utils_get_current_time64();
 
-  uint64_t testTimeEraEnd = hcom_nx_utils_get_current_time64();
-  syslog(LOG_MTEST, "Bulk erase of %lu completed.\n",
-    _flash_test_total_write_pages);
-  if(verifyPages)
-    syslog(LOG_MTEST, "Write all %lu pages then verify them.\n",
-      _flash_test_total_write_pages);
-  else
-    syslog(LOG_MTEST, "Write all %lu pages then exit.\n",
-      _flash_test_total_write_pages);
-
-  usleep(10);
-
-  // Verify 100% erased
-  syslog(LOG_MTEST, "Verifying %lu pages erased.\n",
-    _flash_test_total_write_pages);
-  ret = hcom_exec_flash_test_find_display_used_pages(false, false);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n",
-              __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
-  usleep(10);
-  uint64_t testTimeVerEnd = hcom_nx_utils_get_current_time64();
-
-  // Fill the entire QSPI flash with data
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    hcom_exec_flash_populate_buffer(pageOff, pageBuffer);
-
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+    #if 1 // Disable to allow retesting after power cycle etc.
+    int nwrite;
+    syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash (2-3 minutes)\n", _test_mtd);
+    int ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
 
-    nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
-    if(nwrite != 1)
+    uint64_t testTimeEraEnd = hcom_nx_utils_get_current_time64();
+    syslog(LOG_MTEST, "Bulk erase of %lu completed.\n", _flash_test_total_write_pages);
+    if (verifyPages)
+        syslog(LOG_MTEST, "Write all %lu pages then verify them.\n", _flash_test_total_write_pages);
+    else
+        syslog(LOG_MTEST, "Write all %lu pages then exit.\n", _flash_test_total_write_pages);
+
+    usleep(10);
+
+    // Verify 100% erased
+    syslog(LOG_MTEST, "Verifying %lu pages erased.\n", _flash_test_total_write_pages);
+    ret = hcom_exec_flash_test_find_display_used_pages(false, false);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        __FILE__, __LINE__, __func__, nwrite);
-      return ret;
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
-  }
-#endif
+    usleep(10);
+    uint64_t testTimeVerEnd = hcom_nx_utils_get_current_time64();
 
-  if(!verifyPages)
-  {
-    syslog(LOG_MTEST, "Pattern written to %lu pages\n",
-      _flash_test_total_write_pages);
-    return OK;
-  }
-
-  syslog(LOG_MTEST, "Data written. Verifying %lu pages\n",
-    _flash_test_total_write_pages);
-  
-  // Now read and test that the entire qspi flash is correct
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+    // Fill the entire QSPI flash with data
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
-    }
+        hcom_exec_flash_populate_buffer(pageOff, pageBuffer);
 
-    nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
-    if(nread != 1)
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
+
+        nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
+        if (nwrite != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n", __FILE__, __LINE__, __func__, nwrite);
+            return ret;
+        }
+    }
+    #endif
+
+    if (!verifyPages)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        __FILE__, __LINE__, __func__, nread);
-      return ret;
+        syslog(LOG_MTEST, "Pattern written to %lu pages\n", _flash_test_total_write_pages);
+        return OK;
     }
 
-    if(!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
+    syslog(LOG_MTEST, "Data written. Verifying %lu pages\n", _flash_test_total_write_pages);
+
+    // Now read and test that the entire qspi flash is correct
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      if(nfailed == 0)
-      {
-        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
-      }
-      else
-      {
-        syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
-      }
-      nfailed++;
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
+
+        nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
+        if (nread != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+            return ret;
+        }
+
+        if (!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
+        {
+            if (nfailed == 0)
+            {
+                syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
+            }
+            else
+            {
+                syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
+            }
+            nfailed++;
+        }
     }
-  }
-  uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
+    uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
 
-  syslog(LOG_MTEST, "Write / read test completed with %d errors\n", nfailed);
-  
-  char timeBufEra[16];
-  char timeVerTest[16];
-  char timeBufTest[16];
-  char timeTotTest[16];
+    syslog(LOG_MTEST, "Write / read test completed with %d errors\n", nfailed);
 
-  hcom_exec_flash_convert_ms_to_time((testTimeEraEnd - testTimeEraStart)/1000000, timeBufEra, 16);
-  hcom_exec_flash_convert_ms_to_time((testTimeVerEnd - testTimeEraEnd)/1000000, timeVerTest, 16);
-  hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeVerEnd)/1000000, timeBufTest, 16);
-  hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeEraStart)/1000000, timeTotTest, 16);
-  syslog(LOG_MTEST, "Bulk erase took:%s, verify erase: %s and fill & verify took:%s total:%s\n",
-            timeBufEra, timeVerTest, timeBufTest, timeTotTest);
+    char timeBufEra[16];
+    char timeVerTest[16];
+    char timeBufTest[16];
+    char timeTotTest[16];
 
-  return nfailed == 0 ? OK : nfailed;
+    hcom_exec_flash_convert_ms_to_time((testTimeEraEnd - testTimeEraStart) / 1000000, timeBufEra, 16);
+    hcom_exec_flash_convert_ms_to_time((testTimeVerEnd - testTimeEraEnd) / 1000000, timeVerTest, 16);
+    hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeVerEnd) / 1000000, timeBufTest, 16);
+    hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeEraStart) / 1000000, timeTotTest, 16);
+    syslog(LOG_MTEST, "Bulk erase took:%s, verify erase: %s and fill & verify took:%s total:%s\n", timeBufEra, timeVerTest, timeBufTest, timeTotTest);
+
+    return nfailed == 0 ? OK : nfailed;
 }
 
 //=====================================================================
@@ -539,397 +511,355 @@ static int hcom_exec_flash_test_qspi_data_rw(bool verifyPages)
 // to every location & verifies.
 static int hcom_exec_flash_test_qspi_data_rw_2(void)
 {
-  uint8_t pageBuffer[_flash_test_write_page_size];
-  off_t pageOff;
-  int nread;
-  int nfailed = 0;
+    uint8_t pageBuffer[_flash_test_write_page_size];
+    off_t pageOff;
+    int nread;
+    int nfailed = 0;
 
-  syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n",
-    _flash_test_total_write_pages);
-  uint64_t testTimeTestStart = hcom_nx_utils_get_current_time64();
+    syslog(LOG_MTEST, "QSPI Flash data testing %lu pages has begun.\n", _flash_test_total_write_pages);
+    uint64_t testTimeTestStart = hcom_nx_utils_get_current_time64();
 
-  int nwrite;
-  syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash (2-3 minutes)\n",
-    _test_mtd);
-  int ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
-
-  syslog(LOG_MTEST, "Bulk erase #1 of %lu completed.\n",
-    _flash_test_total_write_pages);
-  syslog(LOG_MTEST, "Write all %lu pages then verify them.\n",
-    _flash_test_total_write_pages);
-  usleep(10);
-
-  // Verify 100% erased
-  syslog(LOG_MTEST, "Verifying %lu pages erased.\n",
-    _flash_test_total_write_pages);
-  ret = hcom_exec_flash_test_find_display_used_pages(false, false);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n",
-              __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
-  usleep(10);
-
-  // Fill the entire QSPI flash with data
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    hcom_exec_flash_populate_buffer_user_pat(0x55, pageBuffer);
-
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+    int nwrite;
+    syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash (2-3 minutes)\n", _test_mtd);
+    int ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
 
-    nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
-    if(nwrite != 1)
+    syslog(LOG_MTEST, "Bulk erase #1 of %lu completed.\n", _flash_test_total_write_pages);
+    syslog(LOG_MTEST, "Write all %lu pages then verify them.\n", _flash_test_total_write_pages);
+    usleep(10);
+
+    // Verify 100% erased
+    syslog(LOG_MTEST, "Verifying %lu pages erased.\n", _flash_test_total_write_pages);
+    ret = hcom_exec_flash_test_find_display_used_pages(false, false);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        __FILE__, __LINE__, __func__, nwrite);
-      return ret;
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
-  }
+    usleep(10);
 
-  syslog(LOG_MTEST, "Data written. Verifying %lu pages\n",
-    _flash_test_total_write_pages);
-
-  // Now read and test that the entire qspi flash is correct
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+    // Fill the entire QSPI flash with data
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
-    }
+        hcom_exec_flash_populate_buffer_user_pat(0x55, pageBuffer);
 
-    nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
-    if(nread != 1)
-    {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        __FILE__, __LINE__, __func__, nread);
-      return ret;
-    }
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
 
-    if(!hcom_exec_flash_verify_buffered_data_2(0x55, pageOff, pageBuffer))
-    {
-      if(nfailed == 0)
-      {
-        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n",
-          pageOff);
-      }
-      else
-      {
-        syslog(LOG_MTEST, "Page %ld also failed to compare\n",
-          pageOff);
-      }
-      nfailed++;
-    }
-  }
-
-  // Now repeat the process using a different pattern
-
-  syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash again (2-3 minutes)\n",
-    _test_mtd);
-  ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
-
-  syslog(LOG_MTEST, "Bulk erase #2 of %lu completed.\n",
-    _flash_test_total_write_pages);
-  syslog(LOG_MTEST, "Write all %lu pages then verify them.\n",
-    _flash_test_total_write_pages);
-  usleep(10);
-
-  // Verify 100% erased
-  syslog(LOG_MTEST, "Verifying %lu pages erased again.\n",
-    _flash_test_total_write_pages);
-  ret = hcom_exec_flash_test_find_display_used_pages(false, false);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages, ret:%d\n",
-              __FILE__, __LINE__, __func__, ret);
-    return ret;
-  }
-  usleep(10);
-
-  // Fill the entire QSPI flash with data
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    hcom_exec_flash_populate_buffer_user_pat(0xaa, pageBuffer);
-
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
-    {
-      syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
+        nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
+        if (nwrite != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n", __FILE__, __LINE__, __func__, nwrite);
+            return ret;
+        }
     }
 
-    nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
-    if(nwrite != 1)
+    syslog(LOG_MTEST, "Data written. Verifying %lu pages\n", _flash_test_total_write_pages);
+
+    // Now read and test that the entire qspi flash is correct
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        __FILE__, __LINE__, __func__, nwrite);
-      return ret;
-    }
-  }
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
 
-  syslog(LOG_MTEST, "Data written. Verifying %lu pages again\n",
-    _flash_test_total_write_pages);
-  
-  // Now read and test that the entire qspi flash is correct
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    if(pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
+        if (nread != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+            return ret;
+        }
+
+        if (!hcom_exec_flash_verify_buffered_data_2(0x55, pageOff, pageBuffer))
+        {
+            if (nfailed == 0)
+            {
+                syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
+            }
+            else
+            {
+                syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
+            }
+            nfailed++;
+        }
+    }
+
+    // Now repeat the process using a different pattern
+
+    syslog(LOG_MTEST, "MTD initialized to %p. Bulk erasing QSPI flash again (2-3 minutes)\n", _test_mtd);
+    ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n",
-        pageOff, _flash_test_total_write_pages);
-      usleep(10);
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
 
-    nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
-    if(nread != 1)
+    syslog(LOG_MTEST, "Bulk erase #2 of %lu completed.\n", _flash_test_total_write_pages);
+    syslog(LOG_MTEST, "Write all %lu pages then verify them.\n", _flash_test_total_write_pages);
+    usleep(10);
+
+    // Verify 100% erased
+    syslog(LOG_MTEST, "Verifying %lu pages erased again.\n", _flash_test_total_write_pages);
+    ret = hcom_exec_flash_test_find_display_used_pages(false, false);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        __FILE__, __LINE__, __func__, nread);
-      return ret;
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s(). Verifying erased pages, ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        return ret;
     }
+    usleep(10);
 
-    if(!hcom_exec_flash_verify_buffered_data_2(0xaa, pageOff, pageBuffer))
+    // Fill the entire QSPI flash with data
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      if(nfailed == 0)
-      {
-        syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
-      }
-      else
-      {
-        syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
-      }
-      nfailed++;
+        hcom_exec_flash_populate_buffer_user_pat(0xaa, pageBuffer);
+
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Writing to page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
+
+        nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
+        if (nwrite != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n", __FILE__, __LINE__, __func__, nwrite);
+            return ret;
+        }
     }
-  }
-  uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
 
-  syslog(LOG_MTEST, "Write / read test completed with %d errors\n", nfailed);
-  
-  char timeTotTest[16];
-  hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeTestStart)/1000000, timeTotTest, 16);
+    syslog(LOG_MTEST, "Data written. Verifying %lu pages again\n", _flash_test_total_write_pages);
 
-  syslog(LOG_MTEST, "Total test time:%s\n", timeTotTest);
+    // Now read and test that the entire qspi flash is correct
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
+    {
+        if (pageOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+        {
+            syslog(LOG_MTEST, "INFO-Verifying page %ld of %lu\n", pageOff, _flash_test_total_write_pages);
+            usleep(10);
+        }
 
-  return nfailed == 0 ? OK : nfailed;
+        nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
+        if (nread != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+            return ret;
+        }
+
+        if (!hcom_exec_flash_verify_buffered_data_2(0xaa, pageOff, pageBuffer))
+        {
+            if (nfailed == 0)
+            {
+                syslog(LOG_MTEST, "Page %ld was first to fail to compare\n", pageOff);
+            }
+            else
+            {
+                syslog(LOG_MTEST, "Page %ld also failed to compare\n", pageOff);
+            }
+            nfailed++;
+        }
+    }
+    uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
+
+    syslog(LOG_MTEST, "Write / read test completed with %d errors\n", nfailed);
+
+    char timeTotTest[16];
+    hcom_exec_flash_convert_ms_to_time((testTimeTestEnd - testTimeTestStart) / 1000000, timeTotTest, 16);
+
+    syslog(LOG_MTEST, "Total test time:%s\n", timeTotTest);
+
+    return nfailed == 0 ? OK : nfailed;
 }
 
 //=====================================================================
 // This test takes years to complete. Nice test but not practical
 static int hcom_exec_flash_qspi_comprehensive_test(void)
 {
-  int ret;
-  off_t pageOff;
-  int nwrite, nread;
-  off_t beforeOff, afterOff;
-  int errCount = 0;
+    int ret;
+    off_t pageOff;
+    int nwrite, nread;
+    off_t beforeOff, afterOff;
+    int errCount = 0;
 
-  uint8_t pageBuffer[_flash_test_write_page_size];
-  uint8_t eraseBuffer[_flash_test_write_page_size];
-  memset(eraseBuffer, 0xff, _flash_test_write_page_size);
+    uint8_t pageBuffer[_flash_test_write_page_size];
+    uint8_t eraseBuffer[_flash_test_write_page_size];
+    memset(eraseBuffer, 0xff, _flash_test_write_page_size);
 
-  syslog(LOG_MTEST, "Comprehensive testing %lu pages has begun.\n",
-    _flash_test_total_write_pages);
-  syslog(LOG_MTEST, "This checks that the driver only writes to 1 page and the correct page\n");
-  syslog(LOG_MTEST, "Bulk erasing QSPI flash (2-3 minutes)\n");
+    syslog(LOG_MTEST, "Comprehensive testing %lu pages has begun.\n", _flash_test_total_write_pages);
+    syslog(LOG_MTEST, "This checks that the driver only writes to 1 page and the correct page\n");
+    syslog(LOG_MTEST, "Bulk erasing QSPI flash (2-3 minutes)\n");
 
-  uint64_t testTimeEraStart = hcom_nx_utils_get_current_time64();
-  ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return ret;
-  }
-
-  uint64_t testTimeEraEnd = hcom_nx_utils_get_current_time64();
-  syslog(LOG_MTEST, "Bulk erase completed\n");
-  usleep(10);
-
-  for(pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
-  {
-    // Write next page
-    hcom_exec_flash_populate_buffer(pageOff, pageBuffer);
-    nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
-    if(nwrite != 1)
+    uint64_t testTimeEraStart = hcom_nx_utils_get_current_time64();
+    ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
+    if (ret < 0)
     {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n",
-        __FILE__, __LINE__, __func__, nwrite);
-      usleep(50 * 1000);
-      return nwrite;
-    }
-
-    // Clear pageBuffer (probably a waste of time...) and read
-    memset(pageBuffer, 0x00, _flash_test_write_page_size);
-    // And verify that this page has been written correctly
-    nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
-    if(nread != 1)
-    {
-      syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-        __FILE__, __LINE__, __func__, nread);
-      usleep(50 * 1000);
-      return nread;
-    }
-
-    if(!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
-    {
-      syslog(LOG_MTEST, "Just written page %ld failed to compare\n",
-        pageOff);
-    }
-
-    // Next verify that all proceeding and subsequent pages are
-    // correct. Those before should have data and those following
-    // should be erased (0xff).
-    for(beforeOff = 0; beforeOff < pageOff; beforeOff++)
-    {
-      if(beforeOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
-      {
-        syslog(LOG_MTEST, "INFO-Testing:%ld Previous page %ld of %lu. Errors:%d\n",
-          pageOff, beforeOff, _flash_test_total_write_pages, errCount);
-        usleep(10);
-      }
-
-      nread = MTD_BREAD(_test_mtd, beforeOff, 1, pageBuffer);
-      if(nread != 1)
-      {
-        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-          __FILE__, __LINE__, __func__, nread);
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
         usleep(50 * 1000);
-        return nread;
-      }
-
-      // Check for expected data
-      if(!hcom_exec_flash_verify_buffered_data(beforeOff, pageBuffer))
-      {
-        errCount++;
-        syslog(LOG_MTEST, "Proceeding page %ld failed to compare\n",
-          beforeOff);
-      }
+        return ret;
     }
 
-    for(afterOff = pageOff + 1; afterOff < _flash_test_total_write_pages; afterOff++)
+    uint64_t testTimeEraEnd = hcom_nx_utils_get_current_time64();
+    syslog(LOG_MTEST, "Bulk erase completed\n");
+    usleep(10);
+
+    for (pageOff = 0; pageOff < _flash_test_total_write_pages; pageOff++)
     {
-      if(afterOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
-      {
-        syslog(LOG_MTEST, "INFO-Testing:%ld After page %ld of %lu. Errors:%d\n",
-          pageOff, afterOff, _flash_test_total_write_pages, errCount);
-        usleep(10);
-      }
+        // Write next page
+        hcom_exec_flash_populate_buffer(pageOff, pageBuffer);
+        nwrite = MTD_BWRITE(_test_mtd, pageOff, 1, pageBuffer);
+        if (nwrite != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nwrite:%d\n", __FILE__, __LINE__, __func__, nwrite);
+            usleep(50 * 1000);
+            return nwrite;
+        }
 
-      // Clear pageBuffer (probably a waste of time...) and read
-      memset(pageBuffer, 0x00, _flash_test_write_page_size);
-      nread = MTD_BREAD(_test_mtd, afterOff, 1, pageBuffer);
-      if(nread != 1)
-      {
-        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-          __FILE__, __LINE__, __func__, nread);
-        usleep(50 * 1000);
-        return nread;
-      }
+        // Clear pageBuffer (probably a waste of time...) and read
+        memset(pageBuffer, 0x00, _flash_test_write_page_size);
+        // And verify that this page has been written correctly
+        nread = MTD_BREAD(_test_mtd, pageOff, 1, pageBuffer);
+        if (nread != 1)
+        {
+            syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+            usleep(50 * 1000);
+            return nread;
+        }
 
-      // Find any non-zero values
-      if(memcmp(eraseBuffer, pageBuffer, _flash_test_write_page_size) != 0)
-      {
-        errCount++;
-        syslog(LOG_MTEST, "Following page %ld failed to compare\n", afterOff);
-        usleep(10);
-      }
+        if (!hcom_exec_flash_verify_buffered_data(pageOff, pageBuffer))
+        {
+            syslog(LOG_MTEST, "Just written page %ld failed to compare\n", pageOff);
+        }
+
+        // Next verify that all proceeding and subsequent pages are
+        // correct. Those before should have data and those following
+        // should be erased (0xff).
+        for (beforeOff = 0; beforeOff < pageOff; beforeOff++)
+        {
+            if (beforeOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+            {
+                syslog(LOG_MTEST, "INFO-Testing:%ld Previous page %ld of %lu. Errors:%d\n", pageOff, beforeOff, _flash_test_total_write_pages, errCount);
+                usleep(10);
+            }
+
+            nread = MTD_BREAD(_test_mtd, beforeOff, 1, pageBuffer);
+            if (nread != 1)
+            {
+                syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+                usleep(50 * 1000);
+                return nread;
+            }
+
+            // Check for expected data
+            if (!hcom_exec_flash_verify_buffered_data(beforeOff, pageBuffer))
+            {
+                errCount++;
+                syslog(LOG_MTEST, "Proceeding page %ld failed to compare\n", beforeOff);
+            }
+        }
+
+        for (afterOff = pageOff + 1; afterOff < _flash_test_total_write_pages; afterOff++)
+        {
+            if (afterOff % FLASH_TEST_DISPLAY_INTERVAL == 0)
+            {
+                syslog(LOG_MTEST, "INFO-Testing:%ld After page %ld of %lu. Errors:%d\n", pageOff, afterOff, _flash_test_total_write_pages, errCount);
+                usleep(10);
+            }
+
+            // Clear pageBuffer (probably a waste of time...) and read
+            memset(pageBuffer, 0x00, _flash_test_write_page_size);
+            nread = MTD_BREAD(_test_mtd, afterOff, 1, pageBuffer);
+            if (nread != 1)
+            {
+                syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+                usleep(50 * 1000);
+                return nread;
+            }
+
+            // Find any non-zero values
+            if (memcmp(eraseBuffer, pageBuffer, _flash_test_write_page_size) != 0)
+            {
+                errCount++;
+                syslog(LOG_MTEST, "Following page %ld failed to compare\n", afterOff);
+                usleep(10);
+            }
+        }
     }
-  }
 
-  uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
+    uint64_t testTimeTestEnd = hcom_nx_utils_get_current_time64();
 
-  syslog(LOG_MTEST, "Bulk erase took:%llu mSec and testing took:%llu mSec\n",
-            (testTimeEraEnd - testTimeEraStart)/1000000,
-            (testTimeTestEnd - testTimeEraEnd) /1000000);
+    syslog(LOG_MTEST, "Bulk erase took:%llu mSec and testing took:%llu mSec\n", (testTimeEraEnd - testTimeEraStart) / 1000000, (testTimeTestEnd - testTimeEraEnd) / 1000000);
 
-  return errCount;
+    return errCount;
 }
 
 //=======================================================================================
 static int hcom_exec_flash_test_read_display_1_page(uint32_t pageOffset)
 {
-  uint8_t pageBuffer[_flash_test_write_page_size];
+    uint8_t pageBuffer[_flash_test_write_page_size];
 
-  syslog(LOG_MTEST, "Reading 256 bytes from QSPI flash at page# %lu\n",
-    pageOffset);
-  int nread = MTD_BREAD(_test_mtd, pageOffset, 1, pageBuffer);
-  if(nread != 1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n",
-      __FILE__, __LINE__, __func__, nread);
-    usleep(50 * 1000);
-    return nread;
-  }
+    syslog(LOG_MTEST, "Reading 256 bytes from QSPI flash at page# %lu\n", pageOffset);
+    int nread = MTD_BREAD(_test_mtd, pageOffset, 1, pageBuffer);
+    if (nread != 1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - nread:%d\n", __FILE__, __LINE__, __func__, nread);
+        usleep(50 * 1000);
+        return nread;
+    }
 
-  syslog(LOG_MTEST, "\n--------- data read from page# %lu----------\n", pageOffset);
-#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
-  hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
-#else
-  syslog(LOG_MTEST, "Print buffer not included in build\n");
-#endif
-  return OK;
+    syslog(LOG_MTEST, "\n--------- data read from page# %lu----------\n", pageOffset);
+    #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
+    hcom_nx_diag_print_buffer(pageBuffer, _flash_test_write_page_size, 1);
+    #else
+    syslog(LOG_MTEST, "Print buffer not included in build\n");
+    #endif
+    return OK;
 }
 
 //=======================================================================================
 // Erase sectors are 4096 bytes each
 static int hcom_exec_flash_fs_flash_test_erase_1_4k_sector(uint32_t sectorOffset)
 {
-  int ret;
+    int ret;
 
-  syslog(LOG_MTEST, "Erasing QSPI flash erase sector# %lu\n",
-    sectorOffset);
-  ret = MTD_ERASE(_test_mtd, sectorOffset, 1);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return ret;
-  }
+    syslog(LOG_MTEST, "Erasing QSPI flash erase sector# %lu\n", sectorOffset);
+    ret = MTD_ERASE(_test_mtd, sectorOffset, 1);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        usleep(50 * 1000);
+        return ret;
+    }
 
-  syslog(LOG_MTEST, "Sector erase of QSPI flash completed\n");
-  return OK;
+    syslog(LOG_MTEST, "Sector erase of QSPI flash completed\n");
+    return OK;
 }
 
 //=======================================================================================
 static int hcom_exec_flash_fs_flash_test_erase_entire_flash(void)
 {
-  int ret;
+    int ret;
 
-  syslog(LOG_MTEST, "Bulk erasing QSPI flash begun\n");
-  usleep(10);
+    syslog(LOG_MTEST, "Bulk erasing QSPI flash begun\n");
+    usleep(10);
 
-  ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return ret;
-  }
+    ret = _test_mtd->ioctl(_test_mtd, MTDIOC_BULKERASE, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        usleep(50 * 1000);
+        return ret;
+    }
 
-  syslog(LOG_MTEST, "Bulk erase of QSPI flash completed\n");
-  return OK;
+    syslog(LOG_MTEST, "Bulk erase of QSPI flash completed\n");
+    return OK;
 }
 
 //=======================================================================================
@@ -942,81 +872,76 @@ static int hcom_exec_flash_fs_flash_test_erase_entire_flash(void)
 // collide with small page numbers once reinterpreted as int.
 void meadow_kt_qspi_flash_write_tests(uint32_t developerValue)
 {
-  int userData = (int)developerValue;
-  int ret;
+    int userData = (int) developerValue;
+    int ret;
 
-  _mtdGeoShown = false;
+    _mtdGeoShown = false;
 
-  ret = hcom_exec_flash_initialize_mtd_for_testing();
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return;
-  }
-
-  switch(developerValue)
-  {
-    case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY:
-      ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/true);
-      break;
-
-    case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY:
-      ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/false);
-      break;
-
-    case QSPI_FLASH_TEST_WRITE_COMPREHENSIVE:
-      ret = hcom_exec_flash_qspi_comprehensive_test();
-      break;
-
-    case QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE:
-      ret = hcom_exec_flash_test_qspi_data_rw_2();
-      break;
-
-    default:
+    ret = hcom_exec_flash_initialize_mtd_for_testing();
+    if (ret < 0)
     {
-      uint8_t pageBuffer[_flash_test_write_page_size];
-
-      if(userData < 0 || (uint32_t)userData >= _flash_test_total_write_pages)
-      {
-        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - page %d out of range (0-%lu)\n",
-                  __FILE__, __LINE__, __func__, userData, _flash_test_total_write_pages - 1);
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
         usleep(50 * 1000);
-        ret = -EINVAL;
-        break;
-      }
-
-      // Populate the buffer with userData for a page
-      hcom_exec_flash_populate_buffer(userData, pageBuffer);
-
-      // Write buffer to requested page
-      ret = MTD_BWRITE(_test_mtd, userData, 1, pageBuffer);
-      if(ret != 1)    // Check number written
-      {
-        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - number written:%d. Must be 1\n",
-                  __FILE__, __LINE__, __func__, ret);
-        usleep(50 * 1000);
-        ret = -1;
-      }
-      break;
+        return;
     }
-  }
 
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Write test with ret:%d (command:%d)\n",
-              __FILE__, __LINE__, ret, userData);
-  }
-  else if (ret > 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-Write test reported %d flash write errors (command:%d)\n",
-              __FILE__, __LINE__, ret, userData);
-  }
-  else
-  {
-    syslog(LOG_MTEST, "Success-Write test passed 100%% (command:%d)\n", userData);
-  }
+    switch (developerValue)
+    {
+        case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_VERIFY:
+            ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/true);
+            break;
+
+        case QSPI_FLASH_TEST_WRITE_BULK_ERASE_WRITE_ONLY:
+            ret = hcom_exec_flash_test_qspi_data_rw(/*verifyPages=*/false);
+            break;
+
+        case QSPI_FLASH_TEST_WRITE_COMPREHENSIVE:
+            ret = hcom_exec_flash_qspi_comprehensive_test();
+            break;
+
+        case QSPI_FLASH_TEST_WRITE_PATTERN_TOGGLE:
+            ret = hcom_exec_flash_test_qspi_data_rw_2();
+            break;
+
+        default:
+            {
+                uint8_t pageBuffer[_flash_test_write_page_size];
+
+                if (userData < 0 || (uint32_t) userData >= _flash_test_total_write_pages)
+                {
+                    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - page %d out of range (0-%lu)\n", __FILE__, __LINE__, __func__, userData, _flash_test_total_write_pages - 1);
+                    usleep(50 * 1000);
+                    ret = -EINVAL;
+                    break;
+                }
+
+                // Populate the buffer with userData for a page
+                hcom_exec_flash_populate_buffer(userData, pageBuffer);
+
+                // Write buffer to requested page
+                ret = MTD_BWRITE(_test_mtd, userData, 1, pageBuffer);
+                if (ret != 1) // Check number written
+                {
+                    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - number written:%d. Must be 1\n", __FILE__, __LINE__, __func__, ret);
+                    usleep(50 * 1000);
+                    ret = -1;
+                }
+                break;
+            }
+    }
+
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Write test with ret:%d (command:%d)\n", __FILE__, __LINE__, ret, userData);
+    }
+    else if (ret > 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-Write test reported %d flash write errors (command:%d)\n", __FILE__, __LINE__, ret, userData);
+    }
+    else
+    {
+        syslog(LOG_MTEST, "Success-Write test passed 100%% (command:%d)\n", userData);
+    }
 }
 
 //=======================================================================================
@@ -1029,53 +954,49 @@ void meadow_kt_qspi_flash_write_tests(uint32_t developerValue)
 // collide with small sector numbers once reinterpreted as int.
 void meadow_kt_qspi_flash_init_tests(uint32_t developerValue)
 {
-  int userData = (int)developerValue;
-  int ret;
+    int userData = (int) developerValue;
+    int ret;
 
-  _mtdGeoShown = false;
+    _mtdGeoShown = false;
 
-  ret = hcom_exec_flash_initialize_mtd_for_testing();
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return;
-  }
-
-  switch(developerValue)
-  {
-    case QSPI_FLASH_TEST_INIT_BULK_ERASE:
-      ret = hcom_exec_flash_fs_flash_test_erase_entire_flash();
-      break;
-
-    case QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS:
-      ret = hcom_exec_flash_fs_flash_test_erase_used_4k_sectors();
-      break;
-
-   default:
-      if(userData < 0 || (uint32_t)userData >= _test_geo.neraseblocks)
-      {
-        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - sector %d out of range (0-%lu)\n",
-                  __FILE__, __LINE__, __func__, userData, _test_geo.neraseblocks - 1);
+    ret = hcom_exec_flash_initialize_mtd_for_testing();
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
         usleep(50 * 1000);
-        ret = -EINVAL;
-        break;
-      }
-      ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(userData);
-      break;
-  }
-  
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-Init test command:%d ERROR with ret:%d\n",
-      __FILE__, __LINE__, userData, ret);
-  }
-  else
-  {
-    syslog(LOG_MTEST, "%s@%d-Init test command:%d Succeeded\n",
-      __FILE__, __LINE__, userData);
-  }
+        return;
+    }
+
+    switch (developerValue)
+    {
+        case QSPI_FLASH_TEST_INIT_BULK_ERASE:
+            ret = hcom_exec_flash_fs_flash_test_erase_entire_flash();
+            break;
+
+        case QSPI_FLASH_TEST_INIT_ERASE_USED_SECTORS:
+            ret = hcom_exec_flash_fs_flash_test_erase_used_4k_sectors();
+            break;
+
+        default:
+            if (userData < 0 || (uint32_t) userData >= _test_geo.neraseblocks)
+            {
+                syslog(LOG_MTEST, "%s@%d-ERROR in %s() - sector %d out of range (0-%lu)\n", __FILE__, __LINE__, __func__, userData, _test_geo.neraseblocks - 1);
+                usleep(50 * 1000);
+                ret = -EINVAL;
+                break;
+            }
+            ret = hcom_exec_flash_fs_flash_test_erase_1_4k_sector(userData);
+            break;
+    }
+
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-Init test command:%d ERROR with ret:%d\n", __FILE__, __LINE__, userData, ret);
+    }
+    else
+    {
+        syslog(LOG_MTEST, "%s@%d-Init test command:%d Succeeded\n", __FILE__, __LINE__, userData);
+    }
 }
 
 //=======================================================================================
@@ -1088,45 +1009,42 @@ void meadow_kt_qspi_flash_init_tests(uint32_t developerValue)
 // collide with small page numbers once reinterpreted as int.
 void meadow_kt_qspi_flash_read_tests(uint32_t developerValue)
 {
-  int userData = (int)developerValue;
-  int ret;
+    int userData = (int) developerValue;
+    int ret;
 
-  _mtdGeoShown = false;
+    _mtdGeoShown = false;
 
-  ret = hcom_exec_flash_initialize_mtd_for_testing();
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n",
-      __FILE__, __LINE__, __func__, ret);
-    usleep(50 * 1000);
-    return;
-  }
+    ret = hcom_exec_flash_initialize_mtd_for_testing();
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR in %s() - ret:%d\n", __FILE__, __LINE__, __func__, ret);
+        usleep(50 * 1000);
+        return;
+    }
 
-  switch(developerValue)
-  {
-    case QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES:
-      ret = hcom_exec_flash_test_find_display_used_pages(false, false);
-      break;
+    switch (developerValue)
+    {
+        case QSPI_FLASH_TEST_READ_DISPLAY_USED_PAGES:
+            ret = hcom_exec_flash_test_find_display_used_pages(false, false);
+            break;
 
-    case QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES:
-      ret = hcom_exec_flash_test_find_display_erased_pages();
-      break;
+        case QSPI_FLASH_TEST_READ_DISPLAY_ERASED_PAGES:
+            ret = hcom_exec_flash_test_find_display_erased_pages();
+            break;
 
-    default:
-      ret = hcom_exec_flash_test_read_display_1_page(userData);
-      break;
-  }
+        default:
+            ret = hcom_exec_flash_test_read_display_1_page(userData);
+            break;
+    }
 
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-Read test command:%d ERROR with ret:%d\n",
-      __FILE__, __LINE__, userData, ret);
-  }
-  else
-  {
-    syslog(LOG_MTEST, "%s@%d-Read test command:%d Succeeded\n",
-      __FILE__, __LINE__, userData);
-  }
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-Read test command:%d ERROR with ret:%d\n", __FILE__, __LINE__, userData, ret);
+    }
+    else
+    {
+        syslog(LOG_MTEST, "%s@%d-Read test command:%d Succeeded\n", __FILE__, __LINE__, userData);
+    }
 }
 
 #endif

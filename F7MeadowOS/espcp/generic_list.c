@@ -110,7 +110,6 @@ static void gl_unlock(gl_linked_list_t *list)
     nxsem_post(&list->lock);
 }
 
-
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -126,7 +125,7 @@ static void gl_unlock(gl_linked_list_t *list)
  *
  * Returned Value:
  *  Pointer to a newly created linked list.
- * 
+ *
  *  NULL can be returned if the memory allocation fails.
  *
  * Assumptions/Limitations:
@@ -145,7 +144,7 @@ gl_linked_list_t *gl_create_empty_linked_list(void)
         new_list->tail = NULL;
     }
 
-    return(new_list);
+    return (new_list);
 }
 
 /****************************************************************************
@@ -175,7 +174,7 @@ bool gl_is_empty(gl_linked_list_t *list)
         gl_unlock(list);
     }
 
-    return(is_empty);
+    return (is_empty);
 }
 
 /****************************************************************************
@@ -219,7 +218,7 @@ void *gl_find_item(gl_linked_list_t *list, uint32_t key, comparison_function_t c
         gl_unlock(list);
     }
 
-    return(data);
+    return (data);
 }
 
 /****************************************************************************
@@ -247,7 +246,7 @@ void *gl_remove_item(gl_linked_list_t *list, uint32_t key, comparison_function_t
 {
     if ((list == NULL) || (compare == NULL))
     {
-        return(NULL);
+        return (NULL);
     }
 
     gl_lock(list);
@@ -263,19 +262,19 @@ void *gl_remove_item(gl_linked_list_t *list, uint32_t key, comparison_function_t
                 if (list->head == list->tail)
                 {
                     /*
-                    *  Item is the only item in the list so the head and the tail are the same.
-                    *  Simply empty the list by setting the head and tail to NULL;
-                    */
+                     *  Item is the only item in the list so the head and the tail are the same.
+                     *  Simply empty the list by setting the head and tail to NULL;
+                     */
                     list->head = NULL;
                     list->tail = NULL;
                 }
                 else
                 {
                     /*
-                    *  Item is the head of a list with more than one item.
-                    *  The child of the head of the list becomes the head of the list
-                    *  and it then has no parent.
-                    */
+                     *  Item is the head of a list with more than one item.
+                     *  The child of the head of the list becomes the head of the list
+                     *  and it then has no parent.
+                     */
                     list->head = list->head->child;
                     list->head->parent = NULL;
                 }
@@ -285,35 +284,35 @@ void *gl_remove_item(gl_linked_list_t *list, uint32_t key, comparison_function_t
                 if (item == list->tail)
                 {
                     /*
-                    *  Item is the tail of a list with more than one item.
-                    *  Note that if this had been the only item in the list then
-                    *  the if clause above would have caught this case.
-                    * 
-                    *  The parent of the tail becomes the tail and it has no children.
-                    */
+                     *  Item is the tail of a list with more than one item.
+                     *  Note that if this had been the only item in the list then
+                     *  the if clause above would have caught this case.
+                     *
+                     *  The parent of the tail becomes the tail and it has no children.
+                     */
                     list->tail = list->tail->parent;
                     list->tail->child = NULL;
                 }
                 else
                 {
                     /*
-                    *  Item is in the middle of a list and there is more than one
-                    *  item in the list.
-                    */
-                   item->parent->child = item->child;
-                   item->child->parent = item->parent;
+                     *  Item is in the middle of a list and there is more than one
+                     *  item in the list.
+                     */
+                    item->parent->child = item->child;
+                    item->child->parent = item->parent;
                 }
             }
             free(item);
         }
         else
         {
-            item = item->child;     /* No match so move on to next item in the list */
+            item = item->child; /* No match so move on to next item in the list */
         }
     }
     gl_unlock(list);
 
-    return(data);
+    return (data);
 }
 
 /****************************************************************************
@@ -345,7 +344,7 @@ size_t gl_for_each(gl_linked_list_t *list, gl_visitor_function_t visitor, void *
 
     if ((list == NULL) || (visitor == NULL))
     {
-        return(0);
+        return (0);
     }
 
     gl_lock(list);
@@ -381,7 +380,7 @@ size_t gl_for_each(gl_linked_list_t *list, gl_visitor_function_t visitor, void *
     }
     gl_unlock(list);
 
-    return(removed);
+    return (removed);
 }
 
 /****************************************************************************
@@ -398,7 +397,7 @@ size_t gl_for_each(gl_linked_list_t *list, gl_visitor_function_t visitor, void *
  *  head of the list.  This is a generic void * pointer and it is the
  *  responsibility of the calling application to cast the pointer to the
  *  correct type.
- * 
+ *
  *  NULL will be returned if the list is empty or list iteself is NULL.
  *
  * Assumptions/Limitations:
@@ -421,19 +420,19 @@ void *gl_remove_item_at_head(gl_linked_list_t *list)
                  *  Only one item in the list so clear the list.
                  */
                 list->head = NULL;
-                list->tail = NULL;                
+                list->tail = NULL;
             }
             else
             {
-                list->head = item->child;       /* Head is now the second item. */
-                list->head->parent = NULL;      /* Head of a list has no parents. */
+                list->head = item->child;  /* Head is now the second item. */
+                list->head->parent = NULL; /* Head of a list has no parents. */
             }
             result = item->data;
             free(item);
         }
         gl_unlock(list);
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -458,7 +457,7 @@ bool gl_add_item_to_head(gl_linked_list_t *list, void *data)
 {
     if ((list == NULL) || (data == NULL))
     {
-        return(false);
+        return (false);
     }
 
     gl_linked_list_item_t *item = (gl_linked_list_item_t *) zalloc(sizeof(gl_linked_list_item_t));
@@ -481,7 +480,7 @@ bool gl_add_item_to_head(gl_linked_list_t *list, void *data)
         gl_unlock(list);
     }
 
-    return(item != NULL);
+    return (item != NULL);
 }
 
 /****************************************************************************
@@ -506,7 +505,7 @@ bool gl_add_item_to_tail(gl_linked_list_t *list, void *data)
 {
     if ((list == NULL) || (data == NULL))
     {
-        return(false);
+        return (false);
     }
 
     gl_linked_list_item_t *item = (gl_linked_list_item_t *) zalloc(sizeof(gl_linked_list_item_t));
@@ -529,6 +528,5 @@ bool gl_add_item_to_tail(gl_linked_list_t *list, void *data)
         gl_unlock(list);
     }
 
-    return(item != NULL);
+    return (item != NULL);
 }
-

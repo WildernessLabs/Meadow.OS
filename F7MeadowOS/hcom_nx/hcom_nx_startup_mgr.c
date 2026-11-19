@@ -1,6 +1,6 @@
 /****************************************************************************
  * F7MeadowOS/hcom_nx/hcom_nx_startup_mgr.c
- * 
+ *
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -54,8 +54,8 @@
 #include <meadow/stm32f777zit6-meadow.h>
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
-#include <meadow/meadow_hw_version.h>
-#include "stm32_ethernet.h"
+    #include <meadow/meadow_hw_version.h>
+    #include "stm32_ethernet.h"
 #endif
 
 // #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
@@ -74,457 +74,482 @@
 // Note: this is called from stm32_boot.c as the last item.
 int hcom_nx_setup_mgr(FAR struct mtd_dev_s *mtd)
 {
-  int ret;
-  meadow_configuration_t *config;
+    int ret;
+    meadow_configuration_t *config;
 
-  // One GPIO (PB4) is used D05 for F7FeatherV2 and CCM. But, at reset it
-  // isn't initialized as all the other GPIOs. It's one of the 5 debugging
-  // pins and therefore is configured as pull-up/pull-down at F7 restart.
-  // However, this pin isn't needed for our ST-Link debugging so it's free
-  // to use. But, being configured differently is seen as not ideal. The
-  // following line is used to reconfigure it like the other GPIOs.
-  stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
+    // One GPIO (PB4) is used D05 for F7FeatherV2 and CCM. But, at reset it
+    // isn't initialized as all the other GPIOs. It's one of the 5 debugging
+    // pins and therefore is configured as pull-up/pull-down at F7 restart.
+    // However, this pin isn't needed for our ST-Link debugging so it's free
+    // to use. But, being configured differently is seen as not ideal. The
+    // following line is used to reconfigure it like the other GPIOs.
+    stm32_configgpio(MEADOW_DEBUG_NJTRST_NOT_USED_GPIO);
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Kernel startup manager 1\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 1\n");
+    usleep(5 * 1000);
 #endif
 
-  if (mtd == NULL)
-  {
-    return ERROR;
-  }
+    if (mtd == NULL)
+    {
+        return ERROR;
+    }
 
 #if (HCOM_NX_EX_FLASH_SHOW_FLASH_STATS > 0)
-  hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(mtd);
+    hcom_nx_exec_ex_flash_syslog_qspi_flash_regions(mtd);
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Kernel startup manager 2\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 2\n");
+    usleep(5 * 1000);
 #endif
 
-  //
-  //  Only saves a copy of the mtd and returns
-  //
-  //  This needs to be done before the config is set up as the block driver
-  //  is accessed to copy Mono from the flash device to RAM.
-  //
-  ret = hcom_nx_exec_ex_flash_setup(mtd);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    //
+    //  Only saves a copy of the mtd and returns
+    //
+    //  This needs to be done before the config is set up as the block driver
+    //  is accessed to copy Mono from the flash device to RAM.
+    //
+    ret = hcom_nx_exec_ex_flash_setup(mtd);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 3\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 3\n");
+    usleep(5 * 1000);
 #endif
 
-  // Calls mkfifo to create a named pipe.  Created whatever the syslog
-  // configuration: only the RAMLOG trace path sends on it, but hcom's user
-  // side (hcom_traverse_ku_init_user_setup()) always opens it and stops the
-  // hcom startup if it is missing, which left builds without
-  // CONFIG_RAMLOG_SYSLOG (build.sh --esd, --emulator) with no host comms.
-  ret = hcom_traverse_ku_kernel_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
-    return ret;
-  }
+    // Calls mkfifo to create a named pipe.  Created whatever the syslog
+    // configuration: only the RAMLOG trace path sends on it, but hcom's user
+    // side (hcom_traverse_ku_init_user_setup()) always opens it and stops the
+    // hcom startup if it is missing, which left builds without
+    // CONFIG_RAMLOG_SYSLOG (build.sh --esd, --emulator) with no host comms.
+    ret = hcom_traverse_ku_kernel_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to initialize ku traverse channel:%d\n", ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Kernel startup manager 1c\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 1c\n");
+    usleep(5 * 1000);
 #endif
 
-  // Set trace level for syslog messaging
-  ret = hcom_nx_utils_startup_handling_of_trace_level();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize syslog level:%d\n", ret);
-    return ret;
-  }
+    // Set trace level for syslog messaging
+    ret = hcom_nx_utils_startup_handling_of_trace_level();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to initialize syslog level:%d\n", ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 4\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 4\n");
+    usleep(5 * 1000);
 #endif
 
 // Initialize the file system first so config file can be read by others
-#if defined(CONFIG_HCOM_FILESYSTEM_INIT)    // defined in menuconfig
-  ret = hcom_nx_create_fs_initialize(mtd);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+#if defined(CONFIG_HCOM_FILESYSTEM_INIT) // defined in menuconfig
+    ret = hcom_nx_create_fs_initialize(mtd);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup F/S helper %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 5\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 5\n");
+    usleep(5 * 1000);
 #endif
 
-#if defined (CONFIG_RAMLOG_SYSLOG)
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 6\n"); usleep(5 * 1000);
-#endif
+#if defined(CONFIG_RAMLOG_SYSLOG)
+    #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Kernel startup manager 6\n");
+    usleep(5 * 1000);
+    #endif
 
-  // Initialize the syslog message pump so syslog messages can be seen
-  ret = hcom_nx_trace_msg_proc_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_MDIAG, "%s@%d-setup trace cache reader, err:%d\n", __FILE__, __LINE__, ret);
-  }
+    // Initialize the syslog message pump so syslog messages can be seen
+    ret = hcom_nx_trace_msg_proc_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_MDIAG, "%s@%d-setup trace cache reader, err:%d\n", __FILE__, __LINE__, ret);
+    }
 
-#if HCOM_TRACE_USB_ENABLED > 0
-  // Copy syslog to the second USB port, 'build.sh --dualcdc' builds only
-  ret = hcom_nx_trace_usb_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-setup USB syslog, err:%d\n", __FILE__, __LINE__, ret);
-  }
+    #if HCOM_TRACE_USB_ENABLED > 0
+    // Copy syslog to the second USB port, 'build.sh --dualcdc' builds only
+    ret = hcom_nx_trace_usb_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-setup USB syslog, err:%d\n", __FILE__, __LINE__, ret);
+    }
+    #endif
 #endif
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 7\n"); usleep(5 * 1000);
-#endif
-
-  //
-  //  Prepare the logging system and clear the log file.
-  //
-  meadow_logging_init_os_logging();
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 8\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 7\n");
+    usleep(5 * 1000);
 #endif
-  
-  //
-  //  The bootloader will have put the reset reason into BBR30 for us.
-  //
-  meadow_os_reset_update_counters();
+
+    //
+    //  Prepare the logging system and clear the log file.
+    //
+    meadow_logging_init_os_logging();
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 9\n"); usleep(5 * 1000);
+    syslog(2, "Kernel startup manager 8\n");
+    usleep(5 * 1000);
 #endif
 
-  syslog(LOG_MDIAG, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(),
-            meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
+    //
+    //  The bootloader will have put the reset reason into BBR30 for us.
+    //
+    meadow_os_reset_update_counters();
 
-  //
-  //  We need to perform early initialisation of the ESP system to put
-  //  message queues for any error handling in place.  It needs to be
-  //  performed before the configuration file is read incase the config
-  //  file contains errors that need to be reported to core.
-  //
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 9\n");
+    usleep(5 * 1000);
+#endif
+
+    syslog(LOG_MDIAG, "Meadow reset code: 0x%02lx, reset count: %ld, power cycle count %ld\n", meadow_os_reset_reason(), meadow_os_reset_cycle_count(), meadow_os_power_cycle_count());
+
+    //
+    //  We need to perform early initialisation of the ESP system to put
+    //  message queues for any error handling in place.  It needs to be
+    //  performed before the configuration file is read incase the config
+    //  file contains errors that need to be reported to core.
+    //
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  espcp_early_init();
-#endif
-  
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 10\n"); usleep(5 * 1000);
+    espcp_early_init();
 #endif
 
-  //
-  //  Initialise the configuration system.
-  //
-  hcom_nx_config_init();
-  hcom_nx_config_lock();
-  config = hcom_nx_config_get_pointer();
-  if (config == NULL)
-  {
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 10\n");
+    usleep(5 * 1000);
+#endif
+
+    //
+    //  Initialise the configuration system.
+    //
+    hcom_nx_config_init();
+    hcom_nx_config_lock();
+    config = hcom_nx_config_get_pointer();
+    if (config == NULL)
+    {
+        hcom_nx_config_unlock();
+        //
+        //  This means that there is not enough memory for a configuration object
+        //  as an object containing default values is created if the config file
+        //  cannot be found or it is empty.
+        //
+        syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", __FILE__, __LINE__);
+        return ERROR;
+    }
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Kernel startup manager 11\n");
+    usleep(5 * 1000);
+#endif
+
+#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+    bool reset_esp32 = config->reset_esp32_at_startup;
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Kernel startup manager 12\n");
+    usleep(5 * 1000);
+#endif
+
+    // Give kernel-space syslog() calls the benefit of the config file's
+    // InternalDebug.TraceLevel setting too -- user-space's
+    // hcom_diag_trace_priority_level_init() already applies this to its own
+    // (separate) syslog mask; this is unconditional (unlike the
+    // CONFIG_RAMLOG_SYSLOG-gated block below) since g_syslog_mask filtering
+    // in vsyslog() applies regardless of which syslog channel is compiled in.
+    hcom_nx_utils_apply_config_trace_level(config->trace_level);
+
+#if defined(CONFIG_RAMLOG_SYSLOG)
+    // Start trace messaging if so configured
+    hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false), false, (config->use_uart1_for_profiling ? true : false));
+#endif
     hcom_nx_config_unlock();
+
+    meadow_os_fault_handler_check_fault_code();
+
     //
-    //  This means that there is not enough memory for a configuration object
-    //  as an object containing default values is created if the config file
-    //  cannot be found or it is empty.
+    //  Set the system clock to the OS build time to help with SSL.
     //
-    syslog(LOG_EMERG, "%s@%d-Cannot obtain configuration.\n", __FILE__, __LINE__);
-    return ERROR;
-  }
+
+    hcom_nx_config_set_time_to_os_build_time();
+
+    // syslog(LOG_MDIAG, "YAML Config:Net I/F:%s, DHCP:%s\n",
+    //           config->default_interface->interface_name,
+    //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 11\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 13\n");
+    usleep(5 * 1000);
 #endif
 
-#if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  bool reset_esp32 = config->reset_esp32_at_startup;
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 12\n"); usleep(5 * 1000);
-#endif
-
-  // Give kernel-space syslog() calls the benefit of the config file's
-  // InternalDebug.TraceLevel setting too -- user-space's
-  // hcom_diag_trace_priority_level_init() already applies this to its own
-  // (separate) syslog mask; this is unconditional (unlike the
-  // CONFIG_RAMLOG_SYSLOG-gated block below) since g_syslog_mask filtering
-  // in vsyslog() applies regardless of which syslog channel is compiled in.
-  hcom_nx_utils_apply_config_trace_level(config->trace_level);
-
-#if defined (CONFIG_RAMLOG_SYSLOG)
-  // Start trace messaging if so configured
-  hcom_nx_trace_insure_correct_config((config->use_uart1_for_trace ? true : false),
-    false, (config->use_uart1_for_profiling ? true : false));
-#endif
-  hcom_nx_config_unlock();
-
-  meadow_os_fault_handler_check_fault_code();
-
-  //
-  //  Set the system clock to the OS build time to help with SSL.
-  //
-
-  hcom_nx_config_set_time_to_os_build_time();
-  
-  // syslog(LOG_MDIAG, "YAML Config:Net I/F:%s, DHCP:%s\n",
-  //           config->default_interface->interface_name,
-  //           config->default_interface->use_dhcp == 1 ? "Yes" : "No");
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 13\n"); usleep(5 * 1000);
-#endif
-
-#if (defined (CONFIG_FS_PROCFS) && defined (CONFIG_SYSTEM_NSH))
-  ret = mount(NULL, STM32_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n",
-            STM32_PROCFS_MOUNTPOINT, ret);
-    return ret;
-  }
+#if (defined(CONFIG_FS_PROCFS) && defined(CONFIG_SYSTEM_NSH))
+    ret = mount(NULL, STM32_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n", STM32_PROCFS_MOUNTPOINT, ret);
+        return ret;
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 14\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 14\n");
+    usleep(5 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 15\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 15\n");
+    usleep(5 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 16\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 16\n");
+    usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-  ret = hcom_nx_exec_test_qspi_flash_setup(mtd);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup for testing qspi flash %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    ret = hcom_nx_exec_test_qspi_flash_setup(mtd);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup for testing qspi flash %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 17\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 17\n");
+    usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-  ret = hcom_nx_exec_test_sdcard_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup for testing sdcard %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 18\n"); usleep(5 * 1000);
-#endif
-
-  // Setup meadow interrupt
-  ret = meadow_interrupt_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-initialization for meadow interrupt:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 19\n"); usleep(5 * 1000);
-#endif
-
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
-  // Initialize the power management code
-  ret = meadow_power_mgmt_initialize();
-  if (ret != OK)
-  {
-    syslog(LOG_ERR,"ERROR: Failed to initialize power mgmt:%d\n", ret);
-  }
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG,  "Kernel startup manager 20\n"); usleep(5 * 1000);
-#endif
-
-#if defined (CONFIG_STM32_SDMMC2)
-  if (meadow_hw_version_sdcard_supported())
-  {
-    hcom_nx_config_lock();
-    config = hcom_nx_config_get_pointer();
-    if (config->sd_storage_supported)
+    ret = hcom_nx_exec_test_sdcard_setup();
+    if (ret < 0)
     {
-      ret = stm32_sdio_initialize_meadow();
-      if (ret != OK)
-      {
-        config->sd_storage_supported = 0;
-        syslog(LOG_ERR,"ERROR: Failed to initialize MMC/SD driver:%d\n", ret);
-      }
+        syslog(LOG_CRIT, "%s@%d-setup for testing sdcard %d\n", __FILE__, __LINE__, ret);
+        return ret;
     }
-    else
-    {
-      syslog(LOG_INFO, "CCM device but, SD Card not configured\n");
-    }
-    hcom_nx_config_unlock();
-  }
-  else
-  {
-    syslog(LOG_INFO, "SD Card not supported by this device\n");
-  }
 #endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 21\n"); usleep(5 * 1000);
+    syslog(LOG_MDIAG, "Kernel startup manager 18\n");
+    usleep(5 * 1000);
 #endif
 
-#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
-  if(meadow_hw_version_ethernet_supported())
-  {
-    hcom_nx_config_lock();
-    config = hcom_nx_config_get_pointer();
-    if(config->default_interface->interface_type == MEADOW_IFT_ETHERNET)
+    // Setup meadow interrupt
+    ret = meadow_interrupt_setup();
+    if (ret < 0)
     {
-      hcom_nx_config_unlock();
-      // This call does the hardware initialization for the F7. This can only
-      // be called if CONFIG_NETDEV_LATEINIT is defined. Otherwise,
-      // stm32_ethinitialize is called very early in the nuttx startup code
-      // in up_initialize.c's up_initialize() function (look for
-      // CONFIG_NETDEV_LATEINIT).
-      syslog(LOG_INFO, "Ethernet is being initialized\n");
-      ret = stm32_ethinitialize(0);
-      if(ret == OK)
-      {
-        // Second phase of initialization, this is Meadow specific
-        ret = meadow_eth_mngr_startup();
-        if (ret < 0)
-        {
-          syslog(LOG_ERR, "ERROR: Failed to start ethernet:%d\n", ret);
-          return ret;
-        }
-      }
-      else
-      {
-        if(ret == -ENODEV)
-        {
-          // Seems that there's no PHY on this Meadow device.
-          char *ethErrMsg = "Error: CCM based device. Ethernet initialization"
-                            " failed. Ensure Ethernet not configured.";
+        syslog(LOG_CRIT, "%s@%d-initialization for meadow interrupt:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-          syslog(LOG_ERR, "%s\n", ethErrMsg);
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Kernel startup manager 19\n");
+    usleep(5 * 1000);
+#endif
 
-          // Log the message to meadow.log for Meadow.Core consumption
-          meadow_logging_write(mfl_warning, ethErrMsg);
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+    // Initialize the power management code
+    ret = meadow_power_mgmt_initialize();
+    if (ret != OK)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to initialize power mgmt:%d\n", ret);
+    }
+#endif
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Kernel startup manager 20\n");
+    usleep(5 * 1000);
+#endif
+
+#if defined(CONFIG_STM32_SDMMC2)
+    if (meadow_hw_version_sdcard_supported())
+    {
+        hcom_nx_config_lock();
+        config = hcom_nx_config_get_pointer();
+        if (config->sd_storage_supported)
+        {
+            ret = stm32_sdio_initialize_meadow();
+            if (ret != OK)
+            {
+                config->sd_storage_supported = 0;
+                syslog(LOG_ERR, "ERROR: Failed to initialize MMC/SD driver:%d\n", ret);
+            }
         }
         else
         {
-          // Unknown problem, exit
-          syslog(LOG_ERR, "ERROR: Failed to fully initialize ethernet:%d\n", ret);
-          return ret;
+            syslog(LOG_INFO, "CCM device but, SD Card not configured\n");
         }
-      }
+        hcom_nx_config_unlock();
     }
     else
     {
-      hcom_nx_config_unlock();
-      syslog(LOG_INFO, "CCM device but, Ethernet not configured\n");
+        syslog(LOG_INFO, "SD Card not supported by this device\n");
     }
-  }
-  else
-  {
-    syslog(LOG_INFO, "Ethernet not supported by this device\n");
-  }
-#endif  // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
+#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 22\n"); usleep(5 * 1000);
+    syslog(2, "Kernel startup manager 21\n");
+    usleep(5 * 1000);
+#endif
+
+#if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
+    if (meadow_hw_version_ethernet_supported())
+    {
+        hcom_nx_config_lock();
+        config = hcom_nx_config_get_pointer();
+        if (config->default_interface->interface_type == MEADOW_IFT_ETHERNET)
+        {
+            hcom_nx_config_unlock();
+            // This call does the hardware initialization for the F7. This can only
+            // be called if CONFIG_NETDEV_LATEINIT is defined. Otherwise,
+            // stm32_ethinitialize is called very early in the nuttx startup code
+            // in up_initialize.c's up_initialize() function (look for
+            // CONFIG_NETDEV_LATEINIT).
+            syslog(LOG_INFO, "Ethernet is being initialized\n");
+            ret = stm32_ethinitialize(0);
+            if (ret == OK)
+            {
+                // Second phase of initialization, this is Meadow specific
+                ret = meadow_eth_mngr_startup();
+                if (ret < 0)
+                {
+                    syslog(LOG_ERR, "ERROR: Failed to start ethernet:%d\n", ret);
+                    return ret;
+                }
+            }
+            else
+            {
+                if (ret == -ENODEV)
+                {
+                    // Seems that there's no PHY on this Meadow device.
+                    char *ethErrMsg = "Error: CCM based device. Ethernet initialization"
+                                      " failed. Ensure Ethernet not configured.";
+
+                    syslog(LOG_ERR, "%s\n", ethErrMsg);
+
+                    // Log the message to meadow.log for Meadow.Core consumption
+                    meadow_logging_write(mfl_warning, ethErrMsg);
+                }
+                else
+                {
+                    // Unknown problem, exit
+                    syslog(LOG_ERR, "ERROR: Failed to fully initialize ethernet:%d\n", ret);
+                    return ret;
+                }
+            }
+        }
+        else
+        {
+            hcom_nx_config_unlock();
+            syslog(LOG_INFO, "CCM device but, Ethernet not configured\n");
+        }
+    }
+    else
+    {
+        syslog(LOG_INFO, "Ethernet not supported by this device\n");
+    }
+#endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD) && defined(CONFIG_NETDEV_LATEINIT)
+
+#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 22\n");
+    usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
-  hcom_nx_config_lock();
-  config = hcom_nx_config_get_pointer();
-  if (config->default_interface->interface_type == MEADOW_IFT_CELL)
+    hcom_nx_config_lock();
+    config = hcom_nx_config_get_pointer();
+    if (config->default_interface->interface_type == MEADOW_IFT_CELL)
     {
-      hcom_nx_config_unlock();
-      syslog(LOG_INFO, "Cell interface was selected\n");
+        hcom_nx_config_unlock();
+        syslog(LOG_INFO, "Cell interface was selected\n");
 
-      hcom_nx_config_process_cell_config_file();
-      syslog(LOG_INFO, "Cell settings processed\n");
+        hcom_nx_config_process_cell_config_file();
+        syslog(LOG_INFO, "Cell settings processed\n");
 
-      hcom_nx_config_turn_on_the_cell_module();
+        hcom_nx_config_turn_on_the_cell_module();
     }
-    else {
-      hcom_nx_config_unlock();
-      syslog(LOG_INFO, "Cell interface is not enabled\n");
+    else
+    {
+        hcom_nx_config_unlock();
+        syslog(LOG_INFO, "Cell interface is not enabled\n");
 
-      // A fitted module (cell.config.yaml present) still needs its power key
-      // held idle, or a floating key pin restarts it every few seconds.
-      hcom_nx_config_process_cell_config_file();
-      hcom_nx_config_hold_the_cell_module_key_idle();
+        // A fitted module (cell.config.yaml present) still needs its power key
+        // held idle, or a floating key pin restarts it every few seconds.
+        hcom_nx_config_process_cell_config_file();
+        hcom_nx_config_hold_the_cell_module_key_idle();
     }
+
+    #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 23\n");
+    usleep(5 * 1000);
+    #endif
+#endif
+
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
+    ret = meadow_idle_monitor_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to initialize idle monitor:%d\n", ret);
+        return ret;
+    }
+
+#endif
 
 #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 23\n"); usleep(5 * 1000);
-#endif
-#endif
-
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  ret = meadow_idle_monitor_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "ERROR: Failed to initialize idle monitor:%d\n", ret);
-    return ret;
-  }
-
-#endif
-
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 24\n"); usleep(5 * 1000);
+    syslog(2, "Kernel startup manager 24\n");
+    usleep(5 * 1000);
 #endif
 
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  if (reset_esp32)
-  {
-    ret = espcp_late_init();
-    if (ret != OK)
+    if (reset_esp32)
     {
-      syslog(LOG_EMERG, "ERROR: ESP32 initialization failed:%d\n", ret);
-      return ret;
-    }
+        ret = espcp_late_init();
+        if (ret != OK)
+        {
+            syslog(LOG_EMERG, "ERROR: ESP32 initialization failed:%d\n", ret);
+            return ret;
+        }
 
-    ret = espcp_enter_run_mode();
-    if (ret != OK)
-    {
-      syslog(LOG_EMERG, "ERROR: ESP32 enter run mode failed:%d\n", ret);
-      return ret;
+        ret = espcp_enter_run_mode();
+        if (ret != OK)
+        {
+            syslog(LOG_EMERG, "ERROR: ESP32 enter run mode failed:%d\n", ret);
+            return ret;
+        }
     }
-  }
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 25\n"); usleep(5 * 1000);
-#endif
+    #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 25\n");
+    usleep(5 * 1000);
+    #endif
 
 #endif
 
 #if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
-ret = pwmmgmt_test_sleep_wake_only_setup();
-if (ret < 0)
-{
-  syslog(LOG_ERR, "ERROR: Failed to initialize sleep/wake:%d\n", ret);
-  return ret;
-}
-#if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
-  syslog(2,  "Kernel startup manager 26-All successful\n"); usleep(5 * 1000);
-#endif
+    ret = pwmmgmt_test_sleep_wake_only_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "ERROR: Failed to initialize sleep/wake:%d\n", ret);
+        return ret;
+    }
+    #if HCOM_DIAG_INCLUDE_NX_STARTUP_SYSLOG > 0
+    syslog(2, "Kernel startup manager 26-All successful\n");
+    usleep(5 * 1000);
+    #endif
 
 #endif
 
-  return OK;
+    return OK;
 }

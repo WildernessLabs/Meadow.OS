@@ -46,10 +46,10 @@
 
 /**
  *  @brief UART connected to the ESP32.
- * 
+ *
  *  UART5 (/dev/ttyS2) for an on board ESP32.
  */
-#define ESPCP_NETWORK_MONITOR_UART_NAME         MEADOW_UART5_NAME
+#define ESPCP_NETWORK_MONITOR_UART_NAME MEADOW_UART5_NAME
 
 /****************************************************************************
  * Public Types

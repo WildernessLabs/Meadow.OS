@@ -1,6 +1,6 @@
 /****************************************************************************
  * nuttx\include\meadow\meadow_hw_version.h
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -60,8 +60,8 @@
 
 // Size of each versions flash. The F7V1 (32 MB S25FL) is detected but not
 // supported, board_late_initialize() halts on it (Issue #453).
-#define MEADOW_F7_HW_VERSION_F7V2_FLASH_SIZE  (67108864)  // 64 MB
-#define MEADOW_F7_HW_VERSION_CCMV2_FLASH_SIZE (67108864)  // 64 MB
+#define MEADOW_F7_HW_VERSION_F7V2_FLASH_SIZE (67108864)  // 64 MB
+#define MEADOW_F7_HW_VERSION_CCMV2_FLASH_SIZE (67108864) // 64 MB
 
 // GPIO results for various F7 versions
 #define MEADOW_F7_HW_VERSION_GPIO_ID_F7V1_OR_F7V2 (0x0f)

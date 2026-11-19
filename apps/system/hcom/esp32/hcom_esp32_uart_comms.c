@@ -1,6 +1,6 @@
 /****************************************************************************
  * apps/system/hcom/esp32/hcom_esp32_uart_comms.c
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -46,13 +46,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-// WARNING: This code makes the assumption that the UART connected to the 
+// WARNING: This code makes the assumption that the UART connected to the
 // esp32 chip is UART5 and has been registered with Nuttx as /dev/ttyS2.
 // See ...nuttx\arch\arm\src\stm32f7\stm32_serial.c @ 3100 and following
 // for where this assignment is made.
 
 // A few common defines
-#define HCOM_ESP32_FLASH_UART_DEV_NAME "/dev/ttyS2"   // UART 5
+#define HCOM_ESP32_FLASH_UART_DEV_NAME "/dev/ttyS2" // UART 5
 #define HCOM_ESP32_FLASH_UART_READ_BUF_SIZE 512
 
 /* Configuration ************************************************************/
@@ -63,10 +63,10 @@
 
 static bool _shutting_down;
 static pthread_t _esp32_recv_thread;
-static bool _esp32_recv_thread_running;   // true from pthread_create() until joined
+static bool _esp32_recv_thread_running; // true from pthread_create() until joined
 static int _esp32_read_fd;
 static int _esp32_write_fd;
-static sem_t _initalizeWaitSem;    /* Implements event waiting */
+static sem_t _initalizeWaitSem;         /* Implements event waiting */
 
 static uint8_t *_esp32_read_buffer;
 static bool _esp_uart_initialized;
@@ -90,13 +90,13 @@ static int hcom_esp32_uart_comms_read_serial_loop(void);
 // The first time it's used we'll finish the initialization.
 int hcom_esp32_uart_comms_setup()
 {
-  _shutting_down = false;
-  _esp_uart_initialized = false;
-  _esp32_recv_thread_running = false;
-  _esp32_write_fd = -1;
-  _esp32_read_fd = -1;
-  _esp32_read_buffer = NULL;
-  return OK;
+    _shutting_down = false;
+    _esp_uart_initialized = false;
+    _esp32_recv_thread_running = false;
+    _esp32_write_fd = -1;
+    _esp32_read_fd = -1;
+    _esp32_read_buffer = NULL;
+    return OK;
 }
 
 //====================================================================
@@ -108,9 +108,9 @@ int hcom_esp32_uart_comms_setup()
 // the time.
 void hcom_esp32_stop_and_prep_for_restart()
 {
-  usleep(20 * 1000);
-  hcom_esp32_uart_comms_shutdown();
-  usleep(20 * 1000);
+    usleep(20 * 1000);
+    hcom_esp32_uart_comms_shutdown();
+    usleep(20 * 1000);
 }
 
 //====================================================================
@@ -118,77 +118,77 @@ void hcom_esp32_stop_and_prep_for_restart()
 // here
 void hcom_esp32_uart_comms_shutdown()
 {
-  int ret;
+    int ret;
 
-  // Nothing to tear down if lazy initialization never ran, e.g. an ESP32
-  // restart from the host before any flash or MAC read (Issue #685).
-  if(!_esp_uart_initialized)
-  {
-    return;
-  }
-
-  _shutting_down = true;
-
-  // Stop the receive thread first -- it's the only thing that touches
-  // the message queues and circular buffer torn down below, so nothing
-  // may free/close them until it's confirmed stopped. Only if it was
-  // created: cancelling a stale thread id could hit an unrelated thread.
-  if(_esp32_recv_thread_running)
-  {
-    pthread_cancel(_esp32_recv_thread);
-
-    ret = pthread_join(_esp32_recv_thread, NULL);
-    if(ret != 0)
+    // Nothing to tear down if lazy initialization never ran, e.g. an ESP32
+    // restart from the host before any flash or MAC read (Issue #685).
+    if (!_esp_uart_initialized)
     {
-      // pthread_join() returns its error; it doesn't set errno. Clear
-      // _shutting_down, or a later receive thread would exit at once.
-      syslog(LOG_ERR, "%s@%d-pthread join failed:%d\n", __FILE__, __LINE__, ret);
-      _shutting_down = false;
-      return;
+        return;
     }
 
-    _esp32_recv_thread_running = false;
-  }
+    _shutting_down = true;
 
-  hcom_esp32_recv_shutdown();
-  hcom_esp32_xmit_shutdown();
-  hcom_esp32_util_shutdown();
+    // Stop the receive thread first -- it's the only thing that touches
+    // the message queues and circular buffer torn down below, so nothing
+    // may free/close them until it's confirmed stopped. Only if it was
+    // created: cancelling a stale thread id could hit an unrelated thread.
+    if (_esp32_recv_thread_running)
+    {
+        pthread_cancel(_esp32_recv_thread);
 
-  // Close everything open
-  if(_esp32_read_fd > -1)
-  {
-    close(_esp32_read_fd);
-    _esp32_read_fd = -1;
-  }
+        ret = pthread_join(_esp32_recv_thread, NULL);
+        if (ret != 0)
+        {
+            // pthread_join() returns its error; it doesn't set errno. Clear
+            // _shutting_down, or a later receive thread would exit at once.
+            syslog(LOG_ERR, "%s@%d-pthread join failed:%d\n", __FILE__, __LINE__, ret);
+            _shutting_down = false;
+            return;
+        }
 
-  if(_esp32_write_fd > -1)
-  {
-    close(_esp32_write_fd);
-    _esp32_write_fd = -1;
-  }
+        _esp32_recv_thread_running = false;
+    }
 
-  if(_esp32_read_buffer != NULL)
-  {
-     free(_esp32_read_buffer);
-     _esp32_read_buffer = NULL;
-  }
+    hcom_esp32_recv_shutdown();
+    hcom_esp32_xmit_shutdown();
+    hcom_esp32_util_shutdown();
 
-  _esp_uart_initialized = false;
-  _init_failed = 0;
-  _shutting_down = false;
+    // Close everything open
+    if (_esp32_read_fd > -1)
+    {
+        close(_esp32_read_fd);
+        _esp32_read_fd = -1;
+    }
+
+    if (_esp32_write_fd > -1)
+    {
+        close(_esp32_write_fd);
+        _esp32_write_fd = -1;
+    }
+
+    if (_esp32_read_buffer != NULL)
+    {
+        free(_esp32_read_buffer);
+        _esp32_read_buffer = NULL;
+    }
+
+    _esp_uart_initialized = false;
+    _init_failed = 0;
+    _shutting_down = false;
 }
 
 //===================================================================================
 // Wait for the thread holding semaphore to release it
 static void hcom_esp32_uart_takesem(sem_t *semaphore)
 {
-  int ret;
+    int ret;
 
-  do
-  {
-    ret = sem_wait(semaphore);    // Take the semaphore (perhaps waiting)
-  }
-  while (ret == -EINTR);
+    do
+    {
+        ret = sem_wait(semaphore); // Take the semaphore (perhaps waiting)
+    }
+    while (ret == -EINTR);
 }
 
 //====================================================================
@@ -197,72 +197,71 @@ static void hcom_esp32_uart_takesem(sem_t *semaphore)
 // initialization.
 int hcom_esp32_uart_lazy_initialization()
 {
-  int ret;
+    int ret;
 
-  // Already initialized?
-  if(_esp_uart_initialized)
-  {
-    if(_init_failed < 0)
-      return _init_failed;
+    // Already initialized?
+    if (_esp_uart_initialized)
+    {
+        if (_init_failed < 0)
+            return _init_failed;
+        return OK;
+    }
+
+    _esp_uart_initialized = true;
+
+    _esp32_read_buffer = malloc(HCOM_ESP32_FLASH_UART_READ_BUF_SIZE);
+    if (_esp32_read_buffer == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-mem alloc for esp read buffer. errno:%d\n", __FILE__, __LINE__, errno);
+        _init_failed = -ENOMEM;
+        return -ENOMEM;
+    }
+
+    // Initialize value to 0 for a 'signaling' semaphore to block
+    // initially the calling thread until it is safe for it to proceed.
+    sem_init(&_initalizeWaitSem, 0, 0);
+    // Special non-standard nuttx function required for signaling semaphores
+    sem_setprotocol(&_initalizeWaitSem, SEM_PRIO_NONE);
+
+    // Setup all the subordinate modules
+    ret = hcom_esp32_recv_setup_lazy();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-Failed init esp32 recv %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    ret = hcom_esp32_xmit_setup_lazy();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    ret = hcom_esp32_util_setup_lazy();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    // Create a thread to do the ESP32 Uart reads.
+    // Note: the thread being created will eventually wake up this thread
+    ret = hcom_esp32_uart_comms_make_thread();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-thread create, ret:%d\n", __FILE__, __LINE__, ret);
+        _init_failed = ret;
+        return ret;
+    }
+
+    // Wait for the new thread to finish its initialization before continuing.
+    hcom_esp32_uart_takesem(&_initalizeWaitSem);
+
+    // This semaphore has done it's job
+    sem_destroy(&_initalizeWaitSem);
+
     return OK;
-  }
-
-  _esp_uart_initialized = true;
-
-  _esp32_read_buffer = malloc(HCOM_ESP32_FLASH_UART_READ_BUF_SIZE);
-  if(_esp32_read_buffer == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-mem alloc for esp read buffer. errno:%d\n",
-              __FILE__, __LINE__, errno);
-    _init_failed = -ENOMEM;
-    return -ENOMEM;
-  }
-
-  // Initialize value to 0 for a 'signaling' semaphore to block
-  // initially the calling thread until it is safe for it to proceed.
-  sem_init(&_initalizeWaitSem, 0, 0);
-  // Special non-standard nuttx function required for signaling semaphores
-  sem_setprotocol(&_initalizeWaitSem, SEM_PRIO_NONE);
-
-  // Setup all the subordinate modules
-  ret = hcom_esp32_recv_setup_lazy();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-Failed init esp32 recv %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-
-  ret = hcom_esp32_xmit_setup_lazy();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-
-  ret = hcom_esp32_util_setup_lazy();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-Failed init esp32 xmit %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-
-  // Create a thread to do the ESP32 Uart reads.
-  // Note: the thread being created will eventually wake up this thread 
-  ret = hcom_esp32_uart_comms_make_thread();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-thread create, ret:%d\n", __FILE__, __LINE__, ret);
-    _init_failed = ret;
-    return ret;
-  }
-
-  // Wait for the new thread to finish its initialization before continuing.
-  hcom_esp32_uart_takesem(&_initalizeWaitSem);
-
-  // This semaphore has done it's job
-  sem_destroy(&_initalizeWaitSem);
-
-  return OK;
 }
 
 //=============================================================
@@ -273,20 +272,19 @@ int hcom_esp32_uart_comms_make_thread()
     struct sched_param param;
 
     param.sched_priority = HCOM_THREAD_PRIORITY_ESP32_RECEIVE;
-    (void)pthread_attr_init(&attr);
-    (void)pthread_attr_setschedparam(&attr, &param);
-    (void)pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_ESP32_RECEIVE);
+    (void) pthread_attr_init(&attr);
+    (void) pthread_attr_setschedparam(&attr, &param);
+    (void) pthread_attr_setstacksize(&attr, HCOM_THREAD_STACKSIZE_ESP32_RECEIVE);
 
     // pthread_create() returns 0 or a positive error number, never < 0.
     // Return it negated, as the caller checks for ret < 0.
     ret = pthread_create(&_esp32_recv_thread, &attr, hcom_esp32_uart_comms_pthread, NULL);
     if (ret != 0)
     {
-      syslog(LOG_CRIT, "%s@%d-Failed to create %s thread. Error:%d\n",
-                __FILE__, __LINE__, HCOM_THREAD_NAME_ESP32_RECEIVE, ret);
-      return -ret;
+        syslog(LOG_CRIT, "%s@%d-Failed to create %s thread. Error:%d\n", __FILE__, __LINE__, HCOM_THREAD_NAME_ESP32_RECEIVE, ret);
+        return -ret;
     }
-    (void)pthread_setname_np(_esp32_recv_thread, HCOM_THREAD_NAME_ESP32_RECEIVE);
+    (void) pthread_setname_np(_esp32_recv_thread, HCOM_THREAD_NAME_ESP32_RECEIVE);
 
     _esp32_recv_thread_running = true;
     return OK;
@@ -296,147 +294,141 @@ int hcom_esp32_uart_comms_make_thread()
 // This thread receives all UART messages received from ESP32
 FAR void *hcom_esp32_uart_comms_pthread(FAR void *arg)
 {
-  int ret;
+    int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), HCOM_THREAD_NAME_ESP32_RECEIVE);
+    syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), HCOM_THREAD_NAME_ESP32_RECEIVE);
 #endif
 
-  // Note: only one chance to open serial port. Should this be in the main
-  // receiving loop?
-  ret = hcom_esp32_uart_open_serial_ports();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-open serial port failed\n", __FILE__, __LINE__);
-    _init_failed = ret;
-    sem_post(&_initalizeWaitSem);  // Allow hcom thread to proceed
-    return NULL; //  This will terminate this thread
-  }
-
-  // Thread created and initialization successful
-  sem_post(&_initalizeWaitSem);  // Allow hcom thread to proceed
-
-  // Allow hcom thread to start before using this thread. Without
-  // this delay this thread start receiving ascii from ESP32 before
-  // we are ready to do anything with it.
-  // Consider something more deterministic?
-  usleep(500 * 1000);
-
-  while(!_shutting_down)
-  {
-    ret = hcom_esp32_uart_comms_read_serial_loop();
-    if(_shutting_down)
+    // Note: only one chance to open serial port. Should this be in the main
+    // receiving loop?
+    ret = hcom_esp32_uart_open_serial_ports();
+    if (ret < 0)
     {
-      break;
+        syslog(LOG_ERR, "%s@%d-open serial port failed\n", __FILE__, __LINE__);
+        _init_failed = ret;
+        sem_post(&_initalizeWaitSem); // Allow hcom thread to proceed
+        return NULL;                  //  This will terminate this thread
     }
 
-    if(ret < 0)
-    {
-      usleep(100 * 1000);   // prevent tight loops
-    }
-  }
+    // Thread created and initialization successful
+    sem_post(&_initalizeWaitSem); // Allow hcom thread to proceed
 
-  return NULL;
+    // Allow hcom thread to start before using this thread. Without
+    // this delay this thread start receiving ascii from ESP32 before
+    // we are ready to do anything with it.
+    // Consider something more deterministic?
+    usleep(500 * 1000);
+
+    while (!_shutting_down)
+    {
+        ret = hcom_esp32_uart_comms_read_serial_loop();
+        if (_shutting_down)
+        {
+            break;
+        }
+
+        if (ret < 0)
+        {
+            usleep(100 * 1000); // prevent tight loops
+        }
+    }
+
+    return NULL;
 }
 
 //=============================================================
 // This initialization is done by the thread created to receive from ESP32
 int hcom_esp32_uart_open_serial_ports()
 {
-  // Open the uart for read
-  _esp32_read_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_RDONLY);
-  if (_esp32_read_fd == -1)
-  {
-    syslog(LOG_ERR, "%s@%d-open of %s for read failed. errno:%d\n", __FILE__, __LINE__,
-        HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
-    return -errno;
-  }
+    // Open the uart for read
+    _esp32_read_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_RDONLY);
+    if (_esp32_read_fd == -1)
+    {
+        syslog(LOG_ERR, "%s@%d-open of %s for read failed. errno:%d\n", __FILE__, __LINE__, HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
+        return -errno;
+    }
 
-  // Open the uart for send
-  _esp32_write_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_WRONLY);
-  if (_esp32_write_fd == -1)
-  {
-    syslog(LOG_ERR, "%s@%d-open of %s for write failed. errno:%d\n", __FILE__, __LINE__,
-        HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
-    return -errno;
-  }
+    // Open the uart for send
+    _esp32_write_fd = open(HCOM_ESP32_FLASH_UART_DEV_NAME, O_WRONLY);
+    if (_esp32_write_fd == -1)
+    {
+        syslog(LOG_ERR, "%s@%d-open of %s for write failed. errno:%d\n", __FILE__, __LINE__, HCOM_ESP32_FLASH_UART_DEV_NAME, errno);
+        return -errno;
+    }
 
-  return OK;
+    return OK;
 }
 
 //====================================================================
 // Read from the esp32's serial port
 int hcom_esp32_uart_comms_read_serial_loop()
 {
-  ssize_t readReturn;
+    ssize_t readReturn;
 
-  // Read uart
-  while (!_shutting_down)
-  {
-    readReturn = read(_esp32_read_fd, _esp32_read_buffer, HCOM_ESP32_FLASH_UART_READ_BUF_SIZE);
-    if(_shutting_down)
+    // Read uart
+    while (!_shutting_down)
     {
-      break;
-    }
+        readReturn = read(_esp32_read_fd, _esp32_read_buffer, HCOM_ESP32_FLASH_UART_READ_BUF_SIZE);
+        if (_shutting_down)
+        {
+            break;
+        }
 
-    if (readReturn < 0 )
-    {
-      syslog(LOG_ERR, "%s@%d-esp read ret:%d, errno:%d\n", __FILE__, __LINE__,
-        readReturn, errno);
-      return -errno;
-    }
-    
-    if (readReturn == 0)    // EOF
-    {
-      syslog(LOG_WARNING, "%s@%d-UART read=0 (EOF)\n", __FILE__, __LINE__);
-      sleep(1);
-      continue;
-    }
-    else
-    {
-      int ret = hcom_esp32_recv_handle_data(_esp32_read_buffer, readReturn);
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-ESP32 recvd data not processed:%d\n",
-                __FILE__, __LINE__, ret);
-      }
-    }
-  }   // while (!_shutting_down)
+        if (readReturn < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-esp read ret:%d, errno:%d\n", __FILE__, __LINE__, readReturn, errno);
+            return -errno;
+        }
 
-  if(_shutting_down)
-    return -1;
+        if (readReturn == 0) // EOF
+        {
+            syslog(LOG_WARNING, "%s@%d-UART read=0 (EOF)\n", __FILE__, __LINE__);
+            sleep(1);
+            continue;
+        }
+        else
+        {
+            int ret = hcom_esp32_recv_handle_data(_esp32_read_buffer, readReturn);
+            if (ret < 0)
+            {
+                syslog(LOG_ERR, "%s@%d-ESP32 recvd data not processed:%d\n", __FILE__, __LINE__, ret);
+            }
+        }
+    } // while (!_shutting_down)
 
-  return OK;
+    if (_shutting_down)
+        return -1;
+
+    return OK;
 }
 
 //====================================================================
 // Write to esp32 serial port
-int hcom_esp32_uart_comms_write_serial(uint8_t* espWriteBuf, size_t espWriteSize)
+int hcom_esp32_uart_comms_write_serial(uint8_t *espWriteBuf, size_t espWriteSize)
 {
-  size_t remainingBytes = espWriteSize;
-  size_t toWriteOffset = 0;
-  ssize_t writeRet = 0;
+    size_t remainingBytes = espWriteSize;
+    size_t toWriteOffset = 0;
+    ssize_t writeRet = 0;
 
-  // Insure all bytes get written
-  while (remainingBytes > 0)
-  {
-    writeRet = write(_esp32_write_fd, &espWriteBuf[toWriteOffset], remainingBytes);
-    if(writeRet >= 0)
+    // Insure all bytes get written
+    while (remainingBytes > 0)
     {
-      remainingBytes -= writeRet;   // Note: if remainingBytes == 0 will exit while loop
-      toWriteOffset += writeRet;
-      
+        writeRet = write(_esp32_write_fd, &espWriteBuf[toWriteOffset], remainingBytes);
+        if (writeRet >= 0)
+        {
+            remainingBytes -= writeRet; // Note: if remainingBytes == 0 will exit while loop
+            toWriteOffset += writeRet;
+
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-      syslog(LOG_DEBUG, "SUCCESS-Wrote to ESP ret:%d, total wrote:%d bytes, remaining:%d (uart_comms)\n",
-                writeRet, toWriteOffset, remainingBytes);
+            syslog(LOG_DEBUG, "SUCCESS-Wrote to ESP ret:%d, total wrote:%d bytes, remaining:%d (uart_comms)\n", writeRet, toWriteOffset, remainingBytes);
 #endif
 
-      continue;
-    }
+            continue;
+        }
 
-    syslog(LOG_ERR, "%s@%d-ESP32 write errno:%d\n", __FILE__, __LINE__, errno);
-    return -errno;
-  }
-  return toWriteOffset;
+        syslog(LOG_ERR, "%s@%d-ESP32 write errno:%d\n", __FILE__, __LINE__, errno);
+        return -errno;
+    }
+    return toWriteOffset;
 }

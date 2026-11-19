@@ -47,7 +47,6 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-
 /****************************************************************************
  * Prototypes for methods.
  ****************************************************************************/
@@ -126,7 +125,7 @@ int meadow_os_espcp_reset(bool at_startup)
  ****************************************************************************/
 int meadow_os_espcp_enter_programming_mode(void)
 {
-    return(espcp_enter_programming_mode());
+    return (espcp_enter_programming_mode());
 }
 
 /****************************************************************************

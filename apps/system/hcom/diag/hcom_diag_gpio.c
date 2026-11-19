@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\diag\hcom_diag_gpio.c
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -69,27 +69,27 @@
 // to remember...
 void hcom_diag_gpio_config(uint32_t pin)
 {
-  // stm32_unconfiggpio(pin);
-  stm32_configgpio(pin);  
-  stm32_gpiowrite(pin, false);
+    // stm32_unconfiggpio(pin);
+    stm32_configgpio(pin);
+    stm32_gpiowrite(pin, false);
 }
 
 //==========================================================
 void hcom_diag_gpio_set_high(uint32_t pin)
 {
-  stm32_gpiowrite(pin, true);
+    stm32_gpiowrite(pin, true);
 }
 
 //==========================================================
 void hcom_diag_gpio_set_low(uint32_t pin)
 {
-  stm32_gpiowrite(pin, false);
+    stm32_gpiowrite(pin, false);
 }
 
 //==========================================================
 void hcom_diag_gpio_pulse(uint32_t pin, uint32_t usec)
 {
-  stm32_gpiowrite(pin, true);
-  usleep(usec);
-  stm32_gpiowrite(pin, false);
+    stm32_gpiowrite(pin, true);
+    usleep(usec);
+    stm32_gpiowrite(pin, false);
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\file\hcom_file_dnld_esp32.c
- * 
+ *
  *   Copyright (C) 2019-2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -44,8 +44,8 @@
 #include <meadow/hcom_protocol.h>
 #include <meadow/hcom_shared_common.h>
 
-#if defined (CONFIG_HCOM_ESP32_COMMS)
-#include "../esp32/hcom_esp32_comms.h"
+#if defined(CONFIG_HCOM_ESP32_COMMS)
+    #include "../esp32/hcom_esp32_comms.h"
 #endif
 
 #include <limits.h>
@@ -59,17 +59,17 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
-#if defined (CONFIG_HCOM_ESP32_COMMS)
+#if defined(CONFIG_HCOM_ESP32_COMMS)
 
-// Display via syslog the time spent
-#define HCOM_FILE_DNLD_ESP32_DEBUG_TIMING 0          // Enables the display of time spent
+    // Display via syslog the time spent
+    #define HCOM_FILE_DNLD_ESP32_DEBUG_TIMING 0 // Enables the display of time spent
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 static int _currentESP32DnldState;
-static uint32_t _xferRecvFullFileSize;    // File size based on received data
+static uint32_t _xferRecvFullFileSize; // File size based on received data
 static int _esp32WaitCount;
 static uint32_t _xferTargetMcuAddr;
 static char _md5FileHash[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH + 1];
@@ -78,7 +78,7 @@ static char _md5FileHash[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH + 1];
 //
 static uint8_t *_esp32FileBuffer = NULL;
 //
-//  Where should we put the next block of data that we receive from the 
+//  Where should we put the next block of data that we receive from the
 //  host computer?
 //
 static uint8_t *_nextStorageAddress = NULL;
@@ -89,14 +89,14 @@ static uint8_t *_nextStorageAddress = NULL;
 //
 static uint8_t *_endAddress = NULL;
 
-#if (HCOM_FILE_DNLD_ESP32_DEBUG_TIMING) > 0 || (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-static int _dbgNumbPacketsRecvd = 0;        // Only used in LOG_INFO & LOG_DEBUG messages
-#endif
+    #if (HCOM_FILE_DNLD_ESP32_DEBUG_TIMING) > 0 || (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
+static int _dbgNumbPacketsRecvd = 0; // Only used in LOG_INFO & LOG_DEBUG messages
+    #endif
 
-#if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING > 0
+    #if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING > 0
 uint64_t _dbgReceptionBeganAt;
 uint64_t _dbgReceptionEndedAt;
-#endif
+    #endif
 
 //--------------------------------------------------------------------
 // This enum defines the current processing state of the download code for a
@@ -108,11 +108,10 @@ uint64_t _dbgReceptionEndedAt;
 // command carried an additional field to identify the "series" a particular
 // data packet belonged to. Each data packet's series would be unique and the
 // sequence numbers 1-n would be unique for each series.
-enum hcom_download_esp32_packet_state
-{
-  HcomESP32DnldStateNone = 0,
-  HcomEsp32DnldStateStarting = 1,
-  HcomESP32DnldStateEsp32FileXfer = 2,
+enum hcom_download_esp32_packet_state {
+    HcomESP32DnldStateNone = 0,
+    HcomEsp32DnldStateStarting = 1,
+    HcomESP32DnldStateEsp32FileXfer = 2,
 };
 
 /****************************************************************************
@@ -125,21 +124,21 @@ enum hcom_download_esp32_packet_state
 int hcom_file_dnld_esp32_setup()
 {
     _currentESP32DnldState = HcomESP32DnldStateNone;
-  return OK;
+    return OK;
 }
 
 //==========================================================================
 // Are we involved in some download activity?
 bool hcom_file_dnld_esp32_is_active()
 {
-  return (_currentESP32DnldState != HcomESP32DnldStateNone);
+    return (_currentESP32DnldState != HcomESP32DnldStateNone);
 }
 
 //==========================================================================
 // The state needs to be restored to action none state.
 void hcom_file_dnld_esp32_set_to_inactive()
 {
-  _currentESP32DnldState = HcomESP32DnldStateNone;
+    _currentESP32DnldState = HcomESP32DnldStateNone;
 }
 
 //==========================================================================
@@ -150,146 +149,133 @@ void hcom_file_dnld_esp32_set_to_inactive()
 // an ESP32 firmware transfer stuck mid-flight.
 void hcom_file_dnld_esp32_abort_active_download()
 {
-  if (_esp32FileBuffer != NULL)
-  {
-    free(_esp32FileBuffer);
-    _esp32FileBuffer = NULL;
-  }
-  _nextStorageAddress = NULL;
-  _endAddress = NULL;
+    if (_esp32FileBuffer != NULL)
+    {
+        free(_esp32FileBuffer);
+        _esp32FileBuffer = NULL;
+    }
+    _nextStorageAddress = NULL;
+    _endAddress = NULL;
 
-  hcom_file_dnld_esp32_set_to_inactive();
+    hcom_file_dnld_esp32_set_to_inactive();
 }
 
 //============================================================================
 // Called from hcom_host_route()
 void hcom_file_dnld_esp32_file_begin(const HcomProtoHdrMsg_t *hdrMsg)
 {
-  int ret;
-  char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
-  HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *)hdrMsg;
+    int ret;
+    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+    HcomProtoFileMsg_t *fileMsg = (HcomProtoFileMsg_t *) hdrMsg;
 
-  // Verify that mono has been disabled
-  if(hcom_mono_ctrl_is_mono_enabled())
-  {
-    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-            "Mono must be disabled for ESP32 file download");
-    syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-            hostMsg, __FILE__, __LINE__);
+    // Verify that mono has been disabled
+    if (hcom_mono_ctrl_is_mono_enabled())
+    {
+        snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "Mono must be disabled for ESP32 file download");
+        syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
 
-    // Notify CLI that download can't start because mono is enabled
-    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
+        // Notify CLI that download can't start because mono is enabled
+        hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
 
-    hcom_file_dnld_esp32_set_to_inactive();
-    return;
-  }
+        hcom_file_dnld_esp32_set_to_inactive();
+        return;
+    }
 
-  // Best to change the current action before telling CLI ok to send
-  _esp32WaitCount = 0;
-  _currentESP32DnldState = HcomEsp32DnldStateStarting;
+    // Best to change the current action before telling CLI ok to send
+    _esp32WaitCount = 0;
+    _currentESP32DnldState = HcomEsp32DnldStateStarting;
 
-#if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING
-  _dbgReceptionBeganAt = hcom_utils_get_current_time64_ns();
-#endif
+    #if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING
+    _dbgReceptionBeganAt = hcom_utils_get_current_time64_ns();
+    #endif
 
-  _xferRecvFullFileSize = fileMsg->fileInfo.fileSize;
-  _xferTargetMcuAddr = fileMsg->fileInfo.fileFlashAddr;
-  memcpy(_md5FileHash, fileMsg->fileInfo.fileMD5Hash, HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH);
-  _md5FileHash[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
+    _xferRecvFullFileSize = fileMsg->fileInfo.fileSize;
+    _xferTargetMcuAddr = fileMsg->fileInfo.fileFlashAddr;
+    memcpy(_md5FileHash, fileMsg->fileInfo.fileMD5Hash, HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH);
+    _md5FileHash[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
 
-  // Log some diagnostic information 
-  syslog(LOG_INFO, "%s@%d-Start ESP32 download (Size:%ld, MCUAddr:0x%08lx, MD5Hash:%s)\n",
-          __FILE__, __LINE__, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
+    // Log some diagnostic information
+    syslog(LOG_INFO, "%s@%d-Start ESP32 download (Size:%ld, MCUAddr:0x%08lx, MD5Hash:%s)\n", __FILE__, __LINE__, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
 
-  //
-  //  Allocate space to store the full file contents.  We may have an old buffer
-  //  left behind from a failed download.  In this case we throw away the old
-  //  buffer and grab a new one.
-  //
-  if (_esp32FileBuffer != NULL)
-  {
-    free(_esp32FileBuffer);
-    _esp32FileBuffer = NULL;
-  }
+    //
+    //  Allocate space to store the full file contents.  We may have an old buffer
+    //  left behind from a failed download.  In this case we throw away the old
+    //  buffer and grab a new one.
+    //
+    if (_esp32FileBuffer != NULL)
+    {
+        free(_esp32FileBuffer);
+        _esp32FileBuffer = NULL;
+    }
 
-  _esp32FileBuffer = (uint8_t *) zalloc(_xferRecvFullFileSize);
-  if (_esp32FileBuffer == NULL)
-  {
-    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
-    syslog(LOG_ERR, "%s@%d-Failed to allocate storage\n", __FILE__, __LINE__);
+    _esp32FileBuffer = (uint8_t *) zalloc(_xferRecvFullFileSize);
+    if (_esp32FileBuffer == NULL)
+    {
+        hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
+        syslog(LOG_ERR, "%s@%d-Failed to allocate storage\n", __FILE__, __LINE__);
 
-    // Not started: leave the 'starting' state, or every later request is
-    // refused and the start request never concludes
-    hcom_file_dnld_esp32_set_to_inactive();
-    return;
-  }
-  _nextStorageAddress = _esp32FileBuffer;
-  _endAddress = _esp32FileBuffer + _xferRecvFullFileSize;
+        // Not started: leave the 'starting' state, or every later request is
+        // refused and the start request never concludes
+        hcom_file_dnld_esp32_set_to_inactive();
+        return;
+    }
+    _nextStorageAddress = _esp32FileBuffer;
+    _endAddress = _esp32FileBuffer + _xferRecvFullFileSize;
 
-  _currentESP32DnldState = HcomESP32DnldStateEsp32FileXfer;
+    _currentESP32DnldState = HcomESP32DnldStateEsp32FileXfer;
 
-  // Start watchdog timing
-  ret = hcom_host_watchdog_dnld_timer_set_delay(
-    HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
+    // Start watchdog timing
+    ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
 
-    // Without its watchdog the download must not be left in the transfer
-    // state; tell the host it can't start
-    hcom_file_dnld_esp32_abort_active_download();
-    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
-    return;
-  }
+        // Without its watchdog the download must not be left in the transfer
+        // state; tell the host it can't start
+        hcom_file_dnld_esp32_abort_active_download();
+        hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_FAIL, 0, __FILE__, __LINE__);
+        return;
+    }
 
-  // Notify CLI that it's okay to send data
-  hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY, 0, __FILE__, __LINE__);
+    // Notify CLI that it's okay to send data
+    hcom_host_send_header_msg(HCOM_HOST_REQUEST_INIT_DOWNLOAD_OKAY, 0, __FILE__, __LINE__);
 }
 
 //============================================================================
 // Process a data packet based on currently active state
-void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
-          const size_t packetSize)
+void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg, const size_t packetSize)
 {
-  char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+    char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
 
-#if (HCOM_FILE_DNLD_ESP32_DEBUG_TIMING) > 0 || (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  _dbgNumbPacketsRecvd++;
-#endif
+    #if (HCOM_FILE_DNLD_ESP32_DEBUG_TIMING) > 0 || (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
+    _dbgNumbPacketsRecvd++;
+    #endif
 
-  // Keep watchdog from timing out
-  int ret = hcom_host_watchdog_dnld_timer_set_delay(
-    HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-    return;
-  }
+    // Keep watchdog from timing out
+    int ret = hcom_host_watchdog_dnld_timer_set_delay(HCOM_FILE_DNLD_ESP32_WDOG_TIME_SEC);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Timer set, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return;
+    }
 
-  size_t binDataLen = packetSize - (HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF);
+    size_t binDataLen = packetSize - (HCOM_PROTOCOL_DATA_MSG_DATA_INFO_OFF);
 
-  if ((_nextStorageAddress + binDataLen) <= _endAddress)
-  {
-    memcpy(_nextStorageAddress, hcomDataMsg->binData, binDataLen);
-    _nextStorageAddress += binDataLen;
-  }
-  else
-  {
-    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-      "Expecting %u bytes, received %u",
-      (unsigned int)(_endAddress - _esp32FileBuffer),
-      (unsigned int)((_nextStorageAddress - _esp32FileBuffer) + binDataLen));
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-            __FILE__, __LINE__);
+    if ((_nextStorageAddress + binDataLen) <= _endAddress)
+    {
+        memcpy(_nextStorageAddress, hcomDataMsg->binData, binDataLen);
+        _nextStorageAddress += binDataLen;
+    }
+    else
+    {
+        snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "Expecting %u bytes, received %u", (unsigned int) (_endAddress - _esp32FileBuffer), (unsigned int) ((_nextStorageAddress - _esp32FileBuffer) + binDataLen));
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
 
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer",
-            __FILE__, __LINE__);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer", __FILE__, __LINE__);
 
-    hcom_file_dnld_esp32_abort_active_download();
-  }
+        hcom_file_dnld_esp32_abort_active_download();
+    }
 }
 
 //=======================================================================================
@@ -299,123 +285,98 @@ void hcom_file_dnld_esp32_recvd_file_data(const HcomProtoDataMsg_t *hcomDataMsg,
 // Only after a reboot will the ESP32 attempt to execute the program.
 void hcom_file_dnld_esp32_file_end(uint32_t userData)
 {
-  int ret;
-  int flashEndResult = 0;
-  char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
-  bool lastFile = userData == 1 ? true : false;
+    int ret;
+    int flashEndResult = 0;
+    char hostMsg[HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH];
+    bool lastFile = userData == 1 ? true : false;
 
-  // Since we're about to finish the data download, stop and cleanup
-  // watchdog as it's no longer needed.
-  hcom_host_watchdog_dnld_timer_cancel();
+    // Since we're about to finish the data download, stop and cleanup
+    // watchdog as it's no longer needed.
+    hcom_host_watchdog_dnld_timer_cancel();
 
-  syslog(LOG_NOTICE, "File received\n");
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "File received, flashing ESP32", __FILE__, __LINE__);
+    syslog(LOG_NOTICE, "File received\n");
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "File received, flashing ESP32", __FILE__, __LINE__);
 
-  if(_currentESP32DnldState != HcomESP32DnldStateEsp32FileXfer)
-  {
-    syslog(LOG_ERR, "%s@%d-ESP32 dnld end, unexpected state\n",
-              __FILE__, __LINE__);
-    return;
-  }
-
-  // Verify all of the expected file data actually arrived before flashing
-  // it -- an end-of-transfer message arriving early would otherwise flash
-  // the trailing, never-written portion of _esp32FileBuffer to hardware.
-  if(_nextStorageAddress != _endAddress)
-  {
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-      "Expecting %u bytes, received %u",
-      (unsigned int)(_endAddress - _esp32FileBuffer),
-      (unsigned int)(_nextStorageAddress - _esp32FileBuffer));
-    syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg,
-            __FILE__, __LINE__);
-
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer",
-            __FILE__, __LINE__);
-
-    hcom_file_dnld_esp32_abort_active_download();
-    return;
-  }
-
-  ret = hcom_esp32_exec_flash_file(_esp32FileBuffer, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
-
-  if(lastFile)
-  {
-    // Tell ESP32 download complete and restart ESP32 since all files have been flashed
-    flashEndResult = hcom_esp32_exec_add_flash_end();
-    if (flashEndResult < 0)
+    if (_currentESP32DnldState != HcomESP32DnldStateEsp32FileXfer)
     {
-      syslog(LOG_ERR, "%s@%d-ESP32 File end error:%d\n",
-                __FILE__, __LINE__, flashEndResult);
+        syslog(LOG_ERR, "%s@%d-ESP32 dnld end, unexpected state\n", __FILE__, __LINE__);
+        return;
     }
-  }
 
-  // Send text message to host
-  // snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-  //         "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s'",
-  //         _md5FileHash, _md5FileHash);
-  // snprintf(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "File transfer complete.");
-  if (ret == 0 && flashEndResult == 0)
-  {
-    snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
-            "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s')",
-            _md5FileHash, _md5FileHash);
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
-  }
+    // Verify all of the expected file data actually arrived before flashing
+    // it -- an end-of-transfer message arriving early would otherwise flash
+    // the trailing, never-written portion of _esp32FileBuffer to hardware.
+    if (_nextStorageAddress != _endAddress)
+    {
+        snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "Expecting %u bytes, received %u", (unsigned int) (_endAddress - _esp32FileBuffer), (unsigned int) (_nextStorageAddress - _esp32FileBuffer));
+        syslog(LOG_ERR, "%s@%d-%s\n", __FILE__, __LINE__, hostMsg);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, hostMsg, __FILE__, __LINE__);
 
-#if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING > 0
-  _dbgReceptionEndedAt = hcom_utils_get_current_time64_ns();
-  syslog(LOG_INFO, "%s@%d-File transfer %d packets, took %llu mSec\n",
-           __FILE__, __LINE__, _dbgNumbPacketsRecvd,
-           ((_dbgReceptionEndedAt - _dbgReceptionBeganAt) / 1000000));
-#else
- #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  syslog(LOG_DEBUG, "%s@%d-Host has sent %d packets\n",
-            __FILE__, __LINE__, _dbgNumbPacketsRecvd);
- #endif
-#endif
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Abort file transfer", __FILE__, __LINE__);
 
-  hcom_file_dnld_esp32_set_to_inactive();
+        hcom_file_dnld_esp32_abort_active_download();
+        return;
+    }
 
-  // Give time for CLI to receive all the messages
-  usleep(500 * 1000);
+    ret = hcom_esp32_exec_flash_file(_esp32FileBuffer, _xferRecvFullFileSize, _xferTargetMcuAddr, _md5FileHash);
 
-  // Shutdown all of ESP32 comms
-  hcom_esp32_stop_and_prep_for_restart();
+    if (lastFile)
+    {
+        // Tell ESP32 download complete and restart ESP32 since all files have been flashed
+        flashEndResult = hcom_esp32_exec_add_flash_end();
+        if (flashEndResult < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-ESP32 File end error:%d\n", __FILE__, __LINE__, flashEndResult);
+        }
+    }
+
+    // Send text message to host
+    // snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH,
+    //         "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s'",
+    //         _md5FileHash, _md5FileHash);
+    // snprintf(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "File transfer complete.");
+    if (ret == 0 && flashEndResult == 0)
+    {
+        snprintf_chk(hostMsg, HCOM_MED_SHORT_HOST_STRING_BUFF_LENGTH, "File received successfully MD5 ESP32 calculated:'%s', received from CLI:'%s')", _md5FileHash, _md5FileHash);
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
+    }
+
+    #if HCOM_FILE_DNLD_ESP32_DEBUG_TIMING > 0
+    _dbgReceptionEndedAt = hcom_utils_get_current_time64_ns();
+    syslog(LOG_INFO, "%s@%d-File transfer %d packets, took %llu mSec\n", __FILE__, __LINE__, _dbgNumbPacketsRecvd, ((_dbgReceptionEndedAt - _dbgReceptionBeganAt) / 1000000));
+    #else
+        #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
+    syslog(LOG_DEBUG, "%s@%d-Host has sent %d packets\n", __FILE__, __LINE__, _dbgNumbPacketsRecvd);
+        #endif
+    #endif
+
+    hcom_file_dnld_esp32_set_to_inactive();
+
+    // Give time for CLI to receive all the messages
+    usleep(500 * 1000);
+
+    // Shutdown all of ESP32 comms
+    hcom_esp32_stop_and_prep_for_restart();
 }
 
 /* ESP32 Firmware metadata */
 
-struct meadow_esp32_firmware_desc {
-  char *filename;
-  uint32_t target_addr;
-} meadow_esp32_firmware[3] = {
+struct meadow_esp32_firmware_desc
 {
-  .filename = "MeadowComms.bin",
-  .target_addr = 0x10000
-},
-{
-  .filename = "bootloader.bin",
-  .target_addr = 0x1000
-},
-{
-  .filename = "partition-table.bin",
-  .target_addr = 0x8000
-}
-};
+    char *filename;
+    uint32_t target_addr;
+} meadow_esp32_firmware[3] = {{.filename = "MeadowComms.bin", .target_addr = 0x10000}, {.filename = "bootloader.bin", .target_addr = 0x1000}, {.filename = "partition-table.bin", .target_addr = 0x8000}};
 
-enum firmware_update_error
-{
-  FIRMWARE_NOT_FOUND = -1, // required firmware file not found
-  FIRMWARE_OPEN_ERROR = -2, // file exists, but other error while opening
-  ALLOC_ERROR = -3, // out of memory
-  FIRMWARE_READ_ERROR = -4, // error while reading
-  MD5_NOT_FOUND = -5, // required firmware file's .md5 not found
-  MD5_FORMAT_ERROR = -6,  // file not long enough for an md5 hash
-  MD5_OPEN_ERROR = -7, // file exists, but other error while opening
-  MD5_READ_ERROR = -8, // error while reading md5 file
-  ESP32_FLASH_ERROR = -9 // firmware operation error
+enum firmware_update_error {
+    FIRMWARE_NOT_FOUND = -1,  // required firmware file not found
+    FIRMWARE_OPEN_ERROR = -2, // file exists, but other error while opening
+    ALLOC_ERROR = -3,         // out of memory
+    FIRMWARE_READ_ERROR = -4, // error while reading
+    MD5_NOT_FOUND = -5,       // required firmware file's .md5 not found
+    MD5_FORMAT_ERROR = -6,    // file not long enough for an md5 hash
+    MD5_OPEN_ERROR = -7,      // file exists, but other error while opening
+    MD5_READ_ERROR = -8,      // error while reading md5 file
+    ESP32_FLASH_ERROR = -9    // firmware operation error
 };
 
 /*
@@ -431,125 +392,134 @@ enum firmware_update_error
 
 int hcom_nx_exec_ex_update_ESP32()
 {
-  int filecount = sizeof(meadow_esp32_firmware) / sizeof(meadow_esp32_firmware[0]);
-  int result = 0;
-  int i;
+    int filecount = sizeof(meadow_esp32_firmware) / sizeof(meadow_esp32_firmware[0]);
+    int result = 0;
+    int i;
 
-  DIR *dir = opendir(UPDATE_FIRMWARE_DIR);
-  if (!dir)
-    return 0;
-  closedir(dir);
+    DIR *dir = opendir(UPDATE_FIRMWARE_DIR);
+    if (!dir)
+        return 0;
+    closedir(dir);
 
-  for (i = 0; i < filecount; i++)
-  {
-    char firmware_fullpath[PATH_MAX] = UPDATE_FIRMWARE_DIR;
-    uint32_t firmware_fullpath_len = strlen(firmware_fullpath);
-    strncat(firmware_fullpath, meadow_esp32_firmware[i].filename, PATH_MAX - firmware_fullpath_len - 1);
-    firmware_fullpath_len = strlen(firmware_fullpath);
-    char firmware_fullpath_md5[PATH_MAX];
-    strncpy(firmware_fullpath_md5, firmware_fullpath, PATH_MAX);
-    strncat(firmware_fullpath_md5, ".md5", PATH_MAX - firmware_fullpath_len - 1);
-    uint8_t *file_ptr = NULL;
-    uint8_t *md5_hash_buf = NULL;
-    uint8_t *file_buf = NULL;
-    FILE *firmware = NULL;
-    FILE *firmware_md5 = NULL;
-
-
-    // get firmware file size
-    struct stat stat_buf;
-    if (stat(firmware_fullpath, &stat_buf) < 0) {
-      result = FIRMWARE_NOT_FOUND;
-      goto cleanup;
-    }
-    off_t file_size = stat_buf.st_size;
-
-    // load firmware file
-    firmware = fopen(firmware_fullpath, "r");
-    if (!firmware) {
-      result = FIRMWARE_OPEN_ERROR;
-      goto cleanup;
-    }
-    file_buf = malloc(file_size);
-    if (!file_buf) {
-      result = ALLOC_ERROR;
-      goto cleanup;
-    }
-
-    int bytes_read = 0;
-    file_ptr = file_buf;
-    while (bytes_read < file_size)
+    for (i = 0; i < filecount; i++)
     {
-      int n = fread(file_ptr, sizeof(uint8_t), file_size - bytes_read, firmware);
-      if (n <= 0) {
-        result = FIRMWARE_READ_ERROR;
-        goto cleanup;
-      }
-      file_ptr += n;
-      bytes_read += n;
-    }
+        char firmware_fullpath[PATH_MAX] = UPDATE_FIRMWARE_DIR;
+        uint32_t firmware_fullpath_len = strlen(firmware_fullpath);
+        strncat(firmware_fullpath, meadow_esp32_firmware[i].filename, PATH_MAX - firmware_fullpath_len - 1);
+        firmware_fullpath_len = strlen(firmware_fullpath);
+        char firmware_fullpath_md5[PATH_MAX];
+        strncpy(firmware_fullpath_md5, firmware_fullpath, PATH_MAX);
+        strncat(firmware_fullpath_md5, ".md5", PATH_MAX - firmware_fullpath_len - 1);
+        uint8_t *file_ptr = NULL;
+        uint8_t *md5_hash_buf = NULL;
+        uint8_t *file_buf = NULL;
+        FILE *firmware = NULL;
+        FILE *firmware_md5 = NULL;
 
-    // get firmware md5 file size
-    if (stat(firmware_fullpath_md5, &stat_buf) < 0) {
-      result = MD5_NOT_FOUND;
-      goto cleanup;
-    }
-    off_t md5_file_size = stat_buf.st_size;
+        // get firmware file size
+        struct stat stat_buf;
+        if (stat(firmware_fullpath, &stat_buf) < 0)
+        {
+            result = FIRMWARE_NOT_FOUND;
+            goto cleanup;
+        }
+        off_t file_size = stat_buf.st_size;
 
-    if (md5_file_size < HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH) {
-      result = MD5_FORMAT_ERROR;
-      goto cleanup;
-    }
-    md5_file_size = HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH;
+        // load firmware file
+        firmware = fopen(firmware_fullpath, "r");
+        if (!firmware)
+        {
+            result = FIRMWARE_OPEN_ERROR;
+            goto cleanup;
+        }
+        file_buf = malloc(file_size);
+        if (!file_buf)
+        {
+            result = ALLOC_ERROR;
+            goto cleanup;
+        }
 
-    // load md5 file
-    firmware_md5 = fopen(firmware_fullpath_md5, "r");
-    if (!firmware_md5) {
-      result = MD5_OPEN_ERROR;
-      goto cleanup;
-    }
-    md5_hash_buf = malloc(HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH + 1);
-    if (!md5_hash_buf) {
-      result = ALLOC_ERROR;
-      goto cleanup;
-    }
+        int bytes_read = 0;
+        file_ptr = file_buf;
+        while (bytes_read < file_size)
+        {
+            int n = fread(file_ptr, sizeof(uint8_t), file_size - bytes_read, firmware);
+            if (n <= 0)
+            {
+                result = FIRMWARE_READ_ERROR;
+                goto cleanup;
+            }
+            file_ptr += n;
+            bytes_read += n;
+        }
 
-    bytes_read = 0;
-    file_ptr = md5_hash_buf;
-    while (bytes_read < md5_file_size)
-    {
-      int n = fread(file_ptr, sizeof(uint8_t), md5_file_size - bytes_read, firmware_md5);
-      if (n <= 0) {
-        result =  MD5_READ_ERROR;
-        goto cleanup;
-      }
-      file_ptr += n;
-      bytes_read += n;
-    }
-    md5_hash_buf[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
+        // get firmware md5 file size
+        if (stat(firmware_fullpath_md5, &stat_buf) < 0)
+        {
+            result = MD5_NOT_FOUND;
+            goto cleanup;
+        }
+        off_t md5_file_size = stat_buf.st_size;
 
-    // flash file
-    int flash_result = hcom_esp32_exec_flash_file(file_buf, file_size, meadow_esp32_firmware[i].target_addr , (char *) md5_hash_buf);
-    if (flash_result < 0) {
-      result =  ESP32_FLASH_ERROR;
-      goto cleanup;
-    }
-    result = 1; // update good so far
+        if (md5_file_size < HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH)
+        {
+            result = MD5_FORMAT_ERROR;
+            goto cleanup;
+        }
+        md5_file_size = HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH;
+
+        // load md5 file
+        firmware_md5 = fopen(firmware_fullpath_md5, "r");
+        if (!firmware_md5)
+        {
+            result = MD5_OPEN_ERROR;
+            goto cleanup;
+        }
+        md5_hash_buf = malloc(HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH + 1);
+        if (!md5_hash_buf)
+        {
+            result = ALLOC_ERROR;
+            goto cleanup;
+        }
+
+        bytes_read = 0;
+        file_ptr = md5_hash_buf;
+        while (bytes_read < md5_file_size)
+        {
+            int n = fread(file_ptr, sizeof(uint8_t), md5_file_size - bytes_read, firmware_md5);
+            if (n <= 0)
+            {
+                result = MD5_READ_ERROR;
+                goto cleanup;
+            }
+            file_ptr += n;
+            bytes_read += n;
+        }
+        md5_hash_buf[HCOM_PROTOCOL_COMMAND_MD5_HASH_LENGTH] = '\0';
+
+        // flash file
+        int flash_result = hcom_esp32_exec_flash_file(file_buf, file_size, meadow_esp32_firmware[i].target_addr, (char *) md5_hash_buf);
+        if (flash_result < 0)
+        {
+            result = ESP32_FLASH_ERROR;
+            goto cleanup;
+        }
+        result = 1; // update good so far
 
 cleanup:
-    if (firmware)
-      fclose(firmware);
-    if (file_buf)
-      free(file_buf);
-    if (firmware_md5)
-      fclose(firmware_md5);
-    if (md5_hash_buf)
-      free(md5_hash_buf);
-    if (result < 0)
-      break;
-  }
-  if (result > 0)
-    hcom_esp32_exec_add_flash_end();
-  return (result < 0) ? (result * (i + 1)) : (result * i);
+        if (firmware)
+            fclose(firmware);
+        if (file_buf)
+            free(file_buf);
+        if (firmware_md5)
+            fclose(firmware_md5);
+        if (md5_hash_buf)
+            free(md5_hash_buf);
+        if (result < 0)
+            break;
+    }
+    if (result > 0)
+        hcom_esp32_exec_add_flash_end();
+    return (result < 0) ? (result * (i + 1)) : (result * i);
 }
 #endif

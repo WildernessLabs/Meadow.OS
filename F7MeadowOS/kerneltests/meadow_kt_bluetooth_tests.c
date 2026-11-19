@@ -40,53 +40,53 @@
 
 #if defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#pragma message "(--) espcp_bluetooth_tests.c included"
+    #pragma message "(--) espcp_bluetooth_tests.c included"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <inttypes.h>
-#include <stdlib.h>
-#include <string.h>
-#include <malloc.h>
-#include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
-#include <time.h>
-#include <unistd.h>
-#include <syslog.h>
-#include <assert.h>
-#include <errno.h>
-#include <debug.h>
+    #include <stdint.h>
+    #include <stdbool.h>
+    #include <inttypes.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <malloc.h>
+    #include <nuttx/mqueue.h> // file_mq_* (kernel-side queue API)
+    #include <time.h>
+    #include <unistd.h>
+    #include <syslog.h>
+    #include <assert.h>
+    #include <errno.h>
+    #include <debug.h>
 
-#include <meadow/meadow-upd.h>
-#include <meadow/meadow_kernel_tests.h>
-#include <meadow/meadow_unit_test_framework.h>
-#include "../espcp/espcp_encoders.h"
-#include "../espcp/espcp_shared_enums.h"
+    #include <meadow/meadow-upd.h>
+    #include <meadow/meadow_kernel_tests.h>
+    #include <meadow/meadow_unit_test_framework.h>
+    #include "../espcp/espcp_encoders.h"
+    #include "../espcp/espcp_shared_enums.h"
 
 /****************************************************************************
  * Pre-processor definitions
  ****************************************************************************/
 
-#define LOGGING_LEVEL           1
+    #define LOGGING_LEVEL 1
 
-//
-//  Delay (us) after sending a command to allow events to propagate.
-//
-#define BT_DELAY                2000000
+    //
+    //  Delay (us) after sending a command to allow events to propagate.
+    //
+    #define BT_DELAY 2000000
 
-//
-//  Name of the NuttX message queue that carries ESP32 events.
-//
-#define BT_EVENT_QUEUE_NAME     "/Esp32Events"
+    //
+    //  Name of the NuttX message queue that carries ESP32 events.
+    //
+    #define BT_EVENT_QUEUE_NAME "/Esp32Events"
 
-//
-//  Encoded size of an espcp_event_data_t on the queue (bytes).
-//
-#define BT_EVENT_ENCODED_SIZE   ESPCP_EVENT_DATA_SIZE
+    //
+    //  Encoded size of an espcp_event_data_t on the queue (bytes).
+    //
+    #define BT_EVENT_ENCODED_SIZE ESPCP_EVENT_DATA_SIZE
 
-//
-//  Default receive timeout for automated tests (ms).
-//
-#define BT_TIMEOUT_MS           10000
+    //
+    //  Default receive timeout for automated tests (ms).
+    //
+    #define BT_TIMEOUT_MS 10000
 
 /****************************************************************************
  * Private variables and associated macros
@@ -96,35 +96,42 @@ static uint tests_run = 0;
 static uint tests_passed = 0;
 static uint tests_failed = 0;
 
-#define TEST_PASSED     tests_run++; tests_passed++;
-#define TEST_FAILED     tests_run++; tests_failed++;
+    #define TEST_PASSED                                                                                                                                                                                                                                                                                    \
+        tests_run++;                                                                                                                                                                                                                                                                                       \
+        tests_passed++;
+    #define TEST_FAILED                                                                                                                                                                                                                                                                                    \
+        tests_run++;                                                                                                                                                                                                                                                                                       \
+        tests_failed++;
 
-#define ALLOCATE_HEAP_STRUCTURES \
-    struct mallinfo _heap_before, _heap_after; \
-    struct mallinfo _kheap_before, _kheap_after;
+    #define ALLOCATE_HEAP_STRUCTURES                                                                                                                                                                                                                                                                       \
+        struct mallinfo _heap_before, _heap_after;                                                                                                                                                                                                                                                         \
+        struct mallinfo _kheap_before, _kheap_after;
 
-#define GET_INITIAL_HEAP_INFORMATION \
-    _heap_before = mallinfo(); \
-    _kheap_before = kmm_mallinfo();
+    #define GET_INITIAL_HEAP_INFORMATION                                                                                                                                                                                                                                                                   \
+        _heap_before = mallinfo();                                                                                                                                                                                                                                                                         \
+        _kheap_before = kmm_mallinfo();
 
-#define GET_FINAL_HEAP_INFORMATION \
-    _heap_after = mallinfo(); \
-    _kheap_after = kmm_mallinfo();
+    #define GET_FINAL_HEAP_INFORMATION                                                                                                                                                                                                                                                                     \
+        _heap_after = mallinfo();                                                                                                                                                                                                                                                                          \
+        _kheap_after = kmm_mallinfo();
 
-#define HEAP_USAGE_PASS_OR_FAIL \
-    do { \
-        int _udiff = _heap_after.uordblks  - _heap_before.uordblks; \
-        int _kdiff = _kheap_after.uordblks - _kheap_before.uordblks; \
-        if ((_udiff > 0) || (_kdiff > 0)) { \
-            syslog(LOGGING_LEVEL, \
-                   "    FAIL: Memory not released: user %d, kernel %d\n", \
-                   _udiff, _kdiff); \
-            TEST_FAILED; \
-        } else { \
-            syslog(LOGGING_LEVEL, "    PASS: Heap memory OK\n"); \
-            TEST_PASSED; \
-        } \
-    } while (0)
+    #define HEAP_USAGE_PASS_OR_FAIL                                                                                                                                                                                                                                                                        \
+        do                                                                                                                                                                                                                                                                                                 \
+        {                                                                                                                                                                                                                                                                                                  \
+            int _udiff = _heap_after.uordblks - _heap_before.uordblks;                                                                                                                                                                                                                                     \
+            int _kdiff = _kheap_after.uordblks - _kheap_before.uordblks;                                                                                                                                                                                                                                   \
+            if ((_udiff > 0) || (_kdiff > 0))                                                                                                                                                                                                                                                              \
+            {                                                                                                                                                                                                                                                                                              \
+                syslog(LOGGING_LEVEL, "    FAIL: Memory not released: user %d, kernel %d\n", _udiff, _kdiff);                                                                                                                                                                                              \
+                TEST_FAILED;                                                                                                                                                                                                                                                                               \
+            }                                                                                                                                                                                                                                                                                              \
+            else                                                                                                                                                                                                                                                                                           \
+            {                                                                                                                                                                                                                                                                                              \
+                syslog(LOGGING_LEVEL, "    PASS: Heap memory OK\n");                                                                                                                                                                                                                                       \
+                TEST_PASSED;                                                                                                                                                                                                                                                                               \
+            }                                                                                                                                                                                                                                                                                              \
+        }                                                                                                                                                                                                                                                                                                  \
+        while (0)
 
 /****************************************************************************
  * Private JSON config strings (ported verbatim from test_bluetooth_service_json.hpp)
@@ -327,7 +334,7 @@ static const char *meadow_f7_json = R"({
  *   None
  *
  ****************************************************************************/
- static int meadow_kt_bluetooth_test_open_event_queue(struct file *q)
+static int meadow_kt_bluetooth_test_open_event_queue(struct file *q)
 {
     int ret = file_mq_open(q, BT_EVENT_QUEUE_NAME, O_RDONLY | O_NONBLOCK);
     if (ret < 0)
@@ -435,9 +442,7 @@ static int meadow_kt_bluetooth_test_receive_event(struct file *event_queue, int 
  *   None
  *
  ****************************************************************************/
-static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint8_t expected_interface,
-                                uint32_t expected_function, uint32_t expected_status,
-                                const char *label)
+static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint8_t expected_interface, uint32_t expected_function, uint32_t expected_status, const char *label)
 {
     if (event == NULL)
     {
@@ -446,8 +451,7 @@ static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint
         return;
     }
 
-    bool ok = (event->interface == expected_interface) && (event->function == expected_function)
-           && (event->status_code == expected_status);
+    bool ok = (event->interface == expected_interface) && (event->function == expected_function) && (event->status_code == expected_status);
 
     if (ok)
     {
@@ -456,9 +460,9 @@ static void meadow_kt_bluetooth_test_check_event(espcp_event_data_t *event, uint
     }
     else
     {
-         syslog(LOGGING_LEVEL, "    FAIL: %s - got interface=%u function=%u status=%u, expected interface=%u function=%u status=%u\n",
-               label, (unsigned) event->interface, (unsigned) event->function, (unsigned) event->status_code, (unsigned) expected_interface,
-               (unsigned) expected_function, (unsigned) expected_status);
+        syslog(
+            LOGGING_LEVEL, "    FAIL: %s - got interface=%u function=%u status=%u, expected interface=%u function=%u status=%u\n", label, (unsigned) event->interface, (unsigned) event->function, (unsigned) event->status_code, (unsigned) expected_interface, (unsigned) expected_function,
+            (unsigned) expected_status);
         TEST_FAILED;
     }
 }
@@ -497,28 +501,18 @@ static bool meadow_kt_bluetooth_test_start_service(struct file *event_queue, con
 
     espcp_encode_b_t_stack_config(&stack_config, payload);
 
-    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth,
-                                           espcp_bluetooth_function_start,
-                                           payload,
-                                           payload_len);
+    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_function_start, payload, payload_len);
     free(payload);
 
     espcp_event_data_t *event = NULL;
 
     meadow_kt_bluetooth_test_receive_event(event_queue, BT_TIMEOUT_MS, &event);
-    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth,
-                        espcp_bluetooth_starting_event, 
-                        espcp_status_codes_completed_ok,
-                        "BluetoothStartingEvent");
+    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_starting_event, espcp_status_codes_completed_ok, "BluetoothStartingEvent");
     free(event);
     event = NULL;
 
     meadow_kt_bluetooth_test_receive_event(event_queue, BT_TIMEOUT_MS, &event);
-    meadow_kt_bluetooth_test_check_event(event,
-                        espcp_esp32_interfaces_blue_tooth,
-                        espcp_bluetooth_started_event,
-                        espcp_status_codes_completed_ok,
-                        "BluetoothStartedEvent");
+    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_started_event, espcp_status_codes_completed_ok, "BluetoothStartedEvent");
     free(event);
 
     if (status == espcp_status_codes_completed_ok)
@@ -554,25 +548,17 @@ static bool meadow_kt_bluetooth_test_start_service(struct file *event_queue, con
  ****************************************************************************/
 static bool meadow_kt_bluetooth_test_stop_bluetooth(struct file *event_queue)
 {
-    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth,
-                                           espcp_bluetooth_function_stop,
-                                           NULL,
-                                           0);
+    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_function_stop, NULL, 0);
 
     espcp_event_data_t *event = NULL;
 
     meadow_kt_bluetooth_test_receive_event(event_queue, BT_TIMEOUT_MS, &event);
-    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_stopping_event,
-                        espcp_status_codes_completed_ok, "BluetoothStoppingEvent");
+    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_stopping_event, espcp_status_codes_completed_ok, "BluetoothStoppingEvent");
     free(event);
     event = NULL;
 
     meadow_kt_bluetooth_test_receive_event(event_queue, BT_TIMEOUT_MS, &event);
-    meadow_kt_bluetooth_test_check_event(event,
-                        espcp_esp32_interfaces_blue_tooth,
-                        espcp_bluetooth_stopped_event,
-                        espcp_status_codes_completed_ok,
-                        "BluetoothStoppedEvent");
+    meadow_kt_bluetooth_test_check_event(event, espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_stopped_event, espcp_status_codes_completed_ok, "BluetoothStoppedEvent");
     free(event);
 
     if (status == espcp_status_codes_completed_ok)
@@ -608,8 +594,7 @@ static bool meadow_kt_bluetooth_test_stop_bluetooth(struct file *event_queue)
  ****************************************************************************/
 static void meadow_kt_bluetooth_test_log_summary(void)
 {
-    syslog(LOGGING_LEVEL, "    BT test summary: %u run, %u passed, %u failed\n",
-           tests_run, tests_passed, tests_failed);
+    syslog(LOGGING_LEVEL, "    BT test summary: %u run, %u passed, %u failed\n", tests_run, tests_passed, tests_failed);
 }
 
 /****************************************************************************
@@ -893,16 +878,11 @@ void meadow_kt_bluetooth_test_stop_not_started(void)
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth,
-                                           espcp_bluetooth_function_stop,
-                                           NULL,
-                                           0);
+    uint32_t status = meadow_kt_bluetooth_test_send_command(espcp_esp32_interfaces_blue_tooth, espcp_bluetooth_function_stop, NULL, 0);
 
     if (status != espcp_status_codes_completed_ok)
     {
-        syslog(LOGGING_LEVEL,
-               "    PASS: Stop-not-started returned failure status %u\n",
-               (unsigned) status);
+        syslog(LOGGING_LEVEL, "    PASS: Stop-not-started returned failure status %u\n", (unsigned) status);
         TEST_PASSED;
     }
     else
@@ -1387,4 +1367,4 @@ void meadow_kt_bluetooth_start_stop(void)
 //     file_mq_close(&eq);
 // }
 
-#endif  /* defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */
+#endif /* defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */

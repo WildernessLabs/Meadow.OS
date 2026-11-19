@@ -1,6 +1,6 @@
 /****************************************************************************
  * apps\examples\hcom\comms\hcom_host_encode.c
- * 
+ *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -68,42 +68,41 @@
 // message by the caller. Also, while not always needed it can also be preceeded by
 // the delimiter.
 
-size_t hcom_host_cobs_encoder(uint8_t source[], size_t startingOffset,
-          size_t length, uint8_t encoded[])
+size_t hcom_host_cobs_encoder(uint8_t source[], size_t startingOffset, size_t length, uint8_t encoded[])
 {
-  size_t sourceOffset = startingOffset; // Offset to pre-encoded data buffer
-  size_t encodedOffset = 1;             // Offset to encoded data buffer
-  size_t replaceOffset = 0;             // Offset where 0 is being tracked
-  uint8_t replacement = 1;              // Value that will be inserted to indicate 0 replaced
+    size_t sourceOffset = startingOffset; // Offset to pre-encoded data buffer
+    size_t encodedOffset = 1;             // Offset to encoded data buffer
+    size_t replaceOffset = 0;             // Offset where 0 is being tracked
+    uint8_t replacement = 1;              // Value that will be inserted to indicate 0 replaced
 
-  while (sourceOffset < length + startingOffset)
-  {
-    // Is source value is the delimiter (0)?
-    if (source[sourceOffset] == HCOM_PROTOCOL_COBS_DELIMITER)
+    while (sourceOffset < length + startingOffset)
     {
-      encoded[replaceOffset] = replacement; // Replace '0' value with offset
-      replaceOffset = encodedOffset++;      // Update replacement offset and bump encoded offset
-      replacement = 1;                      // Reset replacement offset
-    }
-    else
-    {
-      encoded[encodedOffset++] = source[sourceOffset]; // Just copy original value
-      replacement++;                        // Keep replacement offset right
+        // Is source value is the delimiter (0)?
+        if (source[sourceOffset] == HCOM_PROTOCOL_COBS_DELIMITER)
+        {
+            encoded[replaceOffset] = replacement; // Replace '0' value with offset
+            replaceOffset = encodedOffset++;      // Update replacement offset and bump encoded offset
+            replacement = 1;                      // Reset replacement offset
+        }
+        else
+        {
+            encoded[encodedOffset++] = source[sourceOffset]; // Just copy original value
+            replacement++;                                   // Keep replacement offset right
 
-      // 0xff is reserved for longer than 254 byte packets. If 0xff then
-      // replace it with the offset.
-      if (replacement == 0xff)
-      {
-        encoded[replaceOffset] = replacement;
-        replaceOffset = encodedOffset++;
-        replacement = 1;
-      }
+            // 0xff is reserved for longer than 254 byte packets. If 0xff then
+            // replace it with the offset.
+            if (replacement == 0xff)
+            {
+                encoded[replaceOffset] = replacement;
+                replaceOffset = encodedOffset++;
+                replacement = 1;
+            }
+        }
+        sourceOffset++; // Point to next source value
     }
-    sourceOffset++; // Point to next source value
-  }
 
-  encoded[replaceOffset] = replacement;
-  return encodedOffset; // Number of bytes written to result buffer
+    encoded[replaceOffset] = replacement;
+    return encodedOffset; // Number of bytes written to result buffer
 }
 
 //-------------------------------------------------------------------------
@@ -112,33 +111,33 @@ size_t hcom_host_cobs_encoder(uint8_t source[], size_t startingOffset,
 // This function returns '0' if no terminating delimiter.
 size_t hcom_host_cobs_decoder(uint8_t encoded[], size_t length, uint8_t decoded[])
 {
-  size_t encodedOffset = 0; // Offset into original (encoded) buffer
-  size_t decodedOffset = 0; // Offset into destination (decoded) buffer
-  uint8_t replacement = 0;  // Value that will be inserted to indicate replaced value
+    size_t encodedOffset = 0; // Offset into original (encoded) buffer
+    size_t decodedOffset = 0; // Offset into destination (decoded) buffer
+    uint8_t replacement = 0;  // Value that will be inserted to indicate replaced value
 
-  while (encodedOffset < length)
-  {
-    replacement = encoded[encodedOffset]; // Grab next byte
-    if (((encodedOffset + replacement) > length) && (replacement != 1))
-      return 0;
-
-    encodedOffset++; // Point to next source
-
-    // Copy all unchanged bytes. Guard replacement > 1 (rather than computing
-    // replacement - 1 unconditionally) so replacement == 0 can't underflow
-    // into a huge unsigned byte count -- matches the original loop's
-    // behavior of copying nothing for replacement == 0 or 1.
-    if (replacement > 1)
+    while (encodedOffset < length)
     {
-      memcpy(&decoded[decodedOffset], &encoded[encodedOffset], replacement - 1);
-      decodedOffset += replacement - 1;
-      encodedOffset += replacement - 1;
+        replacement = encoded[encodedOffset]; // Grab next byte
+        if (((encodedOffset + replacement) > length) && (replacement != 1))
+            return 0;
+
+        encodedOffset++; // Point to next source
+
+        // Copy all unchanged bytes. Guard replacement > 1 (rather than computing
+        // replacement - 1 unconditionally) so replacement == 0 can't underflow
+        // into a huge unsigned byte count -- matches the original loop's
+        // behavior of copying nothing for replacement == 0 or 1.
+        if (replacement > 1)
+        {
+            memcpy(&decoded[decodedOffset], &encoded[encodedOffset], replacement - 1);
+            decodedOffset += replacement - 1;
+            encodedOffset += replacement - 1;
+        }
+
+        // Sometimes don't need a trailing delimiter added
+        if (replacement < 0xff && encodedOffset != length)
+            decoded[decodedOffset++] = HCOM_PROTOCOL_COBS_DELIMITER;
     }
 
-    // Sometimes don't need a trailing delimiter added
-    if (replacement < 0xff && encodedOffset != length)
-      decoded[decodedOffset++] = HCOM_PROTOCOL_COBS_DELIMITER;
-  }
-
-  return decodedOffset;
+    return decodedOffset;
 }

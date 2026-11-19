@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <stdio.h>
 
+#include <nuttx/fs/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
 
@@ -60,7 +61,7 @@
  */
 
 #ifndef IFF_DOWN
-#  define IFF_DOWN 0
+    #define IFF_DOWN 0
 #endif
 
 #define MEADOW_THREAD_NAME_ETHNET_CONNECTION "EthConn"
@@ -68,7 +69,7 @@
 #define MEADOW_THREAD_STACKSIZE_ETHNET_CONNECTION 4096
 
 // Needed to verify that the connected lan chip is the supported LAN9355
-#define LAN9355_CHIP_ID_REVISION_REGISTER (0x50)  // 32-bit register
+#define LAN9355_CHIP_ID_REVISION_REGISTER (0x50) // 32-bit register
 
 /****************************************************************************
  * Private Data
@@ -79,12 +80,12 @@
 // 'dhcp_info_s' to avoid additional confusion.
 struct dhcp_info_s
 {
-  struct in_addr serverid;
-  struct in_addr ipaddr;
-  struct in_addr netmask;
-  struct in_addr dnsaddr;
-  struct in_addr default_router;
-  uint32_t       lease_time;      /* Lease expires in this number of seconds */
+    struct in_addr serverid;
+    struct in_addr ipaddr;
+    struct in_addr netmask;
+    struct in_addr dnsaddr;
+    struct in_addr default_router;
+    uint32_t lease_time; /* Lease expires in this number of seconds */
 };
 
 /****************************************************************************
@@ -97,17 +98,12 @@ int meadow_eth_utils_get_hw_mac(const char *interfaceName, uint8_t *macAddr);
 int meadow_eth_utils_exec_ifup(const char *interfaceName);
 int meadow_eth_utils_exec_ifdown(const char *interfaceName);
 int meadow_eth_utils_set_mac(const char *interfaceName, const uint8_t *macAddr);
-int meadow_eth_utils_set_ipv4(const char *interfaceName,
-          const struct in_addr *addr);
-int meadow_eth_utils_get_ipv4(const char *interfaceName,
-          struct in_addr *addr);
-int meadow_eth_utils_get_mac(const char *interfaceName,
-          uint8_t *macAddr);
-int meadow_eth_utils_set_ipv4_mask(const char *interfaceName,
-          const struct in_addr *addr);
+int meadow_eth_utils_set_ipv4(const char *interfaceName, const struct in_addr *addr);
+int meadow_eth_utils_get_ipv4(const char *interfaceName, struct in_addr *addr);
+int meadow_eth_utils_get_mac(const char *interfaceName, uint8_t *macAddr);
+int meadow_eth_utils_set_ipv4_mask(const char *interfaceName, const struct in_addr *addr);
 int meadow_eth_utils_set_dns(const struct in_addr *inaddr);
-int meadow_eth_utils_set_router(const char *interfaceName,
-          const struct in_addr *addr);
+int meadow_eth_utils_set_router(const char *interfaceName, const struct in_addr *addr);
 uint32_t meadow_eth_utils_parse_ip_str(const char *address);
 int meadow_eth_utils_verify_lan9355(void);
 
@@ -117,8 +113,7 @@ int meadow_lan9355_phywrite_32(uint16_t csrAddr, uint32_t value);
 int meadow_lan9355_phyread_32(uint16_t csrAddr, uint32_t *value);
 
 // Shared, non-utility functions
-int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info,
-          const char *interfaceName, const uint8_t *macAddr);
+int meadow_eth_dhcp_get_dhcp_info(struct dhcp_info_s *dhcp_info, const char *interfaceName, const uint8_t *macAddr);
 
 int meadow_eth_mon_config_lan9355_irq(void);
 int meadow_eth_mon_disable_lan9355_irq(void);
@@ -127,56 +122,43 @@ int meadow_eth_mon_reenable_lan9355_irq(void);
 int meadow_eth_conn_startup(void);
 int meadow_eth_conn_link_status_changed(bool linkStatusUp);
 
-
-
-/////////////////////////////////////////////////////////////////////// 
+///////////////////////////////////////////////////////////////////////
 // STUFF FROM V12 v
-
-// Copied from /Meadow.OS/esp32/components/F7Services/WiFi/WiFiRequestHandler.hpp
-// but needed here
-#define _SIOCBASE           (0x0700)            /* Socket ioctl commands */
-#define _IOC(type,nr)       ((type)|(nr))
-#define _SIOC(nr)           _IOC(_SIOCBASE,nr)
-#define SIOCGIFADDR         _SIOC(0x0001)       /* Get IP address */
-
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
- typedef void (*dhcpc_callback_t)(FAR struct dhcp_info_s *presult);
- 
- /****************************************************************************
-  * Public Function Prototypes
-  ****************************************************************************/
- 
- #ifdef __cplusplus
- #define EXTERN extern "C"
- extern "C"
- {
- #else
- #define EXTERN extern
- #endif
- 
- FAR void *dhcpc_open(FAR const char *interface,
-                      FAR const void *mac_addr, int mac_len);
- int  dhcpc_request(FAR void *handle, FAR struct dhcp_info_s *presult);
- int  dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback);
- void dhcpc_cancel(FAR void *handle);
- void dhcpc_close(FAR void *handle);
- 
- // Added 
- #ifdef CONFIG_NET_IPv4
-int netlib_get_ipv4addr(FAR const char *ifname, FAR struct in_addr *addr);
-int netlib_set_ipv4addr(FAR const char *ifname,
-                        FAR const struct in_addr *addr);
+typedef void (*dhcpc_callback_t)(FAR struct dhcp_info_s *presult);
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+    #define EXTERN extern "C"
+extern "C"
+{
+#else
+    #define EXTERN extern
 #endif
 
- #undef EXTERN
- #ifdef __cplusplus
- }
- #endif
-/////////////////////////////////////////////////////////////////////// 
+    FAR void *dhcpc_open(FAR const char *interface, FAR const void *mac_addr, int mac_len);
+    int dhcpc_request(FAR void *handle, FAR struct dhcp_info_s *presult);
+    int dhcpc_request_async(FAR void *handle, dhcpc_callback_t callback);
+    void dhcpc_cancel(FAR void *handle);
+    void dhcpc_close(FAR void *handle);
 
+// Added
+#ifdef CONFIG_NET_IPv4
+    int netlib_get_ipv4addr(FAR const char *ifname, FAR struct in_addr *addr);
+    int netlib_set_ipv4addr(FAR const char *ifname, FAR const struct in_addr *addr);
+#endif
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+///////////////////////////////////////////////////////////////////////
 
 #endif // __CONFIGS_MEADOW_SRC_MEADOW_ETHNET_LOCAL__H

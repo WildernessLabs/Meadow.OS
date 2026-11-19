@@ -63,38 +63,38 @@
 // Only build if configured
 #if defined(CONFIG_PWM_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#pragma message "(--) meadow_pwm_tests.c"
+    #pragma message "(--) meadow_pwm_tests.c"
 
-#include <stdbool.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <unistd.h>
+    #include <stdbool.h>
+    #include <stdint.h>
+    #include <inttypes.h>
+    #include <unistd.h>
 
-#include "../hcom_nx/hcom_nx_common.h"
-#include <meadow/hcom_shared_common.h>
-#include <meadow/meadow_kernel_tests.h>
-#include <meadow/meadow_unit_test_framework.h>
-#include <meadow/meadow_hw_version.h>
-#include <meadow/meadow-upd.h>
-#include "stm32_gpio.h"
-#include "meadow_kt_log.h"
+    #include "../hcom_nx/hcom_nx_common.h"
+    #include <meadow/hcom_shared_common.h>
+    #include <meadow/meadow_kernel_tests.h>
+    #include <meadow/meadow_unit_test_framework.h>
+    #include <meadow/meadow_hw_version.h>
+    #include <meadow/meadow-upd.h>
+    #include "stm32_gpio.h"
+    #include "meadow_kt_log.h"
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+    /****************************************************************************
+     * Pre-processor Definitions
+     ****************************************************************************/
 
-// How long to hold the signal so it can be observed with a scope/logic
-// analyzer before the test stops it.
-#define MEADOW_PWM_TEST_HOLD_TIME_US (5 * 1000 * 1000)
+    // How long to hold the signal so it can be observed with a scope/logic
+    // analyzer before the test stops it.
+    #define MEADOW_PWM_TEST_HOLD_TIME_US (5 * 1000 * 1000)
 
-// Fixed frequency/duty for the "all channels on" test.
-#define MEADOW_PWM_ALL_ON_FREQ_KHZ (10)
-#define MEADOW_PWM_ALL_ON_DUTY_PCT (50)
+    // Fixed frequency/duty for the "all channels on" test.
+    #define MEADOW_PWM_ALL_ON_FREQ_KHZ (10)
+    #define MEADOW_PWM_ALL_ON_DUTY_PCT (50)
 
-// Fixed frequency/duty for the "cycle through all channels" test - only
-// the per-channel hold time is configurable, via -v (in seconds).
-#define MEADOW_PWM_CYCLE_TEST_FREQ_KHZ (10)
-#define MEADOW_PWM_CYCLE_TEST_DUTY_PCT (30)
+    // Fixed frequency/duty for the "cycle through all channels" test - only
+    // the per-channel hold time is configurable, via -v (in seconds).
+    #define MEADOW_PWM_CYCLE_TEST_FREQ_KHZ (10)
+    #define MEADOW_PWM_CYCLE_TEST_DUTY_PCT (30)
 
 /****************************************************************************
  * Private Types
@@ -255,8 +255,7 @@ static int meadow_pwm_start_pin(enum meadow_pwm_pin_e pin, uint32_t freqKhz, uin
 
     outCmd->duty = ((uint32_t) dutyPct << 16) / 100; // ub16_t fraction
 
-    syslog(LOG_MTEST, "PWM test: timer %" PRIu32 " channel %" PRIu32 ", %" PRIu32 " kHz, %" PRIu32 "%% duty - started\n",
-                      (uint32_t) chan->timer, (uint32_t) chan->channel, freqKhz, (uint32_t) dutyPct);
+    syslog(LOG_MTEST, "PWM test: timer %" PRIu32 " channel %" PRIu32 ", %" PRIu32 " kHz, %" PRIu32 "%% duty - started\n", (uint32_t) chan->timer, (uint32_t) chan->channel, freqKhz, (uint32_t) dutyPct);
 
     int ret = upd_handle_pwm(MUPD_PWM_START, (unsigned long) outCmd);
     if (ret < 0)
@@ -286,8 +285,7 @@ static int meadow_pwm_stop_pin(enum meadow_pwm_pin_e pin)
     cmd.frequency = 0;
     cmd.duty = 0;
 
-    syslog(LOG_MTEST, "PWM test: timer %" PRIu32 " channel %" PRIu32 " - stopped\n",
-                      (uint32_t) chan->timer, (uint32_t) chan->channel);
+    syslog(LOG_MTEST, "PWM test: timer %" PRIu32 " channel %" PRIu32 " - stopped\n", (uint32_t) chan->timer, (uint32_t) chan->channel);
 
     upd_handle_pwm(MUPD_PWM_SHUTDOWN, (unsigned long) &cmd);
 
@@ -397,15 +395,15 @@ static void meadow_pwm_report_result(const char *testName, int ret)
     }
 }
 
-// One thin wrapper per test ID: the dispatcher requires a distinct
-// void(uint32_t) function pointer per test, so each pin+duty combination
-// gets its own function that forwards to the shared worker above.
-#define MEADOW_PWM_TEST_FUNC(funcName, pinId, dutyPct)                                       \
-    void funcName(uint32_t value)                                                            \
-    {                                                                                        \
-        int ret = meadow_pwm_run_test(pinId, value, dutyPct, MEADOW_PWM_TEST_HOLD_TIME_US);  \
-        meadow_pwm_report_result(#funcName, ret);                                            \
-    }
+    // One thin wrapper per test ID: the dispatcher requires a distinct
+    // void(uint32_t) function pointer per test, so each pin+duty combination
+    // gets its own function that forwards to the shared worker above.
+    #define MEADOW_PWM_TEST_FUNC(funcName, pinId, dutyPct)                                                                                                                                                                                                                                                 \
+        void funcName(uint32_t value)                                                                                                                                                                                                                                                                      \
+        {                                                                                                                                                                                                                                                                                                  \
+            int ret = meadow_pwm_run_test(pinId, value, dutyPct, MEADOW_PWM_TEST_HOLD_TIME_US);                                                                                                                                                                                                            \
+            meadow_pwm_report_result(#funcName, ret);                                                                                                                                                                                                                                                      \
+        }
 
 /****************************************************************************
  * Public Functions

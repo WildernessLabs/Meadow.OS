@@ -71,7 +71,6 @@
 // #define USE_MEADOW_DEBUG_HELPERS
 #include <meadow/meadow_debug_helpers.h>
 
-
 /****************************************************************************
  * Definitions
  ****************************************************************************/
@@ -151,8 +150,7 @@ static void *espcp_thread(void *parameters)
 #endif
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), ESPCP_THREAD_NAME);
+    syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), ESPCP_THREAD_NAME);
 #endif
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -169,7 +167,7 @@ static void *espcp_thread(void *parameters)
     {
         espcp_message_t *retrieved_message;
         MEADOW_TRACE_INFORMATION("Retrieving message to send to ESP32.\n");
-        ssize_t number_of_bytes = file_mq_receive(&configuration->request_queue, (char *)&retrieved_message, sizeof(retrieved_message), NULL);
+        ssize_t number_of_bytes = file_mq_receive(&configuration->request_queue, (char *) &retrieved_message, sizeof(retrieved_message), NULL);
         if (number_of_bytes == sizeof(espcp_message_t *))
         {
             consecutive_failures = 0;
@@ -250,8 +248,7 @@ int espcp_thread_start(espcp_configuration_t *configuration)
     int result = OK;
 
 #ifdef CONFIG_BUILD_PROTECTED
-    int thread_id = kthread_create(ESPCP_THREAD_NAME, ESPCP_THREAD_PRIORITY,
-                                   ESPCP_THREAD_STACKSIZE, (main_t) espcp_thread, (char *const *) NULL);
+    int thread_id = kthread_create(ESPCP_THREAD_NAME, ESPCP_THREAD_PRIORITY, ESPCP_THREAD_STACKSIZE, (main_t) espcp_thread, (char * const *) NULL);
 
     if (thread_id <= 0)
     {
@@ -306,5 +303,5 @@ int espcp_thread_start(espcp_configuration_t *configuration)
     configuration->exit_code = result;
     espcp_config_unlock();
 
-    return(result);
+    return (result);
 }

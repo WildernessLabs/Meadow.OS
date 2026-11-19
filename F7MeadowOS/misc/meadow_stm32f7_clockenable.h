@@ -42,4 +42,4 @@
 
 void meadow_clockenable(void);
 
-#endif  // __MEADOW_STM32F7_CLOCKENABLE_H__
+#endif // __MEADOW_STM32F7_CLOCKENABLE_H__

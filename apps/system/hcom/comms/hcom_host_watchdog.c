@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\comms\hcom_host_watchdog.c
- * 
+ *
  *   Copyright (C) 2022-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -69,37 +69,37 @@ static void hcom_host_watchdog_worker(void *arg);
 // hcom_host_process_setup() function.
 int hcom_host_watchdog_dnld_starting(hcom_dnld_shared_t *dnldShared)
 {
-  // Need this to provide file name on failure.
-  _dnldShared = dnldShared;
-  _shutting_down = false;
+    // Need this to provide file name on failure.
+    _dnldShared = dnldShared;
+    _shutting_down = false;
 
-  // One time setup
-  memset(&wdog_work_queue, 0, sizeof(struct work_s));
-  return OK;
+    // One time setup
+    memset(&wdog_work_queue, 0, sizeof(struct work_s));
+    return OK;
 }
 
 //=================================================================
 void hcom_host_watchdog_stopping()
 {
-  _shutting_down = true;
+    _shutting_down = true;
 }
 
 //=================================================================
 // Callback via the USRWORK worker queue
 static void hcom_host_watchdog_worker(void *arg)
 {
-  if (_shutting_down)
-    return;
+    if (_shutting_down)
+        return;
 
-  syslog(LOG_INFO, "%s@%d-Watchdog timed out.\n", __FILE__, __LINE__);
+    syslog(LOG_INFO, "%s@%d-Watchdog timed out.\n", __FILE__, __LINE__);
 
-  // This thread can't delete the partially download file directly. We need
-  // to use the thread that was downloading to do it.
+    // This thread can't delete the partially download file directly. We need
+    // to use the thread that was downloading to do it.
 
-  // Making this call will wakeup the processing thread that's doing the
-  // download and cause it to call hcom_host_watchdog_dnld_cleanup_wdog()
-  // (below) to cleanup the partial download state information.
-  hcom_host_enq_deq_dnld_watchdog_wakeup();
+    // Making this call will wakeup the processing thread that's doing the
+    // download and cause it to call hcom_host_watchdog_dnld_cleanup_wdog()
+    // (below) to cleanup the partial download state information.
+    hcom_host_enq_deq_dnld_watchdog_wakeup();
 }
 
 //=================================================================
@@ -107,80 +107,69 @@ static void hcom_host_watchdog_worker(void *arg)
 // pthread main loop while waiting for the semaphore.
 void hcom_host_watchdog_dnld_cleanup_wdog()
 {
-  int ret;
+    int ret;
 
-  // Delete the download wdog timer that got us here
-  hcom_host_watchdog_dnld_timer_cancel();
+    // Delete the download wdog timer that got us here
+    hcom_host_watchdog_dnld_timer_cancel();
 
-  // This shared timer covers both the STM32F7 and ESP32 download paths, and
-  // each keeps its own, unrelated state -- so cleanup has to know which one
-  // was actually stalled rather than always assuming STM32F7.
-  if (hcom_file_dnld_esp32_is_active())
-  {
-    syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup (ESP32)\n", __FILE__, __LINE__);
+    // This shared timer covers both the STM32F7 and ESP32 download paths, and
+    // each keeps its own, unrelated state -- so cleanup has to know which one
+    // was actually stalled rather than always assuming STM32F7.
+    if (hcom_file_dnld_esp32_is_active())
+    {
+        syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup (ESP32)\n", __FILE__, __LINE__);
 
-    hcom_file_dnld_esp32_abort_active_download();
+        hcom_file_dnld_esp32_abort_active_download();
+
+        // Clear the receive data buffer queue
+        if (!hcom_host_enq_deq_clear_buffer())
+        {
+            syslog(LOG_ERR, "%s@%d-ESP32 download failed, clearing buff failed\n", __FILE__, __LINE__);
+        }
+
+        // Tell CLI to restart the download
+        char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
+        snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "ESP32 firmware download failed, resend");
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg, __FILE__, __LINE__);
+        return;
+    }
+
+    // dnldOrigPathName is NULL whenever no download is active. The enqueue/
+    // dequeue fast-path fix should prevent this cleanup from firing while idle,
+    // but guard the %s formatting below regardless, since NULL there would be
+    // a crash risk on a path that's meant to be reporting a problem, not
+    // causing a new one.
+    const char *dnldFileName = (_dnldShared->dnldOrigPathName != NULL) ? _dnldShared->dnldOrigPathName : "(none)";
+
+    syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
+
+    // Close the partially downloaded file
+    ret = hcom_file_write_close_active_file(_dnldShared);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n", __FILE__, __LINE__, dnldFileName, ret, get_errno());
+    }
+
+    // Delete the partially downloaded file
+    ret = hcom_file_delete_stm32f7_file_by_name_internal(_dnldShared);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n", __FILE__, __LINE__, dnldFileName, ret, get_errno());
+    }
 
     // Clear the receive data buffer queue
-    if(! hcom_host_enq_deq_clear_buffer())
+    if (!hcom_host_enq_deq_clear_buffer())
     {
-      syslog(LOG_ERR, "%s@%d-ESP32 download failed, clearing buff failed\n",
-               __FILE__, __LINE__);
+        syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n", __FILE__, __LINE__, dnldFileName);
     }
 
     // Tell CLI to restart the download
     char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
-    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-          "ESP32 firmware download failed, resend");
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
-          __FILE__, __LINE__);
-    return;
-  }
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "File '%s' download failed, resend", dnldFileName);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg, __FILE__, __LINE__);
 
-  // dnldOrigPathName is NULL whenever no download is active. The enqueue/
-  // dequeue fast-path fix should prevent this cleanup from firing while idle,
-  // but guard the %s formatting below regardless, since NULL there would be
-  // a crash risk on a path that's meant to be reporting a problem, not
-  // causing a new one.
-  const char *dnldFileName = (_dnldShared->dnldOrigPathName != NULL) ?
-      _dnldShared->dnldOrigPathName : "(none)";
-
-  syslog(LOG_NOTICE, "%s@%d-Watchdog Timeout cleanup\n", __FILE__, __LINE__);
-
-  // Close the partially downloaded file
-  ret = hcom_file_write_close_active_file(_dnldShared);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-close failed for '%s', ret:%d, errno:%d\n",
-             __FILE__, __LINE__, dnldFileName,
-             ret, get_errno());
-  }
-
-  // Delete the partially downloaded file
-  ret = hcom_file_delete_stm32f7_file_by_name_internal(_dnldShared);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-delete failed for '%s', ret:%d, errno:%d\n",
-             __FILE__, __LINE__, dnldFileName,
-             ret, get_errno());
-  }
-
-  // Clear the receive data buffer queue
-  if(! hcom_host_enq_deq_clear_buffer())
-  {
-    syslog(LOG_ERR, "%s@%d-download failed, clearing buff failed '%s'\n",
-             __FILE__, __LINE__, dnldFileName);
-  }
-
-  // Tell CLI to restart the download
-  char hostMsg[HCOM_SHORT_HOST_STRING_BUFF_LENGTH];
-  snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-        "File '%s' download failed, resend", dnldFileName);
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_DNLD_FAIL_RESEND, 0, hostMsg,
-        __FILE__, __LINE__);
-
-  // Setting the download state to none allows future downloads.
-  _dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
+    // Setting the download state to none allows future downloads.
+    _dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 }
 
 //=================================================================
@@ -188,12 +177,11 @@ void hcom_host_watchdog_dnld_cleanup_wdog()
 // This gets called a lot when downloading, once per packet
 int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 {
-  int ret;
+    int ret;
 
-  // Wrote like this to allow breakpoint
-  ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker,
-     NULL, SEC2TICK(delayInSeconds));
-  return ret;
+    // Wrote like this to allow breakpoint
+    ret = work_queue(USRWORK, &wdog_work_queue, hcom_host_watchdog_worker, NULL, SEC2TICK(delayInSeconds));
+    return ret;
 }
 
 //=================================================================
@@ -202,13 +190,13 @@ int hcom_host_watchdog_dnld_timer_set_delay(time_t delayInSeconds)
 // as the file download is finished.
 void hcom_host_watchdog_dnld_timer_cancel()
 {
-  // syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
-  //   __FILE__, __LINE__, wdog_work_queue.worker);
+    // syslog(LOG_INFO, "%s@%d-Cancelling the watchdog timer, ptr:%p\n",
+    //   __FILE__, __LINE__, wdog_work_queue.worker);
 
-  // If worker is not active return. Otherwise cancel the work
-  if (work_available(&wdog_work_queue))
-    return;
+    // If worker is not active return. Otherwise cancel the work
+    if (work_available(&wdog_work_queue))
+        return;
 
-  // Only possible error is -ENOENT no such work queued, we can ignore
-  work_cancel(USRWORK, &wdog_work_queue);
+    // Only possible error is -ENOENT no such work queued, we can ignore
+    work_cancel(USRWORK, &wdog_work_queue);
 }

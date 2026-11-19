@@ -1,6 +1,6 @@
 /****************************************************************************
  * \include\meadow\bootloader\meadow_os_persistent_data.h
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Mark Stevens
  *
@@ -61,18 +61,18 @@
 /**
  * @brief Current persistent data structure version.
  */
-#define OS_PERSISTENT_DATA_VERSION      1
+#define OS_PERSISTENT_DATA_VERSION 1
 
 /**
  * @brief Size of the persistent data in flash.  This defaults to the flash erase
  *        page length of 4096 bytes.
  */
-#define OS_PERSISTENT_DATA_SIZE         4096
+#define OS_PERSISTENT_DATA_SIZE 4096
 
 /**
  * @brief Amount of storage reserved for data that is considered safe.
  */
-#define OS_PERSISTENT_DATA_SAFE_SIZE    OS_PERSISTENT_DATA_SIZE
+#define OS_PERSISTENT_DATA_SAFE_SIZE OS_PERSISTENT_DATA_SIZE
 
 /****************************************************************************
  * Public type definitions.
@@ -93,7 +93,7 @@ struct meadow_os_persistent_data_s
     //  How many times has the board been power cycled?
     //
     uint32_t power_cycle_count;
-    
+
     //
     //  How many times has the board been reset?
     //

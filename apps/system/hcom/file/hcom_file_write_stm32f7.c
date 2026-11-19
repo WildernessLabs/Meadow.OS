@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\file\hcom_file_write_stm32f7.c
- * 
+ *
  *   Copyright (C) 2019 - 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -47,8 +47,8 @@
 #include <nuttx/fs/fs.h>
 #include <dirent.h>
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-#pragma message "(--)hcom_file_write_stm32f7 .c"
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    #pragma message "(--)hcom_file_write_stm32f7 .c"
 #endif
 
 /****************************************************************************
@@ -70,9 +70,9 @@ static bool _shutting_down;
  ***************************************************************************/
 int hcom_file_write_setup()
 {
-  _shutting_down = false;
+    _shutting_down = false;
 
-  return OK;
+    return OK;
 }
 
 //=======================================================================
@@ -80,7 +80,7 @@ int hcom_file_write_setup()
 // error which, causes the thread to return.
 void hcom_file_write_shutdown()
 {
-  _shutting_down = true;
+    _shutting_down = true;
 }
 
 //==================================================================
@@ -88,144 +88,132 @@ void hcom_file_write_shutdown()
 // This utility function is only used by 'hcom_file_dnld_stm32f7.c'
 int hcom_file_write_open_active_file(hcom_dnld_shared_t *dnldShared)
 {
-  if (_shutting_down)
-    return OK;
+    if (_shutting_down)
+        return OK;
 
-  // Only test if meadow file system. We've already attempted to mount the
-  // SDCard so if this open is related to SDCard no need to retest here.
-  if(dnldShared->dnldRqstCat == pathnameMeadow ||
-     dnldShared->dnldRqstCat == pathnameOriginal)
-  {
-    if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
+    // Only test if meadow file system. We've already attempted to mount the
+    // SDCard so if this open is related to SDCard no need to retest here.
+    if (dnldShared->dnldRqstCat == pathnameMeadow || dnldShared->dnldRqstCat == pathnameOriginal)
     {
-      syslog(LOG_ERR, "%s@%d-F/S not mounted %s\n",
-              __FILE__, __LINE__, dnldShared->dnldFullPathName);
-      return -ENOENT; // No such file or directory
+        if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
+        {
+            syslog(LOG_ERR, "%s@%d-F/S not mounted %s\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
+            return -ENOENT; // No such file or directory
+        }
     }
-  }
 
-  // Second (flags) parameter O_RDONLY, O_WRONLY, or O_RDWR ||
-  // Third parameter 644 = owner has read and write permission, group has
-  // read and others have read, 777 everyone has read write and execute
-  // permission.
-  set_errno(0);
+    // Second (flags) parameter O_RDONLY, O_WRONLY, or O_RDWR ||
+    // Third parameter 644 = owner has read and write permission, group has
+    // read and others have read, 777 everyone has read write and execute
+    // permission.
+    set_errno(0);
 
-  dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT, 0644);
-  if (dnldShared->dnldFileFD == -1)
-  {
-    syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n",
-              __FILE__, __LINE__, dnldShared->dnldFullPathName, get_errno());
-    return -get_errno();
-  }
+    dnldShared->dnldFileFD = open(dnldShared->dnldFullPathName, O_RDWR | O_CREAT, 0644);
+    if (dnldShared->dnldFileFD == -1)
+    {
+        syslog(LOG_ERR, "%s@%d-opening '%s' failed, errno:%d\n", __FILE__, __LINE__, dnldShared->dnldFullPathName, get_errno());
+        return -get_errno();
+    }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", __FILE__, __LINE__,
-    dnldShared->dnldFullPathName);
+    syslog(LOG_DEBUG, "%s@%d-Opened '%s'\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
 #endif
 
-  return OK;
+    return OK;
 }
 
 //==================================================================
 // When file data is received, it is written to the media here.
 // This function writes to the Meadow file system and SDCards.
-int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
-          const uint8_t *fileWriteData, const size_t fileWriteSize )
+int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared, const uint8_t *fileWriteData, const size_t fileWriteSize)
 {
-  uint8_t *writeDataBuff = NULL;
+    uint8_t *writeDataBuff = NULL;
 
-  if (_shutting_down)
-    return OK;
+    if (_shutting_down)
+        return OK;
 
-  if (dnldShared->dnldFileFD < 0)
-    return -EBADF; // Bad file number
+    if (dnldShared->dnldFileFD < 0)
+        return -EBADF; // Bad file number
 
-  // Only test if Meadow file system We've already attempted to mount the
-  // SDCard so if this open is related to SDCard no need to retest here.
-  if(dnldShared->dnldRqstCat == pathnameMeadow ||
-     dnldShared->dnldRqstCat == pathnameOriginal)
-  {
-    if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
-      return -ENOENT; // No such file or directory
-    
-    // Just copy pointer no buffer needed
-    writeDataBuff = (uint8_t *)fileWriteData;
-  }
-  else if(dnldShared->dnldRqstCat == pathnameSdcard)
-  {
-    // Found that the SD-Card write must be properly aligned or it writes data
-    // to the file that is outside of the specified buffers beginning address.
-    // malloc will allocate memory which is 4-byte aligned.
-    writeDataBuff = malloc(fileWriteSize);
-    if(writeDataBuff == NULL)
+    // Only test if Meadow file system We've already attempted to mount the
+    // SDCard so if this open is related to SDCard no need to retest here.
+    if (dnldShared->dnldRqstCat == pathnameMeadow || dnldShared->dnldRqstCat == pathnameOriginal)
     {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-      return -ENOMEM;
+        if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
+            return -ENOENT; // No such file or directory
+
+        // Just copy pointer no buffer needed
+        writeDataBuff = (uint8_t *) fileWriteData;
+    }
+    else if (dnldShared->dnldRqstCat == pathnameSdcard)
+    {
+        // Found that the SD-Card write must be properly aligned or it writes data
+        // to the file that is outside of the specified buffers beginning address.
+        // malloc will allocate memory which is 4-byte aligned.
+        writeDataBuff = malloc(fileWriteSize);
+        if (writeDataBuff == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM;
+        }
+
+        memcpy(writeDataBuff, fileWriteData, fileWriteSize);
     }
 
-    memcpy(writeDataBuff, fileWriteData, fileWriteSize);
-  }
-
-#if defined (CONFIG_DIR_MGMT_TESTS)
-  #if (HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0)
-  syslog(LOG_MTEST, "------- %s@%d File Write show first 16 of %d ------\n",
-            __FILE__, __LINE__, fileWriteSize);
-  hcom_diag_print_buffer(writeDataBuff, 16, 1);
-  #endif
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    #if (HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0)
+    syslog(LOG_MTEST, "------- %s@%d File Write show first 16 of %d ------\n", __FILE__, __LINE__, fileWriteSize);
+    hcom_diag_print_buffer(writeDataBuff, 16, 1);
+    #endif
 #endif
 
-  ssize_t nbytes = 0;
-  nbytes = write(dnldShared->dnldFileFD, writeDataBuff, fileWriteSize);
-  if (nbytes < 0)
-  {
-    // Save errno now; syslog, close and free can all overwrite it.
-    int writeErrno = errno;
-
-    syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n",
-             __FILE__, __LINE__, dnldShared->dnldFullPathName,
-             dnldShared->dnldFileFD, writeErrno);
-
-    if(dnldShared->dnldFileFD >= 0)
+    ssize_t nbytes = 0;
+    nbytes = write(dnldShared->dnldFileFD, writeDataBuff, fileWriteSize);
+    if (nbytes < 0)
     {
-      close(dnldShared->dnldFileFD);
-      dnldShared->dnldFileFD = -1;
+        // Save errno now; syslog, close and free can all overwrite it.
+        int writeErrno = errno;
+
+        syslog(LOG_ERR, "%s@%d-failed to write %s, fd:%d, errno %d\n", __FILE__, __LINE__, dnldShared->dnldFullPathName, dnldShared->dnldFileFD, writeErrno);
+
+        if (dnldShared->dnldFileFD >= 0)
+        {
+            close(dnldShared->dnldFileFD);
+            dnldShared->dnldFileFD = -1;
+        }
+
+        if (dnldShared->dnldRqstCat == pathnameSdcard)
+            free(writeDataBuff);
+
+        return -writeErrno;
     }
 
-    if(dnldShared->dnldRqstCat == pathnameSdcard)
-      free(writeDataBuff);
+    // Only free if allocated for sdcard
+    if (dnldShared->dnldRqstCat == pathnameSdcard)
+        free(writeDataBuff);
 
-    return -writeErrno;
-  }
+    if (nbytes < fileWriteSize)
+    {
+        syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n", __FILE__, __LINE__, dnldShared->dnldFullPathName, nbytes, fileWriteSize);
 
-  // Only free if allocated for sdcard
-  if(dnldShared->dnldRqstCat == pathnameSdcard)
-    free(writeDataBuff);
+        // A short write means the media could not take all of the data (for
+        // example the volume is full).  Fail now, as the nbytes < 0 path does,
+        // rather than let the download carry on writing later packets at the
+        // wrong offsets.
+        close(dnldShared->dnldFileFD);
+        dnldShared->dnldFileFD = -1;
 
-  if (nbytes < fileWriteSize)
-  {
-    syslog(LOG_ERR, "%s@%d-'%s' wrote %d of %d bytes\n",
-             __FILE__, __LINE__, dnldShared->dnldFullPathName,
-             nbytes, fileWriteSize);
+        if (nbytes == 0)
+            return -ENOSPC;
 
-    // A short write means the media could not take all of the data (for
-    // example the volume is full).  Fail now, as the nbytes < 0 path does,
-    // rather than let the download carry on writing later packets at the
-    // wrong offsets.
-    close(dnldShared->dnldFileFD);
-    dnldShared->dnldFileFD = -1;
-
-    if (nbytes == 0)
-      return -ENOSPC;
-
-    return -EIO;
-  }
+        return -EIO;
+    }
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  syslog(LOG_DEBUG, "%s@%d-Wrote %d bytes to %s\n", 
-            __FILE__, __LINE__, nbytes, dnldShared->dnldFullPathName);
+    syslog(LOG_DEBUG, "%s@%d-Wrote %d bytes to %s\n", __FILE__, __LINE__, nbytes, dnldShared->dnldFullPathName);
 #endif
 
-  return OK;
+    return OK;
 }
 
 //==================================================================
@@ -235,34 +223,32 @@ int hcom_file_write_to_active_file(hcom_dnld_shared_t *dnldShared,
 // requesting CLI to resend on error.
 int hcom_file_write_close_active_file(hcom_dnld_shared_t *dnldShared)
 {
-  int ret = OK;
+    int ret = OK;
 
-  // Only test if meadow file system. We've already attempted to mount the
-  // SDCard so if this open is related to SDCard no need to retest here.
-  if(dnldShared->dnldRqstCat == pathnameMeadow ||
-     dnldShared->dnldRqstCat == pathnameOriginal)
-  {
-    if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
-      return -ENOENT;         // No such file or directory
-  }
+    // Only test if meadow file system. We've already attempted to mount the
+    // SDCard so if this open is related to SDCard no need to retest here.
+    if (dnldShared->dnldRqstCat == pathnameMeadow || dnldShared->dnldRqstCat == pathnameOriginal)
+    {
+        if (!hcom_via_nx_is_mounted(dnldShared->dnldFilePartId))
+            return -ENOENT;         // No such file or directory
+    }
 
-  if (dnldShared->dnldFileFD < 0)  // Okay to close file multiple times in nuttx?
-    return -EBADF;          // Bad file number
+    if (dnldShared->dnldFileFD < 0) // Okay to close file multiple times in nuttx?
+        return -EBADF;              // Bad file number
 
-  ret = close(dnldShared->dnldFileFD);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Close of %s, errno %d\n",
-             __FILE__, __LINE__, dnldShared->dnldFullPathName, errno);
-    ret = -errno;       // Continue even with error
-  }
+    ret = close(dnldShared->dnldFileFD);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Close of %s, errno %d\n", __FILE__, __LINE__, dnldShared->dnldFullPathName, errno);
+        ret = -errno; // Continue even with error
+    }
 
-  dnldShared->dnldFileFD = -1;
-  dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
+    dnldShared->dnldFileFD = -1;
+    dnldShared->dnldCurrentState = HcomStm32F7DnldStateNone;
 
 #if (HCOM_DIAG_INCLUDE_LOG_DEBUG_IN_BUILD > 0)
-  syslog(LOG_DEBUG, "%s@%d-Closed %s\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
+    syslog(LOG_DEBUG, "%s@%d-Closed %s\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
 #endif
 
-  return ret;
+    return ret;
 }

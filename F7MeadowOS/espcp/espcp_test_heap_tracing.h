@@ -1,6 +1,6 @@
 /****************************************************************************
  * espcp_tests.c
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -51,7 +51,7 @@
 #include <nuttx/mm/mm.h>
 #include <assert.h>
 #include <sys/socket.h>
-#include <netdb.h>	//hostent
+#include <netdb.h> //hostent
 #include <arpa/inet.h>
 
 #include <sys/time.h>
@@ -66,18 +66,18 @@
 //
 //  Macros to help with the task of getting memory snapshots.
 //
-#define ALLOCATE_HEAP_STRUCTURES      struct mallinfo start, end, kstart, kend;
-#define GET_INITIAL_HEAP_INFORMATION  espcp_test_get_mallinfo(&start, &kstart);
-#define GET_FINAL_HEAP_INFORMATION    espcp_test_get_mallinfo(&end, &kend);
-#define COPY_FINAL_TO_START           memcpy(&start, &end , sizeof(struct mallinfo)); memcpy(&kstart, &kend, sizeof(struct mallinfo));
-#define HEAP_USAGE_PASS_OR_FAIL       espcp_test_check_heap_usage(&start, &end, &kstart, &kend, __func__);
+#define ALLOCATE_HEAP_STRUCTURES struct mallinfo start, end, kstart, kend;
+#define GET_INITIAL_HEAP_INFORMATION espcp_test_get_mallinfo(&start, &kstart);
+#define GET_FINAL_HEAP_INFORMATION espcp_test_get_mallinfo(&end, &kend);
+#define COPY_FINAL_TO_START                                                                                                                                                                                                                                                                                \
+    memcpy(&start, &end, sizeof(struct mallinfo));                                                                                                                                                                                                                                                         \
+    memcpy(&kstart, &kend, sizeof(struct mallinfo));
+#define HEAP_USAGE_PASS_OR_FAIL espcp_test_check_heap_usage(&start, &end, &kstart, &kend, __func__);
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mallinfo *after, 
-                                 const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name);
+void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mallinfo *after, const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name);
 void espcp_test_get_mallinfo(struct mallinfo *mem, struct mallinfo *kmem);
-void espcp_test_output_memory_info(const struct mallinfo *before, const struct mallinfo *after, 
-                                   const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name);
+void espcp_test_output_memory_info(const struct mallinfo *before, const struct mallinfo *after, const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name);

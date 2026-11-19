@@ -70,11 +70,11 @@
 
 /*
  *  Linked list data item object.
- * 
+ *
  *  data - this is a pointer to the data to be held in the list.  It is a
  *         void * object and it it the responsibility of the application
  *         code to cast the data back to the correct type.
- * 
+ *
  *  parent - pointer to the previous item in the list.
  *  child - pointer to the next item in the list.
  */
@@ -88,7 +88,7 @@ typedef struct gl_linked_list_item_s gl_linked_list_item_t;
 
 /*
  *  Linked list object.
- * 
+ *
  *  head - Pointer to the linked list data item at the head of the list.
  *  tail - Pointer to the linked list data item at the tail (end)  of the list.
  */
@@ -103,10 +103,10 @@ typedef struct gl_linked_list_s gl_linked_list_t;
 /*
  *  Function that can be used to find a data item in the linked list
  *  with the matching uint32_t key.
- * 
+ *
  *  uint32_t - key to find.
  *  void * - data item that should be checked.
- * 
+ *
  *  returns - true if the oject has the matching key, false otherwise.
  */
 typedef bool (*comparison_function_t)(uint32_t, void *);

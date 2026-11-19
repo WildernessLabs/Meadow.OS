@@ -66,7 +66,7 @@
 /**
  *  Mutex to be used by any code that wants access to the configuration.
  */
-static sem_t log_file_lock = { };
+static sem_t log_file_lock = {};
 
 /****************************************************************************
  * Public Functions
@@ -294,7 +294,6 @@ void meadow_logging_send_os_log_file_to_syslog(void)
 {
     meadow_logging_send_log_file_to_syslog(MEADOW_LOGGING_OS_FILE_NAME);
 }
-
 
 /****************************************************************************
  * Name: meadow_logging_init_os_logging

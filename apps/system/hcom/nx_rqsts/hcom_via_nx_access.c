@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\os_rqsts\hcom_via_nx_access.c
- * 
+ *
  *   Copyright (C) 2020-2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -69,91 +69,86 @@ static int _nx_access_fd = -1;
  ****************************************************************************/
 int hcom_via_nx_upd_setup()
 {
-  _nx_access_fd = hcom_via_nx_upd_driver_open();
-  if (_nx_access_fd < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-setup hcom nx access open:%d\n",
-      __FILE__, __LINE__, _nx_access_fd);
-    _nx_access_fd = -1;
-    return _nx_access_fd;
-  }
-  return OK;
+    _nx_access_fd = hcom_via_nx_upd_driver_open();
+    if (_nx_access_fd < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-setup hcom nx access open:%d\n", __FILE__, __LINE__, _nx_access_fd);
+        _nx_access_fd = -1;
+        return _nx_access_fd;
+    }
+    return OK;
 }
 
 //===========================================================================
 // Returns the file descriptor for this open driver
 int hcom_via_nx_upd_driver_open()
 {
-  int nx_access_fd;
+    int nx_access_fd;
 
-  // Open the nx upd driver
-  nx_access_fd = open(MEADOW_UPD_DRIVER_NAME, O_RDONLY);
-  if(nx_access_fd == -1)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to open, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
+    // Open the nx upd driver
+    nx_access_fd = open(MEADOW_UPD_DRIVER_NAME, O_RDONLY);
+    if (nx_access_fd == -1)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to open, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
 
-  // syslog(LOG_INFO, "%s@%d-SUCCESS %s opened\n",
-  //         __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME);
+    // syslog(LOG_INFO, "%s@%d-SUCCESS %s opened\n",
+    //         __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME);
 
-  return nx_access_fd;
+    return nx_access_fd;
 }
 
 //=============================================================
 int hcom_via_nx_set_bbr(uint32_t value)
 {
-  int ret;
-  struct hcom_nx_upd_bbr_value bbr_value;
+    int ret;
+    struct hcom_nx_upd_bbr_value bbr_value;
 
-  bbr_value.value = value;
+    bbr_value.value = value;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_BBR_VALUE, (unsigned long)&bbr_value);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s)@%d-%s Failed to set reg, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_BBR_VALUE, (unsigned long) &bbr_value);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s)@%d-%s Failed to set reg, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 int hcom_via_nx_get_bbr(uint32_t *value)
 {
-  int ret;
-  struct hcom_nx_upd_bbr_value bbr_value;
-  
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_BBR_VALUE, (unsigned long)&bbr_value);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to get reg, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
+    int ret;
+    struct hcom_nx_upd_bbr_value bbr_value;
 
-  *value = bbr_value.value;
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_BBR_VALUE, (unsigned long) &bbr_value);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to get reg, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+
+    *value = bbr_value.value;
+    return OK;
 }
 
 //=============================================================
 int hcom_via_nx_update_bbr(uint32_t clearBits, uint32_t setBits)
 {
-  int ret;
-  struct hcom_nx_upd_bbr_update bbr_update;
+    int ret;
+    struct hcom_nx_upd_bbr_update bbr_update;
 
-  bbr_update.clearBits = clearBits;
-  bbr_update.setBits = setBits;
-  
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_BBR_VALUE, (unsigned long)&bbr_update);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    bbr_update.clearBits = clearBits;
+    bbr_update.setBits = setBits;
+
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_BBR_VALUE, (unsigned long) &bbr_update);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
@@ -162,161 +157,151 @@ int hcom_via_nx_update_bbr(uint32_t clearBits, uint32_t setBits)
 // away instead of only on the next reboot.
 int hcom_via_nx_set_syslog_mask(uint32_t newMask)
 {
-  int ret;
-  struct hcom_nx_upd_syslog_mask syslog_mask;
+    int ret;
+    struct hcom_nx_upd_syslog_mask syslog_mask;
 
-  syslog_mask.value = newMask;
+    syslog_mask.value = newMask;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_SYSLOG_MASK, (unsigned long)&syslog_mask);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to set kernel syslog mask, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_SYSLOG_MASK, (unsigned long) &syslog_mask);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to set kernel syslog mask, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // Special version that is called from mono thread
 int hcom_via_nx_update_bbr_alt(int alt_access_fd, uint32_t clearBits, uint32_t setBits)
 {
-  int ret;
-  struct hcom_nx_upd_bbr_update bbr_update;
+    int ret;
+    struct hcom_nx_upd_bbr_update bbr_update;
 
-  bbr_update.clearBits = clearBits;
-  bbr_update.setBits = setBits;
-  
-  ret = ioctl(alt_access_fd, HCOM_NX_UPD_UPDATE_BBR_VALUE, (unsigned long)&bbr_update);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    bbr_update.clearBits = clearBits;
+    bbr_update.setBits = setBits;
+
+    ret = ioctl(alt_access_fd, HCOM_NX_UPD_UPDATE_BBR_VALUE, (unsigned long) &bbr_update);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to update battery backed register, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // This returns the mcu unique id as a 12 byte array
 int hcom_via_nx_get_mcu_id(uint8_t uniqueId[12])
 {
-  int ret;
+    int ret;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_MCU_ID, (unsigned long)uniqueId);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_MCU_ID, (unsigned long) uniqueId);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
 
-  return OK;
+    return OK;
 }
 
 //=============================================================
 // This will return the mcu serial number as a null terminated char array
 int hcom_via_nx_get_mcu_ser_numb(char mcuSerNumb[16])
 {
-  int ret;
-  struct hcom_nx_upd_mcu_ser_numb_s mcuSn;
-  mcuSn.ser_numb = mcuSerNumb;
+    int ret;
+    struct hcom_nx_upd_mcu_ser_numb_s mcuSn;
+    mcuSn.ser_numb = mcuSerNumb;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_MCU_SER_NUMB,
-            (unsigned long) &mcuSn);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_MCU_SER_NUMB, (unsigned long) &mcuSn);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to get mcu id, ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // Is this partition mounted in the file system?  Returns false if the ioctl fails.
 bool hcom_via_nx_is_mounted(uint32_t partitionId)
 {
-  int ret;
+    int ret;
 
-  struct hcom_nx_upd_is_part_mounted is_mounted;
-  is_mounted.partitionId = partitionId;
+    struct hcom_nx_upd_is_part_mounted is_mounted;
+    is_mounted.partitionId = partitionId;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_IS_PART_MOUNTED, (unsigned long) &is_mounted);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed nx mount, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-    return false;       // Cannot tell, so callers treat the partition as not mounted
-  }
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_IS_PART_MOUNTED, (unsigned long) &is_mounted);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed nx mount, ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
+        return false; // Cannot tell, so callers treat the partition as not mounted
+    }
 
-  return is_mounted.isMounted;
+    return is_mounted.isMounted;
 }
 
 //=============================================================
 // This is a stub for restarting meadow
 int hcom_via_nx_host_restart_meadow()
 {
-  int ret;
-  // Clear the Mono lockup flag, this is not a crash but a willful restart
-  hcom_bbreg_clear_bbr_bits(HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT);
+    int ret;
+    // Clear the Mono lockup flag, this is not a crash but a willful restart
+    hcom_bbreg_clear_bbr_bits(HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT);
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU, (unsigned long) NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed host restart meadow, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_HOST_RESTART_MEADOW_MCU, (unsigned long) NULL);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed host restart meadow, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // This is a stub for restarting meadow
 int hcom_via_nx_only_restart_meadow()
 {
-  int ret;
-  // Clear the Mono lockup flag, this is not a crash but a willful restart
-  hcom_bbreg_clear_bbr_bits(HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT);
+    int ret;
+    // Clear the Mono lockup flag, this is not a crash but a willful restart
+    hcom_bbreg_clear_bbr_bits(HCOM_BBREG_MONO_LAST_RUN_LOCKUP_BIT);
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU, (unsigned long) NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed only restart meadow, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_ONLY_RESTART_MEADOW_MCU, (unsigned long) NULL);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed only restart meadow, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // This is a stub for entering DFU mode after restart
 int hcom_via_nx_put_meadow_into_dfu_mode()
 {
-  int ret;
+    int ret;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_ENTER_INTO_DFU_MODE, (unsigned long) NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to enter dfu mode, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno;      // ioctl puts returned int into errno
-  }
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_ENTER_INTO_DFU_MODE, (unsigned long) NULL);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to enter dfu mode, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=============================================================
 // Mono has started running let kernel-land know
 void hcom_via_nx_mono_has_started_alt(int alt_access_fd)
 {
-  int ret;
+    int ret;
 
-  ret = ioctl(alt_access_fd, HCOM_NX_UPD_MONO_HAS_STARTED, (unsigned long) NULL);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Mono has started ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
-  }
+    ret = ioctl(alt_access_fd, HCOM_NX_UPD_MONO_HAS_STARTED, (unsigned long) NULL);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Mono has started ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, ret, errno);
+    }
 }
 
 //=============================================================
@@ -326,50 +311,47 @@ void hcom_via_nx_mono_has_started_alt(int alt_access_fd)
 // Note: With the Meadow F7v1 this means uart 1, 4, 5 and 6 are valid
 void hcom_via_nx_restore_uart_reconfig(uint32_t uartId)
 {
-  int ret;
-  struct hcom_nx_upd_uart_reconfig_s uartReconfig;
-  uartReconfig.uart_id = uartId;
+    int ret;
+    struct hcom_nx_upd_uart_reconfig_s uartReconfig;
+    uartReconfig.uart_id = uartId;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RESTORE_UART_CONFIG, (unsigned long) &uartReconfig);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s reconfig uart%ld, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, uartId, ret, errno);
-  }
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RESTORE_UART_CONFIG, (unsigned long) &uartReconfig);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s reconfig uart%ld, ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, uartId, ret, errno);
+    }
 }
 
 //=============================================================
 // This will return the numeric version number e.g. MEADOW_F7_HW_VERSION_NUMB_F7V2
 uint32_t hcom_via_nx_get_hw_version()
 {
-  int ret;
-  hcom_nx_upd_get_hw_ver_t hardwareVer;
+    int ret;
+    hcom_nx_upd_get_hw_ver_t hardwareVer;
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_HW_VERSION, (unsigned long) &hardwareVer);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-    return MEADOW_F7_HW_VERSION_NUMB_UNKNOWN;
-  }
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_HW_VERSION, (unsigned long) &hardwareVer);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return MEADOW_F7_HW_VERSION_NUMB_UNKNOWN;
+    }
 
-  return hardwareVer.hwVer;
+    return hardwareVer.hwVer;
 }
 
 uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd)
 {
-  int ret;
-  hcom_nx_upd_get_hw_ver_t hardwareVer;
+    int ret;
+    hcom_nx_upd_get_hw_ver_t hardwareVer;
 
-  ret = ioctl(alt_access_fd, HCOM_NX_UPD_GET_HW_VERSION, (unsigned long) &hardwareVer);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed, ret:%d, errno:%d\n",
-            __FILE__, __LINE__, __func__, ret, errno);
-    return MEADOW_F7_HW_VERSION_NUMB_UNKNOWN;
-  }
+    ret = ioctl(alt_access_fd, HCOM_NX_UPD_GET_HW_VERSION, (unsigned long) &hardwareVer);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed, ret:%d, errno:%d\n", __FILE__, __LINE__, __func__, ret, errno);
+        return MEADOW_F7_HW_VERSION_NUMB_UNKNOWN;
+    }
 
-  return hardwareVer.hwVer;
+    return hardwareVer.hwVer;
 }
 
 //=============================================================
@@ -377,48 +359,45 @@ uint32_t hcom_via_nx_get_hw_version_alt(int alt_access_fd)
 // routed through here
 void hcom_via_nx_forward_cli_cmd_to_nx(uint16_t hcomCmd, uint32_t userData)
 {
-  int ret;
-  struct hcom_nx_cmd_data cmdData;
+    int ret;
+    struct hcom_nx_cmd_data cmdData;
 
-  cmdData.hcomCmd = hcomCmd;
-  cmdData.userData = userData;
+    cmdData.hcomCmd = hcomCmd;
+    cmdData.userData = userData;
 
-  cmdData.logLevel = LOG_NONE;
-  cmdData.logLen = 0;
+    cmdData.logLevel = LOG_NONE;
+    cmdData.logLen = 0;
 
-  // Provides nx upd with the ability to send messages to CLI
-  cmdData.send_host_msg = hcom_host_send_simple_string_msg;
+    // Provides nx upd with the ability to send messages to CLI
+    cmdData.send_host_msg = hcom_host_send_simple_string_msg;
 
-  // Forward to hcom_nx to complete command
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_CLI_COMMAND, (unsigned long)&cmdData);
-  if (ret < 0)
-  {
-    // Call resulted in a log request
-    if(cmdData.logLen > 0)
+    // Forward to hcom_nx to complete command
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_CLI_COMMAND, (unsigned long) &cmdData);
+    if (ret < 0)
     {
-      if(cmdData.logLevel < LOG_EMERG || cmdData.logLevel > LOG_DEBUG)
-      {
-        syslog(LOG_WARNING, "%s@%d-Unknown log level:%d. Line? next log.\n",
-                  __FILE__, __LINE__, cmdData.logLevel);
-      }
-      
-      // We check the returned log length against the known buffer size to
-      // determine if snprintf in the called function truncated the message
-      if(cmdData.logLen >= HCOM_NX_CMD_LOG_MSG_SIZE)
-      {
-        syslog(LOG_WARNING, "snprintf buf too small need:%d. Line? next log.\n",
-                  cmdData.logLen + 1);
-      }
+        // Call resulted in a log request
+        if (cmdData.logLen > 0)
+        {
+            if (cmdData.logLevel < LOG_EMERG || cmdData.logLevel > LOG_DEBUG)
+            {
+                syslog(LOG_WARNING, "%s@%d-Unknown log level:%d. Line? next log.\n", __FILE__, __LINE__, cmdData.logLevel);
+            }
 
-      syslog(cmdData.logLevel, "%s [cli cmd:0x%04x]", cmdData.logMsg, hcomCmd);
+            // We check the returned log length against the known buffer size to
+            // determine if snprintf in the called function truncated the message
+            if (cmdData.logLen >= HCOM_NX_CMD_LOG_MSG_SIZE)
+            {
+                syslog(LOG_WARNING, "snprintf buf too small need:%d. Line? next log.\n", cmdData.logLen + 1);
+            }
+
+            syslog(cmdData.logLevel, "%s [cli cmd:0x%04x]", cmdData.logMsg, hcomCmd);
+        }
+        else
+        {
+            syslog(LOG_ERR, "%s:%s()@%d-%s Error detected, errno:%d, hcomCmd:0x%04x\n", __FILE__, __func__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno, hcomCmd);
+            return;
+        }
     }
-    else
-    {
-      syslog(LOG_ERR, "%s:%s()@%d-%s Error detected, errno:%d, hcomCmd:0x%04x\n",
-              __FILE__, __func__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno, hcomCmd);
-      return;
-    }
-  }
 }
 
 /****************************************************************************
@@ -454,11 +433,10 @@ int hcom_via_nx_copy_mono_runtime_to_ram(void)
 
     if (result < 0)
     {
-      syslog(LOG_ERR, "%s:%s()@%d Failed to copy Mono runtime into RAM.\n",
-              __FILE__, __func__, __LINE__);
+        syslog(LOG_ERR, "%s:%s()@%d Failed to copy Mono runtime into RAM.\n", __FILE__, __func__, __LINE__);
     }
-    
-    return(result);
+
+    return (result);
 }
 
 /****************************************************************************
@@ -479,113 +457,104 @@ int hcom_via_nx_copy_mono_runtime_to_ram(void)
  ****************************************************************************/
 int hcom_via_nx_execute_espcp_tests(uint32_t userData)
 {
-  int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_EXECUTE_ESPCP_TESTS, (unsigned long) userData);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s:%s()@%d Failed to execute network tests.\n",
-            __FILE__, __func__, __LINE__);
-  }
-  return ret;
+    int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_EXECUTE_ESPCP_TESTS, (unsigned long) userData);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s:%s()@%d Failed to execute network tests.\n", __FILE__, __func__, __LINE__);
+    }
+    return ret;
 }
 
 //=========================================================================
 // Set the RTC time
-int hcom_via_nx_execute_rtc_set_clock(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize)
+int hcom_via_nx_execute_rtc_set_clock(const HcomProtoHdrMsg_t *hdrMsg, const size_t packetSize)
 {
-  hcom_nx_upd_rtc_set_time_t rtcSetTime;
+    hcom_nx_upd_rtc_set_time_t rtcSetTime;
 
-  rtcSetTime.hdrMsg = hdrMsg;
-  rtcSetTime.msgLen = packetSize;
+    rtcSetTime.hdrMsg = hdrMsg;
+    rtcSetTime.msgLen = packetSize;
 
-  int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RTC_SET_TIME, (unsigned long) &rtcSetTime);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d Failed to set RTC time, ret:%d\n",
-            __FILE__, __LINE__, ret);
-  }
-  return ret;
+    int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RTC_SET_TIME, (unsigned long) &rtcSetTime);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d Failed to set RTC time, ret:%d\n", __FILE__, __LINE__, ret);
+    }
+    return ret;
 }
 
 //=========================================================================
 // Set the RTC time wakeup time (i.e. RTC hardware alarm)
-int hcom_via_nx_execute_rtc_set_wakeup_time(const HcomProtoHdrMsg_t *hdrMsg,
-          const size_t packetSize)
+int hcom_via_nx_execute_rtc_set_wakeup_time(const HcomProtoHdrMsg_t *hdrMsg, const size_t packetSize)
 {
-  hcom_nx_upd_rtc_wakeup_time_t rtcWakeupTime;
+    hcom_nx_upd_rtc_wakeup_time_t rtcWakeupTime;
 
-  rtcWakeupTime.hdrMsg = hdrMsg;
-  rtcWakeupTime.msgLen = packetSize;
+    rtcWakeupTime.hdrMsg = hdrMsg;
+    rtcWakeupTime.msgLen = packetSize;
 
-  int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RTC_WAKEUP_TIME, (unsigned long) &rtcWakeupTime);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d Failed to set RTC wakeup time, ret:%d\n",
-            __FILE__, __LINE__, ret);
-  }
-  return ret;
+    int ret = ioctl(_nx_access_fd, HCOM_NX_UPD_RTC_WAKEUP_TIME, (unsigned long) &rtcWakeupTime);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d Failed to set RTC wakeup time, ret:%d\n", __FILE__, __LINE__, ret);
+    }
+    return ret;
 }
 
 //=========================================================================
 // Flash OS update part 1
 int hcom_via_nx_update_OS1()
 {
-  int ret;
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_OS1, 0);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 1), errno:%d\n",
-                        __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno; // ioctl puts returned int into errno
-  }
-  return OK;
+    int ret;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_OS1, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 1), errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=========================================================================
 // Flash OS update part 2
 int hcom_via_nx_update_OS2()
 {
-  int ret;
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_OS2, 0);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 2), errno:%d\n",
-                        __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno; // ioctl puts returned int into errno
-  }
-  return OK;
+    int ret;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_UPDATE_OS2, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to update OS (part 2), errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=========================================================================
 // Get OS update state
 int hcom_via_nx_get_update_state(uint8_t flag)
 {
-  int ret;
-  struct hcom_nx_upd_update_flag update = {.offset = flag};
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_UPDATE_FLAG, (unsigned long) &update);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to get update state, errno:%d\n",
-                        __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno; // ioctl puts returned int into errno
-  }
-  return OK;
+    int ret;
+    struct hcom_nx_upd_update_flag update = {.offset = flag};
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_GET_UPDATE_FLAG, (unsigned long) &update);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to get update state, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 //=========================================================================
 // Set OS update state
 int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state)
 {
-  int ret;
-  struct hcom_nx_upd_update_flag update = {.offset = flag, .value = state};
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_UPDATE_FLAG, (unsigned long)&update);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to set update state, errno:%d\n",
-                        __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno; // ioctl puts returned int into errno
-  }
-  return OK;
+    int ret;
+    struct hcom_nx_upd_update_flag update = {.offset = flag, .value = state};
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_SET_UPDATE_FLAG, (unsigned long) &update);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to set update state, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+    return OK;
 }
 
 #if defined CONFIG_MEADOW_PWR_MGMT_SUPPORT
@@ -593,19 +562,17 @@ int hcom_via_nx_set_update_state(uint8_t flag, uint8_t state)
 // Register low-power callback with power management code
 int hcom_via_nx_register_pwr_mgmt_callback(pwr_mgmt_notify_callback callback)
 {
-  int ret;
+    int ret;
 
-  hcom_nx_upd_pwr_mgmt_cb_t pwr_mgmt_cb = {.callback = callback};
+    hcom_nx_upd_pwr_mgmt_cb_t pwr_mgmt_cb = {.callback = callback};
 
-  ret = ioctl(_nx_access_fd, HCOM_NX_UPD_REG_PWR_MGMT_CB, (unsigned long)&pwr_mgmt_cb);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-%s Failed to set pwr mgmt callback, errno:%d\n",
-                        __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
-    return -errno; // ioctl puts returned int into errno
-  }
-  
-  return OK;
+    ret = ioctl(_nx_access_fd, HCOM_NX_UPD_REG_PWR_MGMT_CB, (unsigned long) &pwr_mgmt_cb);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-%s Failed to set pwr mgmt callback, errno:%d\n", __FILE__, __LINE__, MEADOW_UPD_DRIVER_NAME, errno);
+        return -errno; // ioctl puts returned int into errno
+    }
+
+    return OK;
 }
 #endif
-

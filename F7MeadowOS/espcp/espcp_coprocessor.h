@@ -69,10 +69,10 @@
 /*
  *  Define the SPI and GPIO pins used for communication based upon the
  *  SPI interface being used.
- * 
+ *
  *  In production, the ESP32 code will be running on the ESP32 built into
  *  the Meadow board.
- * 
+ *
  *  In development it may be necessary to connect a logic analyser to the
  *  SPI bus and / or the GPIO pins signalling between the two chips.  In
  *  this case and ESP32 development board can be connected to the external
@@ -80,78 +80,78 @@
  */
 #ifdef CONFIG_MEADOW_ESPCP_USE_EXTERNAL_ESP32_BOARD
 
-/*
- *  SPI interface used to communicate with the ESP32.
- */
-#define ESP32CP_SPI_COMMS_PORT 3
+    /*
+     *  SPI interface used to communicate with the ESP32.
+     */
+    #define ESP32CP_SPI_COMMS_PORT 3
 
-/*
- *  The ESP32 will indicate when the SPI interface is ready to receive data.  The STM32
- *  should not send data until this line goes high.
- * 
- *  On the external interface this is PC7 (Meadow DO5).
- */
-#define ESP32CP_SPI_READY_PIN_INPUT (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
-#define ESP32CP_BOOT_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
+    /*
+     *  The ESP32 will indicate when the SPI interface is ready to receive data.  The STM32
+     *  should not send data until this line goes high.
+     *
+     *  On the external interface this is PC7 (Meadow DO5).
+     */
+    #define ESP32CP_SPI_READY_PIN_INPUT (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
+    #define ESP32CP_BOOT_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
 
-/*
- *  Chip select pin.
- * 
- *  On the external interface this is PB13 (Meadow D06).
- */
-#define ESP32CP_SPI_CS_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
+    /*
+     *  Chip select pin.
+     *
+     *  On the external interface this is PB13 (Meadow D06).
+     */
+    #define ESP32CP_SPI_CS_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
 
-/*
- *  Reset pin.
- * 
- *  On the external interface this is PB9 (Meadow D04).
- */
-#define ESP32CP_RESET_PIN_OUTPUT (GPIO_OUTPUT | GPIO_PULLUP | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
+    /*
+     *  Reset pin.
+     *
+     *  On the external interface this is PB9 (Meadow D04).
+     */
+    #define ESP32CP_RESET_PIN_OUTPUT (GPIO_OUTPUT | GPIO_PULLUP | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
 
-/**
- *  @brief UART connected to the ESP32.
- * 
- *  UART4 (/dev/ttyS1) for an external ESP32.
- */
-#define ESPCP_NETWORK_MONITOR_UART_NAME         MEADOW_UART4_NAME
+    /**
+     *  @brief UART connected to the ESP32.
+     *
+     *  UART4 (/dev/ttyS1) for an external ESP32.
+     */
+    #define ESPCP_NETWORK_MONITOR_UART_NAME MEADOW_UART4_NAME
 
 #else
 
 /*
  *  SPI interface used to communicate with the ESP32.
  */
-#define ESP32CP_SPI_COMMS_PORT 2
+    #define ESP32CP_SPI_COMMS_PORT 2
 
 /*
  *  The ESP32 will indicate when the SPI interface is ready to receive data.  The STM32
  *  should not send data until this line goes high.
- * 
+ *
  *  On the internal interface this is PI10 (BOOT).
  */
-#define ESP32CP_SPI_READY_PIN_INPUT (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
-#define ESP32CP_BOOT_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
+    #define ESP32CP_SPI_READY_PIN_INPUT (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
+    #define ESP32CP_BOOT_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN10)
 
 /*
  *  Chip select pin.
- * 
+ *
  *  On the internal interface this is PI0 (SPI CS), matching GPIO_SPI2_CS in
  *  the board header.
  */
-#define ESP32CP_SPI_CS_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN0)
+    #define ESP32CP_SPI_CS_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN0)
 
 /*
  *  Reset Pin
- * 
+ *
  *  On the internal interface this is PF7 (Enable - Reset).
  */
-#define ESP32CP_RESET_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
+    #define ESP32CP_RESET_PIN_OUTPUT (GPIO_OUTPUT | GPIO_FLOAT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTF | GPIO_PIN7)
 
 /**
  *  @brief UART connected to the ESP32.
- * 
+ *
  *  UART5 (/dev/ttyS2) for an on board ESP32.
  */
-#define ESPCP_NETWORK_MONITOR_UART_NAME         MEADOW_UART5_NAME
+    #define ESPCP_NETWORK_MONITOR_UART_NAME MEADOW_UART5_NAME
 
 #endif /* CONFIG_MEADOW_ESPCP_USE_EXTERNAL_ESP32_BOARD */
 

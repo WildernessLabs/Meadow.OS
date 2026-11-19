@@ -80,17 +80,15 @@
  * when its watchdog fired cannot cancel the timer of whoever holds the slot
  * now.
  */
-#define MEADOW_WATCHDOG_SLOT_BITS   8
-#define MEADOW_WATCHDOG_SLOT_MASK   ((1 << MEADOW_WATCHDOG_SLOT_BITS) - 1)
+#define MEADOW_WATCHDOG_SLOT_BITS 8
+#define MEADOW_WATCHDOG_SLOT_MASK ((1 << MEADOW_WATCHDOG_SLOT_BITS) - 1)
 
-#define MEADOW_WATCHDOG_HANDLE(slot, generation) \
-    ((meadow_watchdog_t) (((generation) << MEADOW_WATCHDOG_SLOT_BITS) | (slot)))
+#define MEADOW_WATCHDOG_HANDLE(slot, generation) ((meadow_watchdog_t) (((generation) << MEADOW_WATCHDOG_SLOT_BITS) | (slot)))
 #define MEADOW_WATCHDOG_HANDLE_SLOT(handle) ((handle) & MEADOW_WATCHDOG_SLOT_MASK)
-#define MEADOW_WATCHDOG_HANDLE_GENERATION(handle) \
-    ((uint16_t) ((handle) >> MEADOW_WATCHDOG_SLOT_BITS))
+#define MEADOW_WATCHDOG_HANDLE_GENERATION(handle) ((uint16_t) ((handle) >> MEADOW_WATCHDOG_SLOT_BITS))
 
 #if CONFIG_MEADOW_WATCHDOG_SLOTS > (MEADOW_WATCHDOG_SLOT_MASK + 1)
-#  error "CONFIG_MEADOW_WATCHDOG_SLOTS does not fit in a watchdog handle"
+    #error "CONFIG_MEADOW_WATCHDOG_SLOTS does not fit in a watchdog handle"
 #endif
 
 /****************************************************************************
@@ -105,10 +103,10 @@
  */
 struct meadow_watchdog_slot_s
 {
-    struct wdog_s             wdog;        /* Kernel timer; linked into g_wdactivelist */
-    meadow_watchdog_methods_e method;      /* The operation being guarded */
-    uint16_t                  generation;  /* Bumped every time the slot is released */
-    bool                      inuse;       /* Slot has been handed out to a caller */
+    struct wdog_s wdog;               /* Kernel timer; linked into g_wdactivelist */
+    meadow_watchdog_methods_e method; /* The operation being guarded */
+    uint16_t generation;              /* Bumped every time the slot is released */
+    bool inuse;                       /* Slot has been handed out to a caller */
 };
 
 /****************************************************************************
@@ -120,7 +118,7 @@ struct meadow_watchdog_slot_s
  */
 static struct meadow_watchdog_slot_s g_meadow_watchdogs[CONFIG_MEADOW_WATCHDOG_SLOTS];
 
-/* 
+/*
  * One work item per method, so that two watchdogs guarding different
  * operations cannot displace each other's expiry.  Re-queueing a work_s that
  * is already queued replaces it, which here can only discard a duplicate of
@@ -153,8 +151,11 @@ static void meadow_watchdog_worker(void *arg)
     espcp_status_codes_t status;
 
     method = (meadow_watchdog_methods_e) (uintptr_t) arg;
-    syslog(LOG_ERR, "Detected a network deadlock in method %" PRIu32 ".  Propagating "
-           "OS exception to the managed environment...\n", (uint32_t) method);
+    syslog(
+        LOG_ERR,
+        "Detected a network deadlock in method %" PRIu32 ".  Propagating "
+        "OS exception to the managed environment...\n",
+        (uint32_t) method);
     switch (method)
     {
         case POLL_WATCHDOG:
@@ -218,8 +219,7 @@ static void meadow_watchdog_expired(wdparm_t arg)
     {
         return;
     }
-    work_queue(LPWORK, &g_meadow_watchdog_work[method],
-               meadow_watchdog_worker, (void *) (uintptr_t) method, 0);
+    work_queue(LPWORK, &g_meadow_watchdog_work[method], meadow_watchdog_worker, (void *) (uintptr_t) method, 0);
 }
 
 /****************************************************************************
@@ -275,8 +275,11 @@ meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_met
 
     if (slot >= CONFIG_MEADOW_WATCHDOG_SLOTS)
     {
-        syslog(LOG_WARNING, "No free watchdog slot for method %" PRIu32 ", the operation "
-               "will run unguarded\n", (uint32_t) method);
+        syslog(
+            LOG_WARNING,
+            "No free watchdog slot for method %" PRIu32 ", the operation "
+            "will run unguarded\n",
+            (uint32_t) method);
         return (MEADOW_WATCHDOG_NO_SLOT);
     }
     //
@@ -286,8 +289,7 @@ meadow_watchdog_t meadow_watchdog_activate(uint32_t timeout, meadow_watchdog_met
     //  rest of the structure, so there is nothing to clear here - clearing it
     //  would be what corrupts the timer list if the slot were still linked.
     //
-    ret = wd_start(&g_meadow_watchdogs[slot].wdog, MSEC2TICK(timeout),
-                   meadow_watchdog_expired, (wdparm_t) slot);
+    ret = wd_start(&g_meadow_watchdogs[slot].wdog, MSEC2TICK(timeout), meadow_watchdog_expired, (wdparm_t) slot);
     if (ret < 0)
     {
         syslog(LOG_ERR, "Failed to activate watchdog: %d\n", ret);

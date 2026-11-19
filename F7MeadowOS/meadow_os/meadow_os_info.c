@@ -108,7 +108,7 @@ static uint32_t _reset_cycle_count = 1;
  ****************************************************************************/
 uint32_t meadow_os_power_cycle_count(void)
 {
-    return(_power_cycle_count);
+    return (_power_cycle_count);
 }
 
 /****************************************************************************
@@ -130,7 +130,7 @@ uint32_t meadow_os_power_cycle_count(void)
  ****************************************************************************/
 uint32_t meadow_os_reset_cycle_count(void)
 {
-    return(_reset_cycle_count);
+    return (_reset_cycle_count);
 }
 
 /****************************************************************************
@@ -151,7 +151,7 @@ uint32_t meadow_os_reset_cycle_count(void)
  ****************************************************************************/
 uint32_t meadow_os_reset_reason(void)
 {
-    return((getreg32(HCOM_NX_MEADOW_RESET_REASON_BBR) & 0xff000000) >> 24);
+    return ((getreg32(HCOM_NX_MEADOW_RESET_REASON_BBR) & 0xff000000) >> 24);
 }
 
 /****************************************************************************
@@ -159,10 +159,10 @@ uint32_t meadow_os_reset_reason(void)
  *
  * Description:
  *  Use the reset reason to update the reset counters.
- * 
+ *
  *  The reset counter is normally always incremented.  The power cycle counter
  *  is only incremented if the reset reason is a power related.
- * 
+ *
  *  The counters are read from the OS permanent storage on flash, updated and
  *  then written back to flash.
  *
@@ -181,7 +181,7 @@ int meadow_os_reset_update_counters(void)
     meadow_os_persistent_data_t *data = kmm_malloc(sizeof(meadow_os_persistent_data_t));
     if (data == NULL)
     {
-        return(-ENOMEM);
+        return (-ENOMEM);
     }
 
     int result;
@@ -191,7 +191,7 @@ int meadow_os_reset_update_counters(void)
     if (result < 0)
     {
         kmm_free(data);
-        return(ERROR);
+        return (ERROR);
     }
     ssize_t bytes_read = file_read(&f, data, sizeof(meadow_os_persistent_data_t));
     if (bytes_read < 0)
@@ -201,7 +201,7 @@ int meadow_os_reset_update_counters(void)
         //
         file_close(&f);
         kmm_free(data);
-        return(ERROR);
+        return (ERROR);
     }
     if (bytes_read != sizeof(meadow_os_persistent_data_t))
     {
@@ -213,9 +213,7 @@ int meadow_os_reset_update_counters(void)
     }
 
     data->reset_count++;
-    uint8_t power_flags = MEADOW_OS_RESET_BROWNOUT
-                        | MEADOW_OS_RESET_POWER_CYCLE
-                        | MEADOW_OS_RESET_LOW_POWER;
+    uint8_t power_flags = MEADOW_OS_RESET_BROWNOUT | MEADOW_OS_RESET_POWER_CYCLE | MEADOW_OS_RESET_LOW_POWER;
     uint32_t reason = meadow_os_reset_reason();
     if ((reason & power_flags) || (reason == 0) || (data->power_cycle_count == 0))
     {
@@ -224,28 +222,27 @@ int meadow_os_reset_update_counters(void)
     _power_cycle_count = data->power_cycle_count;
     _reset_cycle_count = data->reset_count;
 
-    MEADOW_TRACE_INFORMATION("Reset cycle count: %" PRIu32 ", Power cycle count: %" PRIu32 "\n",
-                            data->reset_count, data->power_cycle_count);
+    MEADOW_TRACE_INFORMATION("Reset cycle count: %" PRIu32 ", Power cycle count: %" PRIu32 "\n", data->reset_count, data->power_cycle_count);
 
     int offset = file_seek(&f, 0, SEEK_SET);
     if (offset < 0)
     {
         file_close(&f);
         kmm_free(data);
-        return(ERROR);
+        return (ERROR);
     }
     result = file_write(&f, data, sizeof(meadow_os_persistent_data_t));
     if (result != sizeof(meadow_os_persistent_data_t))
     {
         file_close(&f);
         kmm_free(data);
-        return(ERROR);
+        return (ERROR);
     }
 
     kmm_free(data);
     file_close(&f);
 
-    return(OK);
+    return (OK);
 }
 
 /****************************************************************************
@@ -266,7 +263,7 @@ int meadow_os_reset_update_counters(void)
  ****************************************************************************/
 uint32_t meadow_os_hardware_version(void)
 {
-    return(meadow_hw_version_get());
+    return (meadow_hw_version_get());
 }
 
 /****************************************************************************
@@ -287,7 +284,7 @@ uint32_t meadow_os_hardware_version(void)
  ****************************************************************************/
 uint32_t meadow_os_native_protocol_version(void)
 {
-    return(1);
+    return (1);
 }
 
 /****************************************************************************

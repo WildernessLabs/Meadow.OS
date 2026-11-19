@@ -1,6 +1,6 @@
 /****************************************************************************
  * F7MeadowOS/kerneltests/power_management_tests.c
- * 
+ *
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -41,46 +41,46 @@
 
 #include "../hcom_nx/hcom_nx_common.h"
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
-#include <meadow/hcom_shared_common.h>
+    #include <meadow/hcom_shared_common.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/mtd/mtd.h>
-#include <sys/mount.h>
-#include <dirent.h>
-#include <inttypes.h>
-#include <sys/stat.h>
-#include "stm32_rtc.h"
-#include "stm32_exti.h"
-#include "stm32_gpio.h"                 // Needed for testing input gpio->event
-#include "arm_internal.h"               // putreg32
-#include <arch/board/board.h>           // Needed for testing getreg16
-#include "hardware/stm32f76xx77xx_pwr.h"    // Needed for testing
-#include <nuttx/kthread.h>
-#include <meadow/meadow-upd.h>  // mint_config_interrupt(cfg);
-#include <meadow/meadow_kernel_tests.h>
-#include <meadow/meadow_syscall_support.h>
-#include <meadow/meadow_interrupt.h>
+    #include <nuttx/arch.h>
+    #include <nuttx/mtd/mtd.h>
+    #include <sys/mount.h>
+    #include <dirent.h>
+    #include <inttypes.h>
+    #include <sys/stat.h>
+    #include "stm32_rtc.h"
+    #include "stm32_exti.h"
+    #include "stm32_gpio.h"                  // Needed for testing input gpio->event
+    #include "arm_internal.h"                // putreg32
+    #include <arch/board/board.h>            // Needed for testing getreg16
+    #include "hardware/stm32f76xx77xx_pwr.h" // Needed for testing
+    #include <nuttx/kthread.h>
+    #include <meadow/meadow-upd.h>           // mint_config_interrupt(cfg);
+    #include <meadow/meadow_kernel_tests.h>
+    #include <meadow/meadow_syscall_support.h>
+    #include <meadow/meadow_interrupt.h>
 
-#include "../pwrmgmt/pwrmgmt_local.h"
+    #include "../pwrmgmt/pwrmgmt_local.h"
 
-#if defined (CONFIG_POWER_MANAGEMENT_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-#pragma message "(--) power_management_tests.c"
-#endif
+    #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+        #pragma message "(--) power_management_tests.c"
+    #endif
 
-#if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
-#pragma message "(--) HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0"
+    #if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
+        #pragma message "(--) HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0"
 
-#define TEST_PIN_V2_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
-#define TEST_PIN_V2_BLUE_LED  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
-// Counter requires open drain not push-pull
-#define TEST_PIN_V2_D03_COUNT (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
-#define TEST_PIN_V2_D04_IN    (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN9)
-#endif
+        #define TEST_PIN_V2_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
+        #define TEST_PIN_V2_BLUE_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
+        // Counter requires open drain not push-pull
+        #define TEST_PIN_V2_D03_COUNT (GPIO_OUTPUT | GPIO_OPENDRAIN | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
+        #define TEST_PIN_V2_D04_IN (GPIO_INPUT | GPIO_PULLUP | GPIO_PORTB | GPIO_PIN9)
+    #endif
 
-// #define USE_MEADOW_DEBUG_HELPERS
-#include <meadow/meadow_debug_helpers.h>
+    // #define USE_MEADOW_DEBUG_HELPERS
+    #include <meadow/meadow_debug_helpers.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -97,13 +97,13 @@
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
-  
-#if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
+
+    #if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
 // Used to verify the alarm is being properly configured
 static int pwrmgmt_enter_test_alarm_timer_parsing(void);
-#endif
+    #endif
 
-#if defined (CONFIG_POWER_MANAGEMENT_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
+    #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 // #if (1)
 
 static void pwmmgmt_test_interrupt_wakeup_from_sleep(void);
@@ -125,17 +125,17 @@ static void *pwrmgmt_test_sleep_kthread_func(int argc, char *argv[]);
 // low-power mode.
 static int pwmmgmt_test_rtc_alarm_isr_handler(int irq, FAR void *context, FAR void *arg)
 {
-  // Clear the EXTI Pending Register for the RTC alarm event
-  putreg32(EXTI_RTC_ALARM, STM32_EXTI_PR);
+    // Clear the EXTI Pending Register for the RTC alarm event
+    putreg32(EXTI_RTC_ALARM, STM32_EXTI_PR);
 
-  syslog(LOG_MTEST, "RTC Alarm A - Interrupt Service Routine called\n");
+    syslog(LOG_MTEST, "RTC Alarm A - Interrupt Service Routine called\n");
 
-  // Only called once so no more interrupts expected, needed or wanted
-  // Note: in the non-test code this isn't done in the ISR
-  up_disable_irq(STM32_IRQ_RTCALRM);
-  irq_detach(STM32_IRQ_RTCALRM);
+    // Only called once so no more interrupts expected, needed or wanted
+    // Note: in the non-test code this isn't done in the ISR
+    up_disable_irq(STM32_IRQ_RTCALRM);
+    irq_detach(STM32_IRQ_RTCALRM);
 
-  return OK;
+    return OK;
 }
 
 /****************************************************************************
@@ -145,201 +145,165 @@ static int pwmmgmt_test_rtc_alarm_isr_handler(int irq, FAR void *context, FAR vo
 // These tests are for testing the power management implementation
 void meadow_kt_power_management_tests(uint32_t userData)
 {
-  int ret = OK;
-  static uint32_t testCount = 0;
+    int ret = OK;
+    static uint32_t testCount = 0;
 
-  syslog(LOG_MTEST,
-    "Power Management tests received 'set developer -p 8 -v %" PRIu32 "'\n",
-    userData);
+    syslog(LOG_MTEST, "Power Management tests received 'set developer -p 8 -v %" PRIu32 "'\n", userData);
 
-  testCount++;
+    testCount++;
 
-  switch(userData)
-  {
-#if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
-    case 1:
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Verify Alarm timer parses correctly\n",
-        userData);
+    switch (userData)
+    {
+        #if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
+        case 1:
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Verify Alarm timer parses correctly\n", userData);
 
-      // Used to verify the alarm is being properly configured
-      pwrmgmt_enter_test_alarm_timer_parsing();
-      break;
-#endif
+            // Used to verify the alarm is being properly configured
+            pwrmgmt_enter_test_alarm_timer_parsing();
+            break;
+        #endif
 
-    case 2:
-      syslog(LOG_MTEST,
-        "==>>power mgmt test 2 - Test Count:%" PRIu32 " - Power Sleep x times for y seconds\n",
-        testCount);
-      usleep(20 * 1000);
-      
-      // Used to verify that multiple sleep events can succeed, one after the next
-      pwrmgmt_enter_test_sleep_x_times_for_y_seconds();
-      break;
-    
-    case 3:
-      syslog(LOG_MTEST,
-        "==>>power mgmt test 3 - Test Count:%" PRIu32 " - Power sleep x times for y seconds\n",
-        testCount);
-      usleep(20 * 1000);
-      
-      // Used to verify that both timeout and GPIO interrupt can wake from low-power sleep
-      pwmmgmt_test_interrupt_wakeup_from_sleep();
-      break;
+        case 2:
+            syslog(LOG_MTEST, "==>>power mgmt test 2 - Test Count:%" PRIu32 " - Power Sleep x times for y seconds\n", testCount);
+            usleep(20 * 1000);
 
-    case 52:
-      // Enter Stop mode. pwrmgmt_enter_stop_mode() always configures the
-      // deepest power-savings register bits available in Stop mode (see its
-      // own comments) -- Sleep and Standby (the F7's other 2 low-power
-      // modes) were explored but never adopted, and no separate savings
-      // level was ever wired up within Stop mode itself, so there is only
-      // one variant of this test.
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Stop mode\n",
-        userData);
-      sleep(1);
-      // Directly execute stop mode with no timer setup
-      ret = pwrmgmt_enter_stop_mode();
-      break;
+            // Used to verify that multiple sleep events can succeed, one after the next
+            pwrmgmt_enter_test_sleep_x_times_for_y_seconds();
+            break;
 
-    case 55:
-      // Set clock to HSE
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - HSE for clock\n",
-        userData);
-      usleep(20 * 1000);
-      ret = meadow_pwr_mgmt_use_hse_for_rtc();
-      break;
+        case 3:
+            syslog(LOG_MTEST, "==>>power mgmt test 3 - Test Count:%" PRIu32 " - Power sleep x times for y seconds\n", testCount);
+            usleep(20 * 1000);
 
-    case 56:
-      // Set clock to LSI
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - LSI for clock\n",
-        userData);
-      usleep(20 * 1000);
-      ret = meadow_pwr_mgmt_use_lsi_for_rtc();
-      break;
+            // Used to verify that both timeout and GPIO interrupt can wake from low-power sleep
+            pwmmgmt_test_interrupt_wakeup_from_sleep();
+            break;
 
-    case 57:
-      // Set for wakeup after X seconds. After this period a call to an ISR and
-      // is used that the wakeup timer is working  as expected. No switching
-      // clocks or going to sleep.
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Testing wakeup timer, not sleep\n",
-        userData);
-      usleep(20 * 1000);
-      // Should call alarm ISR in x seconds
-      ret = pwmmgmt_test_timer_and_alarm_wakeup(15);
-      break;
+        case 52:
+            // Enter Stop mode. pwrmgmt_enter_stop_mode() always configures the
+            // deepest power-savings register bits available in Stop mode (see its
+            // own comments) -- Sleep and Standby (the F7's other 2 low-power
+            // modes) were explored but never adopted, and no separate savings
+            // level was ever wired up within Stop mode itself, so there is only
+            // one variant of this test.
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Stop mode\n", userData);
+            sleep(1);
+            // Directly execute stop mode with no timer setup
+            ret = pwrmgmt_enter_stop_mode();
+            break;
 
-    case 58:
-      // Set alarm for X sec, switch to LSI, enter Stop-mode, after alarm wake up switch to HSE.
-      // The ESP32 is held in reset during Stop mode (Issue #680).
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds\n",
-        userData);
-      ret = pwrmgmt_test_stop_for_10_seconds();
-      break;
+        case 55:
+            // Set clock to HSE
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - HSE for clock\n", userData);
+            usleep(20 * 1000);
+            ret = meadow_pwr_mgmt_use_hse_for_rtc();
+            break;
 
-    case 59:
-      // Same as 58. Before Issue #680 this test held the ESP32 in reset
-      // itself; Stop mode now always does that, so 58 and 59 match.
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32
-        " - Sleeping for 10 seconds, ESP32 held in reset\n",
-        userData);
-      ret = pwrmgmt_test_stop_for_10_seconds();
-      break;
+        case 56:
+            // Set clock to LSI
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - LSI for clock\n", userData);
+            usleep(20 * 1000);
+            ret = meadow_pwr_mgmt_use_lsi_for_rtc();
+            break;
 
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
-    case 60:
-      // Same as 58, but the ESP32 is left running during Stop mode. Running
-      // 58 then 60 measures the ESP32's share of the Stop current.
-      syslog(LOG_MTEST,
-        "==>>power mgmt tests received %" PRIu32
-        " - Sleeping for 10 seconds, ESP32 left running\n",
-        userData);
-      pwrmgmt_set_esp32_reset_in_stop(false);
-      ret = pwrmgmt_test_stop_for_10_seconds();
-      pwrmgmt_set_esp32_reset_in_stop(true);
-      break;
-#endif
+        case 57:
+            // Set for wakeup after X seconds. After this period a call to an ISR and
+            // is used that the wakeup timer is working  as expected. No switching
+            // clocks or going to sleep.
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Testing wakeup timer, not sleep\n", userData);
+            usleep(20 * 1000);
+            // Should call alarm ISR in x seconds
+            ret = pwmmgmt_test_timer_and_alarm_wakeup(15);
+            break;
 
-    default:
-    syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_power_mgmt_tests()\n", userData);
-    break;
-  }
+        case 58:
+            // Set alarm for X sec, switch to LSI, enter Stop-mode, after alarm wake up switch to HSE.
+            // The ESP32 is held in reset during Stop mode (Issue #680).
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds\n", userData);
+            ret = pwrmgmt_test_stop_for_10_seconds();
+            break;
 
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Error ret:%d errno:%d\n", userData, ret, errno);
-  }
+        case 59:
+            // Same as 58. Before Issue #680 this test held the ESP32 in reset
+            // itself; Stop mode now always does that, so 58 and 59 match.
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds, ESP32 held in reset\n", userData);
+            ret = pwrmgmt_test_stop_for_10_seconds();
+            break;
+
+        #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+        case 60:
+            // Same as 58, but the ESP32 is left running during Stop mode. Running
+            // 58 then 60 measures the ESP32's share of the Stop current.
+            syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Sleeping for 10 seconds, ESP32 left running\n", userData);
+            pwrmgmt_set_esp32_reset_in_stop(false);
+            ret = pwrmgmt_test_stop_for_10_seconds();
+            pwrmgmt_set_esp32_reset_in_stop(true);
+            break;
+        #endif
+
+        default:
+            syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_power_mgmt_tests()\n", userData);
+            break;
+    }
+
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "==>>power mgmt tests received %" PRIu32 " - Error ret:%d errno:%d\n", userData, ret, errno);
+    }
 }
 
-//=========================================================
-// This test will exercise the part of the alarm timer's configuration code to
-// test if it is parsing the time in seconds correctly
-#if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
+        //=========================================================
+        // This test will exercise the part of the alarm timer's configuration code to
+        // test if it is parsing the time in seconds correctly
+        #if MEADOW_POWER_MANAGEMENT_SHOW_TIME_CALC > 0
 
-static time_t testTimeValArray[] = 
-{
-  17,                 // 17 seconds
-  60,                 // 1 minute
-  60 * 60,            // 1 hour
-  24 * 60 * 60,       // 1 day
-  5 * 24 * 60 * 60,   // 5 days
+static time_t testTimeValArray[] = {
+    17,               // 17 seconds
+    60,               // 1 minute
+    60 * 60,          // 1 hour
+    24 * 60 * 60,     // 1 day
+    5 * 24 * 60 * 60, // 5 days
 };
 
-static char *testTimeStrArray[] = 
-{
-  "17 seconds",
-  "1 minute",
-  "1 hour",
-  "1 day",
-  "5 days"
-};
+static char *testTimeStrArray[] = {"17 seconds", "1 minute", "1 hour", "1 day", "5 days"};
 
 int pwrmgmt_enter_test_alarm_timer_parsing()
 {
-  int ret = OK;
+    int ret = OK;
 
-  for(int i = 0; i < 5; i++)
-  {
-    syslog(LOG_MTEST, "Alarm Test Parsing '%s'\n", testTimeStrArray[i]);
-    ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(testTimeValArray[i]);
-    if(ret < 0)
+    for (int i = 0; i < 5; i++)
     {
-      syslog(LOG_MTEST, "Alarm Test Parsing ret:%d, errno:%d\n", ret, errno);
+        syslog(LOG_MTEST, "Alarm Test Parsing '%s'\n", testTimeStrArray[i]);
+        ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(testTimeValArray[i]);
+        if (ret < 0)
+        {
+            syslog(LOG_MTEST, "Alarm Test Parsing ret:%d, errno:%d\n", ret, errno);
+        }
     }
-  }
-  return ret;
+    return ret;
 }
-#endif
+        #endif
 
 //=========================================================
 // Stop mode for 10 seconds, logging the RTC time before and after.
 // Used by tests 58, 59 and 60.
 int pwrmgmt_test_stop_for_10_seconds(void)
 {
-  int ret;
-  struct tm tmNowRtc;
+    int ret;
+    struct tm tmNowRtc;
 
-  up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-  syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
-            tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-            tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-  usleep(20 * 1000);
+    up_rtc_getdatetime(&tmNowRtc); // RTC Hardware time
+    syslog(LOG_MTEST, "Before Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n", tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday, tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+    usleep(20 * 1000);
 
-  // Wakeup after x seconds
-  ret = pwrmgmt_enter_stm32f7_stop_mode(10);
+    // Wakeup after x seconds
+    ret = pwrmgmt_enter_stm32f7_stop_mode(10);
 
-  up_rtc_getdatetime(&tmNowRtc);            // RTC Hardware time
-  syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n",
-            tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday,
-            tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
-  usleep(20 * 1000);
+    up_rtc_getdatetime(&tmNowRtc); // RTC Hardware time
+    syslog(LOG_MTEST, "After Sleep:RTC-%4d-%02d-%02dT%02d:%02d:%02d\n", tmNowRtc.tm_year + 1900, tmNowRtc.tm_mon + 1, tmNowRtc.tm_mday, tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec);
+    usleep(20 * 1000);
 
-  return ret;
+    return ret;
 }
 
 //=======================================================================
@@ -347,31 +311,26 @@ int pwrmgmt_test_stop_for_10_seconds(void)
 // This thread allows the HCOM processor thread to return.
 int pwrmgmt_enter_test_sleep_x_times_for_y_seconds()
 {
-  static bool firstTime = true;
+    static bool firstTime = true;
 
-  if(firstTime)
-  {
-    firstTime = false;
-    // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D03);    
-    // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D04);
-    // DEBUG_SET_HIGH(DEBUG_PIN_V2_D03);
-    // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
-  }
-  // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n",
-  //  __FILE__, __LINE__);
+    if (firstTime)
+    {
+        firstTime = false;
+        // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D03);
+        // DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D04);
+        // DEBUG_SET_HIGH(DEBUG_PIN_V2_D03);
+        // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
+    }
+    // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n",
+    //  __FILE__, __LINE__);
 
-  int thread_id = kthread_create("SleepTest",
-                                100,
-                                4096,
-                                (main_t) pwrmgmt_test_sleep_kthread_func,
-                                (char *const *) NULL);
-  if (thread_id <= 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-              __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
-    return -ENOEXEC;
-  }
-  return OK;
+    int thread_id = kthread_create("SleepTest", 100, 4096, (main_t) pwrmgmt_test_sleep_kthread_func, (char * const *) NULL);
+    if (thread_id <= 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n", __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
+        return -ENOEXEC;
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
@@ -380,48 +339,43 @@ int pwrmgmt_enter_test_sleep_x_times_for_y_seconds()
 // This test repeatedly sleeps and wakes up as hardcoded
 void *pwrmgmt_test_sleep_kthread_func(int argc, char *argv[])
 {
-  int ret;
-  int i;
-  int exeSeconds = 5;
-  int exeCount = 3;
-  static int testNumb = 0;
+    int ret;
+    int i;
+    int exeSeconds = 5;
+    int exeCount = 3;
+    static int testNumb = 0;
 
-  // DEBUG_SET_LOW(DEBUG_PIN_V2_D03);
-  testNumb++;
+    // DEBUG_SET_LOW(DEBUG_PIN_V2_D03);
+    testNumb++;
 
-  for(i = 0; i < exeCount; i++)
-  {
-    syslog(LOG_MTEST, "===>Test #%d, %03d-Sleeping for %d seconds\n",
-      testNumb, i + 1, exeSeconds);
-    usleep(20 * 1000);
-
-    // DEBUG_SET_LOW(DEBUG_PIN_V2_D04);
-    
-    ret = pwrmgmt_enter_stm32f7_stop_mode(exeSeconds);
-    if(ret < 0)
+    for (i = 0; i < exeCount; i++)
     {
-      syslog(LOG_MTEST,
-        "===>Test #%d, interation:%03d-Error:Alarm Test-stop mode ret:%d, errno:%d, continuing\n",
-        testNumb, i, ret, errno);
+        syslog(LOG_MTEST, "===>Test #%d, %03d-Sleeping for %d seconds\n", testNumb, i + 1, exeSeconds);
+        usleep(20 * 1000);
+
+        // DEBUG_SET_LOW(DEBUG_PIN_V2_D04);
+
+        ret = pwrmgmt_enter_stm32f7_stop_mode(exeSeconds);
+        if (ret < 0)
+        {
+            syslog(LOG_MTEST, "===>Test #%d, interation:%03d-Error:Alarm Test-stop mode ret:%d, errno:%d, continuing\n", testNumb, i, ret, errno);
+        }
+
+        // Sleep ended, thread is running
+        syslog(LOG_MTEST, "===>Test #%d, %03d-Sleep Ended after %d seconds\n", testNumb, i + 1, exeSeconds);
+        // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
+
+        // Was that the last stop mode iteration?
+        if (i == (exeCount - 1))
+            break;
+
+        // syslog(LOG_MTEST, "Test #%d, %03d-Awake for %d seconds\n", testNumb, i + 1, exeSeconds);
+        sleep(exeSeconds);
     }
 
-    // Sleep ended, thread is running
-    syslog(LOG_MTEST, "===>Test #%d, %03d-Sleep Ended after %d seconds\n",
-      testNumb, i + 1, exeSeconds);
-    // DEBUG_SET_HIGH(DEBUG_PIN_V2_D04);
-
-    // Was that the last stop mode iteration?
-    if(i == (exeCount - 1))
-      break;
-
-    // syslog(LOG_MTEST, "Test #%d, %03d-Awake for %d seconds\n", testNumb, i + 1, exeSeconds);
-    sleep(exeSeconds);
-  }
-
-  syslog(LOG_MTEST, "Test #%d, %03d-Cycles were executed, thread exiting\n",
-    testNumb, exeCount);
-  // DEBUG_SET_HIGH(DEBUG_PIN_V2_D03);
-  return NULL;
+    syslog(LOG_MTEST, "Test #%d, %03d-Cycles were executed, thread exiting\n", testNumb, exeCount);
+    // DEBUG_SET_HIGH(DEBUG_PIN_V2_D03);
+    return NULL;
 }
 
 //=========================================================
@@ -429,9 +383,9 @@ void *pwrmgmt_test_sleep_kthread_func(int argc, char *argv[])
 // wake up switch to HSE.
 int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
 {
-  int ret;
+    int ret;
 
-#if 0   // FOR TESTING THE TESTING CODE
+        #if 0  // FOR TESTING THE TESTING CODE
   struct timespec abstime;
   struct tm tmNowNx;
   struct tm tmNowRtc;
@@ -445,23 +399,23 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
     tmNowRtc.tm_hour, tmNowRtc.tm_min, tmNowRtc.tm_sec,
     tmNowNx.tm_year + 1900, tmNowNx.tm_mon + 1, tmNowNx.tm_mday,
     tmNowNx.tm_hour, tmNowNx.tm_min, tmNowNx.tm_sec);
-#endif   // FOR TESTING ONLY
+        #endif // FOR TESTING ONLY
 
-  // Configure the hardware
-  // Set alarm wakeup period and wait for ISR to notify that time has elapsed
-  syslog(LOG_MTEST, "==> Setting RTC alarm for %lld seconds\n", wakeupPeriod);
-  ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    return ret;
-  }
-  // Prepare for wakeup by configuring an ISR to be called when the time
-  // period has been reached.
-  irq_attach(STM32_IRQ_RTCALRM, pwmmgmt_test_rtc_alarm_isr_handler, NULL);
-  up_enable_irq(STM32_IRQ_RTCALRM);
+    // Configure the hardware
+    // Set alarm wakeup period and wait for ISR to notify that time has elapsed
+    syslog(LOG_MTEST, "==> Setting RTC alarm for %lld seconds\n", wakeupPeriod);
+    ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(wakeupPeriod);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+        return ret;
+    }
+    // Prepare for wakeup by configuring an ISR to be called when the time
+    // period has been reached.
+    irq_attach(STM32_IRQ_RTCALRM, pwmmgmt_test_rtc_alarm_isr_handler, NULL);
+    up_enable_irq(STM32_IRQ_RTCALRM);
 
-#if 0  // FOR TESTING. Use the HCOM thread to loop until it's time wakeup
+        #if 0 // FOR TESTING. Use the HCOM thread to loop until it's time wakeup
   int countDown = wakeupPeriod;
   
   while(countDown > -2)
@@ -478,9 +432,9 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
 
   syslog(LOG_MTEST, "==>%d Final RTC Time:%08x\n", countDown, getreg32(STM32_RTC_TR));
 
-#endif
+        #endif
 
-  return OK;
+    return OK;
 }
 
 // ============================================================================
@@ -488,72 +442,66 @@ int pwmmgmt_test_timer_and_alarm_wakeup(time_t wakeupPeriod)
 // low-power mode. It simulates being configured via Meadow.Core.
 void pwmmgmt_test_interrupt_wakeup_from_sleep(void)
 {
-  int ret;
+    int ret;
 
-  struct mint_gpio_int_config* cfg = malloc(sizeof(struct mint_gpio_int_config));
-  if(cfg == NULL)
-  {
-    syslog(LOG_MTEST, "%s@%d-Error:malloc returned NULL\n",
-      __FILE__, __LINE__);
-    return;
-  }
+    struct mint_gpio_int_config *cfg = malloc(sizeof(struct mint_gpio_int_config));
+    if (cfg == NULL)
+    {
+        syslog(LOG_MTEST, "%s@%d-Error:malloc returned NULL\n", __FILE__, __LINE__);
+        return;
+    }
 
-  // Only used by this module to time stop mode
-  DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D14); // On while sleeping
-  DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
-  
-  // D05 - PB4 Input for GPIO wakeup pin
-  stm32_configgpio(GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN4);
-  
-  // GPIO for wakeup
-  // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
-  // This is what Meadow.Core will do when it's been enhanced to support this
-  // feature.
-  // Note: cfg is not the Nuttx cfgset. The Nuttx cfgset is built by the call
-  // to mint_config_interrupt().
-  cfg->port = 1;              // port B (D05 in FeatherV2)
-  cfg->pin = 4;               // pin 4  (D05 in FeatherV2)
-  cfg->configType = gpio_intrpt_cfg_type_wakeup;
-  cfg->risingEdge = 1;
-  cfg->fallingEdge = 0;
-  cfg->resistorMode = 2;      // 2 = pull down
-  cfg->debounceDuration = 0;  // Must be 0 for lp wakeup
-  cfg->glitchDuration = 0;    // Must be 0 for lp wakeup
+    // Only used by this module to time stop mode
+    DEBUG_CONFIGURE_PIN(DEBUG_PIN_V2_D14); // On while sleeping
+    DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
 
-  // Configure interrupt pin via public function used by managed code
-  ret = mint_config_interrupt(cfg);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n",
-      ret);
-  }
-  free (cfg);
+    // D05 - PB4 Input for GPIO wakeup pin
+    stm32_configgpio(GPIO_INPUT | GPIO_PULLDOWN | GPIO_PORTB | GPIO_PIN4);
 
-  syslog(LOG_MTEST,
-    "%s@%d - Going into Low-power sleep for 30 seconds unless interrupted.\n",
-    __FILE__, __LINE__);
-  // Need a bit of time to insure message is received before low-power mode
-  usleep(50 * 1000);
+    // GPIO for wakeup
+    // Populate config structure for GPIO wakeup of PB4 (D05 in FeatherV2).
+    // This is what Meadow.Core will do when it's been enhanced to support this
+    // feature.
+    // Note: cfg is not the Nuttx cfgset. The Nuttx cfgset is built by the call
+    // to mint_config_interrupt().
+    cfg->port = 1; // port B (D05 in FeatherV2)
+    cfg->pin = 4;  // pin 4  (D05 in FeatherV2)
+    cfg->configType = gpio_intrpt_cfg_type_wakeup;
+    cfg->risingEdge = 1;
+    cfg->fallingEdge = 0;
+    cfg->resistorMode = 2;     // 2 = pull down
+    cfg->debounceDuration = 0; // Must be 0 for lp wakeup
+    cfg->glitchDuration = 0;   // Must be 0 for lp wakeup
 
-  DEBUG_SET_HIGH(DEBUG_PIN_V2_D14);
+    // Configure interrupt pin via public function used by managed code
+    ret = mint_config_interrupt(cfg);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n", ret);
+    }
+    free(cfg);
 
-  // Put Meadow to sleep for either time or till interrupt
-  ret = pwrmgmt_enter_stm32f7_stop_mode(30);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n",
-      ret);
-  }
+    syslog(LOG_MTEST, "%s@%d - Going into Low-power sleep for 30 seconds unless interrupted.\n", __FILE__, __LINE__);
+    // Need a bit of time to insure message is received before low-power mode
+    usleep(50 * 1000);
 
-  DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
-  int wakeReason = pwrmgmt_most_recent_wakeup_reason();
-  syslog(LOG_MTEST, "%s@%d - Low-power sleep ended, reason:%d\n",
-    __FILE__, __LINE__, wakeReason);
+    DEBUG_SET_HIGH(DEBUG_PIN_V2_D14);
+
+    // Put Meadow to sleep for either time or till interrupt
+    ret = pwrmgmt_enter_stm32f7_stop_mode(30);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "Error:mint_config_interrupt returned ret:%d\n", ret);
+    }
+
+    DEBUG_SET_LOW(DEBUG_PIN_V2_D14);
+    int wakeReason = pwrmgmt_most_recent_wakeup_reason();
+    syslog(LOG_MTEST, "%s@%d - Low-power sleep ended, reason:%d\n", __FILE__, __LINE__, wakeReason);
 }
 
-#endif    // #if defined (CONFIG_POWER_MANAGEMENT_TESTS)
+    #endif // #if defined (CONFIG_POWER_MANAGEMENT_TESTS)
 
-#if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
+    #if (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER > 0)
 
 static void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[]);
 
@@ -564,80 +512,71 @@ static void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[]);
 // Called when starting to initialize the thread used to run the test
 int pwmmgmt_test_sleep_wake_only_setup()
 {
-  // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n", __FILE__, __LINE__);
-  int thread_id = kthread_create("SleepWakeForever",
-                                100,
-                                4096,
-                                (main_t) pwrmgmt_test_sleep_wake_kthread,
-                                (char *const *) NULL);
-  if (thread_id <= 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-              __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
-    return -ENOEXEC;
-  }
-  return OK;
+    // syslog(LOG_MTEST, "-->%s@%d-Entered. Creating thread.\n", __FILE__, __LINE__);
+    int thread_id = kthread_create("SleepWakeForever", 100, 4096, (main_t) pwrmgmt_test_sleep_wake_kthread, (char * const *) NULL);
+    if (thread_id <= 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n", __FILE__, __LINE__, PWRMGMT_CAL_LSI_THREAD_NAME);
+        return -ENOEXEC;
+    }
+    return OK;
 }
 
 //=====================================================================
 void *pwrmgmt_test_sleep_wake_kthread(int argc, char *argv[])
 {
-  int ret;
-  uint i;
-  const uint stopModeSeconds = 2;
-  const uint awakeSeconds = 2;
-  uint maxCount = 0xffffffff;
+    int ret;
+    uint i;
+    const uint stopModeSeconds = 2;
+    const uint awakeSeconds = 2;
+    uint maxCount = 0xffffffff;
 
-  syslog(LOG_MTEST, "===>Before SleepWake Cycle starts\n");
+    syslog(LOG_MTEST, "===>Before SleepWake Cycle starts\n");
 
-  // Wait 5 seconds to insure everything in Meadow.OS us running
-  sleep(5);
+    // Wait 5 seconds to insure everything in Meadow.OS us running
+    sleep(5);
 
-  ret = stm32_configgpio((uint32_t)TEST_PIN_V2_GREEN_LED);
-  ret = stm32_configgpio(TEST_PIN_V2_BLUE_LED);
-  ret = stm32_configgpio(TEST_PIN_V2_D03_COUNT);
-  ret = stm32_configgpio(TEST_PIN_V2_D04_IN);
+    ret = stm32_configgpio((uint32_t) TEST_PIN_V2_GREEN_LED);
+    ret = stm32_configgpio(TEST_PIN_V2_BLUE_LED);
+    ret = stm32_configgpio(TEST_PIN_V2_D03_COUNT);
+    ret = stm32_configgpio(TEST_PIN_V2_D04_IN);
 
-  stm32_gpiowrite(TEST_PIN_V2_GREEN_LED, false);
-  stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, false);
-  stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, false);
-
-  for(i = 0; i < maxCount; i++)
-  {
-    // If the input pin is grounded then execute the test. Otherwise, don't.
-    if(stm32_gpioread(TEST_PIN_V2_D04_IN))
-    {
-      sleep(4);
-      continue;
-    };
-
-    syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Sleeping for %lu seconds\n",
-      i + 1, stopModeSeconds);
-
-    stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, true);
-    stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, true);
     stm32_gpiowrite(TEST_PIN_V2_GREEN_LED, false);
-    ret = pwrmgmt_enter_stm32f7_stop_mode(stopModeSeconds);
     stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, false);
-    stm32_gpiowrite(TEST_PIN_V2_GREEN_LED, true);
     stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, false);
 
-    if(ret < 0)
+    for (i = 0; i < maxCount; i++)
     {
-      syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Error:ret:%d, errno:%d, continuing\n",
-                i + 1, ret, errno);
+        // If the input pin is grounded then execute the test. Otherwise, don't.
+        if (stm32_gpioread(TEST_PIN_V2_D04_IN))
+        {
+            sleep(4);
+            continue;
+        };
+
+        syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Sleeping for %lu seconds\n", i + 1, stopModeSeconds);
+
+        stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, true);
+        stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, true);
+        stm32_gpiowrite(TEST_PIN_V2_GREEN_LED, false);
+        ret = pwrmgmt_enter_stm32f7_stop_mode(stopModeSeconds);
+        stm32_gpiowrite(TEST_PIN_V2_BLUE_LED, false);
+        stm32_gpiowrite(TEST_PIN_V2_GREEN_LED, true);
+        stm32_gpiowrite(TEST_PIN_V2_D03_COUNT, false);
+
+        if (ret < 0)
+        {
+            syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Error:ret:%d, errno:%d, continuing\n", i + 1, ret, errno);
+        }
+
+        // Sleep ended
+        syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Awake for %lu seconds\n", i + 1, awakeSeconds);
+        sleep(awakeSeconds);
     }
 
-    // Sleep ended
-    syslog(LOG_MTEST, "===>SleepWake Cycle #%05lu, Awake for %lu seconds\n",
-      i + 1, awakeSeconds);
-    sleep(awakeSeconds);
-  }
-
-  return NULL;
+    return NULL;
 }
 
-#endif    // #if defined (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER)
+    #endif // #if defined (HCOM_DIAG_MEADOW_OS_SLEEP_WAKE_FOREVER)
 
-#endif    // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
-
+#endif     // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

@@ -96,4 +96,3 @@ void meadow_os_raise_simple_exception(uint32_t status)
     }
 #endif
 }
-

@@ -1,6 +1,6 @@
 /****************************************************************************
  * meadow_os.h
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -43,7 +43,7 @@
  * The following list of reset codes are derived from RM0410 document from
  * STM.  The values are taken from the RCC-CSR register bits.  Specifically,
  * bits 24 - 31 inclusive.
- * 
+ *
  * The bit patterns below assume that the CSR register has been shifted right
  * by 24 bits.
  */
@@ -51,37 +51,37 @@
 /**
  * @brief Set when either a brownout reset or a POR/PDR reset occurs.
  */
-#define MEADOW_OS_RESET_BROWNOUT                0x02
+#define MEADOW_OS_RESET_BROWNOUT 0x02
 
 /**
  * @brief Reset triggered by the NRST pin.
  */
-#define MEADOW_OS_RESET_RESET_PIN               0x04
+#define MEADOW_OS_RESET_RESET_PIN 0x04
 
 /**
  * @brief POR/PDR reset.
  */
-#define MEADOW_OS_RESET_POWER_CYCLE             0x08
+#define MEADOW_OS_RESET_POWER_CYCLE 0x08
 
 /**
  * @brief Software reset.
  */
-#define MEADOW_OS_RESET_SOFTWARE                0x10
+#define MEADOW_OS_RESET_SOFTWARE 0x10
 
 /**
  * @brief Independent watchdog reset from the Vdd domain.
  */
-#define MEADOW_OS_RESET_INDEPENDENT_WATCHDOG    0x20
+#define MEADOW_OS_RESET_INDEPENDENT_WATCHDOG 0x20
 
 /**
  * @brief Windows watchdog reset.
  */
-#define MEADOW_OS_RESET_WINDOW_WATCHDOG         0x40
+#define MEADOW_OS_RESET_WINDOW_WATCHDOG 0x40
 
 /**
  * @brief Low power management reset.
  */
-#define MEADOW_OS_RESET_LOW_POWER               0x80
+#define MEADOW_OS_RESET_LOW_POWER 0x80
 
 /****************************************************************************
  * Public Functions

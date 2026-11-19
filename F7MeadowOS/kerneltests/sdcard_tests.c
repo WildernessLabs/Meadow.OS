@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/kerneltests/sdcard_tests.c
- * 
+ *
  *   Copyright (C) 2019 - 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -37,7 +37,7 @@
  * Included Files
  ****************************************************************************/
 
- #include <nuttx/config.h>
+#include <nuttx/config.h>
 
 #include "../hcom_nx/hcom_nx_common.h"
 
@@ -52,18 +52,18 @@
 
 #include <meadow/hcom_shared_common.h>
 
-#if defined (CONFIG_SD_CARD_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
-#pragma message "(--) sdcard_tests.c"
+#if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    #pragma message "(--) sdcard_tests.c"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define HCOM_EX_SDCARD_TEST_FILE_NAME  "/sdcard/testfile.txt"
+    #define HCOM_EX_SDCARD_TEST_FILE_NAME "/sdcard/testfile.txt"
 
-// Hot plug test (110): how long to watch, and how often to look
-#define HCOM_EX_SDCARD_HOTPLUG_TEST_MS  (30 * 1000)
-#define HCOM_EX_SDCARD_HOTPLUG_POLL_MS  (100)
+    // Hot plug test (110): how long to watch, and how often to look
+    #define HCOM_EX_SDCARD_HOTPLUG_TEST_MS (30 * 1000)
+    #define HCOM_EX_SDCARD_HOTPLUG_POLL_MS (100)
 
 /* Configuration ************************************************************/
 
@@ -74,7 +74,7 @@
 static int _activeFd;
 
 // 46 total characters
-static char textForTesting[] ="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz\n";
+static char textForTesting[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz\n";
 
 /****************************************************************************
  * Private Function Prototypes
@@ -87,8 +87,8 @@ static int hcom_nx_sdcard_file_stat_test(void);
  ****************************************************************************/
 int hcom_nx_exec_test_sdcard_setup()
 {
-  _activeFd = -1;
-  return OK;
+    _activeFd = -1;
+    return OK;
 }
 
 //===================================================================
@@ -96,157 +96,147 @@ int hcom_nx_exec_test_sdcard_setup()
 // while the automounter has a card mounted there.
 static bool hcom_nx_sdcard_is_mounted(void)
 {
-  struct statfs sfs;
+    struct statfs sfs;
 
-  return statfs(MEADOW_SDCARD_MOUNT_POINT_NAME, &sfs) == 0;
+    return statfs(MEADOW_SDCARD_MOUNT_POINT_NAME, &sfs) == 0;
 }
 
 //===================================================================
 // 101 The automounter mounts the card (Issue #88), the test only checks
 static int hcom_nx_sdcard_check_mounted(void)
 {
-  if(!hcom_nx_sdcard_is_mounted())
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: SD-Card not mounted, errno:%d\n",
-      __FILE__, __LINE__, errno);
-    return -ENODEV;
-  }
+    if (!hcom_nx_sdcard_is_mounted())
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: SD-Card not mounted, errno:%d\n", __FILE__, __LINE__, errno);
+        return -ENODEV;
+    }
 
-  syslog(LOG_MTEST, "SD-Card mounted by the automounter\n");
-  return OK;
+    syslog(LOG_MTEST, "SD-Card mounted by the automounter\n");
+    return OK;
 }
 
 //===================================================================
 // 102
 static int hcom_nx_sdcard_open_test_file(void)
 {
-  int ret;
+    int ret;
 
-  _activeFd = open(HCOM_EX_SDCARD_TEST_FILE_NAME, O_RDWR|O_CREAT|O_APPEND, 0644);
-  if(_activeFd < 0)
-  {
-    _activeFd = -1;
+    _activeFd = open(HCOM_EX_SDCARD_TEST_FILE_NAME, O_RDWR | O_CREAT | O_APPEND, 0644);
+    if (_activeFd < 0)
+    {
+        _activeFd = -1;
 
-    syslog(LOG_MTEST, "%s@%d-ERROR: open failed. ret(fd):%d, errno:%d\n",
-      __FILE__, __LINE__, _activeFd, errno);
-    ret = _activeFd;
-    return ret;
-  }
+        syslog(LOG_MTEST, "%s@%d-ERROR: open failed. ret(fd):%d, errno:%d\n", __FILE__, __LINE__, _activeFd, errno);
+        ret = _activeFd;
+        return ret;
+    }
 
-  syslog(LOG_MTEST, "Open successful\n");
-  return OK;
+    syslog(LOG_MTEST, "Open successful\n");
+    return OK;
 }
 
 //===================================================================
 // 103
 static int hcom_nx_sdcard_write_test_file(void)
 {
-  if(_activeFd == -1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n",
-      __FILE__, __LINE__);
-    return -EBADFD;
-  }
+    if (_activeFd == -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n", __FILE__, __LINE__);
+        return -EBADFD;
+    }
 
-  ssize_t nbytes = write(_activeFd, textForTesting, sizeof(textForTesting));
-  if(nbytes < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: write failed. ret(nbytes):%zd, errno:%d\n",
-      __FILE__, __LINE__, nbytes, errno);
-    return nbytes;
-  }
+    ssize_t nbytes = write(_activeFd, textForTesting, sizeof(textForTesting));
+    if (nbytes < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: write failed. ret(nbytes):%zd, errno:%d\n", __FILE__, __LINE__, nbytes, errno);
+        return nbytes;
+    }
 
-  if(nbytes != sizeof(textForTesting))
-  {
-    syslog(LOG_MTEST, "%s@%d-Warning: write only wrote:%zd out of:%zd\n",
-      __FILE__, __LINE__, nbytes, sizeof(textForTesting));
+    if (nbytes != sizeof(textForTesting))
+    {
+        syslog(LOG_MTEST, "%s@%d-Warning: write only wrote:%zd out of:%zd\n", __FILE__, __LINE__, nbytes, sizeof(textForTesting));
+        return OK;
+    }
+
+    syslog(LOG_MTEST, "Write successful (%zd written)\n", nbytes);
     return OK;
-  }
-
-  syslog(LOG_MTEST, "Write successful (%zd written)\n", nbytes);
-  return OK;
 }
 
 //===================================================================
 // 104
 static int hcom_nx_sdcard_read_test_file(void)
 {
-  uint8_t *buffer;
+    uint8_t *buffer;
 
-  if(_activeFd == -1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n",
-      __FILE__, __LINE__);
-    return -EBADFD;
-  }
+    if (_activeFd == -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n", __FILE__, __LINE__);
+        return -EBADFD;
+    }
 
-  // Seek to beginning
-  off_t offset = lseek(_activeFd, 0, SEEK_SET);
-  if (offset == (off_t)-1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: lseek failed. ret:%" PRId32 ", errno:%d\n",
-      __FILE__, __LINE__, (int32_t)offset, errno);
-    return -errno;
-  }
+    // Seek to beginning
+    off_t offset = lseek(_activeFd, 0, SEEK_SET);
+    if (offset == (off_t) -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: lseek failed. ret:%" PRId32 ", errno:%d\n", __FILE__, __LINE__, (int32_t) offset, errno);
+        return -errno;
+    }
 
-  // Read up to first 1024 bytes
-  buffer = malloc(1024);
-  if(buffer == NULL)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: malloc failed.\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
+    // Read up to first 1024 bytes
+    buffer = malloc(1024);
+    if (buffer == NULL)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: malloc failed.\n", __FILE__, __LINE__);
+        return -ENOMEM;
+    }
 
-  ssize_t nbytes = read(_activeFd, buffer, 1024);
-  if(nbytes < 0)
-  {
-    free(buffer);
-    syslog(LOG_MTEST, "%s@%d-ERROR: reading failed. ret:%zd, errno:%d\n",
-      __FILE__, __LINE__, nbytes, errno);
-    return nbytes;
-  }
+    ssize_t nbytes = read(_activeFd, buffer, 1024);
+    if (nbytes < 0)
+    {
+        free(buffer);
+        syslog(LOG_MTEST, "%s@%d-ERROR: reading failed. ret:%zd, errno:%d\n", __FILE__, __LINE__, nbytes, errno);
+        return nbytes;
+    }
 
-  syslog(LOG_MTEST, "---- Read %zd bytes from test file ----\n", nbytes);
-  
-#if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
+    syslog(LOG_MTEST, "---- Read %zd bytes from test file ----\n", nbytes);
+
+    #if HCOM_INCLUDE_DIAG_PRINT_BUFFER_CODE > 0
     hcom_nx_diag_print_buffer(buffer, nbytes, 1);
-#else
+    #else
     syslog(LOG_MTEST, "Print buffer not included in build\n");
-#endif
+    #endif
 
-  free(buffer);
-  return OK;
+    free(buffer);
+    return OK;
 }
 
 //===================================================================
 // 105
 static int hcom_nx_sdcard_close_test_file(void)
 {
-  int ret;
+    int ret;
 
-  if(_activeFd == -1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n",
-              __FILE__, __LINE__);
-    return -EBADFD;
-  }
+    if (_activeFd == -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n", __FILE__, __LINE__);
+        return -EBADFD;
+    }
 
-  ret = close(_activeFd);
-  if(ret < 0)
-  {
-    // I think close should flush internally without the fsync step???
-    if(errno == EIO)
-      syslog(LOG_MTEST, "%s@%d-May need to fsync\n", __FILE__, __LINE__);
-      
-    syslog(LOG_MTEST, "%s@%d-ERROR: close failed. ret:%d, errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
+    ret = close(_activeFd);
+    if (ret < 0)
+    {
+        // I think close should flush internally without the fsync step???
+        if (errno == EIO)
+            syslog(LOG_MTEST, "%s@%d-May need to fsync\n", __FILE__, __LINE__);
+
+        syslog(LOG_MTEST, "%s@%d-ERROR: close failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
+    _activeFd = -1;
+
+    syslog(LOG_MTEST, "Close successful\n");
     return ret;
-  }
-
-  _activeFd = -1;  
-
-  syslog(LOG_MTEST, "Close successful\n");
-  return ret;
 }
 
 //===================================================================
@@ -254,109 +244,103 @@ static int hcom_nx_sdcard_close_test_file(void)
 // mounts the card again only when it is next inserted.
 static int hcom_nx_sdcard_unmount_card(void)
 {
-  int ret;
+    int ret;
 
-  ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n", __FILE__,
-      __LINE__, ret, errno);
+    ret = umount(MEADOW_SDCARD_MOUNT_POINT_NAME);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: umount failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
+    syslog(LOG_MTEST, "umount successful\n");
     return ret;
-  }
-  
-  syslog(LOG_MTEST, "umount successful\n");
-  return ret;
 }
 
 //===================================================================
 // 107
 static int hcom_nx_sdcard_delete_test_file(void)
 {
-  int ret;
+    int ret;
 
-  ret = unlink(HCOM_EX_SDCARD_TEST_FILE_NAME);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: delete failed. ret:%d, errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
+    ret = unlink(HCOM_EX_SDCARD_TEST_FILE_NAME);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: delete failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
+    syslog(LOG_MTEST, "Delete successful\n");
     return ret;
-  }
-  
-  syslog(LOG_MTEST, "Delete successful\n");
-  return ret;
 }
 
 //===================================================================
 // 108 file status
 static int hcom_nx_sdcard_file_stat_test(void)
 {
-  int ret;
-  struct stat fileStatus;
+    int ret;
+    struct stat fileStatus;
 
-  // from nuttx stat.h
-  // struct stat
-  // {
-  //   /* Required, standard fields */
-  //   mode_t    st_mode;    /* File type, attributes, and access mode bits */
-  //   off_t     st_size;    /* Size of file/directory, in bytes */
-  //   blksize_t st_blksize; /* Block size used for filesystem I/O */
-  //   blkcnt_t  st_blocks;  /* Number of blocks allocated */
-  //   time_t    st_atime;   /* Time of last access */
-  //   time_t    st_mtime;   /* Time of last modification */
-  //   time_t    st_ctime;   /* Time of last status change */
-  //   /* Internal fields.  These are part this specific implementation and
-  //   * should not referenced by application code for portability reasons.
-  //   */
-  // #ifdef CONFIG_PSEUDOFS_SOFTLINKS
-  //   uint8_t   st_count;   /* Used internally to limit traversal of links */
-  // #endif
-  // };
+    // from nuttx stat.h
+    // struct stat
+    // {
+    //   /* Required, standard fields */
+    //   mode_t    st_mode;    /* File type, attributes, and access mode bits */
+    //   off_t     st_size;    /* Size of file/directory, in bytes */
+    //   blksize_t st_blksize; /* Block size used for filesystem I/O */
+    //   blkcnt_t  st_blocks;  /* Number of blocks allocated */
+    //   time_t    st_atime;   /* Time of last access */
+    //   time_t    st_mtime;   /* Time of last modification */
+    //   time_t    st_ctime;   /* Time of last status change */
+    //   /* Internal fields.  These are part this specific implementation and
+    //   * should not referenced by application code for portability reasons.
+    //   */
+    // #ifdef CONFIG_PSEUDOFS_SOFTLINKS
+    //   uint8_t   st_count;   /* Used internally to limit traversal of links */
+    // #endif
+    // };
 
-  if(_activeFd == -1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n",
-      __FILE__, __LINE__);
-    return -EBADFD;
-  }
+    if (_activeFd == -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n", __FILE__, __LINE__);
+        return -EBADFD;
+    }
 
-  ret = fstat(_activeFd, &fileStatus);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: fstat failed. ret:%d, errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
-    return ret;
-  }
+    ret = fstat(_activeFd, &fileStatus);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: fstat failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
 
-  off_t fileSize = fileStatus.st_size;
+    off_t fileSize = fileStatus.st_size;
 
-  syslog(LOG_MTEST, "fstat successful. file size:%" PRId64 " bytes\n", (int64_t)fileSize);
-  return fileSize;
+    syslog(LOG_MTEST, "fstat successful. file size:%" PRId64 " bytes\n", (int64_t) fileSize);
+    return fileSize;
 }
 
 //===================================================================
 // 109 fsync flushs to disk. It also closes the file. If the file is closed
-// 
+//
 static int hcom_nx_sdcard_fsync_file(void)
 {
-  int ret;
+    int ret;
 
-  if(_activeFd == -1)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n",
-      __FILE__, __LINE__);
-    return -EBADFD;
-  }
+    if (_activeFd == -1)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: Test app believes file closed.\n", __FILE__, __LINE__);
+        return -EBADFD;
+    }
 
-  ret = fsync(_activeFd);
-  if(ret < 0)
-  {
-    syslog(LOG_MTEST, "%s@%d-ERROR: fsync failed. ret:%d, errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
+    ret = fsync(_activeFd);
+    if (ret < 0)
+    {
+        syslog(LOG_MTEST, "%s@%d-ERROR: fsync failed. ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
+    syslog(LOG_MTEST, "fsync successful\n");
     return ret;
-  }
-  
-  syslog(LOG_MTEST, "fsync successful\n");
-  return ret;
 }
 
 //===================================================================
@@ -365,49 +349,45 @@ static int hcom_nx_sdcard_fsync_file(void)
 // unmount and a mount were seen.
 static int hcom_nx_sdcard_hotplug_test(void)
 {
-  struct timespec start;
-  struct timespec now;
-  uint32_t elapsedMs = 0;
-  bool mounted;
-  bool sawUnmount = false;
-  bool sawMount = false;
+    struct timespec start;
+    struct timespec now;
+    uint32_t elapsedMs = 0;
+    bool mounted;
+    bool sawUnmount = false;
+    bool sawMount = false;
 
-  mounted = hcom_nx_sdcard_is_mounted();
-  syslog(LOG_MTEST, "Hot plug: SD-Card %s. Remove and re-insert it within %d s\n",
-    mounted ? "mounted" : "not mounted", HCOM_EX_SDCARD_HOTPLUG_TEST_MS / 1000);
+    mounted = hcom_nx_sdcard_is_mounted();
+    syslog(LOG_MTEST, "Hot plug: SD-Card %s. Remove and re-insert it within %d s\n", mounted ? "mounted" : "not mounted", HCOM_EX_SDCARD_HOTPLUG_TEST_MS / 1000);
 
-  clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &start);
 
-  while(elapsedMs < HCOM_EX_SDCARD_HOTPLUG_TEST_MS && !(sawUnmount && sawMount))
-  {
-    usleep(HCOM_EX_SDCARD_HOTPLUG_POLL_MS * 1000);
-
-    clock_gettime(CLOCK_MONOTONIC, &now);
-    elapsedMs = (uint32_t)((now.tv_sec - start.tv_sec) * 1000 +
-                           (now.tv_nsec - start.tv_nsec) / 1000000);
-
-    if(hcom_nx_sdcard_is_mounted() != mounted)
+    while (elapsedMs < HCOM_EX_SDCARD_HOTPLUG_TEST_MS && !(sawUnmount && sawMount))
     {
-      mounted = !mounted;
-      if(mounted)
-        sawMount = true;
-      else
-        sawUnmount = true;
+        usleep(HCOM_EX_SDCARD_HOTPLUG_POLL_MS * 1000);
 
-      syslog(LOG_MTEST, "Hot plug: %" PRIu32 " ms, SD-Card %s\n",
-        elapsedMs, mounted ? "mounted" : "unmounted");
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        elapsedMs = (uint32_t) ((now.tv_sec - start.tv_sec) * 1000 + (now.tv_nsec - start.tv_nsec) / 1000000);
+
+        if (hcom_nx_sdcard_is_mounted() != mounted)
+        {
+            mounted = !mounted;
+            if (mounted)
+                sawMount = true;
+            else
+                sawUnmount = true;
+
+            syslog(LOG_MTEST, "Hot plug: %" PRIu32 " ms, SD-Card %s\n", elapsedMs, mounted ? "mounted" : "unmounted");
+        }
     }
-  }
 
-  if(!(sawUnmount && sawMount))
-  {
-    syslog(LOG_MTEST, "Hot plug FAIL: saw %s unmount and %s mount\n",
-      sawUnmount ? "an" : "no", sawMount ? "a" : "no");
-    return -ETIMEDOUT;
-  }
+    if (!(sawUnmount && sawMount))
+    {
+        syslog(LOG_MTEST, "Hot plug FAIL: saw %s unmount and %s mount\n", sawUnmount ? "an" : "no", sawMount ? "a" : "no");
+        return -ETIMEDOUT;
+    }
 
-  syslog(LOG_MTEST, "Hot plug PASS\n");
-  return OK;
+    syslog(LOG_MTEST, "Hot plug PASS\n");
+    return OK;
 }
 
 //===================================================================
@@ -415,84 +395,71 @@ static int hcom_nx_sdcard_hotplug_test(void)
 // Route the test to the correct destination
 int meadow_kt_sd_card_tests(uint32_t userData)
 {
-  switch(userData)
-  {
-    case 100:  // format as fat32
-    // Future. For now use NSH or PC to format FAT32
-    syslog(LOG_MTEST,
-      "sdcard tests received %" PRIu32 " this is NOT a supported option\n",
-      userData);
-    break;
+    switch (userData)
+    {
+        case 100: // format as fat32
+            // Future. For now use NSH or PC to format FAT32
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " this is NOT a supported option\n", userData);
+            break;
 
-    case 101: // Check mounted
-    // The NuttX automounter mounts the card when it is inserted and
-    // unmounts it when it is removed (Issue #88)
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mounted check\n",
-      userData);
-    return hcom_nx_sdcard_check_mounted();
-    break;
+        case 101: // Check mounted
+            // The NuttX automounter mounts the card when it is inserted and
+            // unmounts it when it is removed (Issue #88)
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute mounted check\n", userData);
+            return hcom_nx_sdcard_check_mounted();
+            break;
 
-    case 102: // Open test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute open testfile.txt\n",
-      userData);
-    return hcom_nx_sdcard_open_test_file();
-    break;
+        case 102: // Open test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute open testfile.txt\n", userData);
+            return hcom_nx_sdcard_open_test_file();
+            break;
 
-    case 103: // Write test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute write test\n",
-      userData);
-    return hcom_nx_sdcard_write_test_file();
-    break;
+        case 103: // Write test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute write test\n", userData);
+            return hcom_nx_sdcard_write_test_file();
+            break;
 
-    case 104: // Read test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute read test\n",
-      userData);
-    return hcom_nx_sdcard_read_test_file();
-    break;
+        case 104: // Read test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute read test\n", userData);
+            return hcom_nx_sdcard_read_test_file();
+            break;
 
-    case 105: // Close test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute close test\n",
-      userData);
-    return hcom_nx_sdcard_close_test_file();
-    break;
+        case 105: // Close test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute close test\n", userData);
+            return hcom_nx_sdcard_close_test_file();
+            break;
 
-    case 106: // umount (eject)
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute umount test\n",
-      userData);
-    return hcom_nx_sdcard_unmount_card();
-    break;
+        case 106: // umount (eject)
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute umount test\n", userData);
+            return hcom_nx_sdcard_unmount_card();
+            break;
 
-    case 107: // Delete test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute delete test\n",
-      userData);
-    return hcom_nx_sdcard_delete_test_file();
-    break;
+        case 107: // Delete test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute delete test\n", userData);
+            return hcom_nx_sdcard_delete_test_file();
+            break;
 
-    case 108: // File Stat test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fstat test\n",
-      userData);
-    return hcom_nx_sdcard_file_stat_test();
-    break;
+        case 108: // File Stat test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fstat test\n", userData);
+            return hcom_nx_sdcard_file_stat_test();
+            break;
 
-    case 109: // fsync test file
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fsync test\n",
-      userData);
-    return hcom_nx_sdcard_fsync_file();
-    break;
+        case 109: // fsync test file
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute fsync test\n", userData);
+            return hcom_nx_sdcard_fsync_file();
+            break;
 
-    case 110: // Hot plug
-    syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute hot plug test\n",
-      userData);
-    return hcom_nx_sdcard_hotplug_test();
-    break;
+        case 110: // Hot plug
+            syslog(LOG_MTEST, "sdcard tests received %" PRIu32 " to execute hot plug test\n", userData);
+            return hcom_nx_sdcard_hotplug_test();
+            break;
 
-    default:
-    syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_sdcard_tests()\n",
-      userData);
-    break;
-  }
+        default:
+            syslog(LOG_MTEST, "Unknown value %" PRIu32 " passed to hcom_nx_exec_sdcard_tests()\n", userData);
+            break;
+    }
 
-  return OK;
+    return OK;
 }
 
-#endif      // #if defined (CONFIG_SD_CARD_TESTS)
+#endif // #if defined (CONFIG_SD_CARD_TESTS)
