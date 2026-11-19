@@ -40,28 +40,28 @@
  * Included Files
  ****************************************************************************************************/
 
-#include "../include/board.h"    // defines GPIO_SDIO_NC
+#include "../include/board.h" // defines GPIO_SDIO_NC
 
 /****************************************************************************************************
  * SDCard Support
  ****************************************************************************************************/
-#if defined (CONFIG_STM32_SDMMC1)
-#error "CONFIG_STM32_SDMMC1 is not supported on the Meadow"
+#if defined(CONFIG_STM32_SDMMC1)
+    #error "CONFIG_STM32_SDMMC1 is not supported on the Meadow"
 #endif
 
-#if defined (CONFIG_STM32_SDMMC2)
+#if defined(CONFIG_STM32_SDMMC2)
 int stm32_sdio_initialize_meadow(void);
 
-// NCD because C=Card, D=Detection and N=because the pin is pulled to ground
-// (i.e. not) when the SD card is inserted. Better would be 'nCD'.
+    // NCD because C=Card, D=Detection and N=because the pin is pulled to ground
+    // (i.e. not) when the SD card is inserted. Better would be 'nCD'.
 
-#define GPIO_MEADOW_SDIO_NCD  (GPIO_INPUT|GPIO_PULLUP|GPIO_EXTI|GPIO_PORTG|GPIO_PIN6)
+    #define GPIO_MEADOW_SDIO_NCD (GPIO_INPUT | GPIO_PULLUP | GPIO_EXTI | GPIO_PORTG | GPIO_PIN6)
 
-#define HAVE_MEADOW_NCD         1
-#define SDIO_SLOTNO             0       // With only one slot, it is must be 0
-#define SDIO_MINOR              0
-#define HAVE_SDIO               1
+    #define HAVE_MEADOW_NCD 1
+    #define SDIO_SLOTNO 0 // With only one slot, it is must be 0
+    #define SDIO_MINOR 0
+    #define HAVE_SDIO 1
 
-#endif      // #if defined (CONFIG_STM32_SDMMC2)
+#endif // #if defined (CONFIG_STM32_SDMMC2)
 
 #endif // __CONFIGS_MEADOW_SRC_MEADOW_SDMMC__H

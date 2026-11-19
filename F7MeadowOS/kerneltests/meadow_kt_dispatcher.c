@@ -54,7 +54,7 @@
 //
 //  Default logging level for this file.
 //
-#define LOGGING_LEVEL   1
+#define LOGGING_LEVEL 1
 
 /****************************************************************************
  * Private variables and associated macros.
@@ -68,165 +68,163 @@
  * Private Data
  ****************************************************************************/
 
- /**
-  * @brief Kernel test methods array.
-  */
-static meadow_test_methods_t _kernelTests[] =
-{
+/**
+ * @brief Kernel test methods array.
+ */
+static meadow_test_methods_t _kernelTests[] = {
 #if defined(CONFIG_SD_CARD_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_SD_CARD, meadow_kt_sd_card_tests },
+    {MEADOW_TEST_SD_CARD, meadow_kt_sd_card_tests},
 #endif
 
 #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_POWER_MANAGEMENT, meadow_kt_power_management_tests },
+    {MEADOW_TEST_POWER_MANAGEMENT, meadow_kt_power_management_tests},
 #endif
 
 #if defined(CONFIG_ISO8601_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_ISO8601, meadow_kt_iso8601_tests },
+    {MEADOW_TEST_ISO8601, meadow_kt_iso8601_tests},
 #endif
 
 #if defined(CONFIG_QUICK_MISC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_MISC, meadow_kt_quick_misc_tests },
+    {MEADOW_TEST_MISC, meadow_kt_quick_misc_tests},
 #endif
 
 #if defined(CONFIG_ADC_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_ADC, meadow_kt_adc_tests },
+    {MEADOW_TEST_ADC, meadow_kt_adc_tests},
 #endif
 
 #if defined(CONFIG_MEADOW_INTERRUPT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_INTERRUPT, meadow_kt_meadow_interrupt_tests },
+    {MEADOW_TEST_INTERRUPT, meadow_kt_meadow_interrupt_tests},
 #endif
 
 #if defined(CONFIG_SPI_DMA_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_SPI_DMA, meadow_kt_spi_dma_tests },
+    {MEADOW_TEST_SPI_DMA, meadow_kt_spi_dma_tests},
 #endif
 
 #if defined(CONFIG_ROTARY_ENCODER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_ROTARY_ENCODER, meadow_kt_rotary_encoder_tests },
+    {MEADOW_TEST_ROTARY_ENCODER, meadow_kt_rotary_encoder_tests},
 #endif
 
 #if defined(CONFIG_GPIO_COUNTER_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_GPIO_COUNTER, meadow_kt_gpio_counter_tests },
+    {MEADOW_TEST_GPIO_COUNTER, meadow_kt_gpio_counter_tests},
 #endif
 
 #if defined(CONFIG_MEASURE_FREQUENCY_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_FREQUENCY_MEASUREMENT, meadow_kt_measure_freq_tests },
+    {MEADOW_TEST_FREQUENCY_MEASUREMENT, meadow_kt_measure_freq_tests},
 #endif
 
 #if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_KERNEL_ASSERT, meadow_kt_assert_test },
+    {MEADOW_TEST_KERNEL_ASSERT, meadow_kt_assert_test},
 #endif
 
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_ALL_ESP32, meadow_kt_espcp_tests },
-    { MEADOW_TEST_ESP_START_WIFI, meadow_kt_espcp_test_start_wifi },
-    { MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST, meadow_kt_espcp_test_get_web_resource },
+    {MEADOW_TEST_ALL_ESP32, meadow_kt_espcp_tests},
+    {MEADOW_TEST_ESP_START_WIFI, meadow_kt_espcp_test_start_wifi},
+    {MEADOW_TEST_ESP_WEB_PAGE_LOAD_TEST, meadow_kt_espcp_test_get_web_resource},
 #endif
 
 #if defined(CONFIG_BLUETOOTH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_BLUETOOTH_START_SERVICE_A, meadow_kt_bluetooth_test_start_service_a },
-    { MEADOW_TEST_BLUETOOTH_START_SERVICE_B, meadow_kt_bluetooth_test_start_service_b },
-    { MEADOW_TEST_BLUETOOTH_START_SERVICE_C, meadow_kt_bluetooth_test_start_service_c },
-    { MEADOW_TEST_BLUETOOTH_START_SERVICE_D, meadow_kt_bluetooth_test_start_service_d },
-    { MEADOW_TEST_BLUETOOTH_START_SERVICE_F7, meadow_kt_bluetooth_test_start_service_meadow_f7 },
-    { MEADOW_TEST_BLUETOOTH_STOP, meadow_kt_bluetooth_test_stop_service },
-    // { MEADOW_TEST_BLUETOOTH_NOTIFY, meadow_kt_bluetooth_test_notify_characteristic },
-    // { MEADOW_TEST_BLUETOOTH_SOAK, meadow_kt_bluetooth_test_soak_write_characteristic },
+    {MEADOW_TEST_BLUETOOTH_START_SERVICE_A, meadow_kt_bluetooth_test_start_service_a},
+    {MEADOW_TEST_BLUETOOTH_START_SERVICE_B, meadow_kt_bluetooth_test_start_service_b},
+    {MEADOW_TEST_BLUETOOTH_START_SERVICE_C, meadow_kt_bluetooth_test_start_service_c},
+    {MEADOW_TEST_BLUETOOTH_START_SERVICE_D, meadow_kt_bluetooth_test_start_service_d},
+    {MEADOW_TEST_BLUETOOTH_START_SERVICE_F7, meadow_kt_bluetooth_test_start_service_meadow_f7},
+    {MEADOW_TEST_BLUETOOTH_STOP, meadow_kt_bluetooth_test_stop_service},
+// { MEADOW_TEST_BLUETOOTH_NOTIFY, meadow_kt_bluetooth_test_notify_characteristic },
+// { MEADOW_TEST_BLUETOOTH_SOAK, meadow_kt_bluetooth_test_soak_write_characteristic },
 #endif
 
 #if (defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS))
-    { MEADOW_TEST_ETHERNET, meadow_kt_ethernet_tests },
-    { MEADOW_TEST_ETHERNET_WEB_PAGE_LOAD_TEST, meadow_kt_ethernet_get_web_resource },
+    {MEADOW_TEST_ETHERNET, meadow_kt_ethernet_tests},
+    {MEADOW_TEST_ETHERNET_WEB_PAGE_LOAD_TEST, meadow_kt_ethernet_get_web_resource},
 #endif
 
 #if defined(CONFIG_QSPI_FLASH_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_QSPI_FLASH_INIT, meadow_kt_qspi_flash_init_tests },
-    { MEADOW_TEST_QSPI_FLASH_WRITE, meadow_kt_qspi_flash_write_tests },
-    { MEADOW_TEST_QSPI_FLASH_READ, meadow_kt_qspi_flash_read_tests },
+    {MEADOW_TEST_QSPI_FLASH_INIT, meadow_kt_qspi_flash_init_tests},
+    {MEADOW_TEST_QSPI_FLASH_WRITE, meadow_kt_qspi_flash_write_tests},
+    {MEADOW_TEST_QSPI_FLASH_READ, meadow_kt_qspi_flash_read_tests},
 #endif
 
-
 #if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_TRAVERSE_KU, hcom_kt_traverse_ku_tests },
+    {MEADOW_TEST_TRAVERSE_KU, hcom_kt_traverse_ku_tests},
 #endif
 
 #if defined(CONFIG_I2C_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_I2C1_SCAN, meadow_kt_i2c1_scan_tests },
-    { MEADOW_TEST_I2C3_SCAN, meadow_kt_i2c3_scan_tests },
+    {MEADOW_TEST_I2C1_SCAN, meadow_kt_i2c1_scan_tests},
+    {MEADOW_TEST_I2C3_SCAN, meadow_kt_i2c3_scan_tests},
 #endif
 
 #if defined(CONFIG_PWM_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-    { MEADOW_TEST_PWM_D02_DUTY20, meadow_kt_pwm_d02_duty20_test },
-    { MEADOW_TEST_PWM_D02_DUTY40, meadow_kt_pwm_d02_duty40_test },
-    { MEADOW_TEST_PWM_D02_DUTY60, meadow_kt_pwm_d02_duty60_test },
-    { MEADOW_TEST_PWM_D02_DUTY80, meadow_kt_pwm_d02_duty80_test },
-    { MEADOW_TEST_PWM_D03_DUTY20, meadow_kt_pwm_d03_duty20_test },
-    { MEADOW_TEST_PWM_D03_DUTY40, meadow_kt_pwm_d03_duty40_test },
-    { MEADOW_TEST_PWM_D03_DUTY60, meadow_kt_pwm_d03_duty60_test },
-    { MEADOW_TEST_PWM_D03_DUTY80, meadow_kt_pwm_d03_duty80_test },
-    { MEADOW_TEST_PWM_D04_DUTY20, meadow_kt_pwm_d04_duty20_test },
-    { MEADOW_TEST_PWM_D04_DUTY40, meadow_kt_pwm_d04_duty40_test },
-    { MEADOW_TEST_PWM_D04_DUTY60, meadow_kt_pwm_d04_duty60_test },
-    { MEADOW_TEST_PWM_D04_DUTY80, meadow_kt_pwm_d04_duty80_test },
-    { MEADOW_TEST_PWM_D05_DUTY20, meadow_kt_pwm_d05_duty20_test },
-    { MEADOW_TEST_PWM_D05_DUTY40, meadow_kt_pwm_d05_duty40_test },
-    { MEADOW_TEST_PWM_D05_DUTY60, meadow_kt_pwm_d05_duty60_test },
-    { MEADOW_TEST_PWM_D05_DUTY80, meadow_kt_pwm_d05_duty80_test },
-    { MEADOW_TEST_PWM_D06_DUTY20, meadow_kt_pwm_d06_duty20_test },
-    { MEADOW_TEST_PWM_D06_DUTY40, meadow_kt_pwm_d06_duty40_test },
-    { MEADOW_TEST_PWM_D06_DUTY60, meadow_kt_pwm_d06_duty60_test },
-    { MEADOW_TEST_PWM_D06_DUTY80, meadow_kt_pwm_d06_duty80_test },
-    { MEADOW_TEST_PWM_D07_DUTY20, meadow_kt_pwm_d07_duty20_test },
-    { MEADOW_TEST_PWM_D07_DUTY40, meadow_kt_pwm_d07_duty40_test },
-    { MEADOW_TEST_PWM_D07_DUTY60, meadow_kt_pwm_d07_duty60_test },
-    { MEADOW_TEST_PWM_D07_DUTY80, meadow_kt_pwm_d07_duty80_test },
-    { MEADOW_TEST_PWM_D08_DUTY20, meadow_kt_pwm_d08_duty20_test },
-    { MEADOW_TEST_PWM_D08_DUTY40, meadow_kt_pwm_d08_duty40_test },
-    { MEADOW_TEST_PWM_D08_DUTY60, meadow_kt_pwm_d08_duty60_test },
-    { MEADOW_TEST_PWM_D08_DUTY80, meadow_kt_pwm_d08_duty80_test },
-    { MEADOW_TEST_PWM_D09_DUTY20, meadow_kt_pwm_d09_duty20_test },
-    { MEADOW_TEST_PWM_D09_DUTY40, meadow_kt_pwm_d09_duty40_test },
-    { MEADOW_TEST_PWM_D09_DUTY60, meadow_kt_pwm_d09_duty60_test },
-    { MEADOW_TEST_PWM_D09_DUTY80, meadow_kt_pwm_d09_duty80_test },
-    { MEADOW_TEST_PWM_D10_DUTY20, meadow_kt_pwm_d10_duty20_test },
-    { MEADOW_TEST_PWM_D10_DUTY40, meadow_kt_pwm_d10_duty40_test },
-    { MEADOW_TEST_PWM_D10_DUTY60, meadow_kt_pwm_d10_duty60_test },
-    { MEADOW_TEST_PWM_D10_DUTY80, meadow_kt_pwm_d10_duty80_test },
-    { MEADOW_TEST_PWM_D11_DUTY20, meadow_kt_pwm_d11_duty20_test },
-    { MEADOW_TEST_PWM_D11_DUTY40, meadow_kt_pwm_d11_duty40_test },
-    { MEADOW_TEST_PWM_D11_DUTY60, meadow_kt_pwm_d11_duty60_test },
-    { MEADOW_TEST_PWM_D11_DUTY80, meadow_kt_pwm_d11_duty80_test },
-    { MEADOW_TEST_PWM_D12_DUTY20, meadow_kt_pwm_d12_duty20_test },
-    { MEADOW_TEST_PWM_D12_DUTY40, meadow_kt_pwm_d12_duty40_test },
-    { MEADOW_TEST_PWM_D12_DUTY60, meadow_kt_pwm_d12_duty60_test },
-    { MEADOW_TEST_PWM_D12_DUTY80, meadow_kt_pwm_d12_duty80_test },
-    { MEADOW_TEST_PWM_D13_DUTY20, meadow_kt_pwm_d13_duty20_test },
-    { MEADOW_TEST_PWM_D13_DUTY40, meadow_kt_pwm_d13_duty40_test },
-    { MEADOW_TEST_PWM_D13_DUTY60, meadow_kt_pwm_d13_duty60_test },
-    { MEADOW_TEST_PWM_D13_DUTY80, meadow_kt_pwm_d13_duty80_test },
-    { MEADOW_TEST_PWM_D15_DUTY20, meadow_kt_pwm_d15_duty20_test },
-    { MEADOW_TEST_PWM_D15_DUTY40, meadow_kt_pwm_d15_duty40_test },
-    { MEADOW_TEST_PWM_D15_DUTY60, meadow_kt_pwm_d15_duty60_test },
-    { MEADOW_TEST_PWM_D15_DUTY80, meadow_kt_pwm_d15_duty80_test },
-    { MEADOW_TEST_PWM_A01_DUTY20, meadow_kt_pwm_a01_duty20_test },
-    { MEADOW_TEST_PWM_A01_DUTY40, meadow_kt_pwm_a01_duty40_test },
-    { MEADOW_TEST_PWM_A01_DUTY60, meadow_kt_pwm_a01_duty60_test },
-    { MEADOW_TEST_PWM_A01_DUTY80, meadow_kt_pwm_a01_duty80_test },
-    { MEADOW_TEST_PWM_A02_DUTY20, meadow_kt_pwm_a02_duty20_test },
-    { MEADOW_TEST_PWM_A02_DUTY40, meadow_kt_pwm_a02_duty40_test },
-    { MEADOW_TEST_PWM_A02_DUTY60, meadow_kt_pwm_a02_duty60_test },
-    { MEADOW_TEST_PWM_A02_DUTY80, meadow_kt_pwm_a02_duty80_test },
-    { MEADOW_TEST_PWM_A03_DUTY20, meadow_kt_pwm_a03_duty20_test },
-    { MEADOW_TEST_PWM_A03_DUTY40, meadow_kt_pwm_a03_duty40_test },
-    { MEADOW_TEST_PWM_A03_DUTY60, meadow_kt_pwm_a03_duty60_test },
-    { MEADOW_TEST_PWM_A03_DUTY80, meadow_kt_pwm_a03_duty80_test },
-    { MEADOW_TEST_PWM_A04_DUTY20, meadow_kt_pwm_a04_duty20_test },
-    { MEADOW_TEST_PWM_A04_DUTY40, meadow_kt_pwm_a04_duty40_test },
-    { MEADOW_TEST_PWM_A04_DUTY60, meadow_kt_pwm_a04_duty60_test },
-    { MEADOW_TEST_PWM_A04_DUTY80, meadow_kt_pwm_a04_duty80_test },
-    { MEADOW_TEST_PWM_ALL_ON, meadow_kt_pwm_all_on_test },
-    { MEADOW_TEST_PWM_ALL_OFF, meadow_kt_pwm_all_off_test },
-    { MEADOW_TEST_PWM_CYCLE_ALL, meadow_kt_pwm_cycle_all_test },
+    {MEADOW_TEST_PWM_D02_DUTY20, meadow_kt_pwm_d02_duty20_test},
+    {MEADOW_TEST_PWM_D02_DUTY40, meadow_kt_pwm_d02_duty40_test},
+    {MEADOW_TEST_PWM_D02_DUTY60, meadow_kt_pwm_d02_duty60_test},
+    {MEADOW_TEST_PWM_D02_DUTY80, meadow_kt_pwm_d02_duty80_test},
+    {MEADOW_TEST_PWM_D03_DUTY20, meadow_kt_pwm_d03_duty20_test},
+    {MEADOW_TEST_PWM_D03_DUTY40, meadow_kt_pwm_d03_duty40_test},
+    {MEADOW_TEST_PWM_D03_DUTY60, meadow_kt_pwm_d03_duty60_test},
+    {MEADOW_TEST_PWM_D03_DUTY80, meadow_kt_pwm_d03_duty80_test},
+    {MEADOW_TEST_PWM_D04_DUTY20, meadow_kt_pwm_d04_duty20_test},
+    {MEADOW_TEST_PWM_D04_DUTY40, meadow_kt_pwm_d04_duty40_test},
+    {MEADOW_TEST_PWM_D04_DUTY60, meadow_kt_pwm_d04_duty60_test},
+    {MEADOW_TEST_PWM_D04_DUTY80, meadow_kt_pwm_d04_duty80_test},
+    {MEADOW_TEST_PWM_D05_DUTY20, meadow_kt_pwm_d05_duty20_test},
+    {MEADOW_TEST_PWM_D05_DUTY40, meadow_kt_pwm_d05_duty40_test},
+    {MEADOW_TEST_PWM_D05_DUTY60, meadow_kt_pwm_d05_duty60_test},
+    {MEADOW_TEST_PWM_D05_DUTY80, meadow_kt_pwm_d05_duty80_test},
+    {MEADOW_TEST_PWM_D06_DUTY20, meadow_kt_pwm_d06_duty20_test},
+    {MEADOW_TEST_PWM_D06_DUTY40, meadow_kt_pwm_d06_duty40_test},
+    {MEADOW_TEST_PWM_D06_DUTY60, meadow_kt_pwm_d06_duty60_test},
+    {MEADOW_TEST_PWM_D06_DUTY80, meadow_kt_pwm_d06_duty80_test},
+    {MEADOW_TEST_PWM_D07_DUTY20, meadow_kt_pwm_d07_duty20_test},
+    {MEADOW_TEST_PWM_D07_DUTY40, meadow_kt_pwm_d07_duty40_test},
+    {MEADOW_TEST_PWM_D07_DUTY60, meadow_kt_pwm_d07_duty60_test},
+    {MEADOW_TEST_PWM_D07_DUTY80, meadow_kt_pwm_d07_duty80_test},
+    {MEADOW_TEST_PWM_D08_DUTY20, meadow_kt_pwm_d08_duty20_test},
+    {MEADOW_TEST_PWM_D08_DUTY40, meadow_kt_pwm_d08_duty40_test},
+    {MEADOW_TEST_PWM_D08_DUTY60, meadow_kt_pwm_d08_duty60_test},
+    {MEADOW_TEST_PWM_D08_DUTY80, meadow_kt_pwm_d08_duty80_test},
+    {MEADOW_TEST_PWM_D09_DUTY20, meadow_kt_pwm_d09_duty20_test},
+    {MEADOW_TEST_PWM_D09_DUTY40, meadow_kt_pwm_d09_duty40_test},
+    {MEADOW_TEST_PWM_D09_DUTY60, meadow_kt_pwm_d09_duty60_test},
+    {MEADOW_TEST_PWM_D09_DUTY80, meadow_kt_pwm_d09_duty80_test},
+    {MEADOW_TEST_PWM_D10_DUTY20, meadow_kt_pwm_d10_duty20_test},
+    {MEADOW_TEST_PWM_D10_DUTY40, meadow_kt_pwm_d10_duty40_test},
+    {MEADOW_TEST_PWM_D10_DUTY60, meadow_kt_pwm_d10_duty60_test},
+    {MEADOW_TEST_PWM_D10_DUTY80, meadow_kt_pwm_d10_duty80_test},
+    {MEADOW_TEST_PWM_D11_DUTY20, meadow_kt_pwm_d11_duty20_test},
+    {MEADOW_TEST_PWM_D11_DUTY40, meadow_kt_pwm_d11_duty40_test},
+    {MEADOW_TEST_PWM_D11_DUTY60, meadow_kt_pwm_d11_duty60_test},
+    {MEADOW_TEST_PWM_D11_DUTY80, meadow_kt_pwm_d11_duty80_test},
+    {MEADOW_TEST_PWM_D12_DUTY20, meadow_kt_pwm_d12_duty20_test},
+    {MEADOW_TEST_PWM_D12_DUTY40, meadow_kt_pwm_d12_duty40_test},
+    {MEADOW_TEST_PWM_D12_DUTY60, meadow_kt_pwm_d12_duty60_test},
+    {MEADOW_TEST_PWM_D12_DUTY80, meadow_kt_pwm_d12_duty80_test},
+    {MEADOW_TEST_PWM_D13_DUTY20, meadow_kt_pwm_d13_duty20_test},
+    {MEADOW_TEST_PWM_D13_DUTY40, meadow_kt_pwm_d13_duty40_test},
+    {MEADOW_TEST_PWM_D13_DUTY60, meadow_kt_pwm_d13_duty60_test},
+    {MEADOW_TEST_PWM_D13_DUTY80, meadow_kt_pwm_d13_duty80_test},
+    {MEADOW_TEST_PWM_D15_DUTY20, meadow_kt_pwm_d15_duty20_test},
+    {MEADOW_TEST_PWM_D15_DUTY40, meadow_kt_pwm_d15_duty40_test},
+    {MEADOW_TEST_PWM_D15_DUTY60, meadow_kt_pwm_d15_duty60_test},
+    {MEADOW_TEST_PWM_D15_DUTY80, meadow_kt_pwm_d15_duty80_test},
+    {MEADOW_TEST_PWM_A01_DUTY20, meadow_kt_pwm_a01_duty20_test},
+    {MEADOW_TEST_PWM_A01_DUTY40, meadow_kt_pwm_a01_duty40_test},
+    {MEADOW_TEST_PWM_A01_DUTY60, meadow_kt_pwm_a01_duty60_test},
+    {MEADOW_TEST_PWM_A01_DUTY80, meadow_kt_pwm_a01_duty80_test},
+    {MEADOW_TEST_PWM_A02_DUTY20, meadow_kt_pwm_a02_duty20_test},
+    {MEADOW_TEST_PWM_A02_DUTY40, meadow_kt_pwm_a02_duty40_test},
+    {MEADOW_TEST_PWM_A02_DUTY60, meadow_kt_pwm_a02_duty60_test},
+    {MEADOW_TEST_PWM_A02_DUTY80, meadow_kt_pwm_a02_duty80_test},
+    {MEADOW_TEST_PWM_A03_DUTY20, meadow_kt_pwm_a03_duty20_test},
+    {MEADOW_TEST_PWM_A03_DUTY40, meadow_kt_pwm_a03_duty40_test},
+    {MEADOW_TEST_PWM_A03_DUTY60, meadow_kt_pwm_a03_duty60_test},
+    {MEADOW_TEST_PWM_A03_DUTY80, meadow_kt_pwm_a03_duty80_test},
+    {MEADOW_TEST_PWM_A04_DUTY20, meadow_kt_pwm_a04_duty20_test},
+    {MEADOW_TEST_PWM_A04_DUTY40, meadow_kt_pwm_a04_duty40_test},
+    {MEADOW_TEST_PWM_A04_DUTY60, meadow_kt_pwm_a04_duty60_test},
+    {MEADOW_TEST_PWM_A04_DUTY80, meadow_kt_pwm_a04_duty80_test},
+    {MEADOW_TEST_PWM_ALL_ON, meadow_kt_pwm_all_on_test},
+    {MEADOW_TEST_PWM_ALL_OFF, meadow_kt_pwm_all_off_test},
+    {MEADOW_TEST_PWM_CYCLE_ALL, meadow_kt_pwm_cycle_all_test},
 #endif
 };
 
@@ -284,5 +282,5 @@ int meadow_kt_dispatcher(uint32_t param, uint32_t value)
         }
     }
 
-    return(result);
+    return (result);
 }

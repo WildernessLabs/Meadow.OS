@@ -5,22 +5,19 @@ extern void hcom_nx_config_manager_logger(cyaml_log_t, void *, const char *, va_
 /**
  *  Configuration for the CYAML library.
  */
-cyaml_config_t cyaml_config =
-{
-	.log_level = CYAML_LOG_WARNING,             /* Logging errors and warnings only. */
-	.log_fn = hcom_nx_config_manager_logger,    /* Use the default logging function. */
-	.mem_fn = cyaml_mem,                        /* Use the default memory allocator. */
-    .flags = CYAML_CFG_IGNORE_UNKNOWN_KEYS | CYAML_CFG_CASE_INSENSITIVE
-};
+cyaml_config_t cyaml_config = {
+    .log_level = CYAML_LOG_WARNING,          /* Logging errors and warnings only. */
+    .log_fn = hcom_nx_config_manager_logger, /* Use the default logging function. */
+    .mem_fn = cyaml_mem,                     /* Use the default memory allocator. */
+    .flags = CYAML_CFG_IGNORE_UNKNOWN_KEYS | CYAML_CFG_CASE_INSENSITIVE};
 
 /**
  *  Schema for string pointer values (used in sequences of strings).
- * 
- *  This is used in the DNS and NTP server sequences. 
+ *
+ *  This is used in the DNS and NTP server sequences.
  */
-static const cyaml_schema_value_t string_ptr_schema =
-{
-	CYAML_VALUE_STRING(CYAML_FLAG_POINTER, char, 0, CYAML_UNLIMITED),
+static const cyaml_schema_value_t string_ptr_schema = {
+    CYAML_VALUE_STRING(CYAML_FLAG_POINTER, char, 0, CYAML_UNLIMITED),
 };
 
 /**
@@ -61,15 +58,14 @@ typedef struct yaml_device_s yaml_device_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_device_section_schema[] =
-{
+static const cyaml_schema_field_t configuration_device_section_schema[] = {
     CYAML_FIELD_STRING_PTR("Name", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_device_t, name, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("InitializationTimeoutSeconds", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_device_t, initialisation_timeout_seconds, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("RebootOnUnhandledException", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_device_t, reboot_on_unhandled_exceptions, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("SdStorageSupported", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_device_t, sd_storage_supported, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("ReservedPins", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_device_t, reserved_pins, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-    
+    CYAML_FIELD_END
+
 };
 
 /**
@@ -90,11 +86,7 @@ typedef struct yaml_mono_control_s yaml_mono_control_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_mono_control_section_schema[] =
-{
-    CYAML_FIELD_STRING_PTR("Options", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_mono_control_t, options, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+static const cyaml_schema_field_t configuration_mono_control_section_schema[] = {CYAML_FIELD_STRING_PTR("Options", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_mono_control_t, options, 0, CYAML_UNLIMITED), CYAML_FIELD_END};
 
 /**
  *  Configuration of the coprocessor from the YAML configuration file.
@@ -123,9 +115,9 @@ struct yaml_coprocessor_s
 
     /**
      * @brief Which components should generate log messages?
-     * 
+     *
      *  Valid components are: WiFi, System, Bluetooth etc.
-     * 
+     *
      *  Multiple components can be specified as a comma delimited list.
      */
     char *log_components;
@@ -155,8 +147,7 @@ typedef struct yaml_coprocessor_s yaml_coprocessor_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_coprocessor_section_schema[] =
-{
+static const cyaml_schema_field_t configuration_coprocessor_section_schema[] = {
     CYAML_FIELD_STRING_PTR("SpiSpeedHz", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, spi_speed_hz, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("AutomaticallyStartNetwork", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, automatically_start_network, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("AutomaticallyReconnect", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, automatically_reconnect, 0, CYAML_UNLIMITED),
@@ -165,8 +156,7 @@ static const cyaml_schema_field_t configuration_coprocessor_section_schema[] =
     CYAML_FIELD_STRING_PTR("LogDestination", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, log_destination, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("LogUdpPort", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, log_udp_port, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("RetrieveCoreDump", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_coprocessor_t, retrieve_core_dump, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 /**
  *  @brief Network interface information.
@@ -200,25 +190,20 @@ struct yaml_network_interface_s
 };
 typedef struct yaml_network_interface_s yaml_network_interface_t;
 
-static const cyaml_schema_field_t configuration_network_interface_section_schema[] =
-{
+static const cyaml_schema_field_t configuration_network_interface_section_schema[] = {
     CYAML_FIELD_STRING_PTR("Name", CYAML_FLAG_POINTER, yaml_network_interface_t, name, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("UseDHCP", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_interface_t, use_dhcp, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("IPAddress", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_interface_t, ip_address, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("NetMask", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_interface_t, netmask, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Gateway", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_interface_t, gateway, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 /**
  * @brief Value type for the interface entries.
- * 
+ *
  * This is used below to allow for a variable length list of interfaces.
  */
-static const cyaml_schema_value_t  interface_schema_value =
-{
-	CYAML_VALUE_MAPPING(CYAML_FLAG_DEFAULT, yaml_network_interface_t, configuration_network_interface_section_schema)
-};
+static const cyaml_schema_value_t interface_schema_value = {CYAML_VALUE_MAPPING(CYAML_FLAG_DEFAULT, yaml_network_interface_t, configuration_network_interface_section_schema)};
 
 /**
  * Network configuration section of the configuration file.
@@ -272,8 +257,7 @@ typedef struct yaml_network_s yaml_network_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_network_section_schema[] =
-{
+static const cyaml_schema_field_t configuration_network_section_schema[] = {
     CYAML_FIELD_STRING_PTR("GetNetworkTimeAtStartup", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, get_network_time_at_startup, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("NtpRefreshPeriodSeconds", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, ntp_refresh_period_seconds, 0, CYAML_UNLIMITED),
     CYAML_FIELD_SEQUENCE("NtpServers", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, ntp_servers, &string_ptr_schema, 0, CYAML_UNLIMITED),
@@ -281,8 +265,7 @@ static const cyaml_schema_field_t configuration_network_section_schema[] =
     CYAML_FIELD_STRING_PTR("DefaultInterface", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, default_interface, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("CountryCode", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, country_code, 0, CYAML_UNLIMITED),
     CYAML_FIELD_SEQUENCE("Interfaces", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_network_t, interfaces, &interface_schema_value, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 /**
  *  Debugging (internal) configuration options from the YAML file.
@@ -310,7 +293,7 @@ struct yaml_internal_debug_s
     /**
      * @brief Copy the managed application output to the UART (COM1)?
      */
-    char * copy_application_output_to_uart;
+    char *copy_application_output_to_uart;
 };
 typedef struct yaml_internal_debug_s yaml_internal_debug_t;
 
@@ -319,14 +302,10 @@ typedef struct yaml_internal_debug_s yaml_internal_debug_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_debug_section_schema[] =
-{
-    CYAML_FIELD_STRING_PTR("TraceLevel", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, trace_level, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_STRING_PTR("Uart1Use", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, uart1_use, 0, CYAML_UNLIMITED),
+static const cyaml_schema_field_t configuration_debug_section_schema[] = {
+    CYAML_FIELD_STRING_PTR("TraceLevel", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, trace_level, 0, CYAML_UNLIMITED), CYAML_FIELD_STRING_PTR("Uart1Use", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, uart1_use, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("DebuggerAttachedToEsp", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, debugger_attached_to_esp, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_STRING_PTR("CopyApplicationOutputToUart", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, copy_application_output_to_uart, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+    CYAML_FIELD_STRING_PTR("CopyApplicationOutputToUart", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_internal_debug_t, copy_application_output_to_uart, 0, CYAML_UNLIMITED), CYAML_FIELD_END};
 
 /**
  *  This is a local definition of the configuration and it is aimed to be
@@ -370,29 +349,24 @@ typedef struct yaml_configuration_s yaml_configuration_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t configuration_fields_schema[] =
-{
+static const cyaml_schema_field_t configuration_fields_schema[] = {
     CYAML_FIELD_MAPPING_PTR("Device", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_configuration_t, device, configuration_device_section_schema),
     CYAML_FIELD_MAPPING_PTR("InternalDebug", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_configuration_t, internal_debug, configuration_debug_section_schema),
     CYAML_FIELD_MAPPING_PTR("Coprocessor", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_configuration_t, coprocessor, configuration_coprocessor_section_schema),
     CYAML_FIELD_MAPPING_PTR("Network", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_configuration_t, network, configuration_network_section_schema),
     CYAML_FIELD_MAPPING_PTR("MonoControl", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_configuration_t, mono_control, configuration_mono_control_section_schema),
-	CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 /**
  *  Top level schema for the data from the YAML configuration file is a mapping.
  */
-static const cyaml_schema_value_t configuration_schema =
-{
-    CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_configuration_t, configuration_fields_schema)
-};
+static const cyaml_schema_value_t configuration_schema = {CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_configuration_t, configuration_fields_schema)};
 
 /********************************************************************************************************************************************************
  *
  *  WiFi configuration YAML description.
  *
- *******************************************************************************************************************************************************/ 
+ *******************************************************************************************************************************************************/
 
 /**
  *  Device configuration options from the YAML file.
@@ -411,7 +385,7 @@ struct yaml_credentials_s
 
     /**
      * Clear default credentials.
-    */
+     */
     char *clear_default_credentials;
 };
 typedef struct yaml_credentials_s yaml_credentials_t;
@@ -421,13 +395,9 @@ typedef struct yaml_credentials_s yaml_credentials_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t wifi_credentials_section_schema[] =
-{
-    CYAML_FIELD_STRING_PTR("Ssid", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, ssid, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_STRING_PTR("Password", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, password, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_STRING_PTR("ClearDefaultCredentials", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, clear_default_credentials, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+static const cyaml_schema_field_t wifi_credentials_section_schema[] = {
+    CYAML_FIELD_STRING_PTR("Ssid", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, ssid, 0, CYAML_UNLIMITED), CYAML_FIELD_STRING_PTR("Password", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, password, 0, CYAML_UNLIMITED),
+    CYAML_FIELD_STRING_PTR("ClearDefaultCredentials", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_credentials_t, clear_default_credentials, 0, CYAML_UNLIMITED), CYAML_FIELD_END};
 
 /**
  *  This is a local definition of the configuration and it is aimed to be
@@ -452,19 +422,12 @@ typedef struct yaml_wifi_credentials_s yaml_wifi_credentials_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t wifi_credentials_fields_schema[] =
-{
-    CYAML_FIELD_MAPPING_PTR("Credentials", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_wifi_credentials_t, credentials, wifi_credentials_section_schema),
-	CYAML_FIELD_END
-};
+static const cyaml_schema_field_t wifi_credentials_fields_schema[] = {CYAML_FIELD_MAPPING_PTR("Credentials", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_wifi_credentials_t, credentials, wifi_credentials_section_schema), CYAML_FIELD_END};
 
 /**
  *  Top level schema for the data from the YAML configuration file is a mapping.
  */
-static const cyaml_schema_value_t wifi_credentials_schema =
-{
-    CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_wifi_credentials_t, wifi_credentials_fields_schema)
-};
+static const cyaml_schema_value_t wifi_credentials_schema = {CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_wifi_credentials_t, wifi_credentials_fields_schema)};
 
 /********************************************************************************************************************************************************
  *
@@ -477,7 +440,7 @@ static const cyaml_schema_value_t wifi_credentials_schema =
  */
 struct yaml_cell_settings_s
 {
-    
+
     /**
      *  Identify which cell module is used.
      */
@@ -525,7 +488,7 @@ struct yaml_cell_settings_s
 
     /**
      * Cell network scanner
-    */
+     */
     char *scan_mode;
 };
 typedef struct yaml_cell_settings_s yaml_cell_settings_t;
@@ -535,8 +498,7 @@ typedef struct yaml_cell_settings_s yaml_cell_settings_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t cell_settings_section_schema[] =
-{
+static const cyaml_schema_field_t cell_settings_section_schema[] = {
     CYAML_FIELD_STRING_PTR("APN", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, apn, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("User", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, user, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Password", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, password, 0, CYAML_UNLIMITED),
@@ -544,11 +506,10 @@ static const cyaml_schema_field_t cell_settings_section_schema[] =
     CYAML_FIELD_STRING_PTR("Timeout", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, timeout, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Interface", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, ttyname, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("EnablePin", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, turn_on_pin_name, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_STRING_PTR("Mode", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, mode, 0, CYAML_UNLIMITED),	
+    CYAML_FIELD_STRING_PTR("Mode", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, mode, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Module", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, module, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("ScanMode", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_settings_t, scan_mode, 0, CYAML_UNLIMITED),
-    CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 struct yaml_cell_config_s
 {
@@ -564,29 +525,22 @@ typedef struct yaml_cell_config_s yaml_cell_config_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t cell_settings_fields_schema[] =
-{
-    CYAML_FIELD_MAPPING_PTR("Settings", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_config_t, settings, cell_settings_section_schema),
-	CYAML_FIELD_END
-};
+static const cyaml_schema_field_t cell_settings_fields_schema[] = {CYAML_FIELD_MAPPING_PTR("Settings", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_cell_config_t, settings, cell_settings_section_schema), CYAML_FIELD_END};
 
 /**
  *  Top level schema for the data from the YAML configuration file is a mapping.
  */
-static const cyaml_schema_value_t cell_settings_schema =
-{
-    CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_cell_config_t, cell_settings_fields_schema)
-};
+static const cyaml_schema_value_t cell_settings_schema = {CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_cell_config_t, cell_settings_fields_schema)};
 
 /********************************************************************************************************************************************************
- * 
+ *
  *  Unit test configuration YAML description.
- * 
- *******************************************************************************************************************************************************/ 
+ *
+ *******************************************************************************************************************************************************/
 
- #if defined(CONFIG_KERNEL_TESTS_SYSCALL)
- 
- /**
+#if defined(CONFIG_KERNEL_TESTS_SYSCALL)
+
+/**
  *  Test parameters from the YAML file.
  */
 struct yaml_parameters_s
@@ -600,42 +554,42 @@ struct yaml_parameters_s
      *  Test parameter 2
      */
     char *parameter2;
-    
+
     /**
      *  Test parameter 3
      */
     char *parameter3;
-    
+
     /**
      *  Test parameter 4
      */
     char *parameter4;
-    
+
     /**
      *  Test parameter 5
      */
     char *parameter5;
-    
+
     /**
      *  Test parameter 6
      */
     char *parameter6;
-    
+
     /**
      *  Test parameter 7
      */
     char *parameter7;
-    
+
     /**
      *  Test parameter 8
      */
     char *parameter8;
-    
+
     /**
      *  Test parameter 9
      */
     char *parameter9;
-    
+
     /**
      *  Test parameter 10
      */
@@ -648,8 +602,7 @@ typedef struct yaml_parameters_s yaml_parameters_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t test_parameters_schema[] =
-{
+static const cyaml_schema_field_t test_parameters_schema[] = {
     CYAML_FIELD_STRING_PTR("Parameter1", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter1, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Parameter2", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter2, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Parameter3", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter3, 0, CYAML_UNLIMITED),
@@ -660,8 +613,7 @@ static const cyaml_schema_field_t test_parameters_schema[] =
     CYAML_FIELD_STRING_PTR("Parameter8", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter8, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Parameter9", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter9, 0, CYAML_UNLIMITED),
     CYAML_FIELD_STRING_PTR("Parameter10", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_parameters_t, parameter10, 0, CYAML_UNLIMITED),
-	CYAML_FIELD_END
-};
+    CYAML_FIELD_END};
 
 /**
  *  This is a local definition of the configuration and it is aimed to be
@@ -676,7 +628,7 @@ struct yaml_test_parameters_s
 {
     /**
      *  Information about the test parameters
-     */ 
+     */
     yaml_parameters_t *parameters;
 };
 typedef struct yaml_test_parameters_s yaml_test_parameters_t;
@@ -686,18 +638,11 @@ typedef struct yaml_test_parameters_s yaml_test_parameters_t;
  *
  *  This is an array of the field definitions.
  */
-static const cyaml_schema_field_t unit_test_parameters_fields_schema[] =
-{
-    CYAML_FIELD_MAPPING_PTR("TestParameters", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_test_parameters_t, parameters, test_parameters_schema),
-	CYAML_FIELD_END
-};
+static const cyaml_schema_field_t unit_test_parameters_fields_schema[] = {CYAML_FIELD_MAPPING_PTR("TestParameters", CYAML_FLAG_POINTER | CYAML_FLAG_OPTIONAL, yaml_test_parameters_t, parameters, test_parameters_schema), CYAML_FIELD_END};
 
 /**
  *  Top level schema for the data from the YAML configuration file is a mapping.
  */
-static const cyaml_schema_value_t unit_test_parameters_schema =
-{
-    CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_test_parameters_t, unit_test_parameters_fields_schema)
-};
+static const cyaml_schema_value_t unit_test_parameters_schema = {CYAML_VALUE_MAPPING(CYAML_FLAG_POINTER, yaml_test_parameters_t, unit_test_parameters_fields_schema)};
 
 #endif /* CONFIG_KERNEL_TESTS_SYSCALL */

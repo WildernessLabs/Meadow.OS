@@ -76,13 +76,13 @@
 
 #ifdef CONFIG_BUILD_PROTECTED
 
-#include <nuttx/pthread.h>
+    #include <nuttx/pthread.h>
 
 #endif
 
 #ifdef CONFIG_MEADOW_ESPCP_USE_EXTERNAL_ESP32_BOARD
 
-#error "Using external ESP32 development board."
+    #error "Using external ESP32 development board."
 
 #endif
 
@@ -98,7 +98,7 @@
  *  signal normally follows a transfer within milliseconds; the longest wait is the first
  *  transfer after a reset, which waits for the ESP32 to boot (about 0.7 s).
  */
-#define ESPCP_SPI_READY_TIMEOUT_MILLISECONDS    5000
+#define ESPCP_SPI_READY_TIMEOUT_MILLISECONDS 5000
 
 /****************************************************************************
  * Private Types
@@ -107,7 +107,7 @@
 /**
  *  Define a structure to hold the communication pins connecting the STM32
  *  and the ESP32 chips.
- * 
+ *
  *  This structure allows different pins to be used depending upon the board
  *  version.
  */
@@ -139,33 +139,27 @@ static struct spi_dev_s *g_esp_spi_dev;
 /**
  *  Mutex to be used by any code that wants access to the configuration.
  */
-static sem_t config_lock = { };
+static sem_t config_lock = {};
 
 /**
  *  Pin definitions for the F7V1 board.
  */
-static espcp_pins_t _f7v1_pins = 
-{
-    /* reset */ ESP32CP_RESET_PIN_OUTPUT,
-    /* boot */ ESP32CP_BOOT_PIN_OUTPUT,
-    // /* spi_ready */ ESP32CP_SPI_READY_PIN_INPUT,
-    /* chip_select */ ESP32CP_SPI_CS_PIN_OUTPUT,
-    /* uart_rx */ GPIO_UART5_RX,
-    /* uart_tx */ GPIO_UART5_TX_V1
-};
+static espcp_pins_t _f7v1_pins = {/* reset */ ESP32CP_RESET_PIN_OUTPUT,
+                                  /* boot */ ESP32CP_BOOT_PIN_OUTPUT,
+                                  // /* spi_ready */ ESP32CP_SPI_READY_PIN_INPUT,
+                                  /* chip_select */ ESP32CP_SPI_CS_PIN_OUTPUT,
+                                  /* uart_rx */ GPIO_UART5_RX,
+                                  /* uart_tx */ GPIO_UART5_TX_V1};
 
 /**
  *  Pin definitions for the F7V2 board and the Core-Compute module CCMv2.
  */
-static espcp_pins_t _f7v2_pins = 
-{
-    /* reset */ ESP32CP_RESET_PIN_OUTPUT,
-    /* boot */ ESP32CP_BOOT_PIN_OUTPUT,
-    // /* spi_ready */ ESP32CP_SPI_READY_PIN_INPUT,
-    /* chip_select */ ESP32CP_SPI_CS_PIN_OUTPUT,
-    /* uart_rx */ GPIO_UART5_RX,
-    /* uart_tx */ GPIO_UART5_TX_V2
-};
+static espcp_pins_t _f7v2_pins = {/* reset */ ESP32CP_RESET_PIN_OUTPUT,
+                                  /* boot */ ESP32CP_BOOT_PIN_OUTPUT,
+                                  // /* spi_ready */ ESP32CP_SPI_READY_PIN_INPUT,
+                                  /* chip_select */ ESP32CP_SPI_CS_PIN_OUTPUT,
+                                  /* uart_rx */ GPIO_UART5_RX,
+                                  /* uart_tx */ GPIO_UART5_TX_V2};
 
 /**
  *  Address of the current active pin set.  Default to F7V1 but can be changed
@@ -284,8 +278,7 @@ int espcp_wait_for_spi_ready(void)
     else
     {
         result = -ETIMEDOUT;
-        syslog(LOG_ERR, "espcp: no SPI ready signal from the ESP32 in %d ms, marking the ESP32 as not responding\n",
-               ESPCP_SPI_READY_TIMEOUT_MILLISECONDS);
+        syslog(LOG_ERR, "espcp: no SPI ready signal from the ESP32 in %d ms, marking the ESP32 as not responding\n", ESPCP_SPI_READY_TIMEOUT_MILLISECONDS);
         g_spi_ready_timed_out = true;
         espcp_config_lock();
         if (g_espcp_configuration != NULL)
@@ -351,13 +344,13 @@ void espcp_signal_spi_ready(void)
  ****************************************************************************/
 static espcp_configuration_t *espcp_get_default_configuration(void)
 {
-    nxsem_init(&config_lock, 0, 0);                   //  This will lock the configuration (initial value = 0).
+    nxsem_init(&config_lock, 0, 0); //  This will lock the configuration (initial value = 0).
     nxsem_set_protocol(&config_lock, SEM_PRIO_NONE);
 
     espcp_configuration_t *config = (espcp_configuration_t *) kmm_zalloc(sizeof(espcp_configuration_t));
     if (config != NULL)
     {
-        nxsem_init(&espcp_spi_lock, 0, 0);                      // This will lock the SPI interface (initial value = 0).
+        nxsem_init(&espcp_spi_lock, 0, 0); // This will lock the SPI interface (initial value = 0).
         nxsem_set_protocol(&espcp_spi_lock, SEM_PRIO_NONE);
         config->current_mode = espcp_mode_unknown;
         config->thread_running = false;
@@ -435,7 +428,7 @@ static int espcp_spi_init(void)
         if (result < 0)
         {
             syslog(LOG_ERR, "%s@%d Config SPI CS GPIO failed result:%d\n", __FILE__, __LINE__, result);
-            return(ERROR);
+            return (ERROR);
         }
         stm32_gpiowrite(_active_pins->chip_select, true); // SPI CS is active low so deselect SPI.
 
@@ -443,9 +436,9 @@ static int espcp_spi_init(void)
         if (g_esp_spi_dev == 0)
         {
             syslog(LOG_ERR, "%s@%d Error:Failed init ESP32 SPI port %d\n", __FILE__, __LINE__, result);
-            return(ERROR);
+            return (ERROR);
         }
-        
+
         SPI_SETFREQUENCY(g_esp_spi_dev, frequency);
         SPI_SETBITS(g_esp_spi_dev, 8);
         SPI_SETMODE(g_esp_spi_dev, SPIDEV_MODE3); /* CPOL=1 CHPHA=1 */
@@ -453,7 +446,7 @@ static int espcp_spi_init(void)
 
     MEADOW_TRACE_INFORMATION("SPI Configuration complete\n");
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -476,13 +469,13 @@ static int espcp_gpio_init(void)
     if (result < 0)
     {
         syslog(LOG_ERR, "%s@%d Config UART Tx as output result:%d\n", __FILE__, __LINE__, result);
-        return(ERROR);
+        return (ERROR);
     }
     result = stm32_configgpio(_active_pins->uart_rx);
     if (result < 0)
     {
         syslog(LOG_ERR, "%s@%d Config UART Rx as input result:%d\n", __FILE__, __LINE__, result);
-        return(ERROR);
+        return (ERROR);
     }
     //
     //  Configure the Boot and EN (Reset) pins connected to the ESP32.
@@ -494,7 +487,7 @@ static int espcp_gpio_init(void)
     if (result < 0)
     {
         syslog(LOG_ERR, "%s@%d Config Boot pin failed result:%d\n", __FILE__, __LINE__, result);
-        return(ERROR);
+        return (ERROR);
     }
     stm32_gpiowrite(_active_pins->boot, true);
 
@@ -502,11 +495,11 @@ static int espcp_gpio_init(void)
     if (result < 0)
     {
         syslog(LOG_ERR, "%s@%d Config Reset pin failed result:%d\n", __FILE__, __LINE__, result);
-        return(ERROR);
+        return (ERROR);
     }
     stm32_gpiowrite(_active_pins->reset, false);
 
-    return(OK);
+    return (OK);
 }
 
 /****************************************************************************
@@ -514,7 +507,7 @@ static int espcp_gpio_init(void)
  *
  *  Description:
  *      Send, receive or exchange data with the ESP32.
- * 
+ *
  *      If tx is NULL then it is assumed that this is a receive only operation.
  *      If rx is NULL then it is assumed that this is a transmit only operation.
  *      If tx and rx are not NULL then an exchange is assumed.
@@ -566,13 +559,13 @@ void espcp_send_data_over_spi(void *tx, void *rx, size_t buffer_length)
  *  Description:
  *      Check the system configuration to determine if the ESP should be
  *      reset at startup.
- * 
+ *
  *      The default configuration for this is to force a reset.  Debugging often
  *      requires the ESP to have a debugger attached when the STM restarts which
  *      would then force the ESP to be reset and the debugger to be detached.
  *      The configuration allows this to be overridden to allow debugging to
  *      continue.
- * 
+ *
  *  Input Parameters:
  *      None.
  *
@@ -603,16 +596,16 @@ bool espcp_should_reset_at_startup(void)
  *
  *  Description:
  *      Configure the ESP reset pin and take the reset line low.
- * 
+ *
  *      This method can be used in two ways:
  *          - Hold the chip in reset
  *          - Start the reset process.
- * 
+ *
  *      This is unconditional.  The "reset at startup" setting is only
  *      consulted by the startup reset path (see meadow_os_espcp_reset), so
  *      on-demand resets (recovery, mode changes, operator requests) always
  *      work, even with a debugger attached to the ESP32.
- * 
+ *
  *  Input Parameters:
  *      None.
  *
@@ -633,11 +626,11 @@ void espcp_hold_in_reset(void)
  *
  *  Description:
  *      Reset the ESP32.
- * 
+ *
  *      This is unconditional.  Callers performing the startup reset must
  *      check espcp_should_reset_at_startup() first; on-demand callers must
  *      not, as that would remove the only recovery path for a hung ESP32.
- * 
+ *
  *  Input Parameters:
  *      None.
  *
@@ -674,7 +667,7 @@ void espcp_reset(void)
  *
  *  Description:
  *      Process the "+++RST" (reset) control message from the ESP32.
- * 
+ *
  *  Input Parameters:
  *      line - text that was sent by the ESP32.
  *
@@ -702,7 +695,7 @@ void espcp_process_reset_control_signal(const char *line)
     {
         espcp_status_codes_t code = espcp_status_codes_unexpected_coprocessor_restart;
         int len = strlen(line);
-        if (len > 7)        // "+++RST,1" valid codes can be 0 through 10.
+        if (len > 7) // "+++RST,1" valid codes can be 0 through 10.
         {
             unsigned long reset_code = strtoul(line + 7, NULL, 10);
             if (reset_code <= (espcp_status_codes_esp_reset_sdio - espcp_status_codes_esp_reset_unknown))
@@ -725,7 +718,7 @@ void espcp_process_reset_control_signal(const char *line)
  *      Put the ESP32 into programming mode.  This is done by pulling the boot pin
  *      low, resetting the ESP and then pulling the boot pin high.  The boot pin
  *      will be left unconfigured at the end of this process.
- * 
+ *
  *  Input Parameters:
  *      None.
  *
@@ -755,7 +748,7 @@ int espcp_enter_programming_mode(void)
     usleep(20 * 1000);
     stm32_gpiowrite(_active_pins->boot, true);
 
-    return(OK);
+    return (OK);
 }
 
 /****************************************************************************
@@ -999,6 +992,6 @@ int espcp_late_init(void)
             g_espcp_configuration->esp_not_responding = true;
         }
     }
-    
+
     return result;
 }

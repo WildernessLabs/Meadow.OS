@@ -128,7 +128,7 @@ bool espcp_create_message_queues(espcp_configuration_t *config)
     request_queue_result = file_mq_open(&config->request_queue, ESPCP_REQUEST_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
     queue_attributes.mq_maxmsg = ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH;
-    queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE;     // The encoded size is what is sent (see meadow/espcp.h).
+    queue_attributes.mq_msgsize = ESPCP_EVENT_DATA_SIZE; // The encoded size is what is sent (see meadow/espcp.h).
     queue_attributes.mq_flags = 0;
     event_queue_result = file_mq_open(&config->managed_event_queue, ESPCP_EVENT_MESSAGE_QUEUE_NAME, O_RDWR | O_CREAT, mode, &queue_attributes);
 
@@ -224,7 +224,7 @@ int espcp_add_message_to_queue(struct file *queue, espcp_message_t *message)
  *
  * Description:
  *  Create an instance of a message on the heap.
- * 
+ *
  * Input Parameters:
  *  message_type - Type of the message.
  *  interface - Interface the message is destined for.
@@ -243,8 +243,7 @@ int espcp_queue_add_nonblocking_message(uint8_t message_type, uint8_t interface,
 {
     int result = ERROR;
 
-    espcp_message_t *message = espcp_create_message_on_heap(message_type, interface, function, espcp_status_codes_completed_ok,
-                                                            espcp_get_next_message_id(), payload, payload_length);
+    espcp_message_t *message = espcp_create_message_on_heap(message_type, interface, function, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payload_length);
     if (message != NULL)
     {
         if (espcp_queue_message(message, false) == espcp_status_codes_completed_ok)
@@ -263,7 +262,7 @@ int espcp_queue_add_nonblocking_message(uint8_t message_type, uint8_t interface,
     //  We are adding a non-blocking message to the queue and the queue manager
     //  will free the message and payload when it has been processed.
     //
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -276,7 +275,7 @@ int espcp_queue_add_nonblocking_message(uint8_t message_type, uint8_t interface,
  *  queue_id - Message queue ID.
  *
  * Returned Value:
- *  Pointer to the message that has been retrieved, NULL if there was a 
+ *  Pointer to the message that has been retrieved, NULL if there was a
  *  problem.
  *
  * Assumptions/Limitations:

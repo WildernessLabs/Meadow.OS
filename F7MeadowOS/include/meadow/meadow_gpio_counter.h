@@ -1,6 +1,6 @@
 /****************************************************************************
  * F7MeadowOS/include/meadow/meadow_gpio_counter.h
- * 
+ *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -50,26 +50,26 @@
 // Should gpio counter code be built? The feature is shipped (has a live
 // dispatched kernel test); this flag exists only for potential future
 // exclusion, not a pending decision.
-#define MEADOW_GPIO_COUNTER_BUILD         (1)
+#define MEADOW_GPIO_COUNTER_BUILD (1)
 
 // Define the maximum number of GPIOs that can be monitored.
 // Since the F7, under Nuttx, only has 16 "interrupt groups" there's no
 // point in having more that 8 gpio counters.
-#define MEADOW_GPIO_COUNT_MAX_MONITORED   (8)
+#define MEADOW_GPIO_COUNT_MAX_MONITORED (8)
 
-#define MEADOW_GPIO_COUNTER_MAX_PORT      (10)   // A-K
-#define MEADOW_GPIO_COUNTER_MAX_PIN       (15)   // 0-15
+#define MEADOW_GPIO_COUNTER_MAX_PORT (10) // A-K
+#define MEADOW_GPIO_COUNTER_MAX_PIN (15)  // 0-15
 
 #if (MEADOW_GPIO_COUNTER_BUILD > 0)
 
 // Caller must populate this struct before configuring a GPIO
 struct gpioCntConfigParms_s
 {
-  uint32_t gpioCntrNumb;      // 0 - 7 to identify for collections
-  bool isAddGpioCounter;      // true=add, false=remove
-  uint32_t gpioPortInfo;      // 0 - 10 (A-K)
-  uint32_t gpioPinInfo;       // 0 - 15
-  uint32_t resistorMode;      // 0 = float, 1 = pull up, 2 = pull down
+    uint32_t gpioCntrNumb; // 0 - 7 to identify for collections
+    bool isAddGpioCounter; // true=add, false=remove
+    uint32_t gpioPortInfo; // 0 - 10 (A-K)
+    uint32_t gpioPinInfo;  // 0 - 15
+    uint32_t resistorMode; // 0 = float, 1 = pull up, 2 = pull down
 };
 typedef struct gpioCntConfigParms_s gpioCntConfigParms_t;
 
@@ -77,34 +77,34 @@ typedef struct gpioCntConfigParms_s gpioCntConfigParms_t;
 // The meadow_gpio_counter_read_data() function fills the other fields.
 struct gpioCntReadData_s
 {
-  uint32_t gpioCntrNumb;    // Supplied, 0 - 7 gpio counter config number
-  uint64_t gpioCount;       // Returned, Current total count
-  uint64_t gpioCountChange; // Returned, Counts since last read
+    uint32_t gpioCntrNumb;    // Supplied, 0 - 7 gpio counter config number
+    uint64_t gpioCount;       // Returned, Current total count
+    uint64_t gpioCountChange; // Returned, Counts since last read
 };
 typedef struct gpioCntReadData_s gpioCntReadData_t;
 
 // Internal structure to manage gpio counters
 struct gpioCounterInfo_s
 {
-  uint8_t gpioCntrNumb;       // GPIOCntr number
+    uint8_t gpioCntrNumb; // GPIOCntr number
 
-  // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
-  uint8_t gpioPinInfo;        // Supplied by configuration
+    // Represents the CPU PinPort identifier (e.g. PD9, D=3 so 39)
+    uint8_t gpioPinInfo; // Supplied by configuration
 
-  // Using uint64_t for count since this only counts up (rising edges); at
-  // 1000 counts per second this will not roll over for well over a million
-  // years, so no reasonable application will ever see it wrap.
-  uint64_t totalCount;        // Total of rising edges
-  uint64_t prevCount;         // Count at last read
+    // Using uint64_t for count since this only counts up (rising edges); at
+    // 1000 counts per second this will not roll over for well over a million
+    // years, so no reasonable application will ever see it wrap.
+    uint64_t totalCount; // Total of rising edges
+    uint64_t prevCount;  // Count at last read
 
-  // Guards against gpio_cnt_config_interrupt_remove() freeing this struct
-  // while a read (or set_count) call is still using it. A caller registers
-  // by incrementing activeReaders before use and decrementing after; remove()
-  // sets pendingFree and only frees immediately if no reader is registered,
-  // otherwise the last reader to unregister does the free. See
-  // gpio_cnt_acquire()/gpio_cnt_release() in meadow_gpio_counter.c.
-  uint16_t activeReaders;     // Count of in-flight callers referencing this struct
-  bool pendingFree;           // remove() requested while a reader was active
+    // Guards against gpio_cnt_config_interrupt_remove() freeing this struct
+    // while a read (or set_count) call is still using it. A caller registers
+    // by incrementing activeReaders before use and decrementing after; remove()
+    // sets pendingFree and only frees immediately if no reader is registered,
+    // otherwise the last reader to unregister does the free. See
+    // gpio_cnt_acquire()/gpio_cnt_release() in meadow_gpio_counter.c.
+    uint16_t activeReaders; // Count of in-flight callers referencing this struct
+    bool pendingFree;       // remove() requested while a reader was active
 };
 typedef struct gpioCounterInfo_s gpioCounterInfo_t;
 
@@ -116,6 +116,6 @@ int meadow_gpio_counter_read_data(gpioCntReadData_t *gpioCntReadData);
 // Test function follow
 void gpio_counter_test_exercise_test(uint32_t userData);
 
-#endif      // #if (MEADOW_GPIO_COUNTER_BUILD > 0)
+#endif // #if (MEADOW_GPIO_COUNTER_BUILD > 0)
 
-#endif      // __CONFIGS_MEADOW_SRC_GPIO_COUNTER__H
+#endif // __CONFIGS_MEADOW_SRC_GPIO_COUNTER__H

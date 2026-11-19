@@ -1,6 +1,6 @@
 /****************************************************************************
  * nuttx\include\meadow\meadow_syscall_support.h
- * 
+ *
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -50,51 +50,51 @@
  ************************************************************************************/
 
 // Meadow DAC: meadow_dac_open() flags. 0 = output buffer on.
-#define MEADOW_DAC_FLAG_BUFFER_OFF  (1 << 0)
+#define MEADOW_DAC_FLAG_BUFFER_OFF (1 << 0)
 
 // Meadow DAC: struct meadow_dac_wave_s types
-#define MEADOW_DAC_WAVE_BUFFER      1   // Loop a buffer of samples
-#define MEADOW_DAC_WAVE_TRIANGLE    2   // DAC triangle generator
-#define MEADOW_DAC_WAVE_NOISE       3   // DAC noise generator
-#define MEADOW_DAC_WAVE_STREAM      4   // Stream samples written by the app
-#define MEADOW_DAC_WAVE_ONESHOT     5   // Play a clip of samples once
+#define MEADOW_DAC_WAVE_BUFFER 1   // Loop a buffer of samples
+#define MEADOW_DAC_WAVE_TRIANGLE 2 // DAC triangle generator
+#define MEADOW_DAC_WAVE_NOISE 3    // DAC noise generator
+#define MEADOW_DAC_WAVE_STREAM 4   // Stream samples written by the app
+#define MEADOW_DAC_WAVE_ONESHOT 5  // Play a clip of samples once
 
 // Meadow DAC: a waveform for meadow_dac_wave_start(). Every field is 32 bits,
 // so the managed side can mirror it with a sequential struct. Fields a type
 // does not use are ignored and should be 0.
 struct meadow_dac_wave_s
 {
-  uint32_t        size;       // sizeof(struct meadow_dac_wave_s), set by the caller
-  uint32_t        type;       // MEADOW_DAC_WAVE_*
-  uint32_t        rate_hz;    // Requested sample rate, 1 to 1,000,000
-  uint32_t        actual_hz;  // Out: the rate actually set
-  uint32_t        amplitude;  // Triangle and noise only: 2^n - 1, n = 1 to 12
-  uint32_t        count;      // Buffer and one-shot: number of samples, 1 to 8192
-  const uint16_t *samples;    // Buffer and one-shot: the samples, 0 to 4095 each
-  uint32_t        ring;       // Stream only: ring size in samples, even, 256 to
-                              //   16384; 0 = 8192
-  uint32_t        fill;       // Stream: value played on underrun; one-shot: value
-                              //   the output is left at when the clip ends; 0 to 4095
+    uint32_t size;           // sizeof(struct meadow_dac_wave_s), set by the caller
+    uint32_t type;           // MEADOW_DAC_WAVE_*
+    uint32_t rate_hz;        // Requested sample rate, 1 to 1,000,000
+    uint32_t actual_hz;      // Out: the rate actually set
+    uint32_t amplitude;      // Triangle and noise only: 2^n - 1, n = 1 to 12
+    uint32_t count;          // Buffer and one-shot: number of samples, 1 to 8192
+    const uint16_t *samples; // Buffer and one-shot: the samples, 0 to 4095 each
+    uint32_t ring;           // Stream only: ring size in samples, even, 256 to
+                             //   16384; 0 = 8192
+    uint32_t fill;           // Stream: value played on underrun; one-shot: value
+                             //   the output is left at when the clip ends; 0 to 4095
 };
 
 // Meadow DAC: struct meadow_dac_wave_status_s states
-#define MEADOW_DAC_STREAM_NONE      0   // Not streaming
-#define MEADOW_DAC_STREAM_PRIMING   1   // Started, waiting for the ring to fill
-#define MEADOW_DAC_STREAM_RUNNING   2   // Playing
-#define MEADOW_DAC_ONESHOT_PLAYING  3   // A one-shot clip is playing
-#define MEADOW_DAC_FILE_PLAYING     4   // meadow_dac_play_file() is playing
+#define MEADOW_DAC_STREAM_NONE 0     // Not streaming
+#define MEADOW_DAC_STREAM_PRIMING 1  // Started, waiting for the ring to fill
+#define MEADOW_DAC_STREAM_RUNNING 2  // Playing
+#define MEADOW_DAC_ONESHOT_PLAYING 3 // A one-shot clip is playing
+#define MEADOW_DAC_FILE_PLAYING 4    // meadow_dac_play_file() is playing
 
 // Meadow DAC: meadow_dac_play_file() flags
-#define MEADOW_DAC_PLAY_LOOP        (1 << 0)  // Start again at the end
+#define MEADOW_DAC_PLAY_LOOP (1 << 0) // Start again at the end
 
 // Meadow DAC: a stream's or one-shot's status, from meadow_dac_wave_status()
 struct meadow_dac_wave_status_s
 {
-  uint32_t size;       // sizeof(struct meadow_dac_wave_status_s), set by the caller
-  uint32_t state;      // Out: MEADOW_DAC_STREAM_*, _ONESHOT_ or _FILE_PLAYING
-  uint32_t queued;     // Out: samples written (or, for a one-shot, left) to play
-  uint32_t space;      // Out: samples that can be written now without waiting
-  uint32_t underruns;  // Out: underruns since the stream started
+    uint32_t size;      // sizeof(struct meadow_dac_wave_status_s), set by the caller
+    uint32_t state;     // Out: MEADOW_DAC_STREAM_*, _ONESHOT_ or _FILE_PLAYING
+    uint32_t queued;    // Out: samples written (or, for a one-shot, left) to play
+    uint32_t space;     // Out: samples that can be written now without waiting
+    uint32_t underruns; // Out: underruns since the stream started
 };
 
 /************************************************************************************
@@ -118,10 +118,8 @@ int meadow_dac_read(uint8_t pinid, uint32_t *value);
 int meadow_dac_close(uint8_t pinid);
 int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave);
 int meadow_dac_wave_stop(uint8_t pinid);
-int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
-                          uint32_t count, uint32_t timeout_ms);
-int meadow_dac_wave_status(uint8_t pinid,
-                           struct meadow_dac_wave_status_s *status);
+int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples, uint32_t count, uint32_t timeout_ms);
+int meadow_dac_wave_status(uint8_t pinid, struct meadow_dac_wave_status_s *status);
 int meadow_dac_play_file(uint8_t pinid, const char *path, uint32_t flags);
 
 int pwrmgmt_most_recent_wakeup_reason(void);

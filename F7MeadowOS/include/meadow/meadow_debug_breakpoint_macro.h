@@ -49,17 +49,25 @@
 /**
  * @brief Always insert a debug breakpoint into the code.
  */
-#define MEADOW_DEBUG_BREAKPOINT() do { __asm__ ("bkpt"); } while (0)
+#define MEADOW_DEBUG_BREAKPOINT()                                                                                                                                                                                                                                                                          \
+    do                                                                                                                                                                                                                                                                                                     \
+    {                                                                                                                                                                                                                                                                                                      \
+        __asm__("bkpt");                                                                                                                                                                                                                                                                                   \
+    }                                                                                                                                                                                                                                                                                                      \
+    while (0)
 
 /**
  * @brief Insert a debug breakpoint in the code that will trigger only if the
  * condition is met.
  */
-#define MEADOW_DEBUG_BREAKPOINT_IF(condition) \
-    do { \
-        if (condition) { \
-            MEADOW_DEBUG_BREAKPOINT(); \
-        } \
-    } while (0)
+#define MEADOW_DEBUG_BREAKPOINT_IF(condition)                                                                                                                                                                                                                                                              \
+    do                                                                                                                                                                                                                                                                                                     \
+    {                                                                                                                                                                                                                                                                                                      \
+        if (condition)                                                                                                                                                                                                                                                                                     \
+        {                                                                                                                                                                                                                                                                                                  \
+            MEADOW_DEBUG_BREAKPOINT();                                                                                                                                                                                                                                                                     \
+        }                                                                                                                                                                                                                                                                                                  \
+    }                                                                                                                                                                                                                                                                                                      \
+    while (0)
 
 #endif // __INCLUDE_MEADOW_DEBUG_BREAKPOINT_MACRO__H

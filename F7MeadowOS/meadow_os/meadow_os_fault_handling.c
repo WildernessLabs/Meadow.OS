@@ -62,12 +62,12 @@
 /**
  * @brief Number of bytes to reserve for the fault message.
  */
-#define FAULT_BUFFER_LENGTH         256
+#define FAULT_BUFFER_LENGTH 256
 
 /**
  * @brief Name and location of the OS crash report file.
  */
-#define MEADOW_OS_CRASH_FILE_NAME   CRASH_DIR "/oscrash_report.txt"
+#define MEADOW_OS_CRASH_FILE_NAME CRASH_DIR "/oscrash_report.txt"
 
 /****************************************************************************
  * Local type definitions.
@@ -96,7 +96,7 @@ static uint32_t _fault_status = 0;
  *
  * Description:
  *  Find the end of line (or the end of the buffer).
- * 
+ *
  * Input Parameters:
  *  buffer - Line of text to search.
  *
@@ -113,7 +113,7 @@ static char *find_line_end(const char *buffer)
     {
         buffer++;
     }
-    return((char *) buffer);
+    return ((char *) buffer);
 }
 
 /****************************************************************************
@@ -141,10 +141,8 @@ static char *find_line_end(const char *buffer)
  ****************************************************************************/
 static void meadow_os_fault_logging_phase_string(uint8_t fault, char *buffer, uint32_t length)
 {
-    snprintf(buffer, length, "BKPSRAM %s (%s), Persistent storage %s (%s)",
-        (fault & FAULT_LOGGING_PHASE1_STARTED) ? "started" : "not started",
-        (fault & FAULT_LOGGING_PHASE1_COMPLETED) ? "completed" : "incomplete",
-        (fault & FAULT_LOGGING_PHASE2_STARTED) ? "started" : "not started",
+    snprintf(
+        buffer, length, "BKPSRAM %s (%s), Persistent storage %s (%s)", (fault & FAULT_LOGGING_PHASE1_STARTED) ? "started" : "not started", (fault & FAULT_LOGGING_PHASE1_COMPLETED) ? "completed" : "incomplete", (fault & FAULT_LOGGING_PHASE2_STARTED) ? "started" : "not started",
         (fault & FAULT_LOGGING_PHASE2_COMPLETED) ? "completed" : "incomplete");
 }
 
@@ -202,7 +200,7 @@ static void meadow_os_fault_handler_process_os_fault_message(uint8_t fault)
             if (strlen(line) > 0)
             {
                 char *end = find_line_end(line);
-                bool last_line = (*end == '\0');      // The terminator was reached, there is nothing after it.
+                bool last_line = (*end == '\0'); // The terminator was reached, there is nothing after it.
                 *end = 0;
                 if ((memcmp(line, "up_", 3) == 0) || (memcmp(line, "arm_", 4) == 0))
                 {
@@ -282,7 +280,7 @@ static void meadow_os_fault_handler_process_rt_fault_message(uint8_t fault)
  * Description:
  *  Check the fault code following a reboot and determine the system (OS or
  *  RT) that has faulted and send the fault information to syslog.
- * 
+ *
  *  The fault code will be reset at the end of this method.
  *
  * Input Parameters:

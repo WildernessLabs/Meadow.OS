@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/pwrmgmt/pwrmgmt_misc.c
- * 
+ *
  *   Copyright (C) 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -56,11 +56,11 @@
 #include "../hcom_nx/hcom_nx_common.h"
 #include "pwrmgmt_local.h"
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
-// Diagnostic only
-// #define USE_MEADOW_DEBUG_HELPERS
-#include <meadow/meadow_debug_helpers.h>
+    // Diagnostic only
+    // #define USE_MEADOW_DEBUG_HELPERS
+    #include <meadow/meadow_debug_helpers.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -91,92 +91,88 @@ static mutex_t _rtcAccessLock = NXMUTEX_INITIALIZER;
  * Private Functions
  ****************************************************************************/
 
-#if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+    #if defined(CONFIG_POWER_MANAGEMENT_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 void pwrmgmt_rtc_dumpregs(FAR const char *msg)
 {
-  int rtcState;
+    int rtcState;
 
-  // After backup domain reset these are the default values
-  // RTC control register (RTC_CR)                    [0]
-  // RTC prescaler register (RTC_PRER)                [0x007f00ff the LSE default]
-  // RTC calibration register (RTC_CALR)              [0]
-  // RTC shift register (RTC_SHIFTR)                  [0]
-  // RTC timestamp register (RTC_TSSSR)               [0]
-  // RTC timestamp register (RTC_TSTR)                [0]
-  // RTC timestamp register (RTC_TSDR)                [0]
-  // RTC tamper configuration register (RTC_TAMPCR)   [0]
-  // RTC backup registers (RTC_BKPxR)                 [all 32 registers to 0]
-  // RTC wakeup timer register (RTC_WUTR)             [0]
-  // RTC Alarm A registers (RTC_ALRMASSR/RTC_ALRMAR)  [both 0]
-  // RTC Alarm B registers (RTC_ALRMBSSR/RTC_ALRMBR)  [both 0]
-  // RTC Option register (RTC_OR)                     [0]
+    // After backup domain reset these are the default values
+    // RTC control register (RTC_CR)                    [0]
+    // RTC prescaler register (RTC_PRER)                [0x007f00ff the LSE default]
+    // RTC calibration register (RTC_CALR)              [0]
+    // RTC shift register (RTC_SHIFTR)                  [0]
+    // RTC timestamp register (RTC_TSSSR)               [0]
+    // RTC timestamp register (RTC_TSTR)                [0]
+    // RTC timestamp register (RTC_TSDR)                [0]
+    // RTC tamper configuration register (RTC_TAMPCR)   [0]
+    // RTC backup registers (RTC_BKPxR)                 [all 32 registers to 0]
+    // RTC wakeup timer register (RTC_WUTR)             [0]
+    // RTC Alarm A registers (RTC_ALRMASSR/RTC_ALRMAR)  [both 0]
+    // RTC Alarm B registers (RTC_ALRMBSSR/RTC_ALRMBR)  [both 0]
+    // RTC Option register (RTC_OR)                     [0]
 
-  syslog(LOG_MTEST, "%s:\n", msg);
-  syslog(LOG_MTEST, "Registers set to default by Backup Domain Reset\n");
-  syslog(LOG_MTEST, "  RTC_CR: %08" PRIx32 "\n", getreg32(STM32_RTC_CR));
-  syslog(LOG_MTEST, "    PRER: %08" PRIx32 "\n", getreg32(STM32_RTC_PRER));
-  syslog(LOG_MTEST, "    CALR: %08" PRIx32 "\n", getreg32(STM32_RTC_CALR));
-  syslog(LOG_MTEST, "  SHIFTR: %08" PRIx32 "\n", getreg32(STM32_RTC_SHIFTR));
-  syslog(LOG_MTEST, "   TSSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSSSR));
-  syslog(LOG_MTEST, "    TSTR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSTR));
-  syslog(LOG_MTEST, "    TSDR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSDR));
-  syslog(LOG_MTEST, "  TAMPCR: %08" PRIx32 "\n", getreg32(STM32_RTC_TAMPCR));
-  syslog(LOG_MTEST, "    WUTR: %08" PRIx32 "\n", getreg32(STM32_RTC_WUTR));
-  syslog(LOG_MTEST, "ALRMASSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMASSR));
-  syslog(LOG_MTEST, "  ALRMBR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBR));
-  syslog(LOG_MTEST, "ALRMBSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBSSR));
-  syslog(LOG_MTEST, "  ALRMAR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMAR));
-  syslog(LOG_MTEST, "Other RTC Registers\n");
-  syslog(LOG_MTEST, "TR(time): %08" PRIx32 "\n", getreg32(STM32_RTC_TR));
-  syslog(LOG_MTEST, "DR(date): %08" PRIx32 "\n", getreg32(STM32_RTC_DR));
-  syslog(LOG_MTEST, "     ISR: %08" PRIx32 "\n", getreg32(STM32_RTC_ISR));
-  syslog(LOG_MTEST, "MAGICREG: %08" PRIx32 "\n", getreg32(RTC_MAGIC_REG));
+    syslog(LOG_MTEST, "%s:\n", msg);
+    syslog(LOG_MTEST, "Registers set to default by Backup Domain Reset\n");
+    syslog(LOG_MTEST, "  RTC_CR: %08" PRIx32 "\n", getreg32(STM32_RTC_CR));
+    syslog(LOG_MTEST, "    PRER: %08" PRIx32 "\n", getreg32(STM32_RTC_PRER));
+    syslog(LOG_MTEST, "    CALR: %08" PRIx32 "\n", getreg32(STM32_RTC_CALR));
+    syslog(LOG_MTEST, "  SHIFTR: %08" PRIx32 "\n", getreg32(STM32_RTC_SHIFTR));
+    syslog(LOG_MTEST, "   TSSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSSSR));
+    syslog(LOG_MTEST, "    TSTR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSTR));
+    syslog(LOG_MTEST, "    TSDR: %08" PRIx32 "\n", getreg32(STM32_RTC_TSDR));
+    syslog(LOG_MTEST, "  TAMPCR: %08" PRIx32 "\n", getreg32(STM32_RTC_TAMPCR));
+    syslog(LOG_MTEST, "    WUTR: %08" PRIx32 "\n", getreg32(STM32_RTC_WUTR));
+    syslog(LOG_MTEST, "ALRMASSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMASSR));
+    syslog(LOG_MTEST, "  ALRMBR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBR));
+    syslog(LOG_MTEST, "ALRMBSSR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMBSSR));
+    syslog(LOG_MTEST, "  ALRMAR: %08" PRIx32 "\n", getreg32(STM32_RTC_ALRMAR));
+    syslog(LOG_MTEST, "Other RTC Registers\n");
+    syslog(LOG_MTEST, "TR(time): %08" PRIx32 "\n", getreg32(STM32_RTC_TR));
+    syslog(LOG_MTEST, "DR(date): %08" PRIx32 "\n", getreg32(STM32_RTC_DR));
+    syslog(LOG_MTEST, "     ISR: %08" PRIx32 "\n", getreg32(STM32_RTC_ISR));
+    syslog(LOG_MTEST, "MAGICREG: %08" PRIx32 "\n", getreg32(RTC_MAGIC_REG));
 
-  rtcState =
-    ((getreg32(STM32_EXTI_IMR)  & EXTI_RTC_ALARM) ? 0x0010 : 0) |
-    ((getreg32(STM32_EXTI_EMR)  & EXTI_RTC_ALARM) ? 0x0001 : 0) |
-    ((getreg32(STM32_EXTI_RTSR) & EXTI_RTC_ALARM) ? 0x1000 : 0) |
-    ((getreg32(STM32_EXTI_FTSR) & EXTI_RTC_ALARM) ? 0x0100 : 0);
-  syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n",rtcState);
+    rtcState = ((getreg32(STM32_EXTI_IMR) & EXTI_RTC_ALARM) ? 0x0010 : 0) | ((getreg32(STM32_EXTI_EMR) & EXTI_RTC_ALARM) ? 0x0001 : 0) | ((getreg32(STM32_EXTI_RTSR) & EXTI_RTC_ALARM) ? 0x1000 : 0) | ((getreg32(STM32_EXTI_FTSR) & EXTI_RTC_ALARM) ? 0x0100 : 0);
+    syslog(LOG_MTEST, "EXTI (IMR EMR RTSR FTSR): %01x\n", rtcState);
 }
-#endif
+    #endif
 
 //=============================================================
 // Required for making changes to RTC registers
 // Write PRotect Unlock
 void pwrmgmt_rtc_wprunlock(void)
 {
-  // Serialize the whole write-protect-unlock...write-protect-lock sequence
-  // against any other caller. Released in pwrmgmt_rtc_wprlock(). This is an
-  // internal, always-initialized static mutex, so nxmutex_lock() failing
-  // here would indicate a programming error rather than a real runtime
-  // condition to recover from.
-  (void)nxmutex_lock(&_rtcAccessLock);
+    // Serialize the whole write-protect-unlock...write-protect-lock sequence
+    // against any other caller. Released in pwrmgmt_rtc_wprlock(). This is an
+    // internal, always-initialized static mutex, so nxmutex_lock() failing
+    // here would indicate a programming error rather than a real runtime
+    // condition to recover from.
+    (void) nxmutex_lock(&_rtcAccessLock);
 
-  // Sets the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
-  // Ref Man 4.4.1 PWR power control register (PWR_CR1)
-  // True enables ability to write to backup domain registers
-  stm32_pwr_enablebkp(true);
+    // Sets the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
+    // Ref Man 4.4.1 PWR power control register (PWR_CR1)
+    // True enables ability to write to backup domain registers
+    stm32_pwr_enablebkp(true);
 
-  // Enable write access to RTC Registers
-  putreg32(0xca, STM32_RTC_WPR);
-  putreg32(0x53, STM32_RTC_WPR);
+    // Enable write access to RTC Registers
+    putreg32(0xca, STM32_RTC_WPR);
+    putreg32(0x53, STM32_RTC_WPR);
 }
 
 //=============================================================
 // Write PRotect Lock
 void pwrmgmt_rtc_wprlock(void)
 {
-  // Disable write access to RTC Registers
-  putreg32(0xff, STM32_RTC_WPR);
+    // Disable write access to RTC Registers
+    putreg32(0xff, STM32_RTC_WPR);
 
-  // Clears the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
-  // Ref Man 4.4.1 PWR power control register (PWR_CR1)
-  // False disables ability to write to backup domain registers
-  stm32_pwr_enablebkp(false);
+    // Clears the PWR_CR1_DBP bit in the STM32_PWR_CR1_OFFSET register
+    // Ref Man 4.4.1 PWR power control register (PWR_CR1)
+    // False disables ability to write to backup domain registers
+    stm32_pwr_enablebkp(false);
 
-  // Release the lock acquired in pwrmgmt_rtc_wprunlock().
-  nxmutex_unlock(&_rtcAccessLock);
+    // Release the lock acquired in pwrmgmt_rtc_wprunlock().
+    nxmutex_unlock(&_rtcAccessLock);
 }
 
 //=============================================================
@@ -185,113 +181,114 @@ void pwrmgmt_rtc_wprlock(void)
 // RTC_PRER (prescaler)
 int pwrmgmt_rtc_enterinit(void)
 {
-  volatile uint32_t timeout;
-  uint32_t regval;
-  int ret;
+    volatile uint32_t timeout;
+    uint32_t regval;
+    int ret;
 
-  // Check if the Initialization mode is already set
-  regval = getreg32(STM32_RTC_ISR);
+    // Check if the Initialization mode is already set
+    regval = getreg32(STM32_RTC_ISR);
 
-  ret = OK;
-  // RTC_ISR_INITF bit = 1 means calendar register update allowed
-  if ((regval & RTC_ISR_INITF) == 0)
-  {
-    // Set the Initialization mode bit
-    putreg32(RTC_ISR_INIT, STM32_RTC_ISR);
-
-    // Wait until the RTC is in the INIT state (or a timeout occurs)
-    ret = -ETIMEDOUT;
-    for (timeout = 0; timeout < 10000; timeout++)
+    ret = OK;
+    // RTC_ISR_INITF bit = 1 means calendar register update allowed
+    if ((regval & RTC_ISR_INITF) == 0)
     {
-      regval = getreg32(STM32_RTC_ISR);
+        // Set the Initialization mode bit
+        putreg32(RTC_ISR_INIT, STM32_RTC_ISR);
 
-      // Loop till calendar register update allowed (i.e. not 0)
-      if ((regval & RTC_ISR_INITF) != 0)
-      {
-        ret = OK;
-        break;
-      }
+        // Wait until the RTC is in the INIT state (or a timeout occurs)
+        ret = -ETIMEDOUT;
+        for (timeout = 0; timeout < 10000; timeout++)
+        {
+            regval = getreg32(STM32_RTC_ISR);
+
+            // Loop till calendar register update allowed (i.e. not 0)
+            if ((regval & RTC_ISR_INITF) != 0)
+            {
+                ret = OK;
+                break;
+            }
+        }
     }
-  }
-  else
-  {
-    MEADOW_TRACE_DEBUG("===> pwrmgmt_rtc_enterinit() on Entry found RTC_ISR_INITF == 0\n");
-  }
+    else
+    {
+        MEADOW_TRACE_DEBUG("===> pwrmgmt_rtc_enterinit() on Entry found RTC_ISR_INITF == 0\n");
+    }
 
-  return ret;
+    return ret;
 }
 
 //=============================================================
 void pwrmgmt_rtc_exitinit(void)
 {
-  uint32_t regval;
+    uint32_t regval;
 
-  regval = getreg32(STM32_RTC_ISR);
-  regval &= ~(RTC_ISR_INIT);
-  putreg32(regval, STM32_RTC_ISR);
+    regval = getreg32(STM32_RTC_ISR);
+    regval &= ~(RTC_ISR_INIT);
+    putreg32(regval, STM32_RTC_ISR);
 
-  // The STM32F77X Errata warns in ES0334-Rev 9 section 2.12.3 of a potential
-  // problem if the above RTC_ISR_INIT bit is cleared and reset before the
-  // proper wait time has occurred. This is the workaround given in the Errata.
-  // "After exiting the initialization mode, clear the BYPSHAD bit (if set)
-  // then wait for RSF to rise, before entering the initialization mode again."
-  //
-  // Do this on exit to be sure the workaround is honored.
-  regval = getreg32(STM32_RTC_CR);
-  regval &= ~RTC_CR_BYPSHAD;    // Clear BYPSHAD
-  putreg32(regval, STM32_RTC_CR);
+    // The STM32F77X Errata warns in ES0334-Rev 9 section 2.12.3 of a potential
+    // problem if the above RTC_ISR_INIT bit is cleared and reset before the
+    // proper wait time has occurred. This is the workaround given in the Errata.
+    // "After exiting the initialization mode, clear the BYPSHAD bit (if set)
+    // then wait for RSF to rise, before entering the initialization mode again."
+    //
+    // Do this on exit to be sure the workaround is honored.
+    regval = getreg32(STM32_RTC_CR);
+    regval &= ~RTC_CR_BYPSHAD; // Clear BYPSHAD
+    putreg32(regval, STM32_RTC_CR);
 
-  // Wait for RSF bit to indicate that shadow registers are synchronized.
-  while ((getreg32(STM32_RTC_ISR) & RTC_ISR_RSF) == 0);
-  return;
+    // Wait for RSF bit to indicate that shadow registers are synchronized.
+    while ((getreg32(STM32_RTC_ISR) & RTC_ISR_RSF) == 0)
+        ;
+    return;
 }
 
 //=============================================================
 int pwrmgmt_rtc_synchwait(void)
 {
-  volatile uint32_t timeout;
-  uint32_t regval;
-  int ret;
+    volatile uint32_t timeout;
+    uint32_t regval;
+    int ret;
 
-  // Disable the write protection for RTC registers
-  pwrmgmt_rtc_wprunlock();
+    // Disable the write protection for RTC registers
+    pwrmgmt_rtc_wprunlock();
 
-  // Clear Registers synchronization flag (RSF)
-  regval = getreg32(STM32_RTC_ISR);
-  regval &= ~RTC_ISR_RSF;
-  putreg32(regval, STM32_RTC_ISR);
-
-  // Now wait the registers to become synchronised
-  ret = -ETIMEDOUT;
-  for (timeout = 0; timeout < 20000; timeout++)
-  {
+    // Clear Registers synchronization flag (RSF)
     regval = getreg32(STM32_RTC_ISR);
-    if ((regval & RTC_ISR_RSF) != 0)
-    {
-      // Synchronized
-      ret = OK;
-      break;
-    }
-  }
+    regval &= ~RTC_ISR_RSF;
+    putreg32(regval, STM32_RTC_ISR);
 
-  // Re-enable the write protection for RTC registers
-  pwrmgmt_rtc_wprlock();
-  return ret;
+    // Now wait the registers to become synchronised
+    ret = -ETIMEDOUT;
+    for (timeout = 0; timeout < 20000; timeout++)
+    {
+        regval = getreg32(STM32_RTC_ISR);
+        if ((regval & RTC_ISR_RSF) != 0)
+        {
+            // Synchronized
+            ret = OK;
+            break;
+        }
+    }
+
+    // Re-enable the write protection for RTC registers
+    pwrmgmt_rtc_wprlock();
+    return ret;
 }
 
 //=============================================================
 // Convert a small binary value into it's BCD representation
 uint32_t pwrmgmt_rtc_bin2bcd(int value)
 {
-  uint32_t msbcd = 0;
+    uint32_t msbcd = 0;
 
-  while (value >= 10)
-  {
-    msbcd++;
-    value -= 10;
-  }
+    while (value >= 10)
+    {
+        msbcd++;
+        value -= 10;
+    }
 
-  return (msbcd << 4) | value;
+    return (msbcd << 4) | value;
 }
 
-#endif  // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+#endif // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)

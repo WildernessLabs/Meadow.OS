@@ -70,7 +70,7 @@
 /**
  * @brief Marker to indicate that there are no more event handlers.
  */
-#define END_OF_HANDLERS_VALUE       0xffffffff
+#define END_OF_HANDLERS_VALUE 0xffffffff
 
 /****************************************************************************
  * Function prototypes for static methods implemented in this file.
@@ -90,32 +90,22 @@ static void espcp_system_error_event_handler(espcp_message_t *);
 /**
  *  Table of event handlers for the WiFi and socket handlers.
  */
-static espcp_event_handlers_t _wifi_handlers[] = 
-{
-    { espcp_wi_fi_function_interrupt_poll_response, espcp_usrsock_poll_interrupt_handler },
-    { espcp_wi_fi_function_network_connected_event, espcp_network_connected_event_handler },
-    { espcp_wi_fi_function_network_disconnected_event, espcp_network_disconnected_event_handler },
-    { espcp_wi_fi_function_network_got_ip_event, espcp_network_got_ip_event_handler},
-    { END_OF_HANDLERS_VALUE, NULL }
-};
+static espcp_event_handlers_t _wifi_handlers[] = {
+    {espcp_wi_fi_function_interrupt_poll_response, espcp_usrsock_poll_interrupt_handler},
+    {espcp_wi_fi_function_network_connected_event, espcp_network_connected_event_handler},
+    {espcp_wi_fi_function_network_disconnected_event, espcp_network_disconnected_event_handler},
+    {espcp_wi_fi_function_network_got_ip_event, espcp_network_got_ip_event_handler},
+    {END_OF_HANDLERS_VALUE, NULL}};
 
 /**
  *  Table of event handlers for the system interface.
  */
-static espcp_event_handlers_t _system_handlers[] = 
-{
-    { espcp_system_function_get_configuration, espcp_system_get_configuration_event_handler },
-    { espcp_system_function_error_event, espcp_system_error_event_handler },
-    { END_OF_HANDLERS_VALUE, NULL }
-};
+static espcp_event_handlers_t _system_handlers[] = {{espcp_system_function_get_configuration, espcp_system_get_configuration_event_handler}, {espcp_system_function_error_event, espcp_system_error_event_handler}, {END_OF_HANDLERS_VALUE, NULL}};
 
 /**
  *  Table of event handlers for the bluetooth interface.
  */
-static espcp_event_handlers_t _bluetooth_handlers[] = 
-{
-    { END_OF_HANDLERS_VALUE, NULL }
-};
+static espcp_event_handlers_t _bluetooth_handlers[] = {{END_OF_HANDLERS_VALUE, NULL}};
 
 /**
  *  List of events (messages) that have payloads and are pending a request
@@ -133,7 +123,7 @@ static volatile uint32_t _events_with_payloads_count = 0;
  *        that are never collected (Mono not running, restarted, ...) would otherwise
  *        grow the list, and use the heap, without limit.
  */
-#define ESPCP_MAXIMUM_EVENTS_WITH_PAYLOADS  32
+#define ESPCP_MAXIMUM_EVENTS_WITH_PAYLOADS 32
 
 /****************************************************************************
  * Function Implementation
@@ -168,8 +158,7 @@ static void *espcp_event_handler_thread(void *parameters)
 #endif
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), ESPCP_EVENT_HANDLER_THREAD_NAME);
+    syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), ESPCP_EVENT_HANDLER_THREAD_NAME);
 #endif
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -220,8 +209,6 @@ static void *espcp_event_handler_thread(void *parameters)
     return (NULL);
 }
 
-
-
 /****************************************************************************
  * Name: espcp_event_handlers_thread_start
  *
@@ -253,8 +240,7 @@ int espcp_event_handlers_thread_start(void)
     int result = OK;
 
 #ifdef CONFIG_BUILD_PROTECTED
-    int thread_id = kthread_create(ESPCP_EVENT_HANDLER_THREAD_NAME, ESPCP_EVENT_HANDLER_THREAD_PRIORITY,
-                                   ESPCP_EVENT_HANDLER_THREAD_STACKSIZE, (main_t) espcp_event_handler_thread, (char *const *) NULL);
+    int thread_id = kthread_create(ESPCP_EVENT_HANDLER_THREAD_NAME, ESPCP_EVENT_HANDLER_THREAD_PRIORITY, ESPCP_EVENT_HANDLER_THREAD_STACKSIZE, (main_t) espcp_event_handler_thread, (char * const *) NULL);
 
     if (thread_id <= 0)
     {
@@ -312,10 +298,8 @@ int espcp_event_handlers_thread_start(void)
 #endif
     espcp_config_unlock();
 
-    return(result);
+    return (result);
 }
-
-
 
 /****************************************************************************
  * Name: espcp_event_handlers_init
@@ -350,7 +334,7 @@ void espcp_event_handlers_init(void)
  *
  * Description:
  *  Compare the specified event ID with the one in the pointer to a message.
- * 
+ *
  *  This method is used by the generic linked list code.
  *
  * Input Parameters:
@@ -371,7 +355,7 @@ static bool espcp_compare_event_ids(uint32_t event_id, void *event_data)
     {
         result = true;
     }
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -380,7 +364,7 @@ static bool espcp_compare_event_ids(uint32_t event_id, void *event_data)
  * Description:
  *  Find the event data in the list of events with payloads.  Remove the event
  *  from the list and return a pointer to the event data.
- * 
+ *
  *  There can be a small time delay between the managed code requesting the
  *  event data and it being available.  The retry loop below takes this into
  *  consideration and pauses for a short time before retrying.
@@ -419,7 +403,7 @@ espcp_message_t *espcp_get_event_data(uint32_t message_id)
         }
     }
     while ((event_data == NULL) && (retry_count < 10));
-    return((espcp_message_t *) event_data);
+    return ((espcp_message_t *) event_data);
 }
 
 /****************************************************************************
@@ -535,9 +519,7 @@ static void espcp_send_logging_configuration(void)
 
     if (payload != NULL)
     {
-        espcp_message_t *logging_configuration_message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                               espcp_system_function_logging_configuration, espcp_status_codes_completed_ok,
-                                               espcp_get_next_message_id(), payload, payload_length);
+        espcp_message_t *logging_configuration_message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_logging_configuration, espcp_status_codes_completed_ok, espcp_get_next_message_id(), payload, payload_length);
         if (logging_configuration_message != NULL)
         {
             espcp_queue_message(logging_configuration_message, false);
@@ -574,7 +556,7 @@ static void espcp_send_wifi_country_code(void)
     {
         hcom_nx_config_set_esp_string_value(espcp_configuration_items_country_code, country_code);
         kmm_free(country_code);
-    }    
+    }
 }
 
 /****************************************************************************
@@ -698,9 +680,7 @@ static void espcp_network_connected_event_handler(espcp_message_t *message)
                 if (connect_data != NULL)
                 {
                     hcom_nx_config_add_default_gateway_dns_file(config, connect_data->gateway);
-                    hcom_nx_config_update_network_interface(config, connect_data->ip_address,
-                                                            connect_data->gateway,
-                                                            connect_data->subnet_mask);
+                    hcom_nx_config_update_network_interface(config, connect_data->ip_address, connect_data->gateway, connect_data->subnet_mask);
                     free(connect_data);
                 }
             }
@@ -787,9 +767,9 @@ void espcp_pass_to_managed_event_handler(espcp_message_t *message)
         eventData.function = message->function;
         eventData.status_code = message->status_code;
 
-        #if defined(USE_MEADOW_DEBUG_HELPERS)
-            espcp_dump_message(message);
-        #endif
+#if defined(USE_MEADOW_DEBUG_HELPERS)
+        espcp_dump_message(message);
+#endif
 
         if (message->payload_length > 0)
         {

@@ -68,26 +68,25 @@
  * Definitions.
  ****************************************************************************/
 
- /**
-  * @brief Amount of data to be collected on each fragment request.
-  */
- #define ESP32_CORE_DUMP_FRAGMENT_SIZE 4000
+/**
+ * @brief Amount of data to be collected on each fragment request.
+ */
+#define ESP32_CORE_DUMP_FRAGMENT_SIZE 4000
 
- /**
-  * @brief Root file name for the ESP32 core dump.
-  */
- #define ESP_CORE_DUMP_ROOT_FILE_NAME "esp-coredump-"
+/**
+ * @brief Root file name for the ESP32 core dump.
+ */
+#define ESP_CORE_DUMP_ROOT_FILE_NAME "esp-coredump-"
 
- /**
-  * @brief Largest core dump this driver will attempt to retrieve.
-  *
-  *  Covers the largest coredump partition used by the ESP32 firmware
-  *  (0x80000 in partitions-develop.csv; production uses 0x10000).  Acts as a
-  *  backstop for the partition size reported by the ESP32, which is itself
-  *  untrusted wire data.
-  */
- #define ESPCP_MAXIMUM_CORE_DUMP_SIZE (512 * 1024)
-
+/**
+ * @brief Largest core dump this driver will attempt to retrieve.
+ *
+ *  Covers the largest coredump partition used by the ESP32 firmware
+ *  (0x80000 in partitions-develop.csv; production uses 0x10000).  Acts as a
+ *  backstop for the partition size reported by the ESP32, which is itself
+ *  untrusted wire data.
+ */
+#define ESPCP_MAXIMUM_CORE_DUMP_SIZE (512 * 1024)
 
 /****************************************************************************
  * Private Data
@@ -125,8 +124,8 @@ static bool g_core_dump_in_progress = false;
  ****************************************************************************/
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
-static const char *
-espcp_core_dump_status_to_string(espcp_status_codes_t status)
+
+static const char *espcp_core_dump_status_to_string(espcp_status_codes_t status)
 {
     switch (status)
     {
@@ -160,9 +159,10 @@ espcp_core_dump_status_to_string(espcp_status_codes_t status)
             return "UNKNOWN";
     }
 }
+
 #pragma GCC diagnostic pop
 
- /****************************************************************************
+/****************************************************************************
  * Name: espcp_create_core_dump_file_name
  *
  * Description:
@@ -195,7 +195,7 @@ espcp_core_dump_status_to_string(espcp_status_codes_t status)
  *
  ****************************************************************************/
 static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length, char *version)
- {
+{
     if (version != NULL)
     {
         uint32_t length = strlen(version);
@@ -213,7 +213,7 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
     }
     snprintf(buffer, buffer_length, CRASH_DIR "/" ESP_CORE_DUMP_ROOT_FILE_NAME "%s.bin", version);
     mkdir(CRASH_DIR, 0777);
- }
+}
 
 /****************************************************************************
  * Name: espcp_get_core_dump_information
@@ -231,36 +231,33 @@ static void espcp_create_core_dump_file_name(char *buffer, size_t buffer_length,
  *  None.
  *
  ****************************************************************************/
- static espcp_core_dump_information_response_t *espcp_get_core_dump_information(void)
- {
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                            espcp_system_function_get_core_dump_information, espcp_status_codes_completed_ok,
-                                            espcp_get_next_message_id(), NULL, 0);
+static espcp_core_dump_information_response_t *espcp_get_core_dump_information(void)
+{
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_get_core_dump_information, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message == NULL)
     {
         syslog(LOG_ERR, "espcp_get_core_dump_information: Failed to create message\n");
-        return(NULL);
+        return (NULL);
     }
 
     if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
     {
         syslog(LOG_ERR, "espcp_get_core_dump_information: Failed to queue message\n");
         espcp_delete_message_and_payload(message);
-        return(NULL);
+        return (NULL);
     }
 
     if (message->status_code != espcp_status_codes_completed_ok)
     {
-        syslog(LOG_ERR, "espcp_get_core_dump_information: ESP32 error response: %" PRIu32 " (%s)\n", 
-                          message->status_code, espcp_core_dump_status_to_string(message->status_code));
+        syslog(LOG_ERR, "espcp_get_core_dump_information: ESP32 error response: %" PRIu32 " (%s)\n", message->status_code, espcp_core_dump_status_to_string(message->status_code));
         espcp_delete_message_and_payload(message);
-        return(NULL);
+        return (NULL);
     }
 
     espcp_core_dump_information_response_t *information = espcp_extract_core_dump_information_response(message->payload);
     espcp_delete_message_and_payload(message);
 
-    return(information);
+    return (information);
 }
 
 /****************************************************************************
@@ -315,7 +312,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
 
     if (core_dump == NULL)
     {
-        return(NULL);
+        return (NULL);
     }
 
     uint32_t offset = 0;
@@ -329,14 +326,12 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
         if (encoded_fragment_request == NULL)
         {
             free(core_dump);
-            return(NULL);
+            return (NULL);
         }
         fragment_request.offset = offset;
         espcp_encode_core_dump_fragment_request(&fragment_request, encoded_fragment_request);
 
-        espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                                espcp_system_function_core_dump_fragment, espcp_status_codes_completed_ok,
-                                                espcp_get_next_message_id(), encoded_fragment_request, encoded_fragment_request_size);
+        espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_core_dump_fragment, espcp_status_codes_completed_ok, espcp_get_next_message_id(), encoded_fragment_request, encoded_fragment_request_size);
         if (message != NULL)
         {
             if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
@@ -345,17 +340,16 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
                 espcp_delete_message_payload(message);
                 free(encoded_fragment_request);
                 free(core_dump);
-                return(NULL);
+                return (NULL);
             }
 
             if (message->status_code != espcp_status_codes_completed_ok)
             {
-                syslog(LOG_ERR, "espcp_get_core_dump_from_esp32: ESP32 refused fragment at offset %" PRIu32 ": %" PRIu32 " (%s)\n", 
-                                  offset, message->status_code, espcp_core_dump_status_to_string(message->status_code));
+                syslog(LOG_ERR, "espcp_get_core_dump_from_esp32: ESP32 refused fragment at offset %" PRIu32 ": %" PRIu32 " (%s)\n", offset, message->status_code, espcp_core_dump_status_to_string(message->status_code));
                 espcp_delete_message_and_payload(message);
                 free(encoded_fragment_request);
                 free(core_dump);
-                return(NULL);
+                return (NULL);
             }
 
             espcp_core_dump_fragment_response_t *fragment_response = espcp_extract_core_dump_fragment_response(message->payload);
@@ -364,7 +358,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
             {
                 free(encoded_fragment_request);
                 free(core_dump);
-                return(NULL);
+                return (NULL);
             }
             MEADOW_TRACE_INFORMATION("Received core dump fragment of size %" PRIu32 "\n", fragment_response->size);
             //
@@ -380,7 +374,7 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
                 espcp_delete_core_dump_fragment_response(fragment_response);
                 free(encoded_fragment_request);
                 free(core_dump);
-                return(NULL);
+                return (NULL);
             }
             memcpy(core_dump + offset, fragment_response->data, fragment_response->size);
             offset += fragment_response->size;
@@ -391,11 +385,11 @@ static uint8_t *espcp_get_core_dump_from_esp32(uint32_t size)
         {
             free(encoded_fragment_request);
             free(core_dump);
-            return(NULL);
+            return (NULL);
         }
     }
 
-    return(core_dump);
+    return (core_dump);
 }
 
 /****************************************************************************
@@ -421,12 +415,12 @@ int espcp_generate_core_dump_file(char *version)
     espcp_core_dump_information_response_t *information = espcp_get_core_dump_information();
     if (information == NULL)
     {
-        return(-1);
+        return (-1);
     }
     if (!information->is_valid)
     {
         free(information);
-        return(-1);
+        return (-1);
     }
     MEADOW_TRACE_INFORMATION("Core dump size %" PRIu32 "\n", information->core_dump_size);
     //
@@ -439,7 +433,7 @@ int espcp_generate_core_dump_file(char *version)
     {
         syslog(LOG_ERR, "Size mismatch core dump: %" PRIu32 ", partition: %" PRIu32 "\n", information->core_dump_size, information->partition_size);
         free(information);
-        return(-1);
+        return (-1);
     }
     uint8_t *core_dump = espcp_get_core_dump_from_esp32(information->core_dump_size);
     if (core_dump != NULL)
@@ -456,7 +450,7 @@ int espcp_generate_core_dump_file(char *version)
             {
                 free(core_dump);
                 free(information);
-                return(-1);
+                return (-1);
             }
         }
 
@@ -471,7 +465,7 @@ int espcp_generate_core_dump_file(char *version)
                 syslog(LOG_ERR, "Failed to write complete core dump to file %s\n", file_name);
                 free(core_dump);
                 free(information);
-                return(-1);
+                return (-1);
             }
         }
         else
@@ -479,13 +473,13 @@ int espcp_generate_core_dump_file(char *version)
             syslog(LOG_ERR, "Failed to open core dump file %s for writing\n", file_name);
             free(core_dump);
             free(information);
-            return(-1);
+            return (-1);
         }
         free(core_dump);
     }
     free(information);
 
-    return(0);
+    return (0);
 }
 
 /****************************************************************************
@@ -508,9 +502,7 @@ void espcp_erase_core_dump_partition(void)
 {
     MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
 
-    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system,
-                                            espcp_system_function_core_dump_erase, espcp_status_codes_completed_ok,
-                                            espcp_get_next_message_id(), NULL, 0);
+    espcp_message_t *message = espcp_create_message_on_heap(espcp_message_types_header, espcp_esp32_interfaces_system, espcp_system_function_core_dump_erase, espcp_status_codes_completed_ok, espcp_get_next_message_id(), NULL, 0);
     if (message != NULL)
     {
         if (espcp_queue_message(message, true) != espcp_status_codes_completed_ok)
@@ -522,8 +514,7 @@ void espcp_erase_core_dump_partition(void)
         {
             if (message->status_code != espcp_status_codes_completed_ok)
             {
-                MEADOW_TRACE_INFORMATION("%s: ESP32 refused erase: %d (%s)\n", __func__,
-                                        message->status_code, espcp_core_dump_status_to_string(message->status_code));
+                MEADOW_TRACE_INFORMATION("%s: ESP32 refused erase: %d (%s)\n", __func__, message->status_code, espcp_core_dump_status_to_string(message->status_code));
                 espcp_delete_message_and_payload(message);
             }
             else
@@ -593,7 +584,7 @@ static int espcp_core_dump_thread(int argc, char *argv[])
 
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
 
-    return(OK);
+    return (OK);
 }
 
 /****************************************************************************
@@ -624,7 +615,7 @@ int espcp_get_core_dump(void)
 {
     MEADOW_TRACE_INFORMATION("%s: Enter\n", __func__);
 
-    char *argv[2] = { NULL, NULL };
+    char *argv[2] = {NULL, NULL};
     bool retrieve_core_dump = false;
 
     hcom_nx_config_lock();
@@ -642,7 +633,7 @@ int espcp_get_core_dump(void)
     if (!retrieve_core_dump)
     {
         MEADOW_TRACE_INFORMATION("%s: Exit, core dump retrieval not enabled\n", __func__);
-        return(OK);
+        return (OK);
     }
 
     irqstate_t flags = enter_critical_section();
@@ -657,8 +648,7 @@ int espcp_get_core_dump(void)
         //  kthread_create() copies the argument strings onto the new thread's stack, so the
         //  version string can be released as soon as it returns.
         //
-        result = kthread_create(ESPCP_CORE_DUMP_THREAD_NAME, ESPCP_CORE_DUMP_THREAD_PRIORITY,
-                                ESPCP_CORE_DUMP_THREAD_STACKSIZE, espcp_core_dump_thread, argv);
+        result = kthread_create(ESPCP_CORE_DUMP_THREAD_NAME, ESPCP_CORE_DUMP_THREAD_PRIORITY, ESPCP_CORE_DUMP_THREAD_STACKSIZE, espcp_core_dump_thread, argv);
         if (result < 0)
         {
             syslog(LOG_ERR, "%s: Failed to start the core dump thread (%d)\n", __func__, result);
@@ -679,5 +669,5 @@ int espcp_get_core_dump(void)
 
     MEADOW_TRACE_INFORMATION("%s: Exit\n", __func__);
 
-    return(result);
+    return (result);
 }

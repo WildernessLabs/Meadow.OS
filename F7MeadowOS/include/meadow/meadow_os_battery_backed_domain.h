@@ -1,6 +1,6 @@
 /****************************************************************************
  * meadow_os_battery_backed_domain.h
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -46,12 +46,12 @@
 /**
  *  @brief Address of the battery backed domain SRAM.
  */
-#define BATTERY_BACKED_DOMAIN_SRAM_ADDRESS          0x40024000
+#define BATTERY_BACKED_DOMAIN_SRAM_ADDRESS 0x40024000
 
 /**
  * @brief Size of battery backed SRAM in bytes.
  */
-#define MEADOW_OS_BBD_SRAM_SIZE         0x1000
+#define MEADOW_OS_BBD_SRAM_SIZE 0x1000
 
 /****************************************************************************
  * Public Functions

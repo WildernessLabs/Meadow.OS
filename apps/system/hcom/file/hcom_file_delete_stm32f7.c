@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\file\hcom_file_delete_stm32f7.c
- * 
+ *
  *   Copyright (C) 2019 - 2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -47,8 +47,8 @@
 #include <nuttx/fs/fs.h>
 #include <dirent.h>
 
-#if defined (CONFIG_DIR_MGMT_TESTS)
-#pragma message "(--) hcom_file_delete_stm32f7.c"
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    #pragma message "(--) hcom_file_delete_stm32f7.c"
 #endif
 
 /****************************************************************************
@@ -65,108 +65,101 @@
 // This is directly called by CLI
 int hcom_file_delete_stm32f7_file_by_name(hcom_dnld_shared_t *dnldShared)
 {
-  // Delete the file
-  return hcom_file_delete_stm32f7_file_by_name_internal(dnldShared);
+    // Delete the file
+    return hcom_file_delete_stm32f7_file_by_name_internal(dnldShared);
 }
 
 //====================================================================
 // This is a internal function accessible to internal callers
 int hcom_file_delete_stm32f7_file_by_name_internal(hcom_dnld_shared_t *dnldShared)
 {
-  int ret;
+    int ret;
 
-  // Delete the requested file and tell host about any problems
-  ret = hcom_file_misc_delete_existing(dnldShared, false);
-  if (ret < 0)
-  {
-    // Error already reported to host
+    // Delete the requested file and tell host about any problems
+    ret = hcom_file_misc_delete_existing(dnldShared, false);
+    if (ret < 0)
+    {
+        // Error already reported to host
+        return ret;
+    }
+
+#if defined(CONFIG_DIR_MGMT_TESTS)
+    syslog(LOG_MTEST, "%s@%d-DIAG-File:'%s' deleted\n", __FILE__, __LINE__, dnldShared->dnldFullPathName);
+#endif
+
+    // Once the file has been deleted we must delete any parent, empty
+    // subdirectories.
+    // An element count of 2 means there will be no subdirectories.
+    if (dnldShared->dnldPathNameEleCount > 2)
+    {
+        uint32_t dirDepth = dnldShared->dnldPathNameEleCount - HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS;
+        char *pathNameTemp = malloc(strlen(dnldShared->dnldFullPathName) + 1);
+
+        if (pathNameTemp == NULL)
+        {
+            syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+            return -ENOMEM;
+        }
+
+        strcpy(pathNameTemp, dnldShared->dnldFullPathName);
+
+        // We'll remove the deepest directory to the first.
+        // Find the last '/' which should be the end of the string
+        char *slashPtr = strrchr(pathNameTemp, '/');
+        while (slashPtr != NULL && dirDepth > 0)
+        {
+            // Replace last '/' with NULL
+            *slashPtr = '\0';
+
+            ret = rmdir(pathNameTemp);
+            if (ret < 0)
+            {
+                // Have we reached the end of empty directories?
+
+                // If an attempt to delete a directory failed, because wasn't empty,
+                // this is not an error. It means we are finished removing empty
+                // directories.
+                if (errno != ENOTEMPTY)
+                {
+                    syslog(LOG_ERR, "%s@%d-ERROR deleting directory '%s', ret:%d, errno:%d\n", __FILE__, __LINE__, pathNameTemp, ret, errno);
+                    ret = -errno;
+                }
+                else
+                {
+#if defined(CONFIG_DIR_MGMT_TESTS)
+                    syslog(LOG_MTEST, "%s@%d-DIAG-Directory '%s' not empty\n", __FILE__, __LINE__, pathNameTemp);
+#endif
+                    // Directory empty is not an error and a file delete failure has
+                    // already been reported.
+                    ret = OK;
+                }
+                break; // Leave directory delete loop
+            }
+
+            // Prep for next loop
+            dnldShared->dnldPathNameEleCount--;
+#if defined(CONFIG_DIR_MGMT_TESTS)
+            syslog(LOG_MTEST, "%s@%d-DIAG-Path Name:'%s' last element removed, elements left:%lu.\n", __FILE__, __LINE__, pathNameTemp, dnldShared->dnldPathNameEleCount);
+#endif
+            slashPtr = strrchr(pathNameTemp, '/');
+            dirDepth--;
+        }
+
+        free(pathNameTemp);
+    }
+
+    // Send text message to host.
+    char *hostMsg = malloc(HCOM_SHORT_HOST_STRING_BUFF_LENGTH);
+    if (hostMsg == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return -ENOMEM;
+    }
+
+    snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH, "File '%s' deleted", dnldShared->dnldFullPathName);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
+    free(hostMsg);
+
+    // Concluded message will be sent by caller
     return ret;
-  }
-
-#if defined (CONFIG_DIR_MGMT_TESTS)
-  syslog(LOG_MTEST, "%s@%d-DIAG-File:'%s' deleted\n",
-        __FILE__, __LINE__, dnldShared->dnldFullPathName);
-#endif
-
-  // Once the file has been deleted we must delete any parent, empty
-  // subdirectories.
-  // An element count of 2 means there will be no subdirectories.
-  if(dnldShared->dnldPathNameEleCount > 2)
-  {
-    uint32_t dirDepth = dnldShared->dnldPathNameEleCount - \
-              HCOM_FILE_DNLD_MANDATORY_DIR_ELEMENTS;
-    char *pathNameTemp = malloc(strlen(dnldShared->dnldFullPathName) + 1);
-
-    if(pathNameTemp == NULL)
-    {
-      syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-      return -ENOMEM;
-    }
-
-    strcpy(pathNameTemp, dnldShared->dnldFullPathName);
-
-    // We'll remove the deepest directory to the first.
-    // Find the last '/' which should be the end of the string
-    char *slashPtr = strrchr(pathNameTemp, '/');
-    while(slashPtr != NULL && dirDepth > 0)
-    {
-      // Replace last '/' with NULL
-      *slashPtr = '\0';
-
-      ret = rmdir(pathNameTemp);
-      if(ret < 0)
-      {
-        // Have we reached the end of empty directories?
-
-        // If an attempt to delete a directory failed, because wasn't empty,
-        // this is not an error. It means we are finished removing empty
-        // directories.
-        if(errno != ENOTEMPTY)
-        {
-          syslog(LOG_ERR, "%s@%d-ERROR deleting directory '%s', ret:%d, errno:%d\n",
-                    __FILE__, __LINE__, pathNameTemp, ret, errno);
-          ret = -errno;
-        }
-        else
-        {
-#if defined (CONFIG_DIR_MGMT_TESTS)
-          syslog(LOG_MTEST, "%s@%d-DIAG-Directory '%s' not empty\n",
-                    __FILE__, __LINE__, pathNameTemp);
-#endif
-          // Directory empty is not an error and a file delete failure has
-          // already been reported.
-          ret = OK;
-        }
-        break;    // Leave directory delete loop
-      }
-
-      // Prep for next loop
-      dnldShared->dnldPathNameEleCount--;
-#if defined (CONFIG_DIR_MGMT_TESTS)
-      syslog(LOG_MTEST, "%s@%d-DIAG-Path Name:'%s' last element removed, elements left:%lu.\n",
-                __FILE__, __LINE__, pathNameTemp,
-                dnldShared->dnldPathNameEleCount);
-#endif
-      slashPtr = strrchr(pathNameTemp, '/');
-      dirDepth--;
-    }
-
-    free(pathNameTemp);
-  }
-
-  // Send text message to host.
-  char *hostMsg = malloc(HCOM_SHORT_HOST_STRING_BUFF_LENGTH);
-  if(hostMsg == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
-
-  snprintf_chk(hostMsg, HCOM_SHORT_HOST_STRING_BUFF_LENGTH,
-        "File '%s' deleted", dnldShared->dnldFullPathName);
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, hostMsg, __FILE__, __LINE__);
-  free(hostMsg);
-
-  // Concluded message will be sent by caller
-  return ret;
 }

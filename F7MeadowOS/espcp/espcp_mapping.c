@@ -55,8 +55,7 @@ typedef struct espcp_mapping_s espcp_mapping_t;
 //
 //  ESP32 errno values and the host equivalents.
 //
-static const espcp_mapping_t espcp_mapping_errno[] =
-{
+static const espcp_mapping_t espcp_mapping_errno[] = {
     {ESPCP_EPERM, EPERM},
     {ESPCP_ENOENT, ENOENT},
     {ESPCP_ESRCH, ESRCH},
@@ -147,8 +146,7 @@ static const espcp_mapping_t espcp_mapping_errno[] =
 //
 //  ESP32 socket option levels and the host equivalents.
 //
-static const espcp_mapping_t espcp_mapping_level[] =
-{
+static const espcp_mapping_t espcp_mapping_level[] = {
     {ESPCP_SOL_SOCKET, SOL_SOCKET},
     {ESPCP_SOL_IP, IPPROTO_IP},
     {ESPCP_SOL_TCP, IPPROTO_TCP},
@@ -174,17 +172,17 @@ int32_t espcp_mapping_errno_from_esp(int32_t value)
 {
     if (value == 0)
     {
-        return(0);
+        return (0);
     }
     for (size_t index = 0; index < ESPCP_MAPPING_COUNT(espcp_mapping_errno); index++)
     {
         if (espcp_mapping_errno[index].esp_value == value)
         {
-            return(espcp_mapping_errno[index].host_value);
+            return (espcp_mapping_errno[index].host_value);
         }
     }
     syslog(LOG_ERR, "Unknown ESP32 errno %d, using EIO\n", (int) value);
-    return(EIO);
+    return (EIO);
 }
 
 /****************************************************************************
@@ -209,9 +207,9 @@ int espcp_mapping_level_to_esp(int level, int32_t *result)
         if (espcp_mapping_level[index].host_value == level)
         {
             *result = espcp_mapping_level[index].esp_value;
-            return(0);
+            return (0);
         }
     }
     syslog(LOG_ERR, "Unsupported socket option level %d\n", level);
-    return(-ENOPROTOOPT);
+    return (-ENOPROTOOPT);
 }

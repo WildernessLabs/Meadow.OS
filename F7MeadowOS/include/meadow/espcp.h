@@ -1,6 +1,6 @@
 /****************************************************************************
  * include/meadow/espcp.h
- * 
+ *
  *   Copyright (C) 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -68,16 +68,16 @@
  *  /Esp32Events    - encoded events carried between the kernel and
  *                    user space.
  */
-#define ESPCP_REQUEST_MESSAGE_QUEUE_NAME        "/Esp32Requests"
-#define ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME  "/IncomingEvents"
-#define ESPCP_EVENT_MESSAGE_QUEUE_NAME          "/Esp32Events"
+#define ESPCP_REQUEST_MESSAGE_QUEUE_NAME "/Esp32Requests"
+#define ESPCP_EVENT_HANDLER_MESSAGE_QUEUE_NAME "/IncomingEvents"
+#define ESPCP_EVENT_MESSAGE_QUEUE_NAME "/Esp32Events"
 
 /*
  *  Maximum number of messages a coprocessor message queue can hold, and the
  *  priority every message is queued at.
  */
-#define ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH      10
-#define ESPCP_DEFAULT_MESSAGE_PRIORITY          1
+#define ESPCP_MAXIMUM_MESSAGE_QUEUE_LENGTH 10
+#define ESPCP_DEFAULT_MESSAGE_PRIORITY 1
 
 /*
  *  Number of consecutive message queue read failures after which a worker
@@ -91,8 +91,8 @@
  *  milliseconds, per failed attempt before a retry is queued (the pause grows
  *  with each attempt).
  */
-#define ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS      5
-#define ESPCP_GET_MESSAGE_RETRY_DELAY_MS        10
+#define ESPCP_MAXIMUM_GET_MESSAGE_ATTEMPTS 5
+#define ESPCP_GET_MESSAGE_RETRY_DELAY_MS 10
 
 /*
  *  Size in bytes of an espcp_event_data_t once encoded by
@@ -101,7 +101,7 @@
  *  deliberately not sizeof(espcp_event_data_t), which is 16 because of
  *  structure padding.
  */
-#define ESPCP_EVENT_DATA_SIZE                   13
+#define ESPCP_EVENT_DATA_SIZE 13
 
 /*
  *  /Esp32Events carries events to managed code as data (the encoded event, see

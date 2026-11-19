@@ -109,19 +109,8 @@
  * Private Data
  ****************************************************************************/
 
-const struct meadow_dac_chan_s g_dac_chan[MEADOW_DAC_NCHANNELS] =
-{
-  {
-    MEADOW_DAC_PINID_PA4, MEADOW_DAC_GPIO_PA4,
-    MEADOW_DAC_DHR12R1, MEADOW_DAC_DOR1, 0,
-    DMAMAP_DAC1, STM32_DMA1_S5CR
-  },
-  {
-    MEADOW_DAC_PINID_PA5, MEADOW_DAC_GPIO_PA5,
-    MEADOW_DAC_DHR12R2, MEADOW_DAC_DOR2, MEADOW_DAC_CR_CH_SHIFT,
-    DMAMAP_DAC2, STM32_DMA1_S6CR
-  }
-};
+const struct meadow_dac_chan_s g_dac_chan[MEADOW_DAC_NCHANNELS] = {
+    {MEADOW_DAC_PINID_PA4, MEADOW_DAC_GPIO_PA4, MEADOW_DAC_DHR12R1, MEADOW_DAC_DOR1, 0, DMAMAP_DAC1, STM32_DMA1_S5CR}, {MEADOW_DAC_PINID_PA5, MEADOW_DAC_GPIO_PA5, MEADOW_DAC_DHR12R2, MEADOW_DAC_DOR2, MEADOW_DAC_CR_CH_SHIFT, DMAMAP_DAC2, STM32_DMA1_S6CR}};
 
 /* Protects g_dac_open and DAC_CR, which both channels share */
 
@@ -143,7 +132,7 @@ struct meadow_dac_wave_state_s g_dac_wave[MEADOW_DAC_NCHANNELS];
 static uint32_t g_dac_tim_div;
 static uint32_t g_dac_tim_psc;
 static uint32_t g_dac_tim_arr;
-static bool     g_dac_tim_running;
+static bool g_dac_tim_running;
 
 /* Queued by the DMA handler when a one-shot ends, to release its resources */
 
@@ -170,17 +159,17 @@ static void meadow_dac_oneshot_reap_locked(void);
 
 int meadow_dac_find_chan(uint8_t pinid)
 {
-  int chan;
+    int chan;
 
-  for (chan = 0; chan < MEADOW_DAC_NCHANNELS; chan++)
+    for (chan = 0; chan < MEADOW_DAC_NCHANNELS; chan++)
     {
-      if (g_dac_chan[chan].pinid == pinid)
+        if (g_dac_chan[chan].pinid == pinid)
         {
-          return chan;
+            return chan;
         }
     }
 
-  return -EBADSLT;
+    return -EBADSLT;
 }
 
 /****************************************************************************
@@ -196,30 +185,30 @@ int meadow_dac_find_chan(uint8_t pinid)
 
 int meadow_dac_lock_open_chan(uint8_t pinid)
 {
-  int chan;
-  int ret;
+    int chan;
+    int ret;
 
-  chan = meadow_dac_find_chan(pinid);
-  if (chan < 0)
+    chan = meadow_dac_find_chan(pinid);
+    if (chan < 0)
     {
-      return chan;
+        return chan;
     }
 
-  ret = nxmutex_lock(&g_dac_lock);
-  if (ret < 0)
+    ret = nxmutex_lock(&g_dac_lock);
+    if (ret < 0)
     {
-      return ret;
+        return ret;
     }
 
-  meadow_dac_oneshot_reap_locked();
+    meadow_dac_oneshot_reap_locked();
 
-  if ((g_dac_open & (1 << chan)) == 0)
+    if ((g_dac_open & (1 << chan)) == 0)
     {
-      nxmutex_unlock(&g_dac_lock);
-      return -EBADF;
+        nxmutex_unlock(&g_dac_lock);
+        return -EBADF;
     }
 
-  return chan;
+    return chan;
 }
 
 /****************************************************************************
@@ -234,15 +223,15 @@ int meadow_dac_lock_open_chan(uint8_t pinid)
 
 static void meadow_dac_clock(bool on)
 {
-  if (on)
+    if (on)
     {
-      modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_DACEN);
-      modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_DACRST);
-      modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_DACRST, 0);
+        modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_DACEN);
+        modifyreg32(STM32_RCC_APB1RSTR, 0, RCC_APB1RSTR_DACRST);
+        modifyreg32(STM32_RCC_APB1RSTR, RCC_APB1RSTR_DACRST, 0);
     }
-  else
+    else
     {
-      modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_DACEN, 0);
+        modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_DACEN, 0);
     }
 }
 
@@ -256,21 +245,20 @@ static void meadow_dac_clock(bool on)
  *
  ****************************************************************************/
 
-static uint32_t meadow_dac_rate_to_div(uint32_t rate_hz, uint32_t *psc,
-                                       uint32_t *arr)
+static uint32_t meadow_dac_rate_to_div(uint32_t rate_hz, uint32_t *psc, uint32_t *arr)
 {
-  uint32_t div = (MEADOW_DAC_TIM_CLKIN + (rate_hz / 2)) / rate_hz;
-  uint32_t pscdiv;
-  uint32_t arrdiv;
+    uint32_t div = (MEADOW_DAC_TIM_CLKIN + (rate_hz / 2)) / rate_hz;
+    uint32_t pscdiv;
+    uint32_t arrdiv;
 
-  /* Smallest prescaler that lets the reload value fit in 16 bits */
+    /* Smallest prescaler that lets the reload value fit in 16 bits */
 
-  pscdiv = (div + 65535) / 65536;
-  arrdiv = (div + (pscdiv / 2)) / pscdiv;
+    pscdiv = (div + 65535) / 65536;
+    arrdiv = (div + (pscdiv / 2)) / pscdiv;
 
-  *psc = pscdiv - 1;
-  *arr = arrdiv - 1;
-  return pscdiv * arrdiv;
+    *psc = pscdiv - 1;
+    *arr = arrdiv - 1;
+    return pscdiv * arrdiv;
 }
 
 /****************************************************************************
@@ -284,39 +272,39 @@ static uint32_t meadow_dac_rate_to_div(uint32_t rate_hz, uint32_t *psc,
 
 static void meadow_dac_tim_start(uint32_t psc, uint32_t arr)
 {
-  modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM6EN);
+    modifyreg32(STM32_RCC_APB1ENR, 0, RCC_APB1ENR_TIM6EN);
 
-  putreg32(0, MEADOW_DAC_TIM_CR1);
-  putreg32(psc, MEADOW_DAC_TIM_PSC);
-  putreg32(arr, MEADOW_DAC_TIM_ARR);
+    putreg32(0, MEADOW_DAC_TIM_CR1);
+    putreg32(psc, MEADOW_DAC_TIM_PSC);
+    putreg32(arr, MEADOW_DAC_TIM_ARR);
 
-  /* Load the prescaler before selecting the update event as TRGO, so the
-   * forced update does not pulse the DAC.
-   */
+    /* Load the prescaler before selecting the update event as TRGO, so the
+     * forced update does not pulse the DAC.
+     */
 
-  putreg32(0, MEADOW_DAC_TIM_CR2);
-  putreg32(BTIM_EGR_UG, MEADOW_DAC_TIM_EGR);
-  putreg32(BTIM_CR2_UPDT, MEADOW_DAC_TIM_CR2);
-  putreg32(BTIM_CR1_ARPE | BTIM_CR1_CEN, MEADOW_DAC_TIM_CR1);
+    putreg32(0, MEADOW_DAC_TIM_CR2);
+    putreg32(BTIM_EGR_UG, MEADOW_DAC_TIM_EGR);
+    putreg32(BTIM_CR2_UPDT, MEADOW_DAC_TIM_CR2);
+    putreg32(BTIM_CR1_ARPE | BTIM_CR1_CEN, MEADOW_DAC_TIM_CR1);
 }
 
 static void meadow_dac_tim_stop(void)
 {
-  putreg32(0, MEADOW_DAC_TIM_CR1);
-  putreg32(0, MEADOW_DAC_TIM_CR2);
-  modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_TIM6EN, 0);
-  g_dac_tim_div = 0;
-  g_dac_tim_running = false;
+    putreg32(0, MEADOW_DAC_TIM_CR1);
+    putreg32(0, MEADOW_DAC_TIM_CR2);
+    modifyreg32(STM32_RCC_APB1ENR, RCC_APB1ENR_TIM6EN, 0);
+    g_dac_tim_div = 0;
+    g_dac_tim_running = false;
 }
 
 /* Start TIM6 at the reserved rate, if it is not already running */
 
 void meadow_dac_tim_run(void)
 {
-  if (!g_dac_tim_running)
+    if (!g_dac_tim_running)
     {
-      meadow_dac_tim_start(g_dac_tim_psc, g_dac_tim_arr);
-      g_dac_tim_running = true;
+        meadow_dac_tim_start(g_dac_tim_psc, g_dac_tim_arr);
+        g_dac_tim_running = true;
     }
 }
 
@@ -331,13 +319,11 @@ void meadow_dac_tim_run(void)
  *
  ****************************************************************************/
 
-void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
-                         uint32_t bits)
+void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan, uint32_t bits)
 {
-  modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << chan->shift, 0);
-  modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_WAVE_BITS << chan->shift,
-              bits << chan->shift);
-  modifyreg32(MEADOW_DAC_CR, 0, MEADOW_DAC_CR_EN << chan->shift);
+    modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << chan->shift, 0);
+    modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_WAVE_BITS << chan->shift, bits << chan->shift);
+    modifyreg32(MEADOW_DAC_CR, 0, MEADOW_DAC_CR_EN << chan->shift);
 }
 
 /****************************************************************************
@@ -355,62 +341,62 @@ void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
 
 int meadow_dac_wave_stop_locked(int index)
 {
-  const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
-  struct meadow_dac_wave_state_s *wave = &g_dac_wave[index];
-  int other = index ^ 1;
+    const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
+    struct meadow_dac_wave_state_s *wave = &g_dac_wave[index];
+    int other = index ^ 1;
 
-  if (wave->type == 0)
+    if (wave->type == 0)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  /* Stop the trigger first, unless the other channel still needs it */
+    /* Stop the trigger first, unless the other channel still needs it */
 
-  if (g_dac_wave[other].type == 0)
+    if (g_dac_wave[other].type == 0)
     {
-      meadow_dac_tim_stop();
+        meadow_dac_tim_stop();
     }
 
-  /* A one-shot that has ended was already returned to static mode by its
-   * DMA handler; doing it again would briefly disable the output.
-   */
+    /* A one-shot that has ended was already returned to static mode by its
+     * DMA handler; doing it again would briefly disable the output.
+     */
 
-  if (!(wave->type == MEADOW_DAC_WAVE_ONESHOT && wave->done))
+    if (!(wave->type == MEADOW_DAC_WAVE_ONESHOT && wave->done))
     {
-      meadow_dac_set_mode(chan, 0);
+        meadow_dac_set_mode(chan, 0);
     }
 
-  if (wave->dma != NULL)
+    if (wave->dma != NULL)
     {
-      irqstate_t flags = enter_critical_section();
-      stm32_dmastop(wave->dma);
-      wave->type = 0;
-      leave_critical_section(flags);
+        irqstate_t flags = enter_critical_section();
+        stm32_dmastop(wave->dma);
+        wave->type = 0;
+        leave_critical_section(flags);
 
-      stm32_dmafree(wave->dma);
-      wave->dma = NULL;
+        stm32_dmafree(wave->dma);
+        wave->dma = NULL;
     }
 
-  if (wave->buf != NULL)
+    if (wave->buf != NULL)
     {
-      kmm_free(wave->buf);
-      wave->buf = NULL;
+        kmm_free(wave->buf);
+        wave->buf = NULL;
     }
 
-  /* Clear any DMA underrun left behind (write 1 to clear) */
+    /* Clear any DMA underrun left behind (write 1 to clear) */
 
-  putreg32(MEADOW_DAC_SR_DMAUDR << chan->shift, MEADOW_DAC_SR);
+    putreg32(MEADOW_DAC_SR_DMAUDR << chan->shift, MEADOW_DAC_SR);
 
-  wave->type    = 0;
-  wave->sstate  = MEADOW_DAC_STREAM_NONE;
-  wave->done    = false;
-  wave->owner   = 0;
-  wave->ufrozen = false;
+    wave->type = 0;
+    wave->sstate = MEADOW_DAC_STREAM_NONE;
+    wave->done = false;
+    wave->owner = 0;
+    wave->ufrozen = false;
 
-  /* Wake a writer waiting for space; it sees the stream has gone */
+    /* Wake a writer waiting for space; it sees the stream has gone */
 
-  meadow_dac_space_post(index);
-  return OK;
+    meadow_dac_space_post(index);
+    return OK;
 }
 
 /****************************************************************************
@@ -425,14 +411,13 @@ int meadow_dac_wave_stop_locked(int index)
 
 static void meadow_dac_oneshot_reap_locked(void)
 {
-  int index;
+    int index;
 
-  for (index = 0; index < MEADOW_DAC_NCHANNELS; index++)
+    for (index = 0; index < MEADOW_DAC_NCHANNELS; index++)
     {
-      if (g_dac_wave[index].type == MEADOW_DAC_WAVE_ONESHOT &&
-          g_dac_wave[index].done)
+        if (g_dac_wave[index].type == MEADOW_DAC_WAVE_ONESHOT && g_dac_wave[index].done)
         {
-          meadow_dac_wave_stop_locked(index);
+            meadow_dac_wave_stop_locked(index);
         }
     }
 }
@@ -448,15 +433,15 @@ static void meadow_dac_oneshot_reap_locked(void)
 
 static void meadow_dac_oneshot_work(void *arg)
 {
-  UNUSED(arg);
+    UNUSED(arg);
 
-  if (nxmutex_lock(&g_dac_lock) < 0)
+    if (nxmutex_lock(&g_dac_lock) < 0)
     {
-      return;   /* The next DAC call cleans up instead */
+        return; /* The next DAC call cleans up instead */
     }
 
-  meadow_dac_oneshot_reap_locked();
-  nxmutex_unlock(&g_dac_lock);
+    meadow_dac_oneshot_reap_locked();
+    nxmutex_unlock(&g_dac_lock);
 }
 
 /****************************************************************************
@@ -470,26 +455,25 @@ static void meadow_dac_oneshot_work(void *arg)
  *
  ****************************************************************************/
 
-static void meadow_dac_oneshot_dma(DMA_HANDLE handle, uint8_t status,
-                                   void *arg)
+static void meadow_dac_oneshot_dma(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-  int index = (int)(uintptr_t)arg;
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    int index = (int) (uintptr_t) arg;
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
 
-  UNUSED(handle);
-  UNUSED(status);
+    UNUSED(handle);
+    UNUSED(status);
 
-  /* Ignore an interrupt for a clip that was stopped or replaced */
+    /* Ignore an interrupt for a clip that was stopped or replaced */
 
-  if (st->type != MEADOW_DAC_WAVE_ONESHOT || st->done)
+    if (st->type != MEADOW_DAC_WAVE_ONESHOT || st->done)
     {
-      return;
+        return;
     }
 
-  meadow_dac_set_mode(&g_dac_chan[index], 0);
-  st->done = true;
+    meadow_dac_set_mode(&g_dac_chan[index], 0);
+    st->done = true;
 
-  work_queue(LPWORK, &g_dac_oneshot_work, meadow_dac_oneshot_work, NULL, 0);
+    work_queue(LPWORK, &g_dac_oneshot_work, meadow_dac_oneshot_work, NULL, 0);
 }
 
 /****************************************************************************
@@ -503,17 +487,17 @@ static void meadow_dac_oneshot_dma(DMA_HANDLE handle, uint8_t status,
 
 static int meadow_dac_mamp(uint32_t amplitude)
 {
-  int n;
+    int n;
 
-  for (n = 1; n <= 12; n++)
+    for (n = 1; n <= 12; n++)
     {
-      if (amplitude == (1u << n) - 1)
+        if (amplitude == (1u << n) - 1)
         {
-          return n - 1;
+            return n - 1;
         }
     }
 
-  return -EINVAL;
+    return -EINVAL;
 }
 
 /****************************************************************************
@@ -527,38 +511,36 @@ static int meadow_dac_mamp(uint32_t amplitude)
  *
  ****************************************************************************/
 
-static int meadow_dac_copy_samples(const uint16_t *samples, uint32_t count,
-                                   uint16_t **bufout)
+static int meadow_dac_copy_samples(const uint16_t *samples, uint32_t count, uint16_t **bufout)
 {
-  size_t    bytes;
-  uint16_t *buf;
-  uint32_t  i;
+    size_t bytes;
+    uint16_t *buf;
+    uint32_t i;
 
-  bytes = count * sizeof(uint16_t);
-  bytes = (bytes + MEADOW_DAC_WAVE_ALIGN - 1) &
-          ~(size_t)(MEADOW_DAC_WAVE_ALIGN - 1);
+    bytes = count * sizeof(uint16_t);
+    bytes = (bytes + MEADOW_DAC_WAVE_ALIGN - 1) & ~(size_t) (MEADOW_DAC_WAVE_ALIGN - 1);
 
-  buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, bytes);
-  if (buf == NULL)
+    buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, bytes);
+    if (buf == NULL)
     {
-      return -ENOMEM;
+        return -ENOMEM;
     }
 
-  for (i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
-      if (samples[i] > MEADOW_DAC_MAX_VALUE)
+        if (samples[i] > MEADOW_DAC_MAX_VALUE)
         {
-          kmm_free(buf);
-          return -EINVAL;
+            kmm_free(buf);
+            return -EINVAL;
         }
 
-      buf[i] = samples[i];
+        buf[i] = samples[i];
     }
 
-  up_clean_dcache((uintptr_t)buf, (uintptr_t)buf + bytes);
+    up_clean_dcache((uintptr_t) buf, (uintptr_t) buf + bytes);
 
-  *bufout = buf;
-  return OK;
+    *bufout = buf;
+    return OK;
 }
 
 /****************************************************************************
@@ -588,95 +570,90 @@ static int meadow_dac_copy_samples(const uint16_t *samples, uint32_t count,
  *
  ****************************************************************************/
 
-static int meadow_dac_copy_oneshot(const uint16_t *samples, uint32_t count,
-                                   uint32_t rate_hz, uint32_t div,
-                                   uint32_t outdiv, uint16_t fill,
-                                   uint16_t **bufout, uint32_t *lenout)
+static int meadow_dac_copy_oneshot(const uint16_t *samples, uint32_t count, uint32_t rate_hz, uint32_t div, uint32_t outdiv, uint16_t fill, uint16_t **bufout, uint32_t *lenout)
 {
-  uint64_t  step = 0;
-  uint64_t  pos;
-  uint32_t  nout;
-  uint32_t  i;
-  uint32_t  j;
-  size_t    bytes;
-  uint16_t *buf;
-  int32_t   a;
-  int32_t   b;
+    uint64_t step = 0;
+    uint64_t pos;
+    uint32_t nout;
+    uint32_t i;
+    uint32_t j;
+    size_t bytes;
+    uint16_t *buf;
+    int32_t a;
+    int32_t b;
 
-  /* Check every sample first: resampling reads them out of order */
+    /* Check every sample first: resampling reads them out of order */
 
-  for (i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
-      if (samples[i] > MEADOW_DAC_MAX_VALUE)
+        if (samples[i] > MEADOW_DAC_MAX_VALUE)
         {
-          return -EINVAL;
+            return -EINVAL;
         }
     }
 
-  if (outdiv == div)
+    if (outdiv == div)
     {
-      nout = count;
+        nout = count;
     }
-  else
+    else
     {
-      /* Input samples per output sample, in 16.16 fixed point: the clip's
-       * rate divided by the channel's actual rate.
-       */
+        /* Input samples per output sample, in 16.16 fixed point: the clip's
+         * rate divided by the channel's actual rate.
+         */
 
-      step = (((uint64_t)rate_hz * outdiv) << 16) / MEADOW_DAC_TIM_CLKIN;
-      if (step == 0)
+        step = (((uint64_t) rate_hz * outdiv) << 16) / MEADOW_DAC_TIM_CLKIN;
+        if (step == 0)
         {
-          return -EINVAL;
+            return -EINVAL;
         }
 
-      pos = ((uint64_t)(count - 1) << 16) / step + 1;
-      if (pos > MEADOW_DAC_WAVE_MAX_SAMPLES)
+        pos = ((uint64_t) (count - 1) << 16) / step + 1;
+        if (pos > MEADOW_DAC_WAVE_MAX_SAMPLES)
         {
-          return -EINVAL;
+            return -EINVAL;
         }
 
-      nout = (uint32_t)pos;
+        nout = (uint32_t) pos;
     }
 
-  bytes = (nout + MEADOW_DAC_ONESHOT_TAIL) * sizeof(uint16_t);
-  bytes = (bytes + MEADOW_DAC_WAVE_ALIGN - 1) &
-          ~(size_t)(MEADOW_DAC_WAVE_ALIGN - 1);
+    bytes = (nout + MEADOW_DAC_ONESHOT_TAIL) * sizeof(uint16_t);
+    bytes = (bytes + MEADOW_DAC_WAVE_ALIGN - 1) & ~(size_t) (MEADOW_DAC_WAVE_ALIGN - 1);
 
-  buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, bytes);
-  if (buf == NULL)
+    buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, bytes);
+    if (buf == NULL)
     {
-      return -ENOMEM;
+        return -ENOMEM;
     }
 
-  if (outdiv == div)
+    if (outdiv == div)
     {
-      memcpy(buf, samples, count * sizeof(uint16_t));
+        memcpy(buf, samples, count * sizeof(uint16_t));
     }
-  else
+    else
     {
-      /* Linear interpolation between neighbouring input samples */
+        /* Linear interpolation between neighbouring input samples */
 
-      for (j = 0; j < nout; j++)
+        for (j = 0; j < nout; j++)
         {
-          pos = (uint64_t)j * step;
-          i   = (uint32_t)(pos >> 16);
-          a   = samples[i];
-          b   = (i + 1 < count) ? samples[i + 1] : a;
-          buf[j] = (uint16_t)(a + (((b - a) * (int32_t)(pos & 0xffff)) /
-                                   65536));
+            pos = (uint64_t) j * step;
+            i = (uint32_t) (pos >> 16);
+            a = samples[i];
+            b = (i + 1 < count) ? samples[i + 1] : a;
+            buf[j] = (uint16_t) (a + (((b - a) * (int32_t) (pos & 0xffff)) / 65536));
         }
     }
 
-  for (j = nout; j < nout + MEADOW_DAC_ONESHOT_TAIL; j++)
+    for (j = nout; j < nout + MEADOW_DAC_ONESHOT_TAIL; j++)
     {
-      buf[j] = fill;
+        buf[j] = fill;
     }
 
-  up_clean_dcache((uintptr_t)buf, (uintptr_t)buf + bytes);
+    up_clean_dcache((uintptr_t) buf, (uintptr_t) buf + bytes);
 
-  *bufout = buf;
-  *lenout = nout + MEADOW_DAC_ONESHOT_TAIL;
-  return OK;
+    *bufout = buf;
+    *lenout = nout + MEADOW_DAC_ONESHOT_TAIL;
+    return OK;
 }
 
 /****************************************************************************
@@ -704,78 +681,76 @@ static int meadow_dac_copy_oneshot(const uint16_t *samples, uint32_t count,
 
 int meadow_dac_open(uint8_t pinid, uint32_t flags)
 {
-  const struct meadow_dac_chan_s *chan;
-  uint32_t setbits;
-  int index;
-  int ret;
+    const struct meadow_dac_chan_s *chan;
+    uint32_t setbits;
+    int index;
+    int ret;
 
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_find_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  if ((flags & ~MEADOW_DAC_FLAG_BUFFER_OFF) != 0)
+    if ((flags & ~MEADOW_DAC_FLAG_BUFFER_OFF) != 0)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  chan = &g_dac_chan[index];
+    chan = &g_dac_chan[index];
 
-  ret = nxmutex_lock(&g_dac_lock);
-  if (ret < 0)
+    ret = nxmutex_lock(&g_dac_lock);
+    if (ret < 0)
     {
-      return ret;
+        return ret;
     }
 
-  meadow_dac_oneshot_reap_locked();
+    meadow_dac_oneshot_reap_locked();
 
-  if (g_dac_open == 0)
+    if (g_dac_open == 0)
     {
-      meadow_dac_clock(true);
+        meadow_dac_clock(true);
     }
-  else if ((g_dac_open & (1 << index)) != 0)
+    else if ((g_dac_open & (1 << index)) != 0)
     {
-      /* Already open: stop any waveform and the channel before setting it
-       * up again. BOFF must only change while the channel is disabled.
-       */
+        /* Already open: stop any waveform and the channel before setting it
+         * up again. BOFF must only change while the channel is disabled.
+         */
 
-      meadow_dac_wave_stop_locked(index);
-      modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << chan->shift, 0);
-      g_dac_open &= ~(1 << index);
+        meadow_dac_wave_stop_locked(index);
+        modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << chan->shift, 0);
+        g_dac_open &= ~(1 << index);
     }
 
-  /* The reference manual asks for the pin to be analog before the channel
-   * is enabled, to avoid parasitic current.
-   */
+    /* The reference manual asks for the pin to be analog before the channel
+     * is enabled, to avoid parasitic current.
+     */
 
-  ret = stm32_configgpio(chan->gpio);
-  if (ret < 0)
+    ret = stm32_configgpio(chan->gpio);
+    if (ret < 0)
     {
-      if (g_dac_open == 0)
+        if (g_dac_open == 0)
         {
-          meadow_dac_clock(false);
+            meadow_dac_clock(false);
         }
 
-      nxmutex_unlock(&g_dac_lock);
-      return ret;
+        nxmutex_unlock(&g_dac_lock);
+        return ret;
     }
 
-  setbits = 0;
-  if ((flags & MEADOW_DAC_FLAG_BUFFER_OFF) != 0)
+    setbits = 0;
+    if ((flags & MEADOW_DAC_FLAG_BUFFER_OFF) != 0)
     {
-      setbits |= MEADOW_DAC_CR_BOFF;
+        setbits |= MEADOW_DAC_CR_BOFF;
     }
 
-  modifyreg32(MEADOW_DAC_CR,
-              (MEADOW_DAC_CR_BOFF | MEADOW_DAC_CR_TEN) << chan->shift,
-              setbits << chan->shift);
-  putreg32(0, chan->dhr);
-  modifyreg32(MEADOW_DAC_CR, 0, MEADOW_DAC_CR_EN << chan->shift);
+    modifyreg32(MEADOW_DAC_CR, (MEADOW_DAC_CR_BOFF | MEADOW_DAC_CR_TEN) << chan->shift, setbits << chan->shift);
+    putreg32(0, chan->dhr);
+    modifyreg32(MEADOW_DAC_CR, 0, MEADOW_DAC_CR_EN << chan->shift);
 
-  g_dac_open |= (1 << index);
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    g_dac_open |= (1 << index);
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }
 
 /****************************************************************************
@@ -798,37 +773,37 @@ int meadow_dac_open(uint8_t pinid, uint32_t flags)
 
 int meadow_dac_write(uint8_t pinid, uint32_t value)
 {
-  int index;
+    int index;
 
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_find_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  if (value > MEADOW_DAC_MAX_VALUE)
+    if (value > MEADOW_DAC_MAX_VALUE)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  /* During a waveform the output is fed by DMA or the DAC's generator */
+    /* During a waveform the output is fed by DMA or the DAC's generator */
 
-  if (g_dac_wave[index].type != 0)
+    if (g_dac_wave[index].type != 0)
     {
-      nxmutex_unlock(&g_dac_lock);
-      return -EBUSY;
+        nxmutex_unlock(&g_dac_lock);
+        return -EBUSY;
     }
 
-  putreg32(value, g_dac_chan[index].dhr);
+    putreg32(value, g_dac_chan[index].dhr);
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }
 
 /****************************************************************************
@@ -852,23 +827,23 @@ int meadow_dac_write(uint8_t pinid, uint32_t value)
 
 int meadow_dac_read(uint8_t pinid, uint32_t *value)
 {
-  int index;
+    int index;
 
-  if (value == NULL)
+    if (value == NULL)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  *value = getreg32(g_dac_chan[index].dor) & MEADOW_DAC_DATA_MASK;
+    *value = getreg32(g_dac_chan[index].dor) & MEADOW_DAC_DATA_MASK;
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }
 
 /****************************************************************************
@@ -891,25 +866,25 @@ int meadow_dac_read(uint8_t pinid, uint32_t *value)
 
 int meadow_dac_close(uint8_t pinid)
 {
-  int index;
+    int index;
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  meadow_dac_wave_stop_locked(index);
-  modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << g_dac_chan[index].shift, 0);
+    meadow_dac_wave_stop_locked(index);
+    modifyreg32(MEADOW_DAC_CR, MEADOW_DAC_CR_EN << g_dac_chan[index].shift, 0);
 
-  g_dac_open &= ~(1 << index);
-  if (g_dac_open == 0)
+    g_dac_open &= ~(1 << index);
+    if (g_dac_open == 0)
     {
-      meadow_dac_clock(false);
+        meadow_dac_clock(false);
     }
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }
 
 /****************************************************************************
@@ -946,257 +921,238 @@ int meadow_dac_close(uint8_t pinid)
 
 int meadow_dac_wave_start(uint8_t pinid, struct meadow_dac_wave_s *wave)
 {
-  return meadow_dac_wave_start_owned(pinid, wave, 0);
+    return meadow_dac_wave_start_owned(pinid, wave, 0);
 }
 
-int meadow_dac_wave_start_owned(uint8_t pinid,
-                                struct meadow_dac_wave_s *wave,
-                                uint32_t owner)
+int meadow_dac_wave_start_owned(uint8_t pinid, struct meadow_dac_wave_s *wave, uint32_t owner)
 {
-  const struct meadow_dac_chan_s *chan;
-  struct meadow_dac_wave_state_s *state;
-  struct meadow_dac_wave_s w;
-  uint16_t *buf = NULL;
-  DMA_HANDLE dma = NULL;
-  uint32_t bits;
-  uint32_t div;
-  uint32_t outdiv;
-  uint32_t len;
-  uint32_t psc;
-  uint32_t arr;
-  int mamp = 0;
-  int index;
-  int ret;
+    const struct meadow_dac_chan_s *chan;
+    struct meadow_dac_wave_state_s *state;
+    struct meadow_dac_wave_s w;
+    uint16_t *buf = NULL;
+    DMA_HANDLE dma = NULL;
+    uint32_t bits;
+    uint32_t div;
+    uint32_t outdiv;
+    uint32_t len;
+    uint32_t psc;
+    uint32_t arr;
+    int mamp = 0;
+    int index;
+    int ret;
 
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_find_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  /* Work on a copy, so the caller cannot change it while it is checked */
+    /* Work on a copy, so the caller cannot change it while it is checked */
 
-  if (wave == NULL || wave->size != sizeof(struct meadow_dac_wave_s))
+    if (wave == NULL || wave->size != sizeof(struct meadow_dac_wave_s))
     {
-      return -EINVAL;
-    }
-
-  memcpy(&w, wave, sizeof(w));
-
-  if (w.rate_hz == 0 || w.rate_hz > MEADOW_DAC_WAVE_MAX_RATE)
-    {
-      return -EINVAL;
-    }
-
-  switch (w.type)
-    {
-      case MEADOW_DAC_WAVE_BUFFER:
-        if (w.count == 0 || w.count > MEADOW_DAC_WAVE_MAX_SAMPLES ||
-            w.samples == NULL)
-          {
-            return -EINVAL;
-          }
-
-        bits = MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN;
-        break;
-
-      case MEADOW_DAC_WAVE_TRIANGLE:
-      case MEADOW_DAC_WAVE_NOISE:
-        mamp = meadow_dac_mamp(w.amplitude);
-        if (mamp < 0)
-          {
-            return mamp;
-          }
-
-        bits = MEADOW_DAC_CR_TEN | (mamp << MEADOW_DAC_CR_MAMP_SHIFT) |
-               (w.type == MEADOW_DAC_WAVE_TRIANGLE ?
-                MEADOW_DAC_CR_WAVE_TRI : MEADOW_DAC_CR_WAVE_NOISE);
-        break;
-
-      case MEADOW_DAC_WAVE_STREAM:
-        if (w.ring == 0)
-          {
-            w.ring = MEADOW_DAC_STREAM_DEF_RING;
-          }
-
-        if (w.ring < MEADOW_DAC_STREAM_MIN_RING ||
-            w.ring > MEADOW_DAC_STREAM_MAX_RING || (w.ring & 1) != 0 ||
-            w.fill > MEADOW_DAC_MAX_VALUE)
-          {
-            return -EINVAL;
-          }
-
-        bits = 0;   /* Set when the stream starts playing */
-        break;
-
-      case MEADOW_DAC_WAVE_ONESHOT:
-        if (w.count == 0 || w.count > MEADOW_DAC_WAVE_MAX_SAMPLES ||
-            w.samples == NULL || w.fill > MEADOW_DAC_MAX_VALUE)
-          {
-            return -EINVAL;
-          }
-
-        bits = MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN;
-        break;
-
-      default:
         return -EINVAL;
     }
 
-  div = meadow_dac_rate_to_div(w.rate_hz, &psc, &arr);
+    memcpy(&w, wave, sizeof(w));
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    if (w.rate_hz == 0 || w.rate_hz > MEADOW_DAC_WAVE_MAX_RATE)
     {
-      return index;
+        return -EINVAL;
     }
 
-  chan  = &g_dac_chan[index];
-  state = &g_dac_wave[index];
-
-  /* A one-shot replaces a one-shot already playing on this channel, and a
-   * file replaces a file
-   */
-
-  if ((w.type == MEADOW_DAC_WAVE_ONESHOT &&
-       state->type == MEADOW_DAC_WAVE_ONESHOT) ||
-      (owner != 0 && state->type == MEADOW_DAC_WAVE_STREAM &&
-       state->owner != 0))
+    switch (w.type)
     {
-      meadow_dac_wave_stop_locked(index);
+        case MEADOW_DAC_WAVE_BUFFER:
+            if (w.count == 0 || w.count > MEADOW_DAC_WAVE_MAX_SAMPLES || w.samples == NULL)
+            {
+                return -EINVAL;
+            }
+
+            bits = MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN;
+            break;
+
+        case MEADOW_DAC_WAVE_TRIANGLE:
+        case MEADOW_DAC_WAVE_NOISE:
+            mamp = meadow_dac_mamp(w.amplitude);
+            if (mamp < 0)
+            {
+                return mamp;
+            }
+
+            bits = MEADOW_DAC_CR_TEN | (mamp << MEADOW_DAC_CR_MAMP_SHIFT) | (w.type == MEADOW_DAC_WAVE_TRIANGLE ? MEADOW_DAC_CR_WAVE_TRI : MEADOW_DAC_CR_WAVE_NOISE);
+            break;
+
+        case MEADOW_DAC_WAVE_STREAM:
+            if (w.ring == 0)
+            {
+                w.ring = MEADOW_DAC_STREAM_DEF_RING;
+            }
+
+            if (w.ring < MEADOW_DAC_STREAM_MIN_RING || w.ring > MEADOW_DAC_STREAM_MAX_RING || (w.ring & 1) != 0 || w.fill > MEADOW_DAC_MAX_VALUE)
+            {
+                return -EINVAL;
+            }
+
+            bits = 0; /* Set when the stream starts playing */
+            break;
+
+        case MEADOW_DAC_WAVE_ONESHOT:
+            if (w.count == 0 || w.count > MEADOW_DAC_WAVE_MAX_SAMPLES || w.samples == NULL || w.fill > MEADOW_DAC_MAX_VALUE)
+            {
+                return -EINVAL;
+            }
+
+            bits = MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN;
+            break;
+
+        default:
+            return -EINVAL;
     }
 
-  /* One waveform per channel, and both channels share TIM6's rate. A
-   * one-shot asked for at another rate is resampled to TIM6's instead.
-   */
+    div = meadow_dac_rate_to_div(w.rate_hz, &psc, &arr);
 
-  outdiv = g_dac_tim_div != 0 ? g_dac_tim_div : div;
-
-  if (state->type != 0 ||
-      (outdiv != div && w.type != MEADOW_DAC_WAVE_ONESHOT))
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      ret = -EBUSY;
-      goto errout;
+        return index;
     }
 
-  if (w.type == MEADOW_DAC_WAVE_TRIANGLE &&
-      (getreg32(chan->dhr) & MEADOW_DAC_DATA_MASK) + w.amplitude >
-      MEADOW_DAC_MAX_VALUE)
+    chan = &g_dac_chan[index];
+    state = &g_dac_wave[index];
+
+    /* A one-shot replaces a one-shot already playing on this channel, and a
+     * file replaces a file
+     */
+
+    if ((w.type == MEADOW_DAC_WAVE_ONESHOT && state->type == MEADOW_DAC_WAVE_ONESHOT) || (owner != 0 && state->type == MEADOW_DAC_WAVE_STREAM && state->owner != 0))
     {
-      ret = -EINVAL;
-      goto errout;
+        meadow_dac_wave_stop_locked(index);
     }
 
-  if (w.type == MEADOW_DAC_WAVE_BUFFER)
+    /* One waveform per channel, and both channels share TIM6's rate. A
+     * one-shot asked for at another rate is resampled to TIM6's instead.
+     */
+
+    outdiv = g_dac_tim_div != 0 ? g_dac_tim_div : div;
+
+    if (state->type != 0 || (outdiv != div && w.type != MEADOW_DAC_WAVE_ONESHOT))
     {
-      ret = meadow_dac_copy_samples(w.samples, w.count, &buf);
-      if (ret < 0)
+        ret = -EBUSY;
+        goto errout;
+    }
+
+    if (w.type == MEADOW_DAC_WAVE_TRIANGLE && (getreg32(chan->dhr) & MEADOW_DAC_DATA_MASK) + w.amplitude > MEADOW_DAC_MAX_VALUE)
+    {
+        ret = -EINVAL;
+        goto errout;
+    }
+
+    if (w.type == MEADOW_DAC_WAVE_BUFFER)
+    {
+        ret = meadow_dac_copy_samples(w.samples, w.count, &buf);
+        if (ret < 0)
         {
-          goto errout;
+            goto errout;
         }
 
-      /* Nothing else in Meadow uses this stream (see MeadowDac.md), so
-       * this does not wait.
-       */
+        /* Nothing else in Meadow uses this stream (see MeadowDac.md), so
+         * this does not wait.
+         */
 
-      dma = stm32_dmachannel(chan->dmamap);
-      if (dma == NULL)
+        dma = stm32_dmachannel(chan->dmamap);
+        if (dma == NULL)
         {
-          kmm_free(buf);
-          ret = -EBUSY;
-          goto errout;
+            kmm_free(buf);
+            ret = -EBUSY;
+            goto errout;
         }
 
-      /* Start the stream here rather than with stm32_dmastart(), which in
-       * circular mode always enables the transfer-complete interrupt: that
-       * would fire once per loop of the buffer, for nothing. Only the
-       * transfer-error interrupt is enabled.
-       */
+        /* Start the stream here rather than with stm32_dmastart(), which in
+         * circular mode always enables the transfer-complete interrupt: that
+         * would fire once per loop of the buffer, for nothing. Only the
+         * transfer-error interrupt is enabled.
+         */
 
-      stm32_dmasetup(dma, chan->dhr, (uint32_t)(uintptr_t)buf, w.count,
-                     MEADOW_DAC_DMA_SCR);
-      modifyreg32(chan->dmacr, 0, DMA_SCR_TEIE | DMA_SCR_EN);
+        stm32_dmasetup(dma, chan->dhr, (uint32_t) (uintptr_t) buf, w.count, MEADOW_DAC_DMA_SCR);
+        modifyreg32(chan->dmacr, 0, DMA_SCR_TEIE | DMA_SCR_EN);
     }
 
-  if (w.type == MEADOW_DAC_WAVE_ONESHOT)
+    if (w.type == MEADOW_DAC_WAVE_ONESHOT)
     {
-      ret = meadow_dac_copy_oneshot(w.samples, w.count, w.rate_hz, div,
-                                    outdiv, (uint16_t)w.fill, &buf, &len);
-      if (ret < 0)
+        ret = meadow_dac_copy_oneshot(w.samples, w.count, w.rate_hz, div, outdiv, (uint16_t) w.fill, &buf, &len);
+        if (ret < 0)
         {
-          goto errout;
+            goto errout;
         }
 
-      dma = stm32_dmachannel(chan->dmamap);
-      if (dma == NULL)
+        dma = stm32_dmachannel(chan->dmamap);
+        if (dma == NULL)
         {
-          kmm_free(buf);
-          ret = -EBUSY;
-          goto errout;
+            kmm_free(buf);
+            ret = -EBUSY;
+            goto errout;
         }
 
-      /* Played once, in normal mode; started below, once the channel's
-       * state is set, since its handler checks it.
-       */
+        /* Played once, in normal mode; started below, once the channel's
+         * state is set, since its handler checks it.
+         */
 
-      stm32_dmasetup(dma, chan->dhr, (uint32_t)(uintptr_t)buf, len,
-                     MEADOW_DAC_DMA_SCR_ONCE);
-      state->done = false;
+        stm32_dmasetup(dma, chan->dhr, (uint32_t) (uintptr_t) buf, len, MEADOW_DAC_DMA_SCR_ONCE);
+        state->done = false;
     }
 
-  if (w.type == MEADOW_DAC_WAVE_STREAM)
+    if (w.type == MEADOW_DAC_WAVE_STREAM)
     {
-      ret = meadow_dac_stream_prepare(index, w.ring, (uint16_t)w.fill,
-                                      &buf, &dma);
-      if (ret < 0)
+        ret = meadow_dac_stream_prepare(index, w.ring, (uint16_t) w.fill, &buf, &dma);
+        if (ret < 0)
         {
-          goto errout;
+            goto errout;
         }
 
-      /* A file starts from the fill value (mid-scale), so a channel opened
-       * at 0 does not click when the music starts
-       */
+        /* A file starts from the fill value (mid-scale), so a channel opened
+         * at 0 does not click when the music starts
+         */
 
-      state->owner = owner;
-      if (owner != 0)
+        state->owner = owner;
+        if (owner != 0)
         {
-          putreg32(w.fill, chan->dhr);
+            putreg32(w.fill, chan->dhr);
         }
     }
 
-  /* Reserve TIM6's rate for this channel */
+    /* Reserve TIM6's rate for this channel */
 
-  if (g_dac_tim_div == 0)
+    if (g_dac_tim_div == 0)
     {
-      g_dac_tim_div = div;
-      g_dac_tim_psc = psc;
-      g_dac_tim_arr = arr;
+        g_dac_tim_div = div;
+        g_dac_tim_psc = psc;
+        g_dac_tim_arr = arr;
     }
 
-  state->dma  = dma;
-  state->buf  = buf;
-  state->type = w.type;
+    state->dma = dma;
+    state->buf = buf;
+    state->type = w.type;
 
-  if (w.type == MEADOW_DAC_WAVE_ONESHOT)
+    if (w.type == MEADOW_DAC_WAVE_ONESHOT)
     {
-      stm32_dmastart(dma, meadow_dac_oneshot_dma,
-                     (void *)(uintptr_t)index, false);
+        stm32_dmastart(dma, meadow_dac_oneshot_dma, (void *) (uintptr_t) index, false);
     }
 
-  if (w.type != MEADOW_DAC_WAVE_STREAM)
+    if (w.type != MEADOW_DAC_WAVE_STREAM)
     {
-      meadow_dac_set_mode(chan, bits);
-      meadow_dac_tim_run();
+        meadow_dac_set_mode(chan, bits);
+        meadow_dac_tim_run();
     }
 
-  wave->actual_hz = (MEADOW_DAC_TIM_CLKIN + (outdiv / 2)) / outdiv;
+    wave->actual_hz = (MEADOW_DAC_TIM_CLKIN + (outdiv / 2)) / outdiv;
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 
 errout:
-  nxmutex_unlock(&g_dac_lock);
-  return ret;
+    nxmutex_unlock(&g_dac_lock);
+    return ret;
 }
 
 /****************************************************************************
@@ -1219,19 +1175,19 @@ errout:
 
 int meadow_dac_wave_stop(uint8_t pinid)
 {
-  int index;
-  int ret;
+    int index;
+    int ret;
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  ret = meadow_dac_wave_stop_locked(index);
+    ret = meadow_dac_wave_stop_locked(index);
 
-  nxmutex_unlock(&g_dac_lock);
-  return ret;
+    nxmutex_unlock(&g_dac_lock);
+    return ret;
 }
 
 /****************************************************************************
@@ -1254,54 +1210,51 @@ int meadow_dac_wave_stop(uint8_t pinid)
  *
  ****************************************************************************/
 
-int meadow_dac_wave_status(uint8_t pinid,
-                           struct meadow_dac_wave_status_s *status)
+int meadow_dac_wave_status(uint8_t pinid, struct meadow_dac_wave_status_s *status)
 {
-  struct meadow_dac_wave_state_s *st;
-  struct meadow_dac_wave_status_s out;
-  uint32_t pos;
-  int index;
+    struct meadow_dac_wave_state_s *st;
+    struct meadow_dac_wave_status_s out;
+    uint32_t pos;
+    int index;
 
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_find_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  if (status == NULL ||
-      status->size != sizeof(struct meadow_dac_wave_status_s))
+    if (status == NULL || status->size != sizeof(struct meadow_dac_wave_status_s))
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  st = &g_dac_wave[index];
-  memset(&out, 0, sizeof(out));
-  out.size = sizeof(out);
+    st = &g_dac_wave[index];
+    memset(&out, 0, sizeof(out));
+    out.size = sizeof(out);
 
-  if (st->type == MEADOW_DAC_WAVE_STREAM)
+    if (st->type == MEADOW_DAC_WAVE_STREAM)
     {
-      meadow_dac_stream_status(index, &out);
+        meadow_dac_stream_status(index, &out);
     }
-  else if (st->type == MEADOW_DAC_WAVE_ONESHOT)
+    else if (st->type == MEADOW_DAC_WAVE_ONESHOT)
     {
-      /* Not yet ended, or the lock would have cleaned it up. The count
-       * left includes the fill values after the clip.
-       */
+        /* Not yet ended, or the lock would have cleaned it up. The count
+         * left includes the fill values after the clip.
+         */
 
-      pos        = (uint32_t)stm32_dmaresidual(st->dma);
-      out.state  = MEADOW_DAC_ONESHOT_PLAYING;
-      out.queued = pos > MEADOW_DAC_ONESHOT_TAIL ?
-                   pos - MEADOW_DAC_ONESHOT_TAIL : 0;
+        pos = (uint32_t) stm32_dmaresidual(st->dma);
+        out.state = MEADOW_DAC_ONESHOT_PLAYING;
+        out.queued = pos > MEADOW_DAC_ONESHOT_TAIL ? pos - MEADOW_DAC_ONESHOT_TAIL : 0;
     }
 
-  memcpy(status, &out, sizeof(out));
+    memcpy(status, &out, sizeof(out));
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }

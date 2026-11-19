@@ -74,14 +74,14 @@
 /* Only build if configured */
 
 #if defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-#include <meadow/hcom_traverse_ku.h>
+    #include <meadow/hcom_traverse_ku.h>
 
-#include <inttypes.h>
-#include <string.h>
-#include <stdio.h>
-#include <nuttx/semaphore.h>
-#include <time.h>
-#include <nuttx/kthread.h>
+    #include <inttypes.h>
+    #include <string.h>
+    #include <stdio.h>
+    #include <nuttx/semaphore.h>
+    #include <time.h>
+    #include <nuttx/kthread.h>
 
 // #pragma GCC optimize("O0")    /* Prevent optimisation from removing test code */
 
@@ -89,8 +89,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define KUT_TAG     "KUT"   /* prefix for all test messages visible at host */
-#define KUT_NORDER  8       /* number of messages in the ordering test       */
+    #define KUT_TAG "KUT" /* prefix for all test messages visible at host */
+    #define KUT_NORDER 8  /* number of messages in the ordering test       */
 
 /****************************************************************************
  * Private Functions
@@ -108,21 +108,20 @@
 
 static void kt_traverse_ku_test_round_trip(void)
 {
-  static const char msg[] = KUT_TAG ":round-trip\n";
-  int ret;
+    static const char msg[] = KUT_TAG ":round-trip\n";
+    int ret;
 
-  syslog(LOG_INFO, "KU Traverse test 1: round-trip\n");
+    syslog(LOG_INFO, "KU Traverse test 1: round-trip\n");
 
-  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
-  if (ret == OK)
-  {
-    syslog(LOG_INFO, "KU Traverse test 1: PASS (send returned OK)\n");
-  }
-  else
-  {
-    syslog(LOG_ERR, "KU Traverse test 1: FAIL (send returned %d)\n", ret);
-  }
+    ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t) strlen(msg));
+    if (ret == OK)
+    {
+        syslog(LOG_INFO, "KU Traverse test 1: PASS (send returned OK)\n");
+    }
+    else
+    {
+        syslog(LOG_ERR, "KU Traverse test 1: FAIL (send returned %d)\n", ret);
+    }
 }
 
 /****************************************************************************
@@ -136,38 +135,36 @@ static void kt_traverse_ku_test_round_trip(void)
 
 static void kt_traverse_ku_test_ordering(void)
 {
-  char msg[48];
-  int  len;
-  int  i;
-  int  failures = 0;
+    char msg[48];
+    int len;
+    int i;
+    int failures = 0;
 
-  syslog(LOG_INFO, "KU Traverse test 2: ordering (%d messages)\n",
-         KUT_NORDER);
+    syslog(LOG_INFO, "KU Traverse test 2: ordering (%d messages)\n", KUT_NORDER);
 
-  for (i = 0; i < KUT_NORDER; i++)
-  {
-    len = snprintf(msg, sizeof(msg), KUT_TAG ":order[%d/%d]\n",
-      i, KUT_NORDER - 1);
+    for (i = 0; i < KUT_NORDER; i++)
+    {
+        len = snprintf(msg, sizeof(msg), KUT_TAG ":order[%d/%d]\n", i, KUT_NORDER - 1);
 
-    if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-        HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)len) != OK)
-      {
-        failures++;
-        syslog(LOG_ERR, "KU Traverse test 2: send[%d] FAIL\n", i);
-      }
-  }
+        if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t) len) != OK)
+        {
+            failures++;
+            syslog(LOG_ERR, "KU Traverse test 2: send[%d] FAIL\n", i);
+        }
+    }
 
-  if (failures == 0)
-  {
-    syslog(LOG_INFO,
+    if (failures == 0)
+    {
+        syslog(
+            LOG_INFO,
             "KU Traverse test 2: PASS (all %d sends OK; "
-            "verify order at host)\n", KUT_NORDER);
-  }
-  else
-  {
-    syslog(LOG_ERR, "KU Traverse test 2: FAIL (%d sends failed)\n",
-            failures);
-  }
+            "verify order at host)\n",
+            KUT_NORDER);
+    }
+    else
+    {
+        syslog(LOG_ERR, "KU Traverse test 2: FAIL (%d sends failed)\n", failures);
+    }
 }
 
 /****************************************************************************
@@ -181,36 +178,30 @@ static void kt_traverse_ku_test_ordering(void)
 
 static void kt_traverse_ku_test_multi_type(void)
 {
-  static const char trace_msg[]  = KUT_TAG ":multi-type/TRACE_TEXT\n";
-  static const char ramlog_msg[] = KUT_TAG ":multi-type/RAMLOG_TEXT\n";
-  int failures = 0;
+    static const char trace_msg[] = KUT_TAG ":multi-type/TRACE_TEXT\n";
+    static const char ramlog_msg[] = KUT_TAG ":multi-type/RAMLOG_TEXT\n";
+    int failures = 0;
 
-  syslog(LOG_INFO, "KU Traverse test 3: multi-type\n");
+    syslog(LOG_INFO, "KU Traverse test 3: multi-type\n");
 
-  if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_INFORMATION,
-    trace_msg,
-    (uint16_t)strlen(trace_msg)) != OK)
-  {
-    failures++;
-    syslog(LOG_ERR, "KU Traverse test 3: TRACE_TEXT send FAIL\n");
-  }
+    if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, trace_msg, (uint16_t) strlen(trace_msg)) != OK)
+    {
+        failures++;
+        syslog(LOG_ERR, "KU Traverse test 3: TRACE_TEXT send FAIL\n");
+    }
 
-  if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,
-      HCOM_HOST_REQUEST_TEXT_INFORMATION,
-      ramlog_msg,
-      (uint16_t)strlen(ramlog_msg)) != OK)
-  {
-    failures++;
-    syslog(LOG_ERR, "KU Traverse test 3: RAMLOG_TEXT send FAIL\n");
-  }
+    if (hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, ramlog_msg, (uint16_t) strlen(ramlog_msg)) != OK)
+    {
+        failures++;
+        syslog(LOG_ERR, "KU Traverse test 3: RAMLOG_TEXT send FAIL\n");
+    }
 
-  if (failures == 0)
-  {
-    syslog(LOG_INFO,
-            "KU Traverse test 3: PASS (both sends OK; "
-            "verify both appear at host)\n");
-  }
+    if (failures == 0)
+    {
+        syslog(
+            LOG_INFO, "KU Traverse test 3: PASS (both sends OK; "
+                      "verify both appear at host)\n");
+    }
 }
 
 /****************************************************************************
@@ -229,19 +220,17 @@ static sem_t _kt_traverse_ku_opener_done;
 
 static void *kt_traverse_ku_test_opener_kthread(int argc, char *argv[])
 {
-  static const char msg[] = KUT_TAG ":cross-context/opened-by-kthread\n";
-  int ret;
+    static const char msg[] = KUT_TAG ":cross-context/opened-by-kthread\n";
+    int ret;
 
-  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
-  if (ret != OK)
-  {
-    syslog(LOG_ERR,
-      "KU Traverse test 8: opener kthread send FAIL (ret %d)\n", ret);
-  }
+    ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t) strlen(msg));
+    if (ret != OK)
+    {
+        syslog(LOG_ERR, "KU Traverse test 8: opener kthread send FAIL (ret %d)\n", ret);
+    }
 
-  nxsem_post(&_kt_traverse_ku_opener_done);
-  return NULL;
+    nxsem_post(&_kt_traverse_ku_opener_done);
+    return NULL;
 }
 
 /****************************************************************************
@@ -262,65 +251,58 @@ static void *kt_traverse_ku_test_opener_kthread(int argc, char *argv[])
 
 static void kt_traverse_ku_test_cross_context(void)
 {
-  static const char msg[] = KUT_TAG ":cross-context/sent-by-this-task\n";
-  int ret;
-  int pid;
+    static const char msg[] = KUT_TAG ":cross-context/sent-by-this-task\n";
+    int ret;
+    int pid;
 
-  syslog(LOG_INFO,
-    "KU Traverse test 8: cross-context (kthread opens+sends first, "
-    "this task sends second)\n");
+    syslog(
+        LOG_INFO, "KU Traverse test 8: cross-context (kthread opens+sends first, "
+                  "this task sends second)\n");
 
-  // Force a clean slate so the kthread below is guaranteed to be the one
-  // that (re)opens the write end, regardless of what earlier tests in this
-  // boot session may have left open.
-  ret = hcom_traverse_ku_kernel_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_ERR,
-      "KU Traverse test 8: FAIL (kernel_setup returned %d)\n", ret);
-    return;
-  }
+    // Force a clean slate so the kthread below is guaranteed to be the one
+    // that (re)opens the write end, regardless of what earlier tests in this
+    // boot session may have left open.
+    ret = hcom_traverse_ku_kernel_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "KU Traverse test 8: FAIL (kernel_setup returned %d)\n", ret);
+        return;
+    }
 
-  nxsem_init(&_kt_traverse_ku_opener_done, 0, 0);
+    nxsem_init(&_kt_traverse_ku_opener_done, 0, 0);
 
-  pid = kthread_create("KUTraverseOpener", 100, 2048,
-    (main_t) kt_traverse_ku_test_opener_kthread, (char * const *)NULL);
-  if (pid < 0)
-  {
-    syslog(LOG_ERR,
-      "KU Traverse test 8: FAIL (kthread_create returned %d)\n", pid);
+    pid = kthread_create("KUTraverseOpener", 100, 2048, (main_t) kt_traverse_ku_test_opener_kthread, (char * const *) NULL);
+    if (pid < 0)
+    {
+        syslog(LOG_ERR, "KU Traverse test 8: FAIL (kthread_create returned %d)\n", pid);
+        nxsem_destroy(&_kt_traverse_ku_opener_done);
+        return;
+    }
+
+    // Reader must already be connected for either send to complete at all
+    // (same precondition as every other test in this file) - this timeout
+    // is just to keep the test from hanging forever if that's not true.
+    ret = nxsem_tickwait_uninterruptible(&_kt_traverse_ku_opener_done, SEC2TICK(5));
     nxsem_destroy(&_kt_traverse_ku_opener_done);
-    return;
-  }
+    if (ret < 0)
+    {
+        syslog(
+            LOG_ERR, "KU Traverse test 8: FAIL (opener kthread did not finish in time - "
+                     "is a host reader connected?)\n");
+        return;
+    }
 
-  // Reader must already be connected for either send to complete at all
-  // (same precondition as every other test in this file) - this timeout
-  // is just to keep the test from hanging forever if that's not true.
-  ret = nxsem_tickwait_uninterruptible(&_kt_traverse_ku_opener_done,
-                                       SEC2TICK(5));
-  nxsem_destroy(&_kt_traverse_ku_opener_done);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR,
-      "KU Traverse test 8: FAIL (opener kthread did not finish in time - "
-      "is a host reader connected?)\n");
-    return;
-  }
-
-  // The write end is now open, opened by the kthread's task group above.
-  // Send again from this (different) task group.
-  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t)strlen(msg));
-  if (ret == OK)
-  {
-    syslog(LOG_INFO,
-      "KU Traverse test 8: PASS (cross-context send returned OK)\n");
-  }
-  else
-  {
-    syslog(LOG_ERR,
-      "KU Traverse test 8: FAIL (cross-context send returned %d)\n", ret);
-  }
+    // The write end is now open, opened by the kthread's task group above.
+    // Send again from this (different) task group.
+    ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_INFORMATION, msg, (uint16_t) strlen(msg));
+    if (ret == OK)
+    {
+        syslog(LOG_INFO, "KU Traverse test 8: PASS (cross-context send returned OK)\n");
+    }
+    else
+    {
+        syslog(LOG_ERR, "KU Traverse test 8: FAIL (cross-context send returned %d)\n", ret);
+    }
 }
 
 /****************************************************************************
@@ -340,71 +322,65 @@ static void kt_traverse_ku_test_cross_context(void)
 
 void hcom_kt_traverse_ku_tests(uint32_t userData)
 {
-  int ret = OK;
+    int ret = OK;
 
-  syslog(LOG_INFO,
-         "KU Traverse tests starting (value=%" PRIu32 ")\n", userData);
-  
-  switch (userData)
+    syslog(LOG_INFO, "KU Traverse tests starting (value=%" PRIu32 ")\n", userData);
+
+    switch (userData)
     {
-      case 1:
-        kt_traverse_ku_test_round_trip();
-        break;
+        case 1:
+            kt_traverse_ku_test_round_trip();
+            break;
 
-      case 2:
-        kt_traverse_ku_test_ordering();
-        break;
+        case 2:
+            kt_traverse_ku_test_ordering();
+            break;
 
-      case 3:
-        kt_traverse_ku_test_multi_type();
-        break;
+        case 3:
+            kt_traverse_ku_test_multi_type();
+            break;
 
-      case 4:
-        kt_traverse_ku_test_round_trip();
-        kt_traverse_ku_test_ordering();
-        kt_traverse_ku_test_multi_type();
-        break;
+        case 4:
+            kt_traverse_ku_test_round_trip();
+            kt_traverse_ku_test_ordering();
+            kt_traverse_ku_test_multi_type();
+            break;
 
-      // Send a syslog message to 'meadow listen' via syslog's buffer and
-      // directly to CLI.
-      case 5:
-        syslog(LOG_MTEST, "Via syslog() call from Unit Test #5a\n");
-        ret =  hcom_traverse_ku_syslog_to_host("Direct, syslog from Unit Test #5b",
-        strlen("Direct, syslog from Unit Test #5b"));
-        break;
+        // Send a syslog message to 'meadow listen' via syslog's buffer and
+        // directly to CLI.
+        case 5:
+            syslog(LOG_MTEST, "Via syslog() call from Unit Test #5a\n");
+            ret = hcom_traverse_ku_syslog_to_host("Direct, syslog from Unit Test #5b", strlen("Direct, syslog from Unit Test #5b"));
+            break;
 
-      // Send a text message to 'meadow listen'
-      case 6:
-        ret =  hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-          "This is a text message from Unit Test #6",
-          strlen("This is a text message from Unit Test #6"));
-        break;
+        // Send a text message to 'meadow listen'
+        case 6:
+            ret = hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION, "This is a text message from Unit Test #6", strlen("This is a text message from Unit Test #6"));
+            break;
 
-      // Send a string message to 'meadow listen'
-      case 7:
-        ret =  hcom_traverse_ku_string_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION,
-          "This is a string from Unit Test #7");
-        break;
+        // Send a string message to 'meadow listen'
+        case 7:
+            ret = hcom_traverse_ku_string_to_host(HCOM_HOST_REQUEST_TEXT_INFORMATION, "This is a string from Unit Test #7");
+            break;
 
-      // Cross-context regression test - see the file header comment.
-      case 8:
-        kt_traverse_ku_test_cross_context();
-        break;
+        // Cross-context regression test - see the file header comment.
+        case 8:
+            kt_traverse_ku_test_cross_context();
+            break;
 
-      default:
-        syslog(LOG_MTEST, "Undefined test for hcom_kt_traverse_ku_tests, userData:%lu\n",
-            userData);
-        break;
+        default:
+            syslog(LOG_MTEST, "Undefined test for hcom_kt_traverse_ku_tests, userData:%lu\n", userData);
+            break;
     }
 
-    if(ret < 0)
+    if (ret < 0)
     {
-      // ret is already a negated errno from the hcom_traverse_ku_*
-      // wrappers - errno itself is not set underneath and may be stale.
-      syslog(LOG_MDIAG, "KU Traverse tests, error:ret:%d\n", ret);
+        // ret is already a negated errno from the hcom_traverse_ku_*
+        // wrappers - errno itself is not set underneath and may be stale.
+        syslog(LOG_MDIAG, "KU Traverse tests, error:ret:%d\n", ret);
     }
 
-  syslog(LOG_INFO, "KU Traverse tests complete\n");
+    syslog(LOG_INFO, "KU Traverse tests complete\n");
 }
 
 #endif /* defined(CONFIG_TRAVERSE_KU_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS) */

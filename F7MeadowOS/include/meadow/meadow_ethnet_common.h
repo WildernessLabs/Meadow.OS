@@ -40,7 +40,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <unistd.h>   // getopt() - parses command line args
+#include <unistd.h> // getopt() - parses command line args
 #include <stdlib.h>
 #include <time.h>
 #include <poll.h>
@@ -61,35 +61,35 @@
 
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+    /****************************************************************************
+     * Pre-processor Definitions
+     ****************************************************************************/
 
-#define MEADOW_ETHMAC_DEVICENAME "eth0"
+    #define MEADOW_ETHMAC_DEVICENAME "eth0"
 
-/****************************************************************************
- * Public Types
- ****************************************************************************/
+    /****************************************************************************
+     * Public Types
+     ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
+    #ifdef __cplusplus
+        #define EXTERN extern "C"
 extern "C"
 {
-#else
-#define EXTERN extern
-#endif
+    #else
+        #define EXTERN extern
+    #endif
 
-/****************************************************************************************************
- * Public Function Prototypes
- ****************************************************************************************************/
+    /****************************************************************************************************
+     * Public Function Prototypes
+     ****************************************************************************************************/
 
-// Starts ethernet
-int meadow_eth_mngr_startup(void);
+    // Starts ethernet
+    int meadow_eth_mngr_startup(void);
 
-#undef EXTERN
-#if defined(__cplusplus)
+    #undef EXTERN
+    #if defined(__cplusplus)
 }
-#endif
+    #endif
 
 #endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 

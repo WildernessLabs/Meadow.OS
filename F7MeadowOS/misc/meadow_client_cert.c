@@ -60,7 +60,7 @@
 // #define MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
 
 #ifdef MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT
-#warning "MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT is enabled -- private key and passphrase will be logged in plaintext and streamed off-device. Local debugging only; must never be committed or shipped."
+    #warning "MEADOW_CLIENT_CERT_LOG_SECRET_CONTENT is enabled -- private key and passphrase will be logged in plaintext and streamed off-device. Local debugging only; must never be committed or shipped."
 #endif
 
 static int client_cert_buf_size = 0;
@@ -72,15 +72,15 @@ static int private_key_pass_buf_size = 0;
  *
  * Description:
  *  This function is responsible for loading the client certificate, client
- * private key, and the private key passphrase. It stores 
+ * private key, and the private key passphrase. It stores
  * these values into ESP32, adding an extra security layer for the credentials.
  * After processing, the client credentials files are removed from the STM.
- * 
+ *
  * Input Parameters:
  *  None.
  *
  * Returned Value:
- *  Zero, if the function succeeds, otherwise returns a specific NuttX 
+ *  Zero, if the function succeeds, otherwise returns a specific NuttX
  * error code corresponding to the encountered issue.
  *
  * Assumptions/Limitations:
@@ -119,7 +119,7 @@ int meadow_client_cert_initialize(void)
         }
         rewind(client_cert_file);
 
-        client_cert = (char *)malloc(client_cert_size + 1);
+        client_cert = (char *) malloc(client_cert_size + 1);
         if (client_cert == NULL)
         {
             syslog(LOG_INFO, "Memory allocation failed for client_cert.\n");
@@ -178,7 +178,7 @@ int meadow_client_cert_initialize(void)
         }
         rewind(private_key_file);
 
-        private_key = (char *)malloc(private_key_size + 1);
+        private_key = (char *) malloc(private_key_size + 1);
         if (private_key == NULL)
         {
             syslog(LOG_ERR, "Memory allocation failed for private_key.\n");
@@ -253,7 +253,7 @@ int meadow_client_cert_initialize(void)
         }
         rewind(private_key_pass_file);
 
-        private_key_pass = (char *)malloc(private_key_pass_size + 1);
+        private_key_pass = (char *) malloc(private_key_pass_size + 1);
         if (private_key_pass == NULL)
         {
             syslog(LOG_ERR, "Memory allocation failed for private_key_pass.\n");
@@ -353,10 +353,7 @@ int meadow_client_cert_initialize(void)
  *  None
  *
  ****************************************************************************/
-int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
-                    int *client_cert_len, const uint8_t **private_key_buf_ptr,
-                    int *private_key_len, const uint8_t **private_key_pass_buf_ptr,
-                    int *private_key_pass_len)
+int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr, int *client_cert_len, const uint8_t **private_key_buf_ptr, int *private_key_len, const uint8_t **private_key_pass_buf_ptr, int *private_key_pass_len)
 {
     syslog(LOG_INFO, "Retrieving client cert credentials from ESP32...\n");
 
@@ -396,7 +393,7 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
     private_key_buf_size = private_key_length;
     *private_key_len = private_key_length;
 
-    syslog(LOG_INFO,"Retrieving client cert private key pass from ESP32...\n");
+    syslog(LOG_INFO, "Retrieving client cert private key pass from ESP32...\n");
 
     int32_t private_key_pass_length;
     const uint8_t *private_key_pass_buf = (const uint8_t *) espcp_file_system_read_file(CLIENT_CERT_PRIVATE_KEY_PASS_FILE, &private_key_pass_length);
@@ -441,9 +438,7 @@ int meadow_client_cert_retrieve_credentials(const uint8_t **client_cert_buf_ptr,
  *  None
  *
  ****************************************************************************/
-int meadow_client_cert_release_credentials(char ** const client_cert_buf_ptr,
-    char ** const private_key_buf_ptr,
-    char ** const private_key_pass_buf_ptr)
+int meadow_client_cert_release_credentials(char ** const client_cert_buf_ptr, char ** const private_key_buf_ptr, char ** const private_key_pass_buf_ptr)
 {
     if (*client_cert_buf_ptr != NULL)
     {

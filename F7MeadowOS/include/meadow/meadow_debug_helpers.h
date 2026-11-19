@@ -1,9 +1,9 @@
 /****************************************************************************
  * /include/meadow/meadow_debug_helpers.h
- * 
+ *
  *   Copyright (C) 2021-2022 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
- * 
+ *
  *   Provide macros and method definitions to assist in debugging
  *   NuttX and meadow code.
  *
@@ -42,19 +42,19 @@
 
 #if defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 
-/**
- *  The following trace macros are always defined.
- */
-#define MEADOW_CRITICAL_LOG(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
-#define MEADOW_EMERGENCY_LOG(format, ...) syslog((LOG_EMERG), format, ##__VA_ARGS__)
+    /**
+     *  The following trace macros are always defined.
+     */
+    #define MEADOW_CRITICAL_LOG(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+    #define MEADOW_EMERGENCY_LOG(format, ...) syslog((LOG_EMERG), format, ##__VA_ARGS__)
 
 #else
 
-/**
- *  The following trace macros are always defined.
- */
-#define MEADOW_CRITICAL_LOG(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
-#define MEADOW_EMERGENCY_LOG(format, ...) syslog((LOG_EMERG), format, ##__VA_ARGS__)
+    /**
+     *  The following trace macros are always defined.
+     */
+    #define MEADOW_CRITICAL_LOG(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+    #define MEADOW_EMERGENCY_LOG(format, ...) syslog((LOG_EMERG), format, ##__VA_ARGS__)
 
 #endif
 
@@ -62,263 +62,274 @@
  *  Define USE_MEADOW_DEBUG_HELPERS in your source file and then include this file to use these definitions.
  */
 #if defined(USE_MEADOW_DEBUG_HELPERS) || defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
-// MEADOW.OS REBASE - When MEADOW_USE_HCOM_DEBUG_HELPERS or
-// USE_MEADOW_DEBUG_HELPERS is defined, there's build warnings complain about
-// being the following LOG_xxx being redefined.
-// #if defined(__KERNEL__) && defined(CONFIG_BUILD_PROTECTED)
-// #if defined(CONFIG_BUILD_PROTECTED) && !defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
-//     #define LOG_INFO    1
-//     #define LOG_DEBUG   1
-//     #define LOG_CRIT    1
-//     #define LOG_ERR     1
-// #endif
+    // MEADOW.OS REBASE - When MEADOW_USE_HCOM_DEBUG_HELPERS or
+    // USE_MEADOW_DEBUG_HELPERS is defined, there's build warnings complain about
+    // being the following LOG_xxx being redefined.
+    // #if defined(__KERNEL__) && defined(CONFIG_BUILD_PROTECTED)
+    // #if defined(CONFIG_BUILD_PROTECTED) && !defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
+    //     #define LOG_INFO    1
+    //     #define LOG_DEBUG   1
+    //     #define LOG_CRIT    1
+    //     #define LOG_ERR     1
+    // #endif
 
-#if defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
+    #if defined(MEADOW_USE_HCOM_DEBUG_HELPERS)
 
-#pragma message "Meadow HCOM debug helpers are active, this may interfere with .NET applications!"
+        #pragma message "Meadow HCOM debug helpers are active, this may interfere with .NET applications!"
 
-//
-//  Trace and debug output macros from user space (HCOM etc.)
-//
-#define MEADOW_TRACE_INFORMATION(format, ...) syslog((LOG_INFO), format, ##__VA_ARGS__)
+        //
+        //  Trace and debug output macros from user space (HCOM etc.)
+        //
+        #define MEADOW_TRACE_INFORMATION(format, ...) syslog((LOG_INFO), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_DEBUG(format, ...) syslog((LOG_DEBUG), format, ##__VA_ARGS__)
+        #define MEADOW_TRACE_DEBUG(format, ...) syslog((LOG_DEBUG), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_ERROR(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+        #define MEADOW_TRACE_ERROR(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
 
-#define MEADOW_TRACE_CRITICAL(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+        #define MEADOW_TRACE_CRITICAL(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+
+    #else
+
+        #pragma message "Meadow OS debug helpers are active, this may interfere with .NET applications!"
+
+        //
+        //  Trace and debug output macros.
+        //
+        #define MEADOW_TRACE_INFORMATION(format, ...) syslog((LOG_INFO), format, ##__VA_ARGS__)
+
+        #define MEADOW_TRACE_DEBUG(format, ...) syslog((LOG_DEBUG), format, ##__VA_ARGS__)
+
+        #define MEADOW_TRACE_ERROR(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+
+        #define MEADOW_TRACE_CRITICAL(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+
+    #endif
+
+    //
+    //  Turn optimisation off for files with Meadow debug helpers turned on.
+    //
+    #pragma GCC optimize "Og"
+
+    // Meadow F7v1
+    #define DEBUG_PIN_V1_A0 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
+    #define DEBUG_PIN_V1_A1 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
+    #define DEBUG_PIN_V1_A2 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
+    #define DEBUG_PIN_V1_A3 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN7)
+    #define DEBUG_PIN_V1_A4 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
+    #define DEBUG_PIN_V1_A5 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN1)
+
+    #define DEBUG_PIN_V1_SCK (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
+    #define DEBUG_PIN_V1_COPI (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
+    #define DEBUG_PIN_V1_CIPO (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
+
+    #define DEBUG_PIN_V1_D00 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
+    #define DEBUG_PIN_V1_D01 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
+    #define DEBUG_PIN_V1_D02 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
+    #define DEBUG_PIN_V1_D03 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
+    #define DEBUG_PIN_V1_D04 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
+
+    #define DEBUG_PIN_V1_D05 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
+    #define DEBUG_PIN_V1_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
+    #define DEBUG_PIN_V1_D07 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
+    #define DEBUG_PIN_V1_D08 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
+    #define DEBUG_PIN_V1_D09 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
+    #define DEBUG_PIN_V1_D10 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
+    #define DEBUG_PIN_V1_D11 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
+    #define DEBUG_PIN_V1_D12 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
+    #define DEBUG_PIN_V1_D13 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
+    #define DEBUG_PIN_V1_D14 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTG | GPIO_PIN3)
+    #define DEBUG_PIN_V1_D15 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTE | GPIO_PIN3)
+
+    #define DEBUG_PIN_V1_RED_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN2)
+    #define DEBUG_PIN_V1_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
+    #define DEBUG_PIN_V1_BLUE_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
+
+    // Meadow F7v2 - Many of the F7v1 exposed pins did not change. They are duplicated here for convenience.
+    #define DEBUG_PIN_V2_A0 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
+    #define DEBUG_PIN_V2_A1 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
+    #define DEBUG_PIN_V2_A2 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
+    #define DEBUG_PIN_V2_A3 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
+    #define DEBUG_PIN_V2_A4 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
+    #define DEBUG_PIN_V2_A5 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
+
+    #define DEBUG_PIN_V2_SCK (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
+    #define DEBUG_PIN_V2_COPI (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
+    #define DEBUG_PIN_V2_CIPO (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
+
+    #define DEBUG_PIN_V2_D00 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
+    #define DEBUG_PIN_V2_D01 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
+    #define DEBUG_PIN_V2_D02 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
+    #define DEBUG_PIN_V2_D03 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
+    #define DEBUG_PIN_V2_D04 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
+
+    #define DEBUG_PIN_V2_D05 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN4)
+    #define DEBUG_PIN_V2_D06 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
+    #define DEBUG_PIN_V2_D07 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
+    #define DEBUG_PIN_V2_D08 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
+    #define DEBUG_PIN_V2_D09 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
+    #define DEBUG_PIN_V2_D10 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
+    #define DEBUG_PIN_V2_D11 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
+    #define DEBUG_PIN_V2_D12 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
+    #define DEBUG_PIN_V2_D13 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
+    #define DEBUG_PIN_V2_D14 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN12)
+    #define DEBUG_PIN_V2_D15 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTG | GPIO_PIN12)
+
+    #define DEBUG_PIN_V2_RED_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN2)
+    #define DEBUG_PIN_V2_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
+    #define DEBUG_PIN_V2_BLUE_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
+
+    // Meadow CCM DEV v2.0a - Labled using Port/Pin (e.g. PA4) on the silk screen. The Axx and Dxx were retained.
+    #define DEBUG_PIN_CCM_A00_PA4 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
+    #define DEBUG_PIN_CCM_A01_PA5 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
+    #define DEBUG_PIN_CCM_A02_PA3 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
+    #define DEBUG_PIN_CCM_A03_PB0 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
+    #define DEBUG_PIN_CCM_A04_PB1 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
+    #define DEBUG_PIN_CCM_A05_PC0 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
+
+    #define DEBUG_PIN_CCM_SCK_PC10 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
+    #define DEBUG_PIN_CCM_COPI_PB5 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
+    #define DEBUG_PIN_CCM_CIPO_PC11 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
+
+    #define DEBUG_PIN_CCM_D00_PI9 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
+    #define DEBUG_PIN_CCM_D01_PH13 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
+    #define DEBUG_PIN_CCM_D02_PH10 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
+    #define DEBUG_PIN_CCM_D03_PB8 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
+    #define DEBUG_PIN_CCM_D04_PB9 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
+
+    #define DEBUG_PIN_CCM_D05_PB4 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN4)
+    #define DEBUG_PIN_CCM_D06_PB13 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
+    #define DEBUG_PIN_CCM_D07_PB7 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
+    #define DEBUG_PIN_CCM_D08_PB6 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
+    #define DEBUG_PIN_CCM_D09_PI11 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN11)
+    #define DEBUG_PIN_CCM_D10_PD5 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTD | GPIO_PIN5)
+    #define DEBUG_PIN_CCM_D11_PA10 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN10)
+    #define DEBUG_PIN_CCM_D12_PB14 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
+    #define DEBUG_PIN_CCM_D13_PB15 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
+    #define DEBUG_PIN_CCM_D14_PB12 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN12)
+    #define DEBUG_PIN_CCM_D15_PC8 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN8)
+
+    #define DEBUG_PIN_CCM_RED_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
+    #define DEBUG_PIN_CCM_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
+    #define DEBUG_PIN_CCM_BLUE_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
+
+    /**
+     *  Configure a GPIO for debugging and set the initial state to low.
+     */
+    #define DEBUG_CONFIGURE_PIN(pin)                                                                                                                                                                                                                                                                       \
+        do                                                                                                                                                                                                                                                                                                 \
+        {                                                                                                                                                                                                                                                                                                  \
+            stm32_unconfiggpio((pin));                                                                                                                                                                                                                                                                     \
+            stm32_configgpio((pin));                                                                                                                                                                                                                                                                       \
+            stm32_gpiowrite((pin), false);                                                                                                                                                                                                                                                                 \
+        }                                                                                                                                                                                                                                                                                                  \
+        while (0)
+
+    /**
+     *  Set the specified GPIO pin high (assumes DEBUG_CONFIGURE_PIN has been called).
+     */
+    #define DEBUG_SET_HIGH(pin) stm32_gpiowrite((pin), true)
+
+    /**
+     *  Set the specified GPIO pin low (assumes DEBUG_CONFIGURE_PIN has been called).
+     */
+    #define DEBUG_SET_LOW(pin) stm32_gpiowrite((pin), false)
+
+    /**
+     *  Pulse the specified GPIO pin for the specified number of microseconds
+     *  (assumes DEBUG_CONFIGURE_PIN has been called and the pin is already low).
+     */
+    #define DEBUG_PULSE(pin, duration)                                                                                                                                                                                                                                                                     \
+        do                                                                                                                                                                                                                                                                                                 \
+        {                                                                                                                                                                                                                                                                                                  \
+            stm32_gpiowrite((pin), true);                                                                                                                                                                                                                                                                  \
+            usleep((duration));                                                                                                                                                                                                                                                                            \
+            stm32_gpiowrite((pin), false);                                                                                                                                                                                                                                                                 \
+        }                                                                                                                                                                                                                                                                                                  \
+        while (0)
 
 #else
 
-#pragma message "Meadow OS debug helpers are active, this may interfere with .NET applications!"
+    #define MEADOW_TRACE_INFORMATION(format, ...)
 
-//
-//  Trace and debug output macros.
-//
-#define MEADOW_TRACE_INFORMATION(format, ...) syslog((LOG_INFO), format, ##__VA_ARGS__)
+    #define MEADOW_TRACE_DEBUG(format, ...)
 
-#define MEADOW_TRACE_DEBUG(format, ...) syslog((LOG_DEBUG), format, ##__VA_ARGS__)
+    #define MEADOW_TRACE_ERROR(format, ...)
 
-#define MEADOW_TRACE_ERROR(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+    #define MEADOW_TRACE_CRITICAL(format, ...)
 
-#define MEADOW_TRACE_CRITICAL(format, ...) syslog((LOG_CRIT), format, ##__VA_ARGS__)
+    // Meadow F7v1
+    #define DEBUG_PIN_V1_A0
+    #define DEBUG_PIN_V1_A1
+    #define DEBUG_PIN_V1_A2
+    #define DEBUG_PIN_V1_A3
+    #define DEBUG_PIN_V1_A4
+    #define DEBUG_PIN_V1_A5
 
-#endif
+    #define DEBUG_PIN_V1_SCK
+    #define DEBUG_PIN_V1_COPI
+    #define DEBUG_PIN_V1_CIPO
 
+    #define DEBUG_PIN_V1_D00
+    #define DEBUG_PIN_V1_D01
+    #define DEBUG_PIN_V1_D02
+    #define DEBUG_PIN_V1_D03
+    #define DEBUG_PIN_V1_D04
 
+    #define DEBUG_PIN_V1_D05
+    #define DEBUG_PIN_V1_D06
+    #define DEBUG_PIN_V1_D07
+    #define DEBUG_PIN_V1_D08
+    #define DEBUG_PIN_V1_D09
+    #define DEBUG_PIN_V1_D10
+    #define DEBUG_PIN_V1_D11
+    #define DEBUG_PIN_V1_D12
+    #define DEBUG_PIN_V1_D13
+    #define DEBUG_PIN_V1_D14
+    #define DEBUG_PIN_V1_D15
 
-//
-//  Turn optimisation off for files with Meadow debug helpers turned on.
-//
-#pragma GCC optimize "Og"
+    #define DEBUG_PIN_V1_RED_LED
+    #define DEBUG_PIN_V1_GREEN_LED
+    #define DEBUG_PIN_V1_BLUE_LED
 
-// Meadow F7v1
-#define DEBUG_PIN_V1_A0   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
-#define DEBUG_PIN_V1_A1   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
-#define DEBUG_PIN_V1_A2   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
-#define DEBUG_PIN_V1_A3   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN7)
-#define DEBUG_PIN_V1_A4   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
-#define DEBUG_PIN_V1_A5   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN1)
+    // Meadow F7v2
+    #define DEBUG_PIN_V2_A0
+    #define DEBUG_PIN_V2_A1
+    #define DEBUG_PIN_V2_A2
+    #define DEBUG_PIN_V2_A3
+    #define DEBUG_PIN_V2_A4
+    #define DEBUG_PIN_V2_A5
 
-#define DEBUG_PIN_V1_SCK  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
-#define DEBUG_PIN_V1_COPI (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
-#define DEBUG_PIN_V1_CIPO (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
+    #define DEBUG_PIN_V2_SCK
+    #define DEBUG_PIN_V2_COPI
+    #define DEBUG_PIN_V2_CIPO
 
-#define DEBUG_PIN_V1_D00  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
-#define DEBUG_PIN_V1_D01  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
-#define DEBUG_PIN_V1_D02  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
-#define DEBUG_PIN_V1_D03  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
-#define DEBUG_PIN_V1_D04  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
- 
-#define DEBUG_PIN_V1_D05  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
-#define DEBUG_PIN_V1_D06  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
-#define DEBUG_PIN_V1_D07  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
-#define DEBUG_PIN_V1_D08  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
-#define DEBUG_PIN_V1_D09  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
-#define DEBUG_PIN_V1_D10  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
-#define DEBUG_PIN_V1_D11  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
-#define DEBUG_PIN_V1_D12  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
-#define DEBUG_PIN_V1_D13  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
-#define DEBUG_PIN_V1_D14  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTG | GPIO_PIN3)
-#define DEBUG_PIN_V1_D15  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTE | GPIO_PIN3)
+    #define DEBUG_PIN_V2_D00
+    #define DEBUG_PIN_V2_D01
+    #define DEBUG_PIN_V2_D02
+    #define DEBUG_PIN_V2_D03
+    #define DEBUG_PIN_V2_D04
 
-#define DEBUG_PIN_V1_RED_LED   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN2)
-#define DEBUG_PIN_V1_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
-#define DEBUG_PIN_V1_BLUE_LED  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
+    #define DEBUG_PIN_V2_D05
+    #define DEBUG_PIN_V2_D06
+    #define DEBUG_PIN_V2_D07
+    #define DEBUG_PIN_V2_D08
+    #define DEBUG_PIN_V2_D09
+    #define DEBUG_PIN_V2_D10
+    #define DEBUG_PIN_V2_D11
+    #define DEBUG_PIN_V2_D12
+    #define DEBUG_PIN_V2_D13
+    #define DEBUG_PIN_V2_D14
+    #define DEBUG_PIN_V2_D15
 
-// Meadow F7v2 - Many of the F7v1 exposed pins did not change. They are duplicated here for convenience.
-#define DEBUG_PIN_V2_A0   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
-#define DEBUG_PIN_V2_A1   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
-#define DEBUG_PIN_V2_A2   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
-#define DEBUG_PIN_V2_A3   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
-#define DEBUG_PIN_V2_A4   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
-#define DEBUG_PIN_V2_A5   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
+    #define DEBUG_PIN_V2_RED_LED
+    #define DEBUG_PIN_V2_GREEN_LED
+    #define DEBUG_PIN_V2_BLUE_LED
 
-#define DEBUG_PIN_V2_SCK  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
-#define DEBUG_PIN_V2_COPI (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
-#define DEBUG_PIN_V2_CIPO (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
-
-#define DEBUG_PIN_V2_D00  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
-#define DEBUG_PIN_V2_D01  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
-#define DEBUG_PIN_V2_D02  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
-#define DEBUG_PIN_V2_D03  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
-#define DEBUG_PIN_V2_D04  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
-
-#define DEBUG_PIN_V2_D05  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN4)
-#define DEBUG_PIN_V2_D06  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
-#define DEBUG_PIN_V2_D07  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
-#define DEBUG_PIN_V2_D08  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
-#define DEBUG_PIN_V2_D09  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
-#define DEBUG_PIN_V2_D10  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
-#define DEBUG_PIN_V2_D11  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
-#define DEBUG_PIN_V2_D12  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
-#define DEBUG_PIN_V2_D13  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
-#define DEBUG_PIN_V2_D14  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN12)
-#define DEBUG_PIN_V2_D15  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTG | GPIO_PIN12)
-
-#define DEBUG_PIN_V2_RED_LED   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN2)
-#define DEBUG_PIN_V2_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN1)
-#define DEBUG_PIN_V2_BLUE_LED  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN0)
-
-// Meadow CCM DEV v2.0a - Labled using Port/Pin (e.g. PA4) on the silk screen. The Axx and Dxx were retained.
-#define DEBUG_PIN_CCM_A00_PA4   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN4)
-#define DEBUG_PIN_CCM_A01_PA5   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN5)
-#define DEBUG_PIN_CCM_A02_PA3   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN3)
-#define DEBUG_PIN_CCM_A03_PB0   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN0)
-#define DEBUG_PIN_CCM_A04_PB1   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN1)
-#define DEBUG_PIN_CCM_A05_PC0   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN0)
-
-#define DEBUG_PIN_CCM_SCK_PC10  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN10)
-#define DEBUG_PIN_CCM_COPI_PB5  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN5)
-#define DEBUG_PIN_CCM_CIPO_PC11 (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN11)
-
-#define DEBUG_PIN_CCM_D00_PI9   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN9)
-#define DEBUG_PIN_CCM_D01_PH13  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN13)
-#define DEBUG_PIN_CCM_D02_PH10  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTH | GPIO_PIN10)
-#define DEBUG_PIN_CCM_D03_PB8   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN8)
-#define DEBUG_PIN_CCM_D04_PB9   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN9)
-
-#define DEBUG_PIN_CCM_D05_PB4   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN4)
-#define DEBUG_PIN_CCM_D06_PB13  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN13)
-#define DEBUG_PIN_CCM_D07_PB7   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN7)
-#define DEBUG_PIN_CCM_D08_PB6   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN6)
-#define DEBUG_PIN_CCM_D09_PI11  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTI | GPIO_PIN11)
-#define DEBUG_PIN_CCM_D10_PD5   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTD | GPIO_PIN5)
-#define DEBUG_PIN_CCM_D11_PA10  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTA | GPIO_PIN10)
-#define DEBUG_PIN_CCM_D12_PB14  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN14)
-#define DEBUG_PIN_CCM_D13_PB15  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN15)
-#define DEBUG_PIN_CCM_D14_PB12  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTB | GPIO_PIN12)
-#define DEBUG_PIN_CCM_D15_PC8   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN8)
-
-#define DEBUG_PIN_CCM_RED_LED   (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN6)
-#define DEBUG_PIN_CCM_GREEN_LED (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN7)
-#define DEBUG_PIN_CCM_BLUE_LED  (GPIO_OUTPUT | GPIO_FLOAT | GPIO_PUSHPULL | GPIO_SPEED_100MHz | GPIO_PORTC | GPIO_PIN9)
-
-/**
- *  Configure a GPIO for debugging and set the initial state to low.
- */
-#define DEBUG_CONFIGURE_PIN(pin)        do { stm32_unconfiggpio((pin)); stm32_configgpio((pin)); stm32_gpiowrite((pin), false); } while (0)
-
-/**
- *  Set the specified GPIO pin high (assumes DEBUG_CONFIGURE_PIN has been called).
- */
-#define DEBUG_SET_HIGH(pin)             stm32_gpiowrite((pin), true)
-
-/**
- *  Set the specified GPIO pin low (assumes DEBUG_CONFIGURE_PIN has been called).
- */
-#define DEBUG_SET_LOW(pin)              stm32_gpiowrite((pin), false)
-
-/**
- *  Pulse the specified GPIO pin for the specified number of microseconds 
- *  (assumes DEBUG_CONFIGURE_PIN has been called and the pin is already low).
- */
-#define DEBUG_PULSE(pin, duration)      do { stm32_gpiowrite((pin), true); usleep((duration)); stm32_gpiowrite((pin), false); } while (0)
-
-#else
-
-#define MEADOW_TRACE_INFORMATION(format, ...)
-
-#define MEADOW_TRACE_DEBUG(format, ...)
-
-#define MEADOW_TRACE_ERROR(format, ...)
-
-#define MEADOW_TRACE_CRITICAL(format, ...)
-
-
-// Meadow F7v1
-#define DEBUG_PIN_V1_A0
-#define DEBUG_PIN_V1_A1
-#define DEBUG_PIN_V1_A2
-#define DEBUG_PIN_V1_A3
-#define DEBUG_PIN_V1_A4
-#define DEBUG_PIN_V1_A5
-
-#define DEBUG_PIN_V1_SCK
-#define DEBUG_PIN_V1_COPI
-#define DEBUG_PIN_V1_CIPO
-
-#define DEBUG_PIN_V1_D00
-#define DEBUG_PIN_V1_D01
-#define DEBUG_PIN_V1_D02
-#define DEBUG_PIN_V1_D03
-#define DEBUG_PIN_V1_D04
-
-#define DEBUG_PIN_V1_D05
-#define DEBUG_PIN_V1_D06
-#define DEBUG_PIN_V1_D07
-#define DEBUG_PIN_V1_D08
-#define DEBUG_PIN_V1_D09
-#define DEBUG_PIN_V1_D10
-#define DEBUG_PIN_V1_D11
-#define DEBUG_PIN_V1_D12
-#define DEBUG_PIN_V1_D13
-#define DEBUG_PIN_V1_D14
-#define DEBUG_PIN_V1_D15
-
-#define DEBUG_PIN_V1_RED_LED
-#define DEBUG_PIN_V1_GREEN_LED
-#define DEBUG_PIN_V1_BLUE_LED
-
-// Meadow F7v2
-#define DEBUG_PIN_V2_A0
-#define DEBUG_PIN_V2_A1
-#define DEBUG_PIN_V2_A2
-#define DEBUG_PIN_V2_A3
-#define DEBUG_PIN_V2_A4
-#define DEBUG_PIN_V2_A5
-
-#define DEBUG_PIN_V2_SCK
-#define DEBUG_PIN_V2_COPI
-#define DEBUG_PIN_V2_CIPO
-
-#define DEBUG_PIN_V2_D00
-#define DEBUG_PIN_V2_D01
-#define DEBUG_PIN_V2_D02
-#define DEBUG_PIN_V2_D03
-#define DEBUG_PIN_V2_D04
-
-#define DEBUG_PIN_V2_D05
-#define DEBUG_PIN_V2_D06
-#define DEBUG_PIN_V2_D07
-#define DEBUG_PIN_V2_D08
-#define DEBUG_PIN_V2_D09
-#define DEBUG_PIN_V2_D10
-#define DEBUG_PIN_V2_D11
-#define DEBUG_PIN_V2_D12
-#define DEBUG_PIN_V2_D13
-#define DEBUG_PIN_V2_D14
-#define DEBUG_PIN_V2_D15
-
-#define DEBUG_PIN_V2_RED_LED
-#define DEBUG_PIN_V2_GREEN_LED
-#define DEBUG_PIN_V2_BLUE_LED
-
-// Null functions
-#define DEBUG_CONFIGURE_PIN(pin)
-#define DEBUG_SET_HIGH(pin)
-#define DEBUG_SET_LOW(pin)
-#define DEBUG_PULSE(pin, duration)
+    // Null functions
+    #define DEBUG_CONFIGURE_PIN(pin)
+    #define DEBUG_SET_HIGH(pin)
+    #define DEBUG_SET_LOW(pin)
+    #define DEBUG_PULSE(pin, duration)
 
 #endif /* #if defined(USE_MEADOW_DEBUG_HELPERS) */
 

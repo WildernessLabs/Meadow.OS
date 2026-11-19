@@ -1,6 +1,6 @@
 /*************************************************************************
  * \apps\examples\hcom\misc\espcp_utils.h
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -33,7 +33,6 @@
  *
  ****************************************************************************/
 
-
 #ifndef __CONFIGS_MEADOW_SRC_HCOM_MISC_ESPCP_UTILS__H
 #define __CONFIGS_MEADOW_SRC_HCOM_MISC_ESPCP_UTILS__H
 
@@ -58,25 +57,25 @@
  */
 
 // Note: Most of these definitions are in the esp32 codebase (espcp_shared_enums.h)
-#define ESPCP_CELL_CONNECTED_EVENT        0x00
-#define ESPCP_CELL_DISCONNECTED_EVENT     0x01
-#define ESPCP_CELL_ERROR_EVENT            0x02
-#define ESPCP_CELL_AT_CMD_EVENT           0x04
+#define ESPCP_CELL_CONNECTED_EVENT 0x00
+#define ESPCP_CELL_DISCONNECTED_EVENT 0x01
+#define ESPCP_CELL_ERROR_EVENT 0x02
+#define ESPCP_CELL_AT_CMD_EVENT 0x04
 
-#define ESPCP_WIFI_NTP_UPDATE_EVENT       0x26
-#define ESPCP_ETHERNET_NTP_UPDATE_EVENT   0x26
-#define ESPCP_CELL_NTP_UPDATE_EVENT       0x05
-#define ESPCP_CELL_CONNECTING_EVENT       0x08
-#define ESPCP_CELL_RETRY_EXCEEDED_EVENT   0x09
+#define ESPCP_WIFI_NTP_UPDATE_EVENT 0x26
+#define ESPCP_ETHERNET_NTP_UPDATE_EVENT 0x26
+#define ESPCP_CELL_NTP_UPDATE_EVENT 0x05
+#define ESPCP_CELL_CONNECTING_EVENT 0x08
+#define ESPCP_CELL_RETRY_EXCEEDED_EVENT 0x09
 
-#define ESPCP_WIFI_INTERFACE              0x01
-#define ESPCP_ETHERNET_INTERFACE          0x06
-#define ESPCP_CELL_INTERFACE              0x07
-#define ESPCP_NONE_INTERFACE              0x00
+#define ESPCP_WIFI_INTERFACE 0x01
+#define ESPCP_ETHERNET_INTERFACE 0x06
+#define ESPCP_CELL_INTERFACE 0x07
+#define ESPCP_NONE_INTERFACE 0x00
 
-#define ESPCP_SIMPLE_EVENT_MESSAGE_ID     0x00
-#define ESPCP_COMPLETED_OK_STATUS_CODE    0x00
-#define ESPCP_FAILURE_STATUS_CODE         0x03
+#define ESPCP_SIMPLE_EVENT_MESSAGE_ID 0x00
+#define ESPCP_COMPLETED_OK_STATUS_CODE 0x00
+#define ESPCP_FAILURE_STATUS_CODE 0x03
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -92,6 +91,6 @@
 
 int espcp_queue_event_messages(uint8_t *message);
 int espcp_open_esp32_events_message_queue(void);
-void espcp_encode_event_data(espcp_event_data_t *, uint8_t *);  
+void espcp_encode_event_data(espcp_event_data_t *, uint8_t *);
 
 #endif //__CONFIGS_MEADOW_SRC_HCOM_MISC_ESPCP_UTILS__H

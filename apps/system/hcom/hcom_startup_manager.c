@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\hcom_startup_manager.c
- * 
+ *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -45,15 +45,15 @@
 #include "hcom_common.h"
 #include <meadow/hcom_shared_common.h>
 
-#if defined (CONFIG_MEADOW_CLOUD)
-#include "ota/hcom_ota.h"
+#if defined(CONFIG_MEADOW_CLOUD)
+    #include "ota/hcom_ota.h"
 #endif
 #include "cell/hcom_cell.h"
 #include "misc/espcp_utils.h"
 
-#if defined (CONFIG_HCOM_ESP32_COMMS)
-#include "esp32/hcom_esp32_comms.h"
-#include "esp32/hcom_esp32_network_monitor.h"
+#if defined(CONFIG_HCOM_ESP32_COMMS)
+    #include "esp32/hcom_esp32_comms.h"
+    #include "esp32/hcom_esp32_network_monitor.h"
 #endif
 
 #include <meadow/meadow_os.h>
@@ -66,7 +66,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-extern int hcom_main (int argc, char* argv[]);
+extern int hcom_main(int argc, char *argv[]);
 
 /****************************************************************************
  * Private Data
@@ -83,15 +83,15 @@ static sem_t _startupWaitSem;
 // Wait for the thread holding the semaphore to release it
 static int hcom_startup_mgr_takesem(sem_t *semaphore)
 {
-  int ret;
+    int ret;
 
-  do
-  {
-    ret = sem_wait(semaphore);    // Take the semaphore (perhaps waiting)
-  }
-  while (ret == ERROR && errno == EINTR);
+    do
+    {
+        ret = sem_wait(semaphore); // Take the semaphore (perhaps waiting)
+    }
+    while (ret == ERROR && errno == EINTR);
 
-  return _semaphoreRet;
+    return _semaphoreRet;
 }
 
 //===========================================================================
@@ -99,16 +99,16 @@ static int hcom_startup_mgr_takesem(sem_t *semaphore)
 // to continue the setup
 void hcom_startup_mgr_release_sem(void)
 {
-  hcom_startup_mgr_release_sem_err(OK);
+    hcom_startup_mgr_release_sem_err(OK);
 }
 
 //---------------------------------------------------------------------------
 // Called to report an error
 void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 {
-  _semaphoreRet = semaphoreRet;
+    _semaphoreRet = semaphoreRet;
 
-  sem_post(&_startupWaitSem);
+    sem_post(&_startupWaitSem);
 }
 
 /****************************************************************************
@@ -130,420 +130,441 @@ void hcom_startup_mgr_release_sem_err(int semaphoreRet)
 // supported, then run CLI request processing. Does not return.
 static int hcom_startup_mgr_unsupported_board(void)
 {
-  int ret;
+    int ret;
 
-  // Allocates memory and initializes hcom circular buffer
-  ret = hcom_host_enq_deq_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Allocates memory and initializes hcom circular buffer
+    ret = hcom_host_enq_deq_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Sets one variable
-  ret = hcom_host_route_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets one variable
+    ret = hcom_host_route_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Allocates memory and sets some internal variables
-  ret = hcom_host_send_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Allocates memory and sets some internal variables
+    ret = hcom_host_send_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Reset before spawning the thread that will release this semaphore
-  _semaphoreRet = OK;
+    // Reset before spawning the thread that will release this semaphore
+    _semaphoreRet = OK;
 
-  // Creates a thread to run hcom USB serial receive
-  ret = hcom_host_recv_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Creates a thread to run hcom USB serial receive
+    ret = hcom_host_recv_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  ret = hcom_startup_mgr_takesem(&_startupWaitSem);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    ret = hcom_startup_mgr_takesem(&_startupWaitSem);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Does not return
-  return hcom_host_process_setup();
+    // Does not return
+    return hcom_host_process_setup();
 }
 
 //=========================================================================
 int hcom_main(int argc, char *argv[])
 {
-  int ret;
+    int ret;
 
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "hcom_main() [Thrd:%d][Task:%d] %s\n",
-     gettid(), getpid(), "Init Meadow on Apps, then proc all CLI commands");
-  usleep(10 * 1000);
+    syslog(LOG_MDIAG, "hcom_main() [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), "Init Meadow on Apps, then proc all CLI commands");
+    usleep(10 * 1000);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Startup Manager 1\n"); usleep(10 * 1000);
+    syslog(LOG_MDIAG, "Startup Manager 1\n");
+    usleep(10 * 1000);
 #endif
 
-  // To better control the startup sequence a semaphore is used.
-  // This thread will wait for those setup routines that immediately
-  // create a thread to complete before continuing with the startup.
-  // Initialize value to 0 for a 'signaling' semaphore to block
-  // the calling thread (this one) until it is okay for it to proceed.
-  ret = sem_init(&_startupWaitSem, 0, 0);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-sem_init startup wait sem:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // To better control the startup sequence a semaphore is used.
+    // This thread will wait for those setup routines that immediately
+    // create a thread to complete before continuing with the startup.
+    // Initialize value to 0 for a 'signaling' semaphore to block
+    // the calling thread (this one) until it is okay for it to proceed.
+    ret = sem_init(&_startupWaitSem, 0, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-sem_init startup wait sem:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Special non-standard nuttx function required for signaling semaphores
-  ret = sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-sem_setprotocol startup wait sem:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Special non-standard nuttx function required for signaling semaphores
+    ret = sem_setprotocol(&_startupWaitSem, SEM_PRIO_NONE);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-sem_setprotocol startup wait sem:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
-  //
-  //  We take a copy of the config and set and application global variables first
-  //  to make them available to the various components that need them.  Doing this
-  //  at startup saves having to make repeated calls to get the configuration from
-  //  the OS.
-  //
-  meadow_configuration_t *config = meadow_os_deep_copy_config();
-  if (config == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", __FILE__, __LINE__);
-    return -ENOMEM;
-  }
-  #if defined (CONFIG_HCOM_MONO_STDERR_STDOUT)
-  g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
-  #endif
+#if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
+    //
+    //  We take a copy of the config and set and application global variables first
+    //  to make them available to the various components that need them.  Doing this
+    //  at startup saves having to make repeated calls to get the configuration from
+    //  the OS.
+    //
+    meadow_configuration_t *config = meadow_os_deep_copy_config();
+    if (config == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-Deep copy config failed\n", __FILE__, __LINE__);
+        return -ENOMEM;
+    }
+    #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
+    g_copy_application_output_to_uart = config->copy_application_output_to_uart && config->use_uart1_for_trace;
+    #endif
 
-  meadow_os_config_free_resources(config);
+    meadow_os_config_free_resources(config);
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Startup Manager 1\n"); usleep(20 * 1000);
-#endif
-  
-  // Opens the nuttx upd driver to allow nuttx-side access.
-  ret = hcom_via_nx_upd_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-
-  // The F7FeatherV1 is not supported (Issue #453) and the kernel set up no
-  // flash, file system, config or ESP32 for it. Start only host comms, then
-  // process CLI requests, which hcom_host_handle_packet() answers with a
-  // "not supported" error.
-  if (hcom_via_nx_get_hw_version() == MEADOW_F7_HW_VERSION_NUMB_F7V1)
-  {
-    return hcom_startup_mgr_unsupported_board();
-  }
-
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 2\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Startup Manager 1\n");
+    usleep(20 * 1000);
 #endif
 
-  // Restore previous syslog mask from the battery backed register (BBR).
-  // Note: This needs to be third because all hcom_logging_syslog
-  // calls are filtered by the results of this call. Nothing to wait for.
-  ret = hcom_diag_trace_priority_level_init();
-  if(ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", __FILE__, __LINE__, ret);
-    return ret; 
-  }
+    // Opens the nuttx upd driver to allow nuttx-side access.
+    ret = hcom_via_nx_upd_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup hcom nx access:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Report the user heap once at startup, so that changes to the memory
-  // layout (for example the SDRAM reserved for the Mono runtime image) and
-  // memory use across releases can be checked from the log.
-  struct mallinfo heapInfo = mallinfo();
-  syslog(LOG_NOTICE, "User heap: %d bytes in total, %d bytes free\n",
-         heapInfo.arena, heapInfo.fordblks);
+    // The F7FeatherV1 is not supported (Issue #453) and the kernel set up no
+    // flash, file system, config or ESP32 for it. Start only host comms, then
+    // process CLI requests, which hcom_host_handle_packet() answers with a
+    // "not supported" error.
+    if (hcom_via_nx_get_hw_version() == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+    {
+        return hcom_startup_mgr_unsupported_board();
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 3\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 2\n");
+    usleep(20 * 1000);
 #endif
 
-  // Does nothing
-  ret = hcom_common_utils_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup hcom utils:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Restore previous syslog mask from the battery backed register (BBR).
+    // Note: This needs to be third because all hcom_logging_syslog
+    // calls are filtered by the results of this call. Nothing to wait for.
+    ret = hcom_diag_trace_priority_level_init();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-hcom_diag_trace_priority_level_init failed:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    // Report the user heap once at startup, so that changes to the memory
+    // layout (for example the SDRAM reserved for the Mono runtime image) and
+    // memory use across releases can be checked from the log.
+    struct mallinfo heapInfo = mallinfo();
+    syslog(LOG_NOTICE, "User heap: %d bytes in total, %d bytes free\n", heapInfo.arena, heapInfo.fordblks);
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 4\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 3\n");
+    usleep(20 * 1000);
 #endif
 
-  // Does nothing
-  ret = hcom_diag_misc_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Does nothing
+    ret = hcom_common_utils_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup hcom utils:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  //
-  //  Start the ESP UART network monitor thread and then reset the ESP32.
-  //
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 5\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 4\n");
+    usleep(20 * 1000);
 #endif
 
-  hcom_esp32_network_monitor_start();
-  
+    // Does nothing
+    ret = hcom_diag_misc_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    //
+    //  Start the ESP UART network monitor thread and then reset the ESP32.
+    //
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 6\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 5\n");
+    usleep(20 * 1000);
+#endif
+
+    hcom_esp32_network_monitor_start();
+
+#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Apps startup manager 6\n");
+    usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
-  // The startup reset: skipped when a debugger is attached to the ESP32.
-  if(meadow_os_espcp_reset(true) == 0)
-  {
-    syslog(LOG_INFO, "ESP32 startup reset skipped (debugger attached to ESP32)\n");
-  }
+    // The startup reset: skipped when a debugger is attached to the ESP32.
+    if (meadow_os_espcp_reset(true) == 0)
+    {
+        syslog(LOG_INFO, "ESP32 startup reset skipped (debugger attached to ESP32)\n");
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 7\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 7\n");
+    usleep(20 * 1000);
 #endif
 
-  // Only sets a bool if CONFIG_SYSTEM_NSH set
-  ret = hcom_diag_nsh_support_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-nsh setup %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-  
+    // Only sets a bool if CONFIG_SYSTEM_NSH set
+    ret = hcom_diag_nsh_support_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-nsh setup %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 8\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 8\n");
+    usleep(20 * 1000);
 #endif
 
-  // Does nothing
-  ret = hcom_misc_rqst_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Does nothing
+    ret = hcom_misc_rqst_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup misc %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 9\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 9\n");
+    usleep(20 * 1000);
 #endif
 
-  // Sets internal variable state
-  ret = hcom_file_dnld_stm32f7_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup file download %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets internal variable state
+    ret = hcom_file_dnld_stm32f7_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup file download %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  // Sets internal variable state
-  ret = hcom_file_dnld_esp32_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup esp32 file download %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets internal variable state
+    ret = hcom_file_dnld_esp32_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup esp32 file download %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 10\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 10\n");
+    usleep(20 * 1000);
 #endif
 
-  // Sets internal variable state
-  ret = hcom_file_upld_proc_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup file upload %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets internal variable state
+    ret = hcom_file_upld_proc_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup file upload %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 11\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 11\n");
+    usleep(20 * 1000);
 #endif
 
-  // Allocates memory and sets a few internal variable states
-  ret = hcom_file_write_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup file cmds %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Allocates memory and sets a few internal variable states
+    ret = hcom_file_write_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup file cmds %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 12\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 12\n");
+    usleep(20 * 1000);
 #endif
 
-  // Allocates memory and initializes hcom circular buffer
-  ret = hcom_host_enq_deq_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Allocates memory and initializes hcom circular buffer
+    ret = hcom_host_enq_deq_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 13\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 13\n");
+    usleep(20 * 1000);
 #endif
 
-  // Sets one variable
-  ret = hcom_host_route_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets one variable
+    ret = hcom_host_route_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 14\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 14\n");
+    usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
-  // Reset before spawning the thread that will release this semaphore, so a
-  // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
-  // its result clobbered back to OK.
-  _semaphoreRet = OK;
+    // Reset before spawning the thread that will release this semaphore, so a
+    // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
+    // its result clobbered back to OK.
+    _semaphoreRet = OK;
 
-  // Creates a fifo and a thread to receive stdout
-  ret = hcom_mono_stdxxx_read_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-  
-#if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 15\n"); usleep(20 * 1000);
+    // Creates a fifo and a thread to receive stdout
+    ret = hcom_mono_stdxxx_read_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
+
+    #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+    syslog(LOG_MDIAG, "Apps startup manager 15\n");
+    usleep(20 * 1000);
+    #endif
+
+    ret = hcom_startup_mgr_takesem(&_startupWaitSem);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 #endif
 
-  ret = hcom_startup_mgr_takesem(&_startupWaitSem);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup mono stdxxx fifo %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
-#endif
-
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 16\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 16\n");
+    usleep(20 * 1000);
 #endif
 
 #if defined(CONFIG_HCOM_MONO_REMOTE_DEBUGGING)
-  // Sets a few variables
-  ret = hcom_mono_remote_dbg_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup remote dbg %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Sets a few variables
+    ret = hcom_mono_remote_dbg_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup remote dbg %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 17\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 17\n");
+    usleep(20 * 1000);
 #endif
 
-#if defined (CONFIG_HCOM_ESP32_COMMS)
-  // Sets a few internal variables
-  ret = hcom_esp32_uart_comms_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup esp32 comms %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+#if defined(CONFIG_HCOM_ESP32_COMMS)
+    // Sets a few internal variables
+    ret = hcom_esp32_uart_comms_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup esp32 comms %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 18\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 18\n");
+    usleep(20 * 1000);
 #endif
-  // Allocates memory and sets some internal variables
-  ret = hcom_host_send_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Allocates memory and sets some internal variables
+    ret = hcom_host_send_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host msg builder:%d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 19\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 19\n");
+    usleep(20 * 1000);
 #endif
 
-  // Reset before spawning the thread that will release this semaphore, so a
-  // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
-  // its result clobbered back to OK.
-  _semaphoreRet = OK;
+    // Reset before spawning the thread that will release this semaphore, so a
+    // fast releaser can't race hcom_startup_mgr_takesem()'s own reset and have
+    // its result clobbered back to OK.
+    _semaphoreRet = OK;
 
-  // Creates a thread to run hcom USB serial receive
-  ret = hcom_host_recv_setup();  // Handle CLI commands
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }  // Wait, hcom_host_recv_setup creates a new thread that must start before we continue
-  ret = hcom_startup_mgr_takesem(&_startupWaitSem);
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Creates a thread to run hcom USB serial receive
+    ret = hcom_host_recv_setup(); // Handle CLI commands
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    } // Wait, hcom_host_recv_setup creates a new thread that must start before we continue
+    ret = hcom_startup_mgr_takesem(&_startupWaitSem);
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup Host comms %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 20\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 20\n");
+    usleep(20 * 1000);
 #endif
 
-// #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-//   syslog(LOG_MDIAG, "Apps startup manager 21\n"); usleep(20 * 1000);
-// #endif
+    // #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
+    //   syslog(LOG_MDIAG, "Apps startup manager 21\n"); usleep(20 * 1000);
+    // #endif
 
-  // Open the ku traverse FIFO and spawn the receive thread.
-  ret = hcom_traverse_ku_init_user_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Open the ku traverse FIFO and spawn the receive thread.
+    ret = hcom_traverse_ku_init_user_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup ku traverse channel %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 22\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 22\n");
+    usleep(20 * 1000);
 #endif
 
-  // Minor setup, configures blue led as output
-  ret = hcom_mono_ctrl_mono_main_setup();  // Handle CLI commands
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup mono main %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // Minor setup, configures blue led as output
+    ret = hcom_mono_ctrl_mono_main_setup(); // Handle CLI commands
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup mono main %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 23\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 23\n");
+    usleep(20 * 1000);
 #endif
 
-  // Open ESP32 events message queue on user space side
-  espcp_open_esp32_events_message_queue();
+    // Open ESP32 events message queue on user space side
+    espcp_open_esp32_events_message_queue();
 
-  // Run system updaters, which apply any OS and filesystem updates that have been staged
-#if(0)
-  os_update();
-  app_update();
-  firmware_update();
+    // Run system updaters, which apply any OS and filesystem updates that have been staged
+#if (0)
+    os_update();
+    app_update();
+    firmware_update();
 #endif
 
 // MEADOW.OS REBASE the 3 lines above caused the following build errors:
@@ -555,42 +576,43 @@ int hcom_main(int argc, char *argv[])
 
 // Last stop, start mono
 #if defined(CONFIG_SYSTEM_MONO)
-  int monoStartResult = hcom_mono_ctrl_start_mono_main();
-  (void)monoStartResult;    // Only used by the cell (PPPD) start below.
+    int monoStartResult = hcom_mono_ctrl_start_mono_main();
+    (void) monoStartResult; // Only used by the cell (PPPD) start below.
 
-  // Start the cell network (CMUX and PPPD), when the cell interface is
-  // selected and Mono is running.
-#if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
-  if (monoStartResult == OK)
-  {
-    ret = hcom_cell_start();
-    if (ret < 0)
+                            // Start the cell network (CMUX and PPPD), when the cell interface is
+    // selected and Mono is running.
+    #if defined(CONFIG_MEADOW_CELL_INCLUDE_IN_BUILD)
+    if (monoStartResult == OK)
     {
-      syslog(LOG_ERR, "%s@%d-start cell %d\n", __FILE__, __LINE__, ret);
+        ret = hcom_cell_start();
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-start cell %d\n", __FILE__, __LINE__, ret);
+        }
     }
-  }
-#endif
+    #endif
 #endif
 
 #if HCOM_DIAG_INCLUDE_APP_STARTUP_SYSLOG > 0
-  syslog(LOG_MDIAG, "Apps startup manager 24 - All successful\n"); usleep(20 * 1000);
+    syslog(LOG_MDIAG, "Apps startup manager 24 - All successful\n");
+    usleep(20 * 1000);
 #endif
 
-#if defined (CONFIG_SYSTEM_NSH)
-  hcom_diag_misc_launch_nsh(1);
+#if defined(CONFIG_SYSTEM_NSH)
+    hcom_diag_misc_launch_nsh(1);
 #endif
 
-  // This startup thread was created by Nuttx. It will now be used to run the
-  // task of processing CLI messages. So, it won't return from this call.
-  ret = hcom_host_process_setup();
-  if (ret < 0)
-  {
-    syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
-    return ret;
-  }
+    // This startup thread was created by Nuttx. It will now be used to run the
+    // task of processing CLI messages. So, it won't return from this call.
+    ret = hcom_host_process_setup();
+    if (ret < 0)
+    {
+        syslog(LOG_CRIT, "%s@%d-setup host request %d\n", __FILE__, __LINE__, ret);
+        return ret;
+    }
 
-  sem_destroy(&_startupWaitSem);
-  return OK;
+    sem_destroy(&_startupWaitSem);
+    return OK;
 }
 
 //=========================================================================
@@ -598,18 +620,18 @@ int hcom_main(int argc, char *argv[])
 // comms file descriptor which will cause the worker thread to exit.
 // At present this is never called
 void hcom_manager_shutdown()
-{  
-  hcom_host_recv_shutdown();
+{
+    hcom_host_recv_shutdown();
 #if defined(CONFIG_HCOM_MONO_STDERR_STDOUT)
-  hcom_mono_stdxxx_read_shutdown();
+    hcom_mono_stdxxx_read_shutdown();
 #endif
-  hcom_common_utils_shutdown();
-  hcom_host_route_shutdown();  
-  hcom_host_enq_deq_shutdown();
-  hcom_host_send_shutdown();
-  hcom_file_write_shutdown();
-  hcom_mono_remote_dbg_shutdown();
-#if defined (CONFIG_HCOM_ESP32_COMMS)
-  hcom_esp32_uart_comms_shutdown();
+    hcom_common_utils_shutdown();
+    hcom_host_route_shutdown();
+    hcom_host_enq_deq_shutdown();
+    hcom_host_send_shutdown();
+    hcom_file_write_shutdown();
+    hcom_mono_remote_dbg_shutdown();
+#if defined(CONFIG_HCOM_ESP32_COMMS)
+    hcom_esp32_uart_comms_shutdown();
 #endif
 }

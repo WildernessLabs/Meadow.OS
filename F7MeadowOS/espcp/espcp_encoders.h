@@ -3,7 +3,7 @@
  * @author Mark Stevens
  * @brief ESPCP message encoders and decoders
  * @date 2026-06-24
- * 
+ *
  * @copyright Copyright (c) 2026
  */
 
@@ -25,8 +25,8 @@ struct espcp_system_configuration_s
     uint8_t board_mac_address[6];
     uint8_t soft_ap_mac_address[6];
     uint8_t bluetooth_mac_address[6];
-    char * device_name;
-    char * default_access_point;
+    char *device_name;
+    char *default_access_point;
     uint8_t reset_reason;
     uint32_t version_major;
     uint32_t version_minor;
@@ -39,7 +39,7 @@ struct espcp_system_configuration_s
     uint8_t build_minute;
     uint8_t build_second;
     uint32_t build_hash;
-    char * build_branch_name;
+    char *build_branch_name;
 };
 typedef struct espcp_system_configuration_s espcp_system_configuration_t;
 
@@ -62,8 +62,8 @@ typedef struct espcp_error_event_s espcp_error_event_t;
 
 struct espcp_access_point_information_s
 {
-    char * network_name;
-    char * password;
+    char *network_name;
+    char *password;
     uint32_t ip_address;
     uint32_t subnet_mask;
     uint32_t gateway;
@@ -154,15 +154,15 @@ struct espcp_addr_info_s
     uint32_t addr_len;
     uint32_t addr_length;
     uint8_t *addr;
-    char * canon_name;
+    char *canon_name;
     void *next;
 };
 typedef struct espcp_addr_info_s espcp_addr_info_t;
 
 struct espcp_get_addr_info_request_s
 {
-    char * node_name;
-    char * serv_name;
+    char *node_name;
+    char *serv_name;
     uint32_t hints_length;
     uint8_t *hints;
 };
@@ -350,9 +350,9 @@ struct espcp_recvmsg_response_s
     uint8_t *iov_data;
     int32_t result;
     int32_t response_errno;
-    uint32_t source_address_length;   /* wire byte count; used for allocation and copy */
+    uint32_t source_address_length; /* wire byte count; used for allocation and copy */
     uint8_t *source_address;
-    uint32_t source_address_len;      /* POSIX socklen_t value; written to msg_namelen */
+    uint32_t source_address_len;    /* POSIX socklen_t value; written to msg_namelen */
     uint32_t control_length;
     uint8_t *control;
     int32_t msg_flags;
@@ -361,7 +361,7 @@ typedef struct espcp_recvmsg_response_s espcp_recvmsg_response_t;
 
 struct espcp_encoded_msghdr_s
 {
-    uint8_t *scatter_array;        /* fully serialised msghdr payload for the wire */
+    uint8_t *scatter_array; /* fully serialised msghdr payload for the wire */
     uint32_t scatter_array_length;
 };
 typedef struct espcp_encoded_msghdr_s espcp_encoded_msghdr_t;
@@ -484,7 +484,7 @@ typedef struct espcp_set_antenna_request_s espcp_set_antenna_request_t;
 
 struct espcp_b_t_stack_config_s
 {
-    char * config;
+    char *config;
 };
 typedef struct espcp_b_t_stack_config_s espcp_b_t_stack_config_t;
 
@@ -514,14 +514,14 @@ typedef struct espcp_b_t_server_data_set_s espcp_b_t_server_data_set_t;
 
 struct espcp_file_details_s
 {
-    char * name;
+    char *name;
     uint16_t length;
 };
 typedef struct espcp_file_details_s espcp_file_details_t;
 
 struct espcp_file_name_and_contents_s
 {
-    char * name;
+    char *name;
     uint32_t contents_length;
     uint8_t *contents;
 };

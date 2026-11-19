@@ -3,9 +3,9 @@
  *
  *  Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *  Author: Mark Stevens
- * 
+ *
  *  Methods supporting the ESP system functions (e.g. GetBatteryChargeLevel).
- *  
+ *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -69,8 +69,8 @@
  *  consecutive unanswered requests after which the ESP32 is declared not responding
  *  (later calls then fail fast with ENETDOWN instead of each waiting out a timeout).
  */
-#define ESPCP_RESPONSE_TIMEOUT_MILLISECONDS     30000
-#define ESPCP_RESPONSE_TIMEOUT_LIMIT            3
+#define ESPCP_RESPONSE_TIMEOUT_MILLISECONDS 30000
+#define ESPCP_RESPONSE_TIMEOUT_LIMIT 3
 
 /****************************************************************************
  * Private Data / Variables
@@ -114,8 +114,7 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
         g_espcp_response_timeouts++;
         if (g_espcp_response_timeouts >= ESPCP_RESPONSE_TIMEOUT_LIMIT)
         {
-            syslog(LOG_ERR, "espcp: %d consecutive response timeouts, marking the ESP32 as not responding\n",
-                   g_espcp_response_timeouts);
+            syslog(LOG_ERR, "espcp: %d consecutive response timeouts, marking the ESP32 as not responding\n", g_espcp_response_timeouts);
             espcp_config_lock();
             if (espcp_get_configuration() != NULL)
             {
@@ -142,8 +141,7 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
         usleep(100000);
     }
 
-    syslog(LOG_ERR, "espcp: message 0x%08x is stuck before transmission, waiting for it\n",
-           (unsigned int) message->message_id);
+    syslog(LOG_ERR, "espcp: message 0x%08x is stuck before transmission, waiting for it\n", (unsigned int) message->message_id);
     if (net_sem_wait_uninterruptible(message->semaphore) != 0)
     {
         return (espcp_status_codes_failure);
@@ -157,7 +155,7 @@ static uint32_t espcp_queue_message_timed_out(espcp_message_t *message)
  *
  * Description:
  *  Add a message to the message queue and wait on the semaphore.
- * 
+ *
  * Input Parameters:
  *  message - Pointer to an espcp_message_t object.
  *  block - Wait for a response if true, return immediately if false.
@@ -238,7 +236,7 @@ uint32_t espcp_queue_message(espcp_message_t *message, bool block)
  *
  * Description:
  *  Create an event message for a connection change for wired ethernet.
- * 
+ *
  * Input Parameters:
  *  connected - true is a connection has been made, false if a connection
  *              is lost.
@@ -319,4 +317,3 @@ void espcp_queue_ethernet_connection_changed_event(bool connected)
         espcp_delete_message_and_payload(connection_message);
     }
 }
-

@@ -65,12 +65,12 @@
 // Is Ethernet included in build?
 #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)
 
-#define MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT (5)
+    #define MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT (5)
 
-// The default Lease time is only used when using DHCP addressing and there is
-// no connection.
-// #define MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC (120)  // For testing
-#define MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC (3600)   // Once an hour
+    // The default Lease time is only used when using DHCP addressing and there is
+    // no connection.
+    // #define MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC (120)  // For testing
+    #define MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC (3600) // Once an hour
 
 /****************************************************************************
  * Private Data
@@ -86,19 +86,19 @@ static uint32_t _configStaticIpAddr;
 static uint32_t _configStaticIpMask;
 static uint32_t _configStaticGateWay;
 
-//
-//  Pending-action bitmask. _linkStatusUp and this mask are written by the
-//  LAN9355 link-status ISR (meadow_eth_conn_link_status_changed()) and by
-//  this module's own kthread (lease renewal timeout), and read/cleared by
-//  the kthread in meadow_eth_conn_thread_do_work(). A bitmask (rather than
-//  a single mutually-exclusive enum) lets a link-status change and a
-//  lease-renewal-due condition both stay pending if they occur close
-//  together; every access is wrapped in enter_critical_section()/
-//  leave_critical_section() since the ISR side runs in genuine interrupt
-//  context.
-//
-#define MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED (1 << 0)
-#define MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME  (1 << 1)
+    //
+    //  Pending-action bitmask. _linkStatusUp and this mask are written by the
+    //  LAN9355 link-status ISR (meadow_eth_conn_link_status_changed()) and by
+    //  this module's own kthread (lease renewal timeout), and read/cleared by
+    //  the kthread in meadow_eth_conn_thread_do_work(). A bitmask (rather than
+    //  a single mutually-exclusive enum) lets a link-status change and a
+    //  lease-renewal-due condition both stay pending if they occur close
+    //  together; every access is wrapped in enter_critical_section()/
+    //  leave_critical_section() since the ISR side runs in genuine interrupt
+    //  context.
+    //
+    #define MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED (1 << 0)
+    #define MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME (1 << 1)
 
 static uint8_t _pendingActions;
 
@@ -107,8 +107,7 @@ static uint8_t _pendingActions;
  ****************************************************************************/
 
 static void *meadow_ethnet_connect_kthread(int argc, char *argv[]);
-static int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
-          uint8_t *macAddr);
+static int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info, uint8_t *macAddr);
 static int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info);
 static int meadow_eth_conn_thread_do_work(void);
 static int meadow_eth_conn_process_link_status_change(bool linkStatusUp);
@@ -119,23 +118,18 @@ static int meadow_eth_conn_report_link_status_change(bool isLinkUp);
  ****************************************************************************/
 int meadow_eth_conn_startup()
 {
-  _linkStatusUp = false;
-  _isConnectionValid = false;
+    _linkStatusUp = false;
+    _isConnectionValid = false;
 
-  // Create a thread to establish ethernet connections and handle lease renewal
-  _meadow_ethnet_connect_kthrd = kthread_create(MEADOW_THREAD_NAME_ETHNET_CONNECTION,
-                                  MEADOW_THREAD_PRIORITY_ETHNET_CONNECTION,
-                                  MEADOW_THREAD_STACKSIZE_ETHNET_CONNECTION,
-                                  (main_t) meadow_ethnet_connect_kthread,
-                                  (char *const *) NULL);
-  if (_meadow_ethnet_connect_kthrd <= 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-                __FILE__, __LINE__,  MEADOW_THREAD_NAME_ETHNET_CONNECTION);
-    return -ENOEXEC;
-  }
+    // Create a thread to establish ethernet connections and handle lease renewal
+    _meadow_ethnet_connect_kthrd = kthread_create(MEADOW_THREAD_NAME_ETHNET_CONNECTION, MEADOW_THREAD_PRIORITY_ETHNET_CONNECTION, MEADOW_THREAD_STACKSIZE_ETHNET_CONNECTION, (main_t) meadow_ethnet_connect_kthread, (char * const *) NULL);
+    if (_meadow_ethnet_connect_kthrd <= 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n", __FILE__, __LINE__, MEADOW_THREAD_NAME_ETHNET_CONNECTION);
+        return -ENOEXEC;
+    }
 
-  return OK;
+    return OK;
 }
 
 //=====================================================================
@@ -143,421 +137,395 @@ int meadow_eth_conn_startup()
 // manage reading the NTP source.
 void *meadow_ethnet_connect_kthread(int argc, char *argv[])
 {
-  int ret;
-  time_t leaseTimeSec = 0;
-  _pendingActions = 0;
+    int ret;
+    time_t leaseTimeSec = 0;
+    _pendingActions = 0;
 
-#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), MEADOW_THREAD_NAME_ETHNET_CONNECTION);
-#endif
+    #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+    syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), MEADOW_THREAD_NAME_ETHNET_CONNECTION);
+    #endif
 
-  _dhcp_info = malloc(sizeof(struct dhcp_info_s));
-  if(_dhcp_info == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
-    return NULL;   // -ENOMEM;
-  }
-  memset(_dhcp_info, 0, sizeof(struct dhcp_info_s));
-
-  // Initialize the connection semaphore
-  ret = nxsem_init(&_connectSem, 0, 0);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-nxsem_init failed, ret:%d\n",
-                __FILE__, __LINE__, ret);
-    return NULL;
-  }
-
-  // If not using DHCP the connection information is still required.
-  // Note: DNS is setup automatically by meadow configuration via the file
-  // dns.conf. Nuttx uses the information in this file so nothing else is
-  // needs to be done.
-  hcom_nx_config_lock();
-  meadow_configuration_t *config = hcom_nx_config_get_pointer();
-  _configUseDhcp = config->default_interface->use_dhcp == 1 ? true : false;
-
-  if(!_configUseDhcp)
-  {
-    _configStaticIpAddr  = NTOHL(config->default_interface->ip_address);
-    _configStaticIpMask  = NTOHL(config->default_interface->netmask);
-    _configStaticGateWay = NTOHL(config->default_interface->gateway);
-  }
-  hcom_nx_config_unlock();
-
-  //----------------------------------------------------------------
-  // Enter a forever loop that waits for the connect semaphore.
-  for(;;)
-  {
-    struct timespec waketime;
-
-    // Wait for either the semaphore to be posted or a time-out to occur if
-    // using DHCP
-    if(_configUseDhcp)
+    _dhcp_info = malloc(sizeof(struct dhcp_info_s));
+    if (_dhcp_info == NULL)
     {
-      sched_lock();
-      ret = clock_gettime(CLOCK_MONOTONIC, &waketime);
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-clock_gettime, ret:%d, errno:%d\n",
-                    __FILE__, __LINE__, ret, errno);
-        sched_unlock();
+        syslog(LOG_ERR, "%s@%d-malloc returned NULL\n", __FILE__, __LINE__);
+        return NULL; // -ENOMEM;
+    }
+    memset(_dhcp_info, 0, sizeof(struct dhcp_info_s));
+
+    // Initialize the connection semaphore
+    ret = nxsem_init(&_connectSem, 0, 0);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-nxsem_init failed, ret:%d\n", __FILE__, __LINE__, ret);
         return NULL;
-      }
-
-      // Use the DHCP Lease Renewal time to wakeup the semaphore if connected
-      // otherwise use a default
-      if(_isConnectionValid)
-      {
-        leaseTimeSec = _dhcp_info->lease_time/2;
-      }
-      else
-      {
-        leaseTimeSec = MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC;
-      }
-      waketime.tv_sec += leaseTimeSec;
-      
-      // Wait for lease time to expire or the link status to change
-      syslog(LOG_INFO, "%s@%d-DHCP addressing. Waiting on status or lease timeout\n",
-                __FILE__, __LINE__);
-      ret = nxsem_clockwait_uninterruptible(&_connectSem, CLOCK_MONOTONIC,
-                                            &waketime);
-      sched_unlock();
     }
-    else
+
+    // If not using DHCP the connection information is still required.
+    // Note: DNS is setup automatically by meadow configuration via the file
+    // dns.conf. Nuttx uses the information in this file so nothing else is
+    // needs to be done.
+    hcom_nx_config_lock();
+    meadow_configuration_t *config = hcom_nx_config_get_pointer();
+    _configUseDhcp = config->default_interface->use_dhcp == 1 ? true : false;
+
+    if (!_configUseDhcp)
     {
-      // No, least time to worry about so just wait for interrupt from LAN Chip
-      syslog(LOG_INFO, "%s@%d-Static addressing. Waiting on status change\n",
-                __FILE__, __LINE__);
-      ret = nxsem_wait_uninterruptible(&_connectSem);
+        _configStaticIpAddr = NTOHL(config->default_interface->ip_address);
+        _configStaticIpMask = NTOHL(config->default_interface->netmask);
+        _configStaticGateWay = NTOHL(config->default_interface->gateway);
     }
+    hcom_nx_config_unlock();
 
-    if(ret < 0) 
+    //----------------------------------------------------------------
+    // Enter a forever loop that waits for the connect semaphore.
+    for (;;)
     {
-      if (ret == -ETIMEDOUT)
-      {
-        if(! _configUseDhcp)
-          continue;       // Nothing to do
+        struct timespec waketime;
 
-        syslog(LOG_INFO, "%s@%d-Time to Renew Lease\n", __FILE__, __LINE__);
-        irqstate_t flags = enter_critical_section();
-        _pendingActions |= MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME;
-        leave_critical_section(flags);
-      }
-      else
-      {
-        syslog(LOG_ERR, "%s@%d-semaphore wait failed, ret:%d\n",
-                    __FILE__, __LINE__, ret);
-      }
+        // Wait for either the semaphore to be posted or a time-out to occur if
+        // using DHCP
+        if (_configUseDhcp)
+        {
+            sched_lock();
+            ret = clock_gettime(CLOCK_MONOTONIC, &waketime);
+            if (ret < 0)
+            {
+                syslog(LOG_ERR, "%s@%d-clock_gettime, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+                sched_unlock();
+                return NULL;
+            }
+
+            // Use the DHCP Lease Renewal time to wakeup the semaphore if connected
+            // otherwise use a default
+            if (_isConnectionValid)
+            {
+                leaseTimeSec = _dhcp_info->lease_time / 2;
+            }
+            else
+            {
+                leaseTimeSec = MEADOW_ETHNET_LEASE_TIME_DEFAULT_SEC;
+            }
+            waketime.tv_sec += leaseTimeSec;
+
+            // Wait for lease time to expire or the link status to change
+            syslog(LOG_INFO, "%s@%d-DHCP addressing. Waiting on status or lease timeout\n", __FILE__, __LINE__);
+            ret = nxsem_clockwait_uninterruptible(&_connectSem, CLOCK_MONOTONIC, &waketime);
+            sched_unlock();
+        }
+        else
+        {
+            // No, least time to worry about so just wait for interrupt from LAN Chip
+            syslog(LOG_INFO, "%s@%d-Static addressing. Waiting on status change\n", __FILE__, __LINE__);
+            ret = nxsem_wait_uninterruptible(&_connectSem);
+        }
+
+        if (ret < 0)
+        {
+            if (ret == -ETIMEDOUT)
+            {
+                if (!_configUseDhcp)
+                    continue; // Nothing to do
+
+                syslog(LOG_INFO, "%s@%d-Time to Renew Lease\n", __FILE__, __LINE__);
+                irqstate_t flags = enter_critical_section();
+                _pendingActions |= MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME;
+                leave_critical_section(flags);
+            }
+            else
+            {
+                syslog(LOG_ERR, "%s@%d-semaphore wait failed, ret:%d\n", __FILE__, __LINE__, ret);
+            }
+        }
+
+        // Do the work, then continue to wait for the next event. Failures inside
+        // are logged there and are all recoverable via the next link-status
+        // change or lease-renewal timeout, so this thread must never exit --
+        // it is meant to supervise the connection for the life of the device.
+        meadow_eth_conn_thread_do_work();
     }
 
-    // Do the work, then continue to wait for the next event. Failures inside
-    // are logged there and are all recoverable via the next link-status
-    // change or lease-renewal timeout, so this thread must never exit --
-    // it is meant to supervise the connection for the life of the device.
-    meadow_eth_conn_thread_do_work();
-  }
-
-  return NULL;
+    return NULL;
 }
 
 //===========================================================================
 // This function is called for lease renewal and link status changes
 int meadow_eth_conn_thread_do_work(void)
 {
-  int ret;
-  uint8_t pendingActions;
-  bool linkStatusUp;
+    int ret;
+    uint8_t pendingActions;
+    bool linkStatusUp;
 
-  // Atomically snapshot and clear every pending action (and the link status
-  // value the ISR wrote alongside it) so a new ISR-posted action can't be
-  // lost between reading and clearing.
-  irqstate_t flags = enter_critical_section();
-  pendingActions = _pendingActions;
-  _pendingActions = 0;
-  linkStatusUp = _linkStatusUp;
-  leave_critical_section(flags);
+    // Atomically snapshot and clear every pending action (and the link status
+    // value the ISR wrote alongside it) so a new ISR-posted action can't be
+    // lost between reading and clearing.
+    irqstate_t flags = enter_critical_section();
+    pendingActions = _pendingActions;
+    _pendingActions = 0;
+    linkStatusUp = _linkStatusUp;
+    leave_critical_section(flags);
 
-  if(pendingActions & MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED)
-  {
-    ret = meadow_eth_conn_process_link_status_change(linkStatusUp);
-    if(ret < 0)
+    if (pendingActions & MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change failed:%d\n",
-                  __FILE__, __LINE__, ret);
+        ret = meadow_eth_conn_process_link_status_change(linkStatusUp);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change failed:%d\n", __FILE__, __LINE__, ret);
+        }
     }
-  }
 
-  if(pendingActions & MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME)
-  {
-    if(_isConnectionValid)
+    if (pendingActions & MEADOW_ETH_CONN_ACTION_LEASE_RENEWAL_TIME)
     {
-      ret = meadow_eth_conn_renew_lease_periodically(_dhcp_info);
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n",
-                    __FILE__, __LINE__, ret);
-      }
+        if (_isConnectionValid)
+        {
+            ret = meadow_eth_conn_renew_lease_periodically(_dhcp_info);
+            if (ret < 0)
+            {
+                syslog(LOG_ERR, "%s@%d-meadow_eth_conn_renew_lease_periodically failed:%d\n", __FILE__, __LINE__, ret);
+            }
+        }
+        else if (linkStatusUp)
+        {
+            // We don't have a connection yet even though the link is physically
+            // up -- most likely an earlier DHCP attempt failed. Retry establishing
+            // the connection now instead of silently waiting for the link to
+            // toggle again, which may never happen.
+            syslog(LOG_INFO, "%s@%d-No connection yet, retrying\n", __FILE__, __LINE__);
+            ret = meadow_eth_conn_process_link_status_change(true);
+            if (ret < 0)
+            {
+                syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change (retry) failed:%d\n", __FILE__, __LINE__, ret);
+            }
+        }
     }
-    else if(linkStatusUp)
-    {
-      // We don't have a connection yet even though the link is physically
-      // up -- most likely an earlier DHCP attempt failed. Retry establishing
-      // the connection now instead of silently waiting for the link to
-      // toggle again, which may never happen.
-      syslog(LOG_INFO, "%s@%d-No connection yet, retrying\n", __FILE__, __LINE__);
-      ret = meadow_eth_conn_process_link_status_change(true);
-      if(ret < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-meadow_eth_conn_process_link_status_change (retry) failed:%d\n",
-                    __FILE__, __LINE__, ret);
-      }
-    }
-  }
 
-  return OK;
+    return OK;
 }
 
 //===========================================================================
 // This function is called when the connections link status has changed.
 int meadow_eth_conn_process_link_status_change(bool linkStatusUp)
 {
-  int ret;
-  uint8_t macAddr[IFHWADDRLEN];
-  
-  syslog(LOG_INFO, "%s@%d-Processing LinkStatus change. Now %s\n",
-            __FILE__, __LINE__, linkStatusUp ? "Up" : "Down");
+    int ret;
+    uint8_t macAddr[IFHWADDRLEN];
 
-  // Did the link status transition from down to up?
-  if(linkStatusUp)
-  {
-    ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
-    if(ret < 0)
+    syslog(LOG_INFO, "%s@%d-Processing LinkStatus change. Now %s\n", __FILE__, __LINE__, linkStatusUp ? "Up" : "Down");
+
+    // Did the link status transition from down to up?
+    if (linkStatusUp)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-      return -errno;
+        ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            return -errno;
+        }
+
+        // This function does all the heavy lifting of establishing a connection.
+        // If we are using dhcp for our IP address this call will populate the
+        // dhcp_info with network information.
+        ret = meadow_eth_conn_establish_connection(_dhcp_info, macAddr);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "Attempting to establish ethernet connection failed. ret:%d, errno:%d\n", ret, errno);
+            return ret;
+        }
+
+        // Show via syslog user that ethernet is up etc.
+        meadow_eth_utils_syslog_ip_mac(_configUseDhcp);
+
+        // Now that everything is ready, report that the status is up
+        ret = meadow_eth_conn_report_link_status_change(true);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            return ret;
+        }
+
+        // Determine if we should get the NTP time now or ever,.
+        hcom_nx_config_lock();
+        meadow_configuration_t *config = hcom_nx_config_get_pointer();
+        uint32_t refreshPeriod = config->ntp_refresh_period_seconds;
+        bool timeAtStart = config->get_network_time_at_startup;
+        hcom_nx_config_unlock();
+        if (refreshPeriod > 0 || timeAtStart)
+        {
+            // This call will cause the meadow_ntpclient.c code to periodically refresh the
+            // NTP time without additional intervention.
+            ntpc_start();
+        }
+
+        // We now have an ethernet connection.
+        syslog(LOG_INFO, "%s@%d-We now have an ethernet connection\n", __FILE__, __LINE__);
+        _isConnectionValid = true;
+    }
+    else
+    {
+        // Link status transitioned to down
+        ret = meadow_eth_conn_report_link_status_change(false);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            return ret;
+        }
+
+        // Stop the periodic NTP time request
+        ntpc_stop();
+
+        _isConnectionValid = false;
     }
 
-    // This function does all the heavy lifting of establishing a connection.
-    // If we are using dhcp for our IP address this call will populate the
-    // dhcp_info with network information.
-    ret = meadow_eth_conn_establish_connection(_dhcp_info, macAddr);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "Attempting to establish ethernet connection failed. ret:%d, errno:%d\n",
-                ret, errno);
-      return ret;
-    }
-
-    // Show via syslog user that ethernet is up etc.
-    meadow_eth_utils_syslog_ip_mac(_configUseDhcp);
-
-    // Now that everything is ready, report that the status is up
-    ret = meadow_eth_conn_report_link_status_change(true);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n",
-                  __FILE__, __LINE__, ret, errno);
-      return ret;
-    }
-
-    // Determine if we should get the NTP time now or ever,.
-    hcom_nx_config_lock();
-    meadow_configuration_t *config = hcom_nx_config_get_pointer();
-    uint32_t refreshPeriod = config->ntp_refresh_period_seconds;
-    bool timeAtStart = config->get_network_time_at_startup;
-    hcom_nx_config_unlock();
-    if(refreshPeriod > 0 || timeAtStart)
-    {
-      // This call will cause the meadow_ntpclient.c code to periodically refresh the
-      // NTP time without additional intervention.
-      ntpc_start();
-    }
-
-    // We now have an ethernet connection.
-    syslog(LOG_INFO, "%s@%d-We now have an ethernet connection\n", __FILE__, __LINE__);
-    _isConnectionValid = true;
-  }
-  else
-  {
-    // Link status transitioned to down
-    ret = meadow_eth_conn_report_link_status_change(false);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_conn_report_link_status_up, ret:%d, errno:%d\n",
-                  __FILE__, __LINE__, ret, errno);
-      return ret;
-    }
-
-    // Stop the periodic NTP time request
-    ntpc_stop();
-
-    _isConnectionValid = false;
-  }
-
-  return ret;
+    return ret;
 }
 
 //========================================================================
 // This function is called to initialize and connect the ethernet. This
 // function can take some time to complete.
-int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info,
-          uint8_t *macAddr)
+int meadow_eth_conn_establish_connection(struct dhcp_info_s *dhcp_info, uint8_t *macAddr)
 {
-  int ret;
+    int ret;
 
-  // Activates a network interface making it useable
-  ret = meadow_eth_utils_exec_ifup(MEADOW_ETHMAC_DEVICENAME);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_eth_utils_exec_ifup err:0x%08x, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-    return -errno;
-  }
-
-  // Get the interfaces MAC address from the F7 hardware. This is done by
-  // taking the F7's unique ID and doing a CRC64 checksum. The result of the
-  // CRC64 Checksum is used to create the MAC Address.
-  ret = meadow_eth_utils_get_hw_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_eth_utils_get_hw_mac err:0x%08x, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-    meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-    return -errno;
-  }
-
-  // Set the MAC address
-  ret = meadow_eth_utils_set_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);  
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac err:0x%08x, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-    meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-    return -errno;
-  }
-
-  if(_configUseDhcp)
-  {
-    int count;
-
-    // Try x times to get a DHCP to response.
-    for(count = 0; count < MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT; count++)
-    {
-      // This call will populate the dhcp_info structure with: IP, netmask, DNS
-      // server address, default router address and the lease expiration time,
-      // using information from the DHCP server.
-      ret = meadow_eth_dhcp_get_dhcp_info(dhcp_info, MEADOW_ETHMAC_DEVICENAME, macAddr);
-      if(ret < 0)
-      {
-        if (errno == EAGAIN)
-        {
-          continue;   // Try again since socket timed out
-        }
-        else
-        {
-          syslog(LOG_ERR, "%s@%d-failed to get IP address via DHCP, ret:%d, errno:%d\n",
-                    __FILE__, __LINE__, ret, errno);
-          meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-          return -errno;
-        }
-      }
-      break;    // Got IP Address
-    }
-
-    // Did we exit due to count?
-    if(count == MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT)
-    {
-      // Why try forever?
-      syslog(LOG_ERR, "%s@%d-After %d attempts failed to get IP address via DHCP, ret:%d, errno:%d\n",
-                __FILE__, __LINE__, MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT, ret, errno);
-      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-      return -errno;
-    }
-  }
-  else
-  {
-    // Using static IP addressing
-    struct in_addr addr;
-    addr.s_addr = HTONL(_configStaticIpAddr);
-
-    ret = meadow_eth_utils_set_ipv4(MEADOW_ETHMAC_DEVICENAME, &addr);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4() err:0x%08x, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-      return -errno;
-    }
-
-    // netlib_set_ipv4netmask
-    addr.s_addr = HTONL(_configStaticIpMask);
-    ret = meadow_eth_utils_set_ipv4_mask(MEADOW_ETHMAC_DEVICENAME, &addr);
+    // Activates a network interface making it useable
+    ret = meadow_eth_utils_exec_ifup(MEADOW_ETHMAC_DEVICENAME);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n",
-             __FILE__, __LINE__, ret, errno);
-      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-      return -errno;
+        syslog(LOG_ERR, "%s@%d-meadow_eth_utils_exec_ifup err:0x%08x, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return -errno;
     }
 
-    // netlib_set_dripv4addr
-    addr.s_addr = HTONL(_configStaticGateWay);
-    ret = meadow_eth_utils_set_router(MEADOW_ETHMAC_DEVICENAME, &addr);
+    // Get the interfaces MAC address from the F7 hardware. This is done by
+    // taking the F7's unique ID and doing a CRC64 checksum. The result of the
+    // CRC64 Checksum is used to create the MAC Address.
+    ret = meadow_eth_utils_get_hw_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
     if (ret < 0)
     {
-      syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n",
-             __FILE__, __LINE__, ret, errno);
-      meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
-      return -errno;
+        syslog(LOG_ERR, "%s@%d-meadow_eth_utils_get_hw_mac err:0x%08x, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+        return -errno;
     }
-  }
 
-  return OK;
+    // Set the MAC address
+    ret = meadow_eth_utils_set_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac err:0x%08x, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+        return -errno;
+    }
+
+    if (_configUseDhcp)
+    {
+        int count;
+
+        // Try x times to get a DHCP to response.
+        for (count = 0; count < MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT; count++)
+        {
+            // This call will populate the dhcp_info structure with: IP, netmask, DNS
+            // server address, default router address and the lease expiration time,
+            // using information from the DHCP server.
+            ret = meadow_eth_dhcp_get_dhcp_info(dhcp_info, MEADOW_ETHMAC_DEVICENAME, macAddr);
+            if (ret < 0)
+            {
+                if (errno == EAGAIN)
+                {
+                    continue; // Try again since socket timed out
+                }
+                else
+                {
+                    syslog(LOG_ERR, "%s@%d-failed to get IP address via DHCP, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+                    meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+                    return -errno;
+                }
+            }
+            break; // Got IP Address
+        }
+
+        // Did we exit due to count?
+        if (count == MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT)
+        {
+            // Why try forever?
+            syslog(LOG_ERR, "%s@%d-After %d attempts failed to get IP address via DHCP, ret:%d, errno:%d\n", __FILE__, __LINE__, MEADOW_ETHNET_DHCP_CONNECTION_RETRY_COUNT, ret, errno);
+            meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+            return -errno;
+        }
+    }
+    else
+    {
+        // Using static IP addressing
+        struct in_addr addr;
+        addr.s_addr = HTONL(_configStaticIpAddr);
+
+        ret = meadow_eth_utils_set_ipv4(MEADOW_ETHMAC_DEVICENAME, &addr);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4() err:0x%08x, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+            return -errno;
+        }
+
+        // netlib_set_ipv4netmask
+        addr.s_addr = HTONL(_configStaticIpMask);
+        ret = meadow_eth_utils_set_ipv4_mask(MEADOW_ETHMAC_DEVICENAME, &addr);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_ipv4_mask() failed, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+            return -errno;
+        }
+
+        // netlib_set_dripv4addr
+        addr.s_addr = HTONL(_configStaticGateWay);
+        ret = meadow_eth_utils_set_router(MEADOW_ETHMAC_DEVICENAME, &addr);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_router() failed, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+            meadow_eth_utils_exec_ifdown(MEADOW_ETHMAC_DEVICENAME);
+            return -errno;
+        }
+    }
+
+    return OK;
 }
 
 //====================================================================
 // Report to Nuttx and meadow the change in link status
 int meadow_eth_conn_report_link_status_change(bool isLinkUp)
 {
-  int ret;
-  int sockDescp;
-  struct ifreq ifr;
+    int ret;
+    int sockDescp;
+    struct ifreq ifr;
 
-  memset(&ifr, 0, sizeof(struct ifreq));
-  strncpy(ifr.ifr_name, MEADOW_ETHMAC_DEVICENAME, IFNAMSIZ);
+    memset(&ifr, 0, sizeof(struct ifreq));
+    strncpy(ifr.ifr_name, MEADOW_ETHMAC_DEVICENAME, IFNAMSIZ);
 
-  // Keep Nuttx informed
-  ifr.ifr_flags = isLinkUp ? IFF_UP : IFF_DOWN;
-  
-  // Need a socket descriptor to communicate with the network interface
-  sockDescp = socket(AF_INET, SOCK_DGRAM, 0);
-  if (sockDescp < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-socket open failed, sockDescp:%d, errno:%d\n",
-                __FILE__, __LINE__, sockDescp, errno);
-    return -errno;
-  }
+    // Keep Nuttx informed
+    ifr.ifr_flags = isLinkUp ? IFF_UP : IFF_DOWN;
 
-  // Set the Nuttx link status value
-  ret = ioctl(sockDescp, SIOCSIFFLAGS, (unsigned long)&ifr);
-  if (ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-ioctl(SIOCSIFFLAGS) failed, ret:%d, errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
+    // Need a socket descriptor to communicate with the network interface
+    sockDescp = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockDescp < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-socket open failed, sockDescp:%d, errno:%d\n", __FILE__, __LINE__, sockDescp, errno);
+        return -errno;
+    }
+
+    // Set the Nuttx link status value
+    ret = ioctl(sockDescp, SIOCSIFFLAGS, (unsigned long) &ifr);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-ioctl(SIOCSIFFLAGS) failed, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        close(sockDescp);
+        return ret;
+    }
+
     close(sockDescp);
-    return ret;
-  }
 
-  close(sockDescp);
+    //
+    //  TODO: Reinstate this when the event queue is up and running.
+    //
+    // espcp_queue_ethernet_connection_changed_event(isLinkUp);
 
-  //
-  //  TODO: Reinstate this when the event queue is up and running.
-  //
-  // espcp_queue_ethernet_connection_changed_event(isLinkUp);
-
-  return OK;
+    return OK;
 }
 
 //==============================================================================
@@ -566,31 +534,29 @@ int meadow_eth_conn_report_link_status_change(bool isLinkUp)
 // lease timeout. These are also re-evaluated here.
 int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
 {
-  int ret;
-  uint8_t macAddr[IFHWADDRLEN];
+    int ret;
+    uint8_t macAddr[IFHWADDRLEN];
 
-  DEBUGASSERT(dhcp_info != NULL);
+    DEBUGASSERT(dhcp_info != NULL);
 
-  syslog(LOG_INFO, "%s@%d-Renewing lease\n", __FILE__, __LINE__);
+    syslog(LOG_INFO, "%s@%d-Renewing lease\n", __FILE__, __LINE__);
 
-  ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
+    ret = meadow_eth_utils_get_mac(MEADOW_ETHMAC_DEVICENAME, macAddr);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-meadow_eth_utils_set_mac ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
+    // Reconnect to DHCP server to renew lease and update dhcp_info as needed
+    ret = meadow_eth_dhcp_get_dhcp_info(dhcp_info, MEADOW_ETHMAC_DEVICENAME, macAddr);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-meadow_eth_dhcp_get_dhcp_info() ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
+
     return ret;
-  }
-
-  // Reconnect to DHCP server to renew lease and update dhcp_info as needed
-  ret = meadow_eth_dhcp_get_dhcp_info(dhcp_info, MEADOW_ETHMAC_DEVICENAME, macAddr);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_eth_dhcp_get_dhcp_info() ret:%d, errno:%d\n",
-              __FILE__, __LINE__, ret, errno);
-    return ret;
-  }
-
-  return ret;
 }
 
 /****************************************************************************
@@ -602,15 +568,15 @@ int meadow_eth_conn_renew_lease_periodically(struct dhcp_info_s *dhcp_info)
 // ISR execution time.
 int meadow_eth_conn_link_status_changed(bool linkStatusUp)
 {
-  irqstate_t flags = enter_critical_section();
-  _linkStatusUp = linkStatusUp;
-  _pendingActions |= MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED;
-  leave_critical_section(flags);
+    irqstate_t flags = enter_critical_section();
+    _linkStatusUp = linkStatusUp;
+    _pendingActions |= MEADOW_ETH_CONN_ACTION_LINK_STATUS_CHANGED;
+    leave_critical_section(flags);
 
-  // Set the action and then wakeup our thread
-  (void)nxsem_post(&_connectSem);
+    // Set the action and then wakeup our thread
+    (void) nxsem_post(&_connectSem);
 
-  return OK;
+    return OK;
 }
 
 #endif // #if defined(CONFIG_MEADOW_ETHNET_INCLUDE_IN_BUILD)

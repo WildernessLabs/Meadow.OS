@@ -1,6 +1,6 @@
 /****************************************************************************
  * ethernet_tests.c
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -40,20 +40,20 @@
 
 #if defined(CONFIG_ETHERNET_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <stdint.h>
+    #include <stdint.h>
 
-#include "network_tests.h"
-#include "../hcom_nx/hcom_nx_config_manager.h"
-#include <meadow/meadow_unit_test_framework.h>
+    #include "network_tests.h"
+    #include "../hcom_nx/hcom_nx_config_manager.h"
+    #include <meadow/meadow_unit_test_framework.h>
 
-/****************************************************************************
- * Local defines.
- ****************************************************************************/
+    /****************************************************************************
+     * Local defines.
+     ****************************************************************************/
 
-//
-//  Default logging level for this file.
-//
-#define LOGGING_LEVEL   1
+    //
+    //  Default logging level for this file.
+    //
+    #define LOGGING_LEVEL 1
 
 /****************************************************************************
  * Name: meadow_kt_ethernet_load_test_web_page
@@ -86,6 +86,7 @@ void meadow_kt_ethernet_get_web_resource(uint32_t arg)
 
     syslog(LOGGING_LEVEL, "Download of multiple web pages test completed.\n");
 }
+
 /****************************************************************************
  * Name: meadow_kt_ethernet_tests
  *

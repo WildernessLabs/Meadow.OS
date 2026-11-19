@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\tests\meadow_bbd_tests.c
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -41,39 +41,39 @@
 
 #if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <stdint.h>
+    #include <stdint.h>
 
-#include "../hcom_common.h"
-#include <meadow/meadow_os.h>
-#include <meadow/hcom_shared_common.h>
-#include <meadow/meadow_os_battery_backed_domain.h>
+    #include "../hcom_common.h"
+    #include <meadow/meadow_os.h>
+    #include <meadow/hcom_shared_common.h>
+    #include <meadow/meadow_os_battery_backed_domain.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+    /****************************************************************************
+     * Pre-processor Definitions
+     ****************************************************************************/
 
-/**
- * @brief Test bit pattern for the battery backed registers.
- */
-#define BBD_TEST_VALUE_AA       (0xaaaaaaaa)
-#define BBD_TEST_VALUE_55       (0x55555555)
+    /**
+     * @brief Test bit pattern for the battery backed registers.
+     */
+    #define BBD_TEST_VALUE_AA (0xaaaaaaaa)
+    #define BBD_TEST_VALUE_55 (0x55555555)
 
-/**
- * @brief First and last BBR that will be used for testing.
- */
-#define BBR_FIRST               0
-#define BBR_LAST                31
-#define BBR_TEST_REGISTER       15
+    /**
+     * @brief First and last BBR that will be used for testing.
+     */
+    #define BBR_FIRST 0
+    #define BBR_LAST 31
+    #define BBR_TEST_REGISTER 15
 
-/**
- * @brief Logging level to use for syslog calls.
- */
-#define LOGGING_LEVEL           1
+    /**
+     * @brief Logging level to use for syslog calls.
+     */
+    #define LOGGING_LEVEL 1
 
 /**
  * @brief Simple test message string.
  */
- #define TEST_MESSAGE_STRING     "This is a test message"
+    #define TEST_MESSAGE_STRING "This is a test message"
 
 /****************************************************************************
  * Private types
@@ -147,7 +147,7 @@ static int check_all_registers(uint32_t expected_value)
         }
     }
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -209,7 +209,7 @@ static int check_bkpsram(uint8_t expected_value)
     }
     free(buffer);
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -238,7 +238,7 @@ static void test_registers(void)
     //
     for (int index = BBR_FIRST; index <= BBR_LAST; index++)
     {
-        meadow_os_bbd_register_get_value(index, & old_values[index]);
+        meadow_os_bbd_register_get_value(index, &old_values[index]);
     }
 
     //
@@ -311,7 +311,7 @@ static void test_registers(void)
     bool pass = true;
     for (int index = BBR_FIRST; index <= BBR_LAST; index++)
     {
-        meadow_os_bbd_register_get_value(index, & value);
+        meadow_os_bbd_register_get_value(index, &value);
         if (value != old_values[index])
         {
             pass = false;
@@ -460,7 +460,7 @@ void meadow_bbd_write_read_test(uint32_t userdata)
 {
     syslog(LOGGING_LEVEL, "********** Writing data to registers and SRAM and verifying contents.\n");
     test_registers();
-    test_bkpsram();    
+    test_bkpsram();
 }
 
 /****************************************************************************

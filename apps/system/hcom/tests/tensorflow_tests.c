@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\tests\tensorflow_tests.c
- * 
+ *
  *   Copyright (C) 2023 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -42,9 +42,9 @@
 
 #if defined(CONFIG_TENSORFLOW_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <dlfcn.h>
+    #include <dlfcn.h>
 
-#include "../hcom_common.h"
+    #include "../hcom_common.h"
 
 /****************************************************************************
  * Private types
@@ -64,7 +64,7 @@ typedef struct hello_world_results_s
  *
  * Note about these numbers.  These were obtained by running the Hello World test
  * on a Sony Spresense board.  This generated the following output from the application:
- * 
+ *
  * x_value: 1.0*2^-127, y_value: 1.0*2^-127
  * x: 0.000000, y: 0.000000
  * x_value: 1.2566366*2^-2, y_value: 1.4910722*2^-2
@@ -106,29 +106,8 @@ typedef struct hello_world_results_s
  * x_value: 1.4922558*2^2, y_value: -1.4232964*2^-2
  * x: 5.969026, y: -0.355824
  */
-hello_world_results_t hello_world_results[] = 
-{
-    { 0.000000, 0.000000 },
-    { 0.314159, 0.372768 },
-    { 0.628318, 0.559152 },
-    { 0.942477, 0.838728 },
-    { 1.256637, 0.965808 },
-    { 1.570796, 1.042057 },
-    { 1.884956, 0.957336 },
-    { 2.199115, 0.821784 },
-    { 2.513274, 0.533736 },
-    { 2.827433, 0.237216 },
-    { 3.141593, 0.008472 },
-    { 3.455752, -0.304992 },
-    { 3.769912, -0.533736 },
-    { 4.084070, -0.779424 },
-    { 4.398230, -0.965808 },
-    { 4.712389, -1.109833 },
-    { 5.026548, -0.982752 },
-    { 5.340708, -0.745536 },
-    { 5.654867, -0.533736 },
-    { 5.969026, -0.355824 }
-};
+hello_world_results_t hello_world_results[] = {{0.000000, 0.000000}, {0.314159, 0.372768},  {0.628318, 0.559152},  {0.942477, 0.838728},  {1.256637, 0.965808},  {1.570796, 1.042057},  {1.884956, 0.957336},  {2.199115, 0.821784},  {2.513274, 0.533736},  {2.827433, 0.237216},
+                                               {3.141593, 0.008472}, {3.455752, -0.304992}, {3.769912, -0.533736}, {4.084070, -0.779424}, {4.398230, -0.965808}, {4.712389, -1.109833}, {5.026548, -0.982752}, {5.340708, -0.745536}, {5.654867, -0.533736}, {5.969026, -0.355824}};
 
 /****************************************************************************
  * Name: floats_not_equal
@@ -149,7 +128,7 @@ hello_world_results_t hello_world_results[] =
  ****************************************************************************/
 static bool floats_not_equal(float x, float y)
 {
-    return(fabs(x - y) > 1e-6);
+    return (fabs(x - y) > 1e-6);
 }
 
 /****************************************************************************
@@ -178,7 +157,7 @@ static void *tensorflow_tests_load_tensorflow_dll(char *name)
     void *handle = dlopen(path, RTLD_NOW);
     syslog(LOG_MTEST, "    Handle: %p\n", handle);
 
-    return(handle);
+    return (handle);
 }
 
 /****************************************************************************
@@ -211,8 +190,8 @@ void tensorflow_tests_hello_world(uint32_t value)
         if (testsetup != 0)
         {
             testsetup();
-            void (*testloop)(uint32_t, uint32_t) = dlsym(handle,"tensorflow_hello_world_test_loop");
-            syslog(LOG_MTEST, "    tensorflow_hello_world_test_loop: %p\n", testloop); 
+            void (*testloop)(uint32_t, uint32_t) = dlsym(handle, "tensorflow_hello_world_test_loop");
+            syslog(LOG_MTEST, "    tensorflow_hello_world_test_loop: %p\n", testloop);
             if (testloop != 0)
             {
                 for (int current_pass = 0; current_pass < 2; current_pass++)
@@ -231,7 +210,7 @@ void tensorflow_tests_hello_world(uint32_t value)
                         }
                     }
                 }
-            } 
+            }
             else
             {
                 syslog(LOG_MTEST, "    Cannot locate the tensorflow_hello_world_test_loop method.\n");

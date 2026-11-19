@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\comms\hcom_host_enq_deq.c
- * 
+ *
  *   Copyright (C) 2019 - 2026 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -78,47 +78,45 @@ static int hcom_host_enq_deq_wait_for_work(void);
  ****************************************************************************/
 int hcom_host_enq_deq_setup()
 {
-  _shutting_down = false;
-  _hcom_host_enq_deq_wdog_wakeup = false;
+    _shutting_down = false;
+    _hcom_host_enq_deq_wdog_wakeup = false;
 
-  // Notifies process thread a message has been queued
-  sem_init(&_runProcSem, 0, 0);
-  sem_setprotocol(&_runProcSem, SEM_PRIO_NONE);
+    // Notifies process thread a message has been queued
+    sem_init(&_runProcSem, 0, 0);
+    sem_setprotocol(&_runProcSem, SEM_PRIO_NONE);
 
-  // Notifies receive thread that it should retry to add message to circular buffer
-  sem_init(&_runRecvSem, 0, 0);
-  sem_setprotocol(&_runRecvSem, SEM_PRIO_NONE);
+    // Notifies receive thread that it should retry to add message to circular buffer
+    sem_init(&_runRecvSem, 0, 0);
+    sem_setprotocol(&_runRecvSem, SEM_PRIO_NONE);
 
-  _hcom_cbuf = (host_com_cir_buffer_t *)malloc(sizeof(host_com_cir_buffer_t));
-  if (_hcom_cbuf == NULL)
-  {
-    syslog(LOG_ERR, "%s@%d-_hcom_cbuf allocation failed\n",
-              __FILE__, __LINE__);
-    return -ENOMEM;
-  }
+    _hcom_cbuf = (host_com_cir_buffer_t *) malloc(sizeof(host_com_cir_buffer_t));
+    if (_hcom_cbuf == NULL)
+    {
+        syslog(LOG_ERR, "%s@%d-_hcom_cbuf allocation failed\n", __FILE__, __LINE__);
+        return -ENOMEM;
+    }
 
-  int result = hcom_cirbuf_init(_hcom_cbuf, HCOM_CIRCULAR_BUF_MEM_SIZE,
-          HCOM_PROTOCOL_COBS_DELIMITER);
-  if (result == HCOM_CIR_BUF_ALLOC_FAILED)
-  {
-    syslog(LOG_ERR, "%s@%d-Buffer allocation failed\n", __FILE__, __LINE__);
-    return -1;
-  }
+    int result = hcom_cirbuf_init(_hcom_cbuf, HCOM_CIRCULAR_BUF_MEM_SIZE, HCOM_PROTOCOL_COBS_DELIMITER);
+    if (result == HCOM_CIR_BUF_ALLOC_FAILED)
+    {
+        syslog(LOG_ERR, "%s@%d-Buffer allocation failed\n", __FILE__, __LINE__);
+        return -1;
+    }
 
-  return OK;
+    return OK;
 }
 
 //====================================================================
 //
 void hcom_host_enq_deq_shutdown()
 {
-  _shutting_down = true;
+    _shutting_down = true;
 
-  hcom_cirbuf_release_memory(_hcom_cbuf);
-  free(_hcom_cbuf);
+    hcom_cirbuf_release_memory(_hcom_cbuf);
+    free(_hcom_cbuf);
 
-  sem_destroy(&_runProcSem);
-  sem_destroy(&_runRecvSem);
+    sem_destroy(&_runProcSem);
+    sem_destroy(&_runRecvSem);
 }
 
 //====================================================================
@@ -126,7 +124,7 @@ void hcom_host_enq_deq_shutdown()
 // Calls hcom_cirbuf_clear_buffer() to clear buffer and returns success
 bool hcom_host_enq_deq_clear_buffer()
 {
-  return (hcom_cirbuf_clear_buffer(_hcom_cbuf) == HCOM_CIR_BUF_INIT_OK);
+    return (hcom_cirbuf_clear_buffer(_hcom_cbuf) == HCOM_CIR_BUF_INIT_OK);
 }
 
 // //====================================================================
@@ -152,147 +150,142 @@ bool hcom_host_enq_deq_clear_buffer()
 // Receive calls here when data is available
 int hcom_host_enq_deq_enqueue_rcvd_data(uint8_t recvBuff[], const ssize_t recvByteCnt)
 {
-  int result;
-  
-  if (recvByteCnt == 0)
-    return OK;
+    int result;
 
-  do
-  {
-    // Only possible return values: HCOM_CIR_BUF_ADD_SUCCESS,
-    // HCOM_CIR_BUF_ADD_WONT_FIT and HCOM_CIR_BUF_ADD_BAD_ARG
-    result = hcom_cirbuf_add_bytes(_hcom_cbuf, recvBuff, recvByteCnt);
-    switch(result)
-    {
-      case HCOM_CIR_BUF_ADD_SUCCESS:
-        sem_post(&_runProcSem);         // Notify proc of message
-        return OK;                      // Return to read more data
-
-      case HCOM_CIR_BUF_ADD_WONT_FIT:
-        sem_post(&_runProcSem);         // Notify proc of message
-
-        // Read thread waits here for space in buffer
-        _recvWaitingBytes = recvByteCnt;
-        _recvWaitingForSpace = true;
-        sem_post(&_runProcSem);         // Notify proc again, now the flag is set
-        sem_wait(&_runRecvSem);         // Wait for a message to be removed
-        _recvWaitingForSpace = false;
-        continue;                       // Try again to add message
-
-      case HCOM_CIR_BUF_ADD_BAD_ARG:
-        // Report error and return. The message is lost.
-        syslog(LOG_ERR, "%s@%d-Bad argument to cir buf\n", __FILE__, __LINE__);
+    if (recvByteCnt == 0)
         return OK;
 
-      default:
-        syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_add_bytes():%d\n",
-                    __FILE__, __LINE__, result);
-        break;
-    }
-  } while (! _shutting_down);
+    do
+    {
+        // Only possible return values: HCOM_CIR_BUF_ADD_SUCCESS,
+        // HCOM_CIR_BUF_ADD_WONT_FIT and HCOM_CIR_BUF_ADD_BAD_ARG
+        result = hcom_cirbuf_add_bytes(_hcom_cbuf, recvBuff, recvByteCnt);
+        switch (result)
+        {
+            case HCOM_CIR_BUF_ADD_SUCCESS:
+                sem_post(&_runProcSem); // Notify proc of message
+                return OK;              // Return to read more data
 
-  return OK;
+            case HCOM_CIR_BUF_ADD_WONT_FIT:
+                sem_post(&_runProcSem); // Notify proc of message
+
+                // Read thread waits here for space in buffer
+                _recvWaitingBytes = recvByteCnt;
+                _recvWaitingForSpace = true;
+                sem_post(&_runProcSem); // Notify proc again, now the flag is set
+                sem_wait(&_runRecvSem); // Wait for a message to be removed
+                _recvWaitingForSpace = false;
+                continue;               // Try again to add message
+
+            case HCOM_CIR_BUF_ADD_BAD_ARG:
+                // Report error and return. The message is lost.
+                syslog(LOG_ERR, "%s@%d-Bad argument to cir buf\n", __FILE__, __LINE__);
+                return OK;
+
+            default:
+                syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_add_bytes():%d\n", __FILE__, __LINE__, result);
+                break;
+        }
+    }
+    while (!_shutting_down);
+
+    return OK;
 }
 
 //====================================================================
 // Get the next message
 // Note: during sem_wait a signal will wake up this thread.
-int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
-          size_t *packetLength)
+int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf, size_t *packetLength)
 {
-  int ret;
-  int result;
-  bool rescanned = false;   // See HCOM_CIR_BUF_GET_NONE_FOUND below
+    int ret;
+    int result;
+    bool rescanned = false; // See HCOM_CIR_BUF_GET_NONE_FOUND below
 
-  do
-  {
-    // Only HCOM_CIR_BUF_GET_FOUND_MSG, HCOM_CIR_BUF_GET_NONE_FOUND and
-    // HCOM_CIR_BUF_GET_DELETED_TOO_BIG can be returned
-    result = hcom_cirbuf_get_next_packet(_hcom_cbuf, packet_dest_buf,
-              HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE, packetLength);
-    switch(result)
+    do
     {
-      case HCOM_CIR_BUF_GET_FOUND_MSG:
-          sem_post(&_runRecvSem);       // Allow recv to retry to add
-
-          // This fast path bypasses hcom_host_enq_deq_wait_for_work(), so it
-          // must do that function's bookkeeping itself: drain one accumulated
-          // wake-credit from _runProcSem (posted by whichever enqueue produced
-          // this message) and clear a stale watchdog flag. We just proved data
-          // is flowing, so any pending watchdog notification is moot -- if the
-          // download is still genuinely stalled, its timer keeps getting reset
-          // per-packet and will fire again on its own.
-          sem_trywait(&_runProcSem);
-          _hcom_host_enq_deq_wdog_wakeup = false;
-        return OK;                      // Return to process message
-
-      case HCOM_CIR_BUF_GET_NONE_FOUND:
-        // If the receive thread is waiting for space it still cannot get,
-        // then the buffer is full and holds no delimiter, so no packet will
-        // ever complete. A valid encoded packet is far smaller than the buffer
-        // and ends with a delimiter, so this is malformed input. Discard the
-        // buffered bytes and release the receive thread, otherwise both
-        // threads wait for each other forever.
-        //
-        // The flag alone is not enough: it stays set from the moment a
-        // packet is removed (freeing space) until the receive thread runs
-        // again, and the buffer then legitimately holds only the start of the
-        // next packet. Treating that as malformed discarded good data when a
-        // large file arrived faster than it was written (seen in the Renode
-        // emulator with 8 KB packets). So also check that the space the
-        // receive thread needs is really not there.
-        //
-        // The scan above can also be out of date by now: the receive thread
-        // runs at a higher priority and can fill the buffer with complete
-        // packets between that scan and this test. So when the test holds,
-        // scan once more before discarding anything. The receive thread is
-        // then waiting for space, so the buffer cannot change under the
-        // second scan.
-        if((_recvWaitingForSpace) &&
-           (hcom_cirbuf_avail_space(_hcom_cbuf) < _recvWaitingBytes))
+        // Only HCOM_CIR_BUF_GET_FOUND_MSG, HCOM_CIR_BUF_GET_NONE_FOUND and
+        // HCOM_CIR_BUF_GET_DELETED_TOO_BIG can be returned
+        result = hcom_cirbuf_get_next_packet(_hcom_cbuf, packet_dest_buf, HCOM_PROTOCOL_SAFE_ENCODED_MSG_BUF_SIZE, packetLength);
+        switch (result)
         {
-          if(!rescanned)
-          {
-            rescanned = true;
-            break;                      // Loop again to scan the buffer again
-          }
+            case HCOM_CIR_BUF_GET_FOUND_MSG:
+                sem_post(&_runRecvSem); // Allow recv to retry to add
 
-          syslog(LOG_ERR, "%s@%d-Receive buffer full with no delimiter, data discarded\n",
-                    __FILE__, __LINE__);
-          hcom_cirbuf_clear_buffer(_hcom_cbuf);
-          _recvWaitingForSpace = false;
-          sem_post(&_runRecvSem);
-          rescanned = false;
-          break;                        // Loop again
+                // This fast path bypasses hcom_host_enq_deq_wait_for_work(), so it
+                // must do that function's bookkeeping itself: drain one accumulated
+                // wake-credit from _runProcSem (posted by whichever enqueue produced
+                // this message) and clear a stale watchdog flag. We just proved data
+                // is flowing, so any pending watchdog notification is moot -- if the
+                // download is still genuinely stalled, its timer keeps getting reset
+                // per-packet and will fire again on its own.
+                sem_trywait(&_runProcSem);
+                _hcom_host_enq_deq_wdog_wakeup = false;
+                return OK; // Return to process message
+
+            case HCOM_CIR_BUF_GET_NONE_FOUND:
+                // If the receive thread is waiting for space it still cannot get,
+                // then the buffer is full and holds no delimiter, so no packet will
+                // ever complete. A valid encoded packet is far smaller than the buffer
+                // and ends with a delimiter, so this is malformed input. Discard the
+                // buffered bytes and release the receive thread, otherwise both
+                // threads wait for each other forever.
+                //
+                // The flag alone is not enough: it stays set from the moment a
+                // packet is removed (freeing space) until the receive thread runs
+                // again, and the buffer then legitimately holds only the start of the
+                // next packet. Treating that as malformed discarded good data when a
+                // large file arrived faster than it was written (seen in the Renode
+                // emulator with 8 KB packets). So also check that the space the
+                // receive thread needs is really not there.
+                //
+                // The scan above can also be out of date by now: the receive thread
+                // runs at a higher priority and can fill the buffer with complete
+                // packets between that scan and this test. So when the test holds,
+                // scan once more before discarding anything. The receive thread is
+                // then waiting for space, so the buffer cannot change under the
+                // second scan.
+                if ((_recvWaitingForSpace) && (hcom_cirbuf_avail_space(_hcom_cbuf) < _recvWaitingBytes))
+                {
+                    if (!rescanned)
+                    {
+                        rescanned = true;
+                        break; // Loop again to scan the buffer again
+                    }
+
+                    syslog(LOG_ERR, "%s@%d-Receive buffer full with no delimiter, data discarded\n", __FILE__, __LINE__);
+                    hcom_cirbuf_clear_buffer(_hcom_cbuf);
+                    _recvWaitingForSpace = false;
+                    sem_post(&_runRecvSem);
+                    rescanned = false;
+                    break; // Loop again
+                }
+
+                rescanned = false;
+
+                // Thread waits to be notified that a message may be available. This
+                // is also where the watchdog notification is detected.
+                ret = hcom_host_enq_deq_wait_for_work();
+                if (ret < 0)
+                {
+                    return ret; // May be watchdog timed out
+                }
+                break;          // Loop again to check for new message
+
+            case HCOM_CIR_BUF_GET_DELETED_TOO_BIG:
+                // The message was too big and the bad message removed from the
+                // circular buffer. So, report error and return.
+                syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n", __FILE__, __LINE__, *packetLength);
+                sem_post(&_runRecvSem); // Space freed: let recv retry to add
+                break;                  // Try again to get the next message
+
+            default:
+                syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_get_next_packet():%d\n", __FILE__, __LINE__, result);
+                break;
         }
-
-        rescanned = false;
-
-        // Thread waits to be notified that a message may be available. This
-        // is also where the watchdog notification is detected.
-        ret = hcom_host_enq_deq_wait_for_work();
-        if(ret < 0)
-        {
-          return ret;   // May be watchdog timed out
-        }
-        break;          // Loop again to check for new message
-
-      case HCOM_CIR_BUF_GET_DELETED_TOO_BIG:
-        // The message was too big and the bad message removed from the
-        // circular buffer. So, report error and return.
-        syslog(LOG_ERR, "%s@%d-Message too big, deleted, size:%d\n",
-                  __FILE__, __LINE__, *packetLength);
-        sem_post(&_runRecvSem);         // Space freed: let recv retry to add
-        break;                          // Try again to get the next message
-
-      default:
-        syslog(LOG_ERR, "%s@%d-Unknown return from hcom_cirbuf_get_next_packet():%d\n",
-                  __FILE__, __LINE__, result);
-        break;
     }
-  } while (! _shutting_down);
-  
-  return OK;
+    while (!_shutting_down);
+
+    return OK;
 }
 
 //=======================================================================
@@ -303,14 +296,13 @@ int hcom_host_enq_deq_dequeue_packet(uint8_t *packet_dest_buf,
 // way Nuttx threads and tasks handle open files etc.
 void hcom_host_enq_deq_dnld_watchdog_wakeup()
 {
-  _hcom_host_enq_deq_wdog_wakeup = true;
+    _hcom_host_enq_deq_wdog_wakeup = true;
 
-  int ret = sem_post(&_runProcSem);         // Notify proc of message
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error: calling sem_post(&_runProcSem) ret:%d , errno:%d\n",
-      __FILE__, __LINE__, ret, errno);
-  }
+    int ret = sem_post(&_runProcSem); // Notify proc of message
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error: calling sem_post(&_runProcSem) ret:%d , errno:%d\n", __FILE__, __LINE__, ret, errno);
+    }
 }
 
 //=======================================================================
@@ -331,12 +323,11 @@ int hcom_host_enq_deq_wait_for_work(void)
 
         if (_hcom_host_enq_deq_wdog_wakeup)
         {
-          _hcom_host_enq_deq_wdog_wakeup = false;
-          syslog(LOG_INFO, "%s@%d-HCOM Processing thread calling Watchdog Cleanup\n",
-                  __FILE__, __LINE__);
+            _hcom_host_enq_deq_wdog_wakeup = false;
+            syslog(LOG_INFO, "%s@%d-HCOM Processing thread calling Watchdog Cleanup\n", __FILE__, __LINE__);
 
-          hcom_host_watchdog_dnld_cleanup_wdog();
-          return -ETIME;
+            hcom_host_watchdog_dnld_cleanup_wdog();
+            return -ETIME;
         }
         break;
     }

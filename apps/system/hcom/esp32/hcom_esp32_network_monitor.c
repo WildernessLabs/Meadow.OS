@@ -1,4 +1,4 @@
- /****************************************************************************
+/****************************************************************************
  * hcom_esp32_network_monitor.c
  *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
@@ -73,7 +73,7 @@
  * @brief Number of bytes to allocate for the incoming line of text
  *        from the UART connected to the ESP32.
  */
-#define ESPCP_NETWORK_MONITOR_BUFFER_LENGTH     256
+#define ESPCP_NETWORK_MONITOR_BUFFER_LENGTH 256
 
 /****************************************************************************
  * Local method prototypes.
@@ -104,7 +104,7 @@ int _pipe_handles[2];
 
 /**
  * @brief Should we send the ESP logging information the the UART ?
- * 
+ *
  * This is a configuration item in the meadow.config.yaml file.
  */
 bool _send_log_to_uart = false;
@@ -116,7 +116,6 @@ bool _send_log_to_uart = false;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
 
 /****************************************************************************
  *  Name: hcom_esp32_network_monitor_running
@@ -137,7 +136,7 @@ bool _send_log_to_uart = false;
  ****************************************************************************/
 int hcom_esp32_network_monitor_running(void)
 {
-    return(_uart_monitor_running ? 1 : 0);
+    return (_uart_monitor_running ? 1 : 0);
 }
 
 /****************************************************************************
@@ -145,11 +144,11 @@ int hcom_esp32_network_monitor_running(void)
  *
  *  Description:
  *      Process the line of text that has been sent by the ESP32.
- * 
+ *
  *      Control messages will all start with "+++" followed by a signal code.
  *          * MW - Message waiting (the most common message).
  *          * RST - ESP32 has just completed the reset sequence.
- * 
+ *
  *      Lines not starting with "+++" are log messages from the ESP32.
  *
  *  Input Parameters:
@@ -160,7 +159,7 @@ int hcom_esp32_network_monitor_running(void)
  *
  *  Assumptions/Limitations:
  *      Case of the strings sent by the ESP32 matches those in this method.
- * 
+ *
  *      String is '\0' terminated and the '\n' character has been removed.
  *
  ****************************************************************************/
@@ -204,8 +203,7 @@ static void hcom_esp32_network_monitor_process_line(char *line)
 static void *hcom_esp32_network_monitor_thread(void *parameters)
 {
 #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), "esp32_network_monitor");
+    syslog(LOG_MDIAG, "New pthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), "esp32_network_monitor");
 #endif
 
     _uart_monitor_running = true;
@@ -310,7 +308,7 @@ static void *hcom_esp32_network_monitor_thread(void *parameters)
     close(_pipe_handles[1]);
     _uart_monitor_running = false;
 
-    return(NULL);
+    return (NULL);
 }
 
 /****************************************************************************
@@ -333,7 +331,7 @@ int hcom_esp32_network_monitor_start(void)
 {
     if (_uart_monitor_running)
     {
-        return(EALREADY);
+        return (EALREADY);
     }
 
     meadow_configuration_t *config = meadow_os_deep_copy_config();
@@ -378,7 +376,7 @@ int hcom_esp32_network_monitor_start(void)
     }
     (void) pthread_setname_np(_uart_thread_handle, ESPCP_NETWORK_MONITOR_NAME);
 
-    return(result);
+    return (result);
 }
 
 /****************************************************************************
@@ -411,10 +409,10 @@ int hcom_esp32_network_monitor_stop(void)
         pthread_cancel(_uart_thread_handle);
 
         int result = pthread_join(_uart_thread_handle, NULL);
-        if(result != 0)
+        if (result != 0)
         {
             syslog(LOG_ERR, "%s@%d-pthread join failed:%d, errno:%d\n", __FILE__, __LINE__, result, errno);
-            return(ERROR);
+            return (ERROR);
         }
         syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread stopped.\n", __FILE__, __LINE__);
     }
@@ -423,5 +421,5 @@ int hcom_esp32_network_monitor_stop(void)
         syslog(LOG_INFO, "%s@%d-ESP32 UART monitor thread is not running.\n", __FILE__, __LINE__);
     }
 
-    return(OK);
+    return (OK);
 }

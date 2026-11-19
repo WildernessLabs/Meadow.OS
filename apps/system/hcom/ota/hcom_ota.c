@@ -42,19 +42,18 @@
 
 #if defined(CONFIG_MEADOW_CLOUD)
 
-#include "../hcom_common.h"
-#include <meadow/hcom_protocol.h>
-#include <meadow/hcom_shared_common.h>
+    #include "../hcom_common.h"
+    #include <meadow/hcom_protocol.h>
+    #include <meadow/hcom_shared_common.h>
 
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <dirent.h>
-#include <sys/stat.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <unistd.h>
+    #include <fcntl.h>
+    #include <errno.h>
+    #include <dirent.h>
+    #include <sys/stat.h>
 
 /* OS & App updaters */
 
@@ -292,16 +291,16 @@ int firmware_update(void)
 
 /* RSA+AES key generation data + functions */
 
-#include "mbedtls/error.h"
-#include "mbedtls/pk.h"
-#include "mbedtls/ecdsa.h"
-#include "mbedtls/rsa.h"
-#include "mbedtls/error.h"
-#include "mbedtls/entropy.h"
-#include "mbedtls/ctr_drbg.h"
-#include "mbedtls/platform_util.h"
+    #include "mbedtls/error.h"
+    #include "mbedtls/pk.h"
+    #include "mbedtls/ecdsa.h"
+    #include "mbedtls/rsa.h"
+    #include "mbedtls/error.h"
+    #include "mbedtls/entropy.h"
+    #include "mbedtls/ctr_drbg.h"
+    #include "mbedtls/platform_util.h"
 
-#include "meadow/meadow_cloud.h"
+    #include "meadow/meadow_cloud.h"
 
 static mbedtls_pk_context key;
 static mbedtls_entropy_context entropy;

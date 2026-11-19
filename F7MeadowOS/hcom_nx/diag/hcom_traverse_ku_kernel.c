@@ -85,7 +85,7 @@
 // attaches (host tracing left enabled from a prior session) cannot freeze
 // the ramlog kthread -- and UART routing with it -- forever.
 #define TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS (10)
-#define TRAVERSE_KU_OPEN_RETRY_MAX_MS      (3000)  // 3 seconds
+#define TRAVERSE_KU_OPEN_RETRY_MAX_MS (3000) // 3 seconds
 
 /****************************************************************************
  * Private Data
@@ -120,79 +120,78 @@ static mutex_t _sendPipeLock = NXMUTEX_INITIALIZER;
 
 static int traverse_ku_open_write_end(void)
 {
-  int ret;
-  int retriesLeft = TRAVERSE_KU_OPEN_RETRY_MAX_MS / TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS;
+    int ret;
+    int retriesLeft = TRAVERSE_KU_OPEN_RETRY_MAX_MS / TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS;
 
-  do
-  {
-    if(hcom_nx_trace_msg_is_shutting_down())
+    do
     {
-      // Tracing is being torn down (see hcom_nx_trace_kthread_exit_initiate()
-      // in hcom_nx_trace_msg_proc.c) -- give up immediately instead of
-      // waiting out the retry cap below, so that path isn't held up.
-      return -ESHUTDOWN;
-    }
-
-    ret = nxmutex_lock(&_sendPipeLock);
-    if(ret < 0)
-    {
-      if(ret == -EINTR)
-      {
-        continue;   // Signal interrupted the lock wait -- retry.
-      }
-      return ret;
-    }
-
-    if(_send_pipe_filep.f_inode != NULL)
-    {
-      // Another context already opened it while we were waiting for the
-      // lock -- nothing left to do.
-      nxmutex_unlock(&_sendPipeLock);
-      return OK;
-    }
-
-    ret = file_open(&_send_pipe_filep, HCOM_TRAVERSE_KU_PIPE_PATH,
-                     O_WRONLY | O_NONBLOCK);
-    nxmutex_unlock(&_sendPipeLock);
-
-    if(ret < 0)
-    {
-      syslog(LOG_MDIAG, "file_open Error:%d\n", ret);
-      if(ret == -ENXIO)
-      {
-        // Wait for reader to open named pipe and unblock writer, but only
-        // for a bounded time: this is reachable on every reboot where a
-        // prior session left host tracing enabled (a battery-backed bit),
-        // and no reader may ever attach. Give up and let the caller drop
-        // this message rather than freezing the ramlog kthread -- and UART
-        // routing with it, since it happens earlier in the same call chain
-        // -- forever.
-        if(--retriesLeft <= 0)
+        if (hcom_nx_trace_msg_is_shutting_down())
         {
-          syslog(LOG_MDIAG, "file_open: giving up waiting for reader after %d ms\n",
-                  TRAVERSE_KU_OPEN_RETRY_MAX_MS);
-          return -ENXIO;
+            // Tracing is being torn down (see hcom_nx_trace_kthread_exit_initiate()
+            // in hcom_nx_trace_msg_proc.c) -- give up immediately instead of
+            // waiting out the retry cap below, so that path isn't held up.
+            return -ESHUTDOWN;
         }
-        usleep(TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS * 1000);
-        continue;
-      }
-      else
-      {
-        syslog(LOG_MDIAG, "-->Error: Failed to get file open:%d\n", ret);
-        usleep(10 * 1000);
-        return ret;
-      }
-    }
-  } while(ret < 0);
 
-  /* Keep O_NONBLOCK on the write end.  NuttX's blocking write can split
-   * a message across two circbuf_write() calls when the ring buffer is
-   * almost full, placing a partial envelope in the pipe.  The receiver
-   * sees nread != sizeof(msg) and loses sync.  With O_NONBLOCK the write
-   * either places the entire envelope atomically or returns EAGAIN with
-   * nothing written; the EAGAIN handler above retries after a short sleep.
-   */
-  return OK;
+        ret = nxmutex_lock(&_sendPipeLock);
+        if (ret < 0)
+        {
+            if (ret == -EINTR)
+            {
+                continue; // Signal interrupted the lock wait -- retry.
+            }
+            return ret;
+        }
+
+        if (_send_pipe_filep.f_inode != NULL)
+        {
+            // Another context already opened it while we were waiting for the
+            // lock -- nothing left to do.
+            nxmutex_unlock(&_sendPipeLock);
+            return OK;
+        }
+
+        ret = file_open(&_send_pipe_filep, HCOM_TRAVERSE_KU_PIPE_PATH, O_WRONLY | O_NONBLOCK);
+        nxmutex_unlock(&_sendPipeLock);
+
+        if (ret < 0)
+        {
+            syslog(LOG_MDIAG, "file_open Error:%d\n", ret);
+            if (ret == -ENXIO)
+            {
+                // Wait for reader to open named pipe and unblock writer, but only
+                // for a bounded time: this is reachable on every reboot where a
+                // prior session left host tracing enabled (a battery-backed bit),
+                // and no reader may ever attach. Give up and let the caller drop
+                // this message rather than freezing the ramlog kthread -- and UART
+                // routing with it, since it happens earlier in the same call chain
+                // -- forever.
+                if (--retriesLeft <= 0)
+                {
+                    syslog(LOG_MDIAG, "file_open: giving up waiting for reader after %d ms\n", TRAVERSE_KU_OPEN_RETRY_MAX_MS);
+                    return -ENXIO;
+                }
+                usleep(TRAVERSE_KU_OPEN_RETRY_INTERVAL_MS * 1000);
+                continue;
+            }
+            else
+            {
+                syslog(LOG_MDIAG, "-->Error: Failed to get file open:%d\n", ret);
+                usleep(10 * 1000);
+                return ret;
+            }
+        }
+    }
+    while (ret < 0);
+
+    /* Keep O_NONBLOCK on the write end.  NuttX's blocking write can split
+     * a message across two circbuf_write() calls when the ring buffer is
+     * almost full, placing a partial envelope in the pipe.  The receiver
+     * sees nread != sizeof(msg) and loses sync.  With O_NONBLOCK the write
+     * either places the entire envelope atomically or returns EAGAIN with
+     * nothing written; the EAGAIN handler above retries after a short sleep.
+     */
+    return OK;
 }
 
 /****************************************************************************
@@ -214,99 +213,93 @@ static int traverse_ku_open_write_end(void)
  ****************************************************************************/
 int hcom_traverse_ku_kernel_setup(void)
 {
-  int ret;
+    int ret;
 
-  // Make the fifo (aka named pipe)
-  ret = mkfifo(HCOM_TRAVERSE_KU_PIPE_PATH, 0666);
-  if (ret < 0 && errno != EEXIST)
-  {
-    syslog(LOG_ERR, "%s@%d: mkfifo failed, errno:%d\n",
-            __FILE__, __LINE__, errno);
-    return -errno;
-  }
+    // Make the fifo (aka named pipe)
+    ret = mkfifo(HCOM_TRAVERSE_KU_PIPE_PATH, 0666);
+    if (ret < 0 && errno != EEXIST)
+    {
+        syslog(LOG_ERR, "%s@%d: mkfifo failed, errno:%d\n", __FILE__, __LINE__, errno);
+        return -errno;
+    }
 
-  ret = nxmutex_lock(&_sendPipeLock);
-  if (ret < 0)
-  {
-    return ret;
-  }
+    ret = nxmutex_lock(&_sendPipeLock);
+    if (ret < 0)
+    {
+        return ret;
+    }
 
-  if (_send_pipe_filep.f_inode != NULL)
-  {
-    file_close(&_send_pipe_filep);
-  }
+    if (_send_pipe_filep.f_inode != NULL)
+    {
+        file_close(&_send_pipe_filep);
+    }
 
-  nxmutex_unlock(&_sendPipeLock);
+    nxmutex_unlock(&_sendPipeLock);
 
-  return OK;
+    return OK;
 }
 
 //==================================================================
-// Trace / syslog send to CLI called 
+// Trace / syslog send to CLI called
 int hcom_traverse_ku_syslog_to_host(char *syslogMsg, size_t syslogLen)
 {
-  int ret;
+    int ret;
 
-  // A syslog line can be longer than the traverse payload.  Truncate it: a
-  // line that is rejected is returned as an error, which makes the ramlog
-  // reader reopen the log and replay it from the start.
-  if (syslogLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
-  {
-    syslogLen = HCOM_TRAVERSE_KU_PAYLOAD_MAX;
-  }
+    // A syslog line can be longer than the traverse payload.  Truncate it: a
+    // line that is rejected is returned as an error, which makes the ramlog
+    // reader reopen the log and replay it from the start.
+    if (syslogLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
+    {
+        syslogLen = HCOM_TRAVERSE_KU_PAYLOAD_MAX;
+    }
 
-  // Send the text from syslog messages
-  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT,
-    HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
-  if(ret < 0)
-  {
-    // ret is already a negated errno from hcom_traverse_ku_send()/
-    // hcom_traverse_ku_send_string() - errno itself is not set by the
-    // file_open()/file_write() calls underneath, and may be stale here.
-    return ret;
-  }
-  return OK;
+    // Send the text from syslog messages
+    ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_SYSLOG_TEXT, HCOM_HOST_REQUEST_TEXT_TRACE_MSG, syslogMsg, syslogLen);
+    if (ret < 0)
+    {
+        // ret is already a negated errno from hcom_traverse_ku_send()/
+        // hcom_traverse_ku_send_string() - errno itself is not set by the
+        // file_open()/file_write() calls underneath, and may be stale here.
+        return ret;
+    }
+    return OK;
 }
 
 //==================================================================
 // Send generic text to CLI
-int hcom_traverse_ku_text_to_host(uint16_t requestType,
-        char *textMsg, size_t textLen)
+int hcom_traverse_ku_text_to_host(uint16_t requestType, char *textMsg, size_t textLen)
 {
-  int ret;
-  
-  // Send the text to CLI
-  ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT,
-    requestType, textMsg, textLen);
-  if(ret < 0)
-  {
-    // ret is already a negated errno from hcom_traverse_ku_send()/
-    // hcom_traverse_ku_send_string() - errno itself is not set by the
-    // file_open()/file_write() calls underneath, and may be stale here.
-    return ret;
-  }
-  return OK;
+    int ret;
+
+    // Send the text to CLI
+    ret = hcom_traverse_ku_send(HCOM_TRAVERSE_KU_TYPE_GENERIC_TEXT, requestType, textMsg, textLen);
+    if (ret < 0)
+    {
+        // ret is already a negated errno from hcom_traverse_ku_send()/
+        // hcom_traverse_ku_send_string() - errno itself is not set by the
+        // file_open()/file_write() calls underneath, and may be stale here.
+        return ret;
+    }
+    return OK;
 }
 
 //==================================================================
 // Send generic string (NULL terminated char array) to CLI
-int hcom_traverse_ku_string_to_host(uint16_t requestType,
-        char *stringMsg)
+int hcom_traverse_ku_string_to_host(uint16_t requestType, char *stringMsg)
 {
-  int ret;
-  
-  // Send the NULL terminated string to CLI
-  ret = hcom_traverse_ku_send_string(HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING,
-    requestType, stringMsg);
-  if(ret < 0)
-  {
-    // ret is already a negated errno from hcom_traverse_ku_send()/
-    // hcom_traverse_ku_send_string() - errno itself is not set by the
-    // file_open()/file_write() calls underneath, and may be stale here.
-    return ret;
-  }
-  
-  return OK;
+    int ret;
+
+    // Send the NULL terminated string to CLI
+    ret = hcom_traverse_ku_send_string(HCOM_TRAVERSE_KU_TYPE_GENERIC_STRING, requestType, stringMsg);
+    if (ret < 0)
+    {
+        // ret is already a negated errno from hcom_traverse_ku_send()/
+        // hcom_traverse_ku_send_string() - errno itself is not set by the
+        // file_open()/file_write() calls underneath, and may be stale here.
+        return ret;
+    }
+
+    return OK;
 }
 
 /****************************************************************************
@@ -336,148 +329,137 @@ int hcom_traverse_ku_string_to_host(uint16_t requestType,
  *
  ****************************************************************************/
 // Special case for strings
-int hcom_traverse_ku_send_string(enum HcomTraverseKUType traverseType,
-    uint16_t requestType, const char *strBody)
+int hcom_traverse_ku_send_string(enum HcomTraverseKUType traverseType, uint16_t requestType, const char *strBody)
 {
     uint16_t strLen = strlen(strBody);
-    return hcom_traverse_ku_send(traverseType,
-      requestType,
-      (void *)strBody,
-      strLen);
+    return hcom_traverse_ku_send(traverseType, requestType, (void *) strBody, strLen);
 }
 
 //-------------------------------------------------------------------
 // Primary send function
-int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType,
-    uint16_t requestType, const void *msgBody, uint16_t msgLen)
+int hcom_traverse_ku_send(enum HcomTraverseKUType traverseType, uint16_t requestType, const void *msgBody, uint16_t msgLen)
 {
-  struct hcom_traverse_ku_msg_t msg;
-  ssize_t written;
+    struct hcom_traverse_ku_msg_t msg;
+    ssize_t written;
 
-  if (msgBody == NULL || msgLen == 0 || msgLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
-  {
-    syslog(LOG_ERR, "%s@%d: send failed, message or length error\n",
-            __FILE__, __LINE__);
-    return -EINVAL;
-  }
-  
-  if ((int)traverseType < 0 || traverseType >= HCOM_TRAVERSE_KU_TYPE_COUNT)
-  {
-    syslog(LOG_ERR, "%s@%d: send failed, unknown traverse type value:%d\n",
-            __FILE__, __LINE__, traverseType);
-    return -EINVAL;
-  }
-
-  /* Build the envelope once; it doesn't depend on the shared pipe state. */
-  memset(&msg, 0, sizeof(msg));
-  msg.traverseType = traverseType;
-  msg.rqstType     = requestType;
-  msg.length       = msgLen;
-  memcpy(msg.payload, msgBody, msgLen);
-
-  bool msgSent = false;
-  do
-  {
-    /* Lazy open: attempt to connect to the read end opened by the user side.
-    * Returns -ENXIO (no reader) if user init has not run yet -- caller drops.
-    */
-    if (_send_pipe_filep.f_inode == NULL)
+    if (msgBody == NULL || msgLen == 0 || msgLen > HCOM_TRAVERSE_KU_PAYLOAD_MAX)
     {
-      int openRet = traverse_ku_open_write_end();
-      if (openRet < 0)
-      {
-        syslog(LOG_ERR, "%s@%d-_send_pipe_filep: ret:%d\n",
-                __FILE__, __LINE__, openRet);
-        return openRet;
-      }
+        syslog(LOG_ERR, "%s@%d: send failed, message or length error\n", __FILE__, __LINE__);
+        return -EINVAL;
     }
 
-    /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
-    * so partial writes cannot occur and no framing layer is needed.
-    */
-    size_t total_written = 0;
-    while(total_written < sizeof(msg))
+    if ((int) traverseType < 0 || traverseType >= HCOM_TRAVERSE_KU_TYPE_COUNT)
     {
-      int lockRet;
-
-      if(hcom_nx_trace_msg_is_shutting_down())
-      {
-        // Tracing is being torn down -- don't keep retrying a write (e.g.
-        // waiting out EAGAIN back-pressure) against a pipe that's about to
-        // go away, so hcom_nx_trace_kthread_exit_initiate()'s poll loop
-        // isn't held up.
-        return -ESHUTDOWN;
-      }
-
-      lockRet = nxmutex_lock(&_sendPipeLock);
-      if(lockRet < 0)
-      {
-        if(lockRet == -EINTR)
-        {
-          continue;   // Signal interrupted the lock wait -- retry.
-        }
-        return lockRet;
-      }
-
-      written = file_write(&_send_pipe_filep,
-                      (const uint8_t *)&msg + total_written,
-                      sizeof(msg) - total_written);
-      nxmutex_unlock(&_sendPipeLock);
-
-      if (written > 0)
-      {
-        total_written += (size_t)written;
-
-        // Test if full message, get more if not
-        continue;
-      }
-
-      if(written == 0)
-      {
-        // Nothing written?
-        usleep(20 * 1000);
-        continue;
-      }
-
-      if(written == -EPIPE)         // Broken pipe
-      {
-        // Will spin here waiting for User side to start, creating the other
-        // end of the pipe.
-        lockRet = nxmutex_lock(&_sendPipeLock);
-        if(lockRet == 0)
-        {
-          file_close(&_send_pipe_filep);
-          nxmutex_unlock(&_sendPipeLock);
-        }
-        usleep(20 * 1000);
-        break;            // Break out of inner loop
-      }
-      else if(written == -EAGAIN)   // EAGAIN
-      {
-        usleep(1 * 1000);
-      }
-      else if(written == -EINTR)    // Interrupted
-      {
-        /* Signal interrupted the call -- retry immediately. */
-      }
-      else
-      {
-        syslog(LOG_ERR, "%s@%d: write failed, ret:%zd\n",
-                __FILE__, __LINE__, written);
-        return (int)written;
-      }
+        syslog(LOG_ERR, "%s@%d: send failed, unknown traverse type value:%d\n", __FILE__, __LINE__, traverseType);
+        return -EINVAL;
     }
 
-    msgSent = (total_written == sizeof(msg));
+    /* Build the envelope once; it doesn't depend on the shared pipe state. */
+    memset(&msg, 0, sizeof(msg));
+    msg.traverseType = traverseType;
+    msg.rqstType = requestType;
+    msg.length = msgLen;
+    memcpy(msg.payload, msgBody, msgLen);
 
-    // Only loop if the write end got closed above (EPIPE) without finishing.
-    // Tracked explicitly rather than inferred from _send_pipe_filep's current
-    // state, since another context could have reopened it by the time we get
-    // here -- that would otherwise look like "no need to retry" even though
-    // THIS message was never actually sent.
-  } while(!msgSent);
+    bool msgSent = false;
+    do
+    {
+        /* Lazy open: attempt to connect to the read end opened by the user side.
+         * Returns -ENXIO (no reader) if user init has not run yet -- caller drops.
+         */
+        if (_send_pipe_filep.f_inode == NULL)
+        {
+            int openRet = traverse_ku_open_write_end();
+            if (openRet < 0)
+            {
+                syslog(LOG_ERR, "%s@%d-_send_pipe_filep: ret:%d\n", __FILE__, __LINE__, openRet);
+                return openRet;
+            }
+        }
 
-  // One message written
-  return OK;
+        /* A single write() of the full envelope is atomic (sizeof(msg) < PIPE_BUF)
+         * so partial writes cannot occur and no framing layer is needed.
+         */
+        size_t total_written = 0;
+        while (total_written < sizeof(msg))
+        {
+            int lockRet;
+
+            if (hcom_nx_trace_msg_is_shutting_down())
+            {
+                // Tracing is being torn down -- don't keep retrying a write (e.g.
+                // waiting out EAGAIN back-pressure) against a pipe that's about to
+                // go away, so hcom_nx_trace_kthread_exit_initiate()'s poll loop
+                // isn't held up.
+                return -ESHUTDOWN;
+            }
+
+            lockRet = nxmutex_lock(&_sendPipeLock);
+            if (lockRet < 0)
+            {
+                if (lockRet == -EINTR)
+                {
+                    continue; // Signal interrupted the lock wait -- retry.
+                }
+                return lockRet;
+            }
+
+            written = file_write(&_send_pipe_filep, (const uint8_t *) &msg + total_written, sizeof(msg) - total_written);
+            nxmutex_unlock(&_sendPipeLock);
+
+            if (written > 0)
+            {
+                total_written += (size_t) written;
+
+                // Test if full message, get more if not
+                continue;
+            }
+
+            if (written == 0)
+            {
+                // Nothing written?
+                usleep(20 * 1000);
+                continue;
+            }
+
+            if (written == -EPIPE) // Broken pipe
+            {
+                // Will spin here waiting for User side to start, creating the other
+                // end of the pipe.
+                lockRet = nxmutex_lock(&_sendPipeLock);
+                if (lockRet == 0)
+                {
+                    file_close(&_send_pipe_filep);
+                    nxmutex_unlock(&_sendPipeLock);
+                }
+                usleep(20 * 1000);
+                break;                   // Break out of inner loop
+            }
+            else if (written == -EAGAIN) // EAGAIN
+            {
+                usleep(1 * 1000);
+            }
+            else if (written == -EINTR) // Interrupted
+            {
+                /* Signal interrupted the call -- retry immediately. */
+            }
+            else
+            {
+                syslog(LOG_ERR, "%s@%d: write failed, ret:%zd\n", __FILE__, __LINE__, written);
+                return (int) written;
+            }
+        }
+
+        msgSent = (total_written == sizeof(msg));
+
+        // Only loop if the write end got closed above (EPIPE) without finishing.
+        // Tracked explicitly rather than inferred from _send_pipe_filep's current
+        // state, since another context could have reopened it by the time we get
+        // here -- that would otherwise look like "no need to retry" even though
+        // THIS message was never actually sent.
+    }
+    while (!msgSent);
+
+    // One message written
+    return OK;
 }
-

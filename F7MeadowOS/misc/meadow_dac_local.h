@@ -63,103 +63,95 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MEADOW_DAC_NCHANNELS      2
+#define MEADOW_DAC_NCHANNELS 2
 
 /* The largest value for 12-bit right-aligned data */
 
-#define MEADOW_DAC_MAX_VALUE      4095
+#define MEADOW_DAC_MAX_VALUE 4095
 
 /* Pin identifiers use the meadow_adc_configure() encoding:
  * (port << 4) | pin, with port A = 0.
  */
 
-#define MEADOW_DAC_PINID_PA4      0x04
-#define MEADOW_DAC_PINID_PA5      0x05
+#define MEADOW_DAC_PINID_PA4 0x04
+#define MEADOW_DAC_PINID_PA5 0x05
 
-#define MEADOW_DAC_GPIO_PA4       (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | \
-                                   GPIO_PIN4)
-#define MEADOW_DAC_GPIO_PA5       (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | \
-                                   GPIO_PIN5)
+#define MEADOW_DAC_GPIO_PA4 (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | GPIO_PIN4)
+#define MEADOW_DAC_GPIO_PA5 (GPIO_ANALOG | GPIO_FLOAT | GPIO_PORTA | GPIO_PIN5)
 
 /* DAC registers (RM0410, DAC chapter) */
 
-#define MEADOW_DAC_CR             (STM32_DAC_BASE + 0x00)
-#define MEADOW_DAC_DHR12R1        (STM32_DAC_BASE + 0x08)
-#define MEADOW_DAC_DHR12R2        (STM32_DAC_BASE + 0x14)
-#define MEADOW_DAC_DOR1           (STM32_DAC_BASE + 0x2c)
-#define MEADOW_DAC_DOR2           (STM32_DAC_BASE + 0x30)
-#define MEADOW_DAC_SR             (STM32_DAC_BASE + 0x34)
+#define MEADOW_DAC_CR (STM32_DAC_BASE + 0x00)
+#define MEADOW_DAC_DHR12R1 (STM32_DAC_BASE + 0x08)
+#define MEADOW_DAC_DHR12R2 (STM32_DAC_BASE + 0x14)
+#define MEADOW_DAC_DOR1 (STM32_DAC_BASE + 0x2c)
+#define MEADOW_DAC_DOR2 (STM32_DAC_BASE + 0x30)
+#define MEADOW_DAC_SR (STM32_DAC_BASE + 0x34)
 
 /* DAC_CR bits for channel 1. The channel 2 bits are the same, 16 bits up. */
 
-#define MEADOW_DAC_CR_EN          (1 << 0)  /* Channel enable */
-#define MEADOW_DAC_CR_BOFF        (1 << 1)  /* Output buffer disable */
-#define MEADOW_DAC_CR_TEN         (1 << 2)  /* Trigger enable */
-#define MEADOW_DAC_CR_TSEL_MASK   (7 << 3)  /* Trigger select; 0 = TIM6 */
-#define MEADOW_DAC_CR_WAVE_NOISE  (1 << 6)  /* Noise generator */
-#define MEADOW_DAC_CR_WAVE_TRI    (2 << 6)  /* Triangle generator */
-#define MEADOW_DAC_CR_WAVE_MASK   (3 << 6)
-#define MEADOW_DAC_CR_MAMP_SHIFT  8         /* Mask / amplitude selector */
-#define MEADOW_DAC_CR_MAMP_MASK   (15 << 8)
-#define MEADOW_DAC_CR_DMAEN       (1 << 12) /* DMA enable */
-#define MEADOW_DAC_CR_CH_SHIFT    16
+#define MEADOW_DAC_CR_EN (1 << 0)         /* Channel enable */
+#define MEADOW_DAC_CR_BOFF (1 << 1)       /* Output buffer disable */
+#define MEADOW_DAC_CR_TEN (1 << 2)        /* Trigger enable */
+#define MEADOW_DAC_CR_TSEL_MASK (7 << 3)  /* Trigger select; 0 = TIM6 */
+#define MEADOW_DAC_CR_WAVE_NOISE (1 << 6) /* Noise generator */
+#define MEADOW_DAC_CR_WAVE_TRI (2 << 6)   /* Triangle generator */
+#define MEADOW_DAC_CR_WAVE_MASK (3 << 6)
+#define MEADOW_DAC_CR_MAMP_SHIFT 8        /* Mask / amplitude selector */
+#define MEADOW_DAC_CR_MAMP_MASK (15 << 8)
+#define MEADOW_DAC_CR_DMAEN (1 << 12)     /* DMA enable */
+#define MEADOW_DAC_CR_CH_SHIFT 16
 
 /* All the DAC_CR bits a waveform sets, for one channel */
 
-#define MEADOW_DAC_CR_WAVE_BITS   (MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_TSEL_MASK | \
-                                   MEADOW_DAC_CR_WAVE_MASK | \
-                                   MEADOW_DAC_CR_MAMP_MASK | \
-                                   MEADOW_DAC_CR_DMAEN)
+#define MEADOW_DAC_CR_WAVE_BITS (MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_TSEL_MASK | MEADOW_DAC_CR_WAVE_MASK | MEADOW_DAC_CR_MAMP_MASK | MEADOW_DAC_CR_DMAEN)
 
 /* DAC_SR DMA underrun flag for channel 1; channel 2 is 16 bits up */
 
-#define MEADOW_DAC_SR_DMAUDR      (1 << 13)
+#define MEADOW_DAC_SR_DMAUDR (1 << 13)
 
-#define MEADOW_DAC_DATA_MASK      0x0fff
+#define MEADOW_DAC_DATA_MASK 0x0fff
 
 /* Waveform limits */
 
-#define MEADOW_DAC_WAVE_MAX_SAMPLES  8192
-#define MEADOW_DAC_WAVE_MAX_RATE     1000000   /* The DAC's maximum update rate */
+#define MEADOW_DAC_WAVE_MAX_SAMPLES 8192
+#define MEADOW_DAC_WAVE_MAX_RATE 1000000 /* The DAC's maximum update rate */
 
 /* Stream ring sizes, in samples */
 
-#define MEADOW_DAC_STREAM_DEF_RING   8192
-#define MEADOW_DAC_STREAM_MIN_RING   256
-#define MEADOW_DAC_STREAM_MAX_RING   16384
+#define MEADOW_DAC_STREAM_DEF_RING 8192
+#define MEADOW_DAC_STREAM_MIN_RING 256
+#define MEADOW_DAC_STREAM_MAX_RING 16384
 
 /* The kernel's copy of a sample buffer is aligned to the data cache line */
 
-#define MEADOW_DAC_WAVE_ALIGN     32
+#define MEADOW_DAC_WAVE_ALIGN 32
 
 /* DMA set-up for a buffer loop: memory to peripheral, 16-bit on both sides,
  * memory increment, circular, high priority.
  */
 
-#define MEADOW_DAC_DMA_SCR        (DMA_SCR_DIR_M2P | DMA_SCR_MINC | \
-                                   DMA_SCR_PSIZE_16BITS | \
-                                   DMA_SCR_MSIZE_16BITS | DMA_SCR_CIRC | \
-                                   DMA_SCR_PRIHI)
+#define MEADOW_DAC_DMA_SCR (DMA_SCR_DIR_M2P | DMA_SCR_MINC | DMA_SCR_PSIZE_16BITS | DMA_SCR_MSIZE_16BITS | DMA_SCR_CIRC | DMA_SCR_PRIHI)
 
 /* The same for a one-shot, played once: normal mode instead of circular */
 
-#define MEADOW_DAC_DMA_SCR_ONCE   (MEADOW_DAC_DMA_SCR & ~DMA_SCR_CIRC)
+#define MEADOW_DAC_DMA_SCR_ONCE (MEADOW_DAC_DMA_SCR & ~DMA_SCR_CIRC)
 
 /* Fill values added after a one-shot clip. When DMA reports the last one
  * delivered, the first is already on the output, so every sample of the
  * clip has played for a full sample period (see MeadowDac.md).
  */
 
-#define MEADOW_DAC_ONESHOT_TAIL   2
+#define MEADOW_DAC_ONESHOT_TAIL 2
 
 /* TIM6, the waveform trigger timer */
 
-#define MEADOW_DAC_TIM_CLKIN      STM32_TIM6_CLKIN
-#define MEADOW_DAC_TIM_CR1        (STM32_TIM6_BASE + STM32_BTIM_CR1_OFFSET)
-#define MEADOW_DAC_TIM_CR2        (STM32_TIM6_BASE + STM32_BTIM_CR2_OFFSET)
-#define MEADOW_DAC_TIM_EGR        (STM32_TIM6_BASE + STM32_BTIM_EGR_OFFSET)
-#define MEADOW_DAC_TIM_PSC        (STM32_TIM6_BASE + STM32_BTIM_PSC_OFFSET)
-#define MEADOW_DAC_TIM_ARR        (STM32_TIM6_BASE + STM32_BTIM_ARR_OFFSET)
+#define MEADOW_DAC_TIM_CLKIN STM32_TIM6_CLKIN
+#define MEADOW_DAC_TIM_CR1 (STM32_TIM6_BASE + STM32_BTIM_CR1_OFFSET)
+#define MEADOW_DAC_TIM_CR2 (STM32_TIM6_BASE + STM32_BTIM_CR2_OFFSET)
+#define MEADOW_DAC_TIM_EGR (STM32_TIM6_BASE + STM32_BTIM_EGR_OFFSET)
+#define MEADOW_DAC_TIM_PSC (STM32_TIM6_BASE + STM32_BTIM_PSC_OFFSET)
+#define MEADOW_DAC_TIM_ARR (STM32_TIM6_BASE + STM32_BTIM_ARR_OFFSET)
 
 /****************************************************************************
  * Public Types
@@ -167,55 +159,55 @@
 
 struct meadow_dac_chan_s
 {
-  uint8_t   pinid;  /* meadow_adc_configure() style pin identifier */
-  uint32_t  gpio;   /* stm32_configgpio() pin configuration */
-  uint32_t  dhr;    /* 12-bit right-aligned data holding register */
-  uint32_t  dor;    /* Data output register */
-  uint8_t   shift;  /* Position of this channel's bits in DAC_CR */
-  uint32_t  dmamap; /* stm32_dmachannel() stream and channel */
-  uint32_t  dmacr;  /* That DMA stream's configuration register */
+    uint8_t pinid;   /* meadow_adc_configure() style pin identifier */
+    uint32_t gpio;   /* stm32_configgpio() pin configuration */
+    uint32_t dhr;    /* 12-bit right-aligned data holding register */
+    uint32_t dor;    /* Data output register */
+    uint8_t shift;   /* Position of this channel's bits in DAC_CR */
+    uint32_t dmamap; /* stm32_dmachannel() stream and channel */
+    uint32_t dmacr;  /* That DMA stream's configuration register */
 };
 
 /* A waveform playing on one channel */
 
 struct meadow_dac_wave_state_s
 {
-  uint32_t    type;  /* MEADOW_DAC_WAVE_*, or 0 when none is playing */
-  DMA_HANDLE  dma;   /* Buffer loop, stream, one-shot: the DMA stream */
-  uint16_t   *buf;   /* Buffer loop, one-shot: the kernel's copy;
-                      * stream: the ring */
+    uint32_t type;  /* MEADOW_DAC_WAVE_*, or 0 when none is playing */
+    DMA_HANDLE dma; /* Buffer loop, stream, one-shot: the DMA stream */
+    uint16_t *buf;  /* Buffer loop, one-shot: the kernel's copy;
+                     * stream: the ring */
 
-  /* One-shot only: set by the DMA handler when the clip has played to the
-   * end. The clip's resources are released later, under the driver lock.
-   */
+    /* One-shot only: set by the DMA handler when the clip has played to the
+     * end. The clip's resources are released later, under the driver lock.
+     */
 
-  volatile bool done;
+    volatile bool done;
 
-  /* Stream only. The ring is played in two halves. While running, at most
-   * one half belongs to the app (target): the one DMA freed most recently.
-   * The counts are updated from the DMA handler, so they are read and
-   * changed with interrupts disabled.
-   */
+    /* Stream only. The ring is played in two halves. While running, at most
+     * one half belongs to the app (target): the one DMA freed most recently.
+     * The counts are updated from the DMA handler, so they are read and
+     * changed with interrupts disabled.
+     */
 
-  uint32_t    sstate;     /* MEADOW_DAC_STREAM_* */
-  uint32_t    ring;       /* Ring size in samples */
-  uint32_t    half;       /* Half the ring */
-  uint16_t    fill;       /* Value a half is reset to when freed */
-  int8_t      target;     /* Half the app writes into; -1 = none yet */
-  uint32_t    count[2];   /* App samples written into each half */
-  uint32_t    played[2];  /* App samples in a half when DMA started it */
-  uint32_t    underruns;  /* Halves DMA started without being full */
-  uint32_t    seq;        /* Counts DMA half events */
+    uint32_t sstate;    /* MEADOW_DAC_STREAM_* */
+    uint32_t ring;      /* Ring size in samples */
+    uint32_t half;      /* Half the ring */
+    uint16_t fill;      /* Value a half is reset to when freed */
+    int8_t target;      /* Half the app writes into; -1 = none yet */
+    uint32_t count[2];  /* App samples written into each half */
+    uint32_t played[2]; /* App samples in a half when DMA started it */
+    uint32_t underruns; /* Halves DMA started without being full */
+    uint32_t seq;       /* Counts DMA half events */
 
-  /* Stream only, for the file player. A stream with a non-zero owner was
-   * started by the player and only the player writes to it. Once the
-   * player has written the whole file it freezes the underrun count, so
-   * the halves that underrun while the stream drains are not reported.
-   */
+    /* Stream only, for the file player. A stream with a non-zero owner was
+     * started by the player and only the player writes to it. Once the
+     * player has written the whole file it freezes the underrun count, so
+     * the halves that underrun while the stream drains are not reported.
+     */
 
-  uint32_t    owner;      /* The player's number for the stream; 0 = app */
-  bool        ufrozen;    /* The underrun count is frozen at uend */
-  uint32_t    uend;       /* Underruns when the last block was written */
+    uint32_t owner; /* The player's number for the stream; 0 = app */
+    bool ufrozen;   /* The underrun count is frozen at uend */
+    uint32_t uend;  /* Underruns when the last block was written */
 };
 
 /****************************************************************************
@@ -240,28 +232,21 @@ extern struct meadow_dac_wave_state_s g_dac_wave[MEADOW_DAC_NCHANNELS];
 
 /* meadow_dac.c */
 
-int  meadow_dac_find_chan(uint8_t pinid);
-int  meadow_dac_lock_open_chan(uint8_t pinid);
-void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan,
-                         uint32_t bits);
+int meadow_dac_find_chan(uint8_t pinid);
+int meadow_dac_lock_open_chan(uint8_t pinid);
+void meadow_dac_set_mode(const struct meadow_dac_chan_s *chan, uint32_t bits);
 void meadow_dac_tim_run(void);
-int  meadow_dac_wave_stop_locked(int index);
-int  meadow_dac_wave_start_owned(uint8_t pinid,
-                                 struct meadow_dac_wave_s *wave,
-                                 uint32_t owner);
+int meadow_dac_wave_stop_locked(int index);
+int meadow_dac_wave_start_owned(uint8_t pinid, struct meadow_dac_wave_s *wave, uint32_t owner);
 
 /* meadow_dac_stream.c */
 
 void meadow_dac_space_post(int index);
-int  meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
-                               uint16_t **pbuf, DMA_HANDLE *pdma);
-void meadow_dac_stream_status(int index,
-                              struct meadow_dac_wave_status_s *out);
-int  meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples,
-                             uint32_t count, uint32_t timeout_ms,
-                             uint32_t owner);
-int  meadow_dac_stream_end(uint8_t pinid, uint32_t owner);
-int  meadow_dac_stream_queued(uint8_t pinid, uint32_t owner);
+int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill, uint16_t **pbuf, DMA_HANDLE *pdma);
+void meadow_dac_stream_status(int index, struct meadow_dac_wave_status_s *out);
+int meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples, uint32_t count, uint32_t timeout_ms, uint32_t owner);
+int meadow_dac_stream_end(uint8_t pinid, uint32_t owner);
+int meadow_dac_stream_queued(uint8_t pinid, uint32_t owner);
 void meadow_dac_stream_stop(uint8_t pinid, uint32_t owner);
 
 #endif /* __F7MEADOWOS_MISC_MEADOW_DAC_LOCAL_H */

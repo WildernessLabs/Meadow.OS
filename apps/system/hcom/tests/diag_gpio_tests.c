@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\tests\diag_gpio_tests.c
- * 
+ *
  *   Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -40,9 +40,9 @@
 
 #if defined(CONFIG_GPIO_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <meadow/meadow_hw_version.h>
-#include "../hcom_common.h"
-#include "../diag/hcom_diag_gpio.h"
+    #include <meadow/meadow_hw_version.h>
+    #include "../hcom_common.h"
+    #include "../diag/hcom_diag_gpio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -53,71 +53,17 @@
  * Private Data
  ****************************************************************************/
 
-  uint32_t f7v1GpioPinMap[] = 
-  {
-    DEBUG_PIN_V1_A0,
-    DEBUG_PIN_V1_A1,
-    DEBUG_PIN_V1_A2,
-    DEBUG_PIN_V1_A3,
-    DEBUG_PIN_V1_A4,
-    DEBUG_PIN_V1_A5,
-    DEBUG_PIN_V1_SCK,
-    DEBUG_PIN_V1_COPI,
-    DEBUG_PIN_V1_CIPO,
-    DEBUG_PIN_V1_D00,
-    DEBUG_PIN_V1_D01,
-    DEBUG_PIN_V1_D02,
-    DEBUG_PIN_V1_D03,
-    DEBUG_PIN_V1_D04,
-    DEBUG_PIN_V1_D05,
-    DEBUG_PIN_V1_D06,
-    DEBUG_PIN_V1_D07,
-    DEBUG_PIN_V1_D08,
-    DEBUG_PIN_V1_D09,
-    DEBUG_PIN_V1_D10,
-    DEBUG_PIN_V1_D11,
-    DEBUG_PIN_V1_D12,
-    DEBUG_PIN_V1_D13,
-    DEBUG_PIN_V1_D14,
-    DEBUG_PIN_V1_D15,
-    DEBUG_PIN_V1_RED_LED,
-    DEBUG_PIN_V1_GREEN_LED,
-    DEBUG_PIN_V1_BLUE_LED,
-  };
+uint32_t f7v1GpioPinMap[] = {
+    DEBUG_PIN_V1_A0,  DEBUG_PIN_V1_A1,  DEBUG_PIN_V1_A2,  DEBUG_PIN_V1_A3,  DEBUG_PIN_V1_A4,  DEBUG_PIN_V1_A5,  DEBUG_PIN_V1_SCK, DEBUG_PIN_V1_COPI, DEBUG_PIN_V1_CIPO, DEBUG_PIN_V1_D00, DEBUG_PIN_V1_D01, DEBUG_PIN_V1_D02,     DEBUG_PIN_V1_D03,       DEBUG_PIN_V1_D04,
+    DEBUG_PIN_V1_D05, DEBUG_PIN_V1_D06, DEBUG_PIN_V1_D07, DEBUG_PIN_V1_D08, DEBUG_PIN_V1_D09, DEBUG_PIN_V1_D10, DEBUG_PIN_V1_D11, DEBUG_PIN_V1_D12,  DEBUG_PIN_V1_D13,  DEBUG_PIN_V1_D14, DEBUG_PIN_V1_D15, DEBUG_PIN_V1_RED_LED, DEBUG_PIN_V1_GREEN_LED, DEBUG_PIN_V1_BLUE_LED,
+};
 
-  uint32_t f7v2GpioPinMap[] = 
-  {
-    DEBUG_PIN_V2_A0,
-    DEBUG_PIN_V2_A1,
-    DEBUG_PIN_V2_A2,
-    DEBUG_PIN_V2_A3,
-    DEBUG_PIN_V2_A4,
-    DEBUG_PIN_V2_A5,
-    DEBUG_PIN_V2_SCK,
-    DEBUG_PIN_V2_COPI,
-    DEBUG_PIN_V2_CIPO,
-    DEBUG_PIN_V2_D00,
-    DEBUG_PIN_V2_D01,
-    DEBUG_PIN_V2_D02,
-    DEBUG_PIN_V2_D03,
-    DEBUG_PIN_V2_D04,
-    DEBUG_PIN_V2_D05,
-    DEBUG_PIN_V2_D06,
-    DEBUG_PIN_V2_D07,
-    DEBUG_PIN_V2_D08,
-    DEBUG_PIN_V2_D09,
-    DEBUG_PIN_V2_D10,
-    DEBUG_PIN_V2_D11,
-    DEBUG_PIN_V2_D12,
-    DEBUG_PIN_V2_D13,
-    DEBUG_PIN_V2_D14,
-    DEBUG_PIN_V2_D15,
-    DEBUG_PIN_V2_RED_LED,
-    DEBUG_PIN_V2_GREEN_LED,
-    DEBUG_PIN_V2_BLUE_LED,
-  };
+uint32_t f7v2GpioPinMap[] = {
+    DEBUG_PIN_V2_A0,  DEBUG_PIN_V2_A1,  DEBUG_PIN_V2_A2,  DEBUG_PIN_V2_A3,  DEBUG_PIN_V2_A4,  DEBUG_PIN_V2_A5,  DEBUG_PIN_V2_SCK, DEBUG_PIN_V2_COPI, DEBUG_PIN_V2_CIPO, DEBUG_PIN_V2_D00, DEBUG_PIN_V2_D01, DEBUG_PIN_V2_D02,     DEBUG_PIN_V2_D03,       DEBUG_PIN_V2_D04,
+    DEBUG_PIN_V2_D05, DEBUG_PIN_V2_D06, DEBUG_PIN_V2_D07, DEBUG_PIN_V2_D08, DEBUG_PIN_V2_D09, DEBUG_PIN_V2_D10, DEBUG_PIN_V2_D11, DEBUG_PIN_V2_D12,  DEBUG_PIN_V2_D13,  DEBUG_PIN_V2_D14, DEBUG_PIN_V2_D15, DEBUG_PIN_V2_RED_LED, DEBUG_PIN_V2_GREEN_LED, DEBUG_PIN_V2_BLUE_LED,
+};
 
-#define HCOM_DIAG_GPIO_TESTS_GPIO_COUNT (sizeof(f7v2GpioPinMap) / sizeof(uint32_t))
+    #define HCOM_DIAG_GPIO_TESTS_GPIO_COUNT (sizeof(f7v2GpioPinMap) / sizeof(uint32_t))
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -129,64 +75,63 @@
 // it used for syslog output.
 void hcom_meadow_diag_gpio_tests(uint32_t userData)
 {
-  uint32_t gpioPinDefn;
-  uint32_t hwVer;
+    uint32_t gpioPinDefn;
+    uint32_t hwVer;
 
-  if(userData == 0 || userData > HCOM_DIAG_GPIO_TESTS_GPIO_COUNT)
-  {
-    syslog(LOG_MTEST, "AP-userData:%" PRIu32 " is out of range. Try 1-%d\n",
-              userData, HCOM_DIAG_GPIO_TESTS_GPIO_COUNT);
-    return;
-  }
-
-  hwVer = hcom_via_nx_get_hw_version();
-  for(int led = userData - 1; led < userData + 9; led++)
-  {
-    if(hwVer == MEADOW_F7_HW_VERSION_NUMB_F7V1)
-      gpioPinDefn = f7v1GpioPinMap[led];
-    else
-      gpioPinDefn = f7v2GpioPinMap[led];
-
-    hcom_diag_gpio_set_high(gpioPinDefn);
-    usleep(250 * 1000);
-    hcom_diag_gpio_set_low(gpioPinDefn);
-    usleep(250 * 1000);
-  }
-  
-  // Test 10 leds
-  for(int led = userData - 1; led < userData + 9; led++)
-  {
-    syslog(LOG_MTEST, "AP-Testing GPIO:%d on F7v%" PRIu32 "\n", led, hwVer);
-    
-    // Don't go past the last led
-    if(led > HCOM_DIAG_GPIO_TESTS_GPIO_COUNT - 1)
-      continue;
-      
-    if(hwVer == MEADOW_F7_HW_VERSION_NUMB_F7V1)
-      gpioPinDefn = f7v1GpioPinMap[led];
-    else
-      gpioPinDefn = f7v2GpioPinMap[led];
-
-    // Configure
-    hcom_diag_gpio_config(gpioPinDefn);
-
-    // Turn-on & off twice
-    hcom_diag_gpio_set_high(gpioPinDefn);
-    usleep(250 * 1000);
-    hcom_diag_gpio_set_low(gpioPinDefn);
-    usleep(250 * 1000);
-    hcom_diag_gpio_set_high(gpioPinDefn);
-    usleep(250 * 1000);
-    hcom_diag_gpio_set_low(gpioPinDefn);
-    usleep(250 * 1000);
-
-    // pulse
-    for(int i = 0; i < 30; i++)
+    if (userData == 0 || userData > HCOM_DIAG_GPIO_TESTS_GPIO_COUNT)
     {
-      hcom_diag_gpio_pulse(gpioPinDefn, 50 * 1000);
-      usleep(50 * 1000);
+        syslog(LOG_MTEST, "AP-userData:%" PRIu32 " is out of range. Try 1-%d\n", userData, HCOM_DIAG_GPIO_TESTS_GPIO_COUNT);
+        return;
     }
-  }
+
+    hwVer = hcom_via_nx_get_hw_version();
+    for (int led = userData - 1; led < userData + 9; led++)
+    {
+        if (hwVer == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+            gpioPinDefn = f7v1GpioPinMap[led];
+        else
+            gpioPinDefn = f7v2GpioPinMap[led];
+
+        hcom_diag_gpio_set_high(gpioPinDefn);
+        usleep(250 * 1000);
+        hcom_diag_gpio_set_low(gpioPinDefn);
+        usleep(250 * 1000);
+    }
+
+    // Test 10 leds
+    for (int led = userData - 1; led < userData + 9; led++)
+    {
+        syslog(LOG_MTEST, "AP-Testing GPIO:%d on F7v%" PRIu32 "\n", led, hwVer);
+
+        // Don't go past the last led
+        if (led > HCOM_DIAG_GPIO_TESTS_GPIO_COUNT - 1)
+            continue;
+
+        if (hwVer == MEADOW_F7_HW_VERSION_NUMB_F7V1)
+            gpioPinDefn = f7v1GpioPinMap[led];
+        else
+            gpioPinDefn = f7v2GpioPinMap[led];
+
+        // Configure
+        hcom_diag_gpio_config(gpioPinDefn);
+
+        // Turn-on & off twice
+        hcom_diag_gpio_set_high(gpioPinDefn);
+        usleep(250 * 1000);
+        hcom_diag_gpio_set_low(gpioPinDefn);
+        usleep(250 * 1000);
+        hcom_diag_gpio_set_high(gpioPinDefn);
+        usleep(250 * 1000);
+        hcom_diag_gpio_set_low(gpioPinDefn);
+        usleep(250 * 1000);
+
+        // pulse
+        for (int i = 0; i < 30; i++)
+        {
+            hcom_diag_gpio_pulse(gpioPinDefn, 50 * 1000);
+            usleep(50 * 1000);
+        }
+    }
 }
 
 #endif

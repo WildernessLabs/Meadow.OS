@@ -3,9 +3,9 @@
  *
  *  Copyright (C) 2020 Wilderness Labs. All rights reserved.
  *  Author: Mark Stevens
- * 
+ *
  *  Methods supporting the ESP system functions (e.g. GetBatteryChargeLevel).
- *  
+ *
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

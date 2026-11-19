@@ -1,6 +1,6 @@
 /****************************************************************************
  * nuttx/include/meadow/meadow_apps_core_share.h
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -32,11 +32,11 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
- 
+
 // This file contains header information needed expose functions to the apps
 // side and add syscalls used by Meadow.
 
- /***************************************************************************/
+/***************************************************************************/
 #ifndef __CONFIGS_MEADOW_SRC_MEADOW_APPS_CORE_SHARE__H
 #define __CONFIGS_MEADOW_SRC_MEADOW_APPS_CORE_SHARE__H
 

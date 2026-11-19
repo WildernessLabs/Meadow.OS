@@ -1,6 +1,6 @@
 /****************************************************************************
  * espcp_tests.c
- * 
+ *
  *   Copyright (C) 2021 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -40,49 +40,49 @@
 
 #if defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#pragma message "(--) espcp_tests.c included"
+    #pragma message "(--) espcp_tests.c included"
 
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <netdb.h>	//hostent
-#include <arpa/inet.h>
-#include <net/if.h>
-#include <ifaddrs.h>
-#include <sys/ioctl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
+    #include <stdint.h>
+    #include <stdbool.h>
+    #include <stdlib.h>
+    #include <poll.h>
+    #include <sys/socket.h>
+    #include <netdb.h> //hostent
+    #include <arpa/inet.h>
+    #include <net/if.h>
+    #include <ifaddrs.h>
+    #include <sys/ioctl.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <errno.h>
+    #include <fcntl.h>
+    #include <string.h>
+    #include <time.h>
+    #include <unistd.h>
 
-#include <nuttx/mqueue.h>          // file_mq_* (kernel-side queue API)
-#include <meadow/meadow-upd.h>
-#include <meadow/hcom_shared_common.h>
-#include <meadow/meadow_kernel_tests.h>
-#include "../espcp/espcp_usrsock.h"
-#include "../espcp/espcp_common.h"
-#include "../espcp/espcp_file_system.h"
-#include "../hcom_nx/hcom_nx_config_manager.h"
-#include <meadow/meadow_unit_test_framework.h>
+    #include <nuttx/mqueue.h> // file_mq_* (kernel-side queue API)
+    #include <meadow/meadow-upd.h>
+    #include <meadow/hcom_shared_common.h>
+    #include <meadow/meadow_kernel_tests.h>
+    #include "../espcp/espcp_usrsock.h"
+    #include "../espcp/espcp_common.h"
+    #include "../espcp/espcp_file_system.h"
+    #include "../hcom_nx/hcom_nx_config_manager.h"
+    #include <meadow/meadow_unit_test_framework.h>
 
-#include "../espcp/espcp_test_heap_tracing.h"
+    #include "../espcp/espcp_test_heap_tracing.h"
 
-#include "network_tests.h"
+    #include "network_tests.h"
 
-//
-//  Default logging level for this file.
-//
-#define LOGGING_LEVEL   1
+    //
+    //  Default logging level for this file.
+    //
+    #define LOGGING_LEVEL 1
 
-//
-//  Delay following the tests to allow any events to be processed.
-//
-#define DELAY           2000000
+    //
+    //  Delay following the tests to allow any events to be processed.
+    //
+    #define DELAY 2000000
 
 /****************************************************************************
  * Private variables and associated macros.
@@ -103,14 +103,18 @@ uint tests_passed = 0;
  */
 uint tests_failed = 0;
 
-#define TEST_PASSED     tests_run++; tests_passed++;
-#define TEST_FAILED     tests_run++; tests_failed++;
+    #define TEST_PASSED                                                                                                                                                                                                                                                                                    \
+        tests_run++;                                                                                                                                                                                                                                                                                       \
+        tests_passed++;
+    #define TEST_FAILED                                                                                                                                                                                                                                                                                    \
+        tests_run++;                                                                                                                                                                                                                                                                                       \
+        tests_failed++;
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#pragma GCC diagnostic ignored "-Wunused-function"
+    #pragma GCC diagnostic ignored "-Wunused-function"
 
 /****************************************************************************
  * Name: espcp_test_output_memory_info
@@ -132,8 +136,7 @@ uint tests_failed = 0;
  *   None
  *
  ****************************************************************************/
-void espcp_test_output_memory_info(const struct mallinfo *before, const struct mallinfo *after, 
-                                   const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name)
+void espcp_test_output_memory_info(const struct mallinfo *before, const struct mallinfo *after, const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name)
 {
     struct mallinfo difference, kdifference;
 
@@ -174,7 +177,7 @@ void espcp_test_output_memory_info(const struct mallinfo *before, const struct m
  * Description:
  *  Check the heap usage and output a message to systlog to indicate if
  *  we have released all of the memory we allocated (PASS) or if we have
- *  consumed more memory than we have released (FAIL). 
+ *  consumed more memory than we have released (FAIL).
  *
  * Input Parameters:
  *  before - Pointer to structure holding initial user heap usage.
@@ -190,8 +193,7 @@ void espcp_test_output_memory_info(const struct mallinfo *before, const struct m
  *  None
  *
  ****************************************************************************/
-void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mallinfo *after, 
-                                 const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name)
+void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mallinfo *after, const struct mallinfo *kbefore, const struct mallinfo *kafter, const char *test_name)
 {
     int user_heap = after->uordblks - before->uordblks;
     int kernel_heap = kafter->uordblks - kbefore->uordblks;
@@ -231,8 +233,8 @@ void espcp_test_check_heap_usage(const struct mallinfo *before, const struct mal
  ****************************************************************************/
 void espcp_test_get_mallinfo(struct mallinfo *mem, struct mallinfo *kmem)
 {
-  *mem = mallinfo();
-  *kmem = kmm_mallinfo();
+    *mem = mallinfo();
+    *kmem = kmm_mallinfo();
 }
 
 /****************************************************************************
@@ -336,9 +338,9 @@ static void espcp_test_check_result_not_equal(int not_expected, int actual, char
  * Name: espcp_test_check_result_greater
  *
  * Description:
- *  Check the result for a method is greater than a specified value and 
+ *  Check the result for a method is greater than a specified value and
  *  print a pass or fail message.
- * 
+ *
  *  For system calls, the expected use of this method will be to check if
  *  the return value of a method is greater than zero.
  *
@@ -393,7 +395,7 @@ static void espcp_test_start_wifi(void)
     }
 
     //
-    //  Connecting to the WiFi generates two events (if all goes well), One 
+    //  Connecting to the WiFi generates two events (if all goes well), One
     //  once the network interface has started and one once the connection
     //  has completed.
     //
@@ -410,7 +412,7 @@ static void espcp_test_start_wifi(void)
     ALLOCATE_HEAP_STRUCTURES;
     GET_INITIAL_HEAP_INFORMATION;
 
-    espcp_access_point_information_t access_point = { };
+    espcp_access_point_information_t access_point = {};
     access_point.network_name = UNIT_TESTS_CONFIG_SSID;
     access_point.password = UNIT_TESTS_CONFIG_PASSWORD;
 
@@ -476,6 +478,7 @@ static void espcp_test_start_wifi(void)
 
     file_mq_close(&event_queue);
 }
+
 /****************************************************************************
  * Name: espcp_test_configuration_items
  *
@@ -568,7 +571,7 @@ static void espcp_test_get_battery_level(void)
  * Description:
  *  Test the POSIX methods when there is no WiFi connection.  All of the
  *  methods should return -ENETDOWN.
- * 
+ *
  *  The amount of heap memory is also checked at the end of the method.
  *
  * Input Parameters:
@@ -585,14 +588,14 @@ static void espcp_test_get_battery_level(void)
 static void espcp_test_enetdown(void)
 {
     int result;
-    struct socket psock = { };
+    struct socket psock = {};
     const size_t buffer_length = 1000;
     char *buffer = (char *) malloc(buffer_length);
     socklen_t sockaddr_length = sizeof(struct sockaddr);
     int option_value = 1;
-    struct sockaddr sa = { };
-    struct iovec iov = { .iov_base = buffer, .iov_len = buffer_length };
-    struct msghdr msg = { .msg_iov = &iov, .msg_iovlen = 1 };
+    struct sockaddr sa = {};
+    struct iovec iov = {.iov_base = buffer, .iov_len = buffer_length};
+    struct msghdr msg = {.msg_iov = &iov, .msg_iovlen = 1};
 
     syslog(LOGGING_LEVEL, "********** ENETDOWN error code response checks.\n");
 
@@ -618,7 +621,7 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_sendmsg(&psock, &msg, 0);
     espcp_test_check_result_equal(-ENETDOWN, result, "sendmsg");
     //
-    struct socket new_sock = { };
+    struct socket new_sock = {};
     socklen_t new_sock_length = sizeof(new_sock);
     result = espcp_usrsock_accept(&psock, &sa, &new_sock_length, &new_sock, 0);
     espcp_test_check_result_equal(-ENETDOWN, result, "accept");
@@ -626,7 +629,7 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_bind(&psock, &sa, sizeof(struct sockaddr));
     espcp_test_check_result_equal(-ENETDOWN, result, "bind");
     //
-    struct pollfd pollfds[] = { { 54, POLLIN | POLLOUT, 5} };
+    struct pollfd pollfds[] = {{54, POLLIN | POLLOUT, 5}};
     result = espcp_usrsock_poll(&psock, pollfds, 1);
     espcp_test_check_result_equal(-ENETDOWN, result, "poll");
     //
@@ -636,7 +639,7 @@ static void espcp_test_enetdown(void)
     result = espcp_usrsock_getsockname(&psock, &sa, &sockaddr_length);
     espcp_test_check_result_equal(-ENETDOWN, result, "getsockname");
     //
-    result = espcp_usrsock_ioctl(&psock, 0, (unsigned long)(uintptr_t) &sa);
+    result = espcp_usrsock_ioctl(&psock, 0, (unsigned long) (uintptr_t) &sa);
     espcp_test_check_result_equal(-ENETDOWN, result, "ioctl");
     //
     result = espcp_usrsock_listen(&psock, 0);
@@ -698,7 +701,7 @@ static void espcp_test_misc_network_functions(void)
         syslog(LOGGING_LEVEL, "    PASS: getifaddrs (ioctl)\n");
         freeifaddrs(ifa);
     }
-    
+
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
     COPY_FINAL_TO_START;
@@ -736,7 +739,7 @@ static void espcp_test_misc_network_functions(void)
         syslog(LOGGING_LEVEL, "    PASS: ioctl\n");
     }
 
-    usleep(DELAY);          // Wait for the messages to be processed.
+    usleep(DELAY); // Wait for the messages to be processed.
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
@@ -797,12 +800,11 @@ static void espcp_test_nonblocking_socket(int sd, struct sockaddr_in *server, co
         }
     }
 
-    struct pollfd fds = { .fd = sd, .events = POLLOUT, .revents = 0 };
+    struct pollfd fds = {.fd = sd, .events = POLLOUT, .revents = 0};
     result = poll(&fds, 1, 5000);
     int socket_error = -1;
     socklen_t length = sizeof(socket_error);
-    if ((result == 1) && ((fds.revents & POLLOUT) != 0) &&
-        (getsockopt(sd, SOL_SOCKET, SO_ERROR, &socket_error, &length) == 0) && (socket_error == 0))
+    if ((result == 1) && ((fds.revents & POLLOUT) != 0) && (getsockopt(sd, SOL_SOCKET, SO_ERROR, &socket_error, &length) == 0) && (socket_error == 0))
     {
         syslog(LOGGING_LEVEL, "    PASS: %s - connected\n", label);
         TEST_PASSED;
@@ -894,7 +896,7 @@ static void espcp_test_nonblocking_sockets(char *server_ip, uint16_t server_port
         }
     }
 
-    usleep(DELAY);          // Wait for the close messages to be processed.
+    usleep(DELAY); // Wait for the close messages to be processed.
 }
 
 /****************************************************************************
@@ -921,12 +923,12 @@ static void espcp_test_heap_trace_messages(void)
     GET_INITIAL_HEAP_INFORMATION;
 
     espcp_system_start_esp_heap_trace();
-    
-    usleep(DELAY);          // Wait for the messages to be processed.
+
+    usleep(DELAY); // Wait for the messages to be processed.
 
     espcp_system_stop_esp_heap_trace();
 
-    usleep(DELAY);          // Wait for the messages to be processed.
+    usleep(DELAY); // Wait for the messages to be processed.
 
     GET_FINAL_HEAP_INFORMATION;
     HEAP_USAGE_PASS_OR_FAIL;
@@ -966,7 +968,7 @@ static void espcp_test_file_system_format(void)
  * Description:
  *  Test getting the list of files from the ESP32 just after the file system
  *  has been formatted.
- * 
+ *
  *  The file system will be empty just after formatting.
  *
  * Input Parameters:
@@ -1051,7 +1053,7 @@ static void espcp_test_file_system_list_files2(char *name1, char *name2)
     else
     {
         syslog(LOGGING_LEVEL, "    FAIL: 3 - Getting file details (2) from the file system.\n");
-    }    
+    }
 }
 
 /****************************************************************************
@@ -1075,7 +1077,7 @@ static void espcp_test_file_system_list_files2(char *name1, char *name2)
 static void espcp_test_file_system_write_file(char *name, uint8_t *contents, int16_t length)
 {
     int result;
- 
+
     result = espcp_file_system_write_file(NULL, contents, length);
     if (result == -1)
     {
@@ -1085,7 +1087,7 @@ static void espcp_test_file_system_write_file(char *name, uint8_t *contents, int
     {
         syslog(LOGGING_LEVEL, "    FAIL: Writing file to the file system (file name is NULL).\n");
     }
-    
+
     result = espcp_file_system_write_file(name, NULL, length);
     if (result == -1)
     {
@@ -1095,7 +1097,7 @@ static void espcp_test_file_system_write_file(char *name, uint8_t *contents, int
     {
         syslog(LOGGING_LEVEL, "    FAIL: Writing file to the file system (contents is NULL).\n");
     }
-    
+
     result = espcp_file_system_write_file(name, contents, length);
     if (result == 0)
     {
@@ -1128,7 +1130,7 @@ static void espcp_test_file_system_read_file(char *name, char *expectedContents)
 {
     int32_t length;
     uint8_t *contents;
-    
+
     contents = espcp_file_system_read_file(NULL, &length);
     if (contents == NULL)
     {
@@ -1183,7 +1185,7 @@ static void espcp_test_file_system_read_file(char *name, char *expectedContents)
  *
  * Description:
  *  Test deleting a file from the file system.
- * 
+ *
  *  This assumes that two files are already on the file system and have the
  *  names specified.
  *
@@ -1237,7 +1239,7 @@ static void espcp_test_file_system_delete_file(char *name, char *remainingFile)
     else
     {
         syslog(LOGGING_LEVEL, "    FAIL: 2 - Deleting file from the file system.\n");
-    }    
+    }
 }
 
 /****************************************************************************
@@ -1245,7 +1247,7 @@ static void espcp_test_file_system_delete_file(char *name, char *remainingFile)
  *
  * Description:
  *  Test adding files to the file system until it is full.
- * 
+ *
  * Input Parameters:
  *   None.
  *
@@ -1258,8 +1260,8 @@ static void espcp_test_file_system_delete_file(char *name, char *remainingFile)
  ****************************************************************************/
 static void espcp_test_fill_file_system(void)
 {
-    #define MAXIMUM_FILE_SIZE   16384
-    #define NUMBER_OF_FILES     12
+    #define MAXIMUM_FILE_SIZE 16384
+    #define NUMBER_OF_FILES 12
     char name[20];
     uint8_t *file_contents;
 
@@ -1414,7 +1416,7 @@ void espcp_test_wait_for_esp_to_be_ready(void)
         espcp_config_unlock();
         if (waiting_for_esp32)
         {
-            usleep(500000);   // 500 ms
+            usleep(500000); // 500 ms
         }
     }
 
@@ -1443,7 +1445,7 @@ void meadow_kt_espcp_test_start_wifi(uint32_t arg)
     syslog(LOGGING_LEVEL, "Testing starting WiFi connection\n");
 
     espcp_test_start_wifi();
-    
+
     syslog(LOGGING_LEVEL, "Start WiFi connection test completed\n");
 }
 
@@ -1474,7 +1476,7 @@ void meadow_kt_espcp_test_get_web_resource(uint32_t arg)
     }
 
     espcp_test_wait_for_esp_to_be_ready();
-    
+
     espcp_test_start_wifi();
 
     if (arg == 0)
@@ -1521,7 +1523,7 @@ void meadow_kt_espcp_tests(uint32_t arg)
     espcp_test_wait_for_esp_to_be_ready();
 
     espcp_test_file_system();
-    
+
     espcp_test_heap_trace_messages();
 
     espcp_test_get_battery_level();
@@ -1531,7 +1533,7 @@ void meadow_kt_espcp_tests(uint32_t arg)
 
     espcp_test_start_wifi();
     //
-    //  We can start some actual network tests now we are connected to an 
+    //  We can start some actual network tests now we are connected to an
     //  access point.
     //
     espcp_test_misc_network_functions();
@@ -1544,4 +1546,4 @@ void meadow_kt_espcp_tests(uint32_t arg)
     syslog(LOGGING_LEVEL, "ESP32 tests completed.\n");
 }
 
-#endif  // defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
+#endif // defined(CONFIG_ESP_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)

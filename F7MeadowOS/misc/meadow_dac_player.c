@@ -86,32 +86,32 @@
  * 2048 bytes are read, so at most 512 frames)
  */
 
-#define MEADOW_DAC_PLAYER_SAMPLES  1024
-#define MEADOW_DAC_PLAYER_BYTES    2048
+#define MEADOW_DAC_PLAYER_SAMPLES 1024
+#define MEADOW_DAC_PLAYER_BYTES 2048
 
 /* The stream's fill value, and the level playback starts from: mid-scale,
  * silence for audio
  */
 
-#define MEADOW_DAC_PLAYER_FILL     2048
+#define MEADOW_DAC_PLAYER_FILL 2048
 
 /* Longest wait for each write to the stream. The stream always takes
  * samples while it runs, so a write returns long before this unless the
  * stream is stopped; the thread then writes again.
  */
 
-#define MEADOW_DAC_PLAYER_WAIT_MS  1000
+#define MEADOW_DAC_PLAYER_WAIT_MS 1000
 
 /* WAV format tags */
 
-#define MEADOW_DAC_WAV_PCM         0x0001
-#define MEADOW_DAC_WAV_EXTENSIBLE  0xfffe
+#define MEADOW_DAC_WAV_PCM 0x0001
+#define MEADOW_DAC_WAV_EXTENSIBLE 0xfffe
 
 /* The part of a fmt chunk the player reads: up to the end of the
  * WAVE_FORMAT_EXTENSIBLE sub-format GUID
  */
 
-#define MEADOW_DAC_WAV_FMT_MAX     40
+#define MEADOW_DAC_WAV_FMT_MAX 40
 
 /****************************************************************************
  * Private Types
@@ -121,18 +121,18 @@
 
 struct meadow_dac_player_s
 {
-  struct file file;      /* The open .WAV file */
-  uint8_t     pinid;     /* The channel's pin */
-  uint32_t    owner;     /* The number of the stream the player started */
-  bool        loop;      /* MEADOW_DAC_PLAY_LOOP */
-  uint16_t    channels;  /* 1 or 2 */
-  uint16_t    bits;      /* 8 or 16 */
-  uint32_t    rate;      /* Sample rate, Hz */
-  uint32_t    frame;     /* Bytes per frame: channels * bits / 8 */
-  off_t       datapos;   /* Offset of the sample data in the file */
-  uint32_t    datalen;   /* Bytes of sample data, whole frames only */
-  uint8_t     bytes[MEADOW_DAC_PLAYER_BYTES];
-  uint16_t    samples[MEADOW_DAC_PLAYER_SAMPLES];
+    struct file file;  /* The open .WAV file */
+    uint8_t pinid;     /* The channel's pin */
+    uint32_t owner;    /* The number of the stream the player started */
+    bool loop;         /* MEADOW_DAC_PLAY_LOOP */
+    uint16_t channels; /* 1 or 2 */
+    uint16_t bits;     /* 8 or 16 */
+    uint32_t rate;     /* Sample rate, Hz */
+    uint32_t frame;    /* Bytes per frame: channels * bits / 8 */
+    off_t datapos;     /* Offset of the sample data in the file */
+    uint32_t datalen;  /* Bytes of sample data, whole frames only */
+    uint8_t bytes[MEADOW_DAC_PLAYER_BYTES];
+    uint16_t samples[MEADOW_DAC_PLAYER_SAMPLES];
 };
 
 /****************************************************************************
@@ -141,11 +141,7 @@ struct meadow_dac_player_s
 
 /* KSDATAFORMAT_SUBTYPE_PCM, the sub-format GUID of an extensible PCM file */
 
-static const uint8_t g_dac_wav_pcm_guid[16] =
-{
-  0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
-  0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71
-};
+static const uint8_t g_dac_wav_pcm_guid[16] = {0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71};
 
 /* The number given to the last stream the player started; 0 is never used.
  * Changed under the driver lock.
@@ -159,13 +155,12 @@ static uint32_t g_dac_player_owner;
 
 static uint16_t meadow_dac_le16(const uint8_t *p)
 {
-  return (uint16_t)(p[0] | (p[1] << 8));
+    return (uint16_t) (p[0] | (p[1] << 8));
 }
 
 static uint32_t meadow_dac_le32(const uint8_t *p)
 {
-  return (uint32_t)p[0] | ((uint32_t)p[1] << 8) |
-         ((uint32_t)p[2] << 16) | ((uint32_t)p[3] << 24);
+    return (uint32_t) p[0] | ((uint32_t) p[1] << 8) | ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24);
 }
 
 /****************************************************************************
@@ -177,18 +172,17 @@ static uint32_t meadow_dac_le32(const uint8_t *p)
  *
  ****************************************************************************/
 
-static int meadow_dac_player_read(struct meadow_dac_player_s *pl,
-                                  void *buf, size_t nbytes)
+static int meadow_dac_player_read(struct meadow_dac_player_s *pl, void *buf, size_t nbytes)
 {
-  ssize_t ret;
+    ssize_t ret;
 
-  ret = file_read(&pl->file, buf, nbytes);
-  if (ret < 0)
+    ret = file_read(&pl->file, buf, nbytes);
+    if (ret < 0)
     {
-      return (int)ret;
+        return (int) ret;
     }
 
-  return (size_t)ret == nbytes ? OK : -EINVAL;
+    return (size_t) ret == nbytes ? OK : -EINVAL;
 }
 
 /****************************************************************************
@@ -208,135 +202,132 @@ static int meadow_dac_player_read(struct meadow_dac_player_s *pl,
 
 static int meadow_dac_player_parse(struct meadow_dac_player_s *pl)
 {
-  uint8_t hdr[MEADOW_DAC_WAV_FMT_MAX];
-  struct stat sb;
-  bool havefmt = false;
-  uint32_t size;
-  uint32_t skip;
-  uint32_t n;
-  uint16_t tag;
-  uint16_t align;
-  off_t avail;
-  off_t pos;
-  int ret;
+    uint8_t hdr[MEADOW_DAC_WAV_FMT_MAX];
+    struct stat sb;
+    bool havefmt = false;
+    uint32_t size;
+    uint32_t skip;
+    uint32_t n;
+    uint16_t tag;
+    uint16_t align;
+    off_t avail;
+    off_t pos;
+    int ret;
 
-  ret = file_fstat(&pl->file, &sb);
-  if (ret < 0)
+    ret = file_fstat(&pl->file, &sb);
+    if (ret < 0)
     {
-      return ret;
+        return ret;
     }
 
-  ret = meadow_dac_player_read(pl, hdr, 12);
-  if (ret < 0)
+    ret = meadow_dac_player_read(pl, hdr, 12);
+    if (ret < 0)
     {
-      return ret;
+        return ret;
     }
 
-  if (memcmp(hdr, "RIFF", 4) != 0 || memcmp(hdr + 8, "WAVE", 4) != 0)
+    if (memcmp(hdr, "RIFF", 4) != 0 || memcmp(hdr + 8, "WAVE", 4) != 0)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  pos = 12;
+    pos = 12;
 
-  for (; ; )
+    for (;;)
     {
-      /* Each chunk: a 4-character id and a 32-bit length, then the data,
-       * padded to an even length. A file that ends before a data chunk
-       * fails the read with -EINVAL.
-       */
+        /* Each chunk: a 4-character id and a 32-bit length, then the data,
+         * padded to an even length. A file that ends before a data chunk
+         * fails the read with -EINVAL.
+         */
 
-      ret = meadow_dac_player_read(pl, hdr, 8);
-      if (ret < 0)
+        ret = meadow_dac_player_read(pl, hdr, 8);
+        if (ret < 0)
         {
-          return ret;
+            return ret;
         }
 
-      size = meadow_dac_le32(hdr + 4);
-      pos += 8;
+        size = meadow_dac_le32(hdr + 4);
+        pos += 8;
 
-      if (memcmp(hdr, "fmt ", 4) == 0)
+        if (memcmp(hdr, "fmt ", 4) == 0)
         {
-          if (size < 16)
+            if (size < 16)
             {
-              return -EINVAL;
+                return -EINVAL;
             }
 
-          n = size < MEADOW_DAC_WAV_FMT_MAX ? size : MEADOW_DAC_WAV_FMT_MAX;
-          ret = meadow_dac_player_read(pl, hdr, n);
-          if (ret < 0)
+            n = size < MEADOW_DAC_WAV_FMT_MAX ? size : MEADOW_DAC_WAV_FMT_MAX;
+            ret = meadow_dac_player_read(pl, hdr, n);
+            if (ret < 0)
             {
-              return ret;
+                return ret;
             }
 
-          tag          = meadow_dac_le16(hdr);
-          pl->channels = meadow_dac_le16(hdr + 2);
-          pl->rate     = meadow_dac_le32(hdr + 4);
-          align        = meadow_dac_le16(hdr + 12);
-          pl->bits     = meadow_dac_le16(hdr + 14);
+            tag = meadow_dac_le16(hdr);
+            pl->channels = meadow_dac_le16(hdr + 2);
+            pl->rate = meadow_dac_le32(hdr + 4);
+            align = meadow_dac_le16(hdr + 12);
+            pl->bits = meadow_dac_le16(hdr + 14);
 
-          if (tag == MEADOW_DAC_WAV_EXTENSIBLE)
+            if (tag == MEADOW_DAC_WAV_EXTENSIBLE)
             {
-              if (n < MEADOW_DAC_WAV_FMT_MAX ||
-                  memcmp(hdr + 24, g_dac_wav_pcm_guid, 16) != 0)
+                if (n < MEADOW_DAC_WAV_FMT_MAX || memcmp(hdr + 24, g_dac_wav_pcm_guid, 16) != 0)
                 {
-                  return -ENOTSUP;
+                    return -ENOTSUP;
                 }
             }
-          else if (tag != MEADOW_DAC_WAV_PCM)
+            else if (tag != MEADOW_DAC_WAV_PCM)
             {
-              return -ENOTSUP;
+                return -ENOTSUP;
             }
 
-          if ((pl->channels != 1 && pl->channels != 2) ||
-              (pl->bits != 8 && pl->bits != 16) ||
-              pl->rate > MEADOW_DAC_WAVE_MAX_RATE)
+            if ((pl->channels != 1 && pl->channels != 2) || (pl->bits != 8 && pl->bits != 16) || pl->rate > MEADOW_DAC_WAVE_MAX_RATE)
             {
-              return -ENOTSUP;
+                return -ENOTSUP;
             }
 
-          pl->frame = pl->channels * (pl->bits / 8);
-          if (pl->rate == 0 || align != pl->frame)
+            pl->frame = pl->channels * (pl->bits / 8);
+            if (pl->rate == 0 || align != pl->frame)
             {
-              return -EINVAL;
+                return -EINVAL;
             }
 
-          havefmt = true;
-          pos += n;
-          skip = (size - n) + (size & 1);
+            havefmt = true;
+            pos += n;
+            skip = (size - n) + (size & 1);
         }
-      else if (memcmp(hdr, "data", 4) == 0)
+        else if (memcmp(hdr, "data", 4) == 0)
         {
-          if (!havefmt)
+            if (!havefmt)
             {
-              return -EINVAL;
+                return -EINVAL;
             }
 
-          /* Play no further than the end of the file, and whole frames */
+            /* Play no further than the end of the file, and whole frames */
 
-          avail = sb.st_size > pos ? sb.st_size - pos : 0;
-          pl->datapos = pos;
-          pl->datalen = (off_t)size < avail ? size : (uint32_t)avail;
-          pl->datalen -= pl->datalen % pl->frame;
-          return OK;
+            avail = sb.st_size > pos ? sb.st_size - pos : 0;
+            pl->datapos = pos;
+            pl->datalen = (off_t) size < avail ? size : (uint32_t) avail;
+            pl->datalen -= pl->datalen % pl->frame;
+            return OK;
         }
-      else
+        else
         {
-          skip = size + (size & 1);
+            skip = size + (size & 1);
         }
 
-      if (skip != 0)
+        if (skip != 0)
         {
-          pos = file_seek(&pl->file, pos + skip, SEEK_SET);
-          if (pos < 0)
+            pos = file_seek(&pl->file, pos + skip, SEEK_SET);
+            if (pos < 0)
             {
-              return (int)pos;
+                return (int) pos;
             }
         }
 
-      if (pos >= sb.st_size)
+        if (pos >= sb.st_size)
         {
-          return -EINVAL;
+            return -EINVAL;
         }
     }
 }
@@ -351,43 +342,42 @@ static int meadow_dac_player_parse(struct meadow_dac_player_s *pl)
  *
  ****************************************************************************/
 
-static uint32_t meadow_dac_player_convert(struct meadow_dac_player_s *pl,
-                                          size_t nbytes)
+static uint32_t meadow_dac_player_convert(struct meadow_dac_player_s *pl, size_t nbytes)
 {
-  const uint8_t *b = pl->bytes;
-  uint32_t frames = nbytes / pl->frame;
-  uint32_t i;
-  int32_t v;
+    const uint8_t *b = pl->bytes;
+    uint32_t frames = nbytes / pl->frame;
+    uint32_t i;
+    int32_t v;
 
-  for (i = 0; i < frames; i++, b += pl->frame)
+    for (i = 0; i < frames; i++, b += pl->frame)
     {
-      if (pl->bits == 16)
+        if (pl->bits == 16)
         {
-          /* Signed 16-bit: -32768 to 32767 becomes 0 to 4095 */
+            /* Signed 16-bit: -32768 to 32767 becomes 0 to 4095 */
 
-          v = (int16_t)meadow_dac_le16(b);
-          if (pl->channels == 2)
+            v = (int16_t) meadow_dac_le16(b);
+            if (pl->channels == 2)
             {
-              v = (v + (int16_t)meadow_dac_le16(b + 2)) / 2;
+                v = (v + (int16_t) meadow_dac_le16(b + 2)) / 2;
             }
 
-          pl->samples[i] = (uint16_t)((v + 32768) >> 4);
+            pl->samples[i] = (uint16_t) ((v + 32768) >> 4);
         }
-      else
+        else
         {
-          /* Unsigned 8-bit: 0 to 255 becomes 0 to 4080 */
+            /* Unsigned 8-bit: 0 to 255 becomes 0 to 4080 */
 
-          v = b[0];
-          if (pl->channels == 2)
+            v = b[0];
+            if (pl->channels == 2)
             {
-              v = (v + b[1]) / 2;
+                v = (v + b[1]) / 2;
             }
 
-          pl->samples[i] = (uint16_t)(v << 4);
+            pl->samples[i] = (uint16_t) (v << 4);
         }
     }
 
-  return frames;
+    return frames;
 }
 
 /****************************************************************************
@@ -403,30 +393,30 @@ static uint32_t meadow_dac_player_convert(struct meadow_dac_player_s *pl,
 
 static void meadow_dac_player_drain(struct meadow_dac_player_s *pl)
 {
-  uint32_t tries;
-  int queued;
+    uint32_t tries;
+    int queued;
 
-  if (meadow_dac_stream_end(pl->pinid, pl->owner) < 0)
+    if (meadow_dac_stream_end(pl->pinid, pl->owner) < 0)
     {
-      return;   /* Stopped or replaced */
+        return; /* Stopped or replaced */
     }
 
-  tries = (MEADOW_DAC_STREAM_DEF_RING * 100) / pl->rate + 100;
+    tries = (MEADOW_DAC_STREAM_DEF_RING * 100) / pl->rate + 100;
 
-  for (; ; )
+    for (;;)
     {
-      queued = meadow_dac_stream_queued(pl->pinid, pl->owner);
-      if (queued <= 0 || tries-- == 0)
+        queued = meadow_dac_stream_queued(pl->pinid, pl->owner);
+        if (queued <= 0 || tries-- == 0)
         {
-          break;
+            break;
         }
 
-      nxsig_usleep(10000);
+        nxsig_usleep(10000);
     }
 
-  if (queued >= 0)
+    if (queued >= 0)
     {
-      meadow_dac_stream_stop(pl->pinid, pl->owner);
+        meadow_dac_stream_stop(pl->pinid, pl->owner);
     }
 }
 
@@ -442,78 +432,73 @@ static void meadow_dac_player_drain(struct meadow_dac_player_s *pl)
 
 static int meadow_dac_player_thread(int argc, char *argv[])
 {
-  struct meadow_dac_player_s *pl;
-  uint32_t remaining;
-  uint32_t block;
-  uint32_t count;
-  uint32_t done;
-  ssize_t nread;
-  int ret;
+    struct meadow_dac_player_s *pl;
+    uint32_t remaining;
+    uint32_t block;
+    uint32_t count;
+    uint32_t done;
+    ssize_t nread;
+    int ret;
 
-  UNUSED(argc);
+    UNUSED(argc);
 
-  pl = (struct meadow_dac_player_s *)(uintptr_t)strtoul(argv[1], NULL, 16);
+    pl = (struct meadow_dac_player_s *) (uintptr_t) strtoul(argv[1], NULL, 16);
 
-  /* Whole frames that fit both buffers */
+    /* Whole frames that fit both buffers */
 
-  block = MEADOW_DAC_PLAYER_BYTES / pl->frame;
-  if (block > MEADOW_DAC_PLAYER_SAMPLES)
+    block = MEADOW_DAC_PLAYER_BYTES / pl->frame;
+    if (block > MEADOW_DAC_PLAYER_SAMPLES)
     {
-      block = MEADOW_DAC_PLAYER_SAMPLES;
+        block = MEADOW_DAC_PLAYER_SAMPLES;
     }
 
-  block *= pl->frame;
-  remaining = pl->datalen;
+    block *= pl->frame;
+    remaining = pl->datalen;
 
-  for (; ; )
+    for (;;)
     {
-      if (remaining == 0)
+        if (remaining == 0)
         {
-          if (!pl->loop || pl->datalen == 0 ||
-              file_seek(&pl->file, pl->datapos, SEEK_SET) < 0)
+            if (!pl->loop || pl->datalen == 0 || file_seek(&pl->file, pl->datapos, SEEK_SET) < 0)
             {
-              break;
+                break;
             }
 
-          remaining = pl->datalen;
+            remaining = pl->datalen;
         }
 
-      nread = file_read(&pl->file, pl->bytes,
-                        remaining < block ? remaining : block);
-      if (nread <= 0)
+        nread = file_read(&pl->file, pl->bytes, remaining < block ? remaining : block);
+        if (nread <= 0)
         {
-          /* A read error, or the file got shorter: end here */
+            /* A read error, or the file got shorter: end here */
 
-          if (nread < 0)
+            if (nread < 0)
             {
-              syslog(LOG_ERR, "DAC player: read failed, %d\n", (int)nread);
+                syslog(LOG_ERR, "DAC player: read failed, %d\n", (int) nread);
             }
 
-          break;
+            break;
         }
 
-      remaining -= (uint32_t)nread;
-      count = meadow_dac_player_convert(pl, (size_t)nread);
+        remaining -= (uint32_t) nread;
+        count = meadow_dac_player_convert(pl, (size_t) nread);
 
-      for (done = 0; done < count; done += (uint32_t)ret)
+        for (done = 0; done < count; done += (uint32_t) ret)
         {
-          ret = meadow_dac_stream_write(pl->pinid, pl->samples + done,
-                                        count - done,
-                                        MEADOW_DAC_PLAYER_WAIT_MS,
-                                        pl->owner);
-          if (ret < 0)
+            ret = meadow_dac_stream_write(pl->pinid, pl->samples + done, count - done, MEADOW_DAC_PLAYER_WAIT_MS, pl->owner);
+            if (ret < 0)
             {
-              goto out;   /* Stopped or replaced */
+                goto out; /* Stopped or replaced */
             }
         }
     }
 
-  meadow_dac_player_drain(pl);
+    meadow_dac_player_drain(pl);
 
 out:
-  file_close(&pl->file);
-  kmm_free(pl);
-  return OK;
+    file_close(&pl->file);
+    kmm_free(pl);
+    return OK;
 }
 
 /****************************************************************************
@@ -548,118 +533,116 @@ out:
 
 int meadow_dac_play_file(uint8_t pinid, const char *path, uint32_t flags)
 {
-  struct meadow_dac_player_s *pl;
-  struct meadow_dac_wave_s w;
-  char arg[16];
-  char *argv[2];
-  char *kpath;
-  size_t len;
-  int ret;
+    struct meadow_dac_player_s *pl;
+    struct meadow_dac_wave_s w;
+    char arg[16];
+    char *argv[2];
+    char *kpath;
+    size_t len;
+    int ret;
 
-  ret = meadow_dac_find_chan(pinid);
-  if (ret < 0)
+    ret = meadow_dac_find_chan(pinid);
+    if (ret < 0)
     {
-      return ret;
+        return ret;
     }
 
-  if ((flags & ~MEADOW_DAC_PLAY_LOOP) != 0 || path == NULL)
+    if ((flags & ~MEADOW_DAC_PLAY_LOOP) != 0 || path == NULL)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  /* Copy the path, so the caller cannot change it while it is used */
+    /* Copy the path, so the caller cannot change it while it is used */
 
-  len = strnlen(path, PATH_MAX);
-  if (len == PATH_MAX)
+    len = strnlen(path, PATH_MAX);
+    if (len == PATH_MAX)
     {
-      return -ENAMETOOLONG;
+        return -ENAMETOOLONG;
     }
 
-  kpath = kmm_malloc(len + 1);
-  if (kpath == NULL)
+    kpath = kmm_malloc(len + 1);
+    if (kpath == NULL)
     {
-      return -ENOMEM;
+        return -ENOMEM;
     }
 
-  memcpy(kpath, path, len);
-  kpath[len] = '\0';
+    memcpy(kpath, path, len);
+    kpath[len] = '\0';
 
-  if (kpath[0] != '/')
+    if (kpath[0] != '/')
     {
-      kmm_free(kpath);
-      return -EINVAL;
+        kmm_free(kpath);
+        return -EINVAL;
     }
 
-  pl = kmm_zalloc(sizeof(struct meadow_dac_player_s));
-  if (pl == NULL)
+    pl = kmm_zalloc(sizeof(struct meadow_dac_player_s));
+    if (pl == NULL)
     {
-      kmm_free(kpath);
-      return -ENOMEM;
+        kmm_free(kpath);
+        return -ENOMEM;
     }
 
-  /* The kernel's own file, not one in the caller's file table, so it stays
-   * open for the thread after this call returns
-   */
+    /* The kernel's own file, not one in the caller's file table, so it stays
+     * open for the thread after this call returns
+     */
 
-  ret = file_open(&pl->file, kpath, O_RDONLY);
-  kmm_free(kpath);
-  if (ret < 0)
+    ret = file_open(&pl->file, kpath, O_RDONLY);
+    kmm_free(kpath);
+    if (ret < 0)
     {
-      kmm_free(pl);
-      return ret;
+        kmm_free(pl);
+        return ret;
     }
 
-  ret = meadow_dac_player_parse(pl);
-  if (ret < 0)
+    ret = meadow_dac_player_parse(pl);
+    if (ret < 0)
     {
-      goto errout;
+        goto errout;
     }
 
-  pl->pinid = pinid;
-  pl->loop  = (flags & MEADOW_DAC_PLAY_LOOP) != 0;
+    pl->pinid = pinid;
+    pl->loop = (flags & MEADOW_DAC_PLAY_LOOP) != 0;
 
-  nxmutex_lock(&g_dac_lock);
-  if (++g_dac_player_owner == 0)
+    nxmutex_lock(&g_dac_lock);
+    if (++g_dac_player_owner == 0)
     {
-      g_dac_player_owner = 1;
+        g_dac_player_owner = 1;
     }
 
-  pl->owner = g_dac_player_owner;
-  nxmutex_unlock(&g_dac_lock);
+    pl->owner = g_dac_player_owner;
+    nxmutex_unlock(&g_dac_lock);
 
-  /* A stream at the file's rate with the default ring, owned by the player.
-   * This replaces a file already playing on the channel.
-   */
+    /* A stream at the file's rate with the default ring, owned by the player.
+     * This replaces a file already playing on the channel.
+     */
 
-  memset(&w, 0, sizeof(w));
-  w.size    = sizeof(w);
-  w.type    = MEADOW_DAC_WAVE_STREAM;
-  w.rate_hz = pl->rate;
-  w.fill    = MEADOW_DAC_PLAYER_FILL;
+    memset(&w, 0, sizeof(w));
+    w.size = sizeof(w);
+    w.type = MEADOW_DAC_WAVE_STREAM;
+    w.rate_hz = pl->rate;
+    w.fill = MEADOW_DAC_PLAYER_FILL;
 
-  ret = meadow_dac_wave_start_owned(pinid, &w, pl->owner);
-  if (ret < 0)
+    ret = meadow_dac_wave_start_owned(pinid, &w, pl->owner);
+    if (ret < 0)
     {
-      goto errout;
+        goto errout;
     }
 
-  snprintf(arg, sizeof(arg), "%lx", (unsigned long)(uintptr_t)pl);
-  argv[0] = arg;
-  argv[1] = NULL;
+    snprintf(arg, sizeof(arg), "%lx", (unsigned long) (uintptr_t) pl);
+    argv[0] = arg;
+    argv[1] = NULL;
 
-  ret = kthread_create(DAC_PLAYER_THREAD_NAME, DAC_PLAYER_THREAD_PRIORITY,
-                       DAC_PLAYER_THREAD_STACKSIZE,
-                       meadow_dac_player_thread, argv);
-  if (ret < 0)
+    ret = kthread_create(DAC_PLAYER_THREAD_NAME, DAC_PLAYER_THREAD_PRIORITY, DAC_PLAYER_THREAD_STACKSIZE, meadow_dac_player_thread, argv);
+    if (ret < 0)
     {
-      meadow_dac_stream_stop(pinid, pl->owner);
-      goto errout;
+        meadow_dac_stream_stop(pinid, pl->owner);
+        goto errout;
     }
 
-  return OK;
+    return OK;
 
 errout:
-  file_close(&pl->file);
-  kmm_free(pl);
-  return ret;
+    file_close(&pl->file);
+    kmm_free(pl);
+    return ret;
 }

@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\misc\hcom_common_utils.c
- * 
+ *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -61,7 +61,7 @@
  ****************************************************************************/
 int hcom_common_utils_setup()
 {
-  return OK;
+    return OK;
 }
 
 //============================================================================
@@ -73,7 +73,7 @@ void hcom_common_utils_shutdown()
 // A bit simpler to use since it's defined in meadow/meadow_hw_version.h
 uint32_t meadow_hw_version_get(void)
 {
-  return hcom_via_nx_get_hw_version();
+    return hcom_via_nx_get_hw_version();
 }
 
 //===================================================================
@@ -81,9 +81,9 @@ uint32_t meadow_hw_version_get(void)
 // Used for testing. Note: Only millisecond resolution.
 uint64_t hcom_utils_get_current_time64_ns(void)
 {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * NSEC_PER_SEC + (uint64_t) ts.tv_nsec;
 }
 
 //===================================================================
@@ -91,40 +91,39 @@ uint64_t hcom_utils_get_current_time64_ns(void)
 // to determine success or failure. This function is designed so that
 // users can generate less code and be confident that truncated are noted
 // A macro that adds file name and line number exists
-int hcom_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, int lineNumb,
-          FAR const IPTR char *fmt, ...)
+int hcom_common_utils_snprintf_chk(FAR char *buf, size_t size, char *fileName, int lineNumb, FAR const IPTR char *fmt, ...)
 {
-  int bufChk;
-  va_list ap;
+    int bufChk;
+    va_list ap;
 
-  va_start(ap, fmt);
+    va_start(ap, fmt);
 
-  // Process the string
-  bufChk = vsnprintf(buf, size, fmt, ap);
-  va_end(ap);
+    // Process the string
+    bufChk = vsnprintf(buf, size, fmt, ap);
+    va_end(ap);
 
-  // Handle buffer overflow here. Check the error case first: bufChk is
-  // signed but size is size_t, so comparing bufChk >= size directly would
-  // promote a negative bufChk to a huge unsigned value and always take the
-  // truncation branch below, hiding a real vsnprintf() error.
-  if(bufChk < 0)
-  {
-    syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
-  }
-  else if((size_t)bufChk >= size)
-  {
-    syslog(LOG_WARNING, "%s@%d Host msg truncated, need:%d\n", fileName, lineNumb, bufChk + 1);
-    // This modifies the standard Nuttx snprintf behavior which would normally
-    // return the size of needed buffer.
-    return -ENAMETOOLONG;
-  }
+    // Handle buffer overflow here. Check the error case first: bufChk is
+    // signed but size is size_t, so comparing bufChk >= size directly would
+    // promote a negative bufChk to a huge unsigned value and always take the
+    // truncation branch below, hiding a real vsnprintf() error.
+    if (bufChk < 0)
+    {
+        syslog(LOG_ERR, "%s@%d snprintf returned an error, ret:%d\n", fileName, lineNumb, bufChk);
+    }
+    else if ((size_t) bufChk >= size)
+    {
+        syslog(LOG_WARNING, "%s@%d Host msg truncated, need:%d\n", fileName, lineNumb, bufChk + 1);
+        // This modifies the standard Nuttx snprintf behavior which would normally
+        // return the size of needed buffer.
+        return -ENAMETOOLONG;
+    }
 
-  // Must be operations as usual
-  return bufChk;
+    // Must be operations as usual
+    return bufChk;
 }
 
 //===================================================================
-// Erase the DNS resolver file, a.k.a. dns.conf file. 
+// Erase the DNS resolver file, a.k.a. dns.conf file.
 void hcom_common_utils_erase_dns_resolver_file(void)
 {
     // Open the file in write mode
@@ -148,7 +147,7 @@ bool hcom_common_utils_is_valid_ip_address(const char *address)
 }
 
 //===================================================================
-// Add the user-defined DNS servers to the DNS resolver file, 
+// Add the user-defined DNS servers to the DNS resolver file,
 // a.k.a dns.conf file.
 void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t server_count)
 {
@@ -158,8 +157,8 @@ void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t
         perror("Error opening file");
         return;
     }
-    
-    syslog(LOG_INFO, "User-provided DNS servers count: %lu\n", (unsigned long)server_count);
+
+    syslog(LOG_INFO, "User-provided DNS servers count: %lu\n", (unsigned long) server_count);
 
     for (int index = 0; index < server_count; index++)
     {
@@ -167,12 +166,9 @@ void hcom_common_utils_add_servers_to_dns_resolver_file(char **servers, uint32_t
 
         if (hcom_common_utils_is_valid_ip_address(servers[index]))
         {
-            if (fputs("nameserver ", dns_file) == EOF ||
-                fputs(servers[index], dns_file) == EOF ||
-                fputs("\n", dns_file) == EOF)
+            if (fputs("nameserver ", dns_file) == EOF || fputs(servers[index], dns_file) == EOF || fputs("\n", dns_file) == EOF)
             {
-                syslog(LOG_ERR, "Failed writing DNS server '%s' to %s\n",
-                       servers[index], CONFIG_NETDB_RESOLVCONF_PATH);
+                syslog(LOG_ERR, "Failed writing DNS server '%s' to %s\n", servers[index], CONFIG_NETDB_RESOLVCONF_PATH);
                 break;
             }
         }

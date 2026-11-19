@@ -82,11 +82,7 @@
  * it when its stream is stopped.
  */
 
-static sem_t g_dac_space[MEADOW_DAC_NCHANNELS] =
-{
-  NXSEM_INITIALIZER(0, SEM_PRIO_NONE),
-  NXSEM_INITIALIZER(0, SEM_PRIO_NONE)
-};
+static sem_t g_dac_space[MEADOW_DAC_NCHANNELS] = {NXSEM_INITIALIZER(0, SEM_PRIO_NONE), NXSEM_INITIALIZER(0, SEM_PRIO_NONE)};
 
 /****************************************************************************
  * Private Functions
@@ -103,12 +99,12 @@ static sem_t g_dac_space[MEADOW_DAC_NCHANNELS] =
 
 void meadow_dac_space_post(int index)
 {
-  int value = 0;
+    int value = 0;
 
-  nxsem_get_value(&g_dac_space[index], &value);
-  if (value < 1)
+    nxsem_get_value(&g_dac_space[index], &value);
+    if (value < 1)
     {
-      nxsem_post(&g_dac_space[index]);
+        nxsem_post(&g_dac_space[index]);
     }
 }
 
@@ -124,31 +120,30 @@ void meadow_dac_space_post(int index)
 
 static void meadow_dac_stream_half(int index, int done, int next)
 {
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  uint16_t *half = st->buf + (done * st->half);
-  uint32_t i;
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    uint16_t *half = st->buf + (done * st->half);
+    uint32_t i;
 
-  if (st->target == next && st->count[next] < st->half)
+    if (st->target == next && st->count[next] < st->half)
     {
-      st->underruns++;
+        st->underruns++;
     }
 
-  st->played[next] = st->count[next];
+    st->played[next] = st->count[next];
 
-  for (i = 0; i < st->half; i++)
+    for (i = 0; i < st->half; i++)
     {
-      half[i] = st->fill;
+        half[i] = st->fill;
     }
 
-  up_clean_dcache((uintptr_t)half,
-                  (uintptr_t)(half + st->half));
+    up_clean_dcache((uintptr_t) half, (uintptr_t) (half + st->half));
 
-  st->count[done]  = 0;
-  st->played[done] = 0;
-  st->target       = done;
-  st->seq++;
+    st->count[done] = 0;
+    st->played[done] = 0;
+    st->target = done;
+    st->seq++;
 
-  meadow_dac_space_post(index);
+    meadow_dac_space_post(index);
 }
 
 /****************************************************************************
@@ -160,28 +155,26 @@ static void meadow_dac_stream_half(int index, int done, int next)
  *
  ****************************************************************************/
 
-static void meadow_dac_stream_dma(DMA_HANDLE handle, uint8_t status,
-                                  void *arg)
+static void meadow_dac_stream_dma(DMA_HANDLE handle, uint8_t status, void *arg)
 {
-  int index = (int)(uintptr_t)arg;
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    int index = (int) (uintptr_t) arg;
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
 
-  UNUSED(handle);
+    UNUSED(handle);
 
-  if (st->type != MEADOW_DAC_WAVE_STREAM ||
-      st->sstate != MEADOW_DAC_STREAM_RUNNING)
+    if (st->type != MEADOW_DAC_WAVE_STREAM || st->sstate != MEADOW_DAC_STREAM_RUNNING)
     {
-      return;
+        return;
     }
 
-  if ((status & DMA_STATUS_HTIF) != 0)
+    if ((status & DMA_STATUS_HTIF) != 0)
     {
-      meadow_dac_stream_half(index, 0, 1);
+        meadow_dac_stream_half(index, 0, 1);
     }
 
-  if ((status & DMA_STATUS_TCIF) != 0)
+    if ((status & DMA_STATUS_TCIF) != 0)
     {
-      meadow_dac_stream_half(index, 1, 0);
+        meadow_dac_stream_half(index, 1, 0);
     }
 }
 
@@ -195,28 +188,26 @@ static void meadow_dac_stream_dma(DMA_HANDLE handle, uint8_t status,
 
 static void meadow_dac_stream_run(int index)
 {
-  const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  irqstate_t flags;
+    const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    irqstate_t flags;
 
-  flags = enter_critical_section();
-  st->played[0] = st->count[0];
-  st->played[1] = st->count[1];
-  st->target    = -1;
-  st->sstate    = MEADOW_DAC_STREAM_RUNNING;
-  leave_critical_section(flags);
+    flags = enter_critical_section();
+    st->played[0] = st->count[0];
+    st->played[1] = st->count[1];
+    st->target = -1;
+    st->sstate = MEADOW_DAC_STREAM_RUNNING;
+    leave_critical_section(flags);
 
-  /* Both DMA interrupts are wanted here, so use stm32_dmastart() with the
-   * half-transfer interrupt.
-   */
+    /* Both DMA interrupts are wanted here, so use stm32_dmastart() with the
+     * half-transfer interrupt.
+     */
 
-  stm32_dmasetup(st->dma, chan->dhr, (uint32_t)(uintptr_t)st->buf,
-                 st->ring, MEADOW_DAC_DMA_SCR);
-  stm32_dmastart(st->dma, meadow_dac_stream_dma, (void *)(uintptr_t)index,
-                 true);
+    stm32_dmasetup(st->dma, chan->dhr, (uint32_t) (uintptr_t) st->buf, st->ring, MEADOW_DAC_DMA_SCR);
+    stm32_dmastart(st->dma, meadow_dac_stream_dma, (void *) (uintptr_t) index, true);
 
-  meadow_dac_set_mode(chan, MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN);
-  meadow_dac_tim_run();
+    meadow_dac_set_mode(chan, MEADOW_DAC_CR_TEN | MEADOW_DAC_CR_DMAEN);
+    meadow_dac_tim_run();
 }
 
 /****************************************************************************
@@ -229,77 +220,76 @@ static void meadow_dac_stream_run(int index)
  *
  ****************************************************************************/
 
-static uint32_t meadow_dac_stream_put(int index, const uint16_t *samples,
-                                      uint32_t count)
+static uint32_t meadow_dac_stream_put(int index, const uint16_t *samples, uint32_t count)
 {
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  irqstate_t flags;
-  uint16_t *dest;
-  uint32_t written;
-  uint32_t space;
-  uint32_t seq;
-  uint32_t n;
-  int target;
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    irqstate_t flags;
+    uint16_t *dest;
+    uint32_t written;
+    uint32_t space;
+    uint32_t seq;
+    uint32_t n;
+    int target;
 
-  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+    if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
     {
-      /* Fill the ring from the start, half 0 then half 1 */
+        /* Fill the ring from the start, half 0 then half 1 */
 
-      written = st->count[0] + st->count[1];
-      n = st->ring - written;
-      if (n > count)
+        written = st->count[0] + st->count[1];
+        n = st->ring - written;
+        if (n > count)
         {
-          n = count;
+            n = count;
         }
 
-      dest = st->buf + written;
-      memcpy(dest, samples, n * sizeof(uint16_t));
-      up_clean_dcache((uintptr_t)dest, (uintptr_t)(dest + n));
+        dest = st->buf + written;
+        memcpy(dest, samples, n * sizeof(uint16_t));
+        up_clean_dcache((uintptr_t) dest, (uintptr_t) (dest + n));
 
-      written += n;
-      st->count[0] = written < st->half ? written : st->half;
-      st->count[1] = written > st->half ? written - st->half : 0;
+        written += n;
+        st->count[0] = written < st->half ? written : st->half;
+        st->count[1] = written > st->half ? written - st->half : 0;
 
-      if (written == st->ring)
+        if (written == st->ring)
         {
-          meadow_dac_stream_run(index);
+            meadow_dac_stream_run(index);
         }
 
-      return n;
+        return n;
     }
 
-  /* Running: write into the half DMA freed most recently */
+    /* Running: write into the half DMA freed most recently */
 
-  flags  = enter_critical_section();
-  target = st->target;
-  seq    = st->seq;
-  space  = target < 0 ? 0 : st->half - st->count[target];
-  n      = target < 0 ? 0 : st->count[target];
-  leave_critical_section(flags);
+    flags = enter_critical_section();
+    target = st->target;
+    seq = st->seq;
+    space = target < 0 ? 0 : st->half - st->count[target];
+    n = target < 0 ? 0 : st->count[target];
+    leave_critical_section(flags);
 
-  if (space == 0)
+    if (space == 0)
     {
-      return 0;
+        return 0;
     }
 
-  dest  = st->buf + (target * st->half) + n;   /* n = samples already there */
-  n     = space < count ? space : count;
-  memcpy(dest, samples, n * sizeof(uint16_t));
-  up_clean_dcache((uintptr_t)dest, (uintptr_t)(dest + n));
+    dest = st->buf + (target * st->half) + n; /* n = samples already there */
+    n = space < count ? space : count;
+    memcpy(dest, samples, n * sizeof(uint16_t));
+    up_clean_dcache((uintptr_t) dest, (uintptr_t) (dest + n));
 
-  /* If DMA moved on during the copy, this half is already playing and the
-   * handler has handed the app the other one; the samples just copied play
-   * if DMA has not passed them, and are counted as taken either way.
-   */
+    /* If DMA moved on during the copy, this half is already playing and the
+     * handler has handed the app the other one; the samples just copied play
+     * if DMA has not passed them, and are counted as taken either way.
+     */
 
-  flags = enter_critical_section();
-  if (st->seq == seq)
+    flags = enter_critical_section();
+    if (st->seq == seq)
     {
-      st->count[target] += n;
+        st->count[target] += n;
     }
 
-  leave_critical_section(flags);
-  return n;
+    leave_critical_section(flags);
+    return n;
 }
 
 /****************************************************************************
@@ -330,56 +320,55 @@ static uint32_t meadow_dac_stream_put(int index, const uint16_t *samples,
  *
  ****************************************************************************/
 
-int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
-                              uint16_t **pbuf, DMA_HANDLE *pdma)
+int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill, uint16_t **pbuf, DMA_HANDLE *pdma)
 {
-  const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
-  struct meadow_dac_wave_state_s *state = &g_dac_wave[index];
-  DMA_HANDLE dma;
-  uint16_t *buf;
-  uint32_t i;
+    const struct meadow_dac_chan_s *chan = &g_dac_chan[index];
+    struct meadow_dac_wave_state_s *state = &g_dac_wave[index];
+    DMA_HANDLE dma;
+    uint16_t *buf;
+    uint32_t i;
 
-  /* The ring starts full of the fill value; output starts once the app
-   * has filled it (or asks for it with a zero-length write).
-   */
+    /* The ring starts full of the fill value; output starts once the app
+     * has filled it (or asks for it with a zero-length write).
+     */
 
-  buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, ring * sizeof(uint16_t));
-  if (buf == NULL)
+    buf = kmm_memalign(MEADOW_DAC_WAVE_ALIGN, ring * sizeof(uint16_t));
+    if (buf == NULL)
     {
-      return -ENOMEM;
+        return -ENOMEM;
     }
 
-  for (i = 0; i < ring; i++)
+    for (i = 0; i < ring; i++)
     {
-      buf[i] = fill;
+        buf[i] = fill;
     }
 
-  up_clean_dcache((uintptr_t)buf, (uintptr_t)(buf + ring));
+    up_clean_dcache((uintptr_t) buf, (uintptr_t) (buf + ring));
 
-  dma = stm32_dmachannel(chan->dmamap);
-  if (dma == NULL)
+    dma = stm32_dmachannel(chan->dmamap);
+    if (dma == NULL)
     {
-      kmm_free(buf);
-      return -EBUSY;
+        kmm_free(buf);
+        return -EBUSY;
     }
 
-  state->ring      = ring;
-  state->half      = ring / 2;
-  state->fill      = fill;
-  state->target    = -1;
-  state->count[0]  = 0;
-  state->count[1]  = 0;
-  state->played[0] = 0;
-  state->played[1] = 0;
-  state->underruns = 0;
-  state->seq       = 0;
-  state->ufrozen   = false;
-  state->uend      = 0;
-  state->sstate    = MEADOW_DAC_STREAM_PRIMING;
+    state->ring = ring;
+    state->half = ring / 2;
+    state->fill = fill;
+    state->target = -1;
+    state->count[0] = 0;
+    state->count[1] = 0;
+    state->played[0] = 0;
+    state->played[1] = 0;
+    state->underruns = 0;
+    state->seq = 0;
+    state->ufrozen = false;
+    state->uend = 0;
+    state->sstate = MEADOW_DAC_STREAM_PRIMING;
 
-  *pbuf = buf;
-  *pdma = dma;
-  return OK;
+    *pbuf = buf;
+    *pdma = dma;
+    return OK;
 }
 
 /****************************************************************************
@@ -392,46 +381,45 @@ int meadow_dac_stream_prepare(int index, uint32_t ring, uint16_t fill,
  *
  ****************************************************************************/
 
-void meadow_dac_stream_status(int index,
-                              struct meadow_dac_wave_status_s *out)
+void meadow_dac_stream_status(int index, struct meadow_dac_wave_status_s *out)
 {
-  struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
-  irqstate_t flags;
-  uint32_t pos;
-  uint32_t off;
-  int playing;
+    struct meadow_dac_wave_state_s *st = &g_dac_wave[index];
+    irqstate_t flags;
+    uint32_t pos;
+    uint32_t off;
+    int playing;
 
-  out->state     = st->owner != 0 ? MEADOW_DAC_FILE_PLAYING : st->sstate;
-  out->underruns = st->ufrozen ? st->uend : st->underruns;
+    out->state = st->owner != 0 ? MEADOW_DAC_FILE_PLAYING : st->sstate;
+    out->underruns = st->ufrozen ? st->uend : st->underruns;
 
-  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+    if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
     {
-      out->queued = st->count[0] + st->count[1];
-      out->space  = st->ring - out->queued;
-      return;
+        out->queued = st->count[0] + st->count[1];
+        out->space = st->ring - out->queued;
+        return;
     }
 
-  /* App samples left in the half DMA is playing, from its position in the
-   * ring, plus those written into the app's half.
-   */
+    /* App samples left in the half DMA is playing, from its position in the
+     * ring, plus those written into the app's half.
+     */
 
-  flags   = enter_critical_section();
-  pos     = st->ring - (uint32_t)stm32_dmaresidual(st->dma);
-  playing = pos < st->half ? 0 : 1;
-  off     = pos - (playing * st->half);
+    flags = enter_critical_section();
+    pos = st->ring - (uint32_t) stm32_dmaresidual(st->dma);
+    playing = pos < st->half ? 0 : 1;
+    off = pos - (playing * st->half);
 
-  if (st->played[playing] > off)
+    if (st->played[playing] > off)
     {
-      out->queued = st->played[playing] - off;
+        out->queued = st->played[playing] - off;
     }
 
-  if (st->target >= 0 && st->target != playing)
+    if (st->target >= 0 && st->target != playing)
     {
-      out->queued += st->count[st->target];
-      out->space   = st->half - st->count[st->target];
+        out->queued += st->count[st->target];
+        out->space = st->half - st->count[st->target];
     }
 
-  leave_critical_section(flags);
+    leave_critical_section(flags);
 }
 
 /****************************************************************************
@@ -448,74 +436,70 @@ void meadow_dac_stream_status(int index,
  *
  ****************************************************************************/
 
-int meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples,
-                            uint32_t count, uint32_t timeout_ms,
-                            uint32_t owner)
+int meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples, uint32_t count, uint32_t timeout_ms, uint32_t owner)
 {
-  struct meadow_dac_wave_state_s *st;
-  clock_t deadline;
-  clock_t now;
-  uint32_t taken = 0;
-  int index;
-  int ret;
+    struct meadow_dac_wave_state_s *st;
+    clock_t deadline;
+    clock_t now;
+    uint32_t taken = 0;
+    int index;
+    int ret;
 
-  index = meadow_dac_find_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_find_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  st = &g_dac_wave[index];
-  deadline = clock_systime_ticks() + MSEC2TICK(timeout_ms);
+    st = &g_dac_wave[index];
+    deadline = clock_systime_ticks() + MSEC2TICK(timeout_ms);
 
-  for (; ; )
+    for (;;)
     {
-      index = meadow_dac_lock_open_chan(pinid);
-      if (index < 0)
+        index = meadow_dac_lock_open_chan(pinid);
+        if (index < 0)
         {
-          return taken > 0 ? (int)taken : index;
+            return taken > 0 ? (int) taken : index;
         }
 
-      if (st->type != MEADOW_DAC_WAVE_STREAM || st->owner != owner)
+        if (st->type != MEADOW_DAC_WAVE_STREAM || st->owner != owner)
         {
-          ret = st->type == MEADOW_DAC_WAVE_STREAM && owner == 0 ?
-                -EBUSY : -ENOTCONN;
-          nxmutex_unlock(&g_dac_lock);
-          return taken > 0 ? (int)taken : ret;
+            ret = st->type == MEADOW_DAC_WAVE_STREAM && owner == 0 ? -EBUSY : -ENOTCONN;
+            nxmutex_unlock(&g_dac_lock);
+            return taken > 0 ? (int) taken : ret;
         }
 
-      if (count == 0)
+        if (count == 0)
         {
-          if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+            if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
             {
-              meadow_dac_stream_run(index);
+                meadow_dac_stream_run(index);
             }
 
-          nxmutex_unlock(&g_dac_lock);
-          return 0;
+            nxmutex_unlock(&g_dac_lock);
+            return 0;
         }
 
-      taken += meadow_dac_stream_put(index, samples + taken,
-                                     count - taken);
-      nxmutex_unlock(&g_dac_lock);
+        taken += meadow_dac_stream_put(index, samples + taken, count - taken);
+        nxmutex_unlock(&g_dac_lock);
 
-      if (taken == count || timeout_ms == 0)
+        if (taken == count || timeout_ms == 0)
         {
-          return (int)taken;
+            return (int) taken;
         }
 
-      now = clock_systime_ticks();
-      if (now >= deadline)
+        now = clock_systime_ticks();
+        if (now >= deadline)
         {
-          return (int)taken;
+            return (int) taken;
         }
 
-      ret = nxsem_tickwait(&g_dac_space[index], (uint32_t)(deadline - now));
-      if (ret < 0 && ret != -ETIMEDOUT)
+        ret = nxsem_tickwait(&g_dac_space[index], (uint32_t) (deadline - now));
+        if (ret < 0 && ret != -ETIMEDOUT)
         {
-          /* Interrupted, for example because the app is being stopped */
+            /* Interrupted, for example because the app is being stopped */
 
-          return taken > 0 ? (int)taken : ret;
+            return taken > 0 ? (int) taken : ret;
         }
     }
 }
@@ -532,22 +516,21 @@ int meadow_dac_stream_write(uint8_t pinid, const uint16_t *samples,
 
 static int meadow_dac_stream_lock_owned(uint8_t pinid, uint32_t owner)
 {
-  int index;
+    int index;
 
-  index = meadow_dac_lock_open_chan(pinid);
-  if (index < 0)
+    index = meadow_dac_lock_open_chan(pinid);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  if (g_dac_wave[index].type != MEADOW_DAC_WAVE_STREAM ||
-      g_dac_wave[index].owner != owner)
+    if (g_dac_wave[index].type != MEADOW_DAC_WAVE_STREAM || g_dac_wave[index].owner != owner)
     {
-      nxmutex_unlock(&g_dac_lock);
-      return -ENOTCONN;
+        nxmutex_unlock(&g_dac_lock);
+        return -ENOTCONN;
     }
 
-  return index;
+    return index;
 }
 
 /****************************************************************************
@@ -566,26 +549,26 @@ static int meadow_dac_stream_lock_owned(uint8_t pinid, uint32_t owner)
 
 int meadow_dac_stream_end(uint8_t pinid, uint32_t owner)
 {
-  struct meadow_dac_wave_state_s *st;
-  int index;
+    struct meadow_dac_wave_state_s *st;
+    int index;
 
-  index = meadow_dac_stream_lock_owned(pinid, owner);
-  if (index < 0)
+    index = meadow_dac_stream_lock_owned(pinid, owner);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  st = &g_dac_wave[index];
-  st->uend    = st->underruns;
-  st->ufrozen = true;
+    st = &g_dac_wave[index];
+    st->uend = st->underruns;
+    st->ufrozen = true;
 
-  if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
+    if (st->sstate == MEADOW_DAC_STREAM_PRIMING)
     {
-      meadow_dac_stream_run(index);
+        meadow_dac_stream_run(index);
     }
 
-  nxmutex_unlock(&g_dac_lock);
-  return OK;
+    nxmutex_unlock(&g_dac_lock);
+    return OK;
 }
 
 /****************************************************************************
@@ -600,20 +583,20 @@ int meadow_dac_stream_end(uint8_t pinid, uint32_t owner)
 
 int meadow_dac_stream_queued(uint8_t pinid, uint32_t owner)
 {
-  struct meadow_dac_wave_status_s out;
-  int index;
+    struct meadow_dac_wave_status_s out;
+    int index;
 
-  index = meadow_dac_stream_lock_owned(pinid, owner);
-  if (index < 0)
+    index = meadow_dac_stream_lock_owned(pinid, owner);
+    if (index < 0)
     {
-      return index;
+        return index;
     }
 
-  memset(&out, 0, sizeof(out));
-  meadow_dac_stream_status(index, &out);
+    memset(&out, 0, sizeof(out));
+    meadow_dac_stream_status(index, &out);
 
-  nxmutex_unlock(&g_dac_lock);
-  return (int)out.queued;
+    nxmutex_unlock(&g_dac_lock);
+    return (int) out.queued;
 }
 
 /****************************************************************************
@@ -627,13 +610,13 @@ int meadow_dac_stream_queued(uint8_t pinid, uint32_t owner)
 
 void meadow_dac_stream_stop(uint8_t pinid, uint32_t owner)
 {
-  int index;
+    int index;
 
-  index = meadow_dac_stream_lock_owned(pinid, owner);
-  if (index >= 0)
+    index = meadow_dac_stream_lock_owned(pinid, owner);
+    if (index >= 0)
     {
-      meadow_dac_wave_stop_locked(index);
-      nxmutex_unlock(&g_dac_lock);
+        meadow_dac_wave_stop_locked(index);
+        nxmutex_unlock(&g_dac_lock);
     }
 }
 
@@ -661,25 +644,24 @@ void meadow_dac_stream_stop(uint8_t pinid, uint32_t owner)
  *
  ****************************************************************************/
 
-int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples,
-                          uint32_t count, uint32_t timeout_ms)
+int meadow_dac_wave_write(uint8_t pinid, const uint16_t *samples, uint32_t count, uint32_t timeout_ms)
 {
-  uint32_t i;
+    uint32_t i;
 
-  if (count != 0 && samples == NULL)
+    if (count != 0 && samples == NULL)
     {
-      return -EINVAL;
+        return -EINVAL;
     }
 
-  /* Check every sample before any is taken */
+    /* Check every sample before any is taken */
 
-  for (i = 0; i < count; i++)
+    for (i = 0; i < count; i++)
     {
-      if (samples[i] > MEADOW_DAC_MAX_VALUE)
+        if (samples[i] > MEADOW_DAC_MAX_VALUE)
         {
-          return -EINVAL;
+            return -EINVAL;
         }
     }
 
-  return meadow_dac_stream_write(pinid, samples, count, timeout_ms, 0);
+    return meadow_dac_stream_write(pinid, samples, count, timeout_ms, 0);
 }

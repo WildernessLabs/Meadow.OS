@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\tests\meadow_os_userspace_tests.c
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -39,13 +39,13 @@
 
 #include <nuttx/config.h>
 
-#if defined (CONFIG_MEADOW_OS_TESTS) || defined (CONFIG_ALL_MEADOW_TESTS)
+#if defined(CONFIG_MEADOW_OS_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
 
-#include <stdint.h>
+    #include <stdint.h>
 
-#include "../hcom_common.h"
-#include <meadow/meadow_os.h>
-#include <meadow/meadow_kernel_tests.h>
+    #include "../hcom_common.h"
+    #include <meadow/meadow_os.h>
+    #include <meadow/meadow_kernel_tests.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -140,8 +140,7 @@ void meadow_os_userspace_send_parameter(char * const buffer, uint32_t buffer_len
     }
     else
     {
-        syslog(LOG_MTEST,
-            "Developer tests: Invalid parameters passed to meadow_os_userspace_send_parameter.\n");
+        syslog(LOG_MTEST, "Developer tests: Invalid parameters passed to meadow_os_userspace_send_parameter.\n");
         hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Invalid parameters passed to meadow_os_userspace_send_parameter.\n", __FILE__, __LINE__);
     }
 }
@@ -188,11 +187,9 @@ void meadow_os_userspace_get_test_configuration_test(uint32_t userdata)
     }
     else
     {
-        syslog(LOG_MTEST,
-            "Developer tests: failed to get unit tests configuration.\n");
-        
-            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0,
-                "Failed to get unit tests configuration.\n", __FILE__, __LINE__);
+        syslog(LOG_MTEST, "Developer tests: failed to get unit tests configuration.\n");
+
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_ERROR, 0, "Failed to get unit tests configuration.\n", __FILE__, __LINE__);
     }
 }
 

@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/hcom_nx/hcom_nx_upd_route_cmd.c
- * 
+ *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -61,65 +61,64 @@
 // execute them.
 int hcom_nx_route_in_bound_cli_command(struct hcom_nx_cmd_data *cmdData)
 {
-  int ret;
+    int ret;
 
-  // Note: These are all called from the original HCOM message and
-  // have been forwarded here via hcom_nx_upd.
-  switch(cmdData->hcomCmd)
-  {
-    // Note: This is called from the original HCOM_MDOW_REQUEST_MONO_FLASH
-    // command and from the HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END.
-    case HCOM_MDOW_REQUEST_MONO_FLASH:
-      ret = hcom_nx_exec_ex_flash_mono_flash(cmdData);
-      return ret;
-  
-    case HCOM_MDOW_REQUEST_BULK_FLASH_ERASE:
-      ret = hcom_nx_exec_ex_flash_erase_ex_flash(cmdData);
-      return ret;
+    // Note: These are all called from the original HCOM message and
+    // have been forwarded here via hcom_nx_upd.
+    switch (cmdData->hcomCmd)
+    {
+        // Note: This is called from the original HCOM_MDOW_REQUEST_MONO_FLASH
+        // command and from the HCOM_MDOW_REQUEST_MONO_UPDATE_FILE_END.
+        case HCOM_MDOW_REQUEST_MONO_FLASH:
+            ret = hcom_nx_exec_ex_flash_mono_flash(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_VERIFY_ERASED_FLASH:
-      ret = hcom_nx_exec_ex_flash_verify_ex_flash(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_BULK_FLASH_ERASE:
+            ret = hcom_nx_exec_ex_flash_erase_ex_flash(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_PART_RENEW_FILE_SYS:
-      ret = hcom_nx_exec_ex_flash_renew_file_system(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_VERIFY_ERASED_FLASH:
+            ret = hcom_nx_exec_ex_flash_verify_ex_flash(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_NO_TRACE_TO_HOST:
-      ret = hcom_nx_exec_trace_do_not_send_to_host(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_PART_RENEW_FILE_SYS:
+            ret = hcom_nx_exec_ex_flash_renew_file_system(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_SEND_TRACE_TO_HOST:
-      ret = hcom_nx_exec_trace_do_send_to_host(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_NO_TRACE_TO_HOST:
+            ret = hcom_nx_exec_trace_do_not_send_to_host(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_NO_TRACE_TO_UART:
-      ret = hcom_nx_exec_trace_do_not_send_to_uart(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_SEND_TRACE_TO_HOST:
+            ret = hcom_nx_exec_trace_do_send_to_host(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_SEND_TRACE_TO_UART:
-      ret = hcom_nx_exec_trace_forward_to_uart(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_NO_TRACE_TO_UART:
+            ret = hcom_nx_exec_trace_do_not_send_to_uart(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_NO_PROFILER_TO_UART:
-      ret = hcom_nx_exec_profiler_do_not_send_to_uart(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_SEND_TRACE_TO_UART:
+            ret = hcom_nx_exec_trace_forward_to_uart(cmdData);
+            return ret;
 
-    case HCOM_MDOW_REQUEST_SEND_PROFILER_TO_UART:
-      ret = hcom_nx_exec_profiler_forward_to_uart(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_NO_PROFILER_TO_UART:
+            ret = hcom_nx_exec_profiler_do_not_send_to_uart(cmdData);
+            return ret;
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
-    case HCOM_MDOW_REQUEST_RTC_READ_TIME_CMD:
-      ret = pwrmgmt_mono_cmd_time_read_clock(cmdData);
-      return ret;
+        case HCOM_MDOW_REQUEST_SEND_PROFILER_TO_UART:
+            ret = hcom_nx_exec_profiler_forward_to_uart(cmdData);
+            return ret;
+
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+        case HCOM_MDOW_REQUEST_RTC_READ_TIME_CMD:
+            ret = pwrmgmt_mono_cmd_time_read_clock(cmdData);
+            return ret;
 #endif
 
-    default:
-      cmdData->logLevel = LOG_ERR;
-      // Don't use snprintf_chk here
-      cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE,
-              "%s@%d-Undefined command:0x%08x.\n", __FILE__, __LINE__, cmdData->hcomCmd);
-  }
-  return -1;
+        default:
+            cmdData->logLevel = LOG_ERR;
+            // Don't use snprintf_chk here
+            cmdData->logLen = snprintf(cmdData->logMsg, HCOM_NX_CMD_LOG_MSG_SIZE, "%s@%d-Undefined command:0x%08x.\n", __FILE__, __LINE__, cmdData->hcomCmd);
+    }
+    return -1;
 }

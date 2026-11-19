@@ -12,8 +12,7 @@
 /*
  *    Status and error codes for the various function calls.
  */
-enum espcp_status_codes
-{
+enum espcp_status_codes {
     espcp_status_codes_completed_ok = 0,
     espcp_status_codes_crc_error = 1,
     espcp_status_codes_restart = 2,
@@ -181,23 +180,13 @@ typedef enum espcp_status_codes espcp_status_codes_t;
 /*
  *    System interfaces available on the ESP32 for the various function calls.
  */
-enum espcp_esp32_interfaces
-{
-    espcp_esp32_interfaces_none = 0,
-    espcp_esp32_interfaces_wi_fi = 1,
-    espcp_esp32_interfaces_blue_tooth = 2,
-    espcp_esp32_interfaces_mesh_network = 3,
-    espcp_esp32_interfaces_system = 4,
-    espcp_esp32_interfaces_transport = 5,
-    espcp_esp32_interfaces_wired_ethernet = 6
-};
+enum espcp_esp32_interfaces { espcp_esp32_interfaces_none = 0, espcp_esp32_interfaces_wi_fi = 1, espcp_esp32_interfaces_blue_tooth = 2, espcp_esp32_interfaces_mesh_network = 3, espcp_esp32_interfaces_system = 4, espcp_esp32_interfaces_transport = 5, espcp_esp32_interfaces_wired_ethernet = 6 };
 typedef enum espcp_esp32_interfaces espcp_esp32_interfaces_t;
 
 /*
  *    System functions available on the ESP32
  */
-enum espcp_system_function
-{
+enum espcp_system_function {
     espcp_system_function_get_configuration = 0,
     espcp_system_function_set_configuration_item = 1,
     espcp_system_function_deep_sleep = 2,
@@ -234,8 +223,7 @@ typedef enum espcp_system_function espcp_system_function_t;
 /*
  *    WiFi functions available on the ESP32
  */
-enum espcp_wi_fi_function
-{
+enum espcp_wi_fi_function {
     espcp_wi_fi_function_start_wi_fi_interface = 0,
     espcp_wi_fi_function_stop_wi_fi_interface = 1,
     espcp_wi_fi_function_connect_to_access_point = 2,
@@ -292,8 +280,7 @@ typedef enum espcp_wi_fi_function espcp_wi_fi_function_t;
 /*
  *    Bluetooth functions available on the ESP32
  */
-enum espcp_bluetooth_function
-{
+enum espcp_bluetooth_function {
     /**
      * @brief Start the Bluetooth service.
      */
@@ -380,20 +367,13 @@ typedef enum espcp_bluetooth_function espcp_bluetooth_function_t;
 /*
  *    Transport functions available on the ESP32
  */
-enum espcp_transport_function
-{
-    espcp_transport_function_response_ready = 0,
-    espcp_transport_function_send_response = 1,
-    espcp_transport_function_kill_nuttx_thread = 2,
-    espcp_transport_function_reset_esp32 = 3
-};
+enum espcp_transport_function { espcp_transport_function_response_ready = 0, espcp_transport_function_send_response = 1, espcp_transport_function_kill_nuttx_thread = 2, espcp_transport_function_reset_esp32 = 3 };
 typedef enum espcp_transport_function espcp_transport_function_t;
 
 /*
  *    Possible transport packet types.
  */
-enum espcp_message_types
-{
+enum espcp_message_types {
     espcp_message_types_ack = 0x00,
     espcp_message_types_nak = 0x01,
     espcp_message_types_reset = 0x02,
@@ -408,8 +388,7 @@ typedef enum espcp_message_types espcp_message_types_t;
 /*
  *    Name of items that can be configured (changed by the code on the STM32) on the ESP32.
  */
-enum espcp_configuration_items
-{
+enum espcp_configuration_items {
     espcp_configuration_items_maximum_message_queue_length = 0,
     espcp_configuration_items_automatically_start_network = 1,
     espcp_configuration_items_automatically_reconnect = 2,
@@ -434,8 +413,7 @@ typedef enum espcp_configuration_items espcp_configuration_items_t;
 /*
  *    WiFi reason codes
  */
-enum espcp_wi_fi_reasons
-{
+enum espcp_wi_fi_reasons {
     espcp_wi_fi_reasons_unspecified = 1,
     espcp_wi_fi_reasons_authentication_expired = 2,
     espcp_wi_fi_reasons_authentication_leave = 3,
@@ -473,8 +451,7 @@ typedef enum espcp_wi_fi_reasons espcp_wi_fi_reasons_t;
 /*
  *    Access point authentication method.
  */
-enum espcp_wi_fi_authentication_mode
-{
+enum espcp_wi_fi_authentication_mode {
     espcp_wi_fi_authentication_mode_open = 0,
     espcp_wi_fi_authentication_mode_wep = 1,
     espcp_wi_fi_authentication_mode_wpa_psk = 2,
@@ -489,8 +466,7 @@ typedef enum espcp_wi_fi_authentication_mode espcp_wi_fi_authentication_mode_t;
 /*
  *    Protocols an access point supports.  The values are flags, one bit each, and are combined with a bitwise OR.
  */
-enum espcp_wi_fi_access_point_protocols
-{
+enum espcp_wi_fi_access_point_protocols {
     espcp_wi_fi_access_point_protocols_none = 0x00,
     espcp_wi_fi_access_point_protocols_phy_11b = 0x01,
     espcp_wi_fi_access_point_protocols_phy_11g = 0x02,
@@ -503,87 +479,49 @@ typedef enum espcp_wi_fi_access_point_protocols espcp_wi_fi_access_point_protoco
 /*
  *    WiFi Country Policy.
  */
-enum espcp_wi_fi_country_policy
-{
-    espcp_wi_fi_country_policy_automatic = 0,
-    espcp_wi_fi_country_policy_manual = 1
-};
+enum espcp_wi_fi_country_policy { espcp_wi_fi_country_policy_automatic = 0, espcp_wi_fi_country_policy_manual = 1 };
 typedef enum espcp_wi_fi_country_policy espcp_wi_fi_country_policy_t;
 
 /*
  *    Location of the secondary channel in respect to the primary channel.
  */
-enum espcp_wi_fi_second_channel
-{
-    espcp_wi_fi_second_channel_none = 0,
-    espcp_wi_fi_second_channel_above = 1,
-    espcp_wi_fi_second_channel_below = 2
-};
+enum espcp_wi_fi_second_channel { espcp_wi_fi_second_channel_none = 0, espcp_wi_fi_second_channel_above = 1, espcp_wi_fi_second_channel_below = 2 };
 typedef enum espcp_wi_fi_second_channel espcp_wi_fi_second_channel_t;
 
 /*
  *    WiFiScanType
  */
-enum espcp_wi_fi_scan_type
-{
-    espcp_wi_fi_scan_type_active = 0,
-    espcp_wi_fi_scan_type_passive = 1
-};
+enum espcp_wi_fi_scan_type { espcp_wi_fi_scan_type_active = 0, espcp_wi_fi_scan_type_passive = 1 };
 typedef enum espcp_wi_fi_scan_type espcp_wi_fi_scan_type_t;
 
 /*
  *    Types of antennas that can be selected.
  */
-enum espcp_antenna_types
-{
-    espcp_antenna_types_on_board = 0,
-    espcp_antenna_types_external = 1,
-    espcp_antenna_types_max = 1
-};
+enum espcp_antenna_types { espcp_antenna_types_on_board = 0, espcp_antenna_types_external = 1, espcp_antenna_types_max = 1 };
 typedef enum espcp_antenna_types espcp_antenna_types_t;
 
 /*
  *    Encryption method used by the access point.
  */
-enum espcp_wi_fi_cipher_type
-{
-    espcp_wi_fi_cipher_type_none = 0,
-    espcp_wi_fi_cipher_type_wep40 = 1,
-    espcp_wi_fi_cipher_type_wep104 = 2,
-    espcp_wi_fi_cipher_type_tkip = 3,
-    espcp_wi_fi_cipher_type_ccmp = 4,
-    espcp_wi_fi_cipher_type_tkip_ccmp = 5,
-    espcp_wi_fi_cipher_type_unknown = 6
-};
+enum espcp_wi_fi_cipher_type { espcp_wi_fi_cipher_type_none = 0, espcp_wi_fi_cipher_type_wep40 = 1, espcp_wi_fi_cipher_type_wep104 = 2, espcp_wi_fi_cipher_type_tkip = 3, espcp_wi_fi_cipher_type_ccmp = 4, espcp_wi_fi_cipher_type_tkip_ccmp = 5, espcp_wi_fi_cipher_type_unknown = 6 };
 typedef enum espcp_wi_fi_cipher_type espcp_wi_fi_cipher_type_t;
 
 /*
  *    Address family types for the low level sockets..
  */
-enum espcp_address_family_type
-{
-    espcp_address_family_type_af_unspec = 0,
-    espcp_address_family_type_af_inet = 2,
-    espcp_address_family_type_af_inet6 = 10
-};
+enum espcp_address_family_type { espcp_address_family_type_af_unspec = 0, espcp_address_family_type_af_inet = 2, espcp_address_family_type_af_inet6 = 10 };
 typedef enum espcp_address_family_type espcp_address_family_type_t;
 
 /*
  *    Protocol family types for the low level sockets..
  */
-enum espcp_protocol_family_type
-{
-    espcp_protocol_family_type_pf_unspec = 0,
-    espcp_protocol_family_type_pf_inet = 2,
-    espcp_protocol_family_type_pf_inet6 = 10
-};
+enum espcp_protocol_family_type { espcp_protocol_family_type_pf_unspec = 0, espcp_protocol_family_type_pf_inet = 2, espcp_protocol_family_type_pf_inet6 = 10 };
 typedef enum espcp_protocol_family_type espcp_protocol_family_type_t;
 
 /*
  *    Protocol types for the low level sockets.
  */
-enum espcp_ip_protocol_type
-{
+enum espcp_ip_protocol_type {
     espcp_ip_protocol_type_ip_proto_i_p = 0,
     espcp_ip_protocol_type_ip_proto_icmp = 1,
     espcp_ip_protocol_type_ip_proto_tcp = 6,
@@ -598,28 +536,19 @@ typedef enum espcp_ip_protocol_type espcp_ip_protocol_type_t;
 /*
  *    Socket protocol types for the low level sockets.
  */
-enum espcp_socket_protocol_type
-{
-    espcp_socket_protocol_type_sock_stream = 1,
-    espcp_socket_protocol_type_sock_dgram = 2,
-    espcp_socket_protocol_type_sock_raw = 3
-};
+enum espcp_socket_protocol_type { espcp_socket_protocol_type_sock_stream = 1, espcp_socket_protocol_type_sock_dgram = 2, espcp_socket_protocol_type_sock_raw = 3 };
 typedef enum espcp_socket_protocol_type espcp_socket_protocol_type_t;
 
 /*
  *    Socket level types for the low level sockets.
  */
-enum espcp_socket_level_type
-{
-    espcp_socket_level_type_sol_socket = 0xfff
-};
+enum espcp_socket_level_type { espcp_socket_level_type_sol_socket = 0xfff };
 typedef enum espcp_socket_level_type espcp_socket_level_type_t;
 
 /*
  *    Socket option types for the low level sockets.
  */
-enum espcp_socket_option_type
-{
+enum espcp_socket_option_type {
     espcp_socket_option_type_so_debug = 0x0001,
     espcp_socket_option_type_so_accept_conn = 0x0002,
     espcp_socket_option_type_so_dont_route = 0x0010,
@@ -644,8 +573,7 @@ typedef enum espcp_socket_option_type espcp_socket_option_type_t;
 /*
  *    ESP32 Error codes (errno).
  */
-enum espcp_esp32_error_codes
-{
+enum espcp_esp32_error_codes {
     espcp_esp32_error_codes_perm = 1,
     espcp_esp32_error_codes_no_ent = 2,
     espcp_esp32_error_codes_srch = 3,
@@ -736,8 +664,7 @@ typedef enum espcp_esp32_error_codes espcp_esp32_error_codes_t;
 /*
  *    ESP32 Error codes (errno).
  */
-enum espcp_esp32_reset_codes
-{
+enum espcp_esp32_reset_codes {
     espcp_esp32_reset_codes_unknown = 0,
     espcp_esp32_reset_codes_power_on = 1,
     espcp_esp32_reset_codes_external_gpio = 2,
@@ -754,11 +681,10 @@ typedef enum espcp_esp32_reset_codes espcp_esp32_reset_codes_t;
 
 /**
  * @brief Where should the ESP log messages be sent?
- * 
+ *
  * Definitions here can be found in hcom_shared_common.h
  */
-typedef enum espcp_log_destination
-{
+typedef enum espcp_log_destination {
     /**
      * @brief Noe logging destination.
      */
@@ -783,8 +709,7 @@ typedef enum espcp_log_destination
 /**
  * @brief Log levels (taken from syslog.h)
  */
-typedef enum espcp_log_level
-{
+typedef enum espcp_log_level {
     /**
      * @brief No logging, not really taken from syslog.h but here to represent no logging.
      */

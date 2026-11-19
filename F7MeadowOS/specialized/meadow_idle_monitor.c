@@ -1,6 +1,6 @@
 /****************************************************************************
  * F7MeadowOS/specialized/meadow_idle_monitor.c
- * 
+ *
  *   Copyright (C) 2023 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -75,15 +75,14 @@
 #include "arm_internal.h"
 #include "nvic.h"
 
-
 #include "../hcom_nx/hcom_nx_common.h"
 #include <meadow/hcom_misc_diag.h>
 #include <meadow/hcom_shared_common.h>
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
-// It would be nice if this thread would be replace with the HPWORK worker
-// queue since it is only for testing.
-#include <nuttx/kthread.h>
+    // It would be nice if this thread would be replace with the HPWORK worker
+    // queue since it is only for testing.
+    #include <nuttx/kthread.h>
 #endif
 
 // Diagnostic only
@@ -93,7 +92,7 @@
 
 //================================================================
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
-#define MEADOW_IDLE_MON_TEST_EXECUTE_TIMES (5)
+    #define MEADOW_IDLE_MON_TEST_EXECUTE_TIMES (5)
 #endif
 
 /************************************************************************************
@@ -109,25 +108,25 @@ static void *meadow_idle_mon_test_thread_proc(int argc, char *argv[]);
  * Private Data
  ****************************************************************************/
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
 // All times are in SysTick counts (HCLK/8 = 27 MHz on Meadow).
-static uint64_t _sleepStart;        // Set by meadow_idle_mon_before_sleep()
-static clock_t  _sleepStartTick;    // The system tick _sleepStart falls in
-static uint64_t _idleCounts;        // Idle time so far in the current second
-static clock_t  _secondStartTick;   // System tick at which the second started
-static int      _idlePercent;       // Result for the last complete second
+static uint64_t _sleepStart;     // Set by meadow_idle_mon_before_sleep()
+static clock_t _sleepStartTick;  // The system tick _sleepStart falls in
+static uint64_t _idleCounts;     // Idle time so far in the current second
+static clock_t _secondStartTick; // System tick at which the second started
+static int _idlePercent;         // Result for the last complete second
 #endif
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
 //================================================================
 // SysTick counts in one system tick
 static uint32_t meadow_idle_mon_counts_per_tick(void)
 {
-  return (getreg32(NVIC_SYSTICK_RELOAD) & NVIC_SYSTICK_RELOAD_MASK) + 1;
+    return (getreg32(NVIC_SYSTICK_RELOAD) & NVIC_SYSTICK_RELOAD_MASK) + 1;
 }
 
 //================================================================
@@ -137,18 +136,18 @@ static uint32_t meadow_idle_mon_counts_per_tick(void)
 // noticed and the read repeated.
 static uint64_t meadow_idle_mon_now(uint32_t perTick, clock_t *tickOut)
 {
-  clock_t  tick;
-  uint32_t current;
+    clock_t tick;
+    uint32_t current;
 
-  do
-  {
-    tick    = clock_systime_ticks();
-    current = getreg32(NVIC_SYSTICK_CURRENT);
-  }
-  while(tick != clock_systime_ticks());
+    do
+    {
+        tick = clock_systime_ticks();
+        current = getreg32(NVIC_SYSTICK_CURRENT);
+    }
+    while (tick != clock_systime_ticks());
 
-  *tickOut = tick;
-  return ((uint64_t)tick * perTick) + ((perTick - 1) - current);
+    *tickOut = tick;
+    return ((uint64_t) tick * perTick) + ((perTick - 1) - current);
 }
 
 //================================================================
@@ -156,28 +155,28 @@ static uint64_t meadow_idle_mon_now(uint32_t perTick, clock_t *tickOut)
 // that second and start a new second. Called with interrupts disabled.
 static void meadow_idle_mon_end_second_if_due(clock_t nowTick)
 {
-  clock_t  elapsedTicks = nowTick - _secondStartTick;
-  uint64_t elapsedCounts;
+    clock_t elapsedTicks = nowTick - _secondStartTick;
+    uint64_t elapsedCounts;
 
-  if(elapsedTicks < TICK_PER_SEC)
-  {
-    return;
-  }
+    if (elapsedTicks < TICK_PER_SEC)
+    {
+        return;
+    }
 
-  elapsedCounts = (uint64_t)elapsedTicks * meadow_idle_mon_counts_per_tick();
-  if(_idleCounts >= elapsedCounts)
-  {
-    _idlePercent = 100;
-  }
-  else
-  {
-    _idlePercent = (int)((_idleCounts * 100) / elapsedCounts);
-  }
+    elapsedCounts = (uint64_t) elapsedTicks * meadow_idle_mon_counts_per_tick();
+    if (_idleCounts >= elapsedCounts)
+    {
+        _idlePercent = 100;
+    }
+    else
+    {
+        _idlePercent = (int) ((_idleCounts * 100) / elapsedCounts);
+    }
 
-  _idleCounts = 0;
-  _secondStartTick = nowTick;
+    _idleCounts = 0;
+    _secondStartTick = nowTick;
 }
-#endif    // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#endif // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 
 /****************************************************************************
  * Public Functions
@@ -187,58 +186,55 @@ static void meadow_idle_mon_end_second_if_due(clock_t nowTick)
 // Called during startup
 int meadow_idle_monitor_setup(void)
 {
-  MEADOW_TRACE_INFORMATION("Entered meadow_idle_monitor_setup at startup\n");
+    MEADOW_TRACE_INFORMATION("Entered meadow_idle_monitor_setup at startup\n");
 
-
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  irqstate_t flags = enter_critical_section();
-  _sleepStart = 0;
-  _sleepStartTick = 0;
-  _idleCounts = 0;
-  _secondStartTick = clock_systime_ticks();
-  _idlePercent = 0;
-  leave_critical_section(flags);
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
+    irqstate_t flags = enter_critical_section();
+    _sleepStart = 0;
+    _sleepStartTick = 0;
+    _idleCounts = 0;
+    _secondStartTick = clock_systime_ticks();
+    _idlePercent = 0;
+    leave_critical_section(flags);
 #endif
 
 #if MEADOW_INCLUDE_IDLE_MONITOR_TESTS_IN_BUILD > 0
-  int ret = meadow_idle_mon_create_test_thread();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-meadow_idle_mon_create_test_thread failed, ret:%d, errno:%d\n",
-          __FILE__, __LINE__, ret, errno);
-    return ret;
-  }
+    int ret = meadow_idle_mon_create_test_thread();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-meadow_idle_mon_create_test_thread failed, ret:%d, errno:%d\n", __FILE__, __LINE__, ret, errno);
+        return ret;
+    }
 #endif
 
-  return OK;
+    return OK;
 }
 
 //================================================================
 // Return the MCU idle percentage 0 - 100% for the last complete second
 int meadow_idle_monitor_get_value(void)
 {
-  int idlePercent = 0;
+    int idlePercent = 0;
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  irqstate_t flags = enter_critical_section();
-  meadow_idle_mon_end_second_if_due(clock_systime_ticks());
-  idlePercent = _idlePercent;
-  leave_critical_section(flags);
-#endif    // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
+    irqstate_t flags = enter_critical_section();
+    meadow_idle_mon_end_second_if_due(clock_systime_ticks());
+    idlePercent = _idlePercent;
+    leave_critical_section(flags);
+#endif // #if defined (CONFIG_ARCH_IDLE_CUSTOM)
 
-  return idlePercent;
+    return idlePercent;
 }
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
+#if defined(CONFIG_ARCH_IDLE_CUSTOM)
 //================================================================
 // Called by up_idle() in stm32_idle.c just before its wfi. Only called by
 // the idle thread.
 void meadow_idle_mon_before_sleep(void)
 {
-  irqstate_t flags = enter_critical_section();
-  _sleepStart = meadow_idle_mon_now(meadow_idle_mon_counts_per_tick(),
-                                    &_sleepStartTick);
-  leave_critical_section(flags);
+    irqstate_t flags = enter_critical_section();
+    _sleepStart = meadow_idle_mon_now(meadow_idle_mon_counts_per_tick(), &_sleepStartTick);
+    leave_critical_section(flags);
 }
 
 //================================================================
@@ -246,32 +242,32 @@ void meadow_idle_mon_before_sleep(void)
 // the idle thread.
 void meadow_idle_mon_after_sleep(void)
 {
-  irqstate_t flags = enter_critical_section();
-  uint32_t perTick = meadow_idle_mon_counts_per_tick();
-  clock_t  nowTick;
-  uint64_t now = meadow_idle_mon_now(perTick, &nowTick);
-  uint64_t tickEnd;
+    irqstate_t flags = enter_critical_section();
+    uint32_t perTick = meadow_idle_mon_counts_per_tick();
+    clock_t nowTick;
+    uint64_t now = meadow_idle_mon_now(perTick, &nowTick);
+    uint64_t tickEnd;
 
-  // The interrupt that ends the wfi can make a higher priority task ready,
-  // and the idle task is then preempted before it gets here, perhaps for a
-  // long time. A wfi never lasts past the next tick interrupt, so only count
-  // up to the end of the tick in which the sleep started. A preempted sleep
-  // then counts at most the rest of that tick as idle.
-  tickEnd = ((uint64_t)_sleepStartTick + 1) * perTick;
-  if(now > tickEnd)
-  {
-    now = tickEnd;
-  }
+    // The interrupt that ends the wfi can make a higher priority task ready,
+    // and the idle task is then preempted before it gets here, perhaps for a
+    // long time. A wfi never lasts past the next tick interrupt, so only count
+    // up to the end of the tick in which the sleep started. A preempted sleep
+    // then counts at most the rest of that tick as idle.
+    tickEnd = ((uint64_t) _sleepStartTick + 1) * perTick;
+    if (now > tickEnd)
+    {
+        now = tickEnd;
+    }
 
-  // Guard against a reading that went backwards (a SysTick wrap seen before
-  // its tick interrupt ran); just skip that sleep.
-  if(now > _sleepStart)
-  {
-    _idleCounts += now - _sleepStart;
-  }
+    // Guard against a reading that went backwards (a SysTick wrap seen before
+    // its tick interrupt ran); just skip that sleep.
+    if (now > _sleepStart)
+    {
+        _idleCounts += now - _sleepStart;
+    }
 
-  meadow_idle_mon_end_second_if_due(nowTick);
-  leave_critical_section(flags);
+    meadow_idle_mon_end_second_if_due(nowTick);
+    leave_critical_section(flags);
 }
 #endif
 
@@ -280,23 +276,22 @@ void meadow_idle_mon_after_sleep(void)
 //================================================================
 static int meadow_idle_mon_create_test_thread(void)
 {
-  int test_kthrd;
+    int test_kthrd;
 
-  // Create a thread to run the tests. Note: the priority is really high
-  // because this is test code. and if priority is lower will not see the
-  // output when doing things like downloading a file.
-  test_kthrd = kthread_create("IdleMonTest",
-                              248,      // Pri really high for testing
-                              2048,     // Stack
-                              (main_t) meadow_idle_mon_test_thread_proc,
-                              (char *const *) NULL);
-  if(test_kthrd <= 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n",
-                __FILE__, __LINE__, "IdleMonTest");
-    return -ENOEXEC;
-  }
-  return OK;
+    // Create a thread to run the tests. Note: the priority is really high
+    // because this is test code. and if priority is lower will not see the
+    // output when doing things like downloading a file.
+    test_kthrd = kthread_create(
+        "IdleMonTest",
+        248,  // Pri really high for testing
+        2048, // Stack
+        (main_t) meadow_idle_mon_test_thread_proc, (char * const *) NULL);
+    if (test_kthrd <= 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Creation of %s kthread FAILED\n", __FILE__, __LINE__, "IdleMonTest");
+        return -ENOEXEC;
+    }
+    return OK;
 }
 
 //================================================================
@@ -304,49 +299,47 @@ static int meadow_idle_mon_create_test_thread(void)
 // idle percentage calculated.
 static void *meadow_idle_mon_test_thread_proc(int argc, char *argv[])
 {
-#if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
-  syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n",
-    gettid(), getpid(), "Idle monitor");
-#endif
+    #if HCOM_DIAG_OUTPUT_SYSLOG_PID_OF_NEW_THREADS > 0
+    syslog(LOG_MDIAG, "New kthread [Thrd:%d][Task:%d] %s\n", gettid(), getpid(), "Idle monitor");
+    #endif
 
-#if defined (CONFIG_ARCH_IDLE_CUSTOM)
-  int idleValue;
-  uint32_t fullTestLoopCount = 0;
-  uint32_t wasteTickTime;
-  uint32_t ticksToWaste;
-  uint32_t loopCnt;
-  uint32_t usecToSleep;
+    #if defined(CONFIG_ARCH_IDLE_CUSTOM)
+    int idleValue;
+    uint32_t fullTestLoopCount = 0;
+    uint32_t wasteTickTime;
+    uint32_t ticksToWaste;
+    uint32_t loopCnt;
+    uint32_t usecToSleep;
 
-  while(fullTestLoopCount < MEADOW_IDLE_MON_TEST_EXECUTE_TIMES)
-  {
-    // This loop execute once for each cycle
-    // Assumes 1000 ticks / second
-    for(loopCnt = 0; loopCnt < 11; loopCnt++)
+    while (fullTestLoopCount < MEADOW_IDLE_MON_TEST_EXECUTE_TIMES)
     {
-      // How many ticks to waste? Total time is 1 second
-      ticksToWaste = loopCnt * 100;   // 0 - 1000
-      usecToSleep = (TICK_PER_SEC - ticksToWaste) * USEC_PER_MSEC;
-      wasteTickTime = clock_systime_ticks() + ticksToWaste;
+        // This loop execute once for each cycle
+        // Assumes 1000 ticks / second
+        for (loopCnt = 0; loopCnt < 11; loopCnt++)
+        {
+            // How many ticks to waste? Total time is 1 second
+            ticksToWaste = loopCnt * 100; // 0 - 1000
+            usecToSleep = (TICK_PER_SEC - ticksToWaste) * USEC_PER_MSEC;
+            wasteTickTime = clock_systime_ticks() + ticksToWaste;
 
-      // Simply waste time wasting loop
-      // clock_systime_ticks(); Return ticks since start as clock_t (int64_t)
-      while(clock_systime_ticks() < wasteTickTime);
+            // Simply waste time wasting loop
+            // clock_systime_ticks(); Return ticks since start as clock_t (int64_t)
+            while (clock_systime_ticks() < wasteTickTime)
+                ;
 
-      // Sleep the remaining time
-      usleep(usecToSleep);
+            // Sleep the remaining time
+            usleep(usecToSleep);
 
-      // Now show the preceeding load values
-      idleValue = meadow_idle_monitor_get_value();
-      syslog(LOG_MTEST, "MCU Idle:%3d%%, MCU Load:%3d%% (busy %lu ms of 1000)\n",
-        idleValue, 100 - idleValue, ticksToWaste);
+            // Now show the preceeding load values
+            idleValue = meadow_idle_monitor_get_value();
+            syslog(LOG_MTEST, "MCU Idle:%3d%%, MCU Load:%3d%% (busy %lu ms of 1000)\n", idleValue, 100 - idleValue, ticksToWaste);
+        }
+        fullTestLoopCount++;
     }
-    fullTestLoopCount++;
-  }
 
-  syslog(LOG_MTEST, "Monitor Idle Test was executed %lu times\n",
-    fullTestLoopCount);
-#endif
+    syslog(LOG_MTEST, "Monitor Idle Test was executed %lu times\n", fullTestLoopCount);
+    #endif
 
-  return NULL;
+    return NULL;
 }
 #endif

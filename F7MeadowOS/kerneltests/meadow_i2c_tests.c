@@ -48,20 +48,20 @@
 
 // Only build if configured
 #if defined(CONFIG_I2C_TESTS) || defined(CONFIG_ALL_MEADOW_TESTS)
-#pragma message "(--) meadow_i2c_tests.c"
+    #pragma message "(--) meadow_i2c_tests.c"
 
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-// Fixed at I2C standard mode. Every device expected on either bus supports this
-// speed, so there is no need to select it via the test's userData value.
-#define I2C_SCAN_FREQUENCY (100000)
+    /************************************************************************************
+     * Pre-processor Definitions
+     ************************************************************************************/
+    // Fixed at I2C standard mode. Every device expected on either bus supports this
+    // speed, so there is no need to select it via the test's userData value.
+    #define I2C_SCAN_FREQUENCY (100000)
 
-// I2C addresses 0x00-0x07 and 0x78-0x7f are reserved by the I2C spec.
-#define I2C_SCAN_STANDARD_FIRST (0x08)
-#define I2C_SCAN_STANDARD_LAST  (0x77)
-#define I2C_SCAN_FULL_FIRST     (0x00)
-#define I2C_SCAN_FULL_LAST      (0x7f)
+    // I2C addresses 0x00-0x07 and 0x78-0x7f are reserved by the I2C spec.
+    #define I2C_SCAN_STANDARD_FIRST (0x08)
+    #define I2C_SCAN_STANDARD_LAST (0x77)
+    #define I2C_SCAN_FULL_FIRST (0x00)
+    #define I2C_SCAN_FULL_LAST (0x7f)
 
 /************************************************************************************
  * Private Function Prototypes
@@ -199,4 +199,4 @@ void meadow_kt_i2c3_scan_tests(uint32_t userData)
     i2c_scan_bus(3, userData);
 }
 
-#endif  // #if defined(CONFIG_I2C_TESTS)
+#endif // #if defined(CONFIG_I2C_TESTS)

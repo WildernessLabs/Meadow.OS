@@ -35,11 +35,11 @@
 /* procfs File System */
 
 #ifdef CONFIG_FS_PROCFS
-#  ifdef CONFIG_NSH_PROC_MOUNTPOINT
-#    define STM32_PROCFS_MOUNTPOINT CONFIG_NSH_PROC_MOUNTPOINT
-#  else
-#    define STM32_PROCFS_MOUNTPOINT "/proc"
-#  endif
+    #ifdef CONFIG_NSH_PROC_MOUNTPOINT
+        #define STM32_PROCFS_MOUNTPOINT CONFIG_NSH_PROC_MOUNTPOINT
+    #else
+        #define STM32_PROCFS_MOUNTPOINT "/proc"
+    #endif
 #endif
 
 /* LED
@@ -48,33 +48,25 @@
  * LED and LD3 a Red LED, that can be controlled by software.
  */
 
-#define GPIO_LD1       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
-    GPIO_PORTA | GPIO_PIN1)
-#define GPIO_LD2       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
-    GPIO_PORTA | GPIO_PIN0)
-#define GPIO_LD3       (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz |\
-    GPIO_PORTA | GPIO_PIN2)
+#define GPIO_LD1 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN1)
+#define GPIO_LD2 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN0)
+#define GPIO_LD3 (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_PORTA | GPIO_PIN2)
 
 #define GPIO_LED_GREEN GPIO_LD1
-#define GPIO_LED_BLUE  GPIO_LD2
-#define GPIO_LED_RED   GPIO_LD3
+#define GPIO_LED_BLUE GPIO_LD2
+#define GPIO_LED_RED GPIO_LD3
 
 /* USB OTG FS */
 
-#define GPIO_OTGFS_VBUS   (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|\
-                           GPIO_OPENDRAIN|GPIO_PORTA|GPIO_PIN9)
+#define GPIO_OTGFS_VBUS (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_OPENDRAIN | GPIO_PORTA | GPIO_PIN9)
 
-#define GPIO_OTGFS_PWRON  (GPIO_OUTPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|\
-                           GPIO_PUSHPULL|GPIO_PORTG|GPIO_PIN6)
+#define GPIO_OTGFS_PWRON (GPIO_OUTPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_PORTG | GPIO_PIN6)
 
 #ifdef CONFIG_USBHOST
-#  define GPIO_OTGFS_OVER (GPIO_INPUT|GPIO_EXTI|GPIO_FLOAT|\
-                           GPIO_SPEED_100MHz|GPIO_PUSHPULL|\
-                           GPIO_PORTG|GPIO_PIN7)
+    #define GPIO_OTGFS_OVER (GPIO_INPUT | GPIO_EXTI | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_PORTG | GPIO_PIN7)
 
 #else
-#  define GPIO_OTGFS_OVER (GPIO_INPUT|GPIO_FLOAT|GPIO_SPEED_100MHz|\
-                           GPIO_PUSHPULL|GPIO_PORTG|GPIO_PIN7)
+    #define GPIO_OTGFS_OVER (GPIO_INPUT | GPIO_FLOAT | GPIO_SPEED_100MHz | GPIO_PUSHPULL | GPIO_PORTG | GPIO_PIN7)
 #endif
 
 /****************************************************************************
@@ -103,17 +95,17 @@
 
 int stm32_bringup(void);
 
-/****************************************************************************
- * Name: stm32_pwm_setup
- *
- * Description:
- *   Initialize PWM and register the PWM device.
- *
- ****************************************************************************/
+    /****************************************************************************
+     * Name: stm32_pwm_setup
+     *
+     * Description:
+     *   Initialize PWM and register the PWM device.
+     *
+     ****************************************************************************/
 
-#ifdef CONFIG_PWM
+    #ifdef CONFIG_PWM
 int stm32_pwm_setup(void);
-#endif
+    #endif
 
 /****************************************************************************
  * Name: meadow_upd_initialize
@@ -126,18 +118,18 @@ int stm32_pwm_setup(void);
 
 int meadow_upd_initialize(void);
 
-/****************************************************************************
- * Name: stm32_usbinitialize
- *
- * Description:
- *   Called from stm32_boardinitialize very early in initialization to setup
- *   USB-related GPIO pins for the stm32f777zit6-meadow board.
- *
- ****************************************************************************/
+    /****************************************************************************
+     * Name: stm32_usbinitialize
+     *
+     * Description:
+     *   Called from stm32_boardinitialize very early in initialization to setup
+     *   USB-related GPIO pins for the stm32f777zit6-meadow board.
+     *
+     ****************************************************************************/
 
-#ifdef CONFIG_STM32_OTGFS
+    #ifdef CONFIG_STM32_OTGFS
 void stm32_usbinitialize(void);
-#endif
+    #endif
 
 /****************************************************************************
  * Name: stm32_spidev_initialize
@@ -150,32 +142,32 @@ void stm32_usbinitialize(void);
 
 void weak_function stm32_spidev_initialize(void);
 
-/****************************************************************************
- * Name: arch_sporadic_initialize
- *
- * Description:
- *   This configuration has been used for evaluating the NuttX sporadic
- *   scheduler.
- *
- ****************************************************************************/
+    /****************************************************************************
+     * Name: arch_sporadic_initialize
+     *
+     * Description:
+     *   This configuration has been used for evaluating the NuttX sporadic
+     *   scheduler.
+     *
+     ****************************************************************************/
 
-#ifdef CONFIG_SPORADIC_INSTRUMENTATION
+    #ifdef CONFIG_SPORADIC_INSTRUMENTATION
 void arch_sporadic_initialize(void);
-#endif
+    #endif
 
-/****************************************************************************
- * Name: stm32_sdram_initialize
- *
- * Description:
- *   Called from stm32_bringup to initialize external SDRAM access.
- *
- ****************************************************************************/
+    /****************************************************************************
+     * Name: stm32_sdram_initialize
+     *
+     * Description:
+     *   Called from stm32_bringup to initialize external SDRAM access.
+     *
+     ****************************************************************************/
 
-#ifdef CONFIG_STM32_FMC
+    #ifdef CONFIG_STM32_FMC
 void stm32_sdram_initialize(void);
 
 void stm32_disablefmc(void);
-#endif
+    #endif
 
 #endif /* __ASSEMBLY__ */
 #endif /* __BOARDS_ARM_MEADOW_SRC_STM32F777ZIT6_MEADOW_H */

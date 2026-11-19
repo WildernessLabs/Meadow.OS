@@ -1,6 +1,6 @@
 /****************************************************************************
  * \include\meadow\bootloader\meadow_os_partitions.h
- * 
+ *
  *   Copyright (C) 2024 Wilderness Labs. All rights reserved.
  *   Author:  Mark Stevens
  *
@@ -37,44 +37,44 @@
 #define __INCLUDE_MEADOW_BOOTLOADER_MEADOW_OS_PARTITIONS_H
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
 //    NUTTX DEFINITIONS
-#define NUTTX_PRI_LOC               0x08040000
-#define NUTTX_SEC_QSPI_LOC          0x300000    // sync with HCOM_NX_FS_MONO_RAW_PARTITION_SIZE
-#define NUTTX_SIZE                  0x1C0000    //    (2MB - 256KB)
-#define NUTTX_PRI_CRC_LOC           (NUTTX_PRI_LOC + NUTTX_SIZE - 4)
+#define NUTTX_PRI_LOC 0x08040000
+#define NUTTX_SEC_QSPI_LOC 0x300000 // sync with HCOM_NX_FS_MONO_RAW_PARTITION_SIZE
+#define NUTTX_SIZE 0x1C0000         //    (2MB - 256KB)
+#define NUTTX_PRI_CRC_LOC (NUTTX_PRI_LOC + NUTTX_SIZE - 4)
 
 //    SDRAM DEFINITIONS
-#define SDRAM_LOC                   0xC0000000
-#define SDRAM_SIZE                  0x2000000
+#define SDRAM_LOC 0xC0000000
+#define SDRAM_SIZE 0x2000000
 
 //    QSPI DEFINITIONS
-#define QSPI_FLASH_LOC_INTERNAL     0x0000000
-#define QSPI_FLASH_SIZE             0x2000000
+#define QSPI_FLASH_LOC_INTERNAL 0x0000000
+#define QSPI_FLASH_SIZE 0x2000000
 
 /**
  * @brief Size of the OTA data in flash.
- * 
+ *
  * Note: This defaults to the size of the erase flash size on the F7v2.
  */
-#define OTA_DATA_SIZE               0x1000
+#define OTA_DATA_SIZE 0x1000
 
 /**
  * @brief Location of the OTA data in flash.
  */
-#define OTA_DATA_LOC                (NUTTX_SEC_QSPI_LOC + NUTTX_SIZE)
+#define OTA_DATA_LOC (NUTTX_SEC_QSPI_LOC + NUTTX_SIZE)
 
 // OS persistent data location etc.
-#define OS_PERSISTENT_DATA_SIZE     0x1000
-#define OS_PERSISTENT_DATA_LOC      (OTA_DATA_LOC + OTA_DATA_SIZE)
+#define OS_PERSISTENT_DATA_SIZE 0x1000
+#define OS_PERSISTENT_DATA_LOC (OTA_DATA_LOC + OTA_DATA_SIZE)
 
-#define IO_BLOCK_SIZE               0x40000
+#define IO_BLOCK_SIZE 0x40000
 
 #ifdef __cplusplus
 }
 #endif
 
-
-#endif  // __INCLUDE_MEADOW_BOOTLOADER_MEADOW_OS_PARTITIONS_H
+#endif // __INCLUDE_MEADOW_BOOTLOADER_MEADOW_OS_PARTITIONS_H

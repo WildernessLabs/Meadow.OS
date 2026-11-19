@@ -1,6 +1,6 @@
 /****************************************************************************
  * \apps\examples\hcom\diag\hcom_diag_nsh_support.c
- * 
+ *
  *   Copyright (C) 2019 - 2020 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -47,14 +47,13 @@
 
 // This can be found by '$ make menuconfig' and navigating
 // Application Configuration -> System Libraries and NSH Add-Ons [] NuttShell
-#if defined (CONFIG_SYSTEM_NSH)
+#if defined(CONFIG_SYSTEM_NSH)
 /* Configuration ************************************************************/
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 static bool _nsh_enabled;
-
 
 /****************************************************************************
  * Private Function Prototypes
@@ -70,8 +69,8 @@ static void nsh_configure_terminal_mode(int fd);
 
 int hcom_diag_nsh_support_setup()
 {
-  _nsh_enabled = false;
-  return OK;
+    _nsh_enabled = false;
+    return OK;
 }
 
 //=======================================================================================
@@ -112,80 +111,70 @@ int hcom_diag_nsh_support_setup()
 // to launch NSH.
 void hcom_diag_misc_launch_nsh(uint32_t userData)
 {
-  int _nsh_pid;
+    int _nsh_pid;
 
-#if HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_NSH
-  // USB CDC/ACM, there are no UART pins to restore
-#else
-  // When mono starts it reconfigures all the GPIOs. This call
-  // will restore the Tx and Rx configuration to the desired UART.
-  if(strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS0") == 0)
-  {
-    hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART1);
-  }
-  else if(strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS1") == 0)
-  {
-    hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART4);
-  }
-  else if (strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS3") == 0)
-  {
-    hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART6);
-  }
-  else
-  {
-    syslog(LOG_ERR, "NSH Serial device '%s' unknown\n",
-              HCOM_DIAG_NSH_SERIAL_DEVICE);
-    return;
-  }
-#endif
-
-#if defined (CONFIG_NSH_ALTCONDEV)
-  // NSH opens CONFIG_NSH_ALTSTDIN itself, so it must be the same device
-  if(strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN) != 0)
-  {
-    syslog(LOG_ERR, "NSH device '%s' does not match CONFIG_NSH_ALTSTDIN '%s'\n",
-              HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN);
-    return;
-  }
-#endif
-
-  if(_nsh_enabled)
-  {
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-             "NSH already enabled",__FILE__, __LINE__);
-    return;
-  }
-
-  if(userData == 1)
-  {
-    // Create a unique task for NSH
-    _nsh_pid = task_create("nsh", CONFIG_SYSTEM_NSH_PRIORITY,
-                        CONFIG_SYSTEM_NSH_STACKSIZE,
-                        (main_t)nsh_main_proxy,
-                        (FAR char * const *) NULL);
-    if(_nsh_pid > 0)
+    #if HCOM_USB_PORT2_USAGE == HCOM_USB_PORT2_NSH
+        // USB CDC/ACM, there are no UART pins to restore
+    #else
+    // When mono starts it reconfigures all the GPIOs. This call
+    // will restore the Tx and Rx configuration to the desired UART.
+    if (strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS0") == 0)
     {
-      _nsh_enabled = true;
-      syslog(LOG_INFO, "%s@%d-NSH now enabled [pid:%d, pri:%d, stack:%d]\n",
-              __FILE__, __LINE__, _nsh_pid, CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE);
-
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              "NSH enabled until Meadow is restarted", __FILE__, __LINE__);
+        hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART1);
+    }
+    else if (strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS1") == 0)
+    {
+        hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART4);
+    }
+    else if (strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, "/dev/ttyS3") == 0)
+    {
+        hcom_via_nx_restore_uart_reconfig(MEADOW_RECONFIG_MISCONFIGURED_UART6);
     }
     else
     {
-      syslog(LOG_ERR, "%s@%d-NSH could not be created\n", __FILE__, __LINE__);
-
-      hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-              "NSH could not be created", __FILE__, __LINE__);
+        syslog(LOG_ERR, "NSH Serial device '%s' unknown\n", HCOM_DIAG_NSH_SERIAL_DEVICE);
+        return;
     }
-  }
-  else
-  {
-    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0,
-            "It is not possible to disable NSH", __FILE__, __LINE__);
-    return;
-  }
+    #endif
+
+    #if defined(CONFIG_NSH_ALTCONDEV)
+    // NSH opens CONFIG_NSH_ALTSTDIN itself, so it must be the same device
+    if (strcmp(HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN) != 0)
+    {
+        syslog(LOG_ERR, "NSH device '%s' does not match CONFIG_NSH_ALTSTDIN '%s'\n", HCOM_DIAG_NSH_SERIAL_DEVICE, CONFIG_NSH_ALTSTDIN);
+        return;
+    }
+    #endif
+
+    if (_nsh_enabled)
+    {
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "NSH already enabled", __FILE__, __LINE__);
+        return;
+    }
+
+    if (userData == 1)
+    {
+        // Create a unique task for NSH
+        _nsh_pid = task_create("nsh", CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE, (main_t) nsh_main_proxy, (FAR char * const *) NULL);
+        if (_nsh_pid > 0)
+        {
+            _nsh_enabled = true;
+            syslog(LOG_INFO, "%s@%d-NSH now enabled [pid:%d, pri:%d, stack:%d]\n", __FILE__, __LINE__, _nsh_pid, CONFIG_SYSTEM_NSH_PRIORITY, CONFIG_SYSTEM_NSH_STACKSIZE);
+
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "NSH enabled until Meadow is restarted", __FILE__, __LINE__);
+        }
+        else
+        {
+            syslog(LOG_ERR, "%s@%d-NSH could not be created\n", __FILE__, __LINE__);
+
+            hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "NSH could not be created", __FILE__, __LINE__);
+        }
+    }
+    else
+    {
+        hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "It is not possible to disable NSH", __FILE__, __LINE__);
+        return;
+    }
 }
 
 //====================================================================
@@ -224,145 +213,142 @@ void hcom_diag_misc_launch_nsh(uint32_t userData)
 // CONFIG_TTY_SIGINT is also enabled in the board's defconfig.
 static void nsh_configure_terminal_mode(int fd)
 {
-  struct termios cfg;
+    struct termios cfg;
 
-  if (tcgetattr(fd, &cfg) == 0)
-  {
-    cfg.c_iflag |= ICRNL;
-    cfg.c_oflag |= OPOST | ONLCR;
-    cfg.c_lflag |= ECHO | ISIG;
-    tcsetattr(fd, TCSANOW, &cfg);
-  }
+    if (tcgetattr(fd, &cfg) == 0)
+    {
+        cfg.c_iflag |= ICRNL;
+        cfg.c_oflag |= OPOST | ONLCR;
+        cfg.c_lflag |= ECHO | ISIG;
+        tcsetattr(fd, TCSANOW, &cfg);
+    }
 }
 
 int nsh_main_proxy(int argcx, char *argvx[])
 {
-  int ret;
-  int argc = 0;
-  char **argv = NULL;
+    int ret;
+    int argc = 0;
+    char **argv = NULL;
 
-  static int stdout_fd = -1;
-  static int stderr_fd = -1;
+    static int stdout_fd = -1;
+    static int stderr_fd = -1;
 
-  if(stdout_fd < 0)
-  {
-    do
+    if (stdout_fd < 0)
     {
-      stdout_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_WRONLY);
-      if(stdout_fd >= 0)
-        break;            // Success
+        do
+        {
+            stdout_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_WRONLY);
+            if (stdout_fd >= 0)
+                break; // Success
 
-      // ENOENT = Error No Entity -> No such file or directory
-      // ENOTCONN = USB CDC/ACM port not yet configured by the host
-      if(errno != ENOENT && errno != ENOTCONN)
-      {
-        syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
-          __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
-        stdout_fd = -1;
-        return 1;
-      }
-      
-      // All errors sleep and try again
-      usleep(100 * 1000);
-    } while (errno == ENOENT || errno == ENOTCONN);
+            // ENOENT = Error No Entity -> No such file or directory
+            // ENOTCONN = USB CDC/ACM port not yet configured by the host
+            if (errno != ENOENT && errno != ENOTCONN)
+            {
+                syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n", __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
+                stdout_fd = -1;
+                return 1;
+            }
 
-    // Assign the serial port write to the stdout fd.
-    ret = dup2(stdout_fd, STDOUT_FILENO);
-    if (ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-      return -errno;
+            // All errors sleep and try again
+            usleep(100 * 1000);
+        }
+        while (errno == ENOENT || errno == ENOTCONN);
+
+        // Assign the serial port write to the stdout fd.
+        ret = dup2(stdout_fd, STDOUT_FILENO);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n", __FILE__, __LINE__, ret, errno);
+            return -errno;
+        }
+
+        nsh_configure_terminal_mode(stdout_fd);
+
+        close(stdout_fd);
     }
 
-    nsh_configure_terminal_mode(stdout_fd);
-
-    close(stdout_fd);
-  }
-
-  // stderr
-  if(stderr_fd < 0)
-  {
-    do
+    // stderr
+    if (stderr_fd < 0)
     {
-      stderr_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_WRONLY);
-      if(stderr_fd >= 0)
-        break;            // Success
+        do
+        {
+            stderr_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_WRONLY);
+            if (stderr_fd >= 0)
+                break; // Success
 
-      // ENOENT = Error No Entity -> No such file or directory
-      // ENOTCONN = USB CDC/ACM port not yet configured by the host
-      if(errno != ENOENT && errno != ENOTCONN)
-      {
-        syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n",
-          __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
-        stderr_fd = -1;
-        return 1;
-      }
-      
-      // All errors sleep and try again
-      usleep(100 * 1000);
-    } while (errno == ENOENT || errno == ENOTCONN);
+            // ENOENT = Error No Entity -> No such file or directory
+            // ENOTCONN = USB CDC/ACM port not yet configured by the host
+            if (errno != ENOENT && errno != ENOTCONN)
+            {
+                syslog(LOG_ERR, "%s@%d-Open of %s failed errno:%d\n", __FILE__, __LINE__, HCOM_DIAG_NSH_SERIAL_DEVICE, errno);
+                stderr_fd = -1;
+                return 1;
+            }
 
-    // Assign the serial port write to the stderr fd too
-    ret = dup2(stderr_fd, STDERR_FILENO);
-    if (ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n",
-                __FILE__, __LINE__, ret, errno);
-      return -errno;
+            // All errors sleep and try again
+            usleep(100 * 1000);
+        }
+        while (errno == ENOENT || errno == ENOTCONN);
+
+        // Assign the serial port write to the stderr fd too
+        ret = dup2(stderr_fd, STDERR_FILENO);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-redirect_writer: dup2 failed ret:%d errno:%d\n", __FILE__, __LINE__, ret, errno);
+            return -errno;
+        }
+        close(stderr_fd);
     }
-    close(stderr_fd);
-  }
 
-  usleep(100 * 1000);
+    usleep(100 * 1000);
 
-  // TEST CODE - Verify that the expected uart comm port is opened
-  // int nsh_port_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_RDWR);
-  // if(nsh_port_fd < 0)
-  // {
-  //   syslog(LOG_MTEST, "Error attempting to open NSH Port, ret:%d errno:%d\n", nsh_port_fd, errno);
-  //   return -1;
-  // }
+    // TEST CODE - Verify that the expected uart comm port is opened
+    // int nsh_port_fd = open(HCOM_DIAG_NSH_SERIAL_DEVICE, O_RDWR);
+    // if(nsh_port_fd < 0)
+    // {
+    //   syslog(LOG_MTEST, "Error attempting to open NSH Port, ret:%d errno:%d\n", nsh_port_fd, errno);
+    //   return -1;
+    // }
 
-  // syslog(LOG_MTEST, "NSH Port opened success. Will echo.\n");
-  // // ECHO for TESTING
-  // char testBuf[16];
-  // while(true)
-  // {
-  //   // Read the port
-  //   ret = read(nsh_port_fd, testBuf, 1);
-  //   if(ret < 0)
-  //   {
-  //     syslog(LOG_MTEST, "Error reading NSH Port, ret:%d errno:%d\n", ret, errno);
-  //     continue;
-  //   }
+    // syslog(LOG_MTEST, "NSH Port opened success. Will echo.\n");
+    // // ECHO for TESTING
+    // char testBuf[16];
+    // while(true)
+    // {
+    //   // Read the port
+    //   ret = read(nsh_port_fd, testBuf, 1);
+    //   if(ret < 0)
+    //   {
+    //     syslog(LOG_MTEST, "Error reading NSH Port, ret:%d errno:%d\n", ret, errno);
+    //     continue;
+    //   }
 
-  //   syslog(LOG_MTEST, "NSH Port read character\n");
-    
-  //   ret =  write(nsh_port_fd, testBuf, 1);
-  //   if(ret < 0)
-  //   {
-  //     syslog(LOG_MTEST, "Error writing NSH Port, ret:%d errno:%d\n", ret, errno);
-  //   }
-  // }
+    //   syslog(LOG_MTEST, "NSH Port read character\n");
 
-  // Use this thread to execute nsh
-  nsh_main(argc, argv);
+    //   ret =  write(nsh_port_fd, testBuf, 1);
+    //   if(ret < 0)
+    //   {
+    //     syslog(LOG_MTEST, "Error writing NSH Port, ret:%d errno:%d\n", ret, errno);
+    //   }
+    // }
 
-  // Only here if NSH terminated
-  return OK;
+    // Use this thread to execute nsh
+    nsh_main(argc, argv);
+
+    // Only here if NSH terminated
+    return OK;
 }
 
-#else // CONFIG_SYSTEM_NSH
+#else  // CONFIG_SYSTEM_NSH
 // If NSH excluded from build use these functions
 int hcom_diag_nsh_support_setup()
 {
-  return OK;
+    return OK;
 }
 
 void hcom_diag_misc_launch_nsh(uint32_t userData)
 {
-  hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, 
-          "NuttShell not available", __FILE__, __LINE__);
+    hcom_host_send_simple_string_msg(HCOM_HOST_REQUEST_TEXT_INFORMATION, 0, "NuttShell not available", __FILE__, __LINE__);
 }
 #endif // CONFIG_SYSTEM_NSH

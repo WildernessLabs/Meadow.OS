@@ -80,7 +80,7 @@ void syslogToHost(int priority, FAR const IPTR char *fmt, ...)
     {
         stringLen = 0;
     }
-    else if ((size_t)stringLen >= maxStringLen - 1)
+    else if ((size_t) stringLen >= maxStringLen - 1)
     {
         stringLen = maxStringLen - 2;
     }

@@ -1,6 +1,6 @@
 /****************************************************************************
  * Meadow.OS/pwrmgmt/pwrmgmt_control.c
- * 
+ *
  *   Copyright (C) 2022-2024 Wilderness Labs. All rights reserved.
  *   Author:  Wilderness Labs
  *
@@ -55,7 +55,7 @@
 
 #include "arm_internal.h"
 #include "stm32_pm.h"
-#include "stm32_pwr.h"    // FOR TESTING
+#include "stm32_pwr.h" // FOR TESTING
 
 #include <meadow/hcom_shared_common.h>
 #include <meadow/meadow_pwr_mgmt.h>
@@ -75,15 +75,15 @@
 
 #include "stm32_alarm.h"
 
-#if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+#if defined(CONFIG_MEADOW_PWR_MGMT_SUPPORT)
 
-#if !defined (CONFIG_ARCH_IDLE_CUSTOM)
-#error "CONFIG_MEADOW_PWR_MGMT_SUPPORT requires CONFIG_ARCH_IDLE_CUSTOM"
-#endif
+    #if !defined(CONFIG_ARCH_IDLE_CUSTOM)
+        #error "CONFIG_MEADOW_PWR_MGMT_SUPPORT requires CONFIG_ARCH_IDLE_CUSTOM"
+    #endif
 
-// Diagnostic only
-// #define USE_MEADOW_DEBUG_HELPERS
-#include <meadow/meadow_debug_helpers.h>
+    // Diagnostic only
+    // #define USE_MEADOW_DEBUG_HELPERS
+    #include <meadow/meadow_debug_helpers.h>
 
 // #pragma message "(--) pwrmgmt_control.c"
 
@@ -91,7 +91,7 @@
  * Pre-processor Definitions
  ************************************************************************************/
 
-#define PWR_MGMT_MAX_CALLBACKS_AVAILABLE (6)
+    #define PWR_MGMT_MAX_CALLBACKS_AVAILABLE (6)
 
 /************************************************************************************
  * Private Data
@@ -117,11 +117,11 @@ static volatile bool _lowPwrRequestPending = false;
 static uint32_t _lowPwrRequestedWakeupPeriod;
 static int _lowPwrRequestResult;
 
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+    #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
 // Hold the ESP32 in reset while in Stop mode (Issue #680). Only developer
 // test 60 clears this, to measure Stop current with the ESP32 left running.
 static bool _holdEsp32InResetInStop = true;
-#endif
+    #endif
 
 /************************************************************************************
  * Public Data
@@ -147,32 +147,31 @@ static bool _holdEsp32InResetInStop = true;
 // attempting to enter the low-power state until the busy situation passes.
 static int pwrmgmt_notify_registered_modules(bool lpStart)
 {
-  int ret = OK;
-  int slotOffset = 0;
+    int ret = OK;
+    int slotOffset = 0;
 
-  for(slotOffset = 0; slotOffset < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; slotOffset++)
-  {
-    pwr_mgmt_notify_callback callback = _regCallback[slotOffset];
-
-    if(callback == NULL)
+    for (slotOffset = 0; slotOffset < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; slotOffset++)
     {
-      continue;
+        pwr_mgmt_notify_callback callback = _regCallback[slotOffset];
+
+        if (callback == NULL)
+        {
+            continue;
+        }
+
+        // syslog(LOG_MDIAG, "%s@%d-Notifying - callback:%p, %s\n",
+        //   __FILE__, __LINE__, callback, lpStart ? "true" : "false");
+
+        // Notify registered recipient announcing what's about to happen
+        ret = callback(lpStart);
+        if (ret < 0)
+        {
+            syslog(LOG_ERR, "%s@%d-Callback:%d returned:%d\n", __FILE__, __LINE__, slotOffset + 1, ret);
+            return ret;
+        }
     }
 
-    // syslog(LOG_MDIAG, "%s@%d-Notifying - callback:%p, %s\n",
-    //   __FILE__, __LINE__, callback, lpStart ? "true" : "false");
-
-    // Notify registered recipient announcing what's about to happen
-    ret = callback(lpStart);
-    if(ret < 0)
-    {
-      syslog(LOG_ERR, "%s@%d-Callback:%d returned:%d\n",
-                __FILE__, __LINE__, slotOffset + 1, ret);
-      return ret;
-    }
-  }
-
-  return OK;
+    return OK;
 }
 
 /****************************************************************************
@@ -198,104 +197,103 @@ static int pwrmgmt_notify_registered_modules(bool lpStart)
 // real hardware -- see Issue #436/#601.
 bool pwrmgmt_idle_check_and_enter_lowpower(void)
 {
-  int ret;
+    int ret;
 
-  if(!_lowPwrRequestPending)
-  {
-    return false;
-  }
+    if (!_lowPwrRequestPending)
+    {
+        return false;
+    }
 
-  _lowPwrRequestPending = false;
+    _lowPwrRequestPending = false;
 
-  // Switch on LSI clock
-  // Note: this must be early in this configuration process because it does
-  // a backup domain reset, which would otherwise, clear some of the registers
-  // configured in the following steps.
-  ret = meadow_pwr_mgmt_use_lsi_for_rtc();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    goto done;
-  }
+    // Switch on LSI clock
+    // Note: this must be early in this configuration process because it does
+    // a backup domain reset, which would otherwise, clear some of the registers
+    // configured in the following steps.
+    ret = meadow_pwr_mgmt_use_lsi_for_rtc();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+        goto done;
+    }
 
-  // Configure Wakeup/Alarm hardware and stop period.
-  // Using the RTC Alarm allows waking up at a future time. However, since
-  // there's no year or month comparison available, only day of the month,
-  // this only allows, at most, a period of one month ahead. This has been
-  // limited to 28 days - 1 second so it is consistent and not different for
-  // each month.
-  ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(_lowPwrRequestedWakeupPeriod);
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    goto done;
-  }
+    // Configure Wakeup/Alarm hardware and stop period.
+    // Using the RTC Alarm allows waking up at a future time. However, since
+    // there's no year or month comparison available, only day of the month,
+    // this only allows, at most, a period of one month ahead. This has been
+    // limited to 28 days - 1 second so it is consistent and not different for
+    // each month.
+    ret = pwrmgmt_config_rtc_alarm_wakeup_seconds(_lowPwrRequestedWakeupPeriod);
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+        goto done;
+    }
 
-  //---------------------------------------------------------------------
-  // Enter stop mode and wait for specified time to expire. Actually, not
-  // "waiting" but stopped. The pwrmgmt_enter_stop_mode() call returns when
-  // the F7 has returned to normal operation.
-  ret = pwrmgmt_enter_stop_mode();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-    goto done;
-  }
+    //---------------------------------------------------------------------
+    // Enter stop mode and wait for specified time to expire. Actually, not
+    // "waiting" but stopped. The pwrmgmt_enter_stop_mode() call returns when
+    // the F7 has returned to normal operation.
+    ret = pwrmgmt_enter_stop_mode();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+        goto done;
+    }
 
-  // Running again
-  //---------------------------------------------------------------------
+    // Running again
+    //---------------------------------------------------------------------
 
-  // Switch back to crystal controlled HSE clock.
-  ret = meadow_pwr_mgmt_use_hse_for_rtc();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-  }
+    // Switch back to crystal controlled HSE clock.
+    ret = meadow_pwr_mgmt_use_hse_for_rtc();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    }
 
 done:
-  _lowPwrRequestResult = ret;
-  nxsem_post(&_lowPwrRequestComplete);
-  return true;
+    _lowPwrRequestResult = ret;
+    nxsem_post(&_lowPwrRequestComplete);
+    return true;
 }
 
 // This function is called when a module wants to subscribe for power
 // management notifications.
 int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callback)
 {
-  int slotOffset;
-  int ret = -EBADSLT;
+    int slotOffset;
+    int ret = -EBADSLT;
 
-  // syslog(LOG_MDIAG, "%s@%d-Subscribing callback:%p\n",
-  //   __FILE__, __LINE__, callback);
+    // syslog(LOG_MDIAG, "%s@%d-Subscribing callback:%p\n",
+    //   __FILE__, __LINE__, callback);
 
-  // Guard the find-free-slot-then-write sequence against a concurrent
-  // subscriber racing for the same slot. Uses a critical section rather
-  // than _lowPwrCtrlEntry (the notify-side semaphore) since that one is
-  // lazily initialized on first low-power entry, which may not have
-  // happened yet when a module subscribes at startup.
-  irqstate_t flags = enter_critical_section();
+    // Guard the find-free-slot-then-write sequence against a concurrent
+    // subscriber racing for the same slot. Uses a critical section rather
+    // than _lowPwrCtrlEntry (the notify-side semaphore) since that one is
+    // lazily initialized on first low-power entry, which may not have
+    // happened yet when a module subscribes at startup.
+    irqstate_t flags = enter_critical_section();
 
-  // Find free slot
-  for(slotOffset = 0; slotOffset < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; slotOffset++)
-  {
-    if(_regCallback[slotOffset] == NULL)
+    // Find free slot
+    for (slotOffset = 0; slotOffset < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; slotOffset++)
     {
-      // Found a slot save the callback
-      _regCallback[slotOffset] = callback;
-      ret = OK;
-      break;
+        if (_regCallback[slotOffset] == NULL)
+        {
+            // Found a slot save the callback
+            _regCallback[slotOffset] = callback;
+            ret = OK;
+            break;
+        }
     }
-  }
 
-  leave_critical_section(flags);
+    leave_critical_section(flags);
 
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "Notification for Low-Power failed. %d slots are not enough.\n",
-              PWR_MGMT_MAX_CALLBACKS_AVAILABLE);
-  }
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "Notification for Low-Power failed. %d slots are not enough.\n", PWR_MGMT_MAX_CALLBACKS_AVAILABLE);
+    }
 
-  return ret;
+    return ret;
 }
 
 //==============================================================
@@ -303,47 +301,47 @@ int pwrmgmt_subscribe_for_low_pwr_notifications(pwr_mgmt_notify_callback callbac
 // the other initialization function within this block of code.
 int meadow_power_mgmt_initialize(void)
 {
-  int ret = OK;
+    int ret = OK;
 
-  for(int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
-  {
-    _regCallback[i] = NULL;
-  }
+    for (int i = 0; i < PWR_MGMT_MAX_CALLBACKS_AVAILABLE; i++)
+    {
+        _regCallback[i] = NULL;
+    }
 
-  // Create semaphore to only allow single threaded access to
-  // pwrmgmt_enter_stm32f7_stop_mode()
-  nxsem_init(&_lowPwrCtrlEntry, 0, 1);
+    // Create semaphore to only allow single threaded access to
+    // pwrmgmt_enter_stm32f7_stop_mode()
+    nxsem_init(&_lowPwrCtrlEntry, 0, 1);
 
-  // Posted by the idle task once it completes a requested transition;
-  // starts at 0 so the requesting task blocks until that happens.
-  nxsem_init(&_lowPwrRequestComplete, 0, 0);
+    // Posted by the idle task once it completes a requested transition;
+    // starts at 0 so the requesting task blocks until that happens.
+    nxsem_init(&_lowPwrRequestComplete, 0, 0);
 
-  // Initialize internals needed for the LSI clock to be used with RTC
-  ret = pwrmgmt_init_lsi_calib();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    // Initialize internals needed for the LSI clock to be used with RTC
+    ret = pwrmgmt_init_lsi_calib();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+        return ret;
+    }
+
+    ret = pwrmgmt_init_rtc_clk_switch();
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
+    }
+
     return ret;
-  }
- 
-  ret = pwrmgmt_init_rtc_clk_switch();
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error:\n", __FILE__, __LINE__);
-  }
-
-  return ret;
 }
 
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
+    #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
 //=======================================================================
 // Developer test support: choose whether the ESP32 is held in reset during
 // the next Stop mode. Normally true; test 60 sets it false for one sleep.
 void pwrmgmt_set_esp32_reset_in_stop(bool holdInReset)
 {
-  _holdEsp32InResetInStop = holdInReset;
+    _holdEsp32InResetInStop = holdInReset;
 }
-#endif
+    #endif
 
 //=======================================================================
 // This is the public entry point for mono to initiate entering stop mode.
@@ -351,102 +349,99 @@ void pwrmgmt_set_esp32_reset_in_stop(bool holdInReset)
 // registered module can't connect it will return -EBUSY (-16).
 int pwrmgmt_enter_stm32f7_stop_mode(uint32_t wakeupPeriod)
 {
-  int ret;
+    int ret;
 
-  MEADOW_TRACE_INFORMATION( "Received command to sleep for %d seconds\n",
-          wakeupPeriod);
+    MEADOW_TRACE_INFORMATION("Received command to sleep for %d seconds\n", wakeupPeriod);
 
-  // Don't sleep for less than 2 seconds
-  if(wakeupPeriod < 2)
-    return PWRMGMT_SLEEP_SKIPPED_TOO_SHORT;
+    // Don't sleep for less than 2 seconds
+    if (wakeupPeriod < 2)
+        return PWRMGMT_SLEEP_SKIPPED_TOO_SHORT;
 
-  // The STM32F7's internal alarm clock uses day of month and HH:mm:ss but not
-  // the month or year. Therefore, the worse case, maximum length, of a delay
-  // is 28 days minus 1 second. It could be longer during some months but for
-  // consistency this establishes a known maximum.
-  // ((28 days * 24 * 60 * 60 = 2419200) - 1 second) = 2419199
-  if(wakeupPeriod > 2419199)
-  {
-    return -ETIME;      // -62
-  }
+    // The STM32F7's internal alarm clock uses day of month and HH:mm:ss but not
+    // the month or year. Therefore, the worse case, maximum length, of a delay
+    // is 28 days minus 1 second. It could be longer during some months but for
+    // consistency this establishes a known maximum.
+    // ((28 days * 24 * 60 * 60 = 2419200) - 1 second) = 2419199
+    if (wakeupPeriod > 2419199)
+    {
+        return -ETIME; // -62
+    }
 
-  // Get the semaphore to insure only one caller at a time
-  ret = nxsem_trywait(&_lowPwrCtrlEntry);
-  if(ret < 0)
-  {
-    return -EALREADY;    // Error exit
-  }
+    // Get the semaphore to insure only one caller at a time
+    ret = nxsem_trywait(&_lowPwrCtrlEntry);
+    if (ret < 0)
+    {
+        return -EALREADY; // Error exit
+    }
 
-  // This will route a text message to app side and on to CLI.
-  char *lowPowerNext = "Entering low-power mode\n";
-  ret = hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR,
-            lowPowerNext, strlen(lowPowerNext));
-  if(ret < 0)
-  {
-    syslog(LOG_ERR, "%s@%d-Error attempting to send msg to host, ret:%d\n",
-              __FILE__, __LINE__, ret);
-    // Keep going, this is unavoidable
-  }
+    // This will route a text message to app side and on to CLI.
+    char *lowPowerNext = "Entering low-power mode\n";
+    ret = hcom_traverse_ku_text_to_host(HCOM_HOST_REQUEST_TEXT_NEXT_LOW_PWR, lowPowerNext, strlen(lowPowerNext));
+    if (ret < 0)
+    {
+        syslog(LOG_ERR, "%s@%d-Error attempting to send msg to host, ret:%d\n", __FILE__, __LINE__, ret);
+        // Keep going, this is unavoidable
+    }
 
-  // Notify registered modules that low-power is about to begin.
-  // Currently, (10Jul23) there are 3 modules that are notified before entering
-  // a low-power state. These are hcom_host_receive, hcom_host_send,
-  // hcom_stdxxx_redirect.
-  // They have call hcom_via_nx_register_pwr_mgmt_callback() on the apps side.
-  ret = pwrmgmt_notify_registered_modules(true);
-  if(ret != OK)
-  {
-    // Some code module is busy.
+    // Notify registered modules that low-power is about to begin.
+    // Currently, (10Jul23) there are 3 modules that are notified before entering
+    // a low-power state. These are hcom_host_receive, hcom_host_send,
+    // hcom_stdxxx_redirect.
+    // They have call hcom_via_nx_register_pwr_mgmt_callback() on the apps side.
+    ret = pwrmgmt_notify_registered_modules(true);
+    if (ret != OK)
+    {
+        // Some code module is busy.
+        nxsem_post(&_lowPwrCtrlEntry);
+        return -EBUSY;
+    }
+
+    #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+    // Hold the ESP32 in reset (EN low) while in Stop mode. Left running it
+    // draws about 18 mA, more than half of Meadow's Stop current (Issue #680).
+    // The F7 keeps driving the pin low in Stop mode. Skipped when a debugger is
+    // attached to the ESP32 (reset_esp32_at_startup is 0): holding it in reset
+    // would detach the debugger. espcp_hold_in_reset()/espcp_reset() no longer
+    // check that setting themselves (Issue #508), so it is checked here.
+    // Note: anything using the network when Meadow sleeps is not torn down
+    // first. That needs an espcp teardown API (Issue #683).
+    bool esp32HeldInReset = ((_holdEsp32InResetInStop) && (espcp_should_reset_at_startup()));
+    if (esp32HeldInReset)
+    {
+        espcp_hold_in_reset();
+    }
+    #endif
+
+    // Hand off the actual hardware transition (clock switch, alarm config,
+    // the real stop-mode wfi/wfe, and switching back) to the idle task --
+    // see pwrmgmt_idle_check_and_enter_lowpower(), called from up_idle().
+    // This eliminates the up_idle()/pwrmgmt cross-task race documented in
+    // Issue #436/#601: only the idle task ever executes wfi/wfe or touches
+    // this hardware sequence, so there's nothing left to race against.
+    _lowPwrRequestedWakeupPeriod = wakeupPeriod;
+    _lowPwrRequestPending = true;
+
+    // Wait for the idle task to finish the transition and post the result.
+    nxsem_wait_uninterruptible(&_lowPwrRequestComplete);
+    ret = _lowPwrRequestResult;
+
+    #if defined(CONFIG_MEADOW_ESPCP_MANAGER)
+    // Release the ESP32 from reset. It reboots, and espcp_reset() marks the
+    // reset as expected so it isn't reported as an ESP32 fault.
+    if (esp32HeldInReset)
+    {
+        espcp_reset();
+    }
+    #endif
+
+    // Notify concerned modules that low-power mode has ended. If a module has
+    // a problem restarting it will be returned as an error, which will be output
+    // and things will continue.
+    (void) pwrmgmt_notify_registered_modules(false);
+
+    // Can now be reentered
     nxsem_post(&_lowPwrCtrlEntry);
-    return -EBUSY;
-  }
-
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
-  // Hold the ESP32 in reset (EN low) while in Stop mode. Left running it
-  // draws about 18 mA, more than half of Meadow's Stop current (Issue #680).
-  // The F7 keeps driving the pin low in Stop mode. Skipped when a debugger is
-  // attached to the ESP32 (reset_esp32_at_startup is 0): holding it in reset
-  // would detach the debugger. espcp_hold_in_reset()/espcp_reset() no longer
-  // check that setting themselves (Issue #508), so it is checked here.
-  // Note: anything using the network when Meadow sleeps is not torn down
-  // first. That needs an espcp teardown API (Issue #683).
-  bool esp32HeldInReset = ((_holdEsp32InResetInStop) && (espcp_should_reset_at_startup()));
-  if(esp32HeldInReset)
-  {
-    espcp_hold_in_reset();
-  }
-#endif
-
-  // Hand off the actual hardware transition (clock switch, alarm config,
-  // the real stop-mode wfi/wfe, and switching back) to the idle task --
-  // see pwrmgmt_idle_check_and_enter_lowpower(), called from up_idle().
-  // This eliminates the up_idle()/pwrmgmt cross-task race documented in
-  // Issue #436/#601: only the idle task ever executes wfi/wfe or touches
-  // this hardware sequence, so there's nothing left to race against.
-  _lowPwrRequestedWakeupPeriod = wakeupPeriod;
-  _lowPwrRequestPending = true;
-
-  // Wait for the idle task to finish the transition and post the result.
-  nxsem_wait_uninterruptible(&_lowPwrRequestComplete);
-  ret = _lowPwrRequestResult;
-
-#if defined (CONFIG_MEADOW_ESPCP_MANAGER)
-  // Release the ESP32 from reset. It reboots, and espcp_reset() marks the
-  // reset as expected so it isn't reported as an ESP32 fault.
-  if(esp32HeldInReset)
-  {
-    espcp_reset();
-  }
-#endif
-
-  // Notify concerned modules that low-power mode has ended. If a module has
-  // a problem restarting it will be returned as an error, which will be output
-  // and things will continue.
-  (void) pwrmgmt_notify_registered_modules(false);
-
-  // Can now be reentered
-  nxsem_post(&_lowPwrCtrlEntry);
-  return ret;
+    return ret;
 }
 
-#endif    // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
+#endif // #if defined (CONFIG_MEADOW_PWR_MGMT_SUPPORT)
