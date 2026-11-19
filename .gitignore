@@ -356,3 +356,6 @@ runtime-src/
 test-runs/
 **/__pycache__/**
 nuttx/*-globals.json
+
+# clangd index cache (CLion / clangd)
+.cache/
