@@ -65,11 +65,11 @@ All commands run from the **workspace root**, not from `nuttx/`:
 # Build with debug symbols
 ./build.sh --debug
 
-# Enable NSH on USART6 (COM6)
+# Enable NSH on the second USB CDC/ACM port (on USART6 (COM6) with --no-dualcdc)
 ./build.sh --nsh
 
-# Developer only: add a second USB CDC/ACM port for syslog (or for NSH with --nsh)
-./build.sh --dualcdc
+# Single USB CDC/ACM port. The default and release builds add a second port for syslog (or NSH with --nsh)
+./build.sh --no-dualcdc
 
 # Build for the Renode emulator (Meadow.OS.Emulator): HCOM on UART4, no USB, no bootloader.
 # See Documentation/Emulator.md.  Rebuild with --clean --force before flashing a board.

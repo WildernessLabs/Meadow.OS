@@ -124,8 +124,8 @@ its bundled LLDB, which fails with `unsupported connection URL: ''`.)
 Run the build and deploy configurations with **Run**, and the **Embedded Meadow** configurations
 with **Debug**.
 
-`--dualcdc` changes the NuttX configuration, so it is a full build; build with **Build (full
-clean)** to return to the standard configuration.
+The dual CDC configuration is the `build.sh` default, so **Build** and **Build (full clean)** also
+produce it. Add `--no-dualcdc` to a configuration for a single-port build.
 
 The **Embedded Meadow** configurations are of CLion's Embedded GDB Server type: CLion starts
 OpenOCD with the session, connects GDB to port 4242 and stops OpenOCD when the session ends.

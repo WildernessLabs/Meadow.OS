@@ -40,7 +40,7 @@ UNIT_TESTS=
 BOOTLOADER_OPTIONS=
 NUTTX_VERBOSE=
 ENABLE_NSH=false
-ENABLE_DUALCDC=false
+ENABLE_DUALCDC=true
 ENABLE_GDB_DIAGNOSTICS=false
 EMULATOR=false
 
@@ -93,6 +93,9 @@ case $i in
     --dualcdc)
     ENABLE_DUALCDC=true
     ;;
+    --no-dualcdc)
+    ENABLE_DUALCDC=false
+    ;;
     --gdbdiag)
     ENABLE_GDB_DIAGNOSTICS=true
     ;;
@@ -136,12 +139,36 @@ if [ "$HELP" = true ]; then
   echo "  --config=mono|netcore        Select Mono or .NET Core builds (default Mono)"
   echo "  -mfd|--makefiledebugging     Turn on debug options for make"
   echo "  -u|--unittests=*             Build the specified unit tests into the system"
-  echo "  --nsh                        Enable NSH (NuttX Shell) on USART6 (COM6)"
-  echo "  --dualcdc                    Developer only: add a second USB CDC/ACM port (/dev/ttyACM1)"
-  echo "                               for syslog, or for NSH instead when --nsh is also given"
+  echo "  --nsh                        Enable NSH (NuttX Shell) on the second USB CDC/ACM port, or"
+  echo "                               on USART6 (COM6) when --no-dualcdc is also given"
+  echo "  --dualcdc                    Add a second USB CDC/ACM port (/dev/ttyACM1) for syslog, or"
+  echo "                               for NSH when --nsh is also given (default)"
+  echo "  --no-dualcdc                 Build with a single USB CDC/ACM port"
   echo "  --emulator                   Build for the Renode emulator (Meadow.OS.Emulator): HCOM on"
   echo "                               UART4, no USB, no bootloader or Meadow.OS*.bin packaging"
   exit 0
+fi
+
+#
+# The emulator has no USB device, see enable_emulator().
+#
+if $EMULATOR; then
+  ENABLE_DUALCDC=false
+fi
+
+#
+# The dual CDC/ACM tweaks cannot be reversed on top of an existing .config, so
+# changing between the single and dual port configurations needs a fresh one.
+#
+if [ -r "$scriptdir/nuttx/.config" ]; then
+  CONFIGURED_DUALCDC=false
+  if grep -q "^CONFIG_BOARD_DUAL_CDCACM=y" "$scriptdir/nuttx/.config"; then
+    CONFIGURED_DUALCDC=true
+  fi
+  if [ "$CONFIGURED_DUALCDC" != "$ENABLE_DUALCDC" ]; then
+    printf "USB CDC/ACM port configuration changed, reconfiguring NuttX from the defconfig.\n"
+    FORCE=true
+  fi
 fi
 
 if [[ -z "$MEADOW_ADDITIONAL_MAKE_OPTIONS" ]]; then

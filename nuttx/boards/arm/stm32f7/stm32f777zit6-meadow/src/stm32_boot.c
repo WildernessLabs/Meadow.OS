@@ -83,7 +83,7 @@ static int board_init_usbdev(void)
   int ret;
 
 #if defined(CONFIG_USBDEV_COMPOSITE)
-  /* Developer only dual CDC/ACM build, see enable_dualcdc() in
+  /* Dual CDC/ACM build, see enable_dualcdc() in
    * scripts/configuration_tweaks.sh and Issue 457.  With
    * CONFIG_CDCACM_COMPOSITE set, boardctl() compiles out its stand alone
    * CDC/ACM connect but still returns OK for it, so without this branch the

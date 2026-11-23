@@ -23,7 +23,7 @@
 /* Meadow note: this file's CONFIG_BOARD_DUAL_CDCACM support (a second USB
  * CDC/ACM virtual serial port, presented over the same physical USB
  * connection via standard composite device descriptors) came in from
- * upstream NuttX.  Meadow uses it only in the developer only dual CDC/ACM
+ * upstream NuttX.  Meadow uses it only in the dual CDC/ACM
  * build (enable_dualcdc() in scripts/configuration_tweaks.sh), where
  * board_init_usbdev() in stm32_boot.c connects configuration 0 below.
  * Minor 0 (ttyACM0) stays HCOM and minor 1 (ttyACM1) is the second port.

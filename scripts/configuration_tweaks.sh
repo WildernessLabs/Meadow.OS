@@ -268,7 +268,7 @@ enable_nsh() {
 #
 # Enable a second USB CDC/ACM port (Issue #457).
 #
-# Developer only - never set in the defconfig or CI.  The board enumerates as a
+# On by default, off with --no-dualcdc.  Never set in the defconfig.  The board enumerates as a
 # USB composite device carrying two CDC/ACM functions over the one physical USB
 # connection:
 #
@@ -294,8 +294,8 @@ enable_nsh() {
 # Same kconfig-tweak-never-runs-olddefconfig caveat as enable_nsh(): every
 # symbol Kconfig would have defaulted is written out explicitly, and the
 # non-composite CDC/ACM symbols (hidden by Kconfig once CDCACM_COMPOSITE is set)
-# are removed so they do not linger in the generated config.h.  Build with
-# --force to return to the single-port configuration afterwards.
+# are removed so they do not linger in the generated config.h.  build.sh
+# starts from a fresh .config when changing to or from --no-dualcdc.
 #
 enable_dualcdc() {
     printf "\n\n********** Enabling dual USB CDC/ACM (/dev/ttyACM0 + /dev/ttyACM1). **********\n\n"

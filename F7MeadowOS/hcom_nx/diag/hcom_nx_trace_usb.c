@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 /* Syslog to the second USB CDC/ACM port (/dev/ttyACM1), only in a
- * 'build.sh --dualcdc' developer build. See HCOM_USB_PORT2_USAGE in
+ * dual CDC/ACM build (the default). See HCOM_USB_PORT2_USAGE in
  * hcom_shared_common.h and Documentation/DualCdcAcm.md.
  *
  * This thread has its own RAMLOG reader, separate from the RamlogRead

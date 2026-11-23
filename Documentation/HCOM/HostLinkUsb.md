@@ -41,7 +41,7 @@ So the host can see and enumerate the device before HCOM is running. If `board_i
 fails, the error is logged (`board_init_usbdev failed`) and the boot continues with no USB link.
 
 `board_init_usbdev()` has three branches. The shipping configuration uses the stand-alone CDC/ACM
-branch. With `CONFIG_USBDEV_COMPOSITE` (the developer-only dual-port build, see
+branch. With `CONFIG_USBDEV_COMPOSITE` (the default dual-port build, see
 [below](#the-dual-port-developer-build)) it initialises and connects a composite device instead.
 A third, PL2303 branch exists but cannot be reached, because the function is only called when
 `CONFIG_CDCACM` is set.
@@ -67,7 +67,7 @@ The shipping `meadow_os` defconfig sets:
 | Item | Value |
 |------|-------|
 | USB vendor ID | `0x2E6A` |
-| Product ID | `0x0001` (single-port build); `0x0002` in the dual-port developer build |
+| Product ID | `0x0001` (single-port build); `0x0002` in the default dual-port build |
 | Vendor string | "Wilderness Labs" |
 | Product string | "Meadow F7 Micro" |
 | Serial number | 12 hexadecimal characters calculated from the MCU's 96-bit unique ID (`board_usbdev_serialstr()` in `hcom_nx_common_utils.c`, which calls `hcom_nx_common_utils_calc_f7_sn()`) |
@@ -207,7 +207,7 @@ the rebased `nuttx/arch/arm/src/stm32f7/stm32_start.c`, and the in-tree bootload
 it either, so today the request restarts the device normally. It is tracked as Issue #818. Putting
 the board into DFU mode with the BOOT0 button is not affected.
 
-## The Dual-Port Developer Build
+## The Dual-Port Build
 
 `build.sh --dualcdc` replaces the stand-alone CDC/ACM device with a composite USB device that has two
 CDC/ACM interfaces. [DualCdcAcm.md](../DualCdcAcm.md) covers it fully. What matters here:

@@ -321,7 +321,8 @@ similar) device, and on Linux typically `/dev/ttyUSB0` or `/dev/ttyACM0`.
 
 ## Step 3: Enable and use NSH
 
-NSH is started automatically on USART6 when the `--nsh` flag is used in the build.
+NSH is started automatically when the `--nsh` flag is used in the build: on the second USB
+CDC/ACM port by default, or on USART6 with `--no-dualcdc`.
 
 ### Running the developer tests: `meadowtest`
 
