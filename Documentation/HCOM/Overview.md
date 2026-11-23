@@ -52,7 +52,7 @@ Other documents already cover related ground and are linked rather than repeated
 [Architecture.md](../Architecture.md) (protected build model, boot sequence),
 [Memory.md](../Memory.md) (memory map, partitions, MPU, battery-backed register map),
 [Kernelspace.md](../Kernelspace.md) and [Userspace.md](../Userspace.md) (module inventories),
-[DualCdcAcm.md](../DualCdcAcm.md) (the developer-only second USB serial port) and
+[DualCdcAcm.md](../DualCdcAcm.md) (the second USB serial port) and
 [SdCard.md](../SdCard.md).
 
 ## The System at a Glance

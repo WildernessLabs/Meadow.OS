@@ -196,7 +196,7 @@
 
 /**
  * Copies syslog from the ramlog to the second USB port, only in a
- * 'build.sh --dualcdc' developer build. Below RamlogRead so the UART and
+ * dual CDC/ACM build (the default). Below RamlogRead so the UART and
  * host syslog outputs are served first.
  */
 #define HCOM_THREAD_PRIORITY_TRACE_USB 110

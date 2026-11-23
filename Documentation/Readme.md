@@ -13,7 +13,7 @@ For a project overview, architecture summary, build instructions, and hardware s
 | [Debugging.md](Debugging.md) | OpenOCD/GDB setup, flashing options, QEMU support, Python GDB extensions |
 | [Rebasing](Rebasing.md) | Rebasing with mainline NuttX and NuttX apps |
 | [Developer Tests](RunningDeveloperTests.md) | How to build and run developer (unit) tests |
-| [Dual USB CDC/ACM](DualCdcAcm.md) | Developer-only `--dualcdc` build: second USB serial port, pinning Meadow.CLI to HCOM |
+| [Dual USB CDC/ACM](DualCdcAcm.md) | Default and release build: second USB serial port, pinning Meadow.CLI to HCOM |
 | [Emulator](Emulator.md) | `build.sh --emulator` and running Meadow.OS in the Renode emulator (Meadow.OS.Emulator) |
 | [Meadow DAC](MeadowDac.md) | Draft design: native DAC driver for A00/A01 (issue #158) |
 | [Cell Network](Cell.md) | Cellular modem over CMUX: configuration, start-up, the managed API, upstream changes, testing |

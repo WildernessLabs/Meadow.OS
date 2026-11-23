@@ -104,7 +104,7 @@ config BOARD_USB_PORT2_NSH
 	depends on BOARD_DUAL_CDCACM && SYSTEM_NSH
 	default n
 	---help---
-		Developer builds only, set by 'build.sh --dualcdc --nsh'. The
+		Set by 'build.sh --nsh' in a dual CDC/ACM build. The
 		second USB CDC/ACM port (ttyACM1) runs NSH instead of carrying
 		syslog. See Documentation/DualCdcAcm.md.
 

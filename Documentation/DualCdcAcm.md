@@ -1,18 +1,18 @@
-# Dual USB CDC/ACM (Developer Builds)
+# Dual USB CDC/ACM
 
 ## Overview
 
-A normal Meadow.OS build presents a single USB serial port, used for HCOM (the
-Meadow.CLI protocol). The `--dualcdc` build option adds a second USB serial port on
-the same cable, for developer use only (see issue #457):
+A default Meadow.OS build presents two USB serial ports on the same cable: HCOM (the
+Meadow.CLI protocol) and a second port for syslog or NSH (see issue #457). The
+`--no-dualcdc` build option removes the second port:
 
 | Board device   | Windows Hardware Id | Linux `/dev/serial/by-id` suffix | Used for                      |
 |----------------|---------------------|----------------------------------|-------------------------------|
 | `/dev/ttyACM0` | `MI_00`             | `-if00`                          | HCOM (unchanged)              |
 | `/dev/ttyACM1` | `MI_02`             | `-if02`                          | Syslog, or NSH (see below)    |
 
-This option is never used for shipping builds. The tracked `defconfig` carries none of
-it, and the normal build's USB setup is unchanged.
+Release images are built with both ports. The tracked `defconfig` carries none of the
+dual-port settings; `build.sh` applies them.
 
 ### What Uses the Second Port
 
@@ -20,10 +20,10 @@ The build options choose it:
 
 | Build options       | Second USB port | NSH        | Syslog UART (USART1)    |
 |---------------------|-----------------|------------|-------------------------|
-| (none)              | none            | none       | when UART trace is on   |
-| `--nsh`             | none            | USART6     | when UART trace is on   |
-| `--dualcdc`         | syslog          | none       | when UART trace is on   |
-| `--dualcdc --nsh`   | NSH             | USB port 2 | when UART trace is on   |
+| (none)              | syslog          | none       | when UART trace is on   |
+| `--nsh`             | NSH             | USB port 2 | when UART trace is on   |
+| `--no-dualcdc`      | none            | none       | when UART trace is on   |
+| `--no-dualcdc --nsh`| none            | USART6     | when UART trace is on   |
 
 Syslog to the CLI works the same in all four. The code tests `HCOM_USB_PORT2_USAGE` in
 `F7MeadowOS/include/meadow/hcom_shared_common.h`, which is derived from the build
@@ -31,7 +31,7 @@ Syslog to the CLI works the same in all four. The code tests `HCOM_USB_PORT2_USA
 
 ## Syslog on the Second Port
 
-In a `--dualcdc` build, syslog always goes to the second port. No CLI command is needed.
+In a dual-port build, syslog always goes to the second port. No CLI command is needed.
 It is sent in addition to the existing outputs: the syslog UART and the CLI
 (`meadow uart trace` and `meadow trace` commands) work as before and are not affected
 by it.
@@ -93,19 +93,24 @@ board is up, another program has the port open.
 ## Building
 
 ```bash
-# First build with the second port - --force resets .config to the defconfig first
-./build.sh --force --dualcdc
+# Default build, with the second port
+./build.sh
 
 # NSH on the second port instead of syslog
-./build.sh --force --dualcdc --nsh
+./build.sh --force --nsh
 
-# Back to the normal single-port build
-./build.sh --force
+# Single-port build
+./build.sh --no-dualcdc
 ```
+
+`build.sh` reconfigures from the defconfig by itself when the existing `.config` has the
+other port configuration. `--emulator` turns this option off because Renode does not model
+the USB OTG peripheral. It still has separate serial channels, using UARTs instead: HCOM on
+UART4 and syslog on USART1 (see [Emulator.md](Emulator.md)).
 
 Flash the result with `flash.sh` as usual.
 
-`--dualcdc` calls `enable_dualcdc()` in `scripts/configuration_tweaks.sh`, which switches
+Unless `--no-dualcdc` is given, `build.sh` calls `enable_dualcdc()` in `scripts/configuration_tweaks.sh`, which switches
 USB from the stand-alone CDC/ACM driver to the NuttX composite driver with two CDC/ACM
 members (`CONFIG_USBDEV_COMPOSITE`, `CONFIG_CDCACM_COMPOSITE`,
 `CONFIG_BOARD_DUAL_CDCACM`). As with `--nsh`, that function is the only place these
@@ -152,7 +157,7 @@ ports appear, it tries only the first one and gives up if that port isn't HCOM
 
 ## NSH on the Second Port
 
-With `--dualcdc --nsh`, NSH starts at boot on the second port instead of USART6, and
+With `--nsh`, NSH starts at boot on the second port instead of USART6, and
 syslog is not sent there. After `enable_nsh()` has applied the usual NSH settings (see
 `SettingupMeadowNSH.md`), `enable_dualcdc()` sets `CONFIG_BOARD_USB_PORT2_NSH` and
 points `CONFIG_NSH_ALTSTDIN`, `CONFIG_NSH_ALTSTDOUT` and `CONFIG_NSH_ALTSTDERR` at
